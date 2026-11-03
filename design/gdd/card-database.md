@@ -249,7 +249,7 @@ the same string on every machine (Run Structure stores it in the run record and 
 a run saved under a different version — R8; Meta Progression keeps `data_versions_seen[]` to
 drive retro-grants — M3.5; Treasures and Run UI display it); any edit to any file changes it;
 file order on disk, key order and whitespace do not. It is not authored and never appears in a
-data file — a manual "content version" string would be forgotten on the exact edit that matters.
+data file — a manual "content version" string would be forgotten on the exact edit that matters. The hashed body is the one after the CR-6 id sort, so record order in a file does not affect it (ADR-0002 erratum 2026-11-03).
 
 ### States and Transitions
 
