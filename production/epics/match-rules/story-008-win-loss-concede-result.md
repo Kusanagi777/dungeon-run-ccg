@@ -1,12 +1,12 @@
 # Story 008: Win, loss, concede and MatchResult
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -34,9 +34,9 @@ The match ends in exactly one place, `win_loss_check()`, which runs at the end o
 
 *From GDD `design/gdd/match-rules.md`, scoped to this story:*
 
-- [ ] AC-34 **GIVEN** both heroes at 1 health, **WHEN** an effect deals 1 to both heroes (a scripted trigger calling `apply_damage` twice), **THEN** `result.winner == BOSS`, `reason == both_dead`, and both `damage_dealt` events precede `match_ended` (DD-M12); **GIVEN** only the player's hero ≤ 0 **THEN** boss wins `hero_dead`; only the boss's hero ≤ 0 **THEN** player wins `hero_dead`; **GIVEN** the player's hero drops to ≤ 0 mid-loop and a later step in the same loop heals it above 0, **THEN** the match continues (the check runs only at the end of the loop).
-- [ ] AC-35 **GIVEN** the boss's Main phase, **WHEN** the player sends `concede`, **THEN** `phase == Ended`, `winner == BOSS`, `reason == concede`; a following boss `end_turn` is rejected `MATCH_ENDED`; `concede` is also accepted in Mulligan and Choice, and from the boss issuer it is `NOT_YOUR_TURN`-class illegal (C2: issuer = PLAYER) — assert the code the ordered checks produce.
-- [ ] AC-42 **GIVEN** a `MatchResult`, **WHEN** inspected after `match_ended`, **THEN** it carries `result (win | loss | fault, from the player's side), winner, reason, floor, turns, turns_per_side, stats.damage_dealt_by_card` (plus `damage_taken`, `cards_played`, `minions_summoned`) for both sides and final hero health both sides (`MatchFactory.make_match_result` keys); **GIVEN** a `resolution_overflow` (step cap forced via test config; the loop itself is story 009 — here `fault(reason)` is the engine entry point), **THEN** `result == fault` and `winner == null`; `match_ended` is the last event, the log is sealed, `resolver.unbind()` was called, and the engine is collectable (`weakref` test); **GIVEN** the log reports `log_overflow` on an append, **THEN** the engine stops and emits exactly one `match_ended{result: fault, reason: event_cap, winner: null}`.
+- [x] AC-34 **GIVEN** both heroes at 1 health, **WHEN** an effect deals 1 to both heroes (a scripted trigger calling `apply_damage` twice), **THEN** `result.winner == BOSS`, `reason == both_dead`, and both `damage_dealt` events precede `match_ended` (DD-M12); **GIVEN** only the player's hero ≤ 0 **THEN** boss wins `hero_dead`; only the boss's hero ≤ 0 **THEN** player wins `hero_dead`; **GIVEN** the player's hero drops to ≤ 0 mid-loop and a later step in the same loop heals it above 0, **THEN** the match continues (the check runs only at the end of the loop).
+- [x] AC-35 **GIVEN** the boss's Main phase, **WHEN** the player sends `concede`, **THEN** `phase == Ended`, `winner == BOSS`, `reason == concede`; a following boss `end_turn` is rejected `MATCH_ENDED`; `concede` is also accepted in Mulligan and Choice, and from the boss issuer it is `NOT_YOUR_TURN`-class illegal (C2: issuer = PLAYER) — assert the code the ordered checks produce.
+- [x] AC-42 **GIVEN** a `MatchResult`, **WHEN** inspected after `match_ended`, **THEN** it carries `result (win | loss | fault, from the player's side), winner, reason, floor, turns, turns_per_side, stats.damage_dealt_by_card` (plus `damage_taken`, `cards_played`, `minions_summoned`) for both sides and final hero health both sides (`MatchFactory.make_match_result` keys); **GIVEN** a `resolution_overflow` (step cap forced via test config; the loop itself is story 009 — here `fault(reason)` is the engine entry point), **THEN** `result == fault` and `winner == null`; `match_ended` is the last event, the log is sealed, `resolver.unbind()` was called, and the engine is collectable (`weakref` test); **GIVEN** the log reports `log_overflow` on an append, **THEN** the engine stops and emits exactly one `match_ended{result: fault, reason: event_cap, winner: null}`.
 
 ---
 
@@ -70,9 +70,9 @@ The match ends in exactly one place, `win_loss_check()`, which runs at the end o
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (`win_loss_check`, `_end_match`, `end_match`, `fault`, `concede` handler, `result`)
-- `src/gameplay/match/match_records.gd` (`MatchResult` builder)
-- `tests/unit/match_rules/match_rules_win_loss_test.gd`
+- `src/gameplay/match/rules_engine.gd` — `_win_loss_check` (both_dead / hero_dead, at the end of every action and C4 Start 7 / End 6), `concede` handler and `_validate` row, `fault(reason, steps)`, `end_match()` (idempotent teardown), `_end_match(winner, reason)` (full `MatchResult`, `match_ended`, `resolver.unbind()` once, test-only `signal match_ended`), `_halted()` guards in every primitive and step, `emit` / `_reject` answer a refused append with `fault(event_cap)` and append nothing once Ended
+- `src/gameplay/match/match_records.gd` — `final_result(state, winner, reason, final_health)` (the C14 builder), `RESULT_*`, `REASON_*`, `FAULT_REASONS`, `concede()` command builder
+- `tests/unit/match_rules/match_rules_win_loss_test.gd` — 15 test functions
 
 ---
 
@@ -90,7 +90,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_win_loss_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (15 test functions)
 
 ---
 
@@ -98,3 +98,18 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-007-damage-heal-armor.md`
 - Unlocks: `production/epics/match-rules/story-009-resolution-loop.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 22:45:03 UTC, ended 22:52:46 UTC)
+**Criteria**: 3/3 passing — AC-34 (`test_both_heroes_at_zero_after_one_action_is_a_boss_win_both_dead`, `test_only_the_player_hero_dead_is_a_boss_win_hero_dead`, `test_only_the_boss_hero_dead_is_a_player_win_hero_dead`, `test_a_hero_at_zero_mid_action_healed_later_in_the_same_action_survives`, `test_win_loss_check_on_a_living_match_changes_nothing`), AC-35 (`test_player_concede_during_the_boss_main_ends_the_match_for_the_boss`, `test_concede_is_accepted_in_mulligan_and_choice`, `test_concede_from_the_boss_issuer_is_rejected_in_every_phase`, `test_concede_after_ended_is_match_ended`), AC-42 (`test_match_result_carries_the_c14_fields_and_both_sides_stats`, `test_resolution_overflow_fault_has_no_winner_and_seals_the_log`, `test_log_overflow_ends_the_match_with_exactly_one_event_cap_match_ended`, `test_ended_engine_is_collected_after_unbind`, `test_end_match_on_a_live_engine_unbinds_once`, `test_match_ended_signal_fires_once_with_the_result`). Watched fail: 12 of 15 against the story-007 engine (the three that passed pin pre-existing behaviour: the boss issuer's `WRONG_PHASE`, a hero healed back above 0, a no-op check); mutants — no `unbind()` at Ended (4 tests fail), `_unbind` that never reaches the resolver (both weakref assertions fail: the cycle keeps the engine alive), `both_dead` branch disabled (the AC-34 test fails).
+**Deviations** (advisory):
+- A boss-issued `concede` is `WRONG_PHASE` in every phase: the story-004 phase guard answers a disallowed issuer of a PLAYER-only row with `WRONG_PHASE` (AC-35 asks for "the code the ordered checks produce"; it reads "NOT_YOUR_TURN-class").
+- `win_loss_check` stays engine-internal (`_win_loss_check`, ADR-0007 ownership table "internal"); the test calls it directly once.
+- `end_match()` on a live match unbinds without ending it (card-effects story 002's teardown test calls it before any end); on an ended match it is a no-op, since the engine unbinds at `Ended` itself.
+- Once `Ended`, `emit` appends nothing and a rejection is not logged (`command_rejected` would be an append to a sealed log — a production `EventLog` caller bug); a post-Ended rejection's range is `[0, 0]`.
+- The event-cap answer reads the append result (`-1` on a live match), not `EventLog.overflowed`: connecting the signal would give the log a reference back into the engine. Every primitive and step is a no-op after the fault (`_halted()`), so the action stops without further mutation; the mutation that preceded the refused event stays (its event is the one the log dropped).
+- `fault(reason, steps)`: `steps` is the `resolution_overflow {steps}` payload story 009's loop supplies.
+- Concede is not listed in `legal_commands()` (C2 lists the active side's expansions plus `end_turn`; the boss may never concede).
+**Test Evidence**: `tests/unit/match_rules/match_rules_win_loss_test.gd` (15 tests); full suite 751 test cases, 0 failures, exit 0, 36 SCRIPT ERROR lines (baseline intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — the story changes the headless end-of-match rules and the event log only; no scene, node or screen renders them (Match UI's result screen is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

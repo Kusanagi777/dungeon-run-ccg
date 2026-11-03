@@ -28,7 +28,11 @@
 ## Interactions) — each validates its arguments (a missing entity is a no-op
 ## with no event), mutates the plain-data state, emits its one event through
 ## [method emit] and returns, never running the death check or auras — and
-## the full [method draw] (burn, fatigue, `on_draw`).
+## the full [method draw] (burn, fatigue, `on_draw`); story 007 F2 in
+## [method apply_damage] and the healing fold; story 008 the C14 end —
+## `win_loss_check` at the end of every action, `concede`, [method fault],
+## the full `MatchResult` ([method result]), `resolver.unbind()` at `Ended`
+## and the idempotent teardown [method end_match].
 ## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
@@ -100,8 +104,13 @@ const R_WRONG_PHASE: String = "WRONG_PHASE"
 const R_CHOICE_PENDING: String = "CHOICE_PENDING"
 const R_ENGINE_BUSY: String = "ENGINE_BUSY"
 const R_INVALID_MASK: String = "INVALID_MASK"
+## Emitted once, after `match_ended` reached the log's subscribers and the
+## resolver was unbound, with the `MatchResult`. A unit-test convenience only:
+## never connected in production (ADR-0008 — `MatchDriver` emits its own).
+signal match_ended(result: Dictionary)
+
 ## C14 `MatchResult.reason` for the `TURN_CAP` termination guarantee.
-const REASON_TURN_CAP: String = "turn_cap"
+const REASON_TURN_CAP: String = MatchRecords.REASON_TURN_CAP
 ## The engine primitive API (match-rules Interactions; ADR-0007 Decision 1):
 ## the only calls that mutate a started match, each leaving one event. The
 ## 24th call, `recompute_auras`, is the resolver's, run by the C10 loop.
@@ -169,6 +178,9 @@ var _queue: Array[Dictionary] = []
 ## engine does not build a context per hit either).
 var _damage_ctx: Dictionary = {"source": null, "target": 0}
 var _heal_ctx: Dictionary = {"source": null, "target": 0}
+## True from `resolver.bind` in [method start] until `resolver.unbind()`
+## (at `Ended`, or [method end_match]) — unbind runs exactly once.
+var _bound: bool = false
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -290,6 +302,7 @@ func start(config: Dictionary) -> void:
 	installers.append_array(config.player.hook_installers)
 	installers.append_array(config.boss.hook_installers)
 	_resolver.bind(self, installers)
+	_bound = true
 	_log_skipped_installers(installers)
 	# C3 step 2: heroes
 	# TODO(card-database story 006): read the hero record's `health` (defaulting
@@ -322,7 +335,10 @@ func start(config: Dictionary) -> void:
 ## Check order: `ENGINE_BUSY` (a nested call while resolving) →
 ## `MATCH_ENDED` → the phase guard [constant PHASE_COMMANDS] (`WRONG_PHASE`,
 ## `NOT_YOUR_TURN`, `CHOICE_PENDING`) → the command's own C2 row, first
-## failing reason wins. Synchronous: no `await`.
+## failing reason wins. Synchronous: no `await`. Every accepted action ends
+## with its C10 loop and `win_loss_check` (C14); `concede` (PLAYER, any phase
+## but Ended) ends the match for the boss, and once `Ended` every command is
+## `MATCH_ENDED`.
 ## [codeblock]
 ## var r: Dictionary = engine.submit(MatchRecords.mulligan([true, false, false]))
 ## if not r.accepted: show(r.rejection.code)
@@ -348,7 +364,13 @@ func submit(command: Dictionary) -> Dictionary:
 			_do_mulligan(command.keep_mask)
 		MatchRecords.CMD_END_TURN:
 			_end_step(_state.active_side)
-	# TODO(story 009): the C10 loop; TODO(story 008): win_loss_check.
+		MatchRecords.CMD_CONCEDE:
+			_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_CONCEDE)
+	# The end of every action: its C10 loop (story 009), then C14.
+	if not _halted():
+		_run_resolution_loop()
+		@warning_ignore("return_value_discarded")
+		_win_loss_check()
 	_resolving = false
 	return MatchRecords.command_result(true, "", "", _call_first_seq, _call_last_seq)
 
@@ -391,7 +413,10 @@ func pending_choice() -> Variant:
 	return choice.duplicate(true) if choice is Dictionary else choice
 
 
-## A value copy of the `MatchResult` once `Ended`, else null (C14).
+## A value copy of the `MatchResult` once `Ended`, else null (C14): `{result:
+## win | loss | fault (from the player's side), winner, reason, floor, turns,
+## turns_per_side, stats{player, boss}, final_health{player, boss}}` — no
+## seed (DD-R09).
 func result() -> Variant:
 	var outcome: Variant = _state.result
 	return outcome.duplicate(true) if outcome is Dictionary else outcome
@@ -401,10 +426,20 @@ func result() -> Variant:
 ## and returns its `seq` (ADR-0007 Decision 6). Every engine mutation emits
 ## through here, and so does the resolver (`effect_resolved`,
 ## `counter_changed`, …), so `log.append` call sites stay inside the engine.
+## A refused append (`-1`) on a match that has not ended is the log's
+## overflow (ADR-0003 Decision 8: the log has appended `log_overflow` and
+## accepts exactly one more event): the engine answers with
+## `fault(event_cap)`, whose `match_ended` is that event, and stops — every
+## primitive and step is a no-op from then on. Once `Ended`, emit appends
+## nothing (returns `-1`): the log is sealed.
 ## [codeblock]
 ## var seq: int = engine.emit(&"counter_changed", {"source_id": 7, "key": "seen", "value": 2})
 ## [/codeblock]
 func emit(type: StringName, payload: Dictionary) -> int:
+	# Once Ended the only event left is the match's own match_ended; anything
+	# else would be an append to a sealed log (a caller bug, ADR-0003).
+	if _halted() and type != &"match_ended":
+		return -1
 	# TODO(rng-event-log story 005): type the log as `EventLog`.
 	var log: Variant = _state.log
 	var seq: int = log.append(type, payload, _cause_seq)
@@ -412,6 +447,8 @@ func emit(type: StringName, payload: Dictionary) -> int:
 		if _call_first_seq == 0:
 			_call_first_seq = seq
 		_call_last_seq = seq
+	elif not _halted():
+		fault(MatchRecords.REASON_EVENT_CAP)
 	return seq
 
 
@@ -444,6 +481,8 @@ func rng_match() -> RefCounted:
 func draw(side: String, n: int) -> void:
 	var player: Dictionary = _state.players[side]
 	for _i: int in n:
+		if _halted():
+			return
 		if player.deck.is_empty():
 			player.fatigue_counter = int(player.fatigue_counter) + 1
 			var k: int = player.fatigue_counter
@@ -463,6 +502,8 @@ func draw(side: String, n: int) -> void:
 		card.zone = "hand"
 		player.hand.append(card)
 		emit(&"card_drawn", {"side": side, "instance_id": instance_id, "card_id": def_id, "hand_size": player.hand.size()})
+		if _halted():
+			return
 		_state.hooks.run_triggers(&"on_draw", StringName(side), {"instance_id": instance_id, "card_id": def_id})
 		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id})
 
@@ -478,6 +519,8 @@ func draw(side: String, n: int) -> void:
 ## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
 ## [/codeblock]
 func add_mana(side: String, n: int, temporary: bool = false) -> void:
+	if _halted():
+		return
 	if temporary:
 		push_error("RulesEngine.add_mana: temporary crystals are match-rules story 011")
 		return
@@ -514,6 +557,8 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 ## var dealt: int = engine.apply_damage(target_id, 3, attacker_id)
 ## [/codeblock]
 func apply_damage(target_id: int, requested: int, source: Variant) -> int:
+	if _halted():
+		return 0
 	var target: Dictionary = _character(target_id)
 	if target.is_empty():
 		return 0
@@ -529,12 +574,16 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 		amount = 0
 		_strip_keyword(target, MatchRecords.KEYWORD_DIVINE_SHIELD)
 		emit(&"divine_shield_popped", {"entity_id": target_id, "prevented": prevented})
+		if _halted():
+			return 0
 	var armor_absorbed: int = 0
 	if target.kind == MatchRecords.KIND_HERO:
 		armor_absorbed = mini(int(target.armor), amount)
 		if armor_absorbed > 0:
 			target.armor = int(target.armor) - armor_absorbed
 			emit(&"armor_lost", {"side": target_side, "entity_id": target_id, "amount": armor_absorbed, "armor": int(target.armor)})
+			if _halted():
+				return 0
 	var to_health: int = amount - armor_absorbed
 	target.damage_taken = int(target.damage_taken) + to_health
 	var dealt: int = armor_absorbed + to_health
@@ -542,7 +591,7 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 		"source": source, "target": target_id, "requested": requested, "prevented": prevented,
 		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
 	})
-	if dealt <= 0:
+	if dealt <= 0 or _halted():
 		return dealt
 	_record_damage_stats(target_side, source, source_side, dealt)
 	if target.kind == MatchRecords.KIND_MINION and _source_has(source, MatchRecords.KEYWORD_POISONOUS):
@@ -569,6 +618,8 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 ## engine.apply_heal(hero_id, 10, source_id)   # restores at most damage_taken
 ## [/codeblock]
 func apply_heal(target_id: int, amount: int, source: Variant) -> int:
+	if _halted():
+		return 0
 	var target: Dictionary = _character(target_id)
 	if target.is_empty():
 		return 0
@@ -590,6 +641,8 @@ func apply_heal(target_id: int, amount: int, source: Variant) -> int:
 ## engine.apply_armor("player", 4)
 ## [/codeblock]
 func apply_armor(side: String, amount: int) -> void:
+	if _halted():
+		return
 	var hero: Dictionary = _state.players[side].hero
 	hero.armor = int(hero.armor) + amount
 	emit(&"armor_gained", {"side": side, "entity_id": int(hero.entity_id), "amount": amount, "armor": int(hero.armor)})
@@ -606,6 +659,8 @@ func apply_armor(side: String, amount: int) -> void:
 ## engine.apply_enchantment(minion_id, {"attack_delta": 2, "health_delta": 2})
 ## [/codeblock]
 func apply_enchantment(target_id: int, enchantment: Dictionary) -> void:
+	if _halted():
+		return
 	var record: Dictionary = _find_record(target_id)
 	if record.is_empty():
 		return
@@ -629,6 +684,8 @@ func apply_enchantment(target_id: int, enchantment: Dictionary) -> void:
 ## engine.remove_enchantment(minion_id, 0)
 ## [/codeblock]
 func remove_enchantment(target_id: int, index: int) -> void:
+	if _halted():
+		return
 	var record: Dictionary = _find_record(target_id)
 	if record.is_empty():
 		return
@@ -658,6 +715,8 @@ func remove_enchantment(target_id: int, index: int) -> void:
 ## var id: int = engine.summon_minion("boss", "boss_imp", -1)
 ## [/codeblock]
 func summon_minion(side: String, def_id: String, position: int) -> int:
+	if _halted():
+		return NO_ENTITY
 	var player: Dictionary = _state.players[side]
 	var board: Array = player.board
 	if board.size() >= rule("board_size"):
@@ -686,6 +745,8 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 ## engine.destroy(minion_id)
 ## [/codeblock]
 func destroy(target_id: int) -> void:
+	if _halted():
+		return
 	var record: Dictionary = _minion(target_id)
 	if record.is_empty():
 		record = _weapon(target_id)
@@ -701,6 +762,8 @@ func destroy(target_id: int) -> void:
 ## engine.silence(minion_id)
 ## [/codeblock]
 func silence(target_id: int) -> void:
+	if _halted():
+		return
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return
@@ -715,6 +778,8 @@ func silence(target_id: int) -> void:
 ## engine.freeze(hero_id)
 ## [/codeblock]
 func freeze(target_id: int) -> void:
+	if _halted():
+		return
 	var character: Dictionary = _character(target_id)
 	if character.is_empty():
 		return
@@ -731,6 +796,8 @@ func freeze(target_id: int) -> void:
 ## engine.add_keyword(minion_id, "taunt")
 ## [/codeblock]
 func add_keyword(target_id: int, keyword: String) -> void:
+	if _halted():
+		return
 	var record: Dictionary = _character(target_id)
 	if record.is_empty():
 		record = _weapon(target_id)
@@ -749,6 +816,8 @@ func add_keyword(target_id: int, keyword: String) -> void:
 ## var card_id: int = engine.return_to_hand(minion_id)
 ## [/codeblock]
 func return_to_hand(target_id: int) -> int:
+	if _halted():
+		return NO_ENTITY
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return NO_ENTITY
@@ -769,6 +838,8 @@ func return_to_hand(target_id: int) -> int:
 ## var sheep_id: int = engine.transform(target_id, "neutral_sheep")
 ## [/codeblock]
 func transform(target_id: int, def_id: String) -> int:
+	if _halted():
+		return NO_ENTITY
 	var old: Dictionary = _minion(target_id)
 	if old.is_empty():
 		return NO_ENTITY
@@ -800,6 +871,8 @@ func transform(target_id: int, def_id: String) -> int:
 ## var axe_id: int = engine.equip_weapon("player", "war_iron_axe")
 ## [/codeblock]
 func equip_weapon(side: String, def_id: String) -> int:
+	if _halted():
+		return NO_ENTITY
 	var def: Dictionary = _card_def(def_id)
 	if def.is_empty():
 		return NO_ENTITY
@@ -826,6 +899,8 @@ func equip_weapon(side: String, def_id: String) -> int:
 ## var req: Dictionary = engine.discover("player", ["a_01", "b_02", "c_03"], MatchRecords.CHOICE_DISCOVER, source_id, "scout.0")
 ## [/codeblock]
 func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_DISCOVER, source_id: Variant = null, effect_id: String = "") -> Dictionary:
+	if _halted():
+		return {}
 	var request: Dictionary = MatchRecords.choice_request(side, kind, options, source_id, effect_id)
 	_state.pending_choice = request
 	emit(&"choice_requested", request)
@@ -841,6 +916,8 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 ## engine.add_card_to_hand("player", "neutral_coin")
 ## [/codeblock]
 func add_card_to_hand(side: String, def_id: String) -> int:
+	if _halted():
+		return NO_ENTITY
 	return _add_to_hand(side, def_id, NO_ENTITY)
 
 
@@ -853,6 +930,8 @@ func add_card_to_hand(side: String, def_id: String) -> int:
 ## engine.set_stats(minion_id, 4, 1)
 ## [/codeblock]
 func set_stats(target_id: int, new_attack: Variant = null, new_health: Variant = null) -> void:
+	if _halted():
+		return
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return
@@ -876,6 +955,8 @@ func set_stats(target_id: int, new_attack: Variant = null, new_health: Variant =
 ## engine.remove_keyword(minion_id, "taunt")
 ## [/codeblock]
 func remove_keyword(target_id: int, keyword: String) -> void:
+	if _halted():
+		return
 	var record: Dictionary = _character(target_id)
 	if record.is_empty():
 		record = _weapon(target_id)
@@ -896,6 +977,8 @@ func remove_keyword(target_id: int, keyword: String) -> void:
 ## engine.add_card_to_deck("boss", "boss_bomb", MatchRecords.POSITION_RANDOM)
 ## [/codeblock]
 func add_card_to_deck(side: String, def_id: String, position: String = MatchRecords.POSITION_RANDOM) -> int:
+	if _halted():
+		return NO_ENTITY
 	var deck: Array = _state.players[side].deck
 	var index: int
 	match position:
@@ -926,6 +1009,8 @@ func add_card_to_deck(side: String, def_id: String, position: String = MatchReco
 ## engine.modify_durability(axe_id, -1)
 ## [/codeblock]
 func modify_durability(weapon_id: int, delta: int) -> void:
+	if _halted():
+		return
 	var weapon: Dictionary = _weapon(weapon_id)
 	if weapon.is_empty():
 		return
@@ -943,6 +1028,8 @@ func modify_durability(weapon_id: int, delta: int) -> void:
 ## engine.refresh_hero_power("player")
 ## [/codeblock]
 func refresh_hero_power(side: String) -> void:
+	if _halted():
+		return
 	var power: Dictionary = _state.players[side].hero_power
 	if not power.used_this_turn:
 		return
@@ -961,6 +1048,8 @@ func refresh_hero_power(side: String) -> void:
 ## engine.discard("player", MatchRecords.PICK_RANDOM)
 ## [/codeblock]
 func discard(side: String, which: Variant = MatchRecords.PICK_RANDOM) -> int:
+	if _halted():
+		return NO_ENTITY
 	var player: Dictionary = _state.players[side]
 	var hand: Array = player.hand
 	if hand.is_empty():
@@ -1062,9 +1151,14 @@ static func _config_error(code: StringName, key: String, message: String) -> Dic
 
 
 ## A rejection (C2): no mutation; one diagnostic `command_rejected` on the
-## same log, outside the current call's event range (rule 12a).
+## same log, outside the current call's event range (rule 12a). After
+## `match_ended` the log is sealed (rule 15), so a `MATCH_ENDED` rejection is
+## not logged and its range is `[0, 0]`. A diagnostic the log refuses on a
+## live match is its overflow: `fault(event_cap)`, as in [method emit].
 func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
 	assert(REJECTION_CODES.has(code), "rejection code '%s' is outside the closed C2 set" % code)
+	if _state.result != null:
+		return MatchRecords.command_result(false, code, detail, 0, 0)
 	var log: Variant = _state.log
 	var seq: int = log.append(&"command_rejected", {
 		"side": str(command.get("issuer", "")),
@@ -1073,6 +1167,8 @@ func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
 		"detail": detail,
 		"diagnostic": true,
 	}, 0)
+	if seq < 0 and not _halted():
+		fault(MatchRecords.REASON_EVENT_CAP)
 	return MatchRecords.command_result(false, code, detail, seq, seq)
 
 
@@ -1110,9 +1206,9 @@ func _validate(type: String, command: Dictionary) -> String:
 				if typeof(bit) != TYPE_BOOL:
 					return R_INVALID_MASK
 			return ""
-		MatchRecords.CMD_END_TURN:
+		MatchRecords.CMD_END_TURN, MatchRecords.CMD_CONCEDE:
 			return ""
-	# TODO(stories 008, 010, 012, 016): concede, play_card,
+	# TODO(stories 010, 012, 016): play_card,
 	# use_hero_power, attack and choose handlers. Until one exists its
 	# command is not accepted in any phase.
 	return R_WRONG_PHASE
@@ -1139,7 +1235,11 @@ func _do_mulligan(keep_mask: Array) -> void:
 	stream.shuffle(player.deck)
 	emit(&"deck_shuffled", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(player.deck)})
 	draw(MatchRecords.SIDE_PLAYER, replaced.size())
+	if _halted():
+		return
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
+	if _halted():
+		return
 	# C3 step 8: match_started, then the player's first Start step (DD-M03)
 	emit(&"match_started", {
 		"floor": _state.floor,
@@ -1148,12 +1248,15 @@ func _do_mulligan(keep_mask: Array) -> void:
 		"player_deck_size": _state.players[MatchRecords.SIDE_PLAYER].deck.size(),
 		"boss_deck_size": _state.players[MatchRecords.SIDE_BOSS].deck.size(),
 	})
+	if _halted():
+		return
 	_start_step(MatchRecords.SIDE_PLAYER)
 
 
 ## C4 Start step for [param side] (engine-driven; no command is accepted
 ## until Main). Step 0 is the States guard `*Turn.Start` with
 ## `turn > TURN_CAP`: the match ends for the boss, reason `turn_cap` (C14).
+## Stops at the first event the log refuses (`event_cap`, [method emit]).
 func _start_step(side: String) -> void:
 	if _state.turn + 1 > rule("turn_cap"):
 		_end_match(MatchRecords.SIDE_BOSS, REASON_TURN_CAP)
@@ -1166,13 +1269,19 @@ func _start_step(side: String) -> void:
 	player.turns_taken = int(player.turns_taken) + 1
 	_stamp_log_turn(_state.turn)
 	emit(&"turn_started", {"turn": _state.turn, "side": side})
+	if _halted():
+		return
 	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill
 	var old_max: int = int(player.mana_max)
 	player.mana_max = mini(int(player.turns_taken) + int(player.crystal_bonus), rule("max_mana"))
 	if int(player.mana_max) > old_max:
 		emit(&"crystal_gained", {"side": side, "mana_max": player.mana_max, "gained": int(player.mana_max) - old_max})
+		if _halted():
+			return
 	player.mana_current = player.mana_max
 	emit(&"mana_refilled", {"side": side, "mana_available": player.mana_current, "mana_max": player.mana_max})
+	if _halted():
+		return
 	# 3. one bulk reset, one event (DD-T04)
 	var reset_ids: Array[int] = []
 	for character: Dictionary in _characters_of(side):
@@ -1182,10 +1291,16 @@ func _start_step(side: String) -> void:
 		reset_ids.append(int(character.entity_id))
 	player.hero_power.used_this_turn = false
 	emit(&"turn_reset", {"side": side, "entity_ids": reset_ids})
+	if _halted():
+		return
 	# 4. on_turn_start hooks; 5. turn_start triggers in engine candidate order
 	_state.hooks.run_triggers(&"on_turn_start", StringName(side), {})
 	_run_resolution_loop()
+	if _halted():
+		return
 	_fire_trigger_point(&"turn_start", side)
+	if _halted():
+		return
 	# 6. draw one, turn 1 included; 7. win/loss, then Main
 	draw(side, 1)
 	if _win_loss_check():
@@ -1194,24 +1309,35 @@ func _start_step(side: String) -> void:
 
 
 ## C4 End step for the active [param side], entered by `end_turn`; runs the
-## other side's Start step when the match goes on.
+## other side's Start step when the match goes on. Stops at the first event
+## the log refuses (`event_cap`, [method emit]).
 func _end_step(side: String) -> void:
 	# 1.
 	_state.phase = MatchState.PHASE_END
 	emit(&"turn_ending", {"turn": _state.turn, "side": side})
+	if _halted():
+		return
 	# 2. turn_end triggers (same candidate order); 3. on_turn_end hooks
 	_fire_trigger_point(&"turn_end", side)
+	if _halted():
+		return
 	_state.hooks.run_triggers(&"on_turn_end", StringName(side), {})
 	_run_resolution_loop()
+	if _halted():
+		return
 	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
 	# 5. end_of_turn enchantments on everything `side` owns, then auras
 	#    TODO(story 011): temporary crystals expire here too.
 	_expire_end_of_turn(side)
+	if _halted():
+		return
 	_resolver.recompute_auras()
 	# 6.
 	if _win_loss_check():
 		return
 	emit(&"turn_ended", {"turn": _state.turn, "side": side})
+	if _halted():
+		return
 	_start_step(MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER)
 
 
@@ -1258,7 +1384,7 @@ func _expire_end_of_turn(side: String) -> void:
 
 func _expire_in(enchantments: Array, owner_id: int) -> void:
 	var i: int = 0
-	while i < enchantments.size():
+	while i < enchantments.size() and not _halted():
 		var enchantment: Dictionary = enchantments[i]
 		if enchantment.get("expires") == MatchRecords.EXPIRES_END_OF_TURN:
 			enchantments.remove_at(i)
@@ -1290,26 +1416,93 @@ func _run_resolution_loop() -> void:
 	pass
 
 
-## C14 `win_loss_check()`: true when the match has ended.
-## TODO(story 008): the hero-dead / both-dead outcomes; this story ends a
-## match only through `turn_cap`.
+## C14 `win_loss_check()` — the one place a match ends on health, run at the
+## end of every action's C10 loop and at C4 Start step 7 / End step 6, never
+## mid-loop (DD-M12: a later heal in the same action still saves a hero at
+## 0). Both heroes ≤ 0 → BOSS, `both_dead`; the player's ≤ 0 → BOSS,
+## `hero_dead`; the boss's ≤ 0 → PLAYER, `hero_dead`. Returns true when the
+## match has ended (now or before).
 func _win_loss_check() -> bool:
-	return _state.phase == MatchState.PHASE_ENDED
+	if _halted():
+		return true
+	var player_dead: bool = health(_state.players[MatchRecords.SIDE_PLAYER].hero) <= 0
+	var boss_dead: bool = health(_state.players[MatchRecords.SIDE_BOSS].hero) <= 0
+	if player_dead and boss_dead:
+		_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_BOTH_DEAD)
+	elif player_dead:
+		_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_HERO_DEAD)
+	elif boss_dead:
+		_end_match(MatchRecords.SIDE_PLAYER, MatchRecords.REASON_HERO_DEAD)
+	return _halted()
 
 
-## `phase = Ended` with a `MatchResult` (C14), emitted as `match_ended` — the
-## log's last event. [param winner] is a side; `result` is read from the
-## player's side.
-## TODO(story 008): the full `MatchResult` stats block, faults, and
-## `resolver.unbind()` at Ended (breaks the engine↔resolver cycle).
-func _end_match(winner: String, reason: String) -> void:
+## C14 / States `Ended`: ends the match with a fault — the third outcome,
+## `result = fault`, `winner = null` (Run Structure T9: the floor is not
+## lost). [param reason] is `resolution_overflow` (the C10 loop's step cap,
+## story 009; `resolution_overflow {steps: [param steps]}` is emitted first)
+## or `event_cap` (the log's overflow — [method emit] calls this, and the
+## `match_ended` is the one event the faulted log still accepts). A no-op
+## once Ended.
+## [codeblock]
+## engine.fault(MatchRecords.REASON_RESOLUTION_OVERFLOW, steps)
+## [/codeblock]
+func fault(reason: String, steps: int = 0) -> void:
+	assert(MatchRecords.FAULT_REASONS.has(reason), "fault reason '%s' is not one of %s" % [reason, str(MatchRecords.FAULT_REASONS)])
+	if _halted():
+		return
+	if reason == MatchRecords.REASON_RESOLUTION_OVERFLOW:
+		emit(&"resolution_overflow", {"steps": steps})
+		if _halted():
+			return
+	_end_match(null, reason)
+
+
+## The teardown entry `MatchDriver` calls on `Ended` (ADR-0008): releases
+## the resolver — `resolver.unbind()` clears its engine reference and the
+## registry's evaluators, breaking the engine↔resolver `RefCounted` cycle
+## (ADR-0007). Idempotent: the engine already unbinds when the match ends, so
+## on an ended match this does nothing; on a live one (an abandoned attempt,
+## a teardown test) it unbinds without ending the match, and the engine must
+## not be driven afterwards.
+## [codeblock]
+## if engine.phase() == MatchState.PHASE_ENDED: engine.end_match()
+## [/codeblock]
+func end_match() -> void:
+	_unbind()
+
+
+## `phase = Ended` (C14): builds the `MatchResult`
+## ([method MatchRecords.final_result]; [param winner] a side, or null for a
+## fault), stores it as `state.result`, emits it as `match_ended` (the log
+## seals on it — its last event), unbinds the resolver, then emits the
+## test-only [signal match_ended]. A no-op once Ended.
+func _end_match(winner: Variant, reason: String) -> void:
+	if _halted():
+		return
 	_state.phase = MatchState.PHASE_ENDED
-	var outcome: Dictionary = MatchRecords.match_result("win" if winner == MatchRecords.SIDE_PLAYER else "loss", winner, reason, _state.floor, _state.turn)
+	var final_health: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
-		outcome.turns_per_side[side] = int(_state.players[side].turns_taken)
-		outcome.final_health[side] = health(_state.players[side].hero)
+		final_health[side] = health(_state.players[side].hero)
+	var outcome: Dictionary = MatchRecords.final_result(_state, winner, reason, final_health)
 	_state.result = outcome
 	emit(&"match_ended", outcome)
+	_unbind()
+	match_ended.emit(result())
+
+
+## `resolver.unbind()` exactly once per bind.
+func _unbind() -> void:
+	if not _bound:
+		return
+	_bound = false
+	_resolver.unbind()
+
+
+## True once the match has ended (by a dead hero, `concede`, `turn_cap` or a
+## fault): every primitive and engine step is then a no-op, so a fault stops
+## the current action without further mutation.
+func _halted() -> bool:
+	return _state.phase == MatchState.PHASE_ENDED
 
 
 ## Sets [param phase] for the active side and emits `phase_changed {phase, side}`.

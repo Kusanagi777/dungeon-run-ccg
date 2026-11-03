@@ -50,7 +50,23 @@ const PICK_RANDOM: String = "random"
 const CHOICE_DISCOVER: String = "discover"
 const CHOICE_CHOOSE_ONE: String = "choose_one"
 ## MatchResult `result` values, from the player's side (C14).
-const RESULTS: Array[String] = ["win", "loss", "fault"]
+const RESULT_WIN: String = "win"
+const RESULT_LOSS: String = "loss"
+const RESULT_FAULT: String = "fault"
+const RESULTS: Array[String] = [RESULT_WIN, RESULT_LOSS, RESULT_FAULT]
+## MatchResult `reason` values (C14), in C14 order.
+const REASON_HERO_DEAD: String = "hero_dead"
+const REASON_BOTH_DEAD: String = "both_dead"
+const REASON_CONCEDE: String = "concede"
+const REASON_TURN_CAP: String = "turn_cap"
+const REASON_RESOLUTION_OVERFLOW: String = "resolution_overflow"
+const REASON_EVENT_CAP: String = "event_cap"
+const REASONS: Array[String] = [
+	REASON_HERO_DEAD, REASON_BOTH_DEAD, REASON_CONCEDE, REASON_TURN_CAP,
+	REASON_RESOLUTION_OVERFLOW, REASON_EVENT_CAP,
+]
+## The fault reasons (C14: a third outcome, `winner = null`).
+const FAULT_REASONS: Array[String] = [REASON_RESOLUTION_OVERFLOW, REASON_EVENT_CAP]
 ## C2 command types (the `Command.type` spellings).
 const CMD_MULLIGAN: String = "mulligan"
 const CMD_PLAY_CARD: String = "play_card"
@@ -90,6 +106,11 @@ static func mulligan(keep_mask: Array, issuer: String = SIDE_PLAYER) -> Dictiona
 ## The C2 `end_turn` command from [param issuer].
 static func end_turn(issuer: String) -> Dictionary:
 	return command(CMD_END_TURN, issuer)
+
+
+## The C2 `concede` command (legal from PLAYER only, in any phase but Ended).
+static func concede(issuer: String = SIDE_PLAYER) -> Dictionary:
+	return command(CMD_CONCEDE, issuer)
 
 
 ## A C1 Character base, shared by heroes and minions: `entity_id`,
@@ -226,7 +247,7 @@ static func empty_stats() -> Dictionary:
 static func match_result(result: String, winner: Variant, reason: String, floor_number: int, turns: int) -> Dictionary:
 	return {
 		"result": result,
-		"winner": null if result == "fault" else winner,
+		"winner": null if result == RESULT_FAULT else winner,
 		"reason": reason,
 		"floor": floor_number,
 		"turns": turns,
@@ -234,3 +255,25 @@ static func match_result(result: String, winner: Variant, reason: String, floor_
 		"stats": {SIDE_PLAYER: empty_stats(), SIDE_BOSS: empty_stats()},
 		"final_health": {SIDE_PLAYER: 0, SIDE_BOSS: 0},
 	}
+
+
+## The C14 MatchResult of a finished match: [method match_result] with, per
+## side, `turns_per_side` (its `turns_taken`), a value copy of its `stats`
+## block and its hero's [param final_health] (`{player, boss}`, the derived
+## health, ≤ 0 for a dead hero). `result` is read from the player's side:
+## [constant RESULT_FAULT] for a [constant FAULT_REASONS] reason (`winner`
+## null), else `win` when [param winner] is PLAYER and `loss` when BOSS.
+## [codeblock]
+## var res: Dictionary = MatchRecords.final_result(state, "boss", "concede", {"player": 30, "boss": 30})
+## [/codeblock]
+static func final_result(state: MatchState, winner: Variant, reason: String, final_health: Dictionary) -> Dictionary:
+	var result: String = RESULT_FAULT
+	if not FAULT_REASONS.has(reason):
+		result = RESULT_WIN if winner == SIDE_PLAYER else RESULT_LOSS
+	var out: Dictionary = match_result(result, winner, reason, state.floor, state.turn)
+	for side: String in SIDES:
+		var player: Dictionary = state.players[side]
+		out.turns_per_side[side] = int(player.turns_taken)
+		out.stats[side] = (player.stats as Dictionary).duplicate(true)
+		out.final_health[side] = int(final_health[side])
+	return out
