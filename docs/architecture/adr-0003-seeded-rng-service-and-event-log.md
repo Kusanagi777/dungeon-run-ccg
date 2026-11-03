@@ -15,6 +15,7 @@ Accepted
 Review record for this run (2026-11-03, `/architecture-decision`, headless, no
 `AskUserQuestion` answerer):
 
+- **Erratum 2026-11-03 (rng-event-log story 003)**: the snapshot carries a fourth key, `fork_points: {fork name: parent draw count at fork time}`; `restore()` replays `stream(parent).fork(label)` at that point (forks keyed by parent + label, per the code-review erratum) and clears cached forks. `snapshot()` keeps `run_seed` as an int in memory; `snapshot_to_json_dict()` persists `run_seed_hex`. `restore()` rejects a snapshot from another run seed or with malformed entries (`ERR_INVALID_DATA`).
 - TD-ADR skipped — Lean mode (`review_mode: lean`; TD-ADR is not a PHASE-GATE).
 - Engine validation: **NOT ASSESSED** — `godot-specialist` was not spawned (no
   `Agent` tool in this run). Every engine claim below is sourced from
