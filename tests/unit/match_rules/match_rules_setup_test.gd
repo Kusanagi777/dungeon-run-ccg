@@ -261,6 +261,25 @@ func test_start_binds_the_resolver_with_player_then_boss_installers() -> void:
 	assert_array(hosts).is_equal(["t_a", "t_b", "boss_p"])
 
 
+func test_start_passes_bind_a_typed_hook_installer_array() -> void:
+	# Arrange — TestEffectResolver.bind is typed as ADR-0007's
+	# `installers: Array[HookInstaller]`; the config lists are plain Arrays
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var t_a: HookInstaller = MatchFactory.make_hook_installer("t_a", SIDE_PLAYER, [&"on_turn_start"])
+	var passive: HookInstaller = MatchFactory.make_hook_installer("boss_p", SIDE_BOSS, [&"on_turn_start"])
+	var overrides: Dictionary = {"player": {"hook_installers": [t_a]}, "boss": {"hook_installers": [passive]}}
+
+	# Act
+	MatchFactory.make_started_engine(null, null, overrides, {}, resolver)
+
+	# Assert — the typed call path ran: one bind, with a typed array
+	assert_int(resolver.bind_calls.size()).is_equal(1)
+	var passed: Array = resolver.bind_calls[0].installers
+	assert_bool(passed.is_typed()).is_true()
+	assert_object(passed.get_typed_script()).is_same(HookInstaller)
+	assert_array(passed).is_equal([t_a, passive])
+
+
 # --- AC-43 -------------------------------------------------------------------
 
 func test_boss_health_is_match_config_health() -> void:
@@ -353,3 +372,22 @@ func test_duplicate_host_id_logs_hook_install_skipped_and_installs_the_first_onl
 	assert_int(hooks.hosts().size()).is_equal(1)
 	assert_int(hooks.entries(&"on_turn_start").size()).is_equal(1)
 	assert_int(hooks.entries(&"on_turn_end").size()).is_equal(0)
+
+
+func test_interleaved_duplicates_log_one_skip_each_in_installer_order() -> void:
+	# Arrange: a, b, a, b — the third and fourth are refused by the registry
+	var log: TestEventLog = TestEventLog.new()
+	var a1: HookInstaller = MatchFactory.make_hook_installer("t_a", SIDE_PLAYER, [&"on_turn_start"])
+	var b1: HookInstaller = MatchFactory.make_hook_installer("t_b", SIDE_PLAYER, [&"on_turn_start"])
+	var a2: HookInstaller = MatchFactory.make_hook_installer("t_a", SIDE_PLAYER, [&"on_turn_end"])
+	var b2: HookInstaller = MatchFactory.make_hook_installer("t_b", SIDE_BOSS, [&"on_turn_end"])
+	var overrides: Dictionary = {"player": {"hook_installers": [a1, b1, a2]}, "boss": {"hook_installers": [b2]}}
+
+	# Act
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, overrides)
+
+	# Assert
+	var skipped: Array = log.of_type(&"hook_install_skipped").map(func(e: Dictionary) -> String: return e.payload.host_id)
+	assert_array(skipped).is_equal(["t_a", "t_b"])
+	assert_int(engine.state().hooks.hosts().size()).is_equal(2)
+	assert_int(engine.state().hooks.entries(&"on_turn_end").size()).is_equal(0)

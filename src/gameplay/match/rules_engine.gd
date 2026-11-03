@@ -249,7 +249,9 @@ func start(config: Dictionary) -> void:
 	_resolving = true
 	# C3 step 1: the registry, then bind (installs entries, registers evaluators)
 	_state.hooks = HookRegistry.new()
-	var installers: Array = []
+	# Typed as ADR-0007's `bind(engine, installers: Array[HookInstaller])`: a
+	# plain Array into that typed parameter is a SCRIPT ERROR on 4.7.2.
+	var installers: Array[HookInstaller] = []
 	installers.append_array(config.player.hook_installers)
 	installers.append_array(config.boss.hook_installers)
 	_resolver.bind(self, installers)
@@ -781,15 +783,19 @@ func _stamp_log_turn(turn_number: int) -> void:
 
 
 ## C3 step 1: the engine, not the registry or the resolver, logs a skipped
-## installer. The registry is fresh at `bind`, so an installer is skipped
-## exactly when an earlier one in [param installers] has its `host_id`.
-func _log_skipped_installers(installers: Array) -> void:
-	var seen: Dictionary = {}
+## installer, and reads what was skipped from the registry after `bind`
+## rather than re-deriving the duplicate rule (ADR-0005 rule 5:
+## `install()` refuses a duplicate `host_id`). The resolver installs
+## [param installers] in order, so `hooks.hosts()` is the installed ones in
+## that order; an installer that is not the next installed host was refused.
+func _log_skipped_installers(installers: Array[HookInstaller]) -> void:
+	var installed: Array[Dictionary] = _state.hooks.hosts()
+	var next: int = 0
 	for installer: HookInstaller in installers:
-		if seen.has(installer.host_id):
-			emit(&"hook_install_skipped", {"host_id": installer.host_id, "reason": SKIP_REASON_DUPLICATE})
+		if next < installed.size() and installed[next].host_id == installer.host_id:
+			next += 1
 		else:
-			seen[installer.host_id] = true
+			emit(&"hook_install_skipped", {"host_id": installer.host_id, "reason": SKIP_REASON_DUPLICATE})
 
 
 ## C3 step 3 for [param side]: one `CardInstance` per entry of [param def_ids]

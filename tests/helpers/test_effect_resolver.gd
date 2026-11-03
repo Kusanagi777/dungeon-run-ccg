@@ -80,7 +80,9 @@ var resume_calls: Array[Dictionary] = []
 
 ## ADR-0007 Decision 2: store the engine, install [param installers] in order
 ## through the engine's registry, register the evaluators.
-func bind(bound_engine: RulesEngine, installers: Array) -> void:
+## Typed as ADR-0007's real `bind`, so a caller passing a plain Array fails
+## here the way it would against `EffectResolver` (code review 2026-11-03).
+func bind(bound_engine: RulesEngine, installers: Array[HookInstaller]) -> void:
 	engine = bound_engine
 	bind_calls.append({"installers": installers.duplicate()})
 	var hooks: HookRegistry = engine.state().hooks
