@@ -8,7 +8,7 @@ Review: PR-EPIC skipped — Lean mode
 
 | Epic | Layer | System | GDD | Stories | Status |
 |------|-------|--------|-----|---------|--------|
-| Boot & Composition Root | Foundation | Boot (composition root) | — (architecture.md §Dependency injection; ADR-0001) | 7 stories | Ready |
+| Boot & Composition Root | Foundation | Boot (composition root) | — (architecture.md §Dependency injection; ADR-0001) | 8 stories | Ready |
 | RNG & Event Log | Foundation | RNG & Event Log | design/gdd/rng-event-log.md | 11 stories | Ready |
 | Card Database | Foundation | Card Database | design/gdd/card-database.md | 10 stories | Ready |
 | Match Rules | Core | Match Rules | design/gdd/match-rules.md | 18 stories | Ready |
