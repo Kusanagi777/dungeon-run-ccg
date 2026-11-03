@@ -9,220 +9,507 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 
-sprint: 2
-goal: "Advance the first-playable chain by three dependency waves — match setup through turns/mana (match-rules 003–005), EventLog core/serialisation/config and RngService (rng-event-log 002, 005–007), loader stages 4–8 (card-database 002–005), AI profiles with the Torchbearer override (boss-ai 002–003), the effect validator (card-effects 003), G1–G6 lint gates in CI (boot 005) and the Windows-export CI job once its story exists. Nothing new is playable this sprint; First Playable re-dated to sprint 9 (2026-12-29)."
-start: "2026-11-04"
-end: "2026-11-10"
+sprint: 3
+goal: "Carry the match-rules critical lane through primitives, damage, win/loss and the resolution loop (MR-006→009, MR-010 stretch); freeze the card database (CDB-006→008); bind the effect runtime and validator checks (CE-002→005, CE-002 clone() criterion split into MR-017 recommended); RNG snapshot/restore, match summary and determinism self-test (RNG-003/008/010); match-view projection and animation queue (MUI-001/002, in the boss-ai slot — BAI-004 needs clone()); batch-0 data set and validate command (content 001/007). Nothing new is playable; First Playable stays at sprint 7 (owner acceptance pending)."
+start: "2026-11-11"
+end: "2026-11-17"
 generated: "2026-11-03"
 updated: "2026-11-03"
 
-# Non-story task (no story yet — write one via /create-stories or /quick-design before it starts):
-#   TASK-WINEXP — Windows export in CI (gate entry condition 8), owner devops-engineer, wave 1.
-#   Acceptance: CI job builds the `Windows Desktop` preset with 4.7.2 export templates and
-#   uploads the .exe as a workflow artifact; owner launches it once (first-light evidence).
+# Lanes (one agent per lane, chain back to back in one worktree); waves = merge points M1-M3.
+# [S] serialised = merges first in its wave; [C] contract-tightening = merges last and fixes the fixtures it breaks.
+# boot.gd _collect_validators() is orchestrator-owned: CE-002 → configs.card_effects, content-007 → configs.content_budgets (added at merge).
+# Carryover in progress, NOT sprint-3 scope: code-review fix pass on sprint-2 stories (CDB-004 pending validators
+# must not pass silently [blocking]; MR-003 typed installer array; RNG-002 restore/fork + root-name rule) — merges before 2026-11-11.
 
 stories:
-  - id: "match-rules-003"
-    name: "Match setup: bind, heroes, shuffle, starting hands"
-    file: "production/epics/match-rules/story-003-match-setup.md"
+  - id: "match-rules-006"
+    name: "Primitive API, draw, burn and fatigue"
+    file: "production/epics/match-rules/story-006-primitives-draw-burn-fatigue.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
-    estimate_days: 1
+    estimate_days: 3
+    lane: 1
     wave: 1
     serialised: true
+    contract: false
     blocker: ""
-    note: "merges first in W1: new test_effect_resolver.gd, match_factory.gd, MatchState"
-    completed: "2026-11-03"
-  - id: "rng-event-log-005"
-    name: "EventLog core — envelope, append, subscribe, events_since, turn, sealing"
-    file: "production/epics/rng-event-log/story-005-event-log-core-append-subscribe-seal.md"
+    note: "critical lane opener (2 links); /code-review at M1"
+    completed: ""
+  - id: "match-rules-007"
+    name: "Damage, healing and armour pipeline"
+    file: "production/epics/match-rules/story-007-damage-heal-armor.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 1
+    lane: 1
     wave: 1
     serialised: true
+    contract: false
     blocker: ""
-    note: "test_event_log.gd; merges second in W1"
-    completed: "2026-11-03"
-  - id: "card-database-002"
-    name: "Record schema validation (CR-3, CR-5 stage 4)"
-    file: "production/epics/card-database/story-002-record-schema-validation.md"
+    note: "edits tests/helpers/test_effect_resolver.gd; /code-review at M1"
+    completed: ""
+  - id: "match-rules-008"
+    name: "Win, loss, concede and MatchResult"
+    file: "production/epics/match-rules/story-008-win-loss-concede-result.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 1
+    lane: 1
     wave: 1
     serialised: false
+    contract: false
     blocker: ""
-    completed: "2026-11-03"
-  - id: "boot-composition-root-005"
-    name: "Grep gates G1–G6 and the per-file parse check in CI"
-    file: "production/epics/boot-composition-root/story-005-lint-gates-ci.md"
+    note: "must merge at M1 — CE-002 needs end_match(); /code-review at M1"
+    completed: ""
+  - id: "match-rules-009"
+    name: "Resolution loop: death check, trigger queue, auras, step cap"
+    file: "production/epics/match-rules/story-009-resolution-loop.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
-    estimate_days: 1
-    wave: 1
-    serialised: false
-    blocker: ""
-    note: "needs G3 exclusion amendment (doc comments, class_name Services) before start"
-    completed: "2026-11-03"
-  - id: "boss-ai-match-driver-002"
-    name: "ProfileResolver and the ai_profiles validator"
-    file: "production/epics/boss-ai-match-driver/story-002-profile-resolver-and-validator.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 1
-    wave: 1
-    serialised: false
-    blocker: ""
-    completed: "2026-11-03"
-  - id: "card-effects-003"
-    name: "EffectValidator — schema, trigger, selector, op and reference checks"
-    file: "production/epics/card-effects/story-003-validator-schema-codes.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 1
-    wave: 1
-    serialised: false
-    blocker: ""
-    completed: "2026-11-03"
-  - id: "rng-event-log-002"
-    name: "RngService — seed derivation (F1–F3) and memoised named streams"
-    file: "production/epics/rng-event-log/story-002-rng-service-seed-derivation-and-streams.md"
-    priority: should-have
-    status: done
-    owner: ""
-    estimate_days: 1
+    estimate_days: 3
+    lane: 1
     wave: 2
     serialised: true
+    contract: false
     blocker: ""
-    note: "merges first in W2: swaps test_rng_service.gd / test_rng_stream.gd"
-    completed: "2026-11-03"
-  - id: "rng-event-log-007"
-    name: "Overflow fault (log_overflow → Faulted → Sealed) and the rng_event_log config knobs"
-    file: "production/epics/rng-event-log/story-007-overflow-fault-and-config-knobs.md"
+    note: "edits test_effect_resolver.gd; /code-review at M2"
+    completed: ""
+  - id: "card-database-006"
+    name: "Freeze and CR-6 queries (CR-5 stage 9, CR-6, CR-7)"
+    file: "production/epics/card-database/story-006-freeze-and-queries.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 1
-    wave: 2
-    serialised: true
+    lane: 2
+    wave: 1
+    serialised: false
+    contract: true
     blocker: ""
-    note: "test_event_log.gd; merges second in W2, after RNG-006 for event_log.gd"
-    completed: "2026-11-03"
-  - id: "match-rules-004"
-    name: "Command channel, rejection codes and mulligan"
-    file: "production/epics/match-rules/story-004-command-channel-and-mulligan.md"
+    note: "[C] merges last at M1; fixes tests that mutate returned records; /code-review at M1; unblocks CE-002, MUI-001, content-001, BOOT-006"
+    completed: ""
+  - id: "card-effects-002"
+    name: "EffectRuntime, resolver binding lifecycle and card_effects.json"
+    file: "production/epics/card-effects/story-002-runtime-binding-config.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
     estimate_days: 1
+    lane: 3
     wave: 2
     serialised: false
+    contract: true
     blocker: ""
-    note: "becomes serialised if it edits MatchFactory"
-    completed: "2026-11-03"
-  - id: "rng-event-log-006"
-    name: "EventLog serialisation — to_json / from_json, payload coercion, diagnostic round-trip"
-    file: "production/epics/rng-event-log/story-006-event-log-serialization-and-diagnostics.md"
+    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config"
+    completed: ""
+  - id: "content-001"
+    name: "Batch-0 first-playable data set"
+    file: "production/epics/content/story-001-batch-0-first-playable-data-set.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: ""
-    estimate_days: 1
-    wave: 2
+    estimate_days: 3
+    lane: 6
+    wave: 3
     serialised: false
+    contract: true
     blocker: ""
-    completed: "2026-11-03"
-  - id: "card-database-003"
-    name: "Id uniqueness and cross-references (CR-5 stages 5–6)"
-    file: "production/epics/card-database/story-003-uniqueness-and-cross-references.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 1
-    wave: 2
-    serialised: false
-    blocker: ""
-    completed: "2026-11-03"
-  - id: "boss-ai-match-driver-003"
-    name: "ai_profiles.json — archetypes, bands, runtime block and the five MVP overrides"
-    file: "production/epics/boss-ai-match-driver/story-003-ai-profiles-mvp-data.md"
+    note: "needs CDB-006 (M1) and CE-002 card_effects.json (M2); [C] real data set changes Boot.boot()/commands.smoke; re-read boot.gd pending-validator policy after the fix pass"
+    completed: ""
+  - id: "card-database-007"
+    name: "data_version fingerprint (CR-9)"
+    file: "production/epics/card-database/story-007-data-version-fingerprint.md"
     priority: should-have
-    status: done
+    status: backlog
     owner: ""
     estimate_days: 0.5
+    lane: 2
     wave: 2
     serialised: false
+    contract: false
     blocker: ""
-    completed: "2026-11-03"
-  - id: "card-database-004"
-    name: "Delegated validators and the stage-7 lookup exception (CR-5 stage 7)"
-    file: "production/epics/card-database/story-004-delegated-validators.md"
-    priority: must-have
-    status: done
+    completed: ""
+  - id: "card-database-008"
+    name: "State machine, visible failure and debug reload() (States table, CR-8)"
+    file: "production/epics/card-database/story-008-state-machine-and-debug-reload.md"
+    priority: should-have
+    status: backlog
     owner: ""
     estimate_days: 1
-    wave: 3
-    serialised: true
+    lane: 2
+    wave: 2
+    serialised: false
+    contract: true
     blocker: ""
-    note: "merges first in W3: new tests/helpers/validator_stubs.gd"
-    completed: "2026-11-03"
-  - id: "match-rules-005"
-    name: "Turn structure, mana curve and turn cap"
-    file: "production/epics/match-rules/story-005-turn-structure-and-mana.md"
-    priority: must-have
-    status: done
-    owner: ""
-    estimate_days: 1
-    wave: 3
-    serialised: true
-    blocker: ""
-    note: "test_effect_resolver.gd; merges second in W3"
-    completed: "2026-11-03"
-  - id: "card-database-005"
-    name: "Budget warnings and pool thresholds (CR-5 stage 8, Formulas)"
-    file: "production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md"
-    priority: must-have
-    status: done
+    note: "[C] E_NOT_LOADED for queries before Ready; merges last at M2"
+    completed: ""
+  - id: "card-effects-004"
+    name: "Validator step bound and targeting spec"
+    file: "production/epics/card-effects/story-004-validator-step-bound-targeting.md"
+    priority: should-have
+    status: backlog
     owner: ""
     estimate_days: 0.5
+    lane: 3
     wave: 3
     serialised: false
+    contract: false
     blocker: ""
-    note: "rebase onto CDB-004 (data_loader.gd)"
-    completed: "2026-11-03"
-  - id: "rng-event-log-004"
-    name: "No-global-RNG lint (tools/lint/no_global_rng.sh) in CI"
-    file: "production/epics/rng-event-log/story-004-no-global-rng-lint.md"
+    note: "AC-07 last clause needs MR-010 play_card in legal_commands() merged at M2"
+    completed: ""
+  - id: "card-effects-005"
+    name: "Fixture set and database injection"
+    file: "production/epics/card-effects/story-005-fixture-set-database-injection.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 1
+    lane: 3
+    wave: 3
+    serialised: false
+    contract: false
+    blocker: ""
+    completed: ""
+  - id: "rng-event-log-003"
+    name: "Snapshot, restore and the command guard"
+    file: "production/epics/rng-event-log/story-003-snapshot-restore-and-command-guard.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 1
+    lane: 4
+    wave: 1
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "starts after the RNG-002 fix pass merges; stream() takes root names only; forks keyed parent+label — snapshot key '<parent>/<label>', restore via stream(parent).fork(label)"
+    completed: ""
+  - id: "rng-event-log-008"
+    name: "reduce_to_summary() — match_summary and damage_by_card (rule 19)"
+    file: "production/epics/rng-event-log/story-008-match-summary-reduction.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 0.5
+    lane: 4
+    wave: 1
+    serialised: false
+    contract: false
+    blocker: ""
+    completed: ""
+  - id: "rng-event-log-010"
+    name: "Determinism contract (F6 self-test) and performance budgets"
+    file: "production/epics/rng-event-log/story-010-determinism-contract-and-performance-budgets.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 0.5
+    lane: 4
+    wave: 2
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "perf asserts in the non-blocking CI job (sprint-2 QA plan)"
+    completed: ""
+  - id: "match-ui-001"
+    name: "MatchViewState — pure projection, hidden information and the unknown / diagnostic filters"
+    file: "production/epics/match-ui/story-001-match-view-state-projection.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 3
+    lane: 5
+    wave: 2
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "boss-ai slot (BAI-004 needs clone()/MR-017); needs CDB-006 at M1; match_ui.json fixture body until content-001 merges"
+    completed: ""
+  - id: "match-ui-002"
+    name: "AnimStep and AnimationQueue — command groups, coalescing, F3 speed, skip-all and the idle invariant"
+    file: "production/epics/match-ui/story-002-animation-queue-core.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 3
+    lane: 5
+    wave: 3
+    serialised: false
+    contract: false
+    blocker: ""
+    completed: ""
+  - id: "content-007"
+    name: "validate.gd command and the content_budgets validator"
+    file: "production/epics/content/story-007-validate-command-and-budgets-config.md"
+    priority: should-have
+    status: backlog
+    owner: ""
+    estimate_days: 1
+    lane: 6
+    wave: 3
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "needs CDB-008 (M2) + content-001 (lane); orchestrator registers configs.content_budgets = ContentValidator.validate_config"
+    completed: ""
+  - id: "match-rules-010"
+    name: "Playing minions, spells, weapons and the hero power"
+    file: "production/epics/match-rules/story-010-play-card-and-hero-power.md"
     priority: nice-to-have
-    status: done
+    status: backlog
     owner: ""
-    estimate_days: 0.5
+    estimate_days: 3
+    lane: 1
+    wave: 2
+    serialised: true
+    contract: false
+    blocker: ""
+    note: "critical-lane stretch, directly after MR-009; CE-004 AC-07 / CE-005 / CE-006 need it at M2"
+    completed: ""
+  - id: "card-effects-006"
+    name: "Play triggers, chosen targeting and the one-pass contract"
+    file: "production/epics/card-effects/story-006-play-triggers-one-pass.md"
+    priority: nice-to-have
+    status: backlog
+    owner: ""
+    estimate_days: 1
+    lane: 3
     wave: 3
     serialised: false
+    contract: false
     blocker: ""
-    note: "stretch; after BOOT-005 (tests.yml)"
-    completed: "2026-11-03"
+    note: "stretch; only if MR-010 merged at M2"
+    completed: ""
+  # Carryover from sprint 2
   - id: "boot-composition-root-006"
     name: "main.tscn composition entry and the RunShell stub"
     file: "production/epics/boot-composition-root/story-006-main-scene-composition-entry.md"
     priority: nice-to-have
-    status: backlog
+    status: blocked
     owner: ""
     estimate_days: 0.5
+    lane: 6
     wave: 3
     serialised: false
-    blocker: "2026-11-03: main_menu (BootResult.ok) path needs CardDatabase.config()/heroes()/treasure_pool() — card-database story 006; real data load is Failed (only match_rules.json ships); tools/capture.sh lacks the documented [-- <args>] pass-through"
-    note: "stretch; UI — retained screenshot"
+    contract: true
+    blocker: "carried from sprint 2: needs CDB-006 (M1) and the shipped data set (content-001, same lane, earlier slot); tools/capture.sh [-- <args>] pass-through is in its scope; main_menu capture needs real-data Boot.boot() ok==true (pending-config policy after the fix pass). Story file still says Ready."
+    note: "stretch; merges last overall (changes run/main_scene)"
     completed: ""
 
 # Previous sprints — kept for history; not part of the current sprint's story list.
 previous_sprints:
+  - sprint: 2
+    goal: "Advance the first-playable chain by three dependency waves — match setup through turns/mana (match-rules 003–005), EventLog core/serialisation/config and RngService (rng-event-log 002, 005–007), loader stages 4–8 (card-database 002–005), AI profiles with the Torchbearer override (boss-ai 002–003), the effect validator (card-effects 003), G1–G6 lint gates in CI (boot 005) and the Windows-export CI job once its story exists. Nothing new is playable this sprint; First Playable re-dated to sprint 9 (2026-12-29)."
+    start: "2026-11-04"
+    end: "2026-11-10"
+    generated: "2026-11-03"
+    updated: "2026-11-03"
+    # Closed 2026-11-03: 16 done; BOOT-006 not started (carried to sprint 3 as blocked). Retro re-dated First Playable to sprint 7.
+
+    stories:
+      - id: "match-rules-003"
+        name: "Match setup: bind, heroes, shuffle, starting hands"
+        file: "production/epics/match-rules/story-003-match-setup.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 1
+        serialised: true
+        blocker: ""
+        note: "merges first in W1: new test_effect_resolver.gd, match_factory.gd, MatchState"
+        completed: "2026-11-03"
+      - id: "rng-event-log-005"
+        name: "EventLog core — envelope, append, subscribe, events_since, turn, sealing"
+        file: "production/epics/rng-event-log/story-005-event-log-core-append-subscribe-seal.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 1
+        serialised: true
+        blocker: ""
+        note: "test_event_log.gd; merges second in W1"
+        completed: "2026-11-03"
+      - id: "card-database-002"
+        name: "Record schema validation (CR-3, CR-5 stage 4)"
+        file: "production/epics/card-database/story-002-record-schema-validation.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 1
+        serialised: false
+        blocker: ""
+        completed: "2026-11-03"
+      - id: "boot-composition-root-005"
+        name: "Grep gates G1–G6 and the per-file parse check in CI"
+        file: "production/epics/boot-composition-root/story-005-lint-gates-ci.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 1
+        serialised: false
+        blocker: ""
+        note: "needs G3 exclusion amendment (doc comments, class_name Services) before start"
+        completed: "2026-11-03"
+      - id: "boss-ai-match-driver-002"
+        name: "ProfileResolver and the ai_profiles validator"
+        file: "production/epics/boss-ai-match-driver/story-002-profile-resolver-and-validator.md"
+        priority: should-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 1
+        serialised: false
+        blocker: ""
+        completed: "2026-11-03"
+      - id: "card-effects-003"
+        name: "EffectValidator — schema, trigger, selector, op and reference checks"
+        file: "production/epics/card-effects/story-003-validator-schema-codes.md"
+        priority: should-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 1
+        serialised: false
+        blocker: ""
+        completed: "2026-11-03"
+      - id: "rng-event-log-002"
+        name: "RngService — seed derivation (F1–F3) and memoised named streams"
+        file: "production/epics/rng-event-log/story-002-rng-service-seed-derivation-and-streams.md"
+        priority: should-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 2
+        serialised: true
+        blocker: ""
+        note: "merges first in W2: swaps test_rng_service.gd / test_rng_stream.gd"
+        completed: "2026-11-03"
+      - id: "rng-event-log-007"
+        name: "Overflow fault (log_overflow → Faulted → Sealed) and the rng_event_log config knobs"
+        file: "production/epics/rng-event-log/story-007-overflow-fault-and-config-knobs.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 2
+        serialised: true
+        blocker: ""
+        note: "test_event_log.gd; merges second in W2, after RNG-006 for event_log.gd"
+        completed: "2026-11-03"
+      - id: "match-rules-004"
+        name: "Command channel, rejection codes and mulligan"
+        file: "production/epics/match-rules/story-004-command-channel-and-mulligan.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 2
+        serialised: false
+        blocker: ""
+        note: "becomes serialised if it edits MatchFactory"
+        completed: "2026-11-03"
+      - id: "rng-event-log-006"
+        name: "EventLog serialisation — to_json / from_json, payload coercion, diagnostic round-trip"
+        file: "production/epics/rng-event-log/story-006-event-log-serialization-and-diagnostics.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 2
+        serialised: false
+        blocker: ""
+        completed: "2026-11-03"
+      - id: "card-database-003"
+        name: "Id uniqueness and cross-references (CR-5 stages 5–6)"
+        file: "production/epics/card-database/story-003-uniqueness-and-cross-references.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 2
+        serialised: false
+        blocker: ""
+        completed: "2026-11-03"
+      - id: "boss-ai-match-driver-003"
+        name: "ai_profiles.json — archetypes, bands, runtime block and the five MVP overrides"
+        file: "production/epics/boss-ai-match-driver/story-003-ai-profiles-mvp-data.md"
+        priority: should-have
+        status: done
+        owner: ""
+        estimate_days: 0.5
+        wave: 2
+        serialised: false
+        blocker: ""
+        completed: "2026-11-03"
+      - id: "card-database-004"
+        name: "Delegated validators and the stage-7 lookup exception (CR-5 stage 7)"
+        file: "production/epics/card-database/story-004-delegated-validators.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 3
+        serialised: true
+        blocker: ""
+        note: "merges first in W3: new tests/helpers/validator_stubs.gd"
+        completed: "2026-11-03"
+      - id: "match-rules-005"
+        name: "Turn structure, mana curve and turn cap"
+        file: "production/epics/match-rules/story-005-turn-structure-and-mana.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 1
+        wave: 3
+        serialised: true
+        blocker: ""
+        note: "test_effect_resolver.gd; merges second in W3"
+        completed: "2026-11-03"
+      - id: "card-database-005"
+        name: "Budget warnings and pool thresholds (CR-5 stage 8, Formulas)"
+        file: "production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md"
+        priority: must-have
+        status: done
+        owner: ""
+        estimate_days: 0.5
+        wave: 3
+        serialised: false
+        blocker: ""
+        note: "rebase onto CDB-004 (data_loader.gd)"
+        completed: "2026-11-03"
+      - id: "rng-event-log-004"
+        name: "No-global-RNG lint (tools/lint/no_global_rng.sh) in CI"
+        file: "production/epics/rng-event-log/story-004-no-global-rng-lint.md"
+        priority: nice-to-have
+        status: done
+        owner: ""
+        estimate_days: 0.5
+        wave: 3
+        serialised: false
+        blocker: ""
+        note: "stretch; after BOOT-005 (tests.yml)"
+        completed: "2026-11-03"
+      - id: "boot-composition-root-006"
+        name: "main.tscn composition entry and the RunShell stub"
+        file: "production/epics/boot-composition-root/story-006-main-scene-composition-entry.md"
+        priority: nice-to-have
+        status: backlog
+        owner: ""
+        estimate_days: 0.5
+        wave: 3
+        serialised: false
+        blocker: "2026-11-03: main_menu (BootResult.ok) path needs CardDatabase.config()/heroes()/treasure_pool() — card-database story 006; real data load is Failed (only match_rules.json ships); tools/capture.sh lacks the documented [-- <args>] pass-through"
+        note: "stretch; UI — retained screenshot"
+        completed: ""
   - sprint: 1
     goal: "Lay the foundation for the first playable — Boot composition root, RNG golden pin and draw primitives, match-rules data model and hook registry, card-database loader stage 1 — and run the three sprint-1 spikes (DSL five hardest PROCEED/PIVOT, PlannerTask seam, RNG golden pin)."
     start: "2026-11-04"
