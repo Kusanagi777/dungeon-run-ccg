@@ -1,12 +1,12 @@
 # Story 001: Spike — the five hardest DSL effect types (gate condition 6)
 
 > **Epic**: Card Effects
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -81,15 +81,10 @@ Rejected as "hard" candidates: value folds (ADR-0005's mechanism, mechanical), `
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/effects/spike/` (throwaway; deleted or promoted at close — AC-S3)
-- `tests/unit/card_effects/card_effects_dsl_spike_test.gd`
-- `docs/architecture/spikes/2026-11-DD-dsl-effect-spike.md` (the PROCEED/PIVOT record)
-
----
+- `src/gameplay/effects/spike/spike_effect_resolver.gd` — created (throwaway spike resolver; deleted from `src/` at close — AC-S3)
+- `src/gameplay/effects/spike/spike_stub_engine.gd` — created (throwaway stub engine; deleted from `src/` at close — AC-S3)
+- `tests/unit/card_effects/card_effects_dsl_spike_test.gd` — created (17 test functions)
+- `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` — created (the PROCEED/PIVOT record)
 
 ## QA Test Cases
 

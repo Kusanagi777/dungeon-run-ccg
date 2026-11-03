@@ -30,7 +30,7 @@ stories:
     name: "Spike — the five hardest DSL effect types (gate condition 6; PROCEED/PIVOT)"
     file: "production/epics/card-effects/story-001-dsl-spike-five-hardest.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress
     owner: ""
     estimate_days: 3
     blocker: ""
