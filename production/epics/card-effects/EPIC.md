@@ -6,7 +6,30 @@
 > **Control Manifest**: Core Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 5 of 14 — plan E3, ADR-0007 / ADR-0002 / ADR-0005
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories card-effects`
+> **Stories**: 16 (14 Logic, 2 Integration; 0 Blocked) — created 2026-11-03 by `/create-stories card-effects`; QL-STORY-READY skipped — Lean mode
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | Spike — the five hardest DSL effect types (gate condition 6; throwaway allowed; PROCEED/PIVOT) | Logic | Ready | ADR-0007 |
+| 002 | EffectRuntime, resolver binding lifecycle and `card_effects.json` | Logic | Ready | ADR-0007 |
+| 003 | EffectValidator — schema, trigger, selector, op and reference checks | Logic | Ready | ADR-0007, ADR-0002 |
+| 004 | F6 static step bound, `E_FX_BUDGET` and derived `targeting_spec` | Logic | Ready | ADR-0007 |
+| 005 | C11 fixture set and validator injection into Card Database stage 7 | Integration | Ready | ADR-0002, ADR-0007 |
+| 006 | Play triggers, `chosen` targeting and the one-pass contract | Logic | Ready | ADR-0007 |
+| 007 | Value expressions, conditions, Spell Damage (F1) and area / random selectors (F5) | Logic | Ready | ADR-0007 |
+| 008 | Event triggers — responder selection, scope and queueing order | Logic | Ready | ADR-0007 |
+| 009 | Raise-time snapshot, `once_per_turn`, Silence-after-queue and counters | Logic | Ready | ADR-0007 |
+| 010 | Discover and Choose One — `ChoiceRequest` and the continuation | Logic | Ready | ADR-0007 |
+| 011 | Hero powers — Whetstone, Rot and Insight through the `hero_power` trigger | Logic | Ready | ADR-0007 |
+| 012 | Auras (`recompute_auras`), hand-cost auras and the enchantment lifecycle (F2, F3) | Logic | Ready | ADR-0007 |
+| 013 | Transform, copy-to-hand, bounce and keyword auras from a treasure host | Logic | Ready | ADR-0007, ADR-0005 |
+| 014 | Value triggers — `apply_value_hook` folds for cost, damage and max attacks | Logic | Ready | ADR-0005, ADR-0007 |
+| 015 | Trigger hooks as synchronous steps and hero-slot observers (treasures, boss passives) | Logic | Ready | ADR-0005, ADR-0007 |
+| 016 | Determinism replay, clone isolation, runtime bounds and performance budgets | Integration | Ready | ADR-0007 |
+
+GDD AC coverage: AC-01 → 005; AC-02/03/04/06 → 003; AC-05/07 → 004; AC-08/09/39 → 006; AC-13/14/23/24 → 007; AC-17/18/22 → 008; AC-19/20/21/46 → 009; AC-10/11/12 → 010; AC-15/43/44 → 011; AC-26/27/28/29 → 012; AC-30/31/32 → 013; AC-33/34/35 → 014; AC-16/25/36/45 → 015; AC-37/38/40/42 → 016; AC-41 → 002. All 46 covered. Dependency order: 001 (spike, first) → 002, 003 → 004 → 005 → 006 → 007 ⇄ 008 → 009, 010, 011 → 012 → 013; 014 → 015 (after 002, 008, 009) → 016 last.
 
 ## Overview
 

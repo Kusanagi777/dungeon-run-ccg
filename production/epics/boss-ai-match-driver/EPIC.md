@@ -6,7 +6,32 @@
 > **Control Manifest**: Core Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 6 of 14 — plan E4, ADR-0008 then ADR-0006
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories boss-ai-match-driver`
+> **Stories**: 18 (see the table below) — created 2026-11-03 by `/create-stories boss-ai-match-driver`
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | PlannerTask seam and its three implementations | Logic | Ready | ADR-0006 |
+| 002 | ProfileResolver and the ai_profiles validator | Logic | Ready | ADR-0006, ADR-0002 |
+| 003 | ai_profiles.json — archetypes, bands, runtime block and the five MVP overrides | Config/Data | Ready | ADR-0002, ADR-0006 |
+| 004 | Scorer — F1 action score, F2 board value, F3 trade quality, F5 over-extension | Logic | Ready | ADR-0006 |
+| 005 | Candidate set — op_value pre-filter, hero-power rule and position sensitivity | Logic | Ready | ADR-0006 |
+| 006 | Tie-break set, fork labels and ai_<floor> draw accounting | Logic | Ready | ADR-0003, ADR-0006 |
+| 007 | Lethal search — damage subset DFS, F4 prune, node budget, shallow mode | Logic | Ready | ADR-0006 |
+| 008 | plan_turn — the C2 action loop, TurnPlan, plan_task and the caps | Logic | Ready | ADR-0006 |
+| 009 | DEFENSIVE mode (F6 threat estimate) and sandbox hook fidelity | Logic | Ready | ADR-0006 |
+| 010 | Choice phase — `choose` for Discover and choose_one | Logic | Ready | ADR-0006, ADR-0008 |
+| 011 | Forecast and telegraphing — Intent, intent keys, kept, effective_mode | Logic | Ready | ADR-0008, ADR-0006 |
+| 012 | Hidden-information purity (A4) and the src/ai CI gates (A29, thread symbols) | Logic | Ready | ADR-0001, ADR-0006 |
+| 013 | MatchDriver — construction order, command gate and the concede slot | Logic | Ready | ADR-0008 |
+| 014 | MatchDriver — phase schedule: forecast, plan and choose tasks, stale premise, telegraph setting | Logic | Ready | ADR-0008, ADR-0006 |
+| 015 | MatchDriver — tick(), bounded replay with checksum, match_ended and shutdown | Integration | Ready | ADR-0006, ADR-0008 |
+| 016 | Headless AI-vs-AI simulation harness (gate condition 6) | Integration | Ready | ADR-0006, ADR-0008 |
+| 017 | Worker-vs-main-thread determinism and forecast concurrency (gate condition 9, Linux half) | Integration | Ready | ADR-0006 |
+| 018 | Windows export — planner running, A30 frame budget and determinism on Windows (gate conditions 6 and 9) | Integration | Ready | ADR-0006 |
+
+Dependency order: 001, 002 → 003 → 004 → 005, 006 → 007 → 008 → 009, 010, 011 → 012 · 013 (needs 001, 002, 008) → 014 (needs 010, 011), 015 → 016 → 017 → 018. Logic tests live under `tests/unit/boss_ai/` and `tests/unit/match_driver/`; Integration under `tests/integration/boss_ai/` and `tests/integration/match_driver/`. QL-STORY-READY skipped — Lean mode.
 
 ## Overview
 
