@@ -33,10 +33,40 @@ const KIND_MINION: String = "minion"
 const ZONES: Array[String] = ["deck", "hand", "board", "graveyard", "resolving"]
 ## Enchantment `expires` values other than null (C1).
 const EXPIRES_END_OF_TURN: String = "end_of_turn"
-## Keyword spelling of DD-M09 in snake_case (card-database CR-3).
+## Keyword spellings of DD-M09 in snake_case (card-database CR-3) that the
+## engine itself reads (C1 derived values, F2).
 const KEYWORD_WINDFURY: String = "windfury"
+const KEYWORD_DIVINE_SHIELD: String = "divine_shield"
+const KEYWORD_POISONOUS: String = "poisonous"
+const KEYWORD_LIFESTEAL: String = "lifesteal"
+## `add_card_to_deck` positions (match-rules Interactions): index 0, the end,
+## or one `rng_match` index.
+const POSITION_TOP: String = "top"
+const POSITION_BOTTOM: String = "bottom"
+const POSITION_RANDOM: String = "random"
+## `discard(side, PICK_RANDOM)`: one `rng_match` hand index instead of a given one.
+const PICK_RANDOM: String = "random"
+## `ChoiceRequest.kind` values (ADR-0007 Key Interfaces).
+const CHOICE_DISCOVER: String = "discover"
+const CHOICE_CHOOSE_ONE: String = "choose_one"
 ## MatchResult `result` values, from the player's side (C14).
-const RESULTS: Array[String] = ["win", "loss", "fault"]
+const RESULT_WIN: String = "win"
+const RESULT_LOSS: String = "loss"
+const RESULT_FAULT: String = "fault"
+const RESULTS: Array[String] = [RESULT_WIN, RESULT_LOSS, RESULT_FAULT]
+## MatchResult `reason` values (C14), in C14 order.
+const REASON_HERO_DEAD: String = "hero_dead"
+const REASON_BOTH_DEAD: String = "both_dead"
+const REASON_CONCEDE: String = "concede"
+const REASON_TURN_CAP: String = "turn_cap"
+const REASON_RESOLUTION_OVERFLOW: String = "resolution_overflow"
+const REASON_EVENT_CAP: String = "event_cap"
+const REASONS: Array[String] = [
+	REASON_HERO_DEAD, REASON_BOTH_DEAD, REASON_CONCEDE, REASON_TURN_CAP,
+	REASON_RESOLUTION_OVERFLOW, REASON_EVENT_CAP,
+]
+## The fault reasons (C14: a third outcome, `winner = null`).
+const FAULT_REASONS: Array[String] = [REASON_RESOLUTION_OVERFLOW, REASON_EVENT_CAP]
 ## C2 command types (the `Command.type` spellings).
 const CMD_MULLIGAN: String = "mulligan"
 const CMD_PLAY_CARD: String = "play_card"
@@ -76,6 +106,11 @@ static func mulligan(keep_mask: Array, issuer: String = SIDE_PLAYER) -> Dictiona
 ## The C2 `end_turn` command from [param issuer].
 static func end_turn(issuer: String) -> Dictionary:
 	return command(CMD_END_TURN, issuer)
+
+
+## The C2 `concede` command (legal from PLAYER only, in any phase but Ended).
+static func concede(issuer: String = SIDE_PLAYER) -> Dictionary:
+	return command(CMD_CONCEDE, issuer)
 
 
 ## A C1 Character base, shared by heroes and minions: `entity_id`,
@@ -186,6 +221,17 @@ static func command_result(accepted: bool, code: String = "", detail: String = "
 	}
 
 
+## A ChoiceRequest (C1 `pending_choice`; ADR-0007 Key Interfaces):
+## `{side, kind: discover | choose_one, options, source_id, effect_id}`.
+## [param options] is plain data (definition ids for Discover, option
+## records for Choose One) and is stored as given.
+## [codeblock]
+## var req: Dictionary = MatchRecords.choice_request("player", MatchRecords.CHOICE_DISCOVER, ["a_01", "b_02", "c_03"], 7, "scout.0")
+## [/codeblock]
+static func choice_request(side: String, kind: String, options: Array, source_id: Variant, effect_id: String) -> Dictionary:
+	return {"side": side, "kind": kind, "options": options, "source_id": source_id, "effect_id": effect_id}
+
+
 ## Per-side Run Structure stats (C1 `PlayerState.stats`, C14), all zero.
 static func empty_stats() -> Dictionary:
 	return {"damage_dealt_by_card": {}, "damage_taken": 0, "cards_played": 0, "minions_summoned": 0}
@@ -201,7 +247,7 @@ static func empty_stats() -> Dictionary:
 static func match_result(result: String, winner: Variant, reason: String, floor_number: int, turns: int) -> Dictionary:
 	return {
 		"result": result,
-		"winner": null if result == "fault" else winner,
+		"winner": null if result == RESULT_FAULT else winner,
 		"reason": reason,
 		"floor": floor_number,
 		"turns": turns,
@@ -209,3 +255,25 @@ static func match_result(result: String, winner: Variant, reason: String, floor_
 		"stats": {SIDE_PLAYER: empty_stats(), SIDE_BOSS: empty_stats()},
 		"final_health": {SIDE_PLAYER: 0, SIDE_BOSS: 0},
 	}
+
+
+## The C14 MatchResult of a finished match: [method match_result] with, per
+## side, `turns_per_side` (its `turns_taken`), a value copy of its `stats`
+## block and its hero's [param final_health] (`{player, boss}`, the derived
+## health, ≤ 0 for a dead hero). `result` is read from the player's side:
+## [constant RESULT_FAULT] for a [constant FAULT_REASONS] reason (`winner`
+## null), else `win` when [param winner] is PLAYER and `loss` when BOSS.
+## [codeblock]
+## var res: Dictionary = MatchRecords.final_result(state, "boss", "concede", {"player": 30, "boss": 30})
+## [/codeblock]
+static func final_result(state: MatchState, winner: Variant, reason: String, final_health: Dictionary) -> Dictionary:
+	var result: String = RESULT_FAULT
+	if not FAULT_REASONS.has(reason):
+		result = RESULT_WIN if winner == SIDE_PLAYER else RESULT_LOSS
+	var out: Dictionary = match_result(result, winner, reason, state.floor, state.turn)
+	for side: String in SIDES:
+		var player: Dictionary = state.players[side]
+		out.turns_per_side[side] = int(player.turns_taken)
+		out.stats[side] = (player.stats as Dictionary).duplicate(true)
+		out.final_health[side] = int(final_health[side])
+	return out

@@ -27,7 +27,7 @@ stories:
     name: "Primitive API, draw, burn and fatigue"
     file: "production/epics/match-rules/story-006-primitives-draw-burn-fatigue.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 3
     lane: 1
@@ -36,12 +36,12 @@ stories:
     contract: false
     blocker: ""
     note: "critical lane opener (2 links); /code-review at M1"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-007"
     name: "Damage, healing and armour pipeline"
     file: "production/epics/match-rules/story-007-damage-heal-armor.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 1
@@ -50,12 +50,12 @@ stories:
     contract: false
     blocker: ""
     note: "edits tests/helpers/test_effect_resolver.gd; /code-review at M1"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-008"
     name: "Win, loss, concede and MatchResult"
     file: "production/epics/match-rules/story-008-win-loss-concede-result.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 1
@@ -64,7 +64,7 @@ stories:
     contract: false
     blocker: ""
     note: "must merge at M1 — CE-002 needs end_match(); /code-review at M1"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-009"
     name: "Resolution loop: death check, trigger queue, auras, step cap"
     file: "production/epics/match-rules/story-009-resolution-loop.md"

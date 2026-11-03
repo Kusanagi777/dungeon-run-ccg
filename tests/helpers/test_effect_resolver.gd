@@ -64,7 +64,10 @@ var queued: Dictionary = {}
 var resolve_calls: Array[Dictionary] = []
 ## `effect_id → Callable`, called `(engine, entry, side, ctx)` by [method run_hook_effect].
 var hook_scripts: Dictionary = {}
-## Every evaluator call, in order: `{kind: "fold" | "run", effect_id, side, input, output}`.
+## Every evaluator call, in order: `{kind: "fold" | "run", point, effect_id,
+## side, input, output, ctx}` — `point` is the entry's hook point, `ctx` a
+## copy of the context the engine passed (match-rules story 007: a fold's
+## per-entry inputs show whether anything clamped between entries).
 var hook_calls: Array[Dictionary] = []
 ## `def_id → Array[int]` answered by [method legal_targets].
 var targets_by_def: Dictionary = {}
@@ -146,7 +149,7 @@ func resume(choice: Variant, option_index: int) -> void:
 
 ## One fold step (ADR-0005 `set_evaluators` shape): [param value] through the
 ## entry's `modify_value` ops when [param side] is in scope; no clamp.
-func apply_value_hook(entry: Dictionary, side: StringName, value: int, _ctx: Dictionary) -> int:
+func apply_value_hook(entry: Dictionary, side: StringName, value: int, ctx: Dictionary) -> int:
 	var output: int = value
 	if _in_scope(entry, side):
 		for op: Dictionary in entry.effect.get("ops", []):
@@ -158,7 +161,7 @@ func apply_value_hook(entry: Dictionary, side: StringName, value: int, _ctx: Dic
 				output = int(op.set)
 			elif op.has("mul"):
 				output *= int(op.mul)
-	hook_calls.append({"kind": "fold", "effect_id": entry.effect_id, "side": side, "input": value, "output": output})
+	hook_calls.append(_hook_call("fold", entry, side, value, output, ctx))
 	return output
 
 
@@ -166,9 +169,36 @@ func apply_value_hook(entry: Dictionary, side: StringName, value: int, _ctx: Dic
 ## [param side] is in scope.
 func run_hook_effect(entry: Dictionary, side: StringName, ctx: Dictionary) -> void:
 	var ran: bool = _in_scope(entry, side) and hook_scripts.has(entry.effect_id)
-	hook_calls.append({"kind": "run", "effect_id": entry.effect_id, "side": side, "input": ran, "output": null})
+	hook_calls.append(_hook_call("run", entry, side, ran, null, ctx))
 	if ran:
 		(hook_scripts[entry.effect_id] as Callable).call(engine, entry, side, ctx)
+
+
+## The `input` of every fold call on value point [param point], in call
+## order — one per entry per fold (match-rules story 007: `1, 0, −1` for a
+## `delta −1` × 3 chain over a requested 1 shows no clamp between entries).
+func fold_inputs(point: StringName) -> Array[int]:
+	var out: Array[int] = []
+	for call: Dictionary in hook_calls:
+		if call.kind == "fold" and call.point == String(point):
+			out.append(int(call.input))
+	return out
+
+
+## The `ctx` of every `run` call on trigger point [param point], in call order.
+func run_contexts(point: StringName) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for call: Dictionary in hook_calls:
+		if call.kind == "run" and call.point == String(point):
+			out.append(call.ctx)
+	return out
+
+
+func _hook_call(kind: String, entry: Dictionary, side: StringName, input: Variant, output: Variant, ctx: Dictionary) -> Dictionary:
+	return {
+		"kind": kind, "point": str(entry.effect.get("trigger", "")), "effect_id": entry.effect_id,
+		"side": side, "input": input, "output": output, "ctx": ctx.duplicate(true),
+	}
 
 
 func _in_scope(entry: Dictionary, side: StringName) -> bool:

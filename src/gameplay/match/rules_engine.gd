@@ -23,7 +23,16 @@
 ## channel [method submit] / [method legal_commands] with the closed
 ## [constant REJECTION_CODES], the [constant PHASE_COMMANDS] guard and the
 ## `mulligan` handler; story 005 C3 step 8, the C4 Start / End steps, the
-## `end_turn` handler, [method add_mana] (permanent) and the `TURN_CAP` end.
+## `end_turn` handler, [method add_mana] (permanent) and the `TURN_CAP` end;
+## story 006 the primitive API ([constant PRIMITIVES], match-rules
+## Interactions) — each validates its arguments (a missing entity is a no-op
+## with no event), mutates the plain-data state, emits its one event through
+## [method emit] and returns, never running the death check or auras — and
+## the full [method draw] (burn, fatigue, `on_draw`); story 007 F2 in
+## [method apply_damage] and the healing fold; story 008 the C14 end —
+## `win_loss_check` at the end of every action, `concede`, [method fault],
+## the full `MatchResult` ([method result]), `resolver.unbind()` at `Ended`
+## and the idempotent teardown [method end_match].
 ## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
@@ -95,8 +104,38 @@ const R_WRONG_PHASE: String = "WRONG_PHASE"
 const R_CHOICE_PENDING: String = "CHOICE_PENDING"
 const R_ENGINE_BUSY: String = "ENGINE_BUSY"
 const R_INVALID_MASK: String = "INVALID_MASK"
+## Emitted once, after `match_ended` reached the log's subscribers and the
+## resolver was unbound, with the `MatchResult`. A unit-test convenience only:
+## never connected in production (ADR-0008 — `MatchDriver` emits its own).
+signal match_ended(result: Dictionary)
+
 ## C14 `MatchResult.reason` for the `TURN_CAP` termination guarantee.
-const REASON_TURN_CAP: String = "turn_cap"
+const REASON_TURN_CAP: String = MatchRecords.REASON_TURN_CAP
+## The engine primitive API (match-rules Interactions; ADR-0007 Decision 1):
+## the only calls that mutate a started match, each leaving one event. The
+## 24th call, `recompute_auras`, is the resolver's, run by the C10 loop.
+const PRIMITIVES: Array[StringName] = [
+	&"draw", &"apply_damage", &"apply_heal", &"apply_armor", &"apply_enchantment",
+	&"remove_enchantment", &"summon_minion", &"destroy", &"silence", &"freeze",
+	&"add_keyword", &"return_to_hand", &"transform", &"add_mana", &"equip_weapon",
+	&"discover", &"add_card_to_hand", &"set_stats", &"remove_keyword",
+	&"add_card_to_deck", &"modify_durability", &"refresh_hero_power", &"discard",
+]
+## The `source` of fatigue damage (C11, F2): a sentinel with no keywords, no
+## controller and no `damage_dealt_by_card` attribution.
+const SOURCE_FATIGUE: String = "fatigue"
+## `enchantment_removed.reason` for [method remove_enchantment] (the End-step
+## expiry uses `MatchRecords.EXPIRES_END_OF_TURN`).
+const REMOVE_REASON_EFFECT: String = "effect"
+## `enchantment_applied.reason` for the enchantment [method set_stats] writes.
+const ENCHANT_REASON_SET_STATS: String = "set_stats"
+## `summon_failed.reason` on a full board (C10, Edge Cases).
+const SUMMON_FAILED_BOARD_FULL: String = "board_full"
+## `weapon_destroyed.reason` when [method equip_weapon] replaces a weapon.
+const WEAPON_REPLACED: String = "replaced"
+## What an entity-creating primitive returns when it created nothing (C1 ids
+## start at `MatchState.FIRST_ENTITY_ID`).
+const NO_ENTITY: int = -1
 ## The phase guard (match-rules States and Transitions): per phase, the
 ## command types it accepts and from whom — `"active"` (the issuer must be
 ## the active side, else `NOT_YOUR_TURN`), `"player"` (PLAYER only) or
@@ -134,6 +173,14 @@ var _call_last_seq: int = 0
 ## returns the triggers it queues and the engine appends them here). Drained
 ## by the C10 loop (story 009).
 var _queue: Array[Dictionary] = []
+## The `{source, target}` contexts of the `modify_damage` / `modify_heal`
+## folds, reused on every call (ADR-0005: the fold allocates nothing; the
+## engine does not build a context per hit either).
+var _damage_ctx: Dictionary = {"source": null, "target": 0}
+var _heal_ctx: Dictionary = {"source": null, "target": 0}
+## True from `resolver.bind` in [method start] until `resolver.unbind()`
+## (at `Ended`, or [method end_match]) — unbind runs exactly once.
+var _bound: bool = false
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -255,6 +302,7 @@ func start(config: Dictionary) -> void:
 	installers.append_array(config.player.hook_installers)
 	installers.append_array(config.boss.hook_installers)
 	_resolver.bind(self, installers)
+	_bound = true
 	_log_skipped_installers(installers)
 	# C3 step 2: heroes
 	# TODO(card-database story 006): read the hero record's `health` (defaulting
@@ -287,7 +335,10 @@ func start(config: Dictionary) -> void:
 ## Check order: `ENGINE_BUSY` (a nested call while resolving) →
 ## `MATCH_ENDED` → the phase guard [constant PHASE_COMMANDS] (`WRONG_PHASE`,
 ## `NOT_YOUR_TURN`, `CHOICE_PENDING`) → the command's own C2 row, first
-## failing reason wins. Synchronous: no `await`.
+## failing reason wins. Synchronous: no `await`. Every accepted action ends
+## with its C10 loop and `win_loss_check` (C14); `concede` (PLAYER, any phase
+## but Ended) ends the match for the boss, and once `Ended` every command is
+## `MATCH_ENDED`.
 ## [codeblock]
 ## var r: Dictionary = engine.submit(MatchRecords.mulligan([true, false, false]))
 ## if not r.accepted: show(r.rejection.code)
@@ -313,7 +364,13 @@ func submit(command: Dictionary) -> Dictionary:
 			_do_mulligan(command.keep_mask)
 		MatchRecords.CMD_END_TURN:
 			_end_step(_state.active_side)
-	# TODO(story 009): the C10 loop; TODO(story 008): win_loss_check.
+		MatchRecords.CMD_CONCEDE:
+			_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_CONCEDE)
+	# The end of every action: its C10 loop (story 009), then C14.
+	if not _halted():
+		_run_resolution_loop()
+		@warning_ignore("return_value_discarded")
+		_win_loss_check()
 	_resolving = false
 	return MatchRecords.command_result(true, "", "", _call_first_seq, _call_last_seq)
 
@@ -356,7 +413,10 @@ func pending_choice() -> Variant:
 	return choice.duplicate(true) if choice is Dictionary else choice
 
 
-## A value copy of the `MatchResult` once `Ended`, else null (C14).
+## A value copy of the `MatchResult` once `Ended`, else null (C14): `{result:
+## win | loss | fault (from the player's side), winner, reason, floor, turns,
+## turns_per_side, stats{player, boss}, final_health{player, boss}}` — no
+## seed (DD-R09).
 func result() -> Variant:
 	var outcome: Variant = _state.result
 	return outcome.duplicate(true) if outcome is Dictionary else outcome
@@ -366,10 +426,20 @@ func result() -> Variant:
 ## and returns its `seq` (ADR-0007 Decision 6). Every engine mutation emits
 ## through here, and so does the resolver (`effect_resolved`,
 ## `counter_changed`, …), so `log.append` call sites stay inside the engine.
+## A refused append (`-1`) on a match that has not ended is the log's
+## overflow (ADR-0003 Decision 8: the log has appended `log_overflow` and
+## accepts exactly one more event): the engine answers with
+## `fault(event_cap)`, whose `match_ended` is that event, and stops — every
+## primitive and step is a no-op from then on. Once `Ended`, emit appends
+## nothing (returns `-1`): the log is sealed.
 ## [codeblock]
 ## var seq: int = engine.emit(&"counter_changed", {"source_id": 7, "key": "seen", "value": 2})
 ## [/codeblock]
 func emit(type: StringName, payload: Dictionary) -> int:
+	# Once Ended the only event left is the match's own match_ended; anything
+	# else would be an append to a sealed log (a caller bug, ADR-0003).
+	if _halted() and type != &"match_ended":
+		return -1
 	# TODO(rng-event-log story 005): type the log as `EventLog`.
 	var log: Variant = _state.log
 	var seq: int = log.append(type, payload, _cause_seq)
@@ -377,6 +447,8 @@ func emit(type: StringName, payload: Dictionary) -> int:
 		if _call_first_seq == 0:
 			_call_first_seq = seq
 		_call_last_seq = seq
+	elif not _halted():
+		fault(MatchRecords.REASON_EVENT_CAP)
 	return seq
 
 
@@ -391,29 +463,49 @@ func rng_match() -> RefCounted:
 
 
 ## Primitive (C11, match-rules Interactions): [param side] draws [param n]
-## cards. Each draw pops the top of the deck (index 0); into the right end of
-## the hand with `card_drawn {side, instance_id, card_id, hand_size}`, or —
-## when the hand already holds `hand_size` — into the graveyard with
-## `card_burned {side, instance_id, card_id}` (DD-M06).
-## TODO(story 006): the fatigue branch (empty deck: this draw does nothing
-## yet) and the `on_draw` hook / trigger after a successful draw.
+## cards, one per-card draw at a time ("draw N" is N draws). Each draw:
+## - empty deck → `fatigue_counter += 1` (per side, never reset) and F5
+##   `fatigue_base + (k − 1) × fatigue_step` damage to the hero through
+##   [method apply_damage] with [constant SOURCE_FATIGUE] (armour applies),
+##   then `fatigue_damage {side, amount, counter}` (DD-M07);
+## - else the top card (index 0) leaves the deck; a hand already at
+##   `hand_size` sends it to the graveyard with `card_burned {side,
+##   instance_id, card_id}` and no `on_draw` (DD-M06); otherwise it joins the
+##   right end of the hand with `card_drawn {side, instance_id, card_id,
+##   hand_size}`, the `on_draw` hooks run, then trigger point `on_draw` is
+##   raised (its triggers join queue Q).
+## A 0-card deck at setup takes fatigue like any other draw (Edge Cases).
 ## [codeblock]
 ## engine.draw("player", 2)
 ## [/codeblock]
 func draw(side: String, n: int) -> void:
 	var player: Dictionary = _state.players[side]
 	for _i: int in n:
+		if _halted():
+			return
 		if player.deck.is_empty():
+			player.fatigue_counter = int(player.fatigue_counter) + 1
+			var k: int = player.fatigue_counter
+			var amount: int = rule("fatigue_base") + (k - 1) * rule("fatigue_step")
+			@warning_ignore("return_value_discarded")
+			apply_damage(int(player.hero.entity_id), amount, SOURCE_FATIGUE)
+			emit(&"fatigue_damage", {"side": side, "amount": amount, "counter": k})
 			continue
 		var card: Dictionary = player.deck.pop_front()
+		var instance_id: int = int(card.instance_id)
+		var def_id: String = str(card.def_id)
 		if player.hand.size() >= rule("hand_size"):
 			card.zone = "graveyard"
 			player.graveyard.append(card)
-			emit(&"card_burned", {"side": side, "instance_id": card.instance_id, "card_id": card.def_id})
+			emit(&"card_burned", {"side": side, "instance_id": instance_id, "card_id": def_id})
 			continue
 		card.zone = "hand"
 		player.hand.append(card)
-		emit(&"card_drawn", {"side": side, "instance_id": card.instance_id, "card_id": card.def_id, "hand_size": player.hand.size()})
+		emit(&"card_drawn", {"side": side, "instance_id": instance_id, "card_id": def_id, "hand_size": player.hand.size()})
+		if _halted():
+			return
+		_state.hooks.run_triggers(&"on_draw", StringName(side), {"instance_id": instance_id, "card_id": def_id})
+		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id})
 
 
 ## Primitive (C5, match-rules Interactions): [param side] gains [param n]
@@ -427,12 +519,557 @@ func draw(side: String, n: int) -> void:
 ## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
 ## [/codeblock]
 func add_mana(side: String, n: int, temporary: bool = false) -> void:
+	if _halted():
+		return
 	if temporary:
 		push_error("RulesEngine.add_mana: temporary crystals are match-rules story 011")
 		return
 	var player: Dictionary = _state.players[side]
 	player.crystal_bonus = int(player.crystal_bonus) + n
 	emit(&"mana_added", {"side": side, "n": n, "temporary": false})
+
+
+## Primitive (F2, C9): [param requested] damage to the character
+## [param target_id] from [param source] — an entity id (a minion, a hero, the
+## weapon a hero attacks with — its keywords then count for the attack — or a
+## card instance) or [constant SOURCE_FATIGUE] — evaluated in one step:
+## 1. `amount = maxi(0, hooks.fold(&"modify_damage", source_side, requested,
+##    {source, target}))` — the engine's one clamp, after the whole fold
+##    (ADR-0005 rule 4). `source_side` is the source's side; fatigue, which
+##    has none, folds with the target's side.
+## 2. Divine Shield and `amount > 0`: `prevented = amount`, `amount = 0`, the
+##    shield keyword is removed, `divine_shield_popped {entity_id, prevented}`.
+## 3. Armour absorbs first (heroes only): `armor_lost {side, entity_id,
+##    amount, armor}` when > 0; the rest raises `damage_taken`.
+## 4. `dealt = armor_absorbed + to_health`; `damage_dealt {source, target,
+##    requested, prevented, armor_absorbed, dealt, health_after}`
+##    (`health_after` may be negative); stats: the target side's
+##    `damage_taken` and the source side's `damage_dealt_by_card[def_id]`.
+## 5. When `dealt > 0`: a Poisonous source marks a minion target
+##    `pending_destroy` (heroes immune); a Lifesteal source heals its side's
+##    hero by `dealt` ([method apply_heal]); a hero target runs the
+##    `on_hero_damaged` hooks `{amount_dealt, source}`; trigger point
+##    `on_damage {subject, amount, source}` is raised (its triggers join Q).
+## Returns `dealt`. A missing target is a no-op returning 0. Never runs the
+## death check (C10), so a Poisonous attacker killed by its defender still
+## poisons it.
+## [codeblock]
+## var dealt: int = engine.apply_damage(target_id, 3, attacker_id)
+## [/codeblock]
+func apply_damage(target_id: int, requested: int, source: Variant) -> int:
+	if _halted():
+		return 0
+	var target: Dictionary = _character(target_id)
+	if target.is_empty():
+		return 0
+	var target_side: String = str(target.controller)
+	var source_side: String = _owner_of(source) if typeof(source) == TYPE_INT else ""
+	var fold_side: String = source_side if source_side != "" else target_side
+	_damage_ctx.source = source
+	_damage_ctx.target = target_id
+	var amount: int = maxi(0, _state.hooks.fold(&"modify_damage", StringName(fold_side), requested, _damage_ctx))
+	var prevented: int = 0
+	if amount > 0 and _has_keyword(target, MatchRecords.KEYWORD_DIVINE_SHIELD):
+		prevented = amount
+		amount = 0
+		_strip_keyword(target, MatchRecords.KEYWORD_DIVINE_SHIELD)
+		emit(&"divine_shield_popped", {"entity_id": target_id, "prevented": prevented})
+		if _halted():
+			return 0
+	var armor_absorbed: int = 0
+	if target.kind == MatchRecords.KIND_HERO:
+		armor_absorbed = mini(int(target.armor), amount)
+		if armor_absorbed > 0:
+			target.armor = int(target.armor) - armor_absorbed
+			emit(&"armor_lost", {"side": target_side, "entity_id": target_id, "amount": armor_absorbed, "armor": int(target.armor)})
+			if _halted():
+				return 0
+	var to_health: int = amount - armor_absorbed
+	target.damage_taken = int(target.damage_taken) + to_health
+	var dealt: int = armor_absorbed + to_health
+	emit(&"damage_dealt", {
+		"source": source, "target": target_id, "requested": requested, "prevented": prevented,
+		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
+	})
+	if dealt <= 0 or _halted():
+		return dealt
+	_record_damage_stats(target_side, source, source_side, dealt)
+	if target.kind == MatchRecords.KIND_MINION and _source_has(source, MatchRecords.KEYWORD_POISONOUS):
+		target["pending_destroy"] = true
+	if source_side != "" and _source_has(source, MatchRecords.KEYWORD_LIFESTEAL):
+		@warning_ignore("return_value_discarded")
+		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
+	if target.kind == MatchRecords.KIND_HERO:
+		_state.hooks.run_triggers(&"on_hero_damaged", StringName(target_side), {"amount_dealt": dealt, "source": source})
+	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source})
+	return dealt
+
+
+## Primitive (C9): heals the character [param target_id] from
+## [param source]: `heal = maxi(0, hooks.fold(&"modify_heal", source_side,
+## amount, {source, target}))` — floored once, so a hook can reduce a heal to
+## nothing but never turn it into damage (Treasures R-4); then `restored =
+## min(heal, damage_taken)` (health never exceeds `max_health`). Emits
+## `healed {source, target, requested, amount: restored}` always — a
+## full-health target heals 0 and still emits — then raises trigger point
+## `on_heal {subject, amount, source}`. Returns `restored`; a missing target
+## is a no-op returning 0. A source with no side folds with the target's.
+## [codeblock]
+## engine.apply_heal(hero_id, 10, source_id)   # restores at most damage_taken
+## [/codeblock]
+func apply_heal(target_id: int, amount: int, source: Variant) -> int:
+	if _halted():
+		return 0
+	var target: Dictionary = _character(target_id)
+	if target.is_empty():
+		return 0
+	var target_side: String = str(target.controller)
+	var source_side: String = _owner_of(source) if typeof(source) == TYPE_INT else ""
+	_heal_ctx.source = source
+	_heal_ctx.target = target_id
+	var heal: int = maxi(0, _state.hooks.fold(&"modify_heal", StringName(source_side if source_side != "" else target_side), amount, _heal_ctx))
+	var restored: int = mini(heal, int(target.damage_taken))
+	target.damage_taken = int(target.damage_taken) - restored
+	emit(&"healed", {"source": source, "target": target_id, "requested": amount, "amount": restored})
+	_raise(&"on_heal", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": restored, "source": source})
+	return restored
+
+
+## Primitive (C9): [param side]'s hero gains [param amount] armour, uncapped;
+## emits `armor_gained {side, entity_id, amount, armor}`.
+## [codeblock]
+## engine.apply_armor("player", 4)
+## [/codeblock]
+func apply_armor(side: String, amount: int) -> void:
+	if _halted():
+		return
+	var hero: Dictionary = _state.players[side].hero
+	hero.armor = int(hero.armor) + amount
+	emit(&"armor_gained", {"side": side, "entity_id": int(hero.entity_id), "amount": amount, "armor": int(hero.armor)})
+
+
+## Primitive (C1, C9): appends an Enchantment built from [param enchantment]
+## (`{attack_delta, health_delta, keywords_added, source_entity_id, is_aura,
+## expires}`, missing keys defaulted by `MatchRecords.enchantment`;
+## `cost_delta` kept when given) to [param target_id] — a character's or
+## weapon's `enchantments`, or a card instance's `cost_modifiers` — and
+## emits `enchantment_applied {instance_id, attack_delta, health_delta,
+## keywords_added, source_entity_id, is_aura, expires}`. Never writes `base_*`.
+## [codeblock]
+## engine.apply_enchantment(minion_id, {"attack_delta": 2, "health_delta": 2})
+## [/codeblock]
+func apply_enchantment(target_id: int, enchantment: Dictionary) -> void:
+	if _halted():
+		return
+	var record: Dictionary = _find_record(target_id)
+	if record.is_empty():
+		return
+	var applied: Dictionary = MatchRecords.enchantment(
+		int(enchantment.get("attack_delta", 0)), int(enchantment.get("health_delta", 0)),
+		enchantment.get("keywords_added", []), enchantment.get("source_entity_id"),
+		bool(enchantment.get("is_aura", false)), enchantment.get("expires"))
+	if enchantment.has("cost_delta"):
+		applied["cost_delta"] = int(enchantment.cost_delta)
+	_enchantments_of(record).append(applied)
+	emit(&"enchantment_applied", _enchantment_payload(target_id, applied))
+
+
+## Primitive (C1): removes the enchantment at [param index] of
+## [param target_id]'s `enchantments` (`cost_modifiers` for a card instance)
+## and emits `enchantment_removed {instance_id, attack_delta, health_delta,
+## keywords_added, reason: "effect"}`. Enchantments carry no id of their
+## own, so the GDD's `remove_enchantment(target, id)` is the list index here.
+## An index outside the list is a no-op.
+## [codeblock]
+## engine.remove_enchantment(minion_id, 0)
+## [/codeblock]
+func remove_enchantment(target_id: int, index: int) -> void:
+	if _halted():
+		return
+	var record: Dictionary = _find_record(target_id)
+	if record.is_empty():
+		return
+	var list: Array = _enchantments_of(record)
+	if index < 0 or index >= list.size():
+		return
+	var removed: Dictionary = list[index]
+	list.remove_at(index)
+	emit(&"enchantment_removed", {
+		"instance_id": target_id,
+		"attack_delta": removed.attack_delta,
+		"health_delta": removed.health_delta,
+		"keywords_added": removed.keywords_added,
+		"reason": REMOVE_REASON_EFFECT,
+	})
+
+
+## Primitive (C10): summons [param def_id] (a minion definition from the
+## Card Database) for [param side] at [param position] — a board index;
+## negative or beyond the end means the rightmost slot. The minion is
+## `summoning_sick` with `summoned_on_turn = turn`; `stats.minions_summoned`
+## rises; emits `minion_summoned {side, entity_id, card_id, position, attack,
+## health}`, then runs the `on_minion_summoned` hooks. A full board is a
+## no-op with `summon_failed {side, card_id, reason: board_full}`. Returns the
+## new entity id, or [constant NO_ENTITY].
+## [codeblock]
+## var id: int = engine.summon_minion("boss", "boss_imp", -1)
+## [/codeblock]
+func summon_minion(side: String, def_id: String, position: int) -> int:
+	if _halted():
+		return NO_ENTITY
+	var player: Dictionary = _state.players[side]
+	var board: Array = player.board
+	if board.size() >= rule("board_size"):
+		emit(&"summon_failed", {"side": side, "card_id": def_id, "reason": SUMMON_FAILED_BOARD_FULL})
+		return NO_ENTITY
+	var def: Dictionary = _card_def(def_id)
+	if def.is_empty():
+		return NO_ENTITY
+	var minion: Dictionary = _minion_from_def(def_id, def, side)
+	var index: int = board.size() if position < 0 or position > board.size() else position
+	board.insert(index, minion)
+	player.stats.minions_summoned = int(player.stats.minions_summoned) + 1
+	emit(&"minion_summoned", {
+		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": index,
+		"attack": attack(minion), "health": health(minion),
+	})
+	_state.hooks.run_triggers(&"on_minion_summoned", StringName(side), {"entity_id": int(minion.entity_id), "card_id": def_id})
+	return int(minion.entity_id)
+
+
+## Primitive (C10, States "pending_destroy"): marks the minion or weapon
+## [param target_id] `pending_destroy`; it leaves play in the next death check
+## (story 009), whose `minion_died` / `weapon_destroyed` is the event — C15
+## has no event for the mark itself.
+## [codeblock]
+## engine.destroy(minion_id)
+## [/codeblock]
+func destroy(target_id: int) -> void:
+	if _halted():
+		return
+	var record: Dictionary = _minion(target_id)
+	if record.is_empty():
+		record = _weapon(target_id)
+	if record.is_empty():
+		return
+	record["pending_destroy"] = true
+
+
+## Primitive (C13): silences the minion [param target_id] — `silenced = true`
+## and `silenced {entity_id}`.
+## TODO(story 015): strip enchantments and keywords, the F6 clamp, thaw.
+## [codeblock]
+## engine.silence(minion_id)
+## [/codeblock]
+func silence(target_id: int) -> void:
+	if _halted():
+		return
+	var minion: Dictionary = _minion(target_id)
+	if minion.is_empty():
+		return
+	minion.silenced = true
+	emit(&"silenced", {"entity_id": target_id})
+
+
+## Primitive (C13): freezes the character [param target_id] — `frozen =
+## true`, `frozen_on_turn = turn` (a second freeze re-stamps it) — and emits
+## `frozen {entity_id, frozen_on_turn}`.
+## [codeblock]
+## engine.freeze(hero_id)
+## [/codeblock]
+func freeze(target_id: int) -> void:
+	if _halted():
+		return
+	var character: Dictionary = _character(target_id)
+	if character.is_empty():
+		return
+	character.frozen = true
+	character.frozen_on_turn = _state.turn
+	emit(&"frozen", {"entity_id": target_id, "frozen_on_turn": _state.turn})
+
+
+## Primitive (C1 `keywords`): grants [param keyword] to the character or
+## weapon [param target_id] as an enchantment with `keywords_added =
+## [keyword]` (so Silence strips it with the enchantments) — one
+## `enchantment_applied`. A keyword already held is a no-op.
+## [codeblock]
+## engine.add_keyword(minion_id, "taunt")
+## [/codeblock]
+func add_keyword(target_id: int, keyword: String) -> void:
+	if _halted():
+		return
+	var record: Dictionary = _character(target_id)
+	if record.is_empty():
+		record = _weapon(target_id)
+	if record.is_empty() or _has_keyword(record, keyword):
+		return
+	apply_enchantment(target_id, {"keywords_added": [keyword]})
+
+
+## Primitive (card-effects `return_to_hand`): the minion [param target_id]
+## leaves the board (no death, no Deathrattle) and its controller gets a
+## fresh card instance of its `def_id` — `card_added_to_hand {side,
+## instance_id, card_id, hand_size, returned_entity_id}`, or on a full hand
+## `card_burned {…, returned_entity_id}` with the card in the graveyard.
+## Returns the new instance id, or [constant NO_ENTITY].
+## [codeblock]
+## var card_id: int = engine.return_to_hand(minion_id)
+## [/codeblock]
+func return_to_hand(target_id: int) -> int:
+	if _halted():
+		return NO_ENTITY
+	var minion: Dictionary = _minion(target_id)
+	if minion.is_empty():
+		return NO_ENTITY
+	var side: String = str(minion.controller)
+	var board: Array = _state.players[side].board
+	board.remove_at(board.find(minion))
+	return _add_to_hand(side, str(minion.def_id), target_id)
+
+
+## Primitive (card-effects `transform`): replaces the minion [param target_id]
+## in its board slot with a new minion of [param def_id] with a **new**
+## `entity_id`, base stats and keywords from the definition and no
+## enchantments or damage. Summoning sickness, `summoned_on_turn` and
+## `attacks_used` carry over (no sickness reset). Emits `minion_transformed
+## {side, old_entity_id, entity_id, card_id, position}`. Returns the new id,
+## or [constant NO_ENTITY].
+## [codeblock]
+## var sheep_id: int = engine.transform(target_id, "neutral_sheep")
+## [/codeblock]
+func transform(target_id: int, def_id: String) -> int:
+	if _halted():
+		return NO_ENTITY
+	var old: Dictionary = _minion(target_id)
+	if old.is_empty():
+		return NO_ENTITY
+	var def: Dictionary = _card_def(def_id)
+	if def.is_empty():
+		return NO_ENTITY
+	var side: String = str(old.controller)
+	var board: Array = _state.players[side].board
+	var index: int = board.find(old)
+	var minion: Dictionary = _minion_from_def(def_id, def, side)
+	minion.summoning_sick = old.summoning_sick
+	minion.summoned_on_turn = old.summoned_on_turn
+	minion.attacks_used = old.attacks_used
+	board[index] = minion
+	emit(&"minion_transformed", {
+		"side": side, "old_entity_id": target_id, "entity_id": int(minion.entity_id),
+		"card_id": def_id, "position": index,
+	})
+	return int(minion.entity_id)
+
+
+## Primitive (C6 weapons): [param side] equips [param def_id] (a weapon
+## definition). A held weapon is destroyed first — `weapon_destroyed {side,
+## entity_id, card_id, reason: replaced}` — then `weapon_equipped {side,
+## entity_id, card_id, attack, durability}`. Returns the new weapon's id, or
+## [constant NO_ENTITY].
+## TODO(story 009): queue the replaced weapon's Deathrattle.
+## [codeblock]
+## var axe_id: int = engine.equip_weapon("player", "war_iron_axe")
+## [/codeblock]
+func equip_weapon(side: String, def_id: String) -> int:
+	if _halted():
+		return NO_ENTITY
+	var def: Dictionary = _card_def(def_id)
+	if def.is_empty():
+		return NO_ENTITY
+	var player: Dictionary = _state.players[side]
+	if player.weapon != null:
+		var old: Dictionary = player.weapon
+		player.weapon = null
+		emit(&"weapon_destroyed", {"side": side, "entity_id": int(old.entity_id), "card_id": str(old.def_id), "reason": WEAPON_REPLACED})
+	var weapon: Dictionary = MatchRecords.weapon(_take_entity_id(), def_id, int(def.get("attack", 0)), int(def.get("durability", 0)), def.get("keywords", []))
+	player.weapon = weapon
+	emit(&"weapon_equipped", {
+		"side": side, "entity_id": int(weapon.entity_id), "card_id": def_id,
+		"attack": int(weapon.attack), "durability": int(weapon.durability),
+	})
+	return int(weapon.entity_id)
+
+
+## Primitive (C2 `Choice`, Discover): creates the `ChoiceRequest {side, kind,
+## options, source_id, effect_id}` ([method MatchRecords.choice_request]),
+## stores it as `pending_choice`, emits `choice_requested` with it and
+## returns it. The resolver keeps the continuation (ADR-0007).
+## TODO(story 016): enter the `Choice` phase and resume on `choose`.
+## [codeblock]
+## var req: Dictionary = engine.discover("player", ["a_01", "b_02", "c_03"], MatchRecords.CHOICE_DISCOVER, source_id, "scout.0")
+## [/codeblock]
+func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_DISCOVER, source_id: Variant = null, effect_id: String = "") -> Dictionary:
+	if _halted():
+		return {}
+	var request: Dictionary = MatchRecords.choice_request(side, kind, options, source_id, effect_id)
+	_state.pending_choice = request
+	emit(&"choice_requested", request)
+	return request
+
+
+## Primitive (C15 `card_added_to_hand`): a fresh card instance of
+## [param def_id] for [param side]'s hand — `card_added_to_hand {side,
+## instance_id, card_id, hand_size}`, or on a full hand `card_burned {side,
+## instance_id, card_id}` with the card in the graveyard. No `on_draw`.
+## Returns the new instance id.
+## [codeblock]
+## engine.add_card_to_hand("player", "neutral_coin")
+## [/codeblock]
+func add_card_to_hand(side: String, def_id: String) -> int:
+	if _halted():
+		return NO_ENTITY
+	return _add_to_hand(side, def_id, NO_ENTITY)
+
+
+## Primitive (C9 "Set/raise health"): sets the minion [param target_id]'s
+## attack and/or health (null leaves that stat alone) through one
+## enchantment whose deltas reach the new values — `base_*` are never
+## written. Setting health clears `damage_taken`, so `health == max_health ==
+## health`. Emits `enchantment_applied` with `reason: set_stats`.
+## [codeblock]
+## engine.set_stats(minion_id, 4, 1)
+## [/codeblock]
+func set_stats(target_id: int, new_attack: Variant = null, new_health: Variant = null) -> void:
+	if _halted():
+		return
+	var minion: Dictionary = _minion(target_id)
+	if minion.is_empty():
+		return
+	var attack_delta: int = 0 if new_attack == null else int(new_attack) - attack(minion)
+	var health_delta: int = 0 if new_health == null else int(new_health) - max_health(minion)
+	var applied: Dictionary = MatchRecords.enchantment(attack_delta, health_delta)
+	minion.enchantments.append(applied)
+	if new_health != null:
+		minion.damage_taken = 0
+	var payload: Dictionary = _enchantment_payload(target_id, applied)
+	payload["reason"] = ENCHANT_REASON_SET_STATS
+	emit(&"enchantment_applied", payload)
+
+
+## Primitive (match-rules Interactions, added 2026-11-03): removes
+## [param keyword] from the character or weapon [param target_id] — from its
+## definition set and from every enchantment that grants it — and emits
+## `keyword_removed {entity_id, keyword}`. Takes effect at the next legality
+## or damage evaluation. A keyword not held is a no-op.
+## [codeblock]
+## engine.remove_keyword(minion_id, "taunt")
+## [/codeblock]
+func remove_keyword(target_id: int, keyword: String) -> void:
+	if _halted():
+		return
+	var record: Dictionary = _character(target_id)
+	if record.is_empty():
+		record = _weapon(target_id)
+	if record.is_empty() or not _has_keyword(record, keyword):
+		return
+	_strip_keyword(record, keyword)
+	emit(&"keyword_removed", {"entity_id": target_id, "keyword": keyword})
+
+
+## Primitive (match-rules Interactions, added 2026-11-03): a fresh card
+## instance of [param def_id] into [param side]'s deck at [param position] —
+## `top` (index 0), `bottom`, or `random` (exactly one
+## `rng_match.randi_range(0, deck.size())`, nothing from any other stream).
+## Emits `card_added_to_deck {side, instance_id, card_id, position, index,
+## deck_size}`. Returns the instance id, or [constant NO_ENTITY] for an
+## unknown position.
+## [codeblock]
+## engine.add_card_to_deck("boss", "boss_bomb", MatchRecords.POSITION_RANDOM)
+## [/codeblock]
+func add_card_to_deck(side: String, def_id: String, position: String = MatchRecords.POSITION_RANDOM) -> int:
+	if _halted():
+		return NO_ENTITY
+	var deck: Array = _state.players[side].deck
+	var index: int
+	match position:
+		MatchRecords.POSITION_TOP:
+			index = 0
+		MatchRecords.POSITION_BOTTOM:
+			index = deck.size()
+		MatchRecords.POSITION_RANDOM:
+			var stream: Variant = _state.rng_match
+			index = stream.randi_range(0, deck.size())
+		_:
+			push_warning("RulesEngine.add_card_to_deck: unknown position '%s'" % position)
+			return NO_ENTITY
+	var card: Dictionary = MatchRecords.card_instance(_take_entity_id(), def_id, "deck")
+	deck.insert(index, card)
+	emit(&"card_added_to_deck", {
+		"side": side, "instance_id": int(card.instance_id), "card_id": def_id,
+		"position": position, "index": index, "deck_size": deck.size(),
+	})
+	return int(card.instance_id)
+
+
+## Primitive (match-rules Interactions, added 2026-11-03): changes the weapon
+## [param weapon_id]'s durability by [param delta] and emits
+## `weapon_durability_changed {side, entity_id, delta, durability}`; a weapon
+## at ≤ 0 breaks in the next death check (story 009).
+## [codeblock]
+## engine.modify_durability(axe_id, -1)
+## [/codeblock]
+func modify_durability(weapon_id: int, delta: int) -> void:
+	if _halted():
+		return
+	var weapon: Dictionary = _weapon(weapon_id)
+	if weapon.is_empty():
+		return
+	weapon.durability = int(weapon.durability) + delta
+	emit(&"weapon_durability_changed", {
+		"side": _owner_of(weapon_id), "entity_id": weapon_id, "delta": delta,
+		"durability": int(weapon.durability),
+	})
+
+
+## Primitive (match-rules Interactions, added 2026-11-03): [param side]'s
+## hero power may be used again this turn — `used_this_turn = false`, no mana
+## refund, `hero_power_refreshed {side}`. An unused power is a no-op.
+## [codeblock]
+## engine.refresh_hero_power("player")
+## [/codeblock]
+func refresh_hero_power(side: String) -> void:
+	if _halted():
+		return
+	var power: Dictionary = _state.players[side].hero_power
+	if not power.used_this_turn:
+		return
+	power.used_this_turn = false
+	emit(&"hero_power_refreshed", {"side": side})
+
+
+## Primitive (match-rules Interactions, added 2026-11-03): [param side]
+## discards the hand card at [param which] — a hand index, or
+## `MatchRecords.PICK_RANDOM` for exactly one `rng_match.randi_range(0,
+## hand.size() − 1)`. The card goes to the graveyard (no burn, no `on_draw`)
+## with `card_discarded {side, instance_id, card_id, hand_index}`. Returns the
+## instance id; an empty hand or a bad index is a no-op returning
+## [constant NO_ENTITY] (and draws nothing).
+## [codeblock]
+## engine.discard("player", MatchRecords.PICK_RANDOM)
+## [/codeblock]
+func discard(side: String, which: Variant = MatchRecords.PICK_RANDOM) -> int:
+	if _halted():
+		return NO_ENTITY
+	var player: Dictionary = _state.players[side]
+	var hand: Array = player.hand
+	if hand.is_empty():
+		return NO_ENTITY
+	var index: int
+	if typeof(which) == TYPE_INT:
+		index = which
+	elif str(which) == MatchRecords.PICK_RANDOM:
+		var stream: Variant = _state.rng_match
+		index = stream.randi_range(0, hand.size() - 1)
+	else:
+		return NO_ENTITY
+	if index < 0 or index >= hand.size():
+		return NO_ENTITY
+	var card: Dictionary = hand[index]
+	hand.remove_at(index)
+	card.zone = "graveyard"
+	player.graveyard.append(card)
+	emit(&"card_discarded", {"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id), "hand_index": index})
+	return int(card.instance_id)
 
 
 ## C1: `max_health = base_health + Σ enchantment.health_delta`.
@@ -514,9 +1151,14 @@ static func _config_error(code: StringName, key: String, message: String) -> Dic
 
 
 ## A rejection (C2): no mutation; one diagnostic `command_rejected` on the
-## same log, outside the current call's event range (rule 12a).
+## same log, outside the current call's event range (rule 12a). After
+## `match_ended` the log is sealed (rule 15), so a `MATCH_ENDED` rejection is
+## not logged and its range is `[0, 0]`. A diagnostic the log refuses on a
+## live match is its overflow: `fault(event_cap)`, as in [method emit].
 func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
 	assert(REJECTION_CODES.has(code), "rejection code '%s' is outside the closed C2 set" % code)
+	if _state.result != null:
+		return MatchRecords.command_result(false, code, detail, 0, 0)
 	var log: Variant = _state.log
 	var seq: int = log.append(&"command_rejected", {
 		"side": str(command.get("issuer", "")),
@@ -525,6 +1167,8 @@ func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
 		"detail": detail,
 		"diagnostic": true,
 	}, 0)
+	if seq < 0 and not _halted():
+		fault(MatchRecords.REASON_EVENT_CAP)
 	return MatchRecords.command_result(false, code, detail, seq, seq)
 
 
@@ -562,9 +1206,9 @@ func _validate(type: String, command: Dictionary) -> String:
 				if typeof(bit) != TYPE_BOOL:
 					return R_INVALID_MASK
 			return ""
-		MatchRecords.CMD_END_TURN:
+		MatchRecords.CMD_END_TURN, MatchRecords.CMD_CONCEDE:
 			return ""
-	# TODO(stories 008, 010, 012, 016): concede, play_card,
+	# TODO(stories 010, 012, 016): play_card,
 	# use_hero_power, attack and choose handlers. Until one exists its
 	# command is not accepted in any phase.
 	return R_WRONG_PHASE
@@ -591,7 +1235,11 @@ func _do_mulligan(keep_mask: Array) -> void:
 	stream.shuffle(player.deck)
 	emit(&"deck_shuffled", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(player.deck)})
 	draw(MatchRecords.SIDE_PLAYER, replaced.size())
+	if _halted():
+		return
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
+	if _halted():
+		return
 	# C3 step 8: match_started, then the player's first Start step (DD-M03)
 	emit(&"match_started", {
 		"floor": _state.floor,
@@ -600,12 +1248,15 @@ func _do_mulligan(keep_mask: Array) -> void:
 		"player_deck_size": _state.players[MatchRecords.SIDE_PLAYER].deck.size(),
 		"boss_deck_size": _state.players[MatchRecords.SIDE_BOSS].deck.size(),
 	})
+	if _halted():
+		return
 	_start_step(MatchRecords.SIDE_PLAYER)
 
 
 ## C4 Start step for [param side] (engine-driven; no command is accepted
 ## until Main). Step 0 is the States guard `*Turn.Start` with
 ## `turn > TURN_CAP`: the match ends for the boss, reason `turn_cap` (C14).
+## Stops at the first event the log refuses (`event_cap`, [method emit]).
 func _start_step(side: String) -> void:
 	if _state.turn + 1 > rule("turn_cap"):
 		_end_match(MatchRecords.SIDE_BOSS, REASON_TURN_CAP)
@@ -618,13 +1269,19 @@ func _start_step(side: String) -> void:
 	player.turns_taken = int(player.turns_taken) + 1
 	_stamp_log_turn(_state.turn)
 	emit(&"turn_started", {"turn": _state.turn, "side": side})
+	if _halted():
+		return
 	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill
 	var old_max: int = int(player.mana_max)
 	player.mana_max = mini(int(player.turns_taken) + int(player.crystal_bonus), rule("max_mana"))
 	if int(player.mana_max) > old_max:
 		emit(&"crystal_gained", {"side": side, "mana_max": player.mana_max, "gained": int(player.mana_max) - old_max})
+		if _halted():
+			return
 	player.mana_current = player.mana_max
 	emit(&"mana_refilled", {"side": side, "mana_available": player.mana_current, "mana_max": player.mana_max})
+	if _halted():
+		return
 	# 3. one bulk reset, one event (DD-T04)
 	var reset_ids: Array[int] = []
 	for character: Dictionary in _characters_of(side):
@@ -634,10 +1291,16 @@ func _start_step(side: String) -> void:
 		reset_ids.append(int(character.entity_id))
 	player.hero_power.used_this_turn = false
 	emit(&"turn_reset", {"side": side, "entity_ids": reset_ids})
+	if _halted():
+		return
 	# 4. on_turn_start hooks; 5. turn_start triggers in engine candidate order
 	_state.hooks.run_triggers(&"on_turn_start", StringName(side), {})
 	_run_resolution_loop()
+	if _halted():
+		return
 	_fire_trigger_point(&"turn_start", side)
+	if _halted():
+		return
 	# 6. draw one, turn 1 included; 7. win/loss, then Main
 	draw(side, 1)
 	if _win_loss_check():
@@ -646,24 +1309,35 @@ func _start_step(side: String) -> void:
 
 
 ## C4 End step for the active [param side], entered by `end_turn`; runs the
-## other side's Start step when the match goes on.
+## other side's Start step when the match goes on. Stops at the first event
+## the log refuses (`event_cap`, [method emit]).
 func _end_step(side: String) -> void:
 	# 1.
 	_state.phase = MatchState.PHASE_END
 	emit(&"turn_ending", {"turn": _state.turn, "side": side})
+	if _halted():
+		return
 	# 2. turn_end triggers (same candidate order); 3. on_turn_end hooks
 	_fire_trigger_point(&"turn_end", side)
+	if _halted():
+		return
 	_state.hooks.run_triggers(&"on_turn_end", StringName(side), {})
 	_run_resolution_loop()
+	if _halted():
+		return
 	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
 	# 5. end_of_turn enchantments on everything `side` owns, then auras
 	#    TODO(story 011): temporary crystals expire here too.
 	_expire_end_of_turn(side)
+	if _halted():
+		return
 	_resolver.recompute_auras()
 	# 6.
 	if _win_loss_check():
 		return
 	emit(&"turn_ended", {"turn": _state.turn, "side": side})
+	if _halted():
+		return
 	_start_step(MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER)
 
 
@@ -710,7 +1384,7 @@ func _expire_end_of_turn(side: String) -> void:
 
 func _expire_in(enchantments: Array, owner_id: int) -> void:
 	var i: int = 0
-	while i < enchantments.size():
+	while i < enchantments.size() and not _halted():
 		var enchantment: Dictionary = enchantments[i]
 		if enchantment.get("expires") == MatchRecords.EXPIRES_END_OF_TURN:
 			enchantments.remove_at(i)
@@ -742,26 +1416,93 @@ func _run_resolution_loop() -> void:
 	pass
 
 
-## C14 `win_loss_check()`: true when the match has ended.
-## TODO(story 008): the hero-dead / both-dead outcomes; this story ends a
-## match only through `turn_cap`.
+## C14 `win_loss_check()` — the one place a match ends on health, run at the
+## end of every action's C10 loop and at C4 Start step 7 / End step 6, never
+## mid-loop (DD-M12: a later heal in the same action still saves a hero at
+## 0). Both heroes ≤ 0 → BOSS, `both_dead`; the player's ≤ 0 → BOSS,
+## `hero_dead`; the boss's ≤ 0 → PLAYER, `hero_dead`. Returns true when the
+## match has ended (now or before).
 func _win_loss_check() -> bool:
-	return _state.phase == MatchState.PHASE_ENDED
+	if _halted():
+		return true
+	var player_dead: bool = health(_state.players[MatchRecords.SIDE_PLAYER].hero) <= 0
+	var boss_dead: bool = health(_state.players[MatchRecords.SIDE_BOSS].hero) <= 0
+	if player_dead and boss_dead:
+		_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_BOTH_DEAD)
+	elif player_dead:
+		_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_HERO_DEAD)
+	elif boss_dead:
+		_end_match(MatchRecords.SIDE_PLAYER, MatchRecords.REASON_HERO_DEAD)
+	return _halted()
 
 
-## `phase = Ended` with a `MatchResult` (C14), emitted as `match_ended` — the
-## log's last event. [param winner] is a side; `result` is read from the
-## player's side.
-## TODO(story 008): the full `MatchResult` stats block, faults, and
-## `resolver.unbind()` at Ended (breaks the engine↔resolver cycle).
-func _end_match(winner: String, reason: String) -> void:
+## C14 / States `Ended`: ends the match with a fault — the third outcome,
+## `result = fault`, `winner = null` (Run Structure T9: the floor is not
+## lost). [param reason] is `resolution_overflow` (the C10 loop's step cap,
+## story 009; `resolution_overflow {steps: [param steps]}` is emitted first)
+## or `event_cap` (the log's overflow — [method emit] calls this, and the
+## `match_ended` is the one event the faulted log still accepts). A no-op
+## once Ended.
+## [codeblock]
+## engine.fault(MatchRecords.REASON_RESOLUTION_OVERFLOW, steps)
+## [/codeblock]
+func fault(reason: String, steps: int = 0) -> void:
+	assert(MatchRecords.FAULT_REASONS.has(reason), "fault reason '%s' is not one of %s" % [reason, str(MatchRecords.FAULT_REASONS)])
+	if _halted():
+		return
+	if reason == MatchRecords.REASON_RESOLUTION_OVERFLOW:
+		emit(&"resolution_overflow", {"steps": steps})
+		if _halted():
+			return
+	_end_match(null, reason)
+
+
+## The teardown entry `MatchDriver` calls on `Ended` (ADR-0008): releases
+## the resolver — `resolver.unbind()` clears its engine reference and the
+## registry's evaluators, breaking the engine↔resolver `RefCounted` cycle
+## (ADR-0007). Idempotent: the engine already unbinds when the match ends, so
+## on an ended match this does nothing; on a live one (an abandoned attempt,
+## a teardown test) it unbinds without ending the match, and the engine must
+## not be driven afterwards.
+## [codeblock]
+## if engine.phase() == MatchState.PHASE_ENDED: engine.end_match()
+## [/codeblock]
+func end_match() -> void:
+	_unbind()
+
+
+## `phase = Ended` (C14): builds the `MatchResult`
+## ([method MatchRecords.final_result]; [param winner] a side, or null for a
+## fault), stores it as `state.result`, emits it as `match_ended` (the log
+## seals on it — its last event), unbinds the resolver, then emits the
+## test-only [signal match_ended]. A no-op once Ended.
+func _end_match(winner: Variant, reason: String) -> void:
+	if _halted():
+		return
 	_state.phase = MatchState.PHASE_ENDED
-	var outcome: Dictionary = MatchRecords.match_result("win" if winner == MatchRecords.SIDE_PLAYER else "loss", winner, reason, _state.floor, _state.turn)
+	var final_health: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
-		outcome.turns_per_side[side] = int(_state.players[side].turns_taken)
-		outcome.final_health[side] = health(_state.players[side].hero)
+		final_health[side] = health(_state.players[side].hero)
+	var outcome: Dictionary = MatchRecords.final_result(_state, winner, reason, final_health)
 	_state.result = outcome
 	emit(&"match_ended", outcome)
+	_unbind()
+	match_ended.emit(result())
+
+
+## `resolver.unbind()` exactly once per bind.
+func _unbind() -> void:
+	if not _bound:
+		return
+	_bound = false
+	_resolver.unbind()
+
+
+## True once the match has ended (by a dead hero, `concede`, `turn_cap` or a
+## fault): every primitive and engine step is then a no-op, so a fault stops
+## the current action without further mutation.
+func _halted() -> bool:
+	return _state.phase == MatchState.PHASE_ENDED
 
 
 ## Sets [param phase] for the active side and emits `phase_changed {phase, side}`.
@@ -844,6 +1585,159 @@ func _has_keyword(character: Dictionary, keyword: String) -> bool:
 		if enchantment.keywords_added.has(keyword):
 			return true
 	return false
+
+
+## The hero or board minion [param entity_id] (a character in play), else `{}`.
+func _character(entity_id: int) -> Dictionary:
+	for side: String in MatchRecords.SIDES:
+		var hero: Variant = _state.players[side].hero
+		if hero != null and int(hero.entity_id) == entity_id:
+			return hero
+	return _minion(entity_id)
+
+
+## The board minion [param entity_id], else `{}`.
+func _minion(entity_id: int) -> Dictionary:
+	for side: String in MatchRecords.SIDES:
+		for minion: Dictionary in _state.players[side].board:
+			if int(minion.entity_id) == entity_id:
+				return minion
+	return {}
+
+
+## The equipped weapon [param entity_id], else `{}`.
+func _weapon(entity_id: int) -> Dictionary:
+	for side: String in MatchRecords.SIDES:
+		var weapon: Variant = _state.players[side].weapon
+		if weapon != null and int(weapon.entity_id) == entity_id:
+			return weapon
+	return {}
+
+
+## The side that holds [param entity_id] in any zone, or "" when none does.
+func _owner_of(entity_id: int) -> String:
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		for slot: String in ["hero", "weapon"]:
+			var record: Variant = player[slot]
+			if record != null and int(record.entity_id) == entity_id:
+				return side
+		for minion: Dictionary in player.board:
+			if int(minion.entity_id) == entity_id:
+				return side
+		for zone: String in ["hand", "deck", "graveyard"]:
+			for card: Dictionary in player[zone]:
+				if int(card.instance_id) == entity_id:
+					return side
+	return ""
+
+
+## The Card Database definition of [param def_id] (`CardDatabase.card(id)`),
+## or `{}` with a warning when there is no database or no such card — the
+## primitive that asked is then a no-op (a content bug, not a crash).
+func _card_def(def_id: String) -> Dictionary:
+	var def: Variant = _db.card(def_id) if _db != null else null
+	if def is Dictionary:
+		return def
+	push_warning("RulesEngine: no card definition '%s'" % def_id)
+	return {}
+
+
+## A new minion of [param def_id] for [param side] from its definition
+## [param def]: base stats and keywords, sick, summoned this turn (C1, C10).
+func _minion_from_def(def_id: String, def: Dictionary, side: String) -> Dictionary:
+	return MatchRecords.minion(_take_entity_id(), side, int(def.get("attack", 0)), int(def.get("health", 0)), def.get("keywords", []), def_id, _state.turn)
+
+
+## Where an enchantment on [param record] lives: a card instance's
+## `cost_modifiers`, else the character's or weapon's `enchantments`.
+static func _enchantments_of(record: Dictionary) -> Array:
+	return record.cost_modifiers if record.has("cost_modifiers") else record.enchantments
+
+
+static func _enchantment_payload(owner_id: int, enchantment: Dictionary) -> Dictionary:
+	var payload: Dictionary = {
+		"instance_id": owner_id,
+		"attack_delta": enchantment.attack_delta,
+		"health_delta": enchantment.health_delta,
+		"keywords_added": enchantment.keywords_added,
+		"source_entity_id": enchantment.source_entity_id,
+		"is_aura": enchantment.is_aura,
+		"expires": enchantment.expires,
+	}
+	if enchantment.has("cost_delta"):
+		payload["cost_delta"] = enchantment.cost_delta
+	return payload
+
+
+## C1 stats for one `apply_damage`: [param target_side]'s `damage_taken` and
+## [param source_side]'s `damage_dealt_by_card[def_id]` move by
+## [param dealt]. A source without a `def_id` (a hero,
+## [constant SOURCE_FATIGUE], one that left every zone) attributes nothing.
+func _record_damage_stats(target_side: String, source: Variant, source_side: String, dealt: int) -> void:
+	var target_stats: Dictionary = _state.players[target_side].stats
+	target_stats.damage_taken = int(target_stats.damage_taken) + dealt
+	if source_side == "":
+		return
+	var def_id: String = str(_find_record(source).get("def_id", ""))
+	if def_id == "":
+		return
+	var by_card: Dictionary = _state.players[source_side].stats.damage_dealt_by_card
+	by_card[def_id] = int(by_card.get(def_id, 0)) + dealt
+
+
+## Whether damage [param source] has [param keyword] (C12, F2): a character's
+## or weapon's keywords (definition plus enchantments — a weapon's count for
+## the hero attacking with it, story 013 passes the weapon as the source), a
+## card instance's definition keywords. [constant SOURCE_FATIGUE], null and a
+## source that left every zone have none.
+func _source_has(source: Variant, keyword: String) -> bool:
+	if typeof(source) != TYPE_INT:
+		return false
+	var record: Dictionary = _find_record(source)
+	if record.is_empty():
+		return false
+	if record.has("keywords"):
+		return _has_keyword(record, keyword)
+	var def: Variant = _db.card(str(record.def_id)) if _db != null else null
+	return def is Dictionary and (def as Dictionary).get("keywords", []).has(keyword)
+
+
+## A fresh card instance of [param def_id] into [param side]'s hand, or the
+## graveyard on a full hand; one `card_added_to_hand` or `card_burned`.
+## [param returned_from] is the minion `return_to_hand` bounced
+## ([constant NO_ENTITY] for `add_card_to_hand`).
+func _add_to_hand(side: String, def_id: String, returned_from: int) -> int:
+	var player: Dictionary = _state.players[side]
+	var card: Dictionary = MatchRecords.card_instance(_take_entity_id(), def_id, "hand")
+	var payload: Dictionary = {"side": side, "instance_id": int(card.instance_id), "card_id": def_id}
+	if returned_from != NO_ENTITY:
+		payload["returned_entity_id"] = returned_from
+	if player.hand.size() >= rule("hand_size"):
+		card.zone = "graveyard"
+		player.graveyard.append(card)
+		emit(&"card_burned", payload)
+		return int(card.instance_id)
+	player.hand.append(card)
+	payload["hand_size"] = player.hand.size()
+	emit(&"card_added_to_hand", payload)
+	return int(card.instance_id)
+
+
+## Removes [param keyword] from [param record]'s definition set and from every
+## enchantment that grants it.
+static func _strip_keyword(record: Dictionary, keyword: String) -> void:
+	record.keywords.erase(keyword)
+	for enchantment: Dictionary in record.enchantments:
+		enchantment.keywords_added.erase(keyword)
+
+
+## Raises trigger point [param point] mid-step (ADR-0007 erratum): the
+## triggers the resolver returns join queue Q; the C10 loop runs after the
+## step, never here.
+func _raise(point: StringName, ctx: Dictionary) -> void:
+	var queued: Array[Dictionary] = _resolver.resolve(point, ctx)
+	_queue.append_array(queued)
 
 
 func _find_record(entity_id: int) -> Dictionary:
