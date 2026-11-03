@@ -37,9 +37,10 @@
 #   its fields sit two columns past the dash. Quote a value that holds ": ". A
 #   line in any other shape is reported as unsupported layout, with its number.
 #
-# POPULATED 2026-11-03 by /architecture-review (full, workflow standard): the 71
+# POPULATED 2026-11-03 by /architecture-review (full, workflow standard): the 70
 # provisional rows of docs/architecture/architecture.md §Technical Requirements
-# Baseline are registered under the IDs the ADRs already cite (no renames), plus
+# Baseline (its header says 71; the table holds 70) are registered under the
+# IDs the ADRs already cite (no renames), plus
 # one requirement extracted from design/accessibility-requirements.md. Non-GDD
 # sources (game-concept, design-decisions, systems-index, tech-debt,
 # accessibility-requirements) keep the slug the baseline gave them; `gdd` holds
