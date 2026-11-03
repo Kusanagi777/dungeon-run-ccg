@@ -649,6 +649,25 @@ func test_command_and_match_results_carry_gdd_fields() -> void:
 	assert_int(MatchFactory.REJECTION_CODES.size()).is_equal(21)
 
 
+func test_find_entity_skips_a_null_hero_and_returns_empty_for_an_unknown_id() -> void:
+	# Arrange — the player's hero not placed yet (null), a minion on each board
+	var state: MatchState = MatchFactory.make_match_state()
+	state.players[MatchFactory.SIDE_PLAYER].hero = null
+	var player_minion: Dictionary = MatchFactory.summon(state, MatchFactory.SIDE_PLAYER, 1, 1)
+	var boss_minion: Dictionary = MatchFactory.summon(state, MatchFactory.SIDE_BOSS, 2, 2)
+
+	# Act
+	var unknown: Dictionary = MatchFactory.find_entity(state, state.next_entity_id + 100)
+	var found_player: Dictionary = MatchFactory.find_entity(state, player_minion.entity_id)
+	var found_boss_hero: Dictionary = MatchFactory.find_entity(state, MatchFactory.BOSS_HERO_ENTITY_ID)
+
+	# Assert — no crash on the null hero; boards and the other hero still searched
+	assert_dict(unknown).is_empty()
+	assert_bool(is_same(found_player, player_minion)).is_true()
+	assert_bool(is_same(found_boss_hero, state.players[MatchFactory.SIDE_BOSS].hero)).is_true()
+	assert_bool(is_same(MatchFactory.find_entity(state, boss_minion.entity_id), boss_minion)).is_true()
+
+
 # --- RunFactory --------------------------------------------------------------
 
 func test_band_of_follows_f1_for_default_split() -> void:

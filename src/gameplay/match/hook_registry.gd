@@ -17,6 +17,11 @@
 ## - **`side`** is passed through on every call; the resolver evaluates each
 ##   entry's `scope` relative to `entry.side` (rule 3).
 ## - **`copy()`** is by value with the evaluators unset (rule 7).
+## - **Entries are deep read-only** from installation on (rule 8: the effect is
+##   frozen DSL, the state blob read-only): every nested Dictionary and Array
+##   of an entry is `make_read_only()`, so neither [method entries] nor an
+##   evaluator can change the registry through an entry. [method copy]
+##   re-applies it, because `duplicate(true)` returns writable containers.
 ##
 ## [codeblock]
 ## var hooks := HookRegistry.new()
@@ -89,14 +94,14 @@ func install(installer: HookInstaller) -> bool:
 		var point: StringName = StringName(str(effect.get("trigger", "")))
 		if not _entries.has(point):
 			continue
-		_entries[point].append({
+		_entries[point].append(_frozen({
 			"host_kind": installer.host_kind,
 			"host_id": installer.host_id,
 			"side": installer.side,
 			"effect_id": str(effect.get("id", "%s.%d" % [installer.host_id, index])),
 			"effect": effect.duplicate(true),
 			"state": installer.state.duplicate(true),
-		})
+		}))
 	assert(entry_count() <= DEBUG_MAX_ENTRIES, "HookRegistry holds %d entries (treasures F5 bound %d)" % [entry_count(), DEBUG_MAX_ENTRIES])
 	return true
 
@@ -112,7 +117,9 @@ func set_evaluators(fold_entry: Callable, run_entry: Callable) -> void:
 
 
 ## The entries on [param point], in installation order, as a read-only array
-## (an empty one for an unknown point).
+## of deep read-only entries (an empty one for an unknown point). A write
+## through the view — `view[0].effect.ops[0].set("value", 9)` — fails (returns
+## `false`, logs "read-only state") and leaves the registry unchanged.
 func entries(point: StringName) -> Array:
 	var view: Array = (_entries.get(point, _NO_ENTRIES) as Array).duplicate()
 	view.make_read_only()
@@ -166,11 +173,14 @@ func hosts() -> Array[Dictionary]:
 
 ## A by-value copy: every entry and host `duplicate(true)`, evaluators unset
 ## (the clone's resolver registers its own at `bind` — ADR-0005 rule 7,
-## ADR-0007 Decision 3).
+## ADR-0007 Decision 3). The copied entries are made deep read-only again.
 func copy() -> HookRegistry:
 	var out: HookRegistry = HookRegistry.new()
 	for point: StringName in _entries:
-		out._entries[point] = (_entries[point] as Array).duplicate(true)
+		var list: Array[Dictionary] = []
+		for entry: Dictionary in _entries[point]:
+			list.append(_frozen(entry.duplicate(true)))
+		out._entries[point] = list
 	out._hosts = _hosts.duplicate(true)
 	return out
 
@@ -181,3 +191,18 @@ func entry_count() -> int:
 	for point: StringName in _entries:
 		total += (_entries[point] as Array).size()
 	return total
+
+
+## [param value] with every nested Dictionary and Array made read-only,
+## innermost first (`make_read_only()` is shallow on 4.7.2, observed
+## 2026-11-03). Returns [param value].
+static func _frozen(value: Variant) -> Variant:
+	if value is Dictionary:
+		for key: Variant in value:
+			_frozen(value[key])
+		(value as Dictionary).make_read_only()
+	elif value is Array:
+		for item: Variant in value:
+			_frozen(item)
+		(value as Array).make_read_only()
+	return value

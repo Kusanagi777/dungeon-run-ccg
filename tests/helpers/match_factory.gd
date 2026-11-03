@@ -242,11 +242,14 @@ static func draw_top(state: MatchState, side: String) -> Dictionary:
 
 
 ## Find a character by `entity_id` across both heroes and boards; {} if none.
+## A side whose hero is still `null` (a state before setup places heroes) is
+## searched on its board only, never dereferenced.
 static func find_entity(state: MatchState, entity_id: int) -> Dictionary:
 	for side: String in [SIDE_PLAYER, SIDE_BOSS]:
 		var player: Dictionary = state.players[side]
-		if int(player.hero.entity_id) == entity_id:
-			return player.hero
+		var hero: Variant = player.hero
+		if hero != null and int(hero.entity_id) == entity_id:
+			return hero
 		for minion: Dictionary in player.board:
 			if int(minion.entity_id) == entity_id:
 				return minion

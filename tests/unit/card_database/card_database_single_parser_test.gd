@@ -13,10 +13,13 @@ extends GdUnitTestSuite
 const SRC_ROOT: String = "res://src/"
 const ALLOWED_DIR: String = "res://src/core/data/"
 const SCANNED_EXTENSIONS: Array[String] = ["gd", "tscn", "tres"]
+## `JSON.new(` rather than `JSON.new().parse`: any `JSON` instance outside
+## `src/core/data/` is a parser, including the two-line form
+## `var json := JSON.new()` / `json.parse(text)` that `DataLoader` itself uses.
 const FORBIDDEN: Array[String] = [
 	"FileAccess.open(\"res://assets/data/",
 	"JSON.parse_string",
-	"JSON.new().parse",
+	"JSON.new(",
 	"load(\"res://assets/data/",
 ]
 const DATA_SCRIPTS: Array[String] = [
@@ -93,6 +96,17 @@ func test_matcher_catches_each_forbidden_form() -> void:
 	for i: int in offending.size():
 		assert_array(_violations_in(offending[i])).is_equal([FORBIDDEN[i]])
 	assert_array(_violations_in("var db: CardDatabase = services.card_database")).is_empty()
+
+
+func test_matcher_catches_the_two_line_json_instance_form() -> void:
+	# Arrange — the form data_loader.gd uses, split over two lines
+	var two_line: String = "var json: JSON = JSON.new()\nif json.parse(text) != OK:\n\treturn"
+	var inferred: String = "var parser := JSON.new()\nparser.parse(text)"
+
+	# Act / Assert
+	assert_array(_violations_in(two_line)).is_equal(["JSON.new("])
+	assert_array(_violations_in(inferred)).is_equal(["JSON.new("])
+	assert_array(_violations_in("var text: String = JSON.stringify(data)")).is_empty()
 
 
 func test_no_file_under_src_outside_core_data_parses_game_data() -> void:

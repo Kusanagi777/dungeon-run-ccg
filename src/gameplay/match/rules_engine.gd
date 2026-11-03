@@ -39,6 +39,37 @@ const CONFIG_KEYS: Array[String] = [
 ## character attacks once per turn). A rule, not a tuning knob — the GDD's
 ## Tuning Knobs table has no row for it.
 const ATTACKS_PER_TURN: int = 1
+## The match-rules Tuning Knobs "Safe range" column, `[min, max]` inclusive per
+## [constant CONFIG_KEYS] key — the bounds [method validate_rules_config]
+## checks. Validation bounds, not knob values: like
+## `DataLoader.SCHEMA_VERSION_CURRENT` they cannot come from the file they
+## validate. `tests/integration/match_rules/match_rules_config_file_test.gd`
+## pins every row to the GDD table, so a GDD change that is not mirrored here
+## fails the suite.
+const CONFIG_SAFE_RANGES: Dictionary[String, Array] = {
+	"board_size": [5, 7],
+	"hand_size": [8, 12],
+	"starting_hand_player": [3, 4],
+	"starting_hand_boss": [3, 5],
+	"max_mana": [7, 10],
+	"hero_power_cost": [1, 3],
+	"mulligan_rounds": [0, 1],
+	"turn_cap": [40, 200],
+	"resolution_step_cap": [200, 5000],
+	"max_attacks_cap": [2, 4],
+	"max_attacks_windfury": [2, 2],
+	"starting_health_player": [25, 40],
+	"fatigue_base": [1, 3],
+	"fatigue_step": [1, 2],
+}
+## The file [method validate_rules_config] reports against (DD-T01 name).
+const CONFIG_FILE: String = "match_rules.json"
+## Owner code: a [constant CONFIG_KEYS] key is absent from the body.
+const E_RULES_MISSING_KNOB: StringName = &"E_RULES_MISSING_KNOB"
+## Owner code: a knob is not a whole number (a fraction, string, bool, null…).
+const E_RULES_NOT_INTEGER: StringName = &"E_RULES_NOT_INTEGER"
+## Owner code: a knob lies outside its [constant CONFIG_SAFE_RANGES] row.
+const E_RULES_OUT_OF_RANGE: StringName = &"E_RULES_OUT_OF_RANGE"
 
 var _db: Variant
 var _rules_config: Dictionary
@@ -65,9 +96,44 @@ func rules_config() -> Dictionary:
 	return _rules_config
 
 
+## The `match_rules` config validator (card-database CR-5 stage 7a; ADR-0002
+## Decision 4: `call(body, db) -> Array`), registered by `Boot` as
+## `configs.match_rules`. Static and pure: it reads [param body] only
+## ([param _db] is the stage-7a calling convention and is unused here).
+## Returns one error per problem, in [constant CONFIG_KEYS] order, each in the
+## `ValidationReport` entry shape `{severity, code, file, record_id, field,
+## message}` (`severity` error, `file` [constant CONFIG_FILE], `record_id`
+## `null`, `field` the knob key); `[]` when the body is valid:
+## - a missing key is [constant E_RULES_MISSING_KNOB];
+## - a value that is not a whole number (JSON numbers parse as `float`, so
+##   `7.0` passes and `7.5`, `"7"`, `true` fail) is [constant E_RULES_NOT_INTEGER];
+## - a whole number outside its [constant CONFIG_SAFE_RANGES] row is
+##   [constant E_RULES_OUT_OF_RANGE].
+## [codeblock]
+## var errors: Array = RulesEngine.validate_rules_config({"board_size": 9.0}, null)
+## errors[0].code   # &"E_RULES_OUT_OF_RANGE" (board_size), then 13 missing knobs
+## [/codeblock]
+static func validate_rules_config(body: Dictionary, _db: Variant) -> Array:
+	var errors: Array[Dictionary] = []
+	for key: String in CONFIG_KEYS:
+		if not body.has(key):
+			errors.append(_config_error(E_RULES_MISSING_KNOB, key, "missing knob `%s` (match-rules Tuning Knobs)" % key))
+			continue
+		var raw: Variant = body[key]
+		var is_number: bool = typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT
+		if not is_number or float(raw) != floorf(float(raw)):
+			errors.append(_config_error(E_RULES_NOT_INTEGER, key, "`%s` must be a whole number, found %s (%s)" % [key, str(raw), type_string(typeof(raw))]))
+			continue
+		var value: int = int(raw)
+		var bounds: Array = CONFIG_SAFE_RANGES[key]
+		if value < int(bounds[0]) or value > int(bounds[1]):
+			errors.append(_config_error(E_RULES_OUT_OF_RANGE, key, "`%s` is %d, outside the safe range %d–%d" % [key, value, int(bounds[0]), int(bounds[1])]))
+	return errors
+
+
 ## The integer value of knob [param key] (one of [constant CONFIG_KEYS]) from
 ## `rules_config`. JSON numbers parse as float; the value is coerced to `int`.
-## A missing key is a data error the `match_rules` config validator reports at
+## A missing key is a data error [method validate_rules_config] reports at
 ## load — this asserts in debug builds and never falls back to a default.
 ## [codeblock]
 ## var cap: int = engine.rule("max_attacks_cap")   # 4 with the shipped data
@@ -156,6 +222,17 @@ func attacks_remaining(character: Dictionary) -> int:
 func state_snapshot(entity_id: int) -> Dictionary:
 	var record: Dictionary = _find_record(entity_id)
 	return record.duplicate(true)
+
+
+static func _config_error(code: StringName, key: String, message: String) -> Dictionary:
+	return {
+		"severity": ValidationReport.SEVERITY_ERROR,
+		"code": code,
+		"file": CONFIG_FILE,
+		"record_id": null,
+		"field": key,
+		"message": message,
+	}
 
 
 func _weapon_of(character: Dictionary) -> Variant:

@@ -27,7 +27,11 @@
 ## `get_error_line()` is 0-based on 4.7.2 (observed: an error on the 4th line
 ## reports 3, a single-line file reports 0), so the report states it + 1.
 ## `JSON` returns every number as `float`, so `schema_version` is compared
-## after an integer check. Single-thread-only; runs synchronously at boot.
+## after an integer check. The 4.7.2 parser is lenient where CR-1 is strict
+## (observed 2026-11-03): it accepts a trailing comma (`{"a": 1,}`, `[1,]`)
+## and a duplicate key (`{"a": 1, "a": 2}` keeps `2` silently), so a file
+## that parses is also scanned for both and each is `E_PARSE` with its line.
+## Single-thread-only; runs synchronously at boot.
 class_name DataLoader
 extends RefCounted
 
@@ -156,8 +160,71 @@ func _read_and_parse(report: ValidationReport) -> Array[Dictionary]:
 				message += ": " + json.get_error_message()
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_PARSE, row.name, null, null, message)
 			continue
+		var strict_problems: PackedStringArray = _strict_json_problems(text)
+		for problem: String in strict_problems:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_PARSE, row.name, null, null, problem)
+		if not strict_problems.is_empty():
+			continue
 		staged.append({"row": row, "body": json.data})
 	return staged
+
+
+## The CR-1 faults the engine parser lets through, in `text` that has already
+## parsed: every trailing comma before `}` or `]` and every duplicate key
+## within one object, as `"line N: …"` messages (1-based, the line of the
+## comma or of the repeated key). Keys are compared as written, escapes
+## undecoded. Strings are skipped whole, so punctuation inside them is never
+## read as structure.
+func _strict_json_problems(text: String) -> PackedStringArray:
+	var problems: PackedStringArray = []
+	var quote: int = "\"".unicode_at(0)
+	var backslash: int = "\\".unicode_at(0)
+	var newline: int = "\n".unicode_at(0)
+	var comma: int = ",".unicode_at(0)
+	var open_object: int = "{".unicode_at(0)
+	var close_object: int = "}".unicode_at(0)
+	var open_array: int = "[".unicode_at(0)
+	var close_array: int = "]".unicode_at(0)
+	var whitespace: Array[int] = [" ".unicode_at(0), "\t".unicode_at(0), "\r".unicode_at(0)]
+	# One frame per open container: {object: bool, seen: {raw key: true}}.
+	var frames: Array[Dictionary] = []
+	var line: int = 1
+	var comma_line: int = 1
+	var last: int = -1  # the last structural character outside strings
+	var i: int = 0
+	var size: int = text.length()
+	while i < size:
+		var c: int = text.unicode_at(i)
+		if c == newline:
+			line += 1
+		elif c == quote:
+			var start: int = i + 1
+			i = start
+			while i < size and text.unicode_at(i) != quote:
+				i += 2 if text.unicode_at(i) == backslash else 1
+			var in_object: bool = not frames.is_empty() and frames.back()["object"]
+			if in_object and (last == open_object or last == comma):
+				var key: String = text.substr(start, i - start)
+				if frames.back()["seen"].has(key):
+					problems.append("line %d: duplicate key \"%s\" in one object (CR-1: keys are unique; the parser would keep the last value silently)" % [line, key])
+				frames.back()["seen"][key] = true
+			last = quote
+		elif c == open_object or c == open_array:
+			frames.append({"object": c == open_object, "seen": {}})
+			last = c
+		elif c == close_object or c == close_array:
+			if last == comma:
+				problems.append("line %d: trailing comma before '%s' (CR-1: strict JSON)" % [comma_line, String.chr(c)])
+			if not frames.is_empty():
+				frames.pop_back()
+			last = c
+		elif c == comma:
+			comma_line = line
+			last = c
+		elif not whitespace.has(c):
+			last = c
+		i += 1
+	return problems
 
 
 func _check_envelopes(staged: Array[Dictionary], report: ValidationReport) -> Array[Dictionary]:
