@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -215,7 +215,7 @@ nothing at runtime.**
    E_FX_CHOSEN, E_FX_BUDGET, W_FX_KEYWORD_MISMATCH, W_FX_UNREACHABLE` (card-effects
    C10) and computes `effect_step_bound` per F6. The same function also yields
    `targeting_spec` for the host (one derivation, two callers: the validator checks
-   it, the resolver memoises it). The test stub is `func(_k, _id, _fx, _db): return []`.
+   it, the resolver memoises it). The test stub is `func(_k, _id, _fx, _db, _configs): return []` (five parameters — stage 7b always passes five arguments, ADR-0002).
 9. **Grep gate G7** (CI): under `src/gameplay/effects/**`, zero hits for direct
    state writes — `\.(board|hand|deck|graveyard|enchantments|keywords)\s*\.(append|erase|insert|remove_at|clear)\(|\.(damage_taken|base_attack|base_health|armor|mana_current|mana_max|frozen|silenced|attacks_used|durability|next_entity_id)\s*[+\-]?=` — and zero hits for `log\.append\(` and `RandomNumberGenerator`.
 

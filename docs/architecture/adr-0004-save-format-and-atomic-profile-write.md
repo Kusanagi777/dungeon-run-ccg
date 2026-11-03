@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -31,6 +31,11 @@ Review record for this run (2026-11-03, `/architecture-decision`, headless, no
   `ProfileStore` and `AtomicFileWriter` / `ProfileLock`; the GDD names only the
   system. No GDD edit needed.
 - Numbering fixed by `design/design-decisions.md` DD-X08.
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** `load_status`
+  added to the `MetaApi` method list — `architecture.md` §API Boundaries and
+  ADR-0011 already carry it; no decision changed. Dependencies ADR-0001 and
+  ADR-0003 were Accepted first.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
@@ -339,7 +344,8 @@ class_name MetaApi extends RefCounted
 # the whole M1.3 surface as @abstract funcs: load_profile, save_profile, save_active_run, load_active_run,
 # clear_active_run, archive_run, is_hero_unlocked, is_unlocked, is_treasure_unlocked, unlocked_ids,
 # unlocked_keys, unlock_progress, unlock_hint, set_setting, get_setting, get_settings, stats_for_hero,
-# last_hero_id, run_log, run_log_entry, pending_notifications, ack_notification, validate_unlock_defs, reset_profile
+# last_hero_id, run_log, run_log_entry, pending_notifications, ack_notification, validate_unlock_defs, reset_profile,
+# load_status (OK | RECOVERED_BAK | FRESH | FRESH_AFTER_CORRUPT | E_SCHEMA_NEWER | E_LOCKED — architecture.md §Presentation; ADR-0011)
 # src/gameplay/meta/meta_facade.gd  — class_name MetaFacade extends MetaApi  (ProfileStore + UnlockEvaluator + StatsFold)
 # src/gameplay/meta/meta_stub.gd    — class_name MetaStub extends MetaApi    (in-memory; fixture-loaded; everything unlocked)
 

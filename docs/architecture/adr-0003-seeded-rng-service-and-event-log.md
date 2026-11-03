@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -29,6 +29,14 @@ Review record for this run (2026-11-03, `/architecture-decision`, headless, no
   defined over (the helper already exposes it); rules code never calls it.
 - Numbering fixed by `design/design-decisions.md` DD-X08 (closes rng-event-log
   Open Question 6).
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** rule 7, the
+  diagram, two guidelines, a risk mitigation and the Enables row no longer say
+  `MatchDriver` *buffers* live-log events — that contradicted ADR-0008 Decision 5
+  (no event buffer) and ADR-0006's clone-and-replay protocol; the main-thread
+  subscriber rule itself is unchanged. The knob source now cites
+  `rng_event_log.json` (DD-T01) consistently, and the Ordering Note says three
+  knobs, not two, matching Constraints and the guidelines.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
@@ -225,9 +233,11 @@ implements rules 11–19 and F6–F7. Specifically:
    `subscribe(callback)` delivers each event once, in `seq` order, immediately
    after the append, on the thread that called `append`. The log itself is
    thread-agnostic (no locks); the rule that makes this safe is architectural:
-   while a `PlannerTask` (ADR-0006) owns the engine, **nothing subscribes to the
-   live log from the worker** — `MatchDriver` buffers `events_since(seq)` and
-   replays on the main thread in `tick()`. A subscriber that calls `append`
+   a `PlannerTask` (ADR-0006) plans on a `RulesEngine.clone()` with a detached
+   scratch log, so **nothing appends to or subscribes to the live log from the
+   worker** — `MatchDriver` replays the returned plan into the live engine on
+   the main thread in `tick()`, and live subscribers fire there (ADR-0008
+   Decision 5: no event buffer). A subscriber that calls `append`
    re-enters: `assert` in debug; in release the append is accepted and tagged
    `payload._reentrant = true` (Edge Cases). Because GDScript lambdas capture
    locals by value (sourced, `current-best-practices.md`), subscriber code that
@@ -283,7 +293,7 @@ MatchConfig{rng_match, rng_ai, log} ──► RulesEngine ──primitives──
                                    BossAI (reads stream)                ▼
                                                                  subscribers (main thread, sync, in order)
                                                                  │ MatchViewState.apply → AnimationQueue (cause_seq root)
-                                                                 │ MatchDriver buffer (while PlannerTask live) → tick()
+                                                                 │ (planner writes only its clone's scratch log; replay in tick())
                                                                  ▼
                                              match_ended → sealed → reduce_to_summary() → run log
                                                                  └─ to_json() → user://logs/<run_id>/floor_n_attempt_k.json
@@ -353,9 +363,9 @@ Event shape (rule 11), identical in memory and in `to_json()`:
   emit zero or two events for one mutation.
 - Must put diagnostics on the same log with `payload.diagnostic = true`; must
   never create a second event channel or a log filter in `src/core/log/`.
-- Must keep subscriber callbacks on the main thread; a worker that owns the
-  engine must never subscribe — it leaves events in the log and the driver
-  replays `events_since` on `tick()`.
+- Must keep subscriber callbacks on the main thread; a worker plans on a clone
+  and must never append to or subscribe to the live log — the driver replays
+  the plan on `tick()` (ADR-0006/0008).
 - Must serialise 64-bit values (`run_seed`, any hash) as 16-hex strings and
   must never trust `JSON.parse_string` to return an `int`; must coerce
   integral floats back to `int` on load.
@@ -478,7 +488,7 @@ Event shape (rule 11), identical in memory and in `to_json()`:
 - **A subscriber runs off the main thread** once ADR-0006 lands — UI code on a
   worker. *Mitigation*: debug-build `assert(OS.get_thread_caller_id() ==
   OS.get_main_thread_id())` inside the notify loop (API verified in probe A);
-  the driver's buffer rule in `architecture.md` Data Flow §2.
+  the clone-and-replay rule (ADR-0006/0008; `architecture.md` Data Flow §2).
 - **Payload drift makes two logs of one run differ in float formatting**.
   *Mitigation*: canonical JSON (6 decimals) in both `to_json()` and the test
   assertion; gameplay quantities are ints by design.
