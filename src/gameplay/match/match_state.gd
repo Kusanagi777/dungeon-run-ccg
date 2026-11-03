@@ -56,9 +56,9 @@ var pending_choice: Variant = null
 var result: Variant = null
 ## The next id handed to a character, weapon or card instance (C1).
 var next_entity_id: int = FIRST_ENTITY_ID
-## The match's `HookRegistry` (ADR-0005; created by `RulesEngine.start`,
-## story 003). Null until then; the registry class lands in story 002.
-var hooks: Variant = null
+## The match's [HookRegistry] (ADR-0005; created by `RulesEngine.start`,
+## story 003). Null until then.
+var hooks: HookRegistry = null
 ## `EffectRuntime {once_marks, counters, per_turn, pending_choice}` — plain
 ## data whose code lives in `EffectResolver` (ADR-0007); see
 ## [method make_effect_runtime].

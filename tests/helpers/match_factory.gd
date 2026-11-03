@@ -15,7 +15,9 @@
 ## `MatchState.make_player_state`), so fixtures and the engine share one field
 ## list. `MatchConfig` stays a Dictionary (Run Structure owns its shape, R3).
 ## `make_rules_config` is the injected `match_rules` body — the `config` of
-## `assets/data/match_rules.json` — built from `TestConstants`.
+## `assets/data/match_rules.json` — built from `TestConstants`. Since
+## match-rules story 002 `make_match_state` carries a real (empty)
+## `HookRegistry`, and `make_hook_installer` builds `HookInstaller`s.
 class_name MatchFactory
 extends RefCounted
 
@@ -125,7 +127,7 @@ static func make_match_state(overrides: Dictionary = {}) -> MatchState:
 	state.players[SIDE_PLAYER] = make_player_state(SIDE_PLAYER)
 	state.players[SIDE_BOSS] = make_player_state(SIDE_BOSS)
 	state.next_entity_id = BOSS_HERO_ENTITY_ID + 1
-	state.hooks = []
+	state.hooks = HookRegistry.new()
 	for key: String in overrides:
 		assert(key in state, "MatchState has no field '%s'" % key)
 		state.set(key, overrides[key])
@@ -159,6 +161,28 @@ static func make_match_config(floor: int = 1, rng: TestRngService = null, log: T
 	}
 	config.merge(overrides, true)
 	return config
+
+
+## A HookInstaller (treasures T3.2; ADR-0005) for `host_id` on `side`
+## (`SIDE_PLAYER` → a treasure, `SIDE_BOSS` → the boss passive unless
+## `host_kind` says otherwise). `hook_points` gives one effect per entry, in
+## order: `{id: "<host_id>.<i>", trigger: <point>, scope: {}, condition: {},
+## ops: [], once_per_turn: false}` (card-effects C1 shape).
+static func make_hook_installer(host_id: String, side: String, hook_points: Array, state: Dictionary = {}, host_kind: StringName = &"") -> HookInstaller:
+	var kind: StringName = host_kind
+	if kind == &"":
+		kind = HookInstaller.HOST_KIND_TREASURE if side == SIDE_PLAYER else HookInstaller.HOST_KIND_PASSIVE
+	var effects: Array[Dictionary] = []
+	for i: int in hook_points.size():
+		effects.append({
+			"id": "%s.%d" % [host_id, i],
+			"trigger": str(hook_points[i]),
+			"scope": {},
+			"condition": {},
+			"ops": [],
+			"once_per_turn": false,
+		})
+	return HookInstaller.new(kind, host_id, StringName(side), effects, state)
 
 
 ## A CommandResult (C2): `{accepted, rejection: null | {code, detail}, events: [first, last]}`.
