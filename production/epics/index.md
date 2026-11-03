@@ -11,7 +11,7 @@ Review: PR-EPIC skipped — Lean mode
 | Boot & Composition Root | Foundation | Boot (composition root) | — (architecture.md §Dependency injection; ADR-0001) | 7 stories | Ready |
 | RNG & Event Log | Foundation | RNG & Event Log | design/gdd/rng-event-log.md | 11 stories | Ready |
 | Card Database | Foundation | Card Database | design/gdd/card-database.md | 10 stories | Ready |
-| Match Rules | Core | Match Rules | design/gdd/match-rules.md | Not yet created | Ready |
+| Match Rules | Core | Match Rules | design/gdd/match-rules.md | 18 stories | Ready |
 | Card Effects | Core | Card Effects | design/gdd/card-effects.md | 16 stories | Ready |
 | Boss AI + Match Driver | Core | Boss AI (+ Run Structure's `MatchDriver`) | design/gdd/boss-ai.md | 18 stories | Ready |
 | Match UI | Presentation | Match UI | design/gdd/match-ui.md | Not yet created | Ready |

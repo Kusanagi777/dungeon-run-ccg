@@ -6,7 +6,7 @@
 > **Control Manifest**: Core Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 4 of 14 — plan E2, ADR-0007 / ADR-0005 / ADR-0001
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories match-rules`
+> **Stories**: 18 (see Stories table below) — created 2026-11-03 by `/create-stories match-rules`
 
 ## Overview
 
@@ -48,6 +48,31 @@ Out of scope: nothing in match-rules is deferred; hard-band modifiers (Full Visi
 | TR-match-rules-008 | Input Responsiveness: submit() within 5 ms worst case, legal_commands() within 2 ms | ADR-0007 ✅ (also ADR-0009) |
 
 Requirements covered by Accepted ADRs: 8 / 8. Untraced Requirements: None.
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | Match data model, derived values and rules config | Logic | Ready | ADR-0001 |
+| 002 | HookRegistry: install order, fold, copy | Logic | Ready | ADR-0005 |
+| 003 | Match setup: bind, heroes, shuffle, starting hands | Logic | Ready | ADR-0007 |
+| 004 | Command channel, rejection codes and mulligan | Logic | Ready | ADR-0001 |
+| 005 | Turn structure, mana curve and turn cap | Logic | Ready | ADR-0007 |
+| 006 | Primitive API, draw, burn and fatigue | Logic | Ready | ADR-0007 |
+| 007 | Damage, healing and armour pipeline | Logic | Ready | ADR-0005 |
+| 008 | Win, loss, concede and MatchResult | Logic | Ready | ADR-0007 |
+| 009 | Resolution loop: death check, trigger queue, auras, step cap | Logic | Ready | ADR-0007 |
+| 010 | Playing minions, spells, weapons and the hero power | Logic | Ready | ADR-0007 |
+| 011 | Effective cost, mana payment and temporary crystals | Logic | Ready | ADR-0005 |
+| 012 | Attack legality predicate | Logic | Ready | ADR-0007 |
+| 013 | Attack resolution and simultaneous damage | Logic | Ready | ADR-0007 |
+| 014 | Windfury, Stealth and Divine Shield in combat | Logic | Ready | ADR-0007 |
+| 015 | Freeze, thaw and Silence | Logic | Ready | ADR-0007 |
+| 016 | Choice phase and Discover continuation | Logic | Ready | ADR-0007 |
+| 017 | clone() sandbox and replay equivalence | Logic | Ready | ADR-0005 |
+| 018 | Performance budgets: submit and legal_commands | Logic | Ready | ADR-0007 |
+
+Dependency order: 001, 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → {011, 012, 016} → 012 → 013 → {014, 015} → 017 → 018. All 45 GDD acceptance criteria are covered (AC-41 in 001; AC-40 in 018). Gate entry condition 3 (N-05) is satisfied by DD-X11 — story 013 cites it. QL-STORY-READY skipped — Lean mode.
 
 ## Gate Entry Conditions Carried
 
