@@ -202,7 +202,7 @@ Victory variant: identical geometry; background `table_lit` warmth; headline "FL
 | Attempt marks | `match_attempts[f] > 1` | "attempt n" on that floor's row (defeat_sample: floor 3 "attempt 2") | — | AC-7; replayed floors after `match_faulted` or a mid-match quit |
 | Custom seed | `seed_source = custom` | "custom seed" pill beside the seed | — | Bests exclude it (Meta M7.4) — tooltip says so |
 | Damage table empty | `damage_by_card == {}` (turn-1 concede) | "no damage dealt" instead of rows | Rows not focusable | run-ui Edge Cases |
-| Damage table overflow | `> summary_top_cards` entries | "and N more" line | — | R10 |
+| Damage table overflow | `> 8` entries (the record holds `summary_top_cards` = 10) | "and N more" line at y 468 (N = entries − 8) | — | R10; the Run Log detail lists all ten |
 | Unlocks present | `unlocks_granted[]` non-empty | Lines in the left column **and** toasts draining one at a time (5–8 s each, hover / focus pauses) | `ack_notification(key)` once per key on show; a key in both the signal and the queue → one toast (AC-15) | `victory_sample`: one "New hero unlocked" line |
 | No unlocks | empty | "New unlocks" header absent (deliberate absence) | — | |
 | No treasures | `treasures == []` | "Treasures" row absent | — | Deliberate absence |
@@ -211,7 +211,7 @@ Victory variant: identical geometry; background `table_lit` warmth; headline "FL
 | Copy seed pressed | Copy | Label "Copied" 1.5 s | Clipboard written | Success Confirmation |
 | Committed (New Run) | `Enter` / click | Button pressed; nothing dims (the screen is leaving) | Further intents ignored; `new_run` issued once (AC-17) | |
 | Toast riding out | New Run while a toast shows | Toast stays on the toast layer through `run_start` and the floor-1 boss intro until `t_toast` elapses | Not re-acked | AC-32 |
-| `text_scale` 125 % / 150 % | Setting | Facts rows 30 / 36 px (the left column grows to y 664 at 150 % — the status line moves to y 604 and the unlock list truncates to 2 lines + "and N more"); damage rows 45 / 54 px → **8 / 6 rows visible** with "and N more" counting the rest; floors rows 30 / 36 px (F = 8 → y 100–388, deck header moves to 404, scroll 432–600); deck rows 55 / 66 px; headline 42 px wraps to 2 lines (title row grows to 72, columns start at 96) | — | AC-31; fixture variant `victory_sample` with `settings.text_scale` 1.5 |
+| `text_scale` 125 % / 150 % | Setting | Facts rows 30 / 36 px (the left column grows to y 664 at 150 % — the status line moves to y 604 and the unlock list truncates to 2 lines + "and N more"); damage rows 55 / 66 px → **7 / 6 rows visible** (ending y 493 / 504) with "and N more" counting the rest — never past y 540, so the status line (560 → 604 at 150 %) is never reached; floors rows 30 / 36 px (F = 8 → y 100–340 / 100–388, deck header moves to 356 / 404, scroll to 384 / 432–600); deck rows 55 / 66 px; headline 42 px wraps to 2 lines (title row grows to 72, columns start at 96) | — | AC-31; fixture **`victory_sample_ts150`** (run-ui U10 settings variant, `settings.text_scale` 1.5) |
 | `reduce_motion` / `instant` | Setting | No slide anywhere (there is none); the saturation ramp is kept (single ramp, not motion); 0 ms transitions at `instant` — the ramp is skipped to its end state | `committed` still blocks a second New Run | AC-20 |
 | Read-only (`run_detail`) | Opened from the Run Log | Same layout; action row = Copy seed + Back only | No run commands | `run-log.md` owns the entry; noted so the layout is built once |
 
@@ -331,15 +331,15 @@ Platform Target is keyboard + mouse; **Touch** dropped (not supported); **Gamepa
 - [x] Esc key closes or cancels (→ Main Menu) and does not quit the game
 
 **Gamepad** (post-v1 — mapping only)
-- [ ] All interactive elements reachable with D-Pad and left stick — mapping defined, not implemented
-- [ ] Face button mapping documented — `ui_accept` / `ui_cancel` only
+- [ ] All interactive elements reachable with D-Pad and left stick — mapping defined, not implemented (§15 "Gamepad: d-pad graph")
+- [ ] Face button mapping documented — `ui_accept` / `ui_cancel` only (§15 "Gamepad: face buttons")
 - [x] No action requires analog stick precision
-- [ ] Trigger and bumper shortcuts — library default (shoulders = Tab)
-- [ ] Controller disconnection handling — not specified (§15)
+- [ ] Trigger and bumper shortcuts — library default (shoulders = Tab) (§15 "Gamepad: bumpers")
+- [ ] Controller disconnection handling — not specified (§15 "Controller disconnection")
 
 **Mouse**
 - [x] Hover states defined for all interactive elements
-- [x] Clickable hit targets are at minimum 32x32px (buttons 160x44 / 240x44; Copy 80x32 inside a 44 px row; chips 44x44; list rows 36 px damage — **below 44 but read-only, not click targets**; deck rows 44 px)
+- [x] Clickable hit targets are at minimum 32x32px (buttons 160x44 / 240x44; Copy 80x32 inside a 44 px row; chips 44x44; damage rows 44 px and deck rows 44 px — both focusable for Card Inspect, so both meet the List Item interactive-row rule)
 - [x] Right-click behavior defined (no-op)
 - [x] Scroll wheel behavior defined (deck list)
 
@@ -355,7 +355,7 @@ Platform Target is keyboard + mouse; **Touch** dropped (not supported); **Gamepa
 |--------------|-------------------|---------------|---------------|-------|
 | Headline (28 px bold) | `bg_edge` (defeat / abandoned) / `table_lit` (victory) | 3:1 | `text_light` 14.75 / 9.43 | [x] |
 | Facts, headers, rows (16 / 14 px) | `bg_edge` / `table_lit` | 4.5:1 | 14.75 / 9.43 | [x] |
-| Seed (13 px), "and N more" (14 px), removed ids | `bg_edge` / `table_lit` | 4.5:1 | `text_muted` 7.94 / **`text_muted` on `table_lit` is not in the art bible table** — on the victory variant the seed and "and N more" use `text_light` instead (§15) | [x] with the stated substitution |
+| Seed (13 px), "and N more" (14 px), removed ids | `bg_edge` / `table_lit` | 4.5:1 | `text_muted` 7.94 / **5.08** (art bible §4 Text table row "`text_muted` on `table_lit`", added 2026-11-03 — AA at every size) — `text_muted` is used on both variants; no substitution | [x] |
 | Hero name / identity on the portrait panel | Hero primary | 4.5:1 | `text_light` 6.17–6.72 | [x] |
 | Card name on a stamp / cost numeral | `ink` | 4.5:1 | 14.33 | [x] |
 | Status line ("!" + text) | `bg_edge` / `table_lit` | 4.5:1 | `text_light` 14.75 / 9.43 | [x] — never `state_danger` text on a surface (art bible rule a) |
@@ -420,7 +420,7 @@ Streams: (1) outcome + reason, (2) floors list, (3) damage table, (4) deck list,
 
 ## 14. Acceptance Criteria
 
-Fixtures: run-ui U10 `victory_sample` (`--run-ui-screen=summary_victory`) and `defeat_sample` (`summary_defeat`), captured per `.claude/docs/run-and-observe.md` into `production/qa/evidence/`; `abandoned_sample` is proposed (§15).
+Fixtures: run-ui U10 `victory_sample` (`--run-ui-screen=summary_victory`), `defeat_sample` (`summary_defeat`), `abandoned_sample` (`summary_abandoned`) and the settings variant `victory_sample_ts150` (`text_scale` 1.5), captured per `.claude/docs/run-and-observe.md` into `production/qa/evidence/`.
 
 **Performance**
 - [ ] Building the summary from a 36-card, 8-summary record takes ≤ 50 ms and the first frame renders within 100 ms (run-ui AC-26)
@@ -428,12 +428,14 @@ Fixtures: run-ui U10 `victory_sample` (`--run-ui-screen=summary_victory`) and `d
 - [ ] Button press → visible press state within 33 ms (run-ui Game Feel)
 
 **Layout & Rendering**
-- [ ] GIVEN `victory_sample`, THEN the hero panel at (40, 72) is in its full primary, the headline reads "Floors cleared 8 of 8", the 16-hex seed with Copy, a 10-row damage table, the deck list with drafted cards marked "D f{n}", the treasures row, one "New hero unlocked" line, and New Run (same hero) at (1000, 640) carries the 2 px `state_actionable` ring at a 3 px offset (run-ui AC-6)
+- [ ] GIVEN `victory_sample`, THEN the hero panel at (40, 72) is in its full primary, the headline reads "Floors cleared 8 of 8", the 16-hex seed with Copy, an 8-row damage table (44 px rows, y 108–460) with "and 2 more" at y 468, the deck list with drafted cards marked "D f{n}", the treasures row, one "New hero unlocked" line, and New Run (same hero) at (1000, 640) carries the 2 px `state_actionable` ring at a 3 px offset (run-ui AC-6)
 - [ ] GIVEN `defeat_sample`, THEN the background is `bg_edge`, the headline names floor 5 and the boss, the reason reads "Your hero fell", floor 3's row shows "attempt 2", floor 5's row shows "✕ fell", floors 6–8 show "band n" only (no boss name), **no `state_danger` fill larger than a stamp exists on screen**, and New Run is focused (run-ui AC-7)
 - [ ] GIVEN a fixture with `damage_by_card == {}`, THEN the centre column reads "no damage dealt" and has no focusable rows
 - [ ] GIVEN a 36-card deck, THEN the deck list scrolls with a visible bar and `Up`/`Down` keeps the focused row visible
 - [ ] GIVEN the window at 3840x2160, THEN the layout is the 1280x720 layout uniformly scaled (AC-31)
-- [ ] GIVEN `settings.text_scale = 1.5` in the fixture profile, THEN no text clips or overlaps: the damage table shows 6 rows + "and N more", the headline may wrap to 2 lines, the status line sits at y 604 (AC-31)
+- [ ] GIVEN `victory_sample_ts150` (`settings.text_scale = 1.5` in the fixture profile), THEN no text clips or overlaps: the damage table shows 6 rows + "and N more" ending above y 540, the headline may wrap to 2 lines, the status line sits at y 604 (AC-31)
+- [ ] GIVEN `abandoned_sample`, THEN the screen shows only the headline "Run abandoned — counted as a loss" at y 320, Main Menu at (40, 640) and New Run (same hero) focused at (1000, 640); no portrait, column, floors row, deck list, seed or Hero Select button exists (run-ui U2)
+- [ ] GIVEN `defeat_sample`, THEN the floors block occupies 848, 72, 392, 220 (rows y 100–292) and the deck header sits at y 304
 - [ ] All §6 states with a fixture render correctly; the `fault` outcome has no copy on this screen
 
 **Input**
@@ -450,7 +452,7 @@ Fixtures: run-ui U10 `victory_sample` (`--run-ui-screen=summary_victory`) and `d
 - [ ] GIVEN a `save_failed` warning during the run, THEN the status line repeats it here and its full text is in the tooltip
 
 **Accessibility**
-- [ ] All text passes the §12 ratios in-engine, including the victory variant's `text_light` substitution for secondary text on `table_lit`
+- [ ] All text passes the §12 ratios in-engine, including `text_muted` on the victory variant's `table_lit` (art bible §4: 5.08:1)
 - [ ] With colour removed (Coblis, both `high_contrast_states` values), victory vs defeat, band, drafted vs starter and the killing floor are identifiable from text and glyphs
 - [ ] GIVEN `reduce_motion`, THEN the toast fades without sliding and nothing else changes (there is no motion on this screen beyond the single saturation ramp)
 - [ ] GIVEN `anim_speed = instant`, THEN transitions are 0 ms, the saturation is applied immediately, and `committed` still blocks a double New Run (AC-20)
