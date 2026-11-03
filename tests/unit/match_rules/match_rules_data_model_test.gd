@@ -8,34 +8,11 @@
 ## (the constructor only stores them). The rules body is
 ## `MatchFactory.make_rules_config()`, built from `TestConstants`.
 ##
-## Two tests read repository files rather than runtime state: the shipped
-## `assets/data/match_rules.json` (its defaults and safe ranges) and the
-## `src/` tree (AC-41's "no knob literal" grep). Both are static checks on
-## versioned artifacts, read-only, the same kind as card-database's
-## single-parser grep test.
+## No test here reads a file: the AC-41 checks that read the shipped
+## `assets/data/match_rules.json` (through `DataLoader`), the GDD Tuning Knobs
+## table and the `src/` tree live in
+## `tests/integration/match_rules/match_rules_config_file_test.gd`.
 extends GdUnitTestSuite
-
-const RULES_JSON_PATH: String = "res://assets/data/match_rules.json"
-const SRC_ROOT: String = "res://src"
-
-## match-rules Tuning Knobs "Safe range" column, [min, max] per knob. Boundary
-## values are the point of this table (coding-standards exception).
-const SAFE_RANGES: Dictionary = {
-	"board_size": [5, 7],
-	"hand_size": [8, 12],
-	"starting_hand_player": [3, 4],
-	"starting_hand_boss": [3, 5],
-	"max_mana": [7, 10],
-	"hero_power_cost": [1, 3],
-	"mulligan_rounds": [0, 1],
-	"turn_cap": [40, 200],
-	"resolution_step_cap": [200, 5000],
-	"max_attacks_cap": [2, 4],
-	"max_attacks_windfury": [2, 2],
-	"starting_health_player": [25, 40],
-	"fatigue_base": [1, 3],
-	"fatigue_step": [1, 2],
-}
 
 ## Field names a derived value would carry if it were (wrongly) stored (C1).
 const DERIVED_FIELDS: Array[String] = ["health", "max_health", "attack", "max_attacks", "attacks_remaining", "has_windfury"]
@@ -81,37 +58,6 @@ func _sorted(items: Array) -> Array:
 	return out
 
 
-func _read_text(path: String) -> String:
-	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
-	assert_object(file).override_failure_message("cannot open %s" % path).is_not_null()
-	return file.get_as_text() if file != null else ""
-
-
-func _gd_files(dir_path: String, out: Array[String]) -> Array[String]:
-	var dir: DirAccess = DirAccess.open(dir_path)
-	if dir == null:
-		return out
-	for sub: String in dir.get_directories():
-		_gd_files(dir_path.path_join(sub), out)
-	for file_name: String in dir.get_files():
-		if file_name.ends_with(".gd"):
-			out.append(dir_path.path_join(file_name))
-	return out
-
-
-## AC-41 scanner: lines that bind a knob name to a numeric literal
-## (`const MAX_MANA: int = 10`, `var hand_size := 10`, `"board_size": 7`).
-func _knob_literal_hits(source: String) -> Array[String]:
-	var names: String = "|".join(RulesEngine.CONFIG_KEYS)
-	var regex: RegEx = RegEx.create_from_string("(?i)\\b(%s)\\b[\"']?\\s*(?::\\s*\\w+\\s*)?(?::=|=|:)\\s*-?\\d" % names)
-	var hits: Array[String] = []
-	for line: String in source.split("\n"):
-		var code: String = line.split("#")[0]
-		if regex.search(code) != null:
-			hits.append(line.strip_edges())
-	return hits
-
-
 ## Every key of every Dictionary reachable from `value`, depth-first.
 func _collect_keys(value: Variant, out: Array) -> Array:
 	if value is Dictionary:
@@ -151,24 +97,7 @@ func _hero_with_weapon(state: MatchState, weapon_keywords: Array) -> Dictionary:
 	return player.hero
 
 
-# --- AC-41: knobs come from match_rules.json, never literals ------------------
-
-func test_rules_json_has_config_envelope_with_tuning_knob_defaults() -> void:
-	# Arrange
-	var parsed: Variant = JSON.parse_string(_read_text(RULES_JSON_PATH))
-
-	# Assert — CR-1 config envelope, DD-T01 schema_version
-	assert_bool(parsed is Dictionary).is_true()
-	assert_array(_sorted(parsed.keys())).is_equal(["config", "schema_version"])
-	assert_int(int(parsed.schema_version)).is_equal(TestConstants.SCHEMA_VERSION_CURRENT)
-	var body: Dictionary = parsed.config
-	assert_array(_sorted(body.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
-	# Defaults = Tuning Knobs "Current value" (mirrored by TestConstants via the fixture)
-	var expected: Dictionary = MatchFactory.make_rules_config()
-	for key: String in RulesEngine.CONFIG_KEYS:
-		assert_int(int(body[key])).override_failure_message("match_rules.json %s" % key).is_equal(int(expected[key]))
-		GameAssertions.assert_in_range(int(body[key]), SAFE_RANGES[key][0], SAFE_RANGES[key][1], key)
-
+# --- AC-41: knobs come from the injected rules_config -------------------------
 
 func test_engine_reads_every_knob_from_the_injected_rules_config() -> void:
 	# Arrange — every knob shifted off its default, so a literal cannot pass
@@ -185,25 +114,6 @@ func test_engine_reads_every_knob_from_the_injected_rules_config() -> void:
 	assert_bool(is_same(engine.rules_config(), body)).is_true()
 	for key: String in RulesEngine.CONFIG_KEYS:
 		assert_int(engine.rule(key)).override_failure_message("rule(%s)" % key).is_equal(int(shifted[key]))
-
-
-func test_engine_source_binds_no_knob_to_a_literal() -> void:
-	# Arrange — the scanner must catch a deliberately broken line first
-	assert_array(_knob_literal_hits("const MAX_MANA: int = 10")).has_size(1)
-	assert_array(_knob_literal_hits("var hand_size := 10")).has_size(1)
-	assert_array(_knob_literal_hits("\t\"board_size\": 7,")).has_size(1)
-	assert_array(_knob_literal_hits("var n: int = rule(\"max_attacks_cap\")")).is_empty()
-	var files: Array[String] = _gd_files(SRC_ROOT, [] as Array[String])
-	assert_bool(files.has(SRC_ROOT.path_join("gameplay/match/rules_engine.gd"))).is_true()
-
-	# Act
-	var hits: Array[String] = []
-	for path: String in files:
-		for hit: String in _knob_literal_hits(_read_text(path)):
-			hits.append("%s: %s" % [path, hit])
-
-	# Assert
-	assert_array(hits).is_empty()
 
 
 # --- C1 derived values --------------------------------------------------------
