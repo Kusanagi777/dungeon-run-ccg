@@ -402,7 +402,7 @@ draw(side):
 | **Divine Shield** | Minion | The next instance of damage > 0 is prevented and the shield is removed | Prevents Poisonous, Lifesteal heal and `on_damage`; not consumed by 0 damage; Silence removes it |
 | **Windfury** | Minion, Weapon | `max_attacks = 2` per turn | Derived live: gaining Windfury mid-turn after one attack grants one more; losing it after one attack leaves none |
 | **Stealth** | Minion | Cannot be targeted by enemy attacks or enemy targeted effects | Lost when the minion attacks (at declaration); random and area effects still hit it; does not enforce its own Taunt |
-| **Lifesteal** | Minion, Weapon, Spell | Damage dealt by this source heals its controller's hero by the same amount | Heal is one step after the damage; heals 0 when the damage was fully prevented by Divine Shield |
+| **Lifesteal** | Minion, Weapon, Spell | Damage dealt by this source heals its controller's hero by the same amount | Heal is applied inside the same damage step (F2), after `dealt` is known; no `healed` event when `dealt = 0` (Divine Shield) |
 | **Poisonous** | Minion, Weapon | Any damage > 0 to a minion destroys it | No effect on heroes; blocked by Divine Shield; the kill resolves in the death check, so a Deathrattle still fires |
 | **Freeze** | Character (status) | Frozen characters cannot attack | Thaw rule in C13; Silence thaws; freezing an already-frozen character re-stamps `frozen_on_turn` |
 | **Silence** | Minion (operation) | Removes keywords, enchantments, Deathrattles, triggered and aura effects from the target | Does not remove summoning sickness, damage already taken, or `pending_destroy`; C13 |

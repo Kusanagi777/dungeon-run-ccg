@@ -54,7 +54,7 @@
 #   in any other shape is reported as unsupported layout, with its number.
 
 version: 1
-last_updated: ""
+last_updated: "2026-11-03"
 
 # ─── ENTITIES ────────────────────────────────────────────────────────────────
 # Named game-world objects: enemies, NPCs, characters, factions, bosses.
@@ -123,7 +123,168 @@ items: []
 #   output_range[min, max], added
 # Optional: expression (the actual formula), notes
 
-formulas: []
+formulas:
+  - name: collectible_pool_size
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+      - design/gdd/reward-draft.md
+      - design/gdd/card-effects.md
+    variables:
+      - n_nontoken_hero_set
+      - n_nontoken_neutral
+    output_range: [0, 400]
+    expression: "n_nontoken(hero_set) + n_nontoken(neutral)"
+    notes: "~70 per hero at v1, ~40 at MVP."
+    added: 2026-11-03
+    revised: ""
+  - name: min_treasure_pool
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+      - design/gdd/reward-draft.md
+      - design/gdd/treasures.md
+    variables:
+      - treasure_drafts_per_run
+      - treasure_offers_per_draft
+    output_range: [9, 9]
+    expression: "treasure_drafts_per_run * treasure_offers_per_draft"
+    notes: "DD-R05: 3 drafts x 3 offers, no repeats. DD-H06 MVP raised to 10 treasures on 2026-11-03."
+    added: 2026-11-03
+    revised: ""
+  - name: stream_seed
+    status: active
+    source: design/gdd/rng-event-log.md
+    referenced_by:
+      - design/gdd/rng-event-log.md
+      - design/gdd/match-rules.md
+      - design/gdd/run-structure.md
+      - design/gdd/reward-draft.md
+      - design/gdd/boss-ai.md
+    variables:
+      - run_seed
+      - stream_name
+    output_range: [0, 18446744073709551615]
+    expression: "mix64(fnv1a64(le_bytes8(run_seed) ++ utf8(stream_name)))"
+    notes: "FNV-1a 64 then SplitMix64 finaliser; unsigned 64-bit arithmetic."
+    added: 2026-11-03
+    revised: ""
+  - name: replay_equivalence
+    status: active
+    source: design/gdd/rng-event-log.md
+    referenced_by:
+      - design/gdd/rng-event-log.md
+      - design/gdd/match-rules.md
+      - design/gdd/meta-progression.md
+    variables:
+      - run_seed
+      - hero_id
+      - data_version
+      - engine_version
+      - commands
+    output_range: [0, 1]
+    expression: "canonical_json(A.events) == canonical_json(B.events)"
+    notes: "Per command sequence only; AI after player divergence not guaranteed (DD-R09)."
+    added: 2026-11-03
+    revised: ""
+  - name: effective_cost
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/card-effects.md
+      - design/gdd/treasures.md
+      - design/gdd/match-ui.md
+    variables:
+      - base_cost
+      - card_enchantment_delta
+      - hand_aura_delta
+      - hook_delta
+    output_range: [0, 10]
+    expression: "max(0, base_cost + card_enchantment_delta + hand_aura_delta + hook_delta)"
+    added: 2026-11-03
+    revised: ""
+  - name: apply_damage
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/card-effects.md
+      - design/gdd/treasures.md
+    variables:
+      - requested
+      - amount
+      - prevented
+      - armor
+      - dealt
+    output_range: [0, 99]
+    expression: "hooks.modify_damage -> divine shield -> armor -> damage_taken; dealt = armor_absorbed + to_health"
+    added: 2026-11-03
+    revised: ""
+  - name: can_attack
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/boss-ai.md
+      - design/gdd/match-ui.md
+    variables:
+      - attack
+      - attacks_used
+      - max_attacks
+      - taunters
+      - frozen
+      - summoning_sick
+    output_range: [0, 1]
+    expression: "boolean conjunction, see match-rules F3"
+    added: 2026-11-03
+    revised: ""
+  - name: fatigue_damage
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/match-ui.md
+    variables:
+      - k
+      - FATIGUE_BASE
+      - FATIGUE_STEP
+    output_range: [1, 99]
+    expression: "FATIGUE_BASE + (k - 1) * FATIGUE_STEP"
+    added: 2026-11-03
+    revised: ""
+  - name: mana_max_by_turn
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/boss-ai.md
+      - design/gdd/content.md
+    variables:
+      - t_side
+      - MAX_MANA
+    output_range: [1, 10]
+    expression: "min(t_side, MAX_MANA)"
+    added: 2026-11-03
+    revised: ""
+  - name: turns_to_lethal
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+    variables:
+      - k
+      - H
+      - MAX_MANA
+    output_range: [6, 12]
+    expression: "min{ n : k * sum_{t=1..n} min(t, MAX_MANA) >= H }"
+    notes: "Design target 6-10 turns per side."
+    added: 2026-11-03
+    revised: ""
 
 # Example:
 #
@@ -156,7 +317,168 @@ formulas: []
 #
 # Required fields: name, status, source, referenced_by, value, unit, added
 
-constants: []
+constants:
+  - name: schema_version_current
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+    value: 1
+    unit: version
+    added: 2026-11-03
+    revised: ""
+  - name: data_load_budget_ms
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+    value: 200
+    unit: ms
+    added: 2026-11-03
+    revised: ""
+  - name: starter_deck_size
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+      - design/gdd/heroes.md
+      - design/gdd/run-structure.md
+    value: 15
+    unit: cards
+    added: 2026-11-03
+    revised: ""
+  - name: bundle_card_count
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+      - design/gdd/reward-draft.md
+    value: 3
+    unit: cards
+    added: 2026-11-03
+    revised: ""
+  - name: card_rarity_tiers
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+      - design/gdd/content.md
+    value: 3
+    unit: tiers
+    added: 2026-11-03
+    revised: ""
+  - name: log_memory_budget_bytes
+    status: active
+    source: design/gdd/rng-event-log.md
+    referenced_by:
+      - design/gdd/rng-event-log.md
+      - design/gdd/match-rules.md
+    value: 2000000
+    unit: bytes
+    added: 2026-11-03
+    revised: ""
+  - name: max_match_events
+    status: active
+    source: design/gdd/rng-event-log.md
+    referenced_by:
+      - design/gdd/rng-event-log.md
+      - design/gdd/card-effects.md
+      - design/gdd/run-structure.md
+    value: 10000
+    unit: events
+    added: 2026-11-03
+    revised: ""
+  - name: player_starting_health
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/heroes.md
+      - design/gdd/run-structure.md
+      - design/gdd/match-ui.md
+    value: 30
+    unit: health
+    added: 2026-11-03
+    revised: ""
+  - name: boss_starting_health_by_band
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/heroes.md
+      - design/gdd/content.md
+      - design/gdd/boss-ai.md
+    value: "30 / 40 / 50"
+    unit: health (band 1 / 2 / 3, DD-M02)
+    added: 2026-11-03
+    revised: ""
+  - name: max_mana_crystals
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/card-effects.md
+      - design/gdd/boss-ai.md
+      - design/gdd/match-ui.md
+      - design/gdd/content.md
+    value: 10
+    unit: crystals
+    added: 2026-11-03
+    revised: ""
+  - name: board_size
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/card-effects.md
+      - design/gdd/boss-ai.md
+      - design/gdd/match-ui.md
+    value: 7
+    unit: minions per side
+    added: 2026-11-03
+    revised: ""
+  - name: hand_size
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/card-effects.md
+      - design/gdd/match-ui.md
+    value: 10
+    unit: cards
+    added: 2026-11-03
+    revised: ""
+  - name: starting_hand_player
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/match-ui.md
+    value: 3
+    unit: cards
+    added: 2026-11-03
+    revised: ""
+  - name: starting_hand_boss
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/boss-ai.md
+    value: 4
+    unit: cards
+    added: 2026-11-03
+    revised: ""
+  - name: hero_power_cost
+    status: active
+    source: design/gdd/match-rules.md
+    referenced_by:
+      - design/gdd/match-rules.md
+      - design/gdd/heroes.md
+      - design/gdd/card-effects.md
+    value: 2
+    unit: mana
+    added: 2026-11-03
+    revised: ""
 
 # Example:
 #

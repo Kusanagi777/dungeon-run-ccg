@@ -68,7 +68,7 @@ Systems, one paragraph each (balanced density):
 |---|-------------|----------|----------|--------|------------|------------|
 | 1 | Card Database | Core | MVP | Designed | design/gdd/card-database.md | — |
 | 2 | RNG & Event Log (inferred) | Core | MVP | Designed | design/gdd/rng-event-log.md | — |
-| 3 | Match Rules | Gameplay | MVP | Not Started | — | Card Database, RNG & Event Log |
+| 3 | Match Rules | Gameplay | MVP | Designed | design/gdd/match-rules.md | Card Database, RNG & Event Log |
 | 4 | Card Effects | Gameplay | MVP | Not Started | — | Match Rules, Card Database, RNG & Event Log |
 | 5 | Boss AI | Gameplay | MVP | Not Started | — | Match Rules, Card Effects, Card Database, RNG & Event Log |
 | 6 | Heroes | Gameplay | MVP | Not Started | — | Card Database, Card Effects |
@@ -196,7 +196,7 @@ None in v1 (hard-band modifiers and accessibility options are Full Vision).
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 13 |
-| Design docs started | 2 |
+| Design docs started | 3 |
 | Design docs reviewed | 0 |
 | Design docs approved | 0 |
 | MVP systems designed | 0/12 |
