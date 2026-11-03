@@ -65,3 +65,31 @@ Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806
 Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
 Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e23e2eb0488
 Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — economy-designer, systems-designer, game-designer, qa-lead, creative-director not spawned)
+Blocking items: 0 | Recommended: 3
+Summary: Final re-review after the in-place PLAN_MAX-7 fix. The receipt check showed the GDD byte-identical to the last stamp with the registry and nine sibling files changed, so a full pass was run rather than a delta: structure 6/6 required at `standard` (Formulas required and present), all eight formulas and their worked examples re-derived by hand (F1 cap 325 = 100 × 2.5 × 1.30, floor-1 weights 180/175/150/100/70 → 675, floor-7 250/130 and 300 at cap 8; F2 370 → 24 %, 555 → 46 %; F5 B_min 4–27 and the 20/17/14/13/12/11/10 series; F6 10/7/4; F7 (7 + 3k)/36 → 0.43 uniform baseline; F8 1330/7140) and every registry value this GDD restates matches the registry (`bundle_weight` [1, 325], `bundle_pool_min` [4, 27], `treasure_weight` [30, 105], `floors_per_run` 8, `treasure_floors` 1/3/5, `starter_deck_size` 15, `bundle_card_count` 3, `min_treasure_pool` 9, `pity_window` 2, `reoffer_after_floors` 2, `treasure_rarity_weights` 70/30, `offers_per_draft` 3). Contracts verified both ways: Treasures T6/T8 (per-item weights, `unlocked_keys` predicate, 11 C / 9 R, 10 universal, MVP 5 C / 5 R with 7 universal of which 4 rare and 3 War-affine), Heroes H-4/F2 (War 7 plan cards), Run Structure R1/R2.5/R5.3/R5.7, Run UI U8, Meta M1.3, RNG catalogue (flags[] and option_index now present), Card Database CR-6 / `bundle_pool_size` 20 at v1. One housekeeping edit under the revise-now rule: the T6 call is now `pool(unlocked_keys, exclude_ids)` in all three places (treasures.md unified the signature the same day). `AFFINITY_CAP = 6` stands as a designer default. All eight declared dependencies exist on disk. Recommend systems-index status Approved.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Interactions / Dependencies / Open Questions: `Treasures.pool(is_unlocked, exclude_ids)` in three places while treasures.md T6, meta-progression M1.3 and Treasures AC-11/12 write `pool(unlocked_keys, exclude_ids)` — FIXED in place (housekeeping; the Dependencies row's "we never call it" now reads "beyond that pool predicate we never call it")
+- [RECOMMENDED] Cross-GDD (not this GDD): rng-event-log L65 / L238 / L474 still say "pity rolls" (pity is draw-free, F3); content.md Open Questions L910 still marks the Alpha-B "≥ 2 bundles per plan tag" question Open though this GDD answered it on 2026-11-03
+- [RECOMMENDED] Tuning Knobs: the row names two knobs `bundle_offers_per_draft` / `treasure_offers_per_draft` (3 / 3) where the registry carries one entry `offers_per_draft` = 3 covering both — values agree; align the knob name with the registry entry when `reward_draft.json` is authored, or register the second name
+- [NICE-TO-HAVE] Status header: the first REVISED note's "Treasures' `pool()` declared unused" is history superseded by the cross-review note; harmless, left as a record
+Reviewed-Content-Hash: design/gdd/reward-draft.md a7efa9bae59c93827f73ff208438d3131a6de8bb
+Reviewed-Content-Hash: design/registry/entities.yaml 76f479bf5a4270db81c0d82a5eb86ee4c5c9e227
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/treasures.md b50806cc8b2b5117b0064b934122be5ecaced4ad
+Reviewed-Content-Hash: design/gdd/content.md dc95b8e96ca465d68b1835307341807ef8ffe3a8
+Reviewed-Content-Hash: design/gdd/run-ui.md b97595084d05aabfe872316243343bf85c3f45d0
+Reviewed-Content-Hash: design/gdd/run-structure.md f89d6a98f6981671324f9a0c49708df0d1847787
+Reviewed-Content-Hash: design/gdd/meta-progression.md 878962538feb2a76598643d4ce90adc4f436ba55
+Reviewed-Content-Hash: design/gdd/heroes.md 3e9c89b4cd87b8fde225762af7e169fcf2fed1dd
+Reviewed-Content-Hash: design/gdd/card-database.md d04095c7f44e5d930ba3c23c4f88024736fdc6a8
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 6981bf37934cae2e74ed37a23eb349fb62dcbf5b
+Reviewed-Content-Hash: design/gdd/game-concept.md 0c2c930dd6bdaa11592472e2051d801911f4ded1
+Reviewed-Content-Hash: design/gdd/systems-index.md a20a2191f2853e48591ac1eec0417f089077f7c6
+Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

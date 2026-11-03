@@ -71,3 +71,36 @@ Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a8
 Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
 Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
 Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — main review only; qa-lead AC check performed inline)
+Blocking items: 0 | Recommended: 0
+Summary: Final pass after the second in-place revision. The document itself was byte-identical to the one the previous re-review revised; the registry, the register and thirteen sibling GDDs had changed since, so every cross-document fact was re-verified. Both prior blockers are confirmed applied and consistent across CR-1, CR-5 stage 7, Formulas and the ACs (`card_database.json` self-validated at stage 4, `schema_version_current` the one declared code constant; shipped-data AC counts equal Content CN-1's MVP row); DD-T01 now lists `card_database.json`, Boss AI reworded its `ai_profiles.json` fallback, and the registry's three stale `referenced_by` lines were removed — every open item from the previous entry is closed except `discover` (Card Effects' choice, both paths supported). No value in the document contradicts the registry or a DD row; the only edit this pass was housekeeping (three "DD-T01 row pending" markers closed, no rule or contract changed). Status: Approved.
+Prior verdict resolved: Yes
+Findings:
+- none
+- [NICE-TO-HAVE] CR-2 id table: `treasure_second_wind` is an illustrative id, not a registered treasure — `treasure_hollow_crown` would let a reader cross-check the registry.
+- [NICE-TO-HAVE] CR-5 stage 4: the sentence "Config bodies are not schema-checked here" could name the `card_database.json` exception that CR-1 and stage 7 already state; and stage 8 should say budget warnings are skipped when that file failed stage 4 (the load is `Failed` anyway).
+- [NICE-TO-HAVE] Tuning Knobs section still absent (advisory at `standard`); the five knobs live in the CR-1 row and the Formulas tables.
+- [NICE-TO-HAVE] systems-index Recommended Design Order lists Card Database at effort `S`; three reviews have signalled `L` (five formulas, twelve dependents, an ADR for file I/O and class layout) — index-side note, not a GDD defect.
+Reviewed-Content-Hash: design/gdd/card-database.md d04095c7f44e5d930ba3c23c4f88024736fdc6a8
+Reviewed-Content-Hash: design/registry/entities.yaml 76f479bf5a4270db81c0d82a5eb86ee4c5c9e227
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/game-concept.md 9283d784ff6e3c5ed7480653ff1a3767e775914d
+Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
+Reviewed-Content-Hash: design/gdd/systems-index.md a20a2191f2853e48591ac1eec0417f089077f7c6
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+Reviewed-Content-Hash: design/gdd/treasures.md b50806cc8b2b5117b0064b934122be5ecaced4ad
+Reviewed-Content-Hash: design/gdd/reward-draft.md fefe17c210dcc4fb1bd265441cf2355d0eb202e9
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/gdd/match-rules.md 7af4351b32a419195d38bf274c2a68b9c63aa804
+Reviewed-Content-Hash: design/gdd/content.md dc95b8e96ca465d68b1835307341807ef8ffe3a8
+Reviewed-Content-Hash: design/gdd/heroes.md 3e9c89b4cd87b8fde225762af7e169fcf2fed1dd
+Reviewed-Content-Hash: design/gdd/boss-ai.md 2c2bedbaa6ff558777d2af7d81b3b91c5783af82
+Reviewed-Content-Hash: design/gdd/run-structure.md f89d6a98f6981671324f9a0c49708df0d1847787
+Reviewed-Content-Hash: design/gdd/run-ui.md b97595084d05aabfe872316243343bf85c3f45d0
+Reviewed-Content-Hash: design/gdd/meta-progression.md 878962538feb2a76598643d4ce90adc4f436ba55
+Reviewed-Content-Hash: design/gdd/match-ui.md e2bcccad61083401a8c8dbdbd0a4068afc64e3d7
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 6981bf37934cae2e74ed37a23eb349fb62dcbf5b

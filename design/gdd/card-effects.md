@@ -305,7 +305,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `silence` | — | minions | `silence` | no-op `no_target` |
 | `freeze` | — | characters | `freeze` | no-op; re-freezing re-stamps (match-rules C13) |
 | `destroy` | — | minions, weapons | `destroy` (sets `pending_destroy`; dies in the next death check, so Deathrattles fire) | no-op `no_target` |
-| `summon` | `card_id`, `count` (value, 1–`MAX_SUMMON_COUNT`), `position: source_slot\|right_of_source\|end\|chosen_slot` (default `source_slot` for deathrattles, `right_of_source` otherwise), `side: owner\|opponent` | — (side-scoped) | `summon_minion(side, def_id, position)` × count, left to right | Board full → the engine emits `summon_failed{board_full}` per failed copy; the op continues with the remaining count (each is its own call) |
+| `summon` | `card_id`, `count` (value, 1–`MAX_SUMMON_COUNT`), `position: source_slot\|right_of_source\|end\|chosen_slot` (default `source_slot` for deathrattles, `right_of_source` otherwise; when the source is not a minion in play — spell, hero power, weapon, treasure/passive — both resolve to `end`, so Raise Dead and Rot fill from the right), `side: owner\|opponent` | — (side-scoped) | `summon_minion(side, def_id, position)` × count, left to right | Board full → the engine emits `summon_failed{board_full}` per failed copy; the op continues with the remaining count (each is its own call) |
 | `transform` | `card_id` | minions | `transform(target, def_id)` — new `entity_id`, no summoning-sickness reset, enchantments dropped, Battlecry does **not** fire | no-op `no_target`; a transformed source's remaining ops that reference `self` resolve against the new entity (C6.5) |
 | `draw` | `count` (value), `side` (default owner) | — | `draw(side, 1)` × count (fatigue/burn per match-rules C11) | Never fails; empty deck → fatigue, full hand → burn, both engine-logged |
 | `discover` | `pool: collectible\|list\|deck\|hand`, `list: [card_ids]`, `filter`, `count` (default `DISCOVER_COUNT` 3), `then: add_to_hand\|summon\|cast` (default `add_to_hand`) | — (side-scoped) | `discover(side, options) → ChoiceRequest` (match-rules Choice phase); on `choose`, `add_card_to_hand` / `summon_minion` / resolve the card's `cast` effect | 0 candidates → no-op `empty_pool`, no Choice; 1–2 candidates → offer that many (F4) |
@@ -314,7 +314,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `return_to_hand` | — | minions | `return_to_hand` (becomes a fresh card instance of its `def_id`; full hand → burned by the engine) | no-op `no_target` |
 | `shuffle_into_deck` | `card_id` or `targets` (hand cards / minions), `count`, `position: random\|top\|bottom` | hand cards, minions, or none | `add_card_to_deck(side, def_id, position)` (match-rules Interactions, added 2026-11-03; emits `card_added_to_deck`; `random` draws one `match_<floor>` index — counted in F5) | A targeted instance that left play is skipped (`no_target`); `card_id` form never fails |
 | `discard` | `count`, `random: true` (v1 only random), `side` | — | `discard(side, random)` × count (match-rules Interactions, added 2026-11-03; emits `card_discarded`; each random pick draws from `match_<floor>`, F5) | Empty hand → no-op `no_target` |
-| `mana` | `amount` (±), `duration: this_turn\|permanent` | — (side) | `add_mana(side, n, temporary)` with `temporary = (duration == this_turn)`; clamps to `MAX_MANA` and ≥ 0 (match-rules C5). `permanent` under `on_match_start` (treasure/passive hosts) raises that side's `crystal_bonus`, which match-rules C4 step 2 / F4 read every Start step (Hollow Crown, Treasures R-1, cross-review C-02); `this_turn` (`temporary=true`) is used by Content's `decay_soul_tithe` ("Gain Mana Crystals this turn equal to its Cost", the C4 `target.cost` example) — match-rules C5 still says v1 content does not use it and should state the temporary case (Open Questions) | Never fails; clamped delta logged |
+| `mana` | `amount` (±), `duration: this_turn\|permanent` | — (side) | `add_mana(side, n, temporary)` with `temporary = (duration == this_turn)`; clamps to `MAX_MANA` and ≥ 0 (match-rules C5). `permanent` under `on_match_start` (treasure/passive hosts) raises that side's `crystal_bonus`, which match-rules C4 step 2 / F4 read every Start step (Hollow Crown, Treasures R-1, cross-review C-02); `this_turn` (`temporary=true`) grants `n` **temporary crystals** (match-rules C5: `mana_max` and `mana_current` both rise by `n`, clamped to `MAX_MANA`, `mana_added{temporary: true}`; they expire at that side's End step 5 alongside `end_of_turn` enchantments and the next Start-step refill ignores them) — used by Content's `decay_soul_tithe` ("Gain Mana Crystals this turn equal to its Cost", the C4 `target.cost` example) and `neutral_treasure_map` | Never fails; clamped delta logged |
 | `armor` | `amount` | — (side) | `apply_armor` | Never fails |
 | `equip` | `card_id` (a weapon def) | — (side) | `equip_weapon(side, def_id)` (old weapon destroyed first, match-rules C6) | Never fails |
 | `weapon_durability` | `amount` (±) | weapons | `modify_durability(weapon, delta)` (match-rules Interactions, added 2026-11-03; emits `weapon_durability_changed`; a weapon at ≤ 0 breaks in the next death check) | no-op `no_target` (no weapon equipped) |
@@ -824,10 +824,14 @@ The `effect_step_bound` formula bounds the **mutations (primitive calls) in one 
 name is kept for the registry; the C10 step is the pass itself (C6.0). It is defined as:
 
 `effect_step_bound = 1 + Σ_{op ∈ ops} steps(op)` where
-`steps(op) = max_targets(op.targets) × (op is summon ? count : 1)` for leaf ops,
-`steps(repeat) = times × Σ steps(inner)`, `steps(conditional) = max(Σ then, Σ else)`,
-`steps(choose_one) = max over options`, `max_targets(all_*) = 16`, `max_targets(single) = 1`,
-`max_targets(hand) = 10`, `max_targets(random, n) = n`.
+`steps(op) = max_targets(op.targets) × count(op)` for leaf ops (`count(op)` = the op's `count`,
+1 when absent), `steps(repeat) = times × Σ steps(inner)`, `steps(conditional) = max(Σ then, Σ
+else)`, `steps(choose_one) = max over options`, `max_targets(all_*) = 16`,
+`max_targets(single) = 1`, `max_targets(adjacent) = 2`, `max_targets(hand) = 10`,
+`max_targets(random, n) = n`, `max_targets(side-scoped) = 1`. A non-literal `count`, `n` or
+`times` (a value expression, e.g. Raise Dead's `count: {ref: owner.minions_died_this_turn}`) is
+taken at its ceiling: `MAX_SUMMON_COUNT` for `summon`, `MAX_REPEAT` for `repeat`, `HAND_SIZE`
+(10) otherwise.
 
 **Variables:**
 | Variable | Type | Range | Source | Description |
@@ -1000,8 +1004,13 @@ already decides the case, the entry says so and adds only what this system contr
 - **If two value hooks disagree** (treasure "spells cost 1 less", passive "spells cost 1 more"):
   fold in installation order → net 0; the engine floors at 0 only at the end (F1).
 - **If a boss passive is an event trigger whose scope is the player's action** ("whenever the
-  player heals"): it resolves as a hook step immediately after the heal step, before any
-  player-card `on_heal` observer (hooks first).
+  player heals", row 37): `on_heal` has no hook binding (C2), so the passive is a hero-slot
+  observer on the boss side (C9) — queued when the heal step fires the trigger point, in the
+  boss hero-slot candidate position, i.e. **after** every player-side `on_heal` observer
+  (player board, weapon, hero slot first; C6.3). A player minion "whenever you heal, gain +1/+1"
+  therefore resolves before the passive's damage; both carry the `healed` event's `cause_seq`
+  and the passive's `source_id` names the passive. "Hooks first" applies only to triggers that
+  have a hook column (`on_turn_start`, `on_hero_damaged`, `on_card_played`, …).
 - **If a treasure effect uses `self`**: rejected at load (`E_FX_SELECTOR`); treasures are not
   entities on the board.
 - **If a treasure or boss passive uses an event trigger with no hook binding** (Grave Tithe's
@@ -1324,14 +1333,18 @@ refers to the C11 coverage table.
   **THEN** `effect_resolved.ops` has two entries: the first `applied` (minion dies), the second
   `no_target`; the hero is never hit.
 - [ ] AC-25 **GIVEN** row 37 (boss passive "whenever the player heals, deal 1 to their hero") and
-  a player minion "whenever you heal, gain +1/+1", **WHEN** the player heals, **THEN** the
-  passive's `damage_dealt` precedes the minion's `enchantment_applied` (hooks first).
+  a player minion "whenever you heal, gain +1/+1", **WHEN** the player heals, **THEN** the log
+  reads `healed`, then the minion's `enchantment_applied`, then the passive's
+  `damage_dealt{amount: 1}` with `source_id` equal to the passive id — two
+  `trigger_resolved{trigger: on_heal}` in that order (player-side observers before the boss
+  hero-slot observer: `on_heal` has no hook, C2 / C9 / C6.3).
 
 **Auras, buffs and transforms**
 
-- [ ] AC-26 **GIVEN** two copies of row 26 and one row 27 adjacent to a vanilla 1/1, **WHEN** auras
-  are recomputed, **THEN** the 1/1 reads 5/3 (`+2 +2 +0` attack from lords and adjacency = `+4`,
-  health `+2`) and each lord reads +1/+1 from the other only.
+- [ ] AC-26 **GIVEN** the friendly board `[row 26, row 26, vanilla 1/1, row 27]` left to right,
+  **WHEN** auras are recomputed, **THEN** the 1/1 reads 5/3 (`+1 +1` attack from the two lords
+  `+2` from adjacency = `+4`; health `+2`), each lord reads +1/+1 from the other only (row 27
+  is adjacent to neither), and row 27 reads +2/+2.
 - [ ] AC-27 **GIVEN** row 26 buffing a damaged 2/2 (now 3/1 after 2 damage), **WHEN** row 26 is
   Silenced, **THEN** at the next recompute the 2/2 has `health ≤ 0` and dies in the following loop
   pass, with `silenced` → `auras_recomputed` → `minion_died` in the log.
@@ -1425,9 +1438,9 @@ refers to the C11 coverage table.
 | `retrigger` is limited to `deathrattle` in v1. Decay may want "trigger a Battlecry again" — allow `battlecry` with `chosen` re-targeting? | Heroes / Content | Alpha content pass | Deferred |
 | Generated card text from the DSL (so `text.en` cannot drift from the effect) vs authored text. v1 authors text by hand; `W_FX_KEYWORD_MISMATCH` is the only drift check. | Content / Match UI | Vertical Slice | Deferred |
 | Systems index says Card Effects has six dependents; five rows list it. Reconcile (Reward Draft or Run Structure?). | `/map-systems` | Next index update | Resolved 2026-11-03 — cross-review C-25: five dependents (Boss AI, Heroes, Treasures, Match UI, Content); the index's bottleneck note is corrected to five, and Run Structure stays indirect (Dependencies intro updated) |
-| Heroes H-3 sketches carry a `targeting` field (C1 rule 1 derives it from `chosen`) and assume a death check between Rot's two ops (C6.0: a pass is atomic; `left_play` is `is_dying`). Rows 8, 16, 25 give the v1 encodings; Heroes to correct its sketches per its own rule ("prose wins") and close its DSL open question. | Heroes GDD (`/propagate-design-change`) | Before `hero_powers.json` is authored | Answered here — Heroes to apply |
+| Heroes H-3 sketches carry a `targeting` field (C1 rule 1 derives it from `chosen`) and assume a death check between Rot's two ops (C6.0: a pass is atomic; `left_play` is `is_dying`). Rows 8, 16, 25 give the v1 encodings; Heroes to correct its sketches per its own rule ("prose wins") and close its DSL open question. | Heroes GDD (`/propagate-design-change`) | Before `hero_powers.json` is authored | Resolved 2026-11-03 — Heroes H-3 sketches are rewritten in card-effects v1 vocabulary (rows 8, 16, 25 verbatim; `is_dying`; one pass per step) and its DSL open question is closed |
 | Treasures R-2 (condition on value triggers: C1), R-3 (`tag` on board minions: C3), R-6 (`owner.turns_taken`: C4), R-10 (hero-slot observers: C9), R-13 (`scope.card` without `kind`: C2) and the `aura`-on-`owner_weapon` legality (C5) are answered; Treasures to close them. R-1 (permanent `add_mana`) remains with Match Rules. | Treasures GDD | `/consistency-check` | Resolved 2026-11-03 — cross-review C-26 closes R-2/R-3/R-6/R-10/R-13 and the `aura`-on-weapon row in Treasures; R-1 resolved by cross-review C-02 (match-rules `crystal_bonus`; this GDD's `mana` op row cites it) |
 | `until_end_of_turn` enchantments on **card instances** in hand or deck (rows 25, 41): match-rules C4 End step 5 removes those "owned by S characters" — confirm the wording covers card instances held by S, or add them. | Match Rules GDD | Before the Knowledge hero stories | Resolved 2026-11-03 — cross-review C-16a: match-rules C4 End step 5 now names "card instances in S's hand and deck" (F3 variable row updated) |
 | Content's two redesigns: `war_cleave_through` ("a minion and the minions next to it") is now expressible with `adjacent` `of: target` (C3); Content may restore the original text or keep the sweep. `war_quartermaster`'s `modify_durability` primitive landed in match-rules on 2026-11-03 (cross-review C-22), so its "+1 Durability" text is authorable. | Content GDD | Alpha content pass | Open — informational |
-| `mana` with `duration: this_turn` (`add_mana(side, n, temporary=true)`) is used by Content's `decay_soul_tithe` (Alpha), but match-rules C5 says temporary gain "is not used by v1 content" and defines only the clamp. Match Rules to state the temporary case (adds to `mana_current` only, no crystal; clamp `MAX_MANA`; expires with the Start-step refill) or Content to retext the card. | Match Rules GDD | Before the Decay sacrifice bundle stories | Open — raised by the 2026-11-03 re-review |
+| `mana` with `duration: this_turn` (`add_mana(side, n, temporary=true)`) is used by Content's `decay_soul_tithe` (Alpha), but match-rules C5 says temporary gain "is not used by v1 content" and defines only the clamp. Match Rules to state the temporary case (adds to `mana_current` only, no crystal; clamp `MAX_MANA`; expires with the Start-step refill) or Content to retext the card. | Match Rules GDD | Before the Decay sacrifice bundle stories | Resolved 2026-11-03 — match-rules C5 now defines `add_mana(side, n, temporary=true)` as `n` **temporary crystals** (`mana_max` and `mana_current` rise, clamped to `MAX_MANA`; expire at that side's End step 5; its AC-45) and names `decay_soul_tithe` / `neutral_treasure_map`. Match Rules chose temporary crystals over the "`mana_current` only" proposal; the C5 `mana` row restates its rule |
 | `discover` with `then: cast` on a spell whose derived `targeting_spec.mode` is `required` has no target source at resume time. Proposed: the validator rejects `then: cast` unless every candidate's mode is `none` (`E_FX_OP_TARGET`); no v1 content uses `then: cast`. | Card Effects (this GDD) | Before any `then: cast` card is authored | Open — proposed by the 2026-11-03 re-review |

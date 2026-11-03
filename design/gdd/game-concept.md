@@ -1,21 +1,29 @@
 # Game Concept: Deckdelve (working title)
 
 *Created: 2026-11-03*
-*Status: Draft*
+*Status: Under Review*
 
 > **Review notes**: `CD-PILLARS skipped — Lean mode.` `AD-CONCEPT-VISUAL skipped — Lean mode.`
 > `TD-FEASIBILITY skipped — Lean mode.` `PR-SCOPE skipped — Lean mode.`
 > Decisions recorded from the owner's answers on 2026-11-03: Hearthstone-style single-row board;
 > launch heroes War, Decay, Knowledge; PC desktop; Godot 4; portfolio scope; content target
 > "Small" (3 heroes, 8-boss runs from a pool of ~16, ~120 cards, ~20 treasures).
+> **REVISED 2026-11-03** (`/design-review`, lean, independent reviewer — stale cross-document
+> facts fixed in place after the 13 system GDDs were designed): treasure drafts are *in addition to*
+> the bundle on floors 1, 3, 5 (DD-R04/R05), not an either/or; MVP pool is 5 bosses 3/1/1 for a
+> 4-floor run plus 10 boss-only cards and 10 bundles (DD-H06); 36 bundles, not ~30 (DD-H05); Scope
+> Tiers aligned to content.md CN-1; floor-1 bosses are teaching bosses with a passive, not vanilla
+> decks (Pillar 2, content.md CN-3); hero display names noted (heroes.md H-3); the three resolved
+> Open Questions moved to a Resolved list and the genuinely open ones listed; Next Steps ticked.
 
 ---
 
 ## Elevator Pitch
 
 > It's a single-player roguelike card battler where you pick a hero, fight a gauntlet of eight
-> escalating bosses, and build your deck as you go by choosing one of three card bundles or a
-> rule-bending treasure after every win. One loss ends the run. It is Hearthstone's Dungeon Run,
+> escalating bosses, and build your deck as you go by choosing one of three card bundles after
+> every win — and, three times a run, one of three rule-bending treasures as well. One loss ends
+> the run. It is Hearthstone's Dungeon Run,
 > rebuilt as a standalone game.
 
 ---
@@ -28,7 +36,7 @@
 | **Platform** | PC (Windows desktop), mouse-driven, 1280x720 landscape |
 | **Target Audience** | Lapsed and current Hearthstone players who loved Dungeon Run; Slay the Spire players who want minion combat |
 | **Player Count** | Single-player |
-| **Session Length** | One run: 30–45 minutes (8 matches of 3–6 minutes plus drafts). Natural stop after any match. |
+| **Session Length** | One run: 30–45 minutes (8 matches of 3–6 minutes plus drafts; run-structure F5 models a victory run at ≈ 40 min and the median run, which ends in a loss, at ≈ 22 min). Natural stop after any match. |
 | **Monetization** | None (portfolio release; free on itch.io) |
 | **Estimated Scope** | Medium (4–7 months, solo, part-time) |
 | **Comparable Titles** | Hearthstone (Dungeon Run / Monster Hunt), Slay the Spire, Monster Train |
@@ -64,7 +72,7 @@ boss that heals 5 a turn?") and the draft is how you answer it.
 | **Challenge** (obstacle course, mastery) | 1 | Escalating boss gauntlet, permadeath per run, bosses with rule-bending passives |
 | **Discovery** (exploration, secrets) | 2 | 16-boss pool, treasure pool, unlockable heroes; each run reveals combinations |
 | **Expression** (self-expression, creativity) | 3 | Draft choices define a deck identity; treasures let players lean into a plan |
-| **Fantasy** (make-believe, role-playing) | 4 | Three hero identities (War, Decay, Knowledge) with distinct powers and starter decks |
+| **Fantasy** (make-believe, role-playing) | 4 | Three hero identities — War (Halvard), Decay (Mother Wythe), Knowledge (Archivist Ilse); names are placeholders per heroes.md H-3 — with distinct powers and starter decks |
 | **Sensation** (sensory pleasure) | 5 | Crisp card play feedback: snappy drag, impact on attack, clear effect resolution |
 | **Narrative** (drama, story arc) | 7 | Light: boss intro lines and a run summary; no campaign |
 | **Submission** (relaxation, comfort zone) | 8 | Turn-based, no timers; low-stress between matches |
@@ -86,8 +94,9 @@ boss that heals 5 a turn?") and the draft is how you answer it.
    trigger + target + operation), resolved by one rules engine with a visible event log.
 3. **Boss gauntlet**: eight bosses drawn from a pool of ~16 in three difficulty bands, each with a
    hero power or passive, a hand-tuned deck and a utility-scored AI with telegraphed intents.
-4. **Reward draft**: after each win choose one of three themed card bundles (3 cards each) or, on
-   designated floors, one of three passive treasures.
+4. **Reward draft**: after each win on floors 1–7 choose one of three themed card bundles (3 cards
+   each); after wins on floors 1, 3 and 5 also choose one of three passive treasures, treasure
+   first (DD-R04, DD-R05).
 5. **Meta progression**: wins and losses record to a profile; unlock new heroes, treasures and
    bundle themes; run log with stats.
 
@@ -113,7 +122,9 @@ boss that heals 5 a turn?") and the draft is how you answer it.
 ### Flow State Design
 
 - **Onboarding curve**: a fresh profile pre-selects the War hero (simplest plan: minions and weapons; DD-X02, nothing is forced),
-  floor 1 bosses are vanilla minion decks, the first treasure pick is offered after the first win (floor 1, per DD-R05).
+  floor 1 bosses are teaching bosses — each has one simple, telegraphed passive and a deck of
+  mostly vanilla minions, so they still pose a question (Pillar 2; content.md CN-3) — and the
+  first treasure pick is offered after the first win (floor 1, per DD-R05).
 - **Difficulty scaling**: boss bands (floors 1–3 easy, 4–6 mid, 7–8 hard) with rising health and
   stronger passives; the player's deck scales through drafts.
 - **Feedback clarity**: event log shows every effect; AI intents are telegraphed where possible;
@@ -132,12 +143,12 @@ resolves quickly.
 
 ### Short-Term (5-15 minutes)
 One match (3–6 minutes) against a boss with a known passive, then a draft (30 seconds): a bundle
-that pushes the deck toward a plan, or a treasure that bends the rules. "One more boss" is the
-hook; a draft is a reward and a decision.
+that pushes the deck toward a plan and, on floors 1, 3 and 5, a treasure that bends the rules
+first. "One more boss" is the hook; a draft is a reward and a decision.
 
 ### Session-Level (30-120 minutes)
-One full run: hero select, eight matches, up to seven drafts, victory screen or death screen with
-a run summary. Natural stop after any match (runs can be resumed). A session is one or two runs.
+One full run: hero select, eight matches, up to seven bundle drafts and three treasure drafts,
+victory screen or death screen with a run summary. Natural stop after any match (runs can be resumed). A session is one or two runs.
 
 ### Long-Term Progression
 Unlocks: three more heroes (Fortune, Order, Shadow) and additional treasures and bundles earned by
@@ -224,7 +235,7 @@ culture" (instant restarts).
 | **Art Pipeline Complexity** | Low in v1 (placeholder); Medium later (custom 2D card art) |
 | **Audio Needs** | Minimal (card play, attack, win/lose stingers; one ambient track) |
 | **Networking** | None |
-| **Content Volume** | v1: 3 heroes, ~120 cards (3 hero sets + neutral), 16 bosses, ~20 treasures, ~30 bundles; ~8 hours to see most content |
+| **Content Volume** | v1: 3 heroes, ~120 collectible cards (3 hero sets of 25 + 45 neutral, DD-H03) plus 32 boss-only cards, 16 bosses (6/6/4, DD-R02), ~20 treasures (DD-H04), 36 bundles (DD-H05); ~8 hours to see most content (unverified — see Open Questions) |
 | **Procedural Systems** | Run generation: boss sequence from banded pool, bundle and treasure offers from weighted pools with pity rules; all seeded |
 
 ---
@@ -252,9 +263,23 @@ culture" (instant restarts).
 - The salvage from the old prototype is presentation only; the rules engine is a full rewrite.
 
 ### Open Questions
-- Treasure cadence: resolved — DD-R05 (after wins on floors 1, 3, 5), see reward-draft.md.
-- Boss count per band: resolved — DD-R02 (6/6/4); reuse rules in run-structure.md.
-- Mulligan: resolved — DD-M05 (3 cards, replace any subset once), match-rules.md.
+- "~8 hours to see most content" vs run-structure F6 (`p_victory ≈ 3.3 %` for the median player,
+  ≈ 22 min per median run → ~11 h per hero before skill growth; cross-review 2026-11-03). Not a
+  contradiction (Challenge is aesthetic #1), but unmeasured: the first playtest measures floor-4/5
+  win rates against the 0.70 / 0.65 targets, and if the audience sits lower the 0.90 floor-1
+  onboarding promise is protected first.
+- Visual direction "Torchlit Ledger" was chosen without the AD-CONCEPT-VISUAL gate; the art bible
+  (`design/art/art-bible.md`, sections 1–4, Draft) builds on it with AD-ART-BIBLE also skipped.
+  Owner confirms the direction before `/asset-spec`.
+- Hero display names (Halvard, Mother Wythe, Archivist Ilse) and identity lines are designer
+  placeholders (heroes.md Open Questions); owner changes them in `heroes.json` only, before
+  `/asset-spec system:heroes`.
+
+### Resolved (recorded in design/design-decisions.md)
+- Treasure cadence — DD-R05 (after wins on floors 1, 3, 5, in addition to the bundle), reward-draft.md.
+- Boss count per band — DD-R02 (6/6/4); MVP pool DD-H06 (5 = 3/1/1); run-structure.md.
+- Mulligan — DD-M05 (3 cards, replace any subset once), match-rules.md.
+- First-run hero — DD-X02: pre-selected, never forced.
 
 ---
 
@@ -265,10 +290,13 @@ produces runs that players want to immediately replay."
 
 **Required for MVP**:
 1. Match rules engine (single-row board, mana, draw, combat, core keywords) with event log
-2. Data-driven cards with an effect DSL; ~40 cards (War set + neutral)
-3. Boss AI and 4 bosses across two bands
-4. Run structure: hero select (War only), 4-boss gauntlet, death/victory screens
-5. Reward draft: bundles and 10 treasures (DD-H06)
+2. Data-driven cards with an effect DSL; ~40 collectible cards (War set 25 + 15 neutral) plus 10
+   boss-only cards (DD-H06, content.md CN-1)
+3. Boss AI and a pool of 5 bosses across all three bands (3 / 1 / 1, DD-H06 — one spare band-1
+   boss so MVP runs vary, cross-review D-06)
+4. Run structure: hero select (War only), 4-floor gauntlet (`floors_per_run` 4, bands 2 / 1 / 1,
+   run-structure.md), death/victory screens
+5. Reward draft: 10 bundles (8 War + 2 neutral) and 10 treasures (DD-H06)
 6. Match and run UI sufficient to play with a mouse
 
 **Explicitly NOT in MVP** (defer to later):
@@ -280,9 +308,9 @@ produces runs that players want to immediately replay."
 
 | Tier | Content | Features | Timeline |
 | ---- | ---- | ---- | ---- |
-| **MVP** | 1 hero, 4 bosses, ~40 cards, 10 treasures (DD-H06) | Core loop only | 6–8 weeks |
-| **Vertical Slice** | 1 hero, full 8-boss run, ~60 cards, 12 treasures | Core + full run + save/resume | +3–4 weeks |
-| **Alpha** | 3 heroes, 16 bosses, ~120 cards, 20 treasures | All features incl. meta progression, placeholder art | +6–8 weeks |
+| **MVP** | 1 hero, 4-floor run from a 5-boss pool (3/1/1), ~40 cards + 10 boss-only, 10 bundles, 10 treasures (DD-H06) | Core loop only | 6–8 weeks |
+| **Vertical Slice** | 1 hero, full 8-floor run from a 9-boss pool (4/3/2), ~60 cards + 18 boss-only, 16 bundles, 12 treasures (content.md CN-1) | Core + full run + save/resume | +3–4 weeks |
+| **Alpha** | 3 heroes, 16 bosses, ~120 cards + 32 boss-only, 36 bundles, 20 treasures | All features incl. meta progression, placeholder art | +6–8 weeks |
 | **Full Vision** | 6 heroes, 24+ bosses, 200 cards | Custom art/audio, hard band modifiers | open |
 
 ---
@@ -310,9 +338,9 @@ AD-CONCEPT-VISUAL gate in Lean mode).
 ## Next Steps
 
 - [x] Engine chosen (Godot 4.7) — `/setup-engine` run
-- [ ] `/art-bible` sections 1–4 (placeholder art)
-- [ ] `/map-systems` — decompose into systems
-- [ ] `/design-system [system]` for each MVP system
+- [x] `/art-bible` sections 1–4 (placeholder art) — `design/art/art-bible.md`, Draft
+- [x] `/map-systems` — decompose into systems — `design/gdd/systems-index.md`, 13 systems
+- [x] `/design-system [system]` for each MVP system — 13 GDDs designed (8 Approved, 5 In Review on 2026-11-03)
 - [ ] `/create-architecture`, `/architecture-decision` ×4, `/architecture-review`
 - [ ] `/test-setup`, `/ux-design`, `/create-epics`, `/create-stories`, `/sprint-plan`
 - [ ] `/gate-check` at each stage transition

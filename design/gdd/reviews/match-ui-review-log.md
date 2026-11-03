@@ -76,3 +76,40 @@ Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e
 Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
 Reviewed-Content-Hash: design/accessibility-requirements.md 96c731ff0757d53872c56769c5893286d5c351dd
 Reviewed-Content-Hash: design/ux/interaction-patterns.md 0a5713271e352b17d993667908c55de8d2b3670e
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean — main review only; no Agent calls)
+Blocking items: 0 | Recommended: 6
+Summary: Final pass after the re-review's three in-place fixes and the cross-GDD housekeeping. All three fixes hold by the document's own numbers: the F6 mana bar `1060, 652, 196, 56` clears card 9's rotated right edge (x 1054 at y 652) and the deck pile `1180, 540, 76, 106` clears both; U3.4a filters rng-event-log rule 12a's `diagnostic: true` class (rng-event-log now marks the player's `command_rejected` diagnostic) and `counter_changed` projects to `counters{}`; L15 carries the "no playable card lit" precondition. The Run UI row reads settings from Meta Progression (DD-X07), treasures.md says three tray chips, and every registry value the GDD restates (`hand_fan_width_px` 800, `hover_scale` 1.5, the three `anim_*_s`, `min_action_gap_s`, `rejection_tooltip_s`, `feed_max_lines`, `match_end_auto_s`, `board_size` 7, `hand_size` 10, `starting_hand_player` 3, `max_mana_crystals` 10, `ai_action_delay_s` 0.6, `discover_count` 3, `hero_power_cost` 2) matches; F1, F2, F4 and F5 worked examples recompute; ui-code.md rules 1, 2, 4–6 and 8 and art bible §4 tokens, sizes and slot geometry hold. Remaining items are stale cross-reference wording and one undeclared Boss AI knob — none changes what a programmer builds.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Dependencies intro: still says the index lacks Run UI and Meta Progression ("rows this table adds … flagged for `/map-systems`") — systems-index row 11 now lists all ten; drop the sentence
+- [RECOMMENDED] Interactions Run Structure row / Dependencies: "it never references this system" is stale — run-structure.md's Boss AI row (cross-review C-17) names Match UI's `MatchController` as the driver's wrapper; the direction (nothing flows back, hand-off via Run UI) is unchanged
+- [RECOMMENDED] Detailed Design U6.2 / Tuning Knobs "owned elsewhere": the "plan changed" label has no duration here — boss-ai Tuning Knobs owns `plan_changed_s` 1.2 s; name it and say whether it replaces `intent_banner_s` as F4's pre-action beat when `kept = false`
+- [RECOMMENDED] Tuning Knobs `reduce_motion` / Impact Moments: accessibility-requirements Visual table (Comprehensive, Pre-Production) also makes `reject_shake` a 2-frame outline flash and the skip-hint / `lethal` pulses static under `reduce_motion`; cite that table as the owner or extend the row
+- [RECOMMENDED] Detailed Design U9 / States `ChoiceOpen`: "opens on `choice_requested`" — U3's pair rule (overlay on the second of `choice_requested` / `discover_offered`, whichever order) is the one to cite
+- [RECOMMENDED] Acceptance Criteria L13: millisecond budgets still name no reference machine (carried from both prior reviews)
+- [RECOMMENDED] Cross-GDD housekeeping (not this GDD): rng-event-log rule 12a's parenthetical says U3.4a "filters them from the feed" — match-ui gives the player's own `command_rejected` a `feed.command_rejected` line (accessibility "Reading time"); accessibility-requirements Motor rows "Hold-to-press alternatives" and "Accidental-activation guard" still read "Not in match-ui U5 today" / "Recorded as a conflict" — both resolved into U5
+- [RECOMMENDED] Registry: `boss_turn_gap.output_range` [0.15, 0.6] still stale — `action_delay_ms` 0–2000 raises the clamp cap to 2.0 (L16 yields 1.2); `hero_war` / `hero_decay` / `hero_knowledge` `referenced_by` match-ui.md though the GDD never names those entries (harmless)
+Reviewed-Content-Hash: design/gdd/match-ui.md e2bcccad61083401a8c8dbdbd0a4068afc64e3d7
+Reviewed-Content-Hash: design/registry/entities.yaml 76f479bf5a4270db81c0d82a5eb86ee4c5c9e227
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/match-rules.md 7af4351b32a419195d38bf274c2a68b9c63aa804
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 6981bf37934cae2e74ed37a23eb349fb62dcbf5b
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/gdd/boss-ai.md 2c2bedbaa6ff558777d2af7d81b3b91c5783af82
+Reviewed-Content-Hash: design/gdd/card-database.md d04095c7f44e5d930ba3c23c4f88024736fdc6a8
+Reviewed-Content-Hash: design/gdd/heroes.md 3e9c89b4cd87b8fde225762af7e169fcf2fed1dd
+Reviewed-Content-Hash: design/gdd/treasures.md b50806cc8b2b5117b0064b934122be5ecaced4ad
+Reviewed-Content-Hash: design/gdd/run-structure.md f89d6a98f6981671324f9a0c49708df0d1847787
+Reviewed-Content-Hash: design/gdd/run-ui.md b97595084d05aabfe872316243343bf85c3f45d0
+Reviewed-Content-Hash: design/gdd/meta-progression.md 878962538feb2a76598643d4ce90adc4f436ba55
+Reviewed-Content-Hash: design/gdd/game-concept.md 0c2c930dd6bdaa11592472e2051d801911f4ded1
+Reviewed-Content-Hash: design/gdd/systems-index.md a20a2191f2853e48591ac1eec0417f089077f7c6
+Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
+Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
+Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
+Reviewed-Content-Hash: design/accessibility-requirements.md 52e2cd2ed4cc0ad43c175655eb00d08c2519b3f7
+Reviewed-Content-Hash: design/ux/interaction-patterns.md 0a5713271e352b17d993667908c55de8d2b3670e
