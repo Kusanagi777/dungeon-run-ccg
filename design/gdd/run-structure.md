@@ -167,8 +167,10 @@ unknown version is repaired on resume, R8.2, not rejected); every id resolves in
 
 #### R4. Match result
 
-Match Rules returns `MatchResult {winner, reason, turns, turns_per_side, player stats, boss
-stats, final health, seed}` (C14) and the log reduces the match to a `match_summary`. The run
+Match Rules returns `MatchResult {result, winner, reason, floor, turns, turns_per_side, player
+stats, boss stats, final health}` (C14; the record carries no seed — the run seed and `floor`
+identify the match, DD-R09; aligned 2026-11-03 per the ADR-0008 authoring note) and the log
+reduces the match to a `match_summary`. The run
 appends `{boss_id, band, attempt: match_attempts[floor], duration_s}` and stores it, then sets
 `treasure_state = Treasures.collect_state(hooks, match_result)` (Treasures T4, confirmed: pure,
 JSON-only, returns `{schema_version: 1, by_treasure: {}}` for every v1 treasure) so the value
