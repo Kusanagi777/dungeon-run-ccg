@@ -32,6 +32,22 @@ const E_MISSING_FILE: StringName = &"E_MISSING_FILE"
 const E_PARSE: StringName = &"E_PARSE"
 ## `schema_version` is not `DataLoader.SCHEMA_VERSION_CURRENT` (CR-5 step 3).
 const E_SCHEMA_VERSION: StringName = &"E_SCHEMA_VERSION"
+## A record field of the wrong type, out of range or off its pattern, or a
+## cross-field rule broken; a `card_database.json` knob fault (CR-3, CR-5 step 4).
+const E_SCHEMA: StringName = &"E_SCHEMA"
+## A required record field absent or `null` (CR-3, CR-5 step 4).
+const E_MISSING_FIELD: StringName = &"E_MISSING_FIELD"
+## A field CR-3 does not list for the record type, or one its by-type rule
+## forbids (CR-3, CR-5 step 4).
+const E_UNKNOWN_FIELD: StringName = &"E_UNKNOWN_FIELD"
+## A value outside a CR-3 / CR-4 enumeration (CR-5 step 4).
+const E_BAD_ENUM: StringName = &"E_BAD_ENUM"
+## A card `set` that is not its file's set, or an id prefix that disagrees
+## with the record type or set (CR-2, CR-5 step 4).
+const E_SET_MISMATCH: StringName = &"E_SET_MISMATCH"
+## A `text.key` that is not `card.<id>.text` (or `passive_text.key` not
+## `boss.<id>.passive`) (CR-3, Edge Cases).
+const E_TEXT_KEY: StringName = &"E_TEXT_KEY"
 ## A `.json` file not in `DataLoader.FILE_MANIFEST`; it is not loaded (CR-1).
 const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
 

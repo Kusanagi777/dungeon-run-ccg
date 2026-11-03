@@ -50,13 +50,13 @@ stories:
     name: "Record schema validation (CR-3, CR-5 stage 4)"
     file: "production/epics/card-database/story-002-record-schema-validation.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     wave: 1
     serialised: false
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "boot-composition-root-005"
     name: "Grep gates G1–G6 and the per-file parse check in CI"
     file: "production/epics/boot-composition-root/story-005-lint-gates-ci.md"

@@ -26,6 +26,7 @@ const DATA_SCRIPTS: Array[String] = [
 	"res://src/core/data/data_loader.gd",
 	"res://src/core/data/card_database.gd",
 	"res://src/core/data/validation_report.gd",
+	"res://src/core/data/record_schemas.gd",
 ]
 
 

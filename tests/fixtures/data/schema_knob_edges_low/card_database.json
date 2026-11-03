@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "config": {
+    "min_collectible_pool": 10,
+    "min_bundle_pool": 3,
+    "max_records": 1,
+    "data_load_budget_ms": 50,
+    "data_memory_budget_mb": 1
+  }
+}

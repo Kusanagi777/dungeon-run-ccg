@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "config": {
+    "min_bundle_pool": -7
+  }
+}

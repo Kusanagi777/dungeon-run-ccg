@@ -1,12 +1,12 @@
 # Story 002: Record schema validation (CR-3, CR-5 stage 4)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -66,10 +66,14 @@
 
 ## Files
 
-- `src/core/data/data_loader.gd` (stage 4)
-- `src/core/data/record_schemas.gd` (optional split; `static func`s only)
-- `tests/fixtures/data/schema_*/` (one small root per AC case, derived from `minimal/`)
-- `tests/unit/card_database/card_database_schema_test.gd`
+- `src/core/data/record_schemas.gd` (new — CR-3 field tables, CR-2 / CR-4 lists, knob ranges; `static func`s only)
+- `src/core/data/data_loader.gd` (stage 4: `_check_schemas`)
+- `src/core/data/validation_report.gd` (the six stage-4 codes)
+- `tests/unit/card_database/card_database_schema_test.gd` (32 tests)
+- `tests/unit/card_database/card_database_single_parser_test.gd` (the numeric-constant scan covers `record_schemas.gd`)
+- `tests/fixtures/data/clean/` (a coherent mini data set that loads with an empty report), `schema_cards/`, `schema_knobs/`, `schema_knob_shape/`, `schema_knob_edges_low/`, `schema_knob_edges_high/`, `schema_unlock/`, `schema_boss/`, `schema_types/`
+- `tests/fixtures/data/{bad_envelope,bad_values,minimal,missing_set,parse_error,schema_version_0,schema_version_2,strict_json,unknown_file}/card_database.json` (empty body → the five GDD-default knobs)
+- `tests/fixtures/data/strict_json/bosses.json`, `cards_boss.json` (CR-3-valid records keeping the same strict-JSON traps)
 
 ---
 
@@ -87,7 +91,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_schema_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 32 tests, passing
 
 ---
 
@@ -95,3 +99,16 @@
 
 - Depends on: `production/epics/card-database/story-001-manifest-parse-envelope.md`
 - Unlocks: `production/epics/card-database/story-003-uniqueness-and-cross-references.md`, `production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md`
+
+## Completion Notes
+
+**Completed**: 2026-11-03 (started 2026-11-03T21:04:59Z, finished 2026-11-03T21:11:39Z UTC)
+**Criteria**: 4/4 passing (all covered by unit tests in `card_database_schema_test.gd`; none deferred)
+**Run result**: N/A — stage 4 is headless loader validation with no scene, screen or log a player sees; its report reaches the player only through the `data_error` screen (Run UI epic)
+**Deviations** (advisory):
+- Stage 4 lives in a new `src/core/data/record_schemas.gd` (`class_name RecordSchemas`, `static func`s), the story's optional split. Its tables hold CR-3 ranges, CR-2/CR-4 lists and the Formulas knob ranges as *format knowledge* (story Control Manifest note); the manifest's "only `SCHEMA_VERSION_CURRENT` and `FILE_MANIFEST` are data-shaped literals in `src/core/data/`" wording predates this split — no top-level numeric constant was added (the single-parser test now scans `record_schemas.gd` too and still passes).
+- Requiredness the GDD prose leaves implicit, decided here: `unlock` is required (value `null` allowed) on HeroDef / TreasureDef / BundleDef — note `CardFactory.make_bundle_def` omits it; HeroPowerDef `cost` is required (its "default 2" is a gameplay number the loader may not hold); `art` is optional on every type that lists it; BundleDef has no `art` (CR-3 lists none). HeroDef / BossDef `health` must be ≥ 1 (no ceiling stated); `max_records` ≥ 1 (no range stated); `name` 1–32 for CardDef only, non-empty for the others; every `text`-shaped object is exactly `{key, en}`; only `card.<id>.text` and `boss.<id>.passive` keys are checked (CR-3 states no other key rule).
+- Codes for cases the GDD does not name: a `null` in a required non-nullable field is `E_MISSING_FIELD` (matches the hero `hero_power: null` rule); a wrong id prefix for a non-card type (`skill_…` in `hero_powers.json`, `bundle_neutral_…` with `set: war`) is `E_SET_MISMATCH` (CR-2 "prefix/field mismatch"); a hero `set` of `neutral`/`boss` and a bundle `set` of `boss` are `E_BAD_ENUM`; a non-object record is `E_SCHEMA` with `record_id: null` and `records[i]` in the message.
+- Fixture roots: `clean/` (one War hero, 14 cards incl. a token, two bosses, ten treasures, three bundles — loads with an empty report) is the base for every `schema_*` root and for stories 003-005. The nine story-001 roots' empty `card_database.json` bodies now carry the five GDD-default knobs (30/10/5000/200/4) so they keep failing only on their own fault; `strict_json/bosses.json` was rewritten as CR-3-valid bosses (same punctuation-in-strings and repeated-keys-across-objects traps) with one boss-set card in `cards_boss.json`. Fixtures were generated from a scratch script mirroring `CardFactory` shapes (not committed); the QA plan names `tests/fixtures/card_database/`, the story `tests/fixtures/data/` — the story's path is used, as in story 001.
+**Test Evidence**: `tests/unit/card_database/card_database_schema_test.gd` (32 tests; seen failing — 17 failures — before stage 4 was wired); full suite exit 0, 369 test cases; smoke exit 0, no SCRIPT ERROR; parse check ok on the three changed scripts
+**Reviewed by**: self, no independent review (`/code-review` not run; LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode)

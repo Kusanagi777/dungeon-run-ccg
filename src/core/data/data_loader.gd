@@ -9,9 +9,11 @@
 ## one `ValidationReport` and carrying on (no fail-fast); a file that fails a
 ## stage is left out of the later stages.
 ##
-## Implemented here: stage 1 (discover), 2 (read and parse), 3 (envelope).
-## Stages 4-8 slot into `run()` at the marked points (card-database stories
-## 002-005); stage 9 (freeze, `index_of`, `data_version`) is stories 006-007.
+## Implemented here: stage 1 (discover), 2 (read and parse), 3 (envelope),
+## 4 (per-record schema and the `card_database.json` knobs, through
+## `RecordSchemas`). Stages 5-8 slot into `run()` at the marked points
+## (card-database stories 003-005); stage 9 (freeze, `index_of`,
+## `data_version`) is stories 006-007.
 ##
 ## [codeblock]
 ## var loader: DataLoader = DataLoader.new("res://tests/fixtures/data/minimal/")
@@ -121,7 +123,9 @@ func run(_validators: Dictionary) -> LoadResult:
 	var staged: Array[Dictionary] = _read_and_parse(report)
 	# Stage 3 — envelope.
 	staged = _check_envelopes(staged, report)
-	# Stage 4 — per-record schema (Story 002) slots in here.
+	# Stage 4 — per-record schema; each definition item gains `records`, the
+	# `{index, record}` rows that passed. A failing card_database.json is dropped.
+	staged = _check_schemas(staged, report)
 	# Stages 5-6 — uniqueness and cross-references (Story 003) slot in here.
 	# Stage 7 — delegated validators over `_validators` (Story 004) slots in here.
 	# Stage 8 — budget warnings (Story 005) slots in here.
@@ -271,6 +275,30 @@ func _check_schema_version(file_name: String, body: Dictionary, report: Validati
 	report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA_VERSION, file_name, null, "schema_version",
 		"schema_version found %s, expected %d" % [found, SCHEMA_VERSION_CURRENT])
 	return false
+
+
+## Stage 4 (CR-3, CR-5 step 4): every record of every definition file through
+## `RecordSchemas.check_record`, and the `card_database.json` body through
+## `RecordSchemas.check_card_database_config`. Every other config body passes
+## untouched (stage 7a). Each definition item gains `records`: the
+## `{index: int, record: Dictionary}` rows that passed, in file order; a record
+## that failed is left out of stages 5-9, the file itself stays.
+func _check_schemas(staged: Array[Dictionary], report: ValidationReport) -> Array[Dictionary]:
+	var passed: Array[Dictionary] = []
+	for item: Dictionary in staged:
+		var row: Dictionary = item.row
+		if row["class"] == "definition":
+			var rows: Array[Dictionary] = []
+			var records: Array = item.body.records
+			for i: int in records.size():
+				if RecordSchemas.check_record(row.record_type, row.name, i, records[i], report):
+					rows.append({"index": i, "record": records[i]})
+			item["records"] = rows
+		elif row.name == RecordSchemas.CARD_DATABASE_FILE:
+			if not RecordSchemas.check_card_database_config(item.body.config, report):
+				continue
+		passed.append(item)
+	return passed
 
 
 func _body_key(row: Dictionary) -> String:

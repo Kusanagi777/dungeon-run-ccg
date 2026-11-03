@@ -1,0 +1,503 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_shield_bearer",
+      "name": "War Shield Bearer",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "armor"
+      ],
+      "text": {
+        "key": "card.war_shield_bearer.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_plate_squire",
+      "name": "War Plate Squire",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "armor"
+      ],
+      "text": {
+        "key": "card.war_plate_squire.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_iron_vanguard",
+      "name": "War Iron Vanguard",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "armor"
+      ],
+      "text": {
+        "key": "card.war_iron_vanguard.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_axe_thrower",
+      "name": "War Axe Thrower",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_axe_thrower.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_iron_axe",
+      "name": "War Iron Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_iron_axe.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_whetstone",
+      "name": "War Whetstone",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_whetstone.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_battle_cry",
+      "name": "War Battle Cry",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 4,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_battle_cry.text",
+        "en": ""
+      },
+      "art": "cards/war_battle_cry_alt"
+    },
+    {
+      "id": "war_recruit",
+      "name": "War Recruit",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_recruit.text",
+        "en": ""
+      },
+      "token": true
+    },
+    {
+      "id": "war_typo_field",
+      "name": "Typo Field",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_typo_field.text",
+        "en": ""
+      },
+      "durabilty": 2
+    },
+    {
+      "id": "war_spell_attack",
+      "name": "Spell Attack",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "attack": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_spell_attack.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_no_health",
+      "name": "No Health",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_no_health.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_no_durability",
+      "name": "No Durability",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_no_durability.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_zero_health",
+      "name": "Zero Health",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 0,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_zero_health.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_zero_durability",
+      "name": "Zero Durability",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 0,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_zero_durability.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_cost_eleven",
+      "name": "Cost Eleven",
+      "set": "war",
+      "type": "minion",
+      "cost": 11,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_cost_eleven.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_cost_negative",
+      "name": "Cost Negative",
+      "set": "war",
+      "type": "minion",
+      "cost": -1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_cost_negative.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_cost_fraction",
+      "name": "Cost Fraction",
+      "set": "war",
+      "type": "minion",
+      "cost": 3.5,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_cost_fraction.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_bad_keyword",
+      "name": "Bad Keyword",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "flying"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_bad_keyword.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_repeat_keyword",
+      "name": "Repeat Keyword",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_repeat_keyword.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_spell_damage_alone",
+      "name": "Spell Damage Alone",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_spell_damage_alone.text",
+        "en": ""
+      },
+      "spell_damage": 2
+    },
+    {
+      "id": "war_keyword_alone",
+      "name": "Keyword Alone",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_keyword_alone.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "War_Bad_Id",
+      "name": "Bad Id",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.War_Bad_Id.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_set_neutral",
+      "name": "Set Neutral",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_set_neutral.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_in_war_file",
+      "name": "Neutral In War",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_in_war_file.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_text_key",
+      "name": "Text Key",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_other.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_cost_zero",
+      "name": "Cost Zero",
+      "set": "war",
+      "type": "minion",
+      "cost": 0,
+      "attack": 0,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_cost_zero.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_cost_ten",
+      "name": "Cost Ten",
+      "set": "war",
+      "type": "minion",
+      "cost": 10,
+      "attack": 99,
+      "health": 99,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_cost_ten.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_float_ok",
+      "name": "Float Ok",
+      "set": "war",
+      "type": "minion",
+      "cost": 3.0,
+      "attack": 2.0,
+      "health": 2.0,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_float_ok.text",
+        "en": ""
+      }
+    }
+  ]
+}

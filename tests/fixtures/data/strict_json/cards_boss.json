@@ -1,4 +1,7 @@
 {
   "schema_version": 1,
-  "records": []
+  "records": [
+    {"id": "boss_strict_card", "name": "Strict Card", "set": "boss", "type": "spell", "cost": 1, "rarity": "common",
+     "keywords": [], "effects": [], "tags": [], "text": {"key": "card.boss_strict_card.text", "en": ""}}
+  ]
 }
