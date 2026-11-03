@@ -60,25 +60,24 @@ const UNREBINDABLE_ACTION: String = "cancel"
 ## set_setting, ack_notification, reset_profile.
 var calls: Array[Dictionary] = []
 
-var _db: Variant
+var _db: CardDatabase
 var _mirror: RefCounted
 var _defaults: Dictionary
 var _settings: Dictionary
 var _active_run: Variant = null
 
 
-## Builds the stub from [param db] (a `CardDatabase`) alone. Reads
+## Builds the stub from [param db], a `Ready` `CardDatabase`, alone. Reads
 ## `config("profile_defaults")` once and keeps a writable deep copy as the
-## settings record; creates [member MetaApi.settings_bus]. [param mirror] (a
-## `ProfileStore`) is stored for a later write-through build and unused here.
+## settings record (the body itself is frozen, card-database CR-7); creates
+## [member MetaApi.settings_bus]. [param mirror] (a `ProfileStore`) is stored
+## for a later write-through build and unused here.
 ##
-## TODO(card-database): type [param db] as `CardDatabase` once that class
-## exists; it must answer `config(name)`, `heroes()` and `treasure_pool()`.
 ## TODO(meta-progression): type [param mirror] as `ProfileStore`.
 ## [codeblock]
 ## var stub := MetaStub.new(card_database)
 ## [/codeblock]
-func _init(db: Variant, mirror: RefCounted = null) -> void:
+func _init(db: CardDatabase, mirror: RefCounted = null) -> void:
 	_db = db
 	_mirror = mirror
 	_defaults = (db.config("profile_defaults") as Dictionary).duplicate(true)
@@ -95,7 +94,7 @@ func _init(db: Variant, mirror: RefCounted = null) -> void:
 ## [codeblock]
 ## var stub := MetaStub.from_fixture(card_database, {"settings": {"gamma": 1.2}})
 ## [/codeblock]
-static func from_fixture(db: Variant, fixture: Dictionary) -> MetaStub:
+static func from_fixture(db: CardDatabase, fixture: Dictionary) -> MetaStub:
 	var stub: MetaStub = MetaStub.new(db)
 	var overrides: Dictionary = fixture.get("settings", {})
 	for raw_key: Variant in overrides:

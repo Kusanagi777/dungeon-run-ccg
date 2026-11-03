@@ -149,7 +149,7 @@ func test_shipped_match_rules_loads_through_data_loader_with_the_tuning_knob_def
 	var file_entries: Array = result.report.entries().filter(func(e: Dictionary) -> bool: return e.file == RULES_FILE)
 	assert_array(file_entries).is_empty()
 	assert_object(result.snapshot).is_not_null()
-	var body: Dictionary = result.snapshot.configs["match_rules"]
+	var body: Dictionary = result.snapshot.config_bodies["match_rules"]
 	assert_array(_sorted(body.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
 	var expected: Dictionary = MatchFactory.make_rules_config()
 	for key: String in RulesEngine.CONFIG_KEYS:
@@ -158,7 +158,7 @@ func test_shipped_match_rules_loads_through_data_loader_with_the_tuning_knob_def
 
 func test_shipped_match_rules_passes_its_config_validator() -> void:
 	# Arrange
-	var body: Dictionary = _load_shipped().snapshot.configs["match_rules"]
+	var body: Dictionary = _load_shipped().snapshot.config_bodies["match_rules"]
 
 	# Act
 	var errors: Array = RulesEngine.validate_rules_config(body, null)
@@ -176,7 +176,7 @@ func test_config_safe_ranges_equal_the_gdd_tuning_knobs_safe_range_column() -> v
 	# Assert — every knob has one GDD row, with the same bounds and current value
 	assert_array(_sorted(rows.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
 	assert_array(_sorted(RulesEngine.CONFIG_SAFE_RANGES.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
-	var body: Dictionary = _load_shipped().snapshot.configs["match_rules"]
+	var body: Dictionary = _load_shipped().snapshot.config_bodies["match_rules"]
 	for key: String in RulesEngine.CONFIG_KEYS:
 		assert_array(RulesEngine.CONFIG_SAFE_RANGES[key]).override_failure_message("safe range %s" % key).is_equal(rows[key].range)
 		assert_int(int(body[key])).override_failure_message("current value %s" % key).is_equal(rows[key].current)

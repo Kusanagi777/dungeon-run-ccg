@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_zed",
+      "name": "Boss Zed",
+      "band": 2,
+      "health": 40,
+      "hero_power": "power_sharpen",
+      "passive": null,
+      "deck": [
+        "boss_skull",
+        "boss_claw"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_zed.intro",
+        "en": ""
+      }
+    },
+    {
+      "id": "boss_mid",
+      "name": "Boss Mid",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_sharpen",
+      "passive": null,
+      "deck": [
+        "boss_skull",
+        "boss_claw"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_mid.intro",
+        "en": ""
+      }
+    },
+    {
+      "id": "boss_alpha",
+      "name": "Boss Alpha",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_sharpen",
+      "passive": null,
+      "deck": [
+        "boss_skull",
+        "boss_claw"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_alpha.intro",
+        "en": ""
+      }
+    }
+  ]
+}

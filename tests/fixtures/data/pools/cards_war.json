@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_zealot",
+      "name": "War Zealot",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "steel"
+      ],
+      "text": {
+        "key": "card.war_zealot.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 2
+    },
+    {
+      "id": "war_axe",
+      "name": "War Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "steel"
+      ],
+      "text": {
+        "key": "card.war_axe.text",
+        "en": ""
+      },
+      "attack": 2,
+      "durability": 2
+    },
+    {
+      "id": "war_recruit",
+      "name": "War Recruit",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "steel"
+      ],
+      "text": {
+        "key": "card.war_recruit.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 2,
+      "token": true
+    },
+    {
+      "id": "war_banner",
+      "name": "War Banner",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_play",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "steel"
+      ],
+      "text": {
+        "key": "card.war_banner.text",
+        "en": ""
+      }
+    }
+  ]
+}

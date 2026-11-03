@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_war",
+      "name": "Warden",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_sharpen",
+      "starter_deck": [
+        "war_zealot",
+        "war_axe",
+        "war_banner",
+        "neutral_ogre",
+        "neutral_bat",
+        "war_zealot",
+        "war_axe",
+        "war_banner",
+        "neutral_ogre",
+        "neutral_bat",
+        "war_zealot",
+        "war_axe",
+        "war_banner",
+        "neutral_ogre",
+        "neutral_bat"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_war.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "hero_decay",
+      "name": "Rotmother",
+      "set": "decay",
+      "health": 30,
+      "hero_power": "power_rot",
+      "starter_deck": [
+        "neutral_ogre",
+        "neutral_bat",
+        "neutral_mage",
+        "neutral_ogre",
+        "neutral_bat",
+        "neutral_mage",
+        "neutral_ogre",
+        "neutral_bat",
+        "neutral_mage",
+        "neutral_ogre",
+        "neutral_bat",
+        "neutral_mage",
+        "neutral_ogre",
+        "neutral_bat",
+        "neutral_mage"
+      ],
+      "unlock": {
+        "key": "unlock.hero_decay",
+        "condition": {
+          "type": "runs_won",
+          "at_least": 1
+        }
+      },
+      "text": {
+        "key": "hero.hero_decay.text",
+        "en": ""
+      }
+    }
+  ]
+}

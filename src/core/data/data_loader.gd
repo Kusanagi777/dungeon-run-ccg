@@ -13,15 +13,15 @@
 ## 4 (per-record schema and the `card_database.json` knobs, through
 ## `RecordSchemas`), 5 (id uniqueness), 6 (cross-references), the id-sorted
 ## staging (`LoadResult.staging`), 7 (the injected validators, 7a configs
-## then 7b records, with the database's stage-7 lookups open) and 8 (budget
-## warnings and pool thresholds). Stage 9 (freeze, `data_version`) is
-## card-database stories 006-007.
+## then 7b records, with the database's stage-7 lookups open), 8 (budget
+## warnings and pool thresholds) and 9 (the recursive freeze into the
+## snapshot, story 006). Stage 9's `data_version` is card-database story 007.
 ##
 ## [codeblock]
 ## var loader: DataLoader = DataLoader.new("res://tests/fixtures/data/minimal/")
-## var result: DataLoader.LoadResult = loader.run({})
-## result.report.has_errors()   # false
-## result.snapshot.configs.keys()  # every config file that passed, by name
+## var result: DataLoader.LoadResult = loader.run(ValidatorStubs.accept_all())
+## result.report.has_errors()          # false
+## result.snapshot.config_bodies.keys()  # every config file, by name, frozen
 ## [/codeblock]
 ##
 ## Engine notes: `FileAccess.open` returns `null` on failure and the reason is
@@ -35,6 +35,11 @@
 ## (observed 2026-11-03): it accepts a trailing comma (`{"a": 1,}`, `[1,]`)
 ## and a duplicate key (`{"a": 1, "a": 2}` keeps `2` silently), so a file
 ## that parses is also scanned for both and each is `E_PARSE` with its line.
+## `make_read_only()` is **not** recursive on 4.7.2 (observed 2026-11-03: a
+## read-only Dictionary's nested Array and Dictionary stay writable; closes
+## ADR-0002 Verification Required item 3), so stage 9 walks every container
+## ([method _freeze_deep]); a write to a frozen one is refused with the script
+## error "Invalid assignment on read-only value".
 ## Single-thread-only; runs synchronously at boot.
 class_name DataLoader
 extends RefCounted
@@ -99,18 +104,22 @@ const CONFIG_VALIDATOR_EXEMPT: Array[String] = ["card_database.json"]
 
 ## What `run()` returns: the report, and the loaded data when the report has
 ## no errors (`null` otherwise — CR-5 step 9: no "load what passed" path).
-## `snapshot` is `{definitions: {<file name>: records Array}, configs:
-## {<config name without .json>: body Dictionary}}` until Story 006 replaces it
-## with the frozen, id-indexed snapshot.
+## `snapshot` (stage 9, ADR-0002 Decision 5), every container in it read-only:
+## `{records_by_type: {<record_type>: Array[Dictionary] sorted by id},
+## index_of: {<id>: {type, position}}, config_bodies: {<config name without
+## .json>: body}, pools: {collectible: {<set>: Array}, bundle: {<set>: Array},
+## bosses_in_band: {<band int>: Array}, all: {TreasureDef: Array, HeroDef:
+## Array}}, data_version: "" (story 007 computes it), report}`.
 class LoadResult extends RefCounted:
 	## Every problem the run found (warnings only on a clean load).
 	var report: ValidationReport
-	## The parsed data, or `null` when `report.has_errors()`.
+	## The frozen snapshot, or `null` when `report.has_errors()`.
 	var snapshot: Variant
-	## The records that passed stages 4-6, built after stage 6 whatever the
-	## outcome: `{records: {<record_type>: Array[Dictionary] sorted by id},
-	## index_of: {<id>: {type, position}}, files: {<id>: <file name>}}`. Stage 7
-	## answers its lookups from it; Story 006 freezes it into the snapshot.
+	## The records that passed stages 4-6 (and, once stage 7 ran, 7), built
+	## after stage 6 whatever the outcome: `{records_by_type: {<record_type>:
+	## Array[Dictionary] sorted by id}, index_of: {<id>: {type, position}},
+	## files: {<id>: <file name>}}`. Stage 7 answers its lookups from it; on a
+	## clean load stage 9 freezes its records and `index_of` into the snapshot.
 	var staging: Dictionary
 
 	func _init(p_report: ValidationReport, p_snapshot: Variant, p_staging: Dictionary = {}) -> void:
@@ -163,10 +172,11 @@ func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	staging = _run_validators(validators, staged, pool, staging, db, report)
 	# Stage 8 — budget warnings and pool thresholds, every threshold from data.
 	_check_budgets(staged, staging, report)
-	# Stage 9 — freeze, index_of, data_version (Stories 006-007) replace this.
+	# Stage 9 — only with zero errors: freeze the id-sorted staging and every
+	# config body into the snapshot (data_version: story 007).
 	if report.has_errors():
 		return LoadResult.new(report, null, staging)
-	return LoadResult.new(report, _snapshot_of(staged), staging)
+	return LoadResult.new(report, _freeze(staged, staging, report), staging)
 
 
 func _warn_unknown_files(report: ValidationReport) -> void:
@@ -459,7 +469,7 @@ func _ref_fault(ctx: Dictionary, code: StringName, field: String, message: Strin
 ## The records that passed stages 4-6, per CR-3 type, sorted by id ascending
 ## (never file order — CR-6), with `index_of` `{id: {type, position}}` into
 ## those lists and `files` `{id: file name}`. Built once; stage 7's lookups
-## and Story 006's freeze read it.
+## and the stage-9 freeze read it.
 func _build_staging(pool: Dictionary) -> Dictionary:
 	var records: Dictionary = {}
 	for record_type: String in RecordSchemas.SCHEMAS:
@@ -475,7 +485,7 @@ func _build_staging(pool: Dictionary) -> Dictionary:
 		index_of[id] = {"type": entry.type, "position": list.size()}
 		files[id] = entry.file
 		list.append(entry.record)
-	return {"records": records, "index_of": index_of, "files": files}
+	return {"records_by_type": records, "index_of": index_of, "files": files}
 
 
 ## Stage 7 (CR-5 step 7; ADR-0002 Decision 4; ADR-0007 Decision 8): the
@@ -565,8 +575,8 @@ func _run_config_validators(config_validators: Dictionary, staged: Array[Diction
 ## records any validator failed.
 func _run_record_validators(present: Dictionary, staging: Dictionary, bodies: Dictionary, db: CardDatabase, report: ValidationReport) -> Array[String]:
 	var failed: Array[String] = []
-	for record_type: String in staging.records:
-		for rec: Dictionary in staging.records[record_type]:
+	for record_type: String in staging.records_by_type:
+		for rec: Dictionary in staging.records_by_type[record_type]:
 			var id: String = rec["id"]
 			var file: String = staging.files[id]
 			var ok: bool = true
@@ -695,15 +705,16 @@ func _check_budgets(staged: Array[Dictionary], staging: Dictionary, report: Vali
 		if item.row.record_type == "CardDef" and item.body.records.is_empty():
 			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_EMPTY_SET, item.row.name, null, null,
 				"set file has no records")
-	var cards: Array = staging.records.CardDef
+	var records: Dictionary = staging.records_by_type
+	var cards: Array = records.CardDef
 	var knobs: Variant = configs.get("card_database")
 	if knobs != null:
 		if n_records > int(knobs.max_records):
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_COUNT, RecordSchemas.CARD_DATABASE_FILE, null, "max_records",
 				"%d records across all definition files, above max_records %d" % [n_records, int(knobs.max_records)])
-		_check_hero_set_pools(knobs, cards, staging.records.HeroDef, staging.records.BundleDef, report)
-	_check_treasure_pool(configs, staging.records.TreasureDef, report)
-	_check_band_health(configs, staging.records.BossDef, report)
+		_check_hero_set_pools(knobs, cards, records.HeroDef, records.BundleDef, report)
+	_check_treasure_pool(configs, records.TreasureDef, report)
+	_check_band_health(configs, records.BossDef, report)
 	_check_duplicate_names(cards, staging.files, report)
 
 
@@ -719,14 +730,14 @@ func _check_hero_set_pools(knobs: Dictionary, cards: Array, heroes: Array, bundl
 	for hero_set: String in hero_sets:
 		var collectible: int = 0
 		for c: Dictionary in cards:
-			if (c["set"] == hero_set or c["set"] == "neutral") and not c.get("token", false):
+			if in_collectible_pool(c, hero_set):
 				collectible += 1
 		if collectible < min_collectible:
 			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_POOL_SIZE, "cards_%s.json" % hero_set, null, "min_collectible_pool",
 				"collectible pool for %s: %d < %d (n_nontoken(%s) + n_nontoken(neutral) vs min_collectible_pool)" % [hero_set, collectible, min_collectible, hero_set])
 		var pool: int = 0
 		for b: Dictionary in bundles:
-			if b["set"] == hero_set or b["set"] == "neutral":
+			if in_bundle_pool(b, hero_set):
 				pool += 1
 		if pool < hard_floor:
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_COUNT, "bundles.json", null, "min_bundle_pool",
@@ -802,12 +813,76 @@ func _body_key(row: Dictionary) -> String:
 	return "records" if row["class"] == "definition" else "config"
 
 
-func _snapshot_of(staged: Array[Dictionary]) -> Dictionary:
-	var definitions: Dictionary = {}
-	var configs: Dictionary = {}
+## CR-6 `collectible_pool(hero_set)` membership: a CardDef with `set ∈
+## {hero_set, neutral}` and `token == false`; a `boss` card never.
+## Example: `DataLoader.in_collectible_pool(db.card("war_axe"), "war")`.
+static func in_collectible_pool(card: Dictionary, hero_set: String) -> bool:
+	var card_set: String = card["set"]
+	return card_set != "boss" and (card_set == hero_set or card_set == "neutral") and not card.get("token", false)
+
+
+## CR-6 `bundle_pool(hero_set)` membership: a BundleDef with `set ∈ {hero_set,
+## neutral}`. Example: `DataLoader.in_bundle_pool(db.bundle("bundle_war_steel"), "war")`.
+static func in_bundle_pool(bundle: Dictionary, hero_set: String) -> bool:
+	return bundle["set"] == hero_set or bundle["set"] == "neutral"
+
+
+## Stage 9 (CR-5 step 9, CR-6, CR-7; ADR-0002 Decision 5), run only with zero
+## errors: the snapshot ([class LoadResult] shape) over the id-sorted staging
+## (never file order) and every config body, with the common pools
+## precomputed — collectible and bundle pools for every CR-3 set, the boss
+## pool for every band in the BossDef `band` range — so those queries are a
+## lookup. Then every container in it is made read-only, bottom-up
+## ([method _freeze_deep]); the report object is not a container and stays
+## as it is.
+func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationReport) -> Dictionary:
+	var config_bodies: Dictionary = {}
 	for item: Dictionary in staged:
-		if item.row["class"] == "definition":
-			definitions[item.row.name] = item.body.records
-		else:
-			configs[String(item.row.name).get_basename()] = item.body.config
-	return {"definitions": definitions, "configs": configs}
+		if item.row["class"] == "config":
+			config_bodies[String(item.row.name).get_basename()] = item.body.config
+	var records: Dictionary = staging.records_by_type
+	var collectible: Dictionary = {}
+	var bundle: Dictionary = {}
+	for set_id: String in RecordSchemas.SETS:
+		collectible[set_id] = Array(records.CardDef).filter(func(c: Dictionary) -> bool: return in_collectible_pool(c, set_id))
+		bundle[set_id] = Array(records.BundleDef).filter(func(b: Dictionary) -> bool: return in_bundle_pool(b, set_id))
+	var bosses_in_band: Dictionary = {}
+	var band_spec: Dictionary = RecordSchemas.BOSS_FIELDS.band
+	for band: int in range(int(band_spec["min"]), int(band_spec["max"]) + 1):
+		bosses_in_band[band] = Array(records.BossDef).filter(func(b: Dictionary) -> bool: return int(b["band"]) == band)
+	var snapshot: Dictionary = {
+		"records_by_type": records,
+		"index_of": staging.index_of,
+		"config_bodies": config_bodies,
+		"pools": {
+			"collectible": collectible,
+			"bundle": bundle,
+			"bosses_in_band": bosses_in_band,
+			"all": {"TreasureDef": records.TreasureDef, "HeroDef": records.HeroDef},
+		},
+		"data_version": "",
+		"report": report,
+	}
+	_freeze_deep(snapshot)
+	return snapshot
+
+
+## `make_read_only()` on every Dictionary and Array reachable from `value`,
+## children first. A container already read-only was frozen by this walk
+## (records are shared between `records_by_type` and the pools), so it is not
+## walked twice.
+static func _freeze_deep(value: Variant) -> void:
+	if value is Dictionary:
+		var dict: Dictionary = value
+		if dict.is_read_only():
+			return
+		for child: Variant in dict.values():
+			_freeze_deep(child)
+		dict.make_read_only()
+	elif value is Array:
+		var list: Array = value
+		if list.is_read_only():
+			return
+		for child: Variant in list:
+			_freeze_deep(child)
+		list.make_read_only()

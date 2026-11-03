@@ -57,7 +57,7 @@ func after() -> void:
 func _body() -> Dictionary:
 	var result: DataLoader.LoadResult = DataLoader.new(STAGE_ROOT).run(ValidatorStubs.accept_all())
 	GameAssertions.fail_if(result.snapshot == null, "staged load failed:\n%s" % result.report.to_text())
-	return result.snapshot.configs[BossAI.CONFIG_NAME]
+	return result.snapshot.config_bodies[BossAI.CONFIG_NAME]
 
 
 func _sorted(items: Array) -> Array:

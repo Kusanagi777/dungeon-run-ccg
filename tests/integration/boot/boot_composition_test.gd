@@ -8,10 +8,8 @@
 ## load real fixture roots through a real `DataLoader`; the happy path loads
 ## with explicit `func(...): return []` validator stubs (control manifest).
 ##
-## `ConfigCardDatabase` adds the three queries `MetaStub` reads —
-## `config()`, `heroes()`, `treasure_pool()` — over the stage 1-3 snapshot,
-## because `CardDatabase` gains them only in card-database story 006.
-## TODO(card-database story 006): use `CardDatabase` directly.
+## `MetaStub` reads `config()`, `heroes()` and `treasure_pool()` from the
+## real `CardDatabase` (card-database story 006).
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT := preload("res://src/core/boot.gd")
@@ -24,20 +22,6 @@ const SERVICE_FIELDS: Array[String] = ["card_database", "profile_store", "meta",
 const BOOT_FIELDS: Array[String] = ["booted", "_services", "_result"]
 
 
-## A `CardDatabase` that also answers the queries `MetaStub` uses.
-class ConfigCardDatabase:
-	extends CardDatabase
-
-	func config(config_name: String) -> Variant:
-		return _snapshot.configs.get(config_name) if _snapshot != null else null
-
-	func heroes() -> Array:
-		return _snapshot.definitions.get("heroes.json", []) if _snapshot != null else []
-
-	func treasure_pool() -> Array:
-		return _snapshot.definitions.get("treasures.json", []) if _snapshot != null else []
-
-
 func _fresh_boot() -> BOOT_SCRIPT:
 	return auto_free(BOOT_SCRIPT.new())
 
@@ -48,8 +32,8 @@ func _stub_validators() -> Dictionary:
 	return ValidatorStubs.accept_all()
 
 
-func _loaded_database() -> ConfigCardDatabase:
-	var db: ConfigCardDatabase = ConfigCardDatabase.new(DataLoader.new(READY_FIXTURE))
+func _loaded_database() -> CardDatabase:
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(READY_FIXTURE))
 	db.load(_stub_validators())
 	return db
 
@@ -128,7 +112,7 @@ func test_boot_booted_refuses_outside_writes() -> void:
 func test_boot_twice_returns_same_services_without_reload() -> void:
 	# Arrange
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = _loaded_database()
+	var db: CardDatabase = _loaded_database()
 	var report_before: ValidationReport = db.report()
 
 	# Act
@@ -149,7 +133,7 @@ func test_boot_twice_returns_same_services_without_reload() -> void:
 func test_boot_card_database_override_is_used() -> void:
 	# Arrange
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = _loaded_database()
+	var db: CardDatabase = _loaded_database()
 
 	# Act
 	var result: BootResult = boot.boot({"card_database": db})
@@ -167,7 +151,7 @@ func test_boot_card_database_override_is_used() -> void:
 func test_boot_unloaded_card_database_override_is_loaded_by_boot() -> void:
 	# Arrange -- not loaded: Boot loads it with its own collected validators
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = ConfigCardDatabase.new(DataLoader.new(READY_FIXTURE))
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(READY_FIXTURE))
 
 	# Act
 	var result: BootResult = boot.boot({"card_database": db})
@@ -204,8 +188,8 @@ func test_boot_settings_bus_is_shared_with_meta() -> void:
 func test_boot_second_call_overrides_are_logged_and_not_used() -> void:
 	# Arrange
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var first_db: ConfigCardDatabase = _loaded_database()
-	var second_db: ConfigCardDatabase = ConfigCardDatabase.new(DataLoader.new(READY_FIXTURE))
+	var first_db: CardDatabase = _loaded_database()
+	var second_db: CardDatabase = CardDatabase.new(DataLoader.new(READY_FIXTURE))
 	var first: BootResult = boot.boot({"card_database": first_db})
 	var out: Dictionary = {}
 
@@ -224,7 +208,7 @@ func test_boot_second_call_overrides_are_logged_and_not_used() -> void:
 func test_boot_unknown_override_key_is_logged_and_not_used() -> void:
 	# Arrange
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = _loaded_database()
+	var db: CardDatabase = _loaded_database()
 	var out: Dictionary = {}
 
 	# Act
@@ -239,7 +223,7 @@ func test_boot_unknown_override_key_is_logged_and_not_used() -> void:
 func test_boot_wrong_type_meta_override_is_logged_and_not_used() -> void:
 	# Arrange -- a CardDatabase where a MetaApi belongs
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = _loaded_database()
+	var db: CardDatabase = _loaded_database()
 	var out: Dictionary = {}
 
 	# Act -- no typed-assignment runtime error: the value is dropped first
@@ -269,7 +253,7 @@ func test_boot_wrong_type_card_database_override_is_logged_and_not_used() -> voi
 func test_boot_meta_override_is_placed_in_services() -> void:
 	# Arrange
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = _loaded_database()
+	var db: CardDatabase = _loaded_database()
 	var stub: MetaStub = MetaStub.new(db)
 
 	# Act
@@ -338,7 +322,7 @@ func test_boot_data_load_within_budget_ms() -> void:
 	# Arrange -- the MVP data set does not exist yet (no assets/data/); the
 	# minimal fixture root goes through the same Unloaded → Ready load
 	var boot: BOOT_SCRIPT = _fresh_boot()
-	var db: ConfigCardDatabase = ConfigCardDatabase.new(DataLoader.new(READY_FIXTURE))
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(READY_FIXTURE))
 
 	# Act
 	var started_usec: int = Time.get_ticks_usec()

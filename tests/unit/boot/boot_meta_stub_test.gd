@@ -1,10 +1,11 @@
 ## Unit tests for MetaStub, the MVP MetaApi (story boot-composition-root/story-003).
 ##
-## No `CardDatabase` class exists yet (card-database epic), so the stub is
-## constructed directly with `FakeCardDatabase` below — the injected stand-in
-## the story allows. It serves `config("profile_defaults")` frozen with
-## `make_read_only()` (as CR-7 freezes real bodies), and hero / treasure
-## records from `CardFactory`. Never constructed through Boot (ADR-0001).
+## The stub is constructed with `FakeCardDatabase` below — a `CardDatabase`
+## subclass (MetaStub takes a `CardDatabase`, card-database story 006) that
+## answers the three queries MetaStub uses from in-memory data instead of a
+## load: `config("profile_defaults")` frozen with `make_read_only()` (as CR-7
+## freezes real bodies), and hero / treasure records from `CardFactory`. Never
+## constructed through Boot (ADR-0001).
 ##
 ## Setting values: the defaults come from `_profile_defaults()`, a fixture
 ## factory mirroring meta-progression M9's declared defaults; range tests use
@@ -12,10 +13,11 @@
 extends GdUnitTestSuite
 
 
-## Injected stand-in for `CardDatabase` — the three queries MetaStub uses.
-## TODO(card-database): swap to a real `CardDatabase` loaded from fixtures.
+## Injected stand-in: a `CardDatabase` whose three queries MetaStub uses answer
+## from the records given here, with no load (CardFactory records need no
+## fixture root).
 class FakeCardDatabase:
-	extends RefCounted
+	extends CardDatabase
 
 	var _configs: Dictionary
 	var _heroes: Array

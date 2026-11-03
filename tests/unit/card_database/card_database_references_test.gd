@@ -208,13 +208,13 @@ func test_staging_lists_every_clean_record_sorted_by_id_per_type() -> void:
 	var staging: Dictionary = _run("clean").staging
 
 	# Assert
-	assert_array(staging.records.keys()).contains_exactly_in_any_order(RECORD_TYPES)
+	assert_array(staging.records_by_type.keys()).contains_exactly_in_any_order(RECORD_TYPES)
 	var total: int = 0
 	for record_type: String in RECORD_TYPES:
-		var ids: Array = staging.records[record_type].map(func(r: Dictionary) -> String: return r.id)
+		var ids: Array = staging.records_by_type[record_type].map(func(r: Dictionary) -> String: return r.id)
 		GameAssertions.assert_sorted_ascending(ids, record_type)
 		total += ids.size()
-	assert_int(staging.records.CardDef.size()).is_equal(14)
+	assert_int(staging.records_by_type.CardDef.size()).is_equal(14)
 	assert_int(staging.index_of.size()).is_equal(total)
 
 
@@ -225,14 +225,14 @@ func test_staging_index_of_points_at_the_record_in_its_type_list() -> void:
 	# Assert
 	for id: String in staging.index_of:
 		var at: Dictionary = staging.index_of[id]
-		assert_str(staging.records[at.type][at.position].id).is_equal(id)
+		assert_str(staging.records_by_type[at.type][at.position].id).is_equal(id)
 		assert_str(staging.files[id]).is_not_empty()
 	assert_str(staging.index_of.boss_rot_warden.type).is_equal("BossDef")
 
 
 func test_staging_does_not_depend_on_file_order() -> void:
 	# clean/ authors cards_war.json out of id order (shield_bearer before axe_thrower).
-	var ids: Array = _run("clean").staging.records.CardDef.map(func(r: Dictionary) -> String: return r.id)
+	var ids: Array = _run("clean").staging.records_by_type.CardDef.map(func(r: Dictionary) -> String: return r.id)
 	assert_int(ids.find("war_axe_thrower")).is_less(ids.find("war_shield_bearer"))
 
 
