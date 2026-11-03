@@ -45,8 +45,14 @@
 # sources (game-concept, design-decisions, systems-index, tech-debt,
 # accessibility-requirements) keep the slug the baseline gave them; `gdd` holds
 # the source file.
+#
+# REVISED 2026-11-03 (second /architecture-review, full, workflow standard,
+# report architecture-review-2026-11-03b.md): no new IDs; three entries carry a
+# `revised` date because their GDD wording changed with the same intent
+# (meta-progression M9 gained `bindings`; run-structure R1 and rng-event-log
+# rule 10 persist the seed as a hex string). Still 71 entries, all active.
 
-version: 2
+version: 3
 last_updated: "2026-11-03"
 
 requirements:
@@ -109,9 +115,9 @@ requirements:
 - id: TR-rng-event-log-003
   system: rng-event-log
   gdd: design/gdd/rng-event-log.md
-  requirement: "Rules 9-10: replay equivalence per command sequence; snapshot() / restore() rebuild streams from draws counts"
+  requirement: "Rules 9-10: replay equivalence per command sequence; snapshot() returns {run_seed_hex, data_version, streams{name: draws}} (64-bit values are hex strings in every persisted form) and restore() rebuilds streams from draws counts"
   created: 2026-11-03
-  revised: ""
+  revised: 2026-11-03
   status: active
 
 - id: TR-rng-event-log-004
@@ -309,9 +315,9 @@ requirements:
 - id: TR-run-structure-001
   system: run-structure
   gdd: design/gdd/run-structure.md
-  requirement: "R1: RunState record schema (JSON-only) with validate() invariants; draft_state and treasure_state opaque blobs"
+  requirement: "R1: RunState record schema (JSON-only) with validate() invariants; run_seed persisted as the 16-hex run_seed_hex string only (int64 in memory, reconstructed on load); draft_state and treasure_state opaque blobs"
   created: 2026-11-03
-  revised: ""
+  revised: 2026-11-03
   status: active
 
 - id: TR-run-structure-002
@@ -429,9 +435,9 @@ requirements:
 - id: TR-meta-progression-005
   system: meta-progression
   gdd: design/gdd/meta-progression.md
-  requirement: "M9, DD-X07: settings record owned here, defaults from config(profile_defaults), applied via settings_changed{key, value}; the MVP ships an in-memory stub (systems-index Circular Dependencies)"
+  requirement: "M9, DD-X07: settings record owned here, defaults from config(profile_defaults), applied via settings_changed{key, value}; includes bindings {action: [InputEvent as Dictionary]} ({} = engine defaults, cancel/Esc never rebindable) applied to InputMap by Boot after the profile loads; the MVP ships an in-memory stub (systems-index Circular Dependencies)"
   created: 2026-11-03
-  revised: ""
+  revised: 2026-11-03
   status: active
 
 - id: TR-meta-progression-006
