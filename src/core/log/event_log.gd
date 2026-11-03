@@ -101,6 +101,11 @@ enum State { OPEN, FAULTED, SEALED }
 ## so [method from_json] leaves it a float.
 const _INT64_FLOAT_BOUND: float = 9223372036854775808.0
 
+## The player's `side` value in match payloads (rng-event-log catalogue:
+## `side` ∈ {player, boss}); [method reduce_to_summary] attributes damage and
+## counts plays for this side only.
+const _SIDE_PLAYER: String = "player"
+
 ## The type that seals a log of each scope (rule 15).
 const _SEALING_TYPE: Dictionary[String, String] = {
 	SCOPE_MATCH: "match_ended",
@@ -262,6 +267,71 @@ func to_json() -> String:
 	return JSON.stringify(header, "\t")
 
 
+## Rules 18-19: the sealed match log reduced to its `match_summary` payload,
+## `{floor, result, winner, reason, turns, event_count, cards_played,
+## damage_by_card}` (the catalogue row). `result`, `winner`, `reason`, `turns`
+## (and `floor`, else the header's) are copied from the `match_ended` payload
+## (match-rules C14 `MatchResult`; a fault's `winner` is `null`);
+## `event_count` is [method size]; `cards_played` counts the player's
+## `card_played` events. `damage_by_card` (rule 19) sums `damage_dealt.dealt`
+## — damage actually applied (match-rules C15), never `requested` — per
+## `card_id`, over events whose `source` is a player-owned instance in the
+## `instance_id → card_id` map built, in log order, from `minion_summoned`,
+## `weapon_equipped` and `card_played` (`side == "player"`) and from
+## `hero_power_used`, whose `power_id` is mapped under the player's hero
+## instance (`match_started.hero_id`). A source with no entry (fatigue, a boss
+## instance, an unknown id) attributes to nothing, silently. Reads only: the
+## log is not changed and nothing is appended (Run Structure appends the
+## summary to the run log). A log that is not a sealed match log is a caller
+## bug: `push_error` and `{}` — never an assert on payload data.
+## Example: `run_log.append(&"match_summary", match_log.reduce_to_summary())`.
+func reduce_to_summary() -> Dictionary:
+	var ended: Dictionary = {}
+	if _scope == SCOPE_MATCH and is_sealed():
+		for i: int in range(_events.size() - 1, -1, -1):
+			if _events[i].type == _SEALING_TYPE[SCOPE_MATCH]:
+				ended = _events[i].payload
+				break
+	if ended.is_empty():
+		push_error("EventLog.reduce_to_summary: the match log is not sealed by match_ended")
+		return {}
+	var card_of: Dictionary = {}
+	var player_hero: Variant = null
+	var cards_played: int = 0
+	var damage_by_card: Dictionary = {}
+	for event: Dictionary in _events:
+		var payload: Dictionary = event.payload
+		var is_player: bool = payload.get("side") == _SIDE_PLAYER
+		match event.type:
+			"match_started":
+				player_hero = _as_int(payload.get("hero_id"))
+			"minion_summoned", "weapon_equipped", "card_played":
+				var instance: Variant = _as_int(payload.get("instance_id"))
+				if is_player and instance != null:
+					card_of[instance] = payload.get("card_id")
+				if is_player and event.type == "card_played":
+					cards_played += 1
+			"hero_power_used":
+				if is_player and player_hero != null:
+					card_of[player_hero] = payload.get("power_id")
+			"damage_dealt":
+				var source: Variant = _as_int(payload.get("source"))
+				var dealt: Variant = _as_int(payload.get("dealt"))
+				if source != null and dealt != null and card_of.has(source):
+					var card_id: String = str(card_of[source])
+					damage_by_card[card_id] = int(damage_by_card.get(card_id, 0)) + dealt
+	return {
+		"floor": ended.get("floor", _meta.get("floor", 0)),
+		"result": ended.get("result"),
+		"winner": ended.get("winner"),
+		"reason": ended.get("reason"),
+		"turns": ended.get("turns"),
+		"event_count": _events.size(),
+		"cards_played": cards_played,
+		"damage_by_card": damage_by_card,
+	}
+
+
 ## Rule 17: rebuilds a log from [method to_json] text, or returns `null` with
 ## a pushed error (never an assert) when `text` is not JSON (the message names
 ## the 1-based line), its top level is not an object, its
@@ -396,6 +466,12 @@ func _restore_events(events: Array[Dictionary]) -> void:
 	_turn = last.turn
 	if last.type == _SEALING_TYPE[_scope] or (_state == State.FAULTED and last.type != "log_overflow"):
 		_state = State.SEALED
+
+
+# `value` as an int when it is a whole number (see _is_whole_number), else
+# null — payload ids and amounts may arrive as JSON floats.
+static func _as_int(value: Variant) -> Variant:
+	return int(value) if _is_whole_number(value) else null
 
 
 # Whether `value` is an int, or a finite float with no fractional part (JSON

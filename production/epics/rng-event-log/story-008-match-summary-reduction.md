@@ -1,12 +1,12 @@
 # Story 008: `reduce_to_summary()` — `match_summary` and `damage_by_card` (rule 19)
 
 > **Epic**: RNG & Event Log
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -63,12 +63,8 @@ The run log holds run-scope events plus one `match_summary` per match (rule 18);
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/core/log/event_log.gd`
-- `tests/unit/rng_event_log/event_log_summary_test.gd`
+- `src/core/log/event_log.gd` — `reduce_to_summary()` (rules 18-19), `_as_int()`, `_SIDE_PLAYER`
+- `tests/unit/rng_event_log/event_log_summary_test.gd` — 7 tests
 
 ---
 
@@ -86,7 +82,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/rng_event_log/event_log_summary_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 7 tests, passing
 
 ---
 
@@ -94,3 +90,25 @@ checks scope against it.*
 
 - Depends on: `production/epics/rng-event-log/story-005-event-log-core-append-subscribe-seal.md`
 - Unlocks: None inside this epic (Run Structure and Run UI consume it)
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Started / ended (UTC)**: 2026-11-03T22:31:41Z – 2026-11-03T22:33:59Z
+**Criteria**: 3/3 passing (all covered by unit tests; no deferred items)
+
+| Criterion | Covered by | Status |
+|-----------|------------|--------|
+| AC-1: `minion_summoned{7, card_a}` + player `damage_dealt` 3/4/5 (one `requested 6, prevented 1`) + a boss-source hit → `{"card_a": 12}` | `event_log_summary_test.gd::test_dealt_from_a_player_minion_is_summed_and_boss_sources_are_excluded` | COVERED |
+| AC-2: weapon → its `card_id`, hero power → `power_id`, `card_played` instance → its `card_id`; unmapped sources (fatigue, unknown id) → nothing, no error | `test_weapon_hero_power_and_played_card_attribute_to_their_ids`, `test_unmapped_sources_attribute_to_nothing_without_an_error` | COVERED |
+| AC-3: exactly `{floor, result, winner, reason, turns, event_count, cards_played, damage_by_card}` from `match_ended`; `event_count == size()`; player `card_played` count; unsealed → `{}` + error | `test_summary_has_exactly_the_catalogue_fields_copied_from_match_ended`, `test_a_fault_result_copies_a_null_winner`, `test_an_unsealed_log_gives_an_empty_summary_and_an_error`, `test_reduction_leaves_the_log_unchanged_and_survives_a_json_round_trip` | COVERED |
+
+**Deviations**:
+- ADVISORY — the hero-power key: `hero_power_used{side, power_id, target_id}` names no instance, so `power_id` is mapped under the player's hero instance read from `match_started.hero_id`. The engine (`src/gameplay/match/rules_engine.gd`) emits the hero's `entity_id` there; the GDD catalogue's `hero_id` could also be read as a definition id. This follows the story's Implementation Notes ("until its C15 fixes the hero-power attribution key"). Consequence: if Match Rules makes the hero (not the weapon instance) the `source` of a weapon attack, that damage would be credited to the hero power once one has been used — Match Rules C15 should pin the `source` of hero attacks and hero-power damage.
+- ADVISORY — `floor` comes from `match_ended.floor` (C14 carries it), falling back to the log header's `floor`. A sealed run log, or a match log sealed without a `match_ended` (Faulted then another type), also returns `{}` + the same error.
+- ADVISORY — numeric payload values are read as whole numbers (`int` or integral float), so a log rebuilt by `from_json()` reduces identically (tested); a non-numeric `source` / `dealt` attributes nothing, silently (no assert on payload data).
+**Test Evidence**: `tests/unit/rng_event_log/event_log_summary_test.gd` — 7 tests. Seen failing first: all 7 failed against the code without `reduce_to_summary()` (exit 100); after implementation two mutations (summing `requested`, no player-side filter) failed 2 tests, then passed restored. Full suite 719/719, exit 0; 36 SCRIPT ERROR lines, all from existing negative tests (unchanged). Smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — a pure reduction with no scene, node or screen; the summary is displayed by the Run UI epic.
+**Engine check**: NOT ASSESSED — no specialist agent in this lane; no engine API beyond Dictionary/Array.
+**Reviewed by**: self, no independent review (`review_mode: lean` — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped; `/code-review` not run in this lane)

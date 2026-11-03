@@ -193,7 +193,7 @@ stories:
     name: "reduce_to_summary() — match_summary and damage_by_card (rule 19)"
     file: "production/epics/rng-event-log/story-008-match-summary-reduction.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -201,7 +201,7 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "rng-event-log-010"
     name: "Determinism contract (F6 self-test) and performance budgets"
     file: "production/epics/rng-event-log/story-010-determinism-contract-and-performance-budgets.md"
