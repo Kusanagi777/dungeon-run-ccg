@@ -15,7 +15,7 @@ const RECORD_TYPES: Array[String] = ["CardDef", "HeroDef", "HeroPowerDef", "Boss
 
 
 func _run(case_name: String) -> DataLoader.LoadResult:
-	return DataLoader.new(FIXTURES + case_name).run({})
+	return DataLoader.new(FIXTURES + case_name).run(ValidatorStubs.accept_all())
 
 
 func _with(report: ValidationReport, code: StringName, record_id: Variant = null) -> Array[Dictionary]:
@@ -64,7 +64,7 @@ func test_boss_set_card_and_boss_def_sharing_an_id_is_e_dup_id() -> void:
 func test_duplicated_ids_fail_the_load_and_no_copy_is_staged() -> void:
 	# Act
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(FIXTURES + "dup_id"))
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 	var result: DataLoader.LoadResult = _run("dup_id")
 
 	# Assert — no "last one wins"

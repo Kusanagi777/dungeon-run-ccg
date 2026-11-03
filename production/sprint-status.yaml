@@ -164,14 +164,14 @@ stories:
     name: "Delegated validators and the stage-7 lookup exception (CR-5 stage 7)"
     file: "production/epics/card-database/story-004-delegated-validators.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 1
     wave: 3
     serialised: true
     blocker: ""
     note: "merges first in W3: new tests/helpers/validator_stubs.gd"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-005"
     name: "Turn structure, mana curve and turn cap"
     file: "production/epics/match-rules/story-005-turn-structure-and-mana.md"

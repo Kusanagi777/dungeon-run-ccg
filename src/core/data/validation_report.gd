@@ -61,6 +61,13 @@ const E_COUNT: StringName = &"E_COUNT"
 const E_TOKEN_IN_LIST: StringName = &"E_TOKEN_IN_LIST"
 ## A bundle card without the bundle's `theme` tag (CR-5 step 6).
 const E_TAG_MISMATCH: StringName = &"E_TAG_MISMATCH"
+## Stage 7 (CR-5 step 7): a validator the composition did not register (or
+## registered as a non-Callable), a validator returning something other than
+## an Array of entries, or one entry an owner's validator returned. An owner
+## entry's message is `"<owner code>: <owner message>"` (e.g.
+## `E_FX_OP: unknown op "bogus" (at effects/0/ops/1/op)`); an owner code
+## starting `W_` is merged with severity `warning`, every other one `error`.
+const E_DELEGATED: StringName = &"E_DELEGATED"
 ## A `.json` file not in `DataLoader.FILE_MANIFEST`; it is not loaded (CR-1).
 const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
 

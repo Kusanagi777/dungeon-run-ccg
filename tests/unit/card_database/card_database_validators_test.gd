@@ -225,7 +225,7 @@ func test_several_entries_from_one_validator_are_all_reported() -> void:
 		{"code": "E_B", "field": "b", "message": "two"},
 		{"code": "E_C", "field": "c", "message": "three"},
 	])
-	var report: ValidationReport = DataLoader.new(FIXTURES + "clean").run(map)
+	var report: ValidationReport = DataLoader.new(FIXTURES + "clean").run(map).report
 	assert_int(_delegated(report).size()).is_equal(3)
 
 
@@ -306,26 +306,41 @@ func test_record_validator_lookups_answer_from_the_staged_records_and_load_reach
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 
 
-func test_config_and_data_version_during_stage_7_return_empty_and_the_guard_fires() -> void:
-	# Arrange
+## Loads `clean/` with an `ai_profile` stub whose first call runs
+## `db.<method>()` once, asserts the guard fired (a debug assert, a push_error
+## in release) and returns what the call returned.
+func _probe_illegal_call(method: String, query: Callable) -> Dictionary:
 	var calls: Dictionary = {}
-	var probe: Callable = func(_k: StringName, _id: String, _v: Variant, db: CardDatabase, _c: Dictionary) -> Dictionary:
-		return {"config": db.config("match_rules"), "version": db.data_version()}
+	var probe: Callable = func(_k: StringName, _id: String, _v: Variant, db: CardDatabase, _c: Dictionary) -> Variant:
+		if calls.calls.is_empty():
+			return query.call(db)
+		return null
 	var map: Dictionary = ValidatorStubs.accept_all()
 	map.ai_profile = ValidatorStubs.recording(calls, probe)
 	var db: CardDatabase = _db("clean")
-
-	# Act / Assert — a debug assert (the guard), a push_error in release
 	if OS.is_debug_build():
-		await assert_error(func() -> void: db.load(map)).is_runtime_error("Assertion failed: " + GUARD_MESSAGE % "config")
+		await assert_error(func() -> void: db.load(map)).is_runtime_error("Assertion failed: " + GUARD_MESSAGE % method)
 	else:
-		await assert_error(func() -> void: db.load(map)).is_push_error(GUARD_MESSAGE % "config")
+		await assert_error(func() -> void: db.load(map)).is_push_error(GUARD_MESSAGE % method)
+	return {"value": calls.calls[0].probe, "state": db.state()}
 
-	# Assert — the calls returned null / "" and the load still reached Ready
-	var seen: Dictionary = calls.calls[0].probe
-	assert_that(seen.config).is_null()
-	assert_str(seen.version).is_empty()
-	assert_int(db.state()).is_equal(CardDatabase.State.READY)
+
+func test_config_during_stage_7_returns_null_and_the_guard_fires() -> void:
+	# Act
+	var seen: Dictionary = await _probe_illegal_call("config", func(db: CardDatabase) -> Variant: return db.config("match_rules"))
+
+	# Assert — illegal before Ready; the load itself still reaches Ready
+	assert_that(seen.value).is_null()
+	assert_int(seen.state).is_equal(CardDatabase.State.READY)
+
+
+func test_data_version_during_stage_7_returns_empty_and_the_guard_fires() -> void:
+	# Act
+	var seen: Dictionary = await _probe_illegal_call("data_version", func(db: CardDatabase) -> Variant: return db.data_version())
+
+	# Assert
+	assert_str(seen.value).is_empty()
+	assert_int(seen.state).is_equal(CardDatabase.State.READY)
 
 
 func test_lookups_are_closed_again_after_stage_7() -> void:

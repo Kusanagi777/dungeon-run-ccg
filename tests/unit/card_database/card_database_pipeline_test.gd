@@ -39,12 +39,12 @@ const ENTRY_KEYS: Array[String] = ["severity", "code", "file", "record_id", "fie
 
 func _load_case(case_name: String) -> CardDatabase:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(FIXTURES + case_name))
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 	return db
 
 
 func _run_case(case_name: String) -> DataLoader.LoadResult:
-	return DataLoader.new(FIXTURES + case_name).run({})
+	return DataLoader.new(FIXTURES + case_name).run(ValidatorStubs.accept_all())
 
 
 func _with_code(report: ValidationReport, code: StringName) -> Array[Dictionary]:
@@ -376,7 +376,7 @@ func test_card_database_load_returns_the_report_it_keeps() -> void:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(FIXTURES + "schema_version_2"))
 
 	# Act
-	var returned: ValidationReport = db.load({})
+	var returned: ValidationReport = db.load(ValidatorStubs.accept_all())
 
 	# Assert
 	assert_object(returned).is_same(db.report())

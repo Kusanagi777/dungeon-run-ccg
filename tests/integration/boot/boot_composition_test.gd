@@ -42,14 +42,10 @@ func _fresh_boot() -> BOOT_SCRIPT:
 	return auto_free(BOOT_SCRIPT.new())
 
 
+## The full accept-all map (card-database story 004: a missing validator is
+## `E_DELEGATED`; record validators take the five stage-7b arguments).
 func _stub_validators() -> Dictionary:
-	return {
-		"effects": func(_records: Array) -> Array: return [],
-		"ai_profile": func(_records: Array) -> Array: return [],
-		"unlock": func(_defs: Array) -> Array: return [],
-		"treasure": func(_records: Array) -> Array: return [],
-		"configs": {},
-	}
+	return ValidatorStubs.accept_all()
 
 
 func _loaded_database() -> ConfigCardDatabase:

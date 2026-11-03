@@ -16,7 +16,7 @@ const FAULTY_FILES: Array[String] = [
 
 
 func _report() -> ValidationReport:
-	return DataLoader.new(ROOT).run({}).report
+	return DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).report
 
 
 func _entries_for(report: ValidationReport, file_name: String) -> Array[Dictionary]:
@@ -94,7 +94,7 @@ func test_malformed_optional_set_file_reports_e_parse_rather_than_being_skipped(
 
 func test_bad_values_root_reports_one_error_per_faulty_file_and_fails() -> void:
 	# Act
-	var result: DataLoader.LoadResult = DataLoader.new(ROOT).run({})
+	var result: DataLoader.LoadResult = DataLoader.new(ROOT).run(ValidatorStubs.accept_all())
 
 	# Assert — each fault reported once, nothing else, no snapshot
 	var files: Array = result.report.errors().map(func(e: Dictionary) -> String: return e.file)

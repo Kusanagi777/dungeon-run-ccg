@@ -11,9 +11,10 @@
 ##
 ## Implemented here: stage 1 (discover), 2 (read and parse), 3 (envelope),
 ## 4 (per-record schema and the `card_database.json` knobs, through
-## `RecordSchemas`), 5 (id uniqueness), 6 (cross-references) and the
-## id-sorted staging stage 7 reads (`LoadResult.staging`). Stages 7-8 slot
-## into `run()` at the marked points (card-database stories 004-005); stage 9
+## `RecordSchemas`), 5 (id uniqueness), 6 (cross-references), the id-sorted
+## staging (`LoadResult.staging`) and 7 (the injected validators, 7a configs
+## then 7b records, with the database's stage-7 lookups open). Stage 8 slots
+## into `run()` at the marked point (card-database story 005); stage 9
 ## (freeze, `data_version`) is stories 006-007.
 ##
 ## [codeblock]
@@ -79,6 +80,22 @@ const FILE_MANIFEST: Array[Dictionary] = [
 	{"name": "rng_event_log.json", "class": "config", "record_type": null, "required": true, "owner": "RNG & Event Log"},
 ]
 
+## Stage 7b record validator keys (card-database CR-5 stage 7): the owner and
+## the owner's CR-1 config file, which a missing-validator `E_DELEGATED` entry
+## names (`field` is the key), and what the validator covers. Composition
+## contract, not data: a missing key fails the load in every build type.
+const RECORD_VALIDATORS: Dictionary = {
+	"effects": {"owner": "Card Effects", "file": "card_effects.json",
+		"validates": "CardDef / HeroPowerDef / TreasureDef `effects` and BossDef `passive`"},
+	"ai_profile": {"owner": "Boss AI", "file": "ai_profiles.json", "validates": "BossDef `ai_profile`"},
+	"unlock": {"owner": "Meta Progression", "file": "profile_defaults.json",
+		"validates": "HeroDef / TreasureDef / BundleDef `unlock`"},
+	"treasure": {"owner": "Treasures", "file": "treasures_balance.json", "validates": "TreasureDef `rarity`, `tags`, effect count"},
+}
+## Config files with no injected validator: the loader's own body, checked at
+## stage 4 (card-database CR-1 row, CR-5 stage 7).
+const CONFIG_VALIDATOR_EXEMPT: Array[String] = ["card_database.json"]
+
 
 ## What `run()` returns: the report, and the loaded data when the report has
 ## no errors (`null` otherwise — CR-5 step 9: no "load what passed" path).
@@ -118,11 +135,14 @@ func root() -> String:
 
 
 ## Runs the CR-5 pipeline once over `root()` and returns the report and, when
-## it holds no errors, the snapshot. `_validators` is the composition-time map
+## it holds no errors, the snapshot. `validators` is the composition-time map
 ## `{effects, ai_profile, unlock, treasure: Callable, configs: {<name>: Callable}}`
-## that stage 7 (Story 004) consumes; stages 1-3 do not read it.
+## stage 7 consumes (ADR-0002 Decision 4; a missing entry is `E_DELEGATED`).
+## `db` is the `CardDatabase` the validators receive and whose lookups open
+## for stage 7 (`CardDatabase.load` passes itself); `null` when a test or a
+## tool runs the loader alone — the validators then receive `null`.
 ## Example: `var result: DataLoader.LoadResult = DataLoader.new().run(validators)`.
-func run(_validators: Dictionary) -> LoadResult:
+func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	var report: ValidationReport = ValidationReport.new()
 	# Stage 1 — discover (CR-1): manifest rows by name, plus W_UNKNOWN_FILE.
 	_warn_unknown_files(report)
@@ -139,7 +159,8 @@ func run(_validators: Dictionary) -> LoadResult:
 	# id-sorted staging stage 7 reads is built from what is left.
 	_check_references(pool, report)
 	var staging: Dictionary = _build_staging(pool)
-	# Stage 7 — delegated validators over `_validators` (Story 004) slots in here.
+	# Stage 7 — delegated validators: 7a config bodies, 7b staged records.
+	staging = _run_validators(validators, staged, pool, staging, db, report)
 	# Stage 8 — budget warnings (Story 005) slots in here.
 	# Stage 9 — freeze, index_of, data_version (Stories 006-007) replace this.
 	if report.has_errors():
@@ -454,6 +475,157 @@ func _build_staging(pool: Dictionary) -> Dictionary:
 		files[id] = entry.file
 		list.append(entry.record)
 	return {"records": records, "index_of": index_of, "files": files}
+
+
+## Stage 7 (CR-5 step 7; ADR-0002 Decision 4; ADR-0007 Decision 8): the
+## injected validators. First every required key is checked — each absent or
+## non-Callable one is one `E_DELEGATED` error naming its owner, in every build
+## type (`OS.is_debug_build()` relaxes nothing) — then the present ones run,
+## none short-circuited:
+## - **7a**, each config file in manifest order except
+##   [constant CONFIG_VALIDATOR_EXEMPT]: `configs[name].call(body, db)`; the
+##   bodies whose validator returned no error form `configs_bodies`
+##   (`{<name>: body}`; `card_database` joins them, checked at stage 4);
+## - **7b**, each staged record in type then id order:
+##   `call(host_kind, host_id, value, db, configs_bodies)` — `effects` for a
+##   CardDef / HeroPowerDef / TreasureDef `effects` and a BossDef `passive`
+##   (wrapped as a one-effect list; a `null` passive is skipped), `treasure`
+##   for the whole TreasureDef after its `effects`, `ai_profile` for a BossDef
+##   `ai_profile`, `unlock` for a HeroDef / TreasureDef / BundleDef `unlock`
+##   (`null` included; the owner decides).
+## While it runs, `db` (when given) answers lookups from `staging` and nothing
+## else (`CardDatabase._begin_stage7` / `_end_stage7`). Each returned entry is
+## merged by [method _merge_delegated]. A record any validator failed is removed
+## from `pool`, and the staging is rebuilt for stage 8. Returns the staging.
+func _run_validators(validators: Dictionary, staged: Array[Dictionary], pool: Dictionary, staging: Dictionary, db: CardDatabase, report: ValidationReport) -> Dictionary:
+	var present: Dictionary = {}
+	for key: String in RECORD_VALIDATORS:
+		var spec: Dictionary = RECORD_VALIDATORS[key]
+		if validators.get(key) is Callable:
+			present[key] = validators[key]
+		else:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, spec.file, null, key,
+				"no `%s` record validator registered (owner: %s; %s) — %s" % [key, spec.owner, spec.validates, _absent_or(validators.get(key))])
+	var config_validators: Variant = validators.get("configs", {})
+	if not config_validators is Dictionary:
+		config_validators = {}
+	for row: Dictionary in FILE_MANIFEST:
+		if row["class"] != "config" or CONFIG_VALIDATOR_EXEMPT.has(row.name):
+			continue
+		var name: String = String(row.name).get_basename()
+		if not config_validators.get(name) is Callable:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, row.name, null, null,
+				"no config validator registered under configs.%s (owner: %s) — %s" % [name, row.owner, _absent_or(config_validators.get(name))])
+
+	if db != null:
+		db._begin_stage7(staging)
+	# 7a — config validators.
+	var bodies: Dictionary = {}
+	for item: Dictionary in staged:
+		var row: Dictionary = item.row
+		if row["class"] != "config":
+			continue
+		var name: String = String(row.name).get_basename()
+		if CONFIG_VALIDATOR_EXEMPT.has(row.name):
+			bodies[name] = item.body.config
+			continue
+		var validator: Variant = config_validators.get(name)
+		if validator is Callable and _merge_delegated(validator.call(item.body.config, db), row.name, null, null, "configs." + name, report):
+			bodies[name] = item.body.config
+	# 7b — record validators.
+	var failed: Array[String] = []
+	for record_type: String in staging.records:
+		for rec: Dictionary in staging.records[record_type]:
+			var id: String = rec["id"]
+			var file: String = staging.files[id]
+			var ok: bool = true
+			for c: Array in _record_calls(record_type, rec):
+				var key: String = c[0]
+				if present.has(key):
+					var result: Variant = present[key].call(c[1], id, c[2], db, bodies)
+					ok = _merge_delegated(result, file, id, c[3], key, report) and ok
+			if not ok:
+				failed.append(id)
+	if db != null:
+		db._end_stage7()
+	if failed.is_empty():
+		return staging
+	for id: String in failed:
+		pool.erase(id)
+	return _build_staging(pool)
+
+
+## The stage-7b calls for one record, in order: `[key, host_kind, value, field]`.
+func _record_calls(record_type: String, rec: Dictionary) -> Array:
+	match record_type:
+		"CardDef":
+			return [["effects", &"card", rec["effects"], "effects"]]
+		"HeroPowerDef":
+			return [["effects", &"hero_power", rec["effects"], "effects"]]
+		"TreasureDef":
+			return [
+				["effects", &"treasure", rec["effects"], "effects"],
+				["treasure", &"treasure", rec, "treasure"],
+				["unlock", &"treasure", rec["unlock"], "unlock"],
+			]
+		"BossDef":
+			var calls: Array = []
+			if rec["passive"] != null:
+				calls.append(["effects", &"boss", [rec["passive"]], "passive"])
+			calls.append(["ai_profile", &"boss", rec["ai_profile"], "ai_profile"])
+			return calls
+		"HeroDef":
+			return [["unlock", &"hero", rec["unlock"], "unlock"]]
+		"BundleDef":
+			return [["unlock", &"bundle", rec["unlock"], "unlock"]]
+	return []
+
+
+## Merges one validator's result into `report` and returns true when it held
+## no error. Each entry `{code, host_id | record_id, field, message}` (the
+## ADR-0002 shape; ADR-0007's `{code, host_id, effect_id, path, message}` and
+## RulesEngine's report-shaped entries fit it) becomes one `E_DELEGATED` entry:
+## `file` and `record_id` from the call site (the entry's `host_id` /
+## `record_id` when the call site has none), `field` the entry's `field`, else
+## `default_field` (the record field for 7b, `null` for 7a), and `message`
+## `"<owner code>: <message>"` with ` (at <path>)` appended when the entry
+## carries a `path`. `label` names the validator in a malformed-result entry.
+## An owner code starting `W_` (or an entry with `severity` `warning`) merges
+## as a warning and does not fail the record; anything else is an error. A
+## result that is not an Array, or an entry that is not a Dictionary, is one
+## `E_DELEGATED` error (a validator called with the wrong arity returns null).
+func _merge_delegated(result: Variant, file: String, record_id: Variant, default_field: Variant, label: String, report: ValidationReport) -> bool:
+	if not result is Array:
+		report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, file, record_id, default_field,
+			"%s returned %s, expected an Array of entries" % [label, type_string(typeof(result))])
+		return false
+	var ok: bool = true
+	for entry: Variant in result:
+		if not entry is Dictionary:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, file, record_id, default_field,
+				"%s returned a malformed entry %s" % [label, str(entry)])
+			ok = false
+			continue
+		var code: String = str(entry.get("code", "E_UNSPECIFIED"))
+		var warning: bool = code.begins_with("W_") or entry.get("severity") == ValidationReport.SEVERITY_WARNING
+		var rid: Variant = record_id
+		if rid == null:
+			rid = entry.get("host_id", entry.get("record_id"))
+		var field: Variant = entry.get("field")
+		if field == null:
+			field = default_field
+		var message: String = "%s: %s" % [code, str(entry.get("message", ""))]
+		if entry.get("path") != null:
+			message += " (at %s)" % str(entry.path)
+		report.add(ValidationReport.SEVERITY_WARNING if warning else ValidationReport.SEVERITY_ERROR,
+			ValidationReport.E_DELEGATED, file, rid, field, message)
+		if not warning:
+			ok = false
+	return ok
+
+
+func _absent_or(value: Variant) -> String:
+	return "absent" if value == null else "found %s, not a Callable" % type_string(typeof(value))
 
 
 func _body_key(row: Dictionary) -> String:

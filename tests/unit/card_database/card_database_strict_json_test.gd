@@ -26,7 +26,7 @@ const FAULT_LINES: Dictionary = {
 
 
 func _report() -> ValidationReport:
-	return DataLoader.new(ROOT).run({}).report
+	return DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).report
 
 
 func _entries_for(report: ValidationReport, file_name: String) -> Array[Dictionary]:
@@ -102,11 +102,11 @@ func test_strict_json_fault_fails_the_load_with_no_snapshot() -> void:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(ROOT))
 
 	# Act
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 
 	# Assert
 	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
-	assert_that(DataLoader.new(ROOT).run({}).snapshot).is_null()
+	assert_that(DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).snapshot).is_null()
 
 
 func _sorted(items: Array) -> Array:

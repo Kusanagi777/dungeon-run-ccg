@@ -47,7 +47,7 @@ func after() -> void:
 # --- helpers -----------------------------------------------------------------
 
 func _load_shipped() -> DataLoader.LoadResult:
-	return DataLoader.new(STAGE_ROOT).run({})
+	return DataLoader.new(STAGE_ROOT).run(ValidatorStubs.accept_all())
 
 
 func _sorted(items: Array) -> Array:

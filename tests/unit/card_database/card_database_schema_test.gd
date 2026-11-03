@@ -44,12 +44,12 @@ const KNOB_KEYS: Array[String] = [
 
 
 func _run(case_name: String) -> DataLoader.LoadResult:
-	return DataLoader.new(FIXTURES + case_name).run({})
+	return DataLoader.new(FIXTURES + case_name).run(ValidatorStubs.accept_all())
 
 
 func _load(case_name: String) -> CardDatabase:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(FIXTURES + case_name))
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 	return db
 
 
