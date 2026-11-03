@@ -221,7 +221,7 @@ stories:
     name: "MatchViewState — pure projection, hidden information and the unknown / diagnostic filters"
     file: "production/epics/match-ui/story-001-match-view-state-projection.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 3
     lane: 5
@@ -230,12 +230,12 @@ stories:
     contract: false
     blocker: ""
     note: "boss-ai slot (BAI-004 needs clone()/MR-017); needs CDB-006 at M1; match_ui.json fixture body until content-001 merges"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-ui-002"
     name: "AnimStep and AnimationQueue — command groups, coalescing, F3 speed, skip-all and the idle invariant"
     file: "production/epics/match-ui/story-002-animation-queue-core.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 3
     lane: 5
@@ -243,7 +243,7 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "content-007"
     name: "validate.gd command and the content_budgets validator"
     file: "production/epics/content/story-007-validate-command-and-budgets-config.md"
