@@ -54,6 +54,14 @@
 class_name EventLog
 extends RefCounted
 
+## The Faulted transition (rule 16): emitted once, after `log_overflow{cap,
+## seq}` is stored and delivered. The engine answers by appending
+## `match_ended{result: fault, winner: null, reason: event_cap}`, the one event
+## a Faulted log still accepts. The one sanctioned signal on the log — events
+## themselves are delivered through [method subscribe] (ADR-0003 Alt 5).
+## Example: `log.overflowed.connect(func(cap: int, seq: int) -> void: engine.fault_event_cap())`.
+signal overflowed(cap: int, seq: int)
+
 ## `scope` of a match log, sealed by `match_ended` (rule 15).
 const SCOPE_MATCH: String = "match"
 ## `scope` of a run log, sealed by `run_ended` (rule 15).
@@ -64,6 +72,26 @@ const SCOPE_RUN: String = "run"
 const LOG_SCHEMA_VERSION: int = 1
 ## The rule 11 envelope keys, in stamping order.
 const ENVELOPE_KEYS: Array[String] = ["seq", "turn", "type", "payload", "cause_seq"]
+
+## The DD-T01 file [method validate_config] reports against.
+const CONFIG_FILE: String = "rng_event_log.json"
+## rng-event-log Tuning Knobs "Safe range" column, `[min, max]` inclusive, for
+## the two integer knobs (F7). Validation bounds, not knob values: like
+## `DataLoader.SCHEMA_VERSION_CURRENT` they cannot come from the file they
+## validate. The knob values themselves live only in `assets/data/`.
+const CONFIG_SAFE_RANGES: Dictionary[String, Array] = {
+	"log_memory_budget_bytes": [500_000, 20_000_000],
+	"avg_event_bytes": [100, 400],
+}
+## The build types `keep_match_logs` carries a bool for (Tuning Knobs).
+const KEEP_MATCH_LOGS_KEYS: Array[String] = ["debug", "release"]
+## Validator code (ADR-0002 closed set): a knob is absent.
+const E_MISSING_FIELD: StringName = &"E_MISSING_FIELD"
+## Validator code (ADR-0002 closed set): a knob has the wrong type (not a
+## whole number, not a bool, `keep_match_logs` not an object).
+const E_SCHEMA: StringName = &"E_SCHEMA"
+## Validator code: a whole-number knob lies outside [constant CONFIG_SAFE_RANGES].
+const E_RANGE: StringName = &"E_RANGE"
 
 ## The log's lifecycle (GDD States and Transitions): `OPEN → SEALED`, or
 ## `OPEN → FAULTED → SEALED` on overflow (Story 007). Nothing returns to `OPEN`.
@@ -97,7 +125,7 @@ var _pending: Array[Dictionary] = []
 ## composition root (never read from config here); `scope` is
 ## [constant SCOPE_MATCH] or [constant SCOPE_RUN]; `meta` is
 ## `{engine_version, data_version, run_seed_hex, floor}` for the header.
-## Example: `EventLog.new(10_000, EventLog.SCOPE_MATCH, {"floor": 1})`.
+## Example: `EventLog.new(EventLog.max_events_for(config), EventLog.SCOPE_MATCH, {"floor": 1})`.
 func _init(max_events: int, scope: String, meta: Dictionary = {}) -> void:
 	_max_events = max_events
 	_scope = scope
@@ -113,7 +141,12 @@ func _init(max_events: int, scope: String, meta: Dictionary = {}) -> void:
 ## `cause_seq` is the `seq` of the event whose resolution emitted this one, 0
 ## for the direct result of a command.
 ## Appending the scope's sealing type (`match_ended` / `run_ended`) seals the
-## log after this event. A subscriber that appends re-enters: reported (assert
+## log after this event. Overflow (rule 16, F7): an append to an Open log that
+## already holds `max_events` events is dropped (`-1`, a pushed warning) and
+## the log appends `log_overflow{cap, seq}` instead, enters Faulted and emits
+## [signal overflowed]; a Faulted log accepts exactly one more event (Match
+## Rules' `match_ended{result: fault, winner: null, reason: event_cap}`) and is
+## then sealed. The log never appends a `match_ended` itself. A subscriber that appends re-enters: reported (assert
 ## in debug, warning in release), then accepted with the next `seq` and
 ## `payload._reentrant = true`, delivered after the event being delivered.
 ## Example: `var seq: int = log.append(&"minion_died", {"instance_id": 7}, 40)`.
@@ -121,6 +154,9 @@ func append(type: StringName, payload: Dictionary, cause_seq: int = 0) -> int:
 	var type_name: String = String(type)
 	if _state == State.SEALED:
 		_caller_bug("EventLog.append: the log is sealed; '%s' dropped" % type_name)
+		return -1
+	if _state == State.OPEN and _events.size() >= _max_events:
+		_overflow(type_name)
 		return -1
 	# Untyped on purpose: the list must compare equal to its JSON round trip.
 	var coerced: Array = []
@@ -132,7 +168,8 @@ func append(type: StringName, payload: Dictionary, cause_seq: int = 0) -> int:
 		_caller_bug("EventLog.append: re-entrant append of '%s' from a subscriber" % type_name)
 		stored_payload["_reentrant"] = true
 	var seq: int = _store(type_name, stored_payload, cause_seq)
-	if type_name == _SEALING_TYPE.get(_scope, ""):
+	# Faulted accepts exactly one more event, whatever its type (ADR-0003 D8).
+	if _state == State.FAULTED or type_name == _SEALING_TYPE.get(_scope, ""):
 		_state = State.SEALED
 	_deliver()
 	return seq
@@ -274,17 +311,114 @@ static func from_json(text: String, max_events: int = 0) -> EventLog:
 	return log
 
 
+## F7: `max_match_events = floor(log_memory_budget_bytes / avg_event_bytes)`
+## over the `rng_event_log` config body — the one place the composition root
+## computes the cap it passes to [method _init] (10,000 at the shipped
+## defaults, 2,500 at the minimum budget). Read once per log, never per
+## append. A body without two positive whole-number knobs (one
+## [method validate_config] would have rejected at load) pushes an error and
+## returns 0: a log built with it faults on its first append — never a
+## fallback cap. Example: `EventLog.new(EventLog.max_events_for(db.config("rng_event_log")), "match")`.
+static func max_events_for(config: Dictionary) -> int:
+	var budget: Variant = config.get("log_memory_budget_bytes")
+	var average: Variant = config.get("avg_event_bytes")
+	if not _is_whole_number(budget) or not _is_whole_number(average) or int(budget) <= 0 or int(average) <= 0:
+		push_error("EventLog.max_events_for: log_memory_budget_bytes and avg_event_bytes must be positive whole numbers")
+		return 0
+	@warning_ignore("integer_division")
+	return int(budget) / int(average)
+
+
+## The `rng_event_log` config validator (card-database CR-5 stage 7a;
+## ADR-0002 Decision 4: `call(body, db) -> Array`), registered by `Boot` as
+## `configs.rng_event_log`. Static and pure: it reads `body` only (`_db` is
+## the calling convention). Returns one error per problem in the
+## `ValidationReport` entry shape `{severity, code, file, record_id, field,
+## message}` (`file` [constant CONFIG_FILE], `record_id` `null`, `field` the
+## key path); `[]` for a valid body. Never asserts, in any build:
+## - a missing knob (or `keep_match_logs.debug` / `.release`) is [constant E_MISSING_FIELD];
+## - a knob that is not a whole number, a `keep_match_logs` that is not an
+##   object, or an entry in it that is not a bool is [constant E_SCHEMA];
+## - a whole number outside its [constant CONFIG_SAFE_RANGES] row is [constant E_RANGE].
+## [codeblock]
+## EventLog.validate_config({"log_memory_budget_bytes": 100, "avg_event_bytes": 200,
+##         "keep_match_logs": {"debug": true, "release": false}}, null)
+## # [{code: &"E_RANGE", field: "log_memory_budget_bytes", …}]
+## [/codeblock]
+static func validate_config(body: Dictionary, _db: Variant) -> Array:
+	var errors: Array[Dictionary] = []
+	for key: String in CONFIG_SAFE_RANGES:
+		if not body.has(key):
+			errors.append(_config_error(E_MISSING_FIELD, key, "missing knob `%s` (rng-event-log Tuning Knobs)" % key))
+			continue
+		var raw: Variant = body[key]
+		if not _is_whole_number(raw):
+			errors.append(_config_error(E_SCHEMA, key, "`%s` must be a whole number, found %s (%s)" % [key, str(raw), type_string(typeof(raw))]))
+			continue
+		var bounds: Array = CONFIG_SAFE_RANGES[key]
+		if int(raw) < int(bounds[0]) or int(raw) > int(bounds[1]):
+			errors.append(_config_error(E_RANGE, key, "`%s` is %d, outside the safe range %d–%d" % [key, int(raw), int(bounds[0]), int(bounds[1])]))
+	if not body.has("keep_match_logs"):
+		errors.append(_config_error(E_MISSING_FIELD, "keep_match_logs", "missing knob `keep_match_logs` (rng-event-log Tuning Knobs)"))
+	elif typeof(body.keep_match_logs) != TYPE_DICTIONARY:
+		errors.append(_config_error(E_SCHEMA, "keep_match_logs", "`keep_match_logs` must be an object {debug: bool, release: bool}, found %s" % type_string(typeof(body.keep_match_logs))))
+	else:
+		var per_build: Dictionary = body.keep_match_logs
+		for build: String in KEEP_MATCH_LOGS_KEYS:
+			var field: String = "keep_match_logs.%s" % build
+			if not per_build.has(build):
+				errors.append(_config_error(E_MISSING_FIELD, field, "missing `%s`" % field))
+			elif typeof(per_build[build]) != TYPE_BOOL:
+				errors.append(_config_error(E_SCHEMA, field, "`%s` must be a bool, found %s (%s)" % [field, str(per_build[build]), type_string(typeof(per_build[build]))]))
+	return errors
+
+
+# Rule 16 / F7: the cap is reached. `dropped_type` is the append refused.
+func _overflow(dropped_type: String) -> void:
+	var seq: int = _events.size() + 1
+	push_warning("EventLog.append: max_events %d reached; '%s' dropped, log_overflow appended at seq %d" % [_max_events, dropped_type, seq])
+	_store("log_overflow", {"cap": _max_events, "seq": seq}, 0)
+	_state = State.FAULTED
+	_deliver()
+	overflowed.emit(_max_events, seq)
+
+
 # Installs events read by from_json and derives turn and state from them.
 func _restore_events(events: Array[Dictionary]) -> void:
 	for event: Dictionary in events:
 		_freeze(event)
 		_events.append(event)
+		if event.type == "log_overflow":
+			_state = State.FAULTED
 	if _events.is_empty():
 		return
 	var last: Dictionary = _events.back()
 	_turn = last.turn
-	if last.type == _SEALING_TYPE[_scope]:
+	if last.type == _SEALING_TYPE[_scope] or (_state == State.FAULTED and last.type != "log_overflow"):
 		_state = State.SEALED
+
+
+# Whether `value` is an int, or a finite float with no fractional part (JSON
+# numbers arrive as floats).
+static func _is_whole_number(value: Variant) -> bool:
+	match typeof(value):
+		TYPE_INT:
+			return true
+		TYPE_FLOAT:
+			return is_finite(value) and value == floorf(value)
+	return false
+
+
+# One validate_config entry in the ValidationReport shape.
+static func _config_error(code: StringName, field: String, message: String) -> Dictionary:
+	return {
+		"severity": ValidationReport.SEVERITY_ERROR,
+		"code": code,
+		"file": CONFIG_FILE,
+		"record_id": null,
+		"field": field,
+		"message": message,
+	}
 
 
 # Whether `value` is a rule 11 envelope whose seq is `seq` (types as read

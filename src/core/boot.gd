@@ -137,7 +137,7 @@ func services() -> Services:
 ## TODO(each config owner): its `configs` entry (control manifest: the static
 ## `validate_config` each owner registers here).
 func _collect_validators(meta: MetaApi) -> Dictionary:
-	var configs: Dictionary = {"match_rules": RulesEngine.validate_rules_config}
+	var configs: Dictionary = {"match_rules": RulesEngine.validate_rules_config, "rng_event_log": EventLog.validate_config}
 	return {
 		"unlock": meta.validate_unlock_defs if meta != null else _validate_unlock_defs_mvp,
 		"configs": configs,

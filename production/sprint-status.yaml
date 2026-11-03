@@ -107,14 +107,14 @@ stories:
     name: "Overflow fault (log_overflow → Faulted → Sealed) and the rng_event_log config knobs"
     file: "production/epics/rng-event-log/story-007-overflow-fault-and-config-knobs.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     wave: 2
     serialised: true
     blocker: ""
     note: "test_event_log.gd; merges second in W2, after RNG-006 for event_log.gd"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-004"
     name: "Command channel, rejection codes and mulligan"
     file: "production/epics/match-rules/story-004-command-channel-and-mulligan.md"

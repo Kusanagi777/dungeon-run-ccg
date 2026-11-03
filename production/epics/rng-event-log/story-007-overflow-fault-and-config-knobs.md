@@ -1,12 +1,12 @@
 # Story 007: Overflow fault (`log_overflow` → Faulted → Sealed) and the `rng_event_log` config knobs
 
 > **Epic**: RNG & Event Log
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -70,10 +70,12 @@
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/core/log/event_log.gd`
-- `assets/data/rng_event_log.json`
-- `tests/unit/rng_event_log/event_log_overflow_test.gd`
-- `tests/helpers/test_event_log.gd` (header comment: cap wording settled)
+- `src/core/log/event_log.gd` — modified (`signal overflowed`, overflow → Faulted → Sealed in `append`, static `max_events_for`, static `validate_config` + `CONFIG_FILE` / `CONFIG_SAFE_RANGES` / `KEEP_MATCH_LOGS_KEYS` / `E_MISSING_FIELD` / `E_SCHEMA` / `E_RANGE`, Faulted restored by `from_json`)
+- `assets/data/rng_event_log.json` — created (CR-1 envelope, DD-T01 defaults)
+- `src/core/boot.gd` — one line: `configs.rng_event_log = EventLog.validate_config` in `_collect_validators()` (named by the lane brief)
+- `tests/unit/rng_event_log/event_log_overflow_test.gd` — created (21 test functions)
+- `tests/integration/rng_event_log/event_log_config_file_test.gd` — created (5 test functions: the shipped file through `DataLoader`, and the knob-literal scan of `src/core/log/`)
+- `tests/helpers/test_event_log.gd` — header comment: cap wording settled
 
 ---
 
@@ -91,7 +93,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/rng_event_log/event_log_overflow_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — `tests/unit/rng_event_log/event_log_overflow_test.gd` (21 tests) + `tests/integration/rng_event_log/event_log_config_file_test.gd` (5 tests), passing
 
 ---
 
@@ -99,3 +101,27 @@ checks scope against it.*
 
 - Depends on: `production/epics/rng-event-log/story-005-event-log-core-append-subscribe-seal.md`
 - Unlocks: `production/epics/rng-event-log/story-009-match-log-archive-to-user-logs.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Started / ended (UTC)**: 2026-11-03T21:16:34Z – 2026-11-03T21:21:30Z
+**Criteria**: 3/3 passing (all covered by tests; no deferred items)
+
+| Criterion | Covered by | Status |
+|-----------|------------|--------|
+| AC-1: at `max_events = 5` → `log_overflow{cap, seq}`, `overflowed` once, exactly one more append (caller's `match_ended(fault)`), sealed, later `-1`; log never appends `match_ended` | `event_log_overflow_test.gd::test_append_at_the_cap_appends_log_overflow_and_drops_the_attempted_event`, `test_overflowed_signal_fires_once_with_cap_and_seq`, `test_faulted_log_accepts_exactly_one_more_event_then_is_sealed`, `test_the_log_never_appends_match_ended_itself`, `test_the_one_further_event_may_be_any_type_and_still_seals`, `test_subscribers_receive_log_overflow_before_the_signal_fires`, `test_match_ended_appended_from_the_overflowed_handler_is_accepted_untagged`, `test_a_faulted_log_round_trips_as_faulted`, `test_the_cap_applies_to_run_scope_logs_too` | COVERED |
+| AC-2: `assets/data/rng_event_log.json` with the DD-T01 body; `max_events_for` → 10,000 / 2,500; no knob literal in `src/core/log/` | `event_log_config_file_test.gd::test_shipped_file_loads_and_carries_the_story_defaults`, `test_max_events_for_the_shipped_file_is_ten_thousand`, `test_matcher_catches_each_knob_literal_and_skips_range_bounds`, `test_no_knob_literal_appears_in_src_core_log`; `event_log_overflow_test.gd::test_max_events_for_the_defaults_is_ten_thousand`, `test_max_events_for_the_minimum_budget_is_two_thousand_five_hundred`, `test_max_events_for_floors_the_quotient_and_accepts_json_floats`, `test_max_events_for_a_body_without_the_knobs_reports_and_returns_zero` | COVERED |
+| AC-3: `validate_config(body, db)` static, `[]` for the shipped file, one entry by key for each out-of-range / non-bool / missing knob, never asserts | `event_log_config_file_test.gd::test_validate_config_returns_no_entry_for_the_shipped_file`; `event_log_overflow_test.gd::test_validate_config_accepts_the_shipped_body_and_the_range_bounds`, `test_validate_config_reports_each_out_of_range_knob_once_by_key`, `test_validate_config_reports_a_missing_key_once_by_key`, `test_validate_config_reports_a_non_bool_or_missing_keep_match_logs_entry`, `test_validate_config_reports_a_non_whole_number_knob`, `test_validate_config_entries_have_the_validation_report_shape`, `test_validate_config_never_asserts_on_bad_data`, `test_boot_registers_validate_config_as_the_rng_event_log_config_validator` | COVERED |
+
+**Deviations**:
+- ADVISORY / OUT OF SCOPE (sanctioned) — `src/core/boot.gd` `_collect_validators()` gains the `rng_event_log` entry. The story's Out of Scope gives this to Boot & Composition Root; the lane brief named it as this story's one-line change. The `FILE_MANIFEST` row already existed.
+- ADVISORY — codes: the story says "`E_RANGE` for out-of-range, missing-key code per `DataLoader`"; `ValidationReport` defines neither yet (card-database lane adds the CR-5 set this sprint), so `EventLog` declares `E_MISSING_FIELD`, `E_SCHEMA` (wrong type) and `E_RANGE` with the ADR-0002 spellings. `E_RANGE` is not in ADR-0002's closed CR-5 list (the story names it); stage 7 merges owner codes under `E_DELEGATED`.
+- ADVISORY — the shipped-file and no-literal checks read repository files, so they live in a new integration suite (the match-rules precedent), not in the unit file the story names.
+- ADVISORY — the dropped append at the cap pushes a warning (a rules fault, not a caller bug: no assert); `max_events_for` on a body without the knobs pushes an error and returns 0 (a log built with 0 faults on its first append) rather than a fallback cap.
+- ADVISORY — `TestEventLog` keeps its shortcut (it fabricates `match_ended` on overflow) for existing callers; only its header comment changed, pointing at the production rule. `tests/fixtures/data/*/rng_event_log.json` still carry `config: {}`: once card-database stage 7 runs config validators with Boot's map, a fixture root used with the real validators will report three `E_MISSING_FIELD` (same as `match_rules.json` there today) — card-database lane's call.
+**Test Evidence**: unit `tests/unit/rng_event_log/event_log_overflow_test.gd` (21) + integration `tests/integration/rng_event_log/event_log_config_file_test.gd` (5); mutations (no seal after the Faulted event, F7 off by one, a closed range bound) each seen failing (exit 100) before restore. Full suite 399/399 passed, exit 0; 1 new SCRIPT ERROR is the intentional sealed-append assert (30 total). Smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — the overflow fault and the config knobs have no scene or screen; the data file is loaded only by Card Database (no player-visible surface until Run Structure returns a faulted floor to `pre_match`).
+**Engine check**: NOT ASSESSED — no specialist agent in this lane; `signal` with typed args, `@warning_ignore("integer_division")` and typed `Dictionary[String, Array]` consts parse on 4.7.2.
+**Reviewed by**: self, no independent review (`review_mode: lean` — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped; `/code-review` not run in this lane)
