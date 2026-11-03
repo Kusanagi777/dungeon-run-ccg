@@ -577,7 +577,175 @@ A hook that needs a rule not in this table is a GDD change here, not a workaroun
 
 ## Formulas
 
-[To be designed]
+`systems-designer` not consulted — Lean mode. Review manually before production. All `Source =
+data file` variables live in `assets/data/match_rules.json` and are listed in Tuning Knobs.
+
+### F1. Effective cost
+
+The `effective_cost` formula is defined as:
+
+`effective_cost = max(0, base_cost + Σ card_enchantment_delta + Σ hand_aura_delta + Σ hook_delta)`
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| base_cost | int | 0–10 | data file (card definition) | Printed cost |
+| card_enchantment_delta | int | −10 to +10 | calculated | Sum of cost enchantments on the card instance (Card Effects) |
+| hand_aura_delta | int | −10 to +10 | calculated | Sum of hand-scoped auras from minions in play |
+| hook_delta | int | −10 to +10 | calculated | Net change applied by `modify_cost` hooks in installation order |
+
+**Output Range:** 0 to 10 under normal play; negative sums clamp to 0 (a free card, never refunded
+mana). **Example:** a 4-cost spell with "costs 2 less" and a treasure "spells cost 1 less" →
+`max(0, 4 − 2 − 1) = 1`.
+
+### F2. Damage application
+
+The `apply_damage` formula is defined as a pipeline evaluated in one step:
+
+```
+amount    = max(0, hooks.modify_damage(source, target, requested))
+if target.divine_shield and amount > 0: prevented = amount; amount = 0; remove shield
+armor_absorbed = min(target.armor, amount)          (heroes only; 0 for minions)
+target.armor  -= armor_absorbed
+to_health      = amount - armor_absorbed
+target.damage_taken += to_health                     (hero: health -= to_health)
+dealt          = armor_absorbed + to_health
+if source.poisonous and target is minion and dealt > 0: target.pending_destroy = true
+if source.lifesteal and dealt > 0: apply_heal(source.controller.hero, dealt)
+```
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| requested | int | 0–99 | calculated | Damage asked for by the attack, spell (after Spell Damage, F7) or effect |
+| amount | int | 0–99 | calculated | After `modify_damage` hooks, floored at 0 |
+| prevented | int | 0–99 | calculated | Amount eaten by Divine Shield (logged) |
+| armor | int | 0–∞ | state | Hero armour before the hit |
+| dealt | int | 0–99 | calculated | What counts for Lifesteal, stats and `on_damage` |
+
+**Output Range:** `dealt` ∈ [0, requested]; `health_after` may be negative (a 10-damage hit on 3
+health records −7; death resolves at ≤ 0). **Example:** boss hero with 2 armour takes 5 from a
+Lifesteal weapon: `armor_absorbed = 2`, `to_health = 3`, `dealt = 5`, player hero heals 5.
+
+### F3. Attack legality predicate
+
+The `can_attack` formula is defined as a conjunction evaluated left to right; the first false
+term yields the rejection code in brackets:
+
+```
+can_attack(A, D) =
+    phase == Main(A.controller)                                  [NOT_YOUR_TURN / WRONG_PHASE]
+  ∧ A.attack > 0 ∧ attacks_remaining(A) > 0                      [CANNOT_ATTACK]
+  ∧ ¬A.frozen                                                    [ATTACKER_FROZEN]
+  ∧ (A is hero ∨ ¬A.summoning_sick ∨ A.charge ∨ (A.rush ∧ D is minion))
+                                                                 [SUMMONING_SICK / RUSH_CANNOT_HIT_HERO]
+  ∧ D.controller ≠ A.controller ∧ D in play                      [ILLEGAL_TARGET]
+  ∧ ¬(D is minion ∧ D.stealth)                                   [TARGET_STEALTHED]
+  ∧ (taunters(D.controller) = ∅ ∨ D ∈ taunters(D.controller))    [MUST_ATTACK_TAUNT]
+where taunters(side) = { m ∈ side.board : m.taunt ∧ ¬m.stealth }
+      attacks_remaining(A) = max_attacks(A) − A.attacks_used
+      max_attacks(A) = hooks.modify_max_attacks(A, 2 if A.windfury else 1)
+```
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| A.attack | int | 0–99 | calculated | Derived attack (C1); hero = weapon + buffs |
+| attacks_used | int | 0–2 | state | Attacks this turn, reset at Start |
+| max_attacks | int | 1–2 | calculated | 2 with Windfury (minion keyword or hero's weapon), else 1 |
+| taunters | set | 0–7 entries | calculated | Enemy Taunt minions without Stealth |
+
+**Output Range:** boolean. **Example:** a 3/2 Rush minion played this turn vs. an enemy board with
+a Stealth Taunt: `taunters = ∅` (Stealth excludes it), so any enemy *minion* is legal; the enemy
+hero is rejected `RUSH_CANNOT_HIT_HERO`.
+
+### F4. Mana available by turn
+
+The `mana_max(t)` formula is defined as:
+
+`mana_max(t) = min(t_side, MAX_MANA)` where `t_side` is that side's own turn count (`turns_taken`)
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| t_side | int | 1–∞ | state | Number of Start steps this side has had |
+| MAX_MANA | int | 7–10 | data file | Crystal cap (DD-M04: 10) |
+
+**Output Range:** 1 to `MAX_MANA`; the player's crystals on their 10th turn and every turn after
+equal 10. Total mana available over the first n turns is `Σ_{t=1..n} min(t, 10)` — 55 through
+turn 10. **Example:** on turn 4 both sides have had 4 own turns at their respective Main steps →
+4 crystals each (the boss reaches 4 one global turn later).
+
+### F5. Fatigue damage
+
+The `fatigue_damage(k)` formula is defined as:
+
+`fatigue_damage(k) = FATIGUE_BASE + (k − 1) × FATIGUE_STEP` for the k-th empty-deck draw by that side
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| k | int | 1–∞ | state | `fatigue_counter` after increment |
+| FATIGUE_BASE | int | 1–3 | data file | First fatigue hit (DD-M07: 1) |
+| FATIGUE_STEP | int | 1–2 | data file | Increase per subsequent hit (DD-M07: 1) |
+
+**Output Range:** 1, 2, 3, … (cumulative 1, 3, 6, 10, 15 — a 30-health hero with no deck dies on
+the 8th fatigue draw, cumulative 36). Armour absorbs fatigue (F2). **Example:** `k = 4` →
+`1 + 3 × 1 = 4` damage.
+
+### F6. Health, buff loss and Silence clamp
+
+The `health` formula is defined as:
+
+`health = base_health + Σ health_delta(enchantments) − damage_taken`
+
+On **aura loss / enchantment removal**: `damage_taken` is unchanged, so `health` can fall to ≤ 0
+and the minion dies at the next death check. On **Silence**:
+`damage_taken' = max(0, damage_taken − (max_health_old − max_health_new))`.
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| base_health | int | 1–30 | data file (card definition) | Printed health |
+| health_delta | int | −10 to +20 | calculated | Per-enchantment health change |
+| damage_taken | int | 0–∞ | state | Accumulated unhealed damage |
+
+**Output Range:** `health` ≤ `max_health`; may be ≤ 0 transiently. **Example:** a 2/2 buffed to
+2/4 and damaged to 2/1 (`damage_taken = 3`): aura leaves → `2 − 3 = −1`, dies; Silenced instead →
+`damage_taken = max(0, 3 − 2) = 1`, health `2 − 1 = 1`, lives.
+
+### F7. Spell Damage total
+
+`spell_damage(side) = Σ_{m ∈ side.board} m.spell_damage_bonus` (plus hero enchantments); Card
+Effects adds it to each spell damage operation's `requested` before F2. Range 0–10 in v1 content.
+
+### F8. Expected match length model
+
+The `turns_to_lethal` model is defined as the smallest n with cumulative face damage ≥ hero
+health:
+
+`cumulative_damage(n) = k × Σ_{t=1..n} min(t, MAX_MANA)` → `turns_to_lethal = min{ n : cumulative_damage(n) ≥ H }`
+
+**Variables:**
+| Variable | Type | Range | Source | Description |
+|----------|------|-------|--------|-------------|
+| k | float | 0.4–1.0 | calculated (Content/`/balance-check`) | Average face damage per mana actually spent, after trades |
+| H | int | 25–50 | data file | Defending hero's starting health (DD-M02) |
+| n | int | 1–∞ | calculated | Turns for that side |
+
+**Output Range:** the design target is **6–10 turns per side (3–6 minutes)**. With H = 30:
+k = 0.6 → n = 10 (cum. 33 at turn 10); k = 0.8 → n = 8 (cum. 28.8 at turn 8, 36 at 9 → 9);
+k = 1.0 → n = 8 (cum. 36 at turn 8). Band-3 bosses at H = 50 with k = 0.8 → n = 11, which is
+why band 3 should also raise the player's k (stronger drafted deck) rather than only H. The knobs
+that move n: `STARTING_HEALTH_PLAYER`, boss band health, `MAX_MANA` (lower cap flattens the sum),
+starting hand size (card advantage raises k), and Content's damage density (k itself).
+
+### F9. Limits (constants)
+
+`BOARD_SIZE = 7`, `HAND_SIZE = 10`, `STARTING_HAND_PLAYER = 3`, `STARTING_HAND_BOSS = 4`,
+`MAX_MANA = 10`, `HERO_POWER_COST = 2`, `MULLIGAN_ROUNDS = 1`, `TURN_CAP = 100`,
+`RESOLUTION_STEP_CAP = 1000`. Insert positions are `0..board.size` inclusive; hand indices are
+`0..hand.size − 1`.
 
 ## Edge Cases
 
