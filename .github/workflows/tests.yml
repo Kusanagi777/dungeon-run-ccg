@@ -170,6 +170,15 @@ jobs:
             echo "gdUnit4 found no performance suites under res://tests/performance" >&2
             exit 1
           fi
+          # Exit 100 = a budget assertion missed: report it as a warning
+          # annotation and keep the check green (budgets are advisory until
+          # measured on a release build). Any other non-zero exit means the
+          # suite could not run (parse error 105, crash) and fails the job.
+          if [ "$status" -eq 100 ]; then
+            echo "::warning title=Performance budget missed::See the job summary for the PERF lines"
+            echo "Budget miss reported as a warning (exit 100)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           exit "$status"
 
       - name: Upload performance report
