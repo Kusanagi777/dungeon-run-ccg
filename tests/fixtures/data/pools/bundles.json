@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_war_steel",
+      "name": "Bundle War Steel",
+      "set": "war",
+      "theme": "steel",
+      "cards": [
+        "war_zealot",
+        "war_axe",
+        "war_banner"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_steel.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_wild",
+      "name": "Bundle Neutral Wild",
+      "set": "neutral",
+      "theme": "wild",
+      "cards": [
+        "neutral_ogre",
+        "neutral_bat",
+        "neutral_mage"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_wild.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_war_anvil",
+      "name": "Bundle War Anvil",
+      "set": "war",
+      "theme": "steel",
+      "cards": [
+        "war_axe",
+        "war_banner",
+        "war_zealot"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_anvil.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_moor",
+      "name": "Bundle Neutral Moor",
+      "set": "neutral",
+      "theme": "wild",
+      "cards": [
+        "neutral_mage",
+        "neutral_ogre",
+        "neutral_bat"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_moor.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_fen",
+      "name": "Bundle Neutral Fen",
+      "set": "neutral",
+      "theme": "wild",
+      "cards": [
+        "neutral_bat",
+        "neutral_mage",
+        "neutral_ogre"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fen.text",
+        "en": ""
+      }
+    }
+  ]
+}

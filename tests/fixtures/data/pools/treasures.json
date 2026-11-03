@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_gamma",
+      "name": "Treasure Gamma",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_gamma.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_alpha",
+      "name": "Treasure Alpha",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_alpha.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_beta",
+      "name": "Treasure Beta",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": {
+        "key": "first_victory",
+        "condition": {
+          "type": "runs_won",
+          "at_least": 1
+        }
+      },
+      "text": {
+        "key": "treasure.treasure_beta.text",
+        "en": ""
+      }
+    }
+  ]
+}

@@ -42,7 +42,7 @@ func after() -> void:
 func _shipped_body() -> Dictionary:
 	var result: DataLoader.LoadResult = DataLoader.new(STAGE_ROOT).run(ValidatorStubs.accept_all())
 	assert_bool(result.report.has_errors()).override_failure_message(result.report.to_text()).is_false()
-	return result.snapshot.configs[CONFIG_FILE.get_basename()]
+	return result.snapshot.config_bodies[CONFIG_FILE.get_basename()]
 
 
 ## The non-comment code lines of `source` that hold a knob literal.

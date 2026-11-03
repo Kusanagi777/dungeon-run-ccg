@@ -22,10 +22,16 @@
 ## staged, id-sorted records that passed stage 6 (`_stage7_lookups_open`).
 ## `config()` and `data_version()` answer in `Ready` only; called during stage
 ## 7 they return `null` / `""`, log, and assert in a debug build.
-## Every lookup reads one private source ([method _source]); Story 006 swaps
-## the `Ready` source for the frozen snapshot (records are not yet read-only)
-## and Story 007 computes `data_version`; Story 008 adds `reload()`,
-## `Reloading`, `E_NOT_LOADED` and `E_NOT_SUPPORTED`. Single-thread-only.
+## Every lookup reads one private source ([method _source]): in `Ready` the
+## loader's frozen stage-9 snapshot (story 006; `DataLoader.LoadResult`), so
+## every record, nested effect, pool Array and config body a query returns is
+## read-only (CR-7) — a caller that needs to change one takes `duplicate(true)`
+## first. Records are returned as the snapshot's own Dictionary
+## (`records[index_of[id]]`, O(1), no copy); the CR-6 pools are precomputed at
+## freeze and returned as the same frozen Array each call; `cards_by_*` filter
+## on demand and freeze their result. Story 007 computes `data_version`;
+## Story 008 adds `reload()`, `Reloading`, `E_NOT_LOADED` and
+## `E_NOT_SUPPORTED`. Single-thread-only.
 class_name CardDatabase
 extends RefCounted
 
@@ -39,11 +45,9 @@ const STAGE7_GUARD_MESSAGE: String = "CardDatabase.%s() is illegal before Ready 
 var _loader: DataLoader
 var _state: State = State.UNLOADED
 var _report: ValidationReport = ValidationReport.new()
-## The loader's snapshot after a clean load, `null` otherwise. Story 006
-## freezes it and builds the query tables from it.
+## The loader's frozen snapshot after a clean load (the lookup source in
+## `Ready`), `null` otherwise.
 var _snapshot: Variant = null
-## The lookup source in `Ready`: the loader's staging after a clean load.
-var _staging: Dictionary = {}
 ## The lookup source while `_stage7_lookups_open`.
 var _stage7_staging: Dictionary = {}
 ## True only while the loader runs CR-5 stage 7 (ADR-0002 Decision 4).
@@ -64,7 +68,7 @@ func _init(loader: DataLoader = null) -> void:
 ## `{effects, ai_profile, unlock, treasure: Callable, configs: {<name>: Callable}}`
 ## (ADR-0002 Decision 4); each validator receives this database, whose
 ## lookups are open during stage 7. Any error leaves the state `FAILED` with
-## no snapshot; none leaves it `READY`.
+## no snapshot; none swaps the frozen snapshot in and leaves it `READY`.
 ## Example: `if db.load(validators).has_errors(): show_data_error(db.report())`.
 func load(validators: Dictionary) -> ValidationReport:
 	_state = State.LOADING
@@ -72,11 +76,9 @@ func load(validators: Dictionary) -> ValidationReport:
 	_report = result.report
 	if _report.has_errors():
 		_snapshot = null
-		_staging = {}
 		_state = State.FAILED
 	else:
 		_snapshot = result.snapshot
-		_staging = result.staging
 		_state = State.READY
 	return _report
 
@@ -94,104 +96,119 @@ func report() -> ValidationReport:
 	return _report
 
 
-## True when a record with `id` exists (any type). Example: `db.has("war_iron_axe")`.
+## True when a record with `id` exists (any type); never logs.
+## Example: `db.has("war_iron_axe")`.
 func has(id: String) -> bool:
 	var source: Dictionary = _source("has")
 	return not source.is_empty() and source.index_of.has(id)
 
 
-## The CardDef `id`, or `null` and a logged error. Example: `db.card("war_iron_axe").cost`.
+## The frozen CardDef `id` (the same Dictionary on every call), or `null`, a
+## logged error and, in `Ready` in a debug build, an assert. Treat it as
+## read-only; `duplicate(true)` for a writable copy (CR-7).
+## Example: `db.card("war_iron_axe").cost`.
 func card(id: String) -> Variant:
 	return _record("card", "CardDef", id)
 
 
-## The HeroDef `id`, or `null` and a logged error. Example: `db.hero("hero_war").starter_deck`.
+## The frozen HeroDef `id`, or `null` as for [method card]. Example: `db.hero("hero_war").starter_deck`.
 func hero(id: String) -> Variant:
 	return _record("hero", "HeroDef", id)
 
 
-## The HeroPowerDef `id`, or `null` and a logged error. Example: `db.hero_power("power_sharpen").cost`.
+## The frozen HeroPowerDef `id`, or `null` as for [method card]. Example: `db.hero_power("power_sharpen").cost`.
 func hero_power(id: String) -> Variant:
 	return _record("hero_power", "HeroPowerDef", id)
 
 
-## The BossDef `id`, or `null` and a logged error. Example: `db.boss("boss_rot_warden").band`.
+## The frozen BossDef `id`, or `null` as for [method card]. Example: `db.boss("boss_rot_warden").band`.
 func boss(id: String) -> Variant:
 	return _record("boss", "BossDef", id)
 
 
-## The TreasureDef `id`, or `null` and a logged error. Example: `db.treasure("treasure_t01").rarity`.
+## The frozen TreasureDef `id`, or `null` as for [method card]. Example: `db.treasure("treasure_t01").rarity`.
 func treasure(id: String) -> Variant:
 	return _record("treasure", "TreasureDef", id)
 
 
-## The BundleDef `id`, or `null` and a logged error. Example: `db.bundle("bundle_war_weapons").cards`.
+## The frozen BundleDef `id`, or `null` as for [method card]. Example: `db.bundle("bundle_war_weapons").cards`.
 func bundle(id: String) -> Variant:
 	return _record("bundle", "BundleDef", id)
 
 
-## CardDefs of `set_id`, tokens included, id-ascending. Example: `db.cards_by_set("decay")`.
+## CardDefs of `set_id`, tokens included, id-ascending, as a read-only Array.
+## Example: `db.cards_by_set("decay")`.
 func cards_by_set(set_id: String) -> Array:
 	return _filter("cards_by_set", "CardDef", func(r: Dictionary) -> bool: return r["set"] == set_id)
 
 
-## CardDefs of `type` (`minion | spell | weapon`), id-ascending. Example: `db.cards_by_type("weapon")`.
+## CardDefs of `type` (`minion | spell | weapon`), tokens included,
+## id-ascending, read-only. Example: `db.cards_by_type("weapon")`.
 func cards_by_type(type: String) -> Array:
 	return _filter("cards_by_type", "CardDef", func(r: Dictionary) -> bool: return r["type"] == type)
 
 
-## CardDefs carrying `tag`, id-ascending. Example: `db.cards_by_tag("weapons")`.
+## CardDefs carrying `tag`, tokens included, id-ascending, read-only.
+## Example: `db.cards_by_tag("weapons")`.
 func cards_by_tag(tag: String) -> Array:
 	return _filter("cards_by_tag", "CardDef", func(r: Dictionary) -> bool: return Array(r["tags"]).has(tag))
 
 
-## CardDefs costing `cost`, id-ascending. Example: `db.cards_by_cost(2)`.
+## CardDefs costing `cost`, tokens included, id-ascending, read-only.
+## Example: `db.cards_by_cost(2)`.
 func cards_by_cost(cost: int) -> Array:
 	return _filter("cards_by_cost", "CardDef", func(r: Dictionary) -> bool: return int(r["cost"]) == cost)
 
 
-## CardDefs of `rarity`, id-ascending. Example: `db.cards_by_rarity("legendary")`.
+## CardDefs of `rarity`, tokens included, id-ascending, read-only.
+## Example: `db.cards_by_rarity("legendary")`.
 func cards_by_rarity(rarity: String) -> Array:
 	return _filter("cards_by_rarity", "CardDef", func(r: Dictionary) -> bool: return r["rarity"] == rarity)
 
 
 ## CR-6: CardDefs with `set ∈ {hero_set, neutral}` and `token == false`
-## (never `boss`), id-ascending. Example: `db.collectible_pool("war")`.
+## (never `boss`; `DataLoader.in_collectible_pool`), id-ascending, read-only —
+## precomputed at freeze for every CR-3 set. Example: `db.collectible_pool("war")`.
 func collectible_pool(hero_set: String) -> Array:
-	return _filter("collectible_pool", "CardDef", func(r: Dictionary) -> bool:
-		return (r["set"] == hero_set or r["set"] == "neutral") and not r.get("token", false))
+	return _pool("collectible_pool", "collectible", hero_set, "CardDef",
+		func(r: Dictionary) -> bool: return DataLoader.in_collectible_pool(r, hero_set))
 
 
-## CR-6: BundleDefs with `set ∈ {hero_set, neutral}`, id-ascending. Example: `db.bundle_pool("war")`.
+## CR-6: BundleDefs with `set ∈ {hero_set, neutral}`, id-ascending, read-only,
+## precomputed at freeze. Example: `db.bundle_pool("war")`.
 func bundle_pool(hero_set: String) -> Array:
-	return _filter("bundle_pool", "BundleDef", func(r: Dictionary) -> bool:
-		return r["set"] == hero_set or r["set"] == "neutral")
+	return _pool("bundle_pool", "bundle", hero_set, "BundleDef",
+		func(r: Dictionary) -> bool: return DataLoader.in_bundle_pool(r, hero_set))
 
 
-## CR-6: every TreasureDef, id-ascending. Example: `db.treasure_pool().size()`.
+## CR-6: every TreasureDef, id-ascending, read-only. Example: `db.treasure_pool().size()`.
 func treasure_pool() -> Array:
-	return _filter("treasure_pool", "TreasureDef", Callable())
+	return _pool("treasure_pool", "all", "TreasureDef", "TreasureDef", Callable())
 
 
-## CR-6: BossDefs of `band`, id-ascending (DD-R02 pool). Example: `db.bosses_in_band(1)`.
+## CR-6: BossDefs of `band`, id-ascending (DD-R02 pool), read-only,
+## precomputed at freeze for every band. Example: `db.bosses_in_band(1)`.
 func bosses_in_band(band: int) -> Array:
-	return _filter("bosses_in_band", "BossDef", func(r: Dictionary) -> bool: return int(r["band"]) == band)
+	return _pool("bosses_in_band", "bosses_in_band", band, "BossDef",
+		func(r: Dictionary) -> bool: return int(r["band"]) == band)
 
 
-## CR-6: every HeroDef, locked included, id-ascending. Example: `db.heroes()`.
+## CR-6: every HeroDef, locked included, id-ascending, read-only. Example: `db.heroes()`.
 func heroes() -> Array:
-	return _filter("heroes", "HeroDef", Callable())
+	return _pool("heroes", "all", "HeroDef", "HeroDef", Callable())
 
 
-## The `config` body of `<config_name>.json` in `Ready`; `null` and a logged
-## error for an unknown name or before `Ready` (during stage 7 the guard also
-## asserts in a debug build — config bodies reach validators as the 7b
-## `configs` argument instead). Example: `db.config("match_rules").board_size`.
+## The frozen `config` body of `<config_name>.json` in `Ready` (the same
+## Dictionary on every call: read it once at the owner's construction and keep
+## it); `null` and a logged error for an unknown name or before `Ready`
+## (during stage 7 the guard also asserts in a debug build — config bodies
+## reach validators as the 7b `configs` argument instead).
+## Example: `db.config("match_rules").board_size`.
 func config(config_name: String) -> Variant:
 	if _state != State.READY:
 		_illegal_before_ready("config")
 		return null
-	var body: Variant = _snapshot.configs.get(config_name)
+	var body: Variant = _snapshot.config_bodies.get(config_name)
 	if body == null:
 		push_error("CardDatabase.config(): no config file \"%s.json\"" % config_name)
 	return body
@@ -220,34 +237,70 @@ func _end_stage7() -> void:
 	_stage7_staging = {}
 
 
-## The one lookup source: the stage-7 staging while open, the clean load's
-## staging in `Ready`; otherwise `{}` and a logged error naming `caller`.
+## The one lookup source: the stage-7 staging while open (ADR-0002 Decision
+## 4 — the exception ends at `Ready`), the frozen snapshot in `Ready`;
+## otherwise `{}` and a logged error naming `caller`. Both carry
+## `records_by_type` and `index_of`; only the snapshot carries `pools`.
 func _source(caller: String) -> Dictionary:
 	if _stage7_lookups_open:
 		return _stage7_staging
 	if _state == State.READY:
-		return _staging
+		return _snapshot
 	push_error("CardDatabase.%s(): queries are illegal in state %s (before Ready)" % [caller, State.keys()[_state]])
 	return {}
 
 
+## Formulas "Lookup": `records[index_of[id]]`, O(1), no allocation; `null`
+## and [method _unknown_record] when `id` is not a `record_type`.
 func _record(caller: String, record_type: String, id: String) -> Variant:
 	var source: Dictionary = _source(caller)
 	if source.is_empty():
 		return null
 	var at: Variant = source.index_of.get(id)
 	if at == null or at.type != record_type:
-		push_error("CardDatabase.%s(): no %s \"%s\"" % [caller, record_type, id])
+		_unknown_record("CardDatabase.%s(): no %s \"%s\"" % [caller, record_type, id])
 		return null
-	return source.records[record_type][at.position]
+	return source.records_by_type[record_type][at.position]
+
+
+## A pool precomputed at freeze, `source.pools[pool_name][key]`, when the
+## source has it; otherwise (stage 7, or a key not precomputed such as a band
+## outside the BossDef range) the filter over `record_type`.
+func _pool(caller: String, pool_name: String, key: Variant, record_type: String, keep: Callable) -> Array:
+	var source: Dictionary = _source(caller)
+	if source.is_empty():
+		return []
+	var precomputed: Variant = Dictionary(source.get("pools", {})).get(pool_name, {}).get(key)
+	if precomputed != null:
+		return precomputed
+	return _filter_source(source, record_type, keep)
 
 
 func _filter(caller: String, record_type: String, keep: Callable) -> Array:
 	var source: Dictionary = _source(caller)
 	if source.is_empty():
 		return []
-	var records: Array = source.records[record_type]
-	return records.duplicate() if not keep.is_valid() else records.filter(keep)
+	return _filter_source(source, record_type, keep)
+
+
+## A new read-only Array of the `record_type` records `keep` accepts (all of
+## them when `keep` is not valid), in the source's id order.
+func _filter_source(source: Dictionary, record_type: String, keep: Callable) -> Array:
+	var records: Array = source.records_by_type[record_type]
+	var out: Array = records.duplicate() if not keep.is_valid() else records.filter(keep)
+	out.make_read_only()
+	return out
+
+
+## An unknown id (CR-6): one logged error; in `Ready` a debug build also
+## asserts ("callers that must have a record assert in debug"). The assert
+## sits after the push_error and aborts only this function, so the caller
+## still returns `null`; release builds compile it out. During stage 7 the
+## id is data under validation, so it is logged only (never assert on data).
+func _unknown_record(message: String) -> void:
+	push_error(message)
+	if _state == State.READY and not _stage7_lookups_open:
+		assert(false, message)
 
 
 ## Caller-bug report for `config()` / `data_version()` before `Ready`: during

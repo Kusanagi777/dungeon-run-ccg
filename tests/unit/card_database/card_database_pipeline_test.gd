@@ -122,24 +122,28 @@ func test_minimal_root_snapshot_holds_every_required_file_by_class() -> void:
 	# Act
 	var result: DataLoader.LoadResult = _run_case("minimal")
 
-	# Assert
+	# Assert — a definition file's records land in its CR-3 type list
+	# (minimal/'s are empty), a config file's body under its name (story 006
+	# snapshot shape); nothing names a required file as missing
 	var snapshot: Dictionary = result.snapshot
 	for row: Dictionary in DataLoader.FILE_MANIFEST:
 		if not row.required:
 			continue
 		if row["class"] == "definition":
-			assert_bool(snapshot.definitions.has(row.name)).override_failure_message(row.name).is_true()
+			assert_bool(snapshot.records_by_type.has(row.record_type)).override_failure_message(row.name).is_true()
 		else:
-			assert_bool(snapshot.configs.has(String(row.name).get_basename())).override_failure_message(row.name).is_true()
+			assert_bool(snapshot.config_bodies.has(String(row.name).get_basename())).override_failure_message(row.name).is_true()
+	assert_array(_with_code(result.report, ValidationReport.E_MISSING_FILE)).is_empty()
 
 
 func test_optional_set_file_absent_is_skipped_silently() -> void:
 	# Act — minimal/ has none of the five optional set files
 	var result: DataLoader.LoadResult = _run_case("minimal")
 
-	# Assert
+	# Assert — no entry of any severity names an absent optional set file
 	for file_name: String in OPTIONAL_SETS:
-		assert_bool(result.snapshot.definitions.has(file_name)).is_false()
+		var named: Array = result.report.entries().filter(func(e: Dictionary) -> bool: return e.file == file_name)
+		assert_array(named).override_failure_message(file_name).is_empty()
 	assert_bool(result.report.has_errors()).is_false()
 
 
@@ -197,12 +201,17 @@ func test_unknown_json_is_not_loaded_but_present_optional_set_is() -> void:
 	# Act
 	var result: DataLoader.LoadResult = _run_case("unknown_file")
 
-	# Assert
-	var definitions: Dictionary = result.snapshot.definitions
-	assert_bool(definitions.has("stray.json")).is_false()
-	assert_bool(definitions.has("cards_foo.json")).is_false()
-	assert_bool(result.snapshot.configs.has("stray")).is_false()
-	assert_bool(definitions.has("cards_decay.json")).is_true()
+	# Assert — the stray files are only warned about (W_UNKNOWN_FILE), never
+	# read: no body under their name and no stage-8 entry; the present
+	# optional cards_decay.json is read (its empty records give W_EMPTY_SET)
+	assert_bool(result.snapshot.config_bodies.has("stray")).is_false()
+	assert_bool(result.snapshot.config_bodies.has("cards_foo")).is_false()
+	var codes_by_file: Dictionary = {}
+	for e: Dictionary in result.report.entries():
+		codes_by_file[e.file] = codes_by_file.get(e.file, []) + [String(e.code)]
+	assert_array(codes_by_file.get("stray.json", [])).is_equal(["W_UNKNOWN_FILE"])
+	assert_array(codes_by_file.get("cards_foo.json", [])).is_equal(["W_UNKNOWN_FILE"])
+	assert_array(codes_by_file.get("cards_decay.json", [])).contains(["W_EMPTY_SET"])
 
 
 # --- AC-3: envelope ----------------------------------------------------------------

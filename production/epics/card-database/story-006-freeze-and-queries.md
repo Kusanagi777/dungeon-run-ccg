@@ -1,12 +1,12 @@
 # Story 006: Freeze and CR-6 queries (CR-5 stage 9, CR-6, CR-7)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -32,10 +32,10 @@
 
 *From GDD `design/gdd/card-database.md` (CR-5 stage 9, CR-6, CR-7, Formulas "Lookup", Acceptance Criteria), scoped to this story:*
 
-- [ ] **GIVEN** a fixture with 4 War cards (one token), 3 neutral cards and 2 boss-set cards, **WHEN** `collectible_pool("war")` is called on a `Ready` database, **THEN** it returns exactly the 6 non-token War+neutral cards sorted by id ascending; `cards_by_set` / `cards_by_type` / `cards_by_tag` / `cards_by_cost` / `cards_by_rarity` include tokens and are id-ascending; `bundle_pool("war")` is `set ∈ {war, neutral}`; `treasure_pool()`, `bosses_in_band(band)` and `heroes()` (locked included) are id-ascending regardless of file order.
-- [ ] **GIVEN** a `Ready` database, **WHEN** `card("no_such_id")` is called, **THEN** it returns `null` and logs one error line, and in a debug build an assert fires; `has("no_such_id")` is `false`; `card(id)` for a known id is `records[index_of[id]]` — O(1), no allocation — and the same Dictionary instance on every call.
-- [ ] **GIVEN** a loaded fixture root containing every manifest config file, **WHEN** loaded, **THEN** `config("match_rules")`, `config("card_effects")`, `config("ai_profiles")`, `config("run_structure")`, `config("reward_draft")`, `config("treasures_balance")`, `config("heroes_balance")`, `config("match_ui")`, `config("run_ui")`, `config("profile_defaults")`, `config("card_database")`, `config("content_budgets")` and `config("rng_event_log")` each return a non-null frozen Dictionary, and `config("no_such")` returns `null` with one logged error.
-- [ ] **GIVEN** a `Ready` database, **WHEN** a test writes to a returned record, to a nested `effects[0]` inside it, to an element of a returned pool Array and to a returned config body, **THEN** every write is refused (read-only) and `duplicate(true)` of the record yields a writable copy; `report()` holds warnings only after a clean load.
+- [x] **GIVEN** a fixture with 4 War cards (one token), 3 neutral cards and 2 boss-set cards, **WHEN** `collectible_pool("war")` is called on a `Ready` database, **THEN** it returns exactly the 6 non-token War+neutral cards sorted by id ascending; `cards_by_set` / `cards_by_type` / `cards_by_tag` / `cards_by_cost` / `cards_by_rarity` include tokens and are id-ascending; `bundle_pool("war")` is `set ∈ {war, neutral}`; `treasure_pool()`, `bosses_in_band(band)` and `heroes()` (locked included) are id-ascending regardless of file order.
+- [x] **GIVEN** a `Ready` database, **WHEN** `card("no_such_id")` is called, **THEN** it returns `null` and logs one error line, and in a debug build an assert fires; `has("no_such_id")` is `false`; `card(id)` for a known id is `records[index_of[id]]` — O(1), no allocation — and the same Dictionary instance on every call.
+- [x] **GIVEN** a loaded fixture root containing every manifest config file, **WHEN** loaded, **THEN** `config("match_rules")`, `config("card_effects")`, `config("ai_profiles")`, `config("run_structure")`, `config("reward_draft")`, `config("treasures_balance")`, `config("heroes_balance")`, `config("match_ui")`, `config("run_ui")`, `config("profile_defaults")`, `config("card_database")`, `config("content_budgets")` and `config("rng_event_log")` each return a non-null frozen Dictionary, and `config("no_such")` returns `null` with one logged error.
+- [x] **GIVEN** a `Ready` database, **WHEN** a test writes to a returned record, to a nested `effects[0]` inside it, to an element of a returned pool Array and to a returned config body, **THEN** every write is refused (read-only) and `duplicate(true)` of the record yields a writable copy; `report()` holds warnings only after a clean load.
 
 ---
 
@@ -65,11 +65,12 @@
 
 ## Files
 
-- `src/core/data/data_loader.gd` (stage 9 freeze)
-- `src/core/data/card_database.gd` (CR-6 queries, `config`, snapshot swap)
-- `tests/fixtures/data/pools/`, `tests/fixtures/data/full_configs/`
-- `tests/unit/card_database/card_database_queries_test.gd`
-- `tests/unit/card_database/card_database_freeze_test.gd`
+- `src/core/data/data_loader.gd` (stage 9 freeze: `_freeze`, `_freeze_deep`, precomputed pools; `in_collectible_pool` / `in_bundle_pool`; staging key `records` → `records_by_type`)
+- `src/core/data/card_database.gd` (CR-6 queries over the frozen snapshot, `config` from `config_bodies`, unknown-id assert in `Ready`, snapshot swap)
+- `tests/fixtures/data/pools/` (new: 4 War incl. one token, 3 neutral, 2 boss cards; 2 heroes incl. a locked one; bosses in bands 1-2; every manifest config file)
+- `tests/unit/card_database/card_database_queries_test.gd` (new, 22 tests)
+- `tests/unit/card_database/card_database_freeze_test.gd` (new, 9 tests)
+- Contract fixes ([C] story): `src/gameplay/meta/meta_stub.gd` (db typed `CardDatabase`), `tests/unit/boot/boot_meta_stub_test.gd` (`FakeCardDatabase extends CardDatabase`), `tests/integration/boot/boot_composition_test.gd` (`ConfigCardDatabase` workaround removed), `tests/unit/card_database/card_database_pipeline_test.gd`, `tests/unit/card_database/card_database_references_test.gd`, `tests/integration/boss_ai/boss_ai_profiles_data_test.gd`, `tests/integration/match_rules/match_rules_config_file_test.gd`, `tests/integration/rng_event_log/event_log_config_file_test.gd` (snapshot shape)
 
 ---
 
@@ -87,7 +88,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_queries_test.gd`, `tests/unit/card_database/card_database_freeze_test.gd` — must exist and pass (`/story-done` checks that they EXIST; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (2026-11-03: 22 + 9 tests; full suite 724/724)
 
 ---
 
@@ -95,3 +96,25 @@
 
 - Depends on: `production/epics/card-database/story-004-delegated-validators.md`, `production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md`
 - Unlocks: `production/epics/card-database/story-007-data-version-fingerprint.md`, `production/epics/card-database/story-008-state-machine-and-debug-reload.md`, `production/epics/card-database/story-009-load-and-memory-budget.md`; every consumer epic's first story that reads `card()` / `config()`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 22:21:46 UTC, ended 22:35:01 UTC, both by `date -u`)
+**Verification**: `godot --headless --path . --import` exit 0; `commands.test` 724 test cases, 0 errors, 0 failures, exit 0 (only the intentional negative-test SCRIPT ERRORs); `commands.smoke` exit 0, no SCRIPT ERROR. Mutation check: a shallow (non-recursive) freeze turns 6 of the 9 freeze tests red.
+**Criteria**: 4/4 passing (none deferred)
+- AC-1 — `card_database_queries_test.gd`: `test_collectible_pool_war_is_the_six_non_token_war_and_neutral_cards_by_id`, `test_cards_by_{set,type,tag,cost,rarity}_*`, `test_bundle_pool_*`, `test_treasure_pool_*`, `test_bosses_in_band_*`, `test_heroes_include_the_locked_hero_by_id`, `test_collectible_pool_never_includes_boss_cards`, `test_precomputed_pools_are_the_same_frozen_array_on_every_call`
+- AC-2 — `test_card_for_an_unknown_id_returns_null_logs_and_asserts_in_debug`, `test_typed_lookup_of_an_id_of_another_type_returns_null`, `test_has_is_true_for_any_record_type_and_false_for_an_unknown_id`, `test_card_for_a_known_id_is_records_at_index_of_and_the_same_instance_each_call`
+- AC-3 — `test_config_serves_every_manifest_config_as_a_frozen_dictionary`, `test_config_names_cover_every_manifest_config_row`, `test_config_of_an_unknown_name_returns_null_with_one_logged_error`
+- AC-4 — `card_database_freeze_test.gd` (record, nested `effects[0]` / `ops[0]`, pool element, config body and its nested Array; whole-snapshot walk; `duplicate(true)` writable; warnings-only report)
+**Engine finding**: `Dictionary.make_read_only()` is **not** recursive on 4.7.2 (probe 2026-11-03: nested Array / Dictionary stay writable) — closes ADR-0002 Verification Required item 3; the loader walks (`DataLoader._freeze_deep`). A refused write is the script error `Invalid assignment on read-only value (on base: '<type>').`
+**Deviations**:
+- ADVISORY — no `tests/fixtures/data/full_configs/` root: `pools/` carries every manifest config file, so it is the AC-3 root (one fixture, no duplicate).
+- ADVISORY — AC-2 "logs one error line": in a debug build gdUnit4 reports the assert's script error, so the push_error cannot be asserted separately there; the assert sits after the push_error in the same function, so its firing proves the push_error ran (release: `is_push_error`).
+- ADVISORY — unknown-id assert fires in `Ready` only; during stage 7 an unknown id is data under validation and is logged only (control manifest: never assert on data).
+- ADVISORY — snapshot also carries `pools` (precomputed CR-6 pools); staging key `records` renamed `records_by_type` to match the snapshot.
+- ADVISORY — `collectible_pool()` previously included `boss` cards for `collectible_pool("boss")`; now never (CR-6), via `DataLoader.in_collectible_pool`, which stage 8 also uses.
+- OUT OF SCOPE (directed, [C] story) — contract fixes in `meta_stub.gd`, `boot_meta_stub_test.gd`, `boot_composition_test.gd` and four tests reading `snapshot.configs` / `staging.records`.
+**Test Evidence**: `tests/unit/card_database/card_database_queries_test.gd`, `tests/unit/card_database/card_database_freeze_test.gd`
+**Run result**: N/A — the database has no screen; nothing it does is drawn until Run UI's `data_error` screen (boot epic)
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode)
