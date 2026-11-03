@@ -110,7 +110,7 @@ Main Menu
 
 ### 5.1 ASCII Wireframe
 
-Defeat variant (`defeat_sample`: fell on floor 5, floor 3 attempt 2). Background `bg_edge` everywhere ("torch out"); every text `text_light` / `text_muted`.
+Defeat variant (`defeat_sample`: fell on floor 5, floor 3 attempt 2). Background `bg_edge` everywhere ("torch out"); every text `text_light` / `text_muted` (both tokens pass on `bg_edge` and on the victory variant's `table_lit` — art bible §4, `text_muted` on `table_lit` 5.08:1). The damage table shows **8 rows at 44 px** (y 108–460) plus "and N more" at y 468; the wireframe below abbreviates rows 4–7.
 
 ```
  x:0     40            400 424                824 848              1240 1280
@@ -121,9 +121,9 @@ Defeat variant (`defeat_sample`: fell on floor 5, floor 3 attempt 2). Background
      │ │      │ the Whetted      2 Cleave Through     31   2 G Gloam..   9t     │  (40, 72)
      │ │      │                  3 Iron Vanguard      27   3 B Bog Witch 7t ·att2│
      │ │      │                  4 …                       4 S Sexton    11t     │
- 232 │ └──────┘                  …                         5 ✕ Bone Col. 8t fell │  floors rows 24 px
- 284 │ Your hero fell            10 Tunnel Rat          4   6 ·  band 2          │  facts 24 px rows
-     │ Floors cleared 4 of 8     and 7 more                 7 ·  band 3          │
+ 232 │ └──────┘                  …                         5 ✕ Bone Col. 8t fell │  floors rows 24 px (100–292)
+ 284 │ Your hero fell             8 Tunnel Rat          4   6 ·  band 2          │  facts 24 px rows; damage rows 44 px
+     │ Floors cleared 4 of 8     and 9 more                 7 ·  band 3          │  (8 rows 108–460; "and N more" 468)
      │ 5 matches · 41 turns                                 8 ·  band 3          │
      │ 23:14 played                                                              │
      │ Seed 48A10CC0B2ED54EC [Copy]                        DECK · 27 CARDS       │  deck header 304
@@ -138,7 +138,7 @@ Defeat variant (`defeat_sample`: fell on floor 5, floor 3 attempt 2). Background
       ■ = identification swatch (hero/treasure colour) beside the name, never text colour
 ```
 
-Victory variant: identical geometry; background `table_lit` warmth; headline "FLOORS CLEARED 8 OF 8"; the portrait panel ramps to the hero's full primary over 400 ms; floors list shows all 8 cleared; no reason line. Abandoned variant: headline "RUN ABANDONED — COUNTED AS A LOSS" (player) or the system reason ("Run ended — save could not be read; not counted as a loss"); the three columns stay (the record exists) but Hero Select is absent from the action row (U2).
+Victory variant: identical geometry; background `table_lit` warmth; headline "FLOORS CLEARED 8 OF 8"; the portrait panel ramps to the hero's full primary over 400 ms; floors list shows all 8 cleared; no reason line. Abandoned variant (`abandoned_sample`): **one line and two buttons, nothing else** (run-ui U2 `summary_abandoned`) — the headline "RUN ABANDONED — COUNTED AS A LOSS" (player) or the system reason ("Run ended — save could not be read; not counted as a loss") centred at y 320 on `bg_edge`, and the action row with Main Menu (Secondary, 160x44 at 40, 640) and **New Run (same hero)** (Primary, 240x44 at 1000, 640, focused). No portrait, columns, floors, deck, seed or toasts-on-summary; the record is still archived and readable from the Run Log (`run_detail`).
 
 ### 5.2 Layout Zones
 
@@ -146,8 +146,8 @@ Victory variant: identical geometry; background `table_lit` warmth; headline "FL
 |-----------|-------------|-----------------|-------------|-------------------|
 | Title row | Headline 28 px bold `text_light`, centred: victory `summary.headline.victory` "Floors cleared {F} of {F}"; defeat `summary.headline.defeat` "Fell on floor {n} — {boss}"; abandoned `summary.headline.abandoned.player` / `.system.{reason}` | 1280 x 48 (0–48) | No | Shrink to 24 px, then ellipsise the boss name (full name in the floors list) |
 | Left column — hero & facts | Portrait 120x160 at (40, 72) in hero primary (saturates on victory — the one allowed fill); name 16 px bold + identity 14 px right of it (x 176, w 224); facts list from y 284, 24 px rows, 16 px: reason line (defeat only: `summary.reason.hero_dead` "Your hero fell" / `.both_dead` "Both fell — the boss wins ties" / `.concede` "Conceded" / `.turn_cap` "Turn cap reached"), "Floors cleared {n} of {F}", "{m} matches · {t} turns", "{mm:ss} played" (`play_seconds`), "Seed {hex}" 13 px `text_muted` + Copy (Secondary, 80x32) + "custom seed" tag when `seed_source = custom`; Treasures row (Treasure Chips in pick order, 40x40 / 44 hit, tooltips) at y 412; "New unlocks" list (one line per `unlocks_granted[]`: swatch 12x12 + "New {kind} unlocked: {name}" 16 px) from y 440 | 360 x 528 (40–400, 72–600) | No | Unlocks > 4 lines → "and N more" line; the toasts and the run log carry the rest |
-| Centre column — damage table | Header "Damage by card" 16 px bold at y 72; rows from y 108, 36 px each (rank 2 ch, card name — Card Inspect on hover / focus, damage numeral right-aligned 16 px bold), `summary_top_cards` = 10 rows → y 468; "and {N} more" 14 px `text_muted` at y 476 when `len(damage_by_card) > 10`; empty: "no damage dealt" (run-ui Edge Cases) | 400 x 528 (424–824) | No (fixed 10 rows) | Card name ellipsises at 240 px; full card in Card Inspect |
-| Right column — floors | Header "Floors" at y 72; one row per floor 1..F from y 100, 24 px: floor number, band glyph (R/G/B letter + band colour swatch — not colour alone), boss name (cleared floors and the killing floor only; upcoming floors show "band n" **never the boss identity**, run-structure UI Req), turns, "attempt {n}" when `match_attempts[floor] > 1`, "✕ fell" on the defeat floor | 392 x 216 (848–1240, 72–288) | No | F > 10 → rows 20 px (F ≤ 12 per run-structure safe range) |
+| Centre column — damage table | Header "Damage by card" 16 px bold at y 72; **8 visible rows** from y 108, **44 px** each (List Item rule — the rows are focusable for Card Inspect, so they are hit targets): rank 2 ch, card name — Card Inspect on hover / focus, damage numeral right-aligned 16 px bold → rows end at y 460; "and {N} more" 14 px `text_muted` at y 468 (N = `len(damage_by_card) − 8`; the record still carries `summary_top_cards` = 10, the Run Log detail shows them all); empty: "no damage dealt" (run-ui Edge Cases). The column ends at y 486, 74 px above the status line at y 560 | 400 x 414 (424–824, 72–486) | No (fixed 8 rows) | Card name ellipsises at 240 px; full card in Card Inspect; 7 rows at 125 % (55 px, ends 493 + "and N more" 501–519), 6 rows at 150 % (66 px, ends 504 + 512–533) — never past y 540 |
+| Right column — floors | Header "Floors" at y 72; one row per floor 1..F from y 100, 24 px (F = 8 → y 100–292): floor number, band glyph (R/G/B letter + band colour swatch — not colour alone), boss name (cleared floors and the killing floor only; upcoming floors show "band n" **never the boss identity**, run-structure UI Req), turns, "attempt {n}" when `match_attempts[floor] > 1`, "✕ fell" on the defeat floor. This block is the summary's rendering of **run-ui U9's per-floor strip** (8 cells, `attempt > 1` marked, killing boss marked) — expanded into rows because the summary has the room; the data and marks are U9's | 392 x 220 (848–1240, 72–292) | No | F > 10 → rows 20 px (F ≤ 12 per run-structure safe range); the deck header at y 304 leaves a 12 px gap |
 | Right column — deck | Header "Deck · {n} cards" at y 304; Scroll Container 848, 332, 392, 268 with List Item rows 44 px in acquisition order (15 starter, then each bundle's 3): cost stamp, name, type initial; non-starter cards carry a "D f{floor}" tag (`drafts[]`) — drafted cards marked by glyph + text, not colour; Card Inspect on hover / focus | 392 x 296 (848–1240, 304–600) | Yes — vertical (36 cards = 1584 px) | Bar always shown when > 6 rows |
 | Status line | Latest actionable `run_warning` (`save_failed`, `boss_pool_short`) repeated as text with a "!" glyph, 14 px `text_light`, at (40, 560, 760, 24) | 760 x 24 | No | Hidden when none (deliberate absence); one line, ellipsised with the full text in a tooltip |
 | Action row | Hero Select (Secondary, 160x44 at 40, 640 — absent on abandoned), Main Menu (Secondary, 160x44 at 216, 640; at 40 when Hero Select is absent), **New Run (same hero)** (Primary, 240x44 at 1000, 640) | 1280 x 80 (640–720) | No | Buttons grow left / right, never clip |
@@ -164,9 +164,9 @@ Victory variant: identical geometry; background `table_lit` warmth; headline "FL
 | "custom seed" tag | Text pill | Left | `seed_source = custom` (bests exclude it — Meta M7.4) | Conditional | Yes — `Label` on `ink` pill |
 | Treasure chips | Chip row | Left | Treasures held, pick order | Yes (0–3) | Yes — Treasure Chip |
 | Unlock lines | Text rows + swatch | Left | `unlocks_granted[]` | Yes (0–n) | Yes — same row style as the Toast's title + swatch |
-| Damage table | Table (10 List Item rows, read-only, focusable) | Centre | Top-N damage by card | Yes | Yes — List Item + Card Inspect |
+| Damage table | Table (8 visible List Item rows at 44 px, read-only, focusable) | Centre | Top-N damage by card (+ "and N more") | Yes (victory / defeat; absent on abandoned) | Yes — List Item + Card Inspect |
 | "and N more" / "no damage dealt" | Text | Centre | Overflow / empty | Yes | Yes — Empty State text |
-| Floors list | Text rows | Right | Per-floor result, attempts, killing floor | Yes | Yes — `Label` rows (not focusable — all text) |
+| Floors list | Text rows | Right | Per-floor result, attempts, killing floor (run-ui U9 per-floor strip, expanded) | Yes (victory / defeat; absent on abandoned) | Yes — `Label` rows (not focusable — all text) |
 | Deck list | Scroll Container of List Item rows | Right | Final deck in acquisition order, drafted marked | Yes | Yes — Scroll Container + List Item + Card Inspect |
 | Status line | Text | Left/bottom | Actionable warning repeated (accessibility "Reading time") | Conditional | Yes — Error State "Save failed" persistent line |
 | New Run (same hero) | Button | Action row | Restart | Yes | Yes — Button (Primary) |
@@ -197,8 +197,8 @@ Victory variant: identical geometry; background `table_lit` warmth; headline "FL
 | Defeat — `both_dead` | `reason = both_dead` | Reason "Both fell — the boss wins ties" (DD-M12) | Same | Copy is the only difference |
 | Defeat — `concede` | `reason = concede` | Reason "Conceded" | Same | |
 | Defeat — `turn_cap` | `reason = turn_cap` | Reason "Turn cap reached" | Same | Match Rules `TURN_CAP` |
-| Abandoned — player | `abandon_reason = player` | Headline "Run abandoned — counted as a loss"; `bg_edge`; columns from the record | Hero Select button absent; New Run + Main Menu | Needs fixture `abandoned_sample` (§15) |
-| Abandoned — system | `abandon_reason ∈ {data_version_mismatch, save_corrupt}` | Headline gives the reason and "not counted as a loss" | New Run Disabled with reason if the hero is now locked; else as player-abandon | R6 "system abandons are not losses" |
+| Abandoned — player | `abandon_reason = player` | **One line only**: headline "Run abandoned — counted as a loss" centred at y 320 on `bg_edge`; no portrait, columns, floors, deck or seed (run-ui U2 `summary_abandoned`) | Hero Select button absent; New Run (focused) + Main Menu | Fixture `abandoned_sample` (run-ui U10) |
+| Abandoned — system | `abandon_reason ∈ {data_version_mismatch, save_corrupt}` | Same one-line layout; the headline gives the reason and "not counted as a loss" | New Run Disabled with reason if the hero is now locked; else as player-abandon | R6 "system abandons are not losses" |
 | Attempt marks | `match_attempts[f] > 1` | "attempt n" on that floor's row (defeat_sample: floor 3 "attempt 2") | — | AC-7; replayed floors after `match_faulted` or a mid-match quit |
 | Custom seed | `seed_source = custom` | "custom seed" pill beside the seed | — | Bests exclude it (Meta M7.4) — tooltip says so |
 | Damage table empty | `damage_by_card == {}` (turn-1 concede) | "no damage dealt" instead of rows | Rows not focusable | run-ui Edge Cases |
