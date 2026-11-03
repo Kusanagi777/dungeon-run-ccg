@@ -43,7 +43,9 @@ Workflow standard · review lean · panel TD + PR · automation guided (owner's 
 | design/ux/hero-select.md | APPROVED | 4 |
 | design/ux/run-summary.md | APPROVED | 4 |
 | design/ux/interaction-patterns.md | APPROVED | 4 |
-| design/accessibility-requirements.md | PENDING-FILL | 5 |
+| design/accessibility-requirements.md | APPROVED | 5 |
+
+All six UX documents APPROVED (verbatim verdicts retained in the session scratchpad `reports/ux-review-round*.md`; advisories carried into the first UI stories).
 
 ## Director panel
 | Director | Gate | Verdict |
