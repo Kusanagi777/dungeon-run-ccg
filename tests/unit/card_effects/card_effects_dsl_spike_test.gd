@@ -8,8 +8,10 @@
 ## scene. Event order is asserted on the log double (DD-T04).
 extends GdUnitTestSuite
 
-const SpikeStubEngine := preload("res://src/gameplay/effects/spike/spike_stub_engine.gd")
-const SpikeEffectResolver := preload("res://src/gameplay/effects/spike/spike_effect_resolver.gd")
+# Spike code: written under src/gameplay/effects/spike/, moved here at close
+# (story AC-S3) so no throwaway code stays in a production path.
+const SpikeStubEngine := preload("res://tests/unit/card_effects/spike/spike_stub_engine.gd")
+const SpikeEffectResolver := preload("res://tests/unit/card_effects/spike/spike_effect_resolver.gd")
 
 # --- C11 rows, verbatim -------------------------------------------------------
 const ROW_16_ROT: String = '{"trigger":"hero_power","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":[{"op":"damage","amount":1},{"op":"conditional","if":{"test":["target",{"is_dying":true}]},"then":[{"op":"summon","card_id":"decay_husk","position":"end"}]}]}'

@@ -15,7 +15,8 @@
 ## double (duck-typed so this file names no test class). Gameplay limits come
 ## from the injected `rules_config` (BOARD_SIZE, HAND_SIZE, RESOLUTION_STEP_CAP).
 ##
-## Never import this file from production code (story AC-S3).
+## Never import this file from production code (story AC-S3). Written under
+## src/gameplay/effects/spike/ and moved to this test-only folder at close.
 extends RefCounted
 
 const SIDE_PLAYER: String = "player"

@@ -1,7 +1,7 @@
 # Story 001: Spike — the five hardest DSL effect types (gate condition 6)
 
 > **Epic**: Card Effects
-> **Status**: In Progress
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L
@@ -81,8 +81,8 @@ Rejected as "hard" candidates: value folds (ADR-0005's mechanism, mechanical), `
 
 ## Files
 
-- `src/gameplay/effects/spike/spike_effect_resolver.gd` — created (throwaway spike resolver; deleted from `src/` at close — AC-S3)
-- `src/gameplay/effects/spike/spike_stub_engine.gd` — created (throwaway stub engine; deleted from `src/` at close — AC-S3)
+- `tests/unit/card_effects/spike/spike_effect_resolver.gd` — created (throwaway spike resolver; written under `src/gameplay/effects/spike/`, moved here at close — AC-S3)
+- `tests/unit/card_effects/spike/spike_stub_engine.gd` — created (throwaway stub engine; written under `src/gameplay/effects/spike/`, moved here at close — AC-S3)
 - `tests/unit/card_effects/card_effects_dsl_spike_test.gd` — created (17 test functions)
 - `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` — created (the PROCEED/PIVOT record)
 
@@ -101,7 +101,7 @@ Rejected as "hard" candidates: value folds (ADR-0005's mechanism, mechanical), `
 - Logic: `tests/unit/card_effects/card_effects_dsl_spike_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 - Plus the spike record with its PROCEED/PIVOT line (AC-S2)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — `tests/unit/card_effects/card_effects_dsl_spike_test.gd` (17 tests) and the spike record `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` (PROCEED)
 
 ---
 
@@ -109,3 +109,12 @@ Rejected as "hard" candidates: value folds (ADR-0005's mechanism, mechanical), `
 
 - Depends on: None within this epic (the spike is first by design). Cross-epic: `production/epics/match-rules/` (RulesEngine primitives and `discover()` — a stub engine is allowed if those stories are not done), `production/epics/rng-event-log/` (`TestRngStream` already exists in `tests/helpers/`); story paths are assigned by those epics' concurrent `/create-stories` runs.
 - Unlocks: `production/epics/card-effects/story-006-play-triggers-one-pass.md` through `story-016-determinism-clone-bounds-perf.md` (a PIVOT re-blocks them)
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 3/3 passing (AC-S1 — 17 tests in `tests/unit/card_effects/card_effects_dsl_spike_test.gd`, full suite 83 cases exit 0; AC-S2 — **PROCEED** recorded in `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, no DSL change, stories 006–016 stay unblocked; AC-S3 — nothing remains under `src/gameplay/effects/`, nothing references the spike code from production)
+**Outcome**: PROCEED — ran against a stub engine (match-rules `RulesEngine` not merged); four mutations watched to fail (death check between ops, live-instead-of-snapshot counter, no aura strip, Discover with replacement)
+**Deviations**: ADVISORY — the spike code was written under `src/gameplay/effects/spike/` (commit `0e672cc`) and at close moved to `tests/unit/card_effects/spike/` instead of being deleted outright, so the evidence test still runs; neither story 002 nor 006 promotes it. ADVISORY — the spike record lists 12 non-blocking findings with owners (GDD AC wording `amount`→`dealt`; no C15 event for `add_card_to_hand`; ADR-0007 `resolve()` returns queue entries; row-45 late-counter snapshot edge; `chosen` as a reference; continuation as a work list; later play effects after a pause; empty `auras_recomputed`; G7 blind to subscript writes; string keys in `EffectRuntime`; JSON floats; counter lifetime)
+**Test Evidence**: `tests/unit/card_effects/card_effects_dsl_spike_test.gd`; spike record `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`
+**Run result**: N/A — headless rules spike; no scene or player-visible surface exists, behaviour is observed through the event log in the unit tests
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run)

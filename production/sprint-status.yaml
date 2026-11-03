@@ -30,11 +30,11 @@ stories:
     name: "Spike — the five hardest DSL effect types (gate condition 6; PROCEED/PIVOT)"
     file: "production/epics/card-effects/story-001-dsl-spike-five-hardest.md"
     priority: must-have
-    status: in-progress
+    status: done
     owner: ""
     estimate_days: 3
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "boss-ai-match-driver-001"
     name: "PlannerTask seam and its three implementations"
     file: "production/epics/boss-ai-match-driver/story-001-planner-task-seam.md"

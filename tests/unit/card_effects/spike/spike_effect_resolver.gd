@@ -23,7 +23,9 @@
 ## Discover / Choose One pause stores the *remaining* work list as plain data
 ## (C8.1 continuation) and `resume` continues it — nested or not.
 ##
-## Never import this file from production code (story AC-S3).
+## Never import this file from production code (story AC-S3). Written under
+## src/gameplay/effects/spike/ and moved to this test-only folder at close; the
+## production resolver is story 002's, built fresh.
 extends RefCounted
 
 const SIDE_PLAYER: String = "player"
