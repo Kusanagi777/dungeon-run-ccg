@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -31,6 +31,9 @@ Review record for this run (2026-11-03, `/architecture-decision`, headless, no
   adds them on Linux. The GDD line stays correct on a desktop with a display.
 - Numbering per `design/design-decisions.md` DD-X08 (0005+ in gate-check
   order; `docs/architecture/architecture.md` §Required ADRs assigns 0010).
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** no change;
+  consistent with ADR-0009 Verification (4) and ADR-0011's launch arguments.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 

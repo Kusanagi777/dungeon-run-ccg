@@ -118,7 +118,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Modal Dialog | Feedback / Layout | Blocking overlay with focus trap. | pause-menu, confirm, resume prompt, deck drawer (non-blocking variant), glossary (proposed) | Draft |
 | Confirmation Dialog | Feedback / Layout | Two-button consequence dialog, Cancel focused; typed-token variant for Reset profile. | Abandon, Concede, Clear run records, Reset profile, Start-over-saved-run | Draft |
 | Toast / Notification | Feedback | Queued top-right banner, ≥ 5 s, pausable, never modal. | toast (unlocks, run warnings, draft rejections) | Draft |
-| Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution, hero-select (locked-panel progress, curve strip), run-summary (floor strip cells, drafted-card marks) | Draft |
+| Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution, hero-select (locked-panel progress, curve strip), run-summary (status line full text, custom-seed pill, Disabled New Run reason, per-floor strip cells) | Draft |
 | Progress Bar | Feedback / Layout | **Not used** — no loading bars; floor progress is the Progress Strip pattern. | — | N/A |
 | Input Field | Input | `LineEdit` with visible label. | hero-select (seed), confirm (typed token), settings Controls page (key capture — Alpha) | Draft |
 | Tab Bar | Navigation | **Not used in v1** — settings is one scrollable list; revisit if a Controls page is added. | — | N/A |
@@ -391,6 +391,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 - Default focus: **Cancel**
 - Typed-token variant (Reset profile only, meta M1.1): an Input Field under the body showing the required word; Confirm stays Disabled until the text matches exactly; Enter in the field moves focus to Confirm (does not confirm). Not used anywhere else — it is friction by design for the one irreversible action.
 
+**States**: Inherits Modal Dialog (Opening / Open / Closing, focus trap and return); the one addition is Confirm **Disabled** until the typed token matches (typed variant only).
+
 **Accessibility**: Inherits Modal Dialog. Default focus on Cancel is required. Because Cancel is focused, a reflexive Enter cancels — the safe outcome. The consequence sentence is in the dialog's accessible description. No countdown, no auto-dismiss.
 
 **Implementation Notes**: One `confirm.tscn` parameterised by `{title_key, body_key, confirm_key, token: String | null}`; run-ui's `confirm` overlay and match-ui's concede confirm are the same scene.
@@ -409,7 +411,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | State | Visual | Input | Response | Duration | Audio |
 |-------|--------|-------|----------|----------|-------|
 | Entering | `table_dark` banner at top-right (run) / below the top bar, right (match; never over the boss intent banner); `text_light` title ("New hero unlocked: Fortune"), `text_muted` subtitle (unlock condition / warning detail); identification swatch for unlocks; fades in (slides only if not `reduce_motion`) | Queue drain while the shell is idle (run-ui U5) | — | `toast_in_out` 200 ms | `ui_unlock` / none (warning) / `ui_select` (Copied) |
-| Displayed | Static; dismiss "×" affordance at right | Hover or focus **pauses the timer**; LMB anywhere on it or Enter when focused dismisses | — | `t_toast` = clamp(5000 + 30·chars, **5000**, **8000**) ms (run-ui F3 with the floor raised — Open Questions); "Copied" variant 1500 ms (non-informational) | — |
+| Displayed | Static; dismiss "×" affordance at right | Hover (or LMB hold) **pauses the timer** — toasts take no focus, so there is no focus pause (acceptable because the toast is never the sole channel); LMB release anywhere on it dismisses | — | `t_toast` = clamp(5000 + 30·chars, **5000**, **8000**) ms (run-ui F3 `toast_min_ms` 5000 / `toast_max_ms` 8000); "Copied" variant 1500 ms (non-informational) | — |
 | Auto-dismiss | Fade out | Timer | Next toast after `toast_gap_ms` 150 | 200 ms | — |
 | Queue overflow | — | > `toast_queue_max` 8 | Oldest *warning* dropped first; unlocks never dropped (run-ui U5) | — | — |
 
@@ -1005,6 +1007,8 @@ The run shell has **one base screen at a time plus overlays** (run-ui U1): base 
 
 Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade` (run); the base behind a modal is input-disabled recursively; the base behind a drawer keeps working.
 
+**Implementation Notes**: `ModalLayer` (`CanvasLayer` 60) and `DrawerLayer` (`CanvasLayer` 40) each hold one stack; opening a modal calls `base.propagate_call("set_process_input", [false])`-style recursive disable on the base and stores `return_focus`; a drawer only records `return_focus` when opened by key. The table above is the data for one `OverlayPolicy` resource per overlay (`modal`, `dims`, `esc_step`, `focus_on_open`).
+
 ---
 
 #### Focus Management
@@ -1031,6 +1035,8 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 | Gamepad (post-v1) | d-pad = `focus_neighbor_*` spatial moves over the same graph; `ui_accept` = Enter; `ui_cancel` = Esc; shoulder = `Tab`/`Shift+Tab`. No v1 decision may require a pointer with no focus equivalent. |
 | Mouse hover vs focus | Hover never moves keyboard focus (engine reference: focus and hover are separate in 4.6+); a click does. A hovered-but-unfocused element is highlighted, not selected. |
 
+**Implementation Notes**: Each screen scene wires `focus_neighbor_*` / `focus_next` / `focus_previous` from its Focus Order table at `_ready()`; the ring is one `FocusRing` overlay `Control` that follows `get_viewport().gui_get_focus_owner()` rather than per-widget theme styleboxes; `ModalLayer` stores and restores `return_focus`; the match idle order is built by `InputRouter` from the live view-state each time the queue goes idle.
+
 ---
 
 #### Escape / Cancel
@@ -1049,7 +1055,9 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 | PC (mouse) | RMB | Steps (1) and (2) only — RMB cancels a targeting session or closes a drawer; it never opens the pause menu and never navigates (so a stray right-click during play costs nothing). |
 | PC (gamepad, post-v1) | B / Circle | Same chain as `Esc`. |
 
-**Rules**: `Esc` is never rebound to anything else and never commits an action. Every screen's UX spec states its `Esc` behaviour explicitly, including "opens pause menu" for Mulligan / Choice and "nothing" for the match-end banner — per match-ui U5 (its chain skips the no-cancel overlays to step (4)) and DD-X09 (the banner is the one modal where the chain stops). A Choice has no legal "back" (match-rules States); the only way out is concede from the pause menu, which the chain makes reachable in two presses.
+**Implementation Notes**: `InputRouter` (match) and `RunShell` (run) each implement the chain as one ordered function; a screen or overlay registers only which step it answers (`cancel_session`, `close_drawer`, `close_modal`, `back`) and never handles `Esc` itself; RMB calls the same function with `max_step = 2`.
+
+**Rules**: `Esc` is never rebound to anything else (the one shortcut excluded from the Controls page — Standard Shortcuts) and never commits an action. Every screen's UX spec states its `Esc` behaviour explicitly, including "opens pause menu" for Mulligan / Choice and "nothing" for the match-end banner — per match-ui U5 (its chain skips the no-cancel overlays to step (4)) and DD-X09 (the banner is the one modal where the chain stops). A Choice has no legal "back" (match-rules States); the only way out is concede from the pause menu, which the chain makes reachable in two presses.
 
 ---
 
@@ -1058,9 +1066,11 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 **Category**: Navigation
 **Status**: Draft
 **When to Use**: Every screen inherits this table unchanged; a spec may say which rows apply, never add a key — additions go through this library.
-**Accessibility**: No chord except the optional `Shift+Tab`; no shortcut commits a destructive action; every key is an `InputMap` action rebindable by Alpha, and every action it triggers is also reachable by mouse.
+**Accessibility**: No chord except the optional `Shift+Tab`; no shortcut commits a destructive action; every key is an `InputMap` action rebindable by Alpha **except `Esc` (`cancel`), which is fixed like LMB / RMB** so the Escape / Cancel chain always has one guaranteed key, and every action it triggers is also reachable by mouse.
 
-All shortcuts are `InputMap` actions (rebindable by Alpha; accessibility-requirements Motor). Defaults:
+All shortcuts are `InputMap` actions (rebindable by Alpha, except `cancel` / `Esc` — accessibility-requirements Motor "Full input remapping" states the same exception). Defaults:
+
+**Implementation Notes**: One `shortcuts.json` string table maps action names → default keys for the Controls page; `InputRouter` (match) and `RunShell` (run) read actions, never key codes; `cancel` is omitted from the rebindable list the Controls page builds.
 
 | Key | Match (Match UI) | Run screens (Run UI) | Source |
 |-----|------------------|----------------------|--------|
@@ -1101,6 +1111,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Accessibility**: Text, not spinners; everything skippable; a failed load is a screen the player can act on (copy report, quit), never a hang.
 
+**Implementation Notes**: Boot is `boot.tscn` with a 2 s `Timer` that reveals the `loading_cards` label; match handoff is `RunShell.hide()` after `MatchScene.ready` (never `queue_free`); `run_start` is the run-ui U2 scene; the profile save is a `WorkerThreadPool` task whose failure emits `run_warning(save_failed)`.
+
 ---
 
 #### Empty State
@@ -1126,6 +1138,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Rule**: Every empty state must include an icon, a message, and either a sub-message or an action button — except the four "deliberate absence" rows above, where showing nothing *is* the design and the spec says so.
 
+**Implementation Notes**: One `empty_state.tscn` (glyph `Label`, message, sub-message, optional Button) with string keys `empty.<location>.*`; a list scene swaps its `ScrollContainer` for the empty scene when `count == 0`; the "deliberate absence" rows are plain `visible = false` on the container and need no scene.
+
 ---
 
 #### Error State
@@ -1146,6 +1160,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Principle**: Error messages are never the player's fault. They tell the player what happened and what to do next.
 
+**Implementation Notes**: `data_error` is its own base scene (run-ui U2) fed by the Card Database validation report; profile problems set `MainMenu.status_line` from meta M5/M6 codes; `save_failed` goes through `ToastLayer` and the summary / menu status line; match rejections are `RejectionFeedback` keyed `reject.<code>`; draft rejections reuse `ToastLayer` with keys `E_*`. Every message is a string-table key, never a literal.
+
 ---
 
 #### Success Confirmation
@@ -1162,6 +1178,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 | Setting changed | Live effect (text grows, motion stops, colours swap) + the control's own state; no "Saved" toast | Meta debounces the write silently |
 | Rebind (Alpha) | Row shows the new key; conflict shows the other action's name inline | — |
 | Unlock earned | Unlock toast + row on the summary + hero select panel changes | Three channels |
+
+**Implementation Notes**: "Copied" is a 1.5 s `Timer` swapping the button's `text` key (`copy` → `copied`) with no scene change; `committed` is the `OptionRow` flag (Pick One of N); settings rows apply through the Meta setter and read back the live value; the rebind row is the Controls page `List Item` re-rendering its key label.
 
 ---
 
@@ -1279,7 +1297,7 @@ GDD change before they are real:
 | `Tab` in match idle as inspect-cycle (extends match-ui U5 where `Tab` exists only in targeting). | Match UI GDD | Before `/ux-design hud` | **Resolved 2026-11-03** — match-ui U5 "Keyboard inspect (focus cycling in `Idle`)"; this library's Focus Management owns the stop list, `hud.md` the per-element order |
 | `end_turn_arm_ms` (300 ms proposed) to separate skip from End Turn on the same key; alternative: Space = skip only, Enter = End Turn. | Match UI GDD + Jacob | Before `/ux-design hud` | **Resolved 2026-11-03** — guard adopted: match-ui U5 "Arm guard", Tuning Knobs `end_turn_arm_ms` 300 (150–600) |
 | Esc on Mulligan / Choice / end banner → pause menu (not "close overlay"). | Match UI GDD | Before `/ux-design choice-overlay` | **Resolved 2026-11-03** — Mulligan / Choice: pause menu opens over them (match-ui U5, O19); end banner: **`Esc` does nothing**, pause unreachable in `Ended` (DD-X09) — chain step (4a) |
-| Toast floor 5000 ms / cap 8000 ms and hover-pauses-timer (run-ui F3 ranges widen). | Run UI GDD | Before `/ux-design toast` | **Resolved 2026-11-03** — run-ui F3 `toast_min_ms` 5000 / `toast_max_ms` 8000, hover / focus pause, one toast at a time |
+| Toast floor 5000 ms / cap 8000 ms and hover-pauses-timer (run-ui F3 ranges widen). | Run UI GDD | Before `/ux-design toast` | **Resolved 2026-11-03** — run-ui F3 `toast_min_ms` 5000 / `toast_max_ms` 8000, hover (or LMB hold) pause — toasts take no focus — one toast at a time |
 | Unaffordable-card cue: dashed `text_muted` cost ring (proposed) and whether 60% alpha keeps `text_ink` on `parchment` ≥ 4.5:1. | `/ux-design hand` + art-director manual pass | Pre-Production | Open |
 | `F11` fullscreen and `Ctrl+C` copy conveniences — adopt as default `InputMap` actions? | Jacob | Pre-Production | Proposed |
 | Reading panel at `text_scale` 125/150% — approve as the card-text scaling path. | Jacob | `/ux-design hand` | Open (accessibility-requirements recommends it) |

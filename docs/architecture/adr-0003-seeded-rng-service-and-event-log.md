@@ -84,9 +84,9 @@ suite enforces.
 | Field | Value |
 |-------|-------|
 | **Depends On** | ADR-0001 (rules / presentation split: `RefCounted` rules tree, constructor injection, the grep gates this ADR's rule 7 lint joins) — must be Accepted before implementation starts |
-| **Enables** | ADR-0004 (`RngService.snapshot()` shape and `EventLog.to_json()` travel inside the `RunRecord`); ADR-0005 (`cause_seq` attribution of hook effects); ADR-0006 (the event buffer the planner seam replays — subscribers are main-thread only, decided here); ADR-0007 (resolver draws directly from `rng_match`, card-effects C6.9); ADR-0008 (`MatchConfig.rng_match` / `rng_ai` / `log` fields); ADR-0009 (`AnimationQueue` groups by `cause_seq` root) |
+| **Enables** | ADR-0004 (`RngService.snapshot()` shape and `EventLog.to_json()` travel inside the `RunRecord`); ADR-0005 (`cause_seq` attribution of hook effects); ADR-0006 (the main-thread-only subscriber rule the clone-and-replay planner seam relies on — decided here); ADR-0007 (resolver draws directly from `rng_match`, card-effects C6.9); ADR-0008 (`MatchConfig.rng_match` / `rng_ai` / `log` fields); ADR-0009 (`AnimationQueue` groups by `cause_seq` root) |
 | **Blocks** | Epic "Foundation — RNG & Event Log" (E1 story set: the `TODO(E1)` swap in `tests/helpers/`); every Core epic (match-rules, card-effects, boss-ai) — they take `rng_match` / `rng_ai` / `log` through `MatchConfig` |
-| **Ordering Note** | Write order per architecture.md: 0001 → 0002 → **0003** → 0004 → 0010. ADR-0002 is not a dependency: this ADR reads only two knobs (`log_memory_budget_bytes`, `keep_match_logs`) via `CardDatabase.config("…")`, and the composition root passes them as plain constructor arguments, so the log class never names the database. |
+| **Ordering Note** | Write order per architecture.md: 0001 → 0002 → **0003** → 0004 → 0010. ADR-0002 is not a dependency: this ADR reads only three knobs (`log_memory_budget_bytes`, `avg_event_bytes`, `keep_match_logs`) via `CardDatabase.config("rng_event_log")` (DD-T01 row `rng_event_log.json`), and the composition root passes them as plain constructor arguments, so the log class never names the database. |
 
 ## Context
 
@@ -126,7 +126,8 @@ pins Godot 4.7.2 / GDScript.
   collaborator in `_init`, reference no Node, no autoload, no scene; they must
   parse with no autoload present (`.claude/scripts/godot-parse-check.gd`).
 - Data owns the numbers (DD-T01): `log_memory_budget_bytes`, `avg_event_bytes`
-  and `keep_match_logs` come from `assets/data/*.json`; no literal in code.
+  and `keep_match_logs` come from `assets/data/rng_event_log.json` (DD-T01);
+  no literal in code.
 - GDScript `int` is signed 64-bit; the GDD's arithmetic is unsigned mod 2^64
   (F2 note). `JSON.parse_string` yields `float` for every number (probe E) and
   cannot carry a 64-bit seed.
@@ -147,7 +148,8 @@ pins Godot 4.7.2 / GDScript.
   identical sequences on every stream (AC 1), and reproduce the F1/F2 example
   values bit-exactly (AC 2).
 - Must deliver each event to each subscriber once, in `seq` order, after append,
-  on the main thread (rule 13; architecture.md Data Flow §2 buffering rule).
+  on the main thread (rule 13; architecture.md Data Flow §2 — the live engine
+  is main-thread only).
 - Must round-trip `to_json()` → `from_json()` with `replay_equal` holding (F6),
   including 64-bit seeds and `StringName` types.
 - Must integrate with `MatchConfig` (match-rules C3), `offer()` (reward-draft
