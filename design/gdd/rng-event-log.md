@@ -96,7 +96,7 @@ boss AI is untestable.
    engine version and command sequence produce byte-identical event logs. The guarantee is per
    command sequence, not per seed: if the player plays differently, the boss's later AI decisions
    follow the new board state and are not expected to match the original run (DD-R09 limit).
-10. `snapshot()` returns `{run_seed, data_version, streams: {name: draws}}`; `restore(snapshot)`
+10. `snapshot()` returns `{run_seed_hex, data_version, streams: {name: draws}}` (64-bit values are hex strings in every persisted form — ADR-0003, 2026-11-03); `restore(snapshot)`
     rebuilds each stream by reseeding and discarding `draws` outputs (F5). This is how a saved run
     (DD-R08) resumes mid-sequence without storing engine internals.
 

@@ -94,7 +94,7 @@ atomic write (R7). Every field is JSON-representable (RNG & Event Log rule 14).
 | `schema_version` | int | run start | `RUN_RECORD_SCHEMA_VERSION` = 1; no migrations in v1 |
 | `data_version`, `engine_version` | string | run start | From Card Database and the engine; checked on resume (R8) |
 | `run_id` | string | run start | `<run_seed_hex>-<started_at>`; unique even when seeds collide |
-| `run_seed` / `run_seed_hex` | int64 / string | run start | RNG & Event Log F1; hex is the 16-digit display form (DD-R09) |
+| `run_seed` / `run_seed_hex` | int64 (in memory) / string | run start | RNG & Event Log F1; hex is the 16-digit display form (DD-R09). **Persisted form is the hex string only** — `JSON.parse_string` loses precision above 2^53 (ADR-0003/0004, probe E); `run_seed` is reconstructed from `run_seed_hex` on load. Revised 2026-11-03 per `/architecture-review` |
 | `seed_source` | enum `random \| custom` | run start | `custom` when the player typed a seed (R9) |
 | `hero_id` | string | run start | HeroDef id |
 | `floors_per_run`, `band_split[3]`, `treasure_floors[]` | int, int[], int[] | run start | Copied from config so a saved run keeps the layout it started with |
@@ -109,7 +109,7 @@ atomic write (R7). Every field is JSON-representable (RNG & Event Log rule 14).
 | `match_summaries[]` | MatchSummary[] | match end | RNG & Event Log `match_summary` plus `boss_id, band, attempt, duration_s`; one per floor played (the last attempt) |
 | `draft_state{}` | Dictionary | Reward Draft | Opaque to this system. Schema owned by Reward Draft (D3, confirmed): `{schema_version: 1, treasure_pool: string[]}` — the id-sorted set of treasures unlocked at run start, returned by `RewardDraft.init_run(run_state)` (R2 step 5). Nothing else is stored: exclusion (DD-R05 no-duplicate rule) and pity history are derived from `drafts[]` on every call |
 | `treasure_state{}` | Dictionary | Treasures | Opaque to this system. Schema owned by Treasures (T4, confirmed): `{schema_version: 1, by_treasure: {treasure_id: {…}}}`; initialised empty at run start, read by `installers_for` at every match start and written only by `Treasures.collect_state(hooks, match_result)` after `match_ended` (R4). `by_treasure` stays `{}` for every v1 treasure |
-| `rng_snapshot` | Dictionary | each save | RNG & Event Log `snapshot()`: `{run_seed, data_version, streams{name: draws}}` |
+| `rng_snapshot` | Dictionary | each save | RNG & Event Log `snapshot()`: `{run_seed_hex, data_version, streams{name: draws}}` (64-bit values as hex strings, ADR-0003) |
 | `run_log` | Dictionary | each save | RNG & Event Log `to_json()` of the run-scope log so far (run events + match summaries) |
 | `started_at`, `updated_at`, `ended_at` | int (unix s, UTC) | lifecycle | `ended_at` null until the run ends |
 | `play_seconds` | int | lifecycle | Accumulated from monotonic ticks only while `in_match` or in a draft; menus do not count |
