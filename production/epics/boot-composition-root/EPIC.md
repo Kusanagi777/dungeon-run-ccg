@@ -6,7 +6,7 @@
 > **Control Manifest**: Foundation Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 1 of 14 — plan E1 (Foundation), riskiest-first per ADR order 0001
 > **Status**: Ready
-> **Stories**: 7 (created 2026-11-03 by `/create-stories boot-composition-root`; see the Stories table below)
+> **Stories**: 8 (001-007 created 2026-11-03 by `/create-stories boot-composition-root`; see the Stories table below)
 
 ## Stories
 
@@ -19,6 +19,7 @@
 | 005 | Grep gates G1–G6 and the per-file parse check in CI | Integration | Ready | ADR-0001 |
 | 006 | main.tscn composition entry and the RunShell stub | UI | Ready | ADR-0001, ADR-0011, ADR-0010 |
 | 007 | Boot responsibilities list for the control manifest (gate condition 12) | Config/Data | Ready | ADR-0001 |
+| 008 | Windows Desktop export in CI, uploaded as an artifact (gate condition 8) | Config/Data | Complete (CI run pending) | ADR-0010, ADR-0001 |
 
 Order: 001 → 002 → 003 → 004 → {005, 006} → 007. Cross-epic: 003 and 004 need the `card-database` epic's `CardDatabase` / `ValidationReport` and `profile_defaults.json`; until then their tests inject a `card_database` override. QL-STORY-READY skipped — Lean mode.
 
