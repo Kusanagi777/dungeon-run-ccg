@@ -17,8 +17,12 @@
 ## `type` is stored as a String (rule 14 serialises StringName as String), so
 ## `event.type == "card_drawn"` and `== &"card_drawn"` both hold.
 ##
-## TODO(E1 story): swap to the production event log once it exists; keep this
-## double for tests that need a tiny `max_events`.
+## The production log exists (`src/core/log/event_log.gd`, rng-event-log
+## story 005): a test that needs the real log constructs
+## `EventLog.new(max_events, EventLog.SCOPE_MATCH)` directly and reads it with
+## `events_since(0)` (every `EventLogAssertions` helper takes that Array). This
+## double stays for tests that need a tiny `max_events`, a scripted log, or the
+## public `events` / `turn` / `sealed` fields existing callers use.
 class_name TestEventLog
 extends RefCounted
 

@@ -38,14 +38,14 @@ stories:
     name: "EventLog core — envelope, append, subscribe, events_since, turn, sealing"
     file: "production/epics/rng-event-log/story-005-event-log-core-append-subscribe-seal.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     wave: 1
     serialised: true
     blocker: ""
     note: "test_event_log.gd; merges second in W1"
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-database-002"
     name: "Record schema validation (CR-3, CR-5 stage 4)"
     file: "production/epics/card-database/story-002-record-schema-validation.md"
