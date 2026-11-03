@@ -67,6 +67,14 @@ var seq: int = 0
 var parallel_ok: bool = false
 ## Payload values a presenter draws (`amount`, `code`, `source`, …); never a hidden `card_id`.
 var data: Dictionary = {}
+## Impact extras at `normal` speed, `{hit_stop_ms, shake_ms, slow_ms}` (F3; match-rules
+## Game Feel). The queue drops them at `fast`, `instant` and under `reduce_motion`.
+var impact: Dictionary = {}
+## For a coalesced pop (U4.3): the original steps, in `seq` order; their
+## `apply_final`s run, in that order, when this step ends. Empty otherwise.
+var members: Array[AnimStep] = []
+
+var _final_ran: bool = false
 
 
 ## A step of [param step_kind] for [param ids], lasting [param duration_s] at
@@ -80,6 +88,29 @@ func _init(step_kind: StringName = &"", ids: Array[int] = [], duration_s: float 
 	base_duration_s = duration_s
 	group_id = group
 	seq = event_seq
+
+
+## Ends the step: calls `apply_final` (no arguments — `MatchView` binds the
+## step into it) at most once, after every member's [method run_final] in
+## order. Idempotent (U4.1): a second call does nothing. Called only by the
+## `AnimationQueue`'s clock or its `skip_all`.
+## [codeblock]
+## step.apply_final = presenter.apply_final.bind(step)
+## step.run_final()   # presenter.apply_final(step), once
+## [/codeblock]
+func run_final() -> void:
+	if _final_ran:
+		return
+	_final_ran = true
+	for member: AnimStep in members:
+		member.run_final()
+	if apply_final.is_valid():
+		apply_final.call()
+
+
+## True once [method run_final] has run.
+func final_ran() -> bool:
+	return _final_ran
 
 
 ## The fields two projections of one stream must agree on (match-ui AC L1:
