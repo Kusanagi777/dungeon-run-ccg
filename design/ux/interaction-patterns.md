@@ -12,9 +12,10 @@
 > - `design/art/art-bible.md` §4 — visual standards (colour tokens, typography, state colours and their non-colour backups, card slot layout); §7 UI direction
 > - `design/accessibility-requirements.md` — Standard tier with reduce-motion, high-contrast state set and text scale elevated; the requirements every pattern below must satisfy
 > - `design/gdd/match-ui.md` (U4–U10, F1–F6), `design/gdd/run-ui.md` (U1–U10, F2–F4), `design/gdd/boss-ai.md` (C8, UI Requirements), `design/gdd/reward-draft.md` (UI Requirements), `design/gdd/rng-event-log.md` (UI Requirements) — the system GDDs these patterns implement
-> - `design/ux/[screen].md` — individual screen specs that reference patterns (none exist yet; the screen list is match-ui and run-ui UI Requirements)
+> - `design/ux/[screen].md` — individual screen specs that reference patterns: `hud.md`, `draft-picker.md`, `hero-select.md`, `run-summary.md` exist (2026-11-03); the remaining screens are listed in match-ui and run-ui UI Requirements
 >
 > **Template**: Interaction Pattern Library
+> **REVISED 2026-11-03 (ux-review)**: Mana Bar rect → match-ui F6's two rows (`1060, 652, 196, 20` "n/m" and `1060, 680, 196, 28` crystals) plus the boss compact counter rect `1196, 262, 60, 28`; Treasure Chip → ≤ 3 (`MAX_TREASURES_HELD`), 40x40 visual, 44x44 hit; Segmented Select labels → `Normal / Fast / Instant` (DD-X07), Animation Standards hit-stop "off at `fast`", the label OQ resolved; Escape / Cancel chain, Overlay table and Standard Shortcuts: `Esc` on the match-end banner does nothing and the pause menu is unreachable in `Ended` (DD-X09); stale "proposed / extends / Open Questions" markers on Click-to-Select, Card Inspect, End Turn, Focus Management and Event Feed → "per match-ui U5 / F6 / Tuning Knobs", the matching OQs Resolved; new index rows and short entries for `Deck Drawer`, `Bundle Panel`, `Compact Card Row`, `Curve Strip`, `Locked Hero Panel`, `Top Bar` pointing at their owning specs, and the Gaps rows Top bar / Deck drawer / Compact card row / Gamma slider closed; header "none exist yet" → the four specs; index name `Screen Replace` → `Screen Push / Pop / Replace`; When NOT to Use / Implementation Notes added to Mana Bar, Boss Intent Banner, Progress Strip, Treasure Chip, Event Feed, Rejection Feedback, Skip & Playback, Floating Number; one-line When to Use / Accessibility blocks on every Navigation and Feedback entry; List Item read-only 44 px row rule; "Used In" for Tooltip, Card Inspect, List Item and Scroll Container now names hero-select / run-summary.
 
 > **Why this document exists**: Every UI screen spec should be able to say
 > "uses Button (Primary) pattern" rather than re-specifying hover states,
@@ -110,32 +111,32 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Button (Secondary) | Input | Alternative or back action; `table_dark` + `text_light`, no outline unless focused. | All dialogs (Cancel), Back everywhere, Hero Select / Main Menu on summaries, Take nothing | Draft |
 | Button (Destructive) | Input | Ends or discards something: always opens Confirmation Dialog. | pause (Abandon run, Concede), main-menu (Abandon in resume prompt), settings (Clear run records, Reset profile), hero-select (Start while a run is saved) | Draft |
 | Toggle | Input | Binary setting as a `CheckButton`. | settings (fullscreen, reduce_motion, high_contrast_states, keep_run_records) | Draft |
-| Slider | Input | Continuous value with numeric readout. | settings and pause-menu (master / music / SFX volume), settings (action delay 0–2000 ms, gamma — proposed) | Draft |
+| Slider | Input | Continuous value with numeric readout. | settings and pause-menu (master / music / SFX volume), settings (action delay 0–2000 ms, gamma 0.8–1.4 — DD-X10) | Draft |
 | Dropdown / Select | Input | **Replaced by Segmented Select** for 3–4 option settings; no dropdown in v1. | settings (anim_speed, text_scale, telegraph_mode) | Draft |
-| List Item | Layout / Input | Selectable or read-only row in a scrollable list. | run-log (archived runs), draft-picker deck drawer, data-error rows, event-feed drawer lines | Draft |
+| List Item | Layout / Input | Selectable or read-only row in a scrollable list. | run-log (archived runs), draft-picker deck drawer + compact card rows, hero-select deck drawer, run-summary damage list, data-error rows, event-feed drawer lines | Draft |
 | Grid Item | Layout / Input | **Not used** — all collections are single rows (hand fan, board row, 3-option rows) or vertical lists. | — | N/A |
 | Modal Dialog | Feedback / Layout | Blocking overlay with focus trap. | pause-menu, confirm, resume prompt, deck drawer (non-blocking variant), glossary (proposed) | Draft |
 | Confirmation Dialog | Feedback / Layout | Two-button consequence dialog, Cancel focused; typed-token variant for Reset profile. | Abandon, Concede, Clear run records, Reset profile, Start-over-saved-run | Draft |
 | Toast / Notification | Feedback | Queued top-right banner, ≥ 5 s, pausable, never modal. | toast (unlocks, run warnings, draft rejections) | Draft |
-| Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution | Draft |
+| Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution, hero-select (locked-panel progress, curve strip), run-summary (floor strip cells, drafted-card marks) | Draft |
 | Progress Bar | Feedback / Layout | **Not used** — no loading bars; floor progress is the Progress Strip pattern. | — | N/A |
 | Input Field | Input | `LineEdit` with visible label. | hero-select (seed), confirm (typed token), settings Controls page (key capture — Alpha) | Draft |
 | Tab Bar | Navigation | **Not used in v1** — settings is one scrollable list; revisit if a Controls page is added. | — | N/A |
-| Scroll Container | Layout | Vertical scroll with visible bar and focus-follows-scroll. | run-log, deck drawer, event-feed drawer, data-error, settings | Draft |
+| Scroll Container | Layout | Vertical scroll with visible bar and focus-follows-scroll. | run-log, deck drawer (draft-picker, hero-select), event-feed drawer, data-error, settings, run-summary (damage list at 150 % `text_scale`) | Draft |
 | Card (Hand) | Game-Specific | The 150x210 hand card: playable / unaffordable / hovered / focused / lifted / targeting source. | hand | Draft |
 | Card Drag-to-Play | Game-Specific | Press-drag-release play and attack gesture with pre-release legality. | hand, hud (board), targeting | Draft |
 | Click-to-Select / Keyboard Targeting | Game-Specific | The hold-free path: select a source (click or number key), cycle or click a target, confirm. | hand, hud, targeting | Draft |
 | Targeting Arrow | Game-Specific | Bezier arrow + 3 px ring on the current legal target; follows cursor or keyboard cycle. | targeting | Draft |
 | Board Token | Game-Specific | 90x126 minion token with stamps, badge row, can-attack outline, summon-gap behaviour. | hud | Draft |
-| Card Inspect | Game-Specific | 1.5x preview on hover or focus; reading panel at `text_scale` > 100%. | hand, hud, draft-picker, mulligan, choice-overlay, run-summary, run-log | Draft |
+| Card Inspect | Game-Specific | 1.5x preview on hover or focus; reading panel at `text_scale` > 100%. | hand, hud, draft-picker, mulligan, choice-overlay, hero-select (power plate, deck drawer rows), run-summary, run-log | Draft |
 | End Turn Button | Game-Specific | 140x44 control lit when nothing is left to do; key path with arm guard. | hud | Draft |
 | Hero Power Button | Game-Specific | 48x48 ability button: Ready / Blocked / Used; tooltip with reason. | hud | Draft |
 | Hero Portrait & Health Stamp | Game-Specific | 120x160 panel with 24 px health, armour, weapon slot, passive plate (boss), hand count (boss). | hud | Draft |
-| Mana Bar | Game-Specific | 10 crystals (full / spent / temporary / locked) + "n/m". | hud | Draft |
+| Mana Bar | Game-Specific | 10 crystals (full / spent / temporary / locked) + "n/m" — match-ui F6 `1060, 652, 196, 20` (count) / `1060, 680, 196, 28` (crystals); boss compact counter `1196, 262, 60, 28`. | hud | Draft |
 | Boss Intent Banner | Game-Specific | Forecast / committed / plan-changed banner with icon, amount, reticle; `class_only` and `hidden` modes. | hud | Draft |
 | Pick One of N (Option Row) | Game-Specific | 1–3 option slots, `1/2/3` focus, select-then-confirm, no accidental pick. | mulligan (toggle variant), choice-overlay, draft-picker (treasure + bundle), hero-select | Draft |
 | Progress Strip | Game-Specific | F nodes (cleared / current / upcoming), gem marks, treasure icons, deck size. | progress-strip (shared) on boss-intro, draft-picker, pause | Draft |
-| Treasure Chip | Game-Specific | 40x40 chip, 44 px hit area, tooltip on hover/focus, flare on trigger. | hud (treasure tray), progress-strip, run-summary | Draft |
+| Treasure Chip | Game-Specific | 40x40 visual, 44x44 hit rect, ≤ 3 held (`MAX_TREASURES_HELD`), tooltip on hover/focus, flare on trigger. | hud (treasure tray), progress-strip, run-summary | Draft |
 | Event Feed | Game-Specific | 3-line ticker + 200-line drawer, grouped under command roots, collapsible. | event-feed, hud | Draft |
 | Rejection Feedback | Game-Specific | 0.2 s shake + `reject.<code>` tooltip + related-control flash + feed line; display unchanged. | targeting, hand, hud | Draft |
 | Skip & Playback | Game-Specific | Skip-all on any non-control input; boss-turn pacing with skip hint. | hud | Draft |
@@ -144,7 +145,13 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Context Action Prompt | Game-Specific | **Not used** — no world interaction; the skip hint is part of Skip & Playback. | — | N/A |
 | Minimap / Quest Tracker | Game-Specific | **Not used** — the Progress Strip and the boss passive plate cover orientation. | — | N/A |
 | Health / Resource Bar | Game-Specific | Replaced by Hero Portrait & Health Stamp and Mana Bar (numbers, not bars). | — | N/A |
-| Screen Replace | Navigation | Run base screens replace each other with a skippable fade; no push/pop slide. | All Run UI base screens | Draft |
+| Deck Drawer | Screen-owned compound | Non-blocking right drawer `960, 96, 320, 624`: header, Treasure Chip row, 44 px List Item rows with Card Inspect. Owning spec: `draft-picker.md` §5.2 / §6. | draft-picker, hero-select (starter deck) | Draft |
+| Bundle Panel | Screen-owned compound | 340x320 option panel: theme label band, pitch, 3 Compact Card Rows, Pick One of N slot. Owning spec: `draft-picker.md` §5.2 / §5.3. | draft-picker (bundle variant) | Draft |
+| Compact Card Row | Screen-owned compound | 300x64 read-only List Item: cost stamp, name, type initial; Card Inspect (+ reading panel) on hover / focus. Owning spec: `draft-picker.md` §5.3 / §12. | draft-picker, deck drawer rows | Draft |
+| Curve Strip | Screen-owned compound | 308x28 six-column starter-deck cost curve (numerals + bars; numerals carry the count). Owning spec: `hero-select.md` §5.2 / §5.3. | hero-select | Draft |
+| Locked Hero Panel | Screen-owned compound | Focusable, non-selectable silhouette panel: name, condition text, progress "n / m" from Meta `unlock_progress`. Owning spec: `hero-select.md` §5.3 / §6; the "locked-item progress pattern" meta-progression's UX flag asks for. | hero-select (later: treasure codex) | Draft |
+| Top Bar | Screen-owned compound | `0, 0, 1280, 40` `bg_edge` strip: turn indicator, floor / boss name, feed toggle and menu button (44x44 hits, focus stops 7–8). Owning spec: `hud.md` §4.2 "Top bar". | hud | Draft |
+| Screen Push / Pop / Replace | Navigation | Run base screens replace each other with a skippable fade; no push/pop slide. | All Run UI base screens | Draft |
 | Overlay Open / Close | Navigation | Dims the base to `table_dark`, stacks, restores focus. | pause-menu, confirm, resume prompt, deck drawer, feed drawer, mulligan, choice-overlay, match-end | Draft |
 | Focus Management | Navigation | Where focus starts, moves and returns, per screen; focus ring rules. | All screens | Draft |
 | Escape / Cancel | Navigation | One priority chain for Esc / RMB across match and run. | All screens | Draft |
@@ -268,7 +275,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Category**: Input
 **Status**: Draft
-**When to Use**: Volumes (0–100% shown; stored 0–1), action delay (0–2000 ms), gamma (proposed).
+**When to Use**: Volumes (0–100% shown; stored 0–1), action delay (0–2000 ms), gamma (0.8–1.4, step 0.05, default 1.0 — Meta M9 `gamma` / run-ui `settings`, DD-X10; the slider row carries three preview swatches so the effect is visible in place).
 **When NOT to Use**: `text_scale` and `anim_speed` — three discrete steps are a Segmented Select, so each step is a tested layout.
 
 **Interaction Specification**:
@@ -290,7 +297,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Category**: Input
 **Status**: Draft
-**When to Use**: 3–4 mutually exclusive options whose names are short: `anim_speed` (Normal / Fast / Fastest / Instant — run-ui's labels map onto match-ui's `1.0 / 1.5 / 2.0 / instant` enum, run-ui Open Questions), `text_scale` (100% / 125% / 150%), `telegraph_mode` (Full / Brief / Off).
+**When to Use**: 3–4 mutually exclusive options whose names are short: `anim_speed` (**Normal / Fast / Instant** — the DD-X07 label set `normal | fast | instant`; match-ui F3 `SPEED_DIV` and run-ui F2 map each label to their own durations), `text_scale` (100% / 125% / 150%), `telegraph_mode` (Full / Brief / Off).
 **When NOT to Use**: Lists longer than 4 (none exist in v1); binary settings (Toggle).
 
 **Interaction Specification**:
@@ -325,6 +332,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Expandable group (feed) | "+N more" affordance as a trailing Secondary-styled text button | LMB / Enter on it | Group expands in place; focus stays on the affordance | instant | — |
 
 **Accessibility**: Up/Down are the primary keys inside a list; Tab leaves the list (one stop in / one stop out). Row position is announced for stock `ItemList`/`Tree`; custom rows carry "row n of N" in their accessible name. Read-only lists are still focusable so Card Inspect works by keyboard.
+
+**Row-height rule**: the 44 px minimum applies to **interactive rows** (selectable, expandable, or focusable-for-inspect — run-log rows, deck drawer rows, compact card rows, the run-summary damage list, feed groups with "+N more"), because they are hit targets (accessibility-requirements Motor "Minimum target size"). A purely read-only row with no focus stop and no hover content (a plain feed line in the ticker, a settings caption) may be as short as its text's line height × 1.3; it must still never be the only place its information appears.
 
 **Implementation Notes**: `ItemList` or `Tree` for text-only lists (free accessibility); custom row scenes inside a `VBoxContainer` for the deck drawer and feed (they host card thumbnails). `ScrollContainer.ensure_control_visible()` on focus.
 
@@ -553,7 +562,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 #### Click-to-Select / Keyboard Targeting
 
 **Category**: Game-Specific
-**Status**: Draft (**extends match-ui U5**: the keyboard half is in the GDD; the pointer entry is this library's addition — Open Questions)
+**Status**: Draft (per match-ui U5 "Click to select" and Tuning Knobs `CLICK_DRAG_PX` 8 px — both entries, pointer and key, are in the GDD; `--pose=select:<id>` captures it)
 **When to Use**: The hold-free path for playing, attacking and targeted hero powers. One state machine, two entries: pointer click or number key.
 
 **States and behaviors**:
@@ -622,7 +631,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 #### Card Inspect
 
 **Category**: Game-Specific
-**Status**: Draft (**extends** match-ui F2's hover preview with the focus path and the reading panel)
+**Status**: Draft (per match-ui F2 for the hover preview and U5 "Keyboard inspect" for the focus path; the `text_scale` reading panel is accessibility-requirements Visual "Text scaling")
 **When to Use**: Any card-shaped thing: hand cards, board tokens, mulligan/Choice/draft options, bundle compact rows, deck drawer rows, run-summary drafted cards, hero power and boss passive plates (text-only variant).
 
 **States and behaviors**:
@@ -656,7 +665,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Hovered / Focused | Lift 2 px / focus ring | |
 | Pressed | Depress; `sfx.ui.end_turn`; boss intent commit beat visible ≤ 300 ms after | `submit(end_turn)` |
 
-**Keyboard**: `Space`/`Enter` = End Turn when Enabled **and the queue has been idle ≥ `end_turn_arm_ms` (proposed 300 ms)**; otherwise the same key is Skip (Skip & Playback). The arm guard exists so a skip press cannot end the turn on the frame the boss turn finishes (accessibility-requirements Motor; Open Questions for match-ui U5). A mouse click is never gated.
+**Keyboard**: `Space`/`Enter` = End Turn when Enabled **and the queue has been idle ≥ `end_turn_arm_ms` (300 ms, match-ui Tuning Knobs, safe range 150–600)**; otherwise the same key is Skip (Skip & Playback). The arm guard exists so a skip press cannot end the turn on the frame the boss turn finishes (match-ui U5 "Arm guard"; accessibility-requirements Motor "Accidental-activation guard"). A mouse click is never gated.
 
 **Accessibility**: State by label colour value + outline (never hue); accessible name "End Turn" with state "nothing left to do" appended when Actionable. Hit area 140x44.
 
@@ -715,7 +724,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Category**: Game-Specific
 **Status**: Draft
-**When to Use**: Player mana (match-ui F6: 1000, 676, 256, 32); the boss has a compact "n/m" counter only.
+**When to Use**: Player mana — match-ui F6's two-row zone `1060, 652, 196, 56`: the "n/m" count at **`1060, 652, 196, 20`** (16 px bold) and the ten 16-px crystals with 4-px gaps at **`1060, 680, 196, 28`**. The boss has the **compact counter** only: "n/m" 14 px bold with a 12 px crystal glyph in the right half of the boss strip, **`1196, 262, 60, 28`** (F6; the left half `1136, 262, 60, 28` is the boss hand count); at `text_scale` ≥ 125 % it relocates into the boss portrait's bottom-right corner (`hud.md` §10.2).
+**When NOT to Use**: Any other resource (there is none — health and armour are the Hero Portrait & Health Stamp, deck size is a pile pill); never as a bar or fill fraction (art bible: numbers, not bars); never in the run shell.
 
 **States**:
 
@@ -728,7 +738,9 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Count | "n/m" 16 px bold `text_light` always shown | The numeric readout is primary |
 | `NOT_ENOUGH_MANA` rejection | Bar flashes outline 0.2 s (Rejection Feedback) | |
 
-**Accessibility**: Four crystal states differ by shape/glyph, not hue. "n/m" scales with `text_scale`.
+**Accessibility**: Four crystal states differ by shape/glyph, not hue. "n/m" scales with `text_scale` (the crystal row does not).
+
+**Implementation Notes**: `ManaBar` scene = `Label` ("n/m") over an `HBoxContainer` of ten `TextureRect` crystals swapping between four textures; driven by `MatchViewState.mana{available, max, temporary}` and locked count at render, never per event (match-ui U3: `mana_*` events produce no step). The boss `CompactManaCounter` is the same `Label` style without the crystal row.
 
 ---
 
@@ -737,6 +749,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: The banner above the boss portrait (match-ui F6: 980, 52, 276, 36) driven by `ai_intent_shown` / `ai_intent_committed` (boss-ai C8).
+**When NOT to Use**: Player-side forecasts (none exist), the turn banner (a separate 0.4 s view-state label), or any run-shell screen — the boss intro's passive text is static copy, not an intent.
 
 **States**:
 
@@ -744,13 +757,15 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 |-------|--------|-------|
 | Forecast (`full`) | Icon per `intent_key` (letters in v1) + localised label + amount ("Attack face for 6") + a reticle glyph on the named target token | `intent_show` 0.3 s |
 | Forecast (`class_only`) | Icon + label only | Boss data |
-| Hidden | No banner; a "?" plate so the absence is visibly deliberate | Band 3 only, reason recorded per boss |
+| Hidden | No banner; a "?" plate so the absence is visibly deliberate | Band 3 only, reason recorded per boss; fixture `boss_intent_hidden` (match-ui U11) |
 | Committed, kept | Banner brightens (commit beat `intent_banner_s`) | |
 | Committed, plan changed | "Plan changed" label for `plan_changed_s`, then the new intent | The Pillar 3 lesson |
 | Lethal | `state_danger` text on `ink` + a single pulse (static under `reduce_motion`) + the word "Lethal" | Word + icon are the cue |
 | Hovered / Focused | Tooltip: full sentence ("The boss plans to attack your hero with its 3 minions for 6") | Focusable in idle |
 
-**Accessibility**: Text + icon always; amount numeric; `telegraph_mode` default `full` (DD-X03) — `brief`/`off` are player choices (owner open, meta-progression Open Questions). Banner text scales; the banner grows left.
+**Accessibility**: Text + icon always; amount numeric; `telegraph_mode` default `full` (DD-X03) — `brief`/`off` are player choices; Boss AI owns `effective_mode = min(intent_mode, telegraph_mode)` and the banner renders exactly what it emits (match-ui U3). Banner text scales; the banner grows left.
+
+**Implementation Notes**: `IntentBanner` scene reads `MatchViewState.intent{intent_key, amount, target, effective_mode, kept}`; the icon is a `TextureRect` keyed by `intent_key` (letters in v1), the label a localised `feed`-style key; the reticle is a child of the target token, not of the banner, so it survives row re-spacing.
 
 ---
 
@@ -783,6 +798,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Shared overlay on `boss_intro`, `draft_treasure`, `draft_bundle`, `pause` (run-ui U6, F4).
+**When NOT to Use**: The match (Match UI owns the HUD and the top bar carries "Floor n"), the summaries (they use the compact **per-floor strip**, run-ui U9 — a read-only 8-cell recap with `attempt > 1` and the killing boss marked, not this interactive-tooltip strip), hero select and the main menu.
 
 **States**:
 
@@ -798,22 +814,29 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Accessibility**: Three node shapes; floor numbers in tooltips; deck size numeric. Not an interactive control — Tab reaches it after the screen's actions.
 
+**Implementation Notes**: `ProgressStrip` scene (`progress-strip.md`) built from run-ui F4 (`node_d` 24, `seg_len` 40, `strip_w ≤ 640`); nodes are `Control`s with `focus_mode = FOCUS_ALL` for the tooltip only; rendered from the `RunState` read model (`floor`, `boss_sequence` masked to cleared + current) so upcoming floors never leak identity.
+
 ---
 
 #### Treasure Chip
 
 **Category**: Game-Specific
 **Status**: Draft
-**When to Use**: Treasure tray in the match (≤ 4, 40x40, match-ui F6), Progress Strip left, run summary.
+**When to Use**: Treasure tray in the match (**≤ 3** held — `MAX_TREASURES_HELD`, treasures.md; 40x40 visual, 44x44 hit rect; match-ui F6 tray `24, 502, 136, 40`, hit zone `22, 500, 140, 44`), Progress Strip left, run summary treasures block.
+**When NOT to Use**: Draft option frames (those are the Card (Hand) static variant with a rarity pill — a chip is a *held* treasure), the boss passive plate, or any list where the name is already written out beside it.
 
 **States**:
 
 | State | Visual | Notes |
 |-------|--------|-------|
-| Held | 40x40 chip: rarity frame + letter glyph; **hit area 44x44** (visual stays 40, gaps 8 → hit areas touch, no overlap) | accessibility-requirements Motor |
+| Held | 40x40 chip: rarity frame + letter glyph; **hit rect 44x44** centred on the visual (chip centres 48 px apart, so hit rects never overlap) | match-ui F6; accessibility-requirements Motor "Minimum target size" |
 | Hovered / Focused | Tooltip: name, rarity word, text, tags as pills, "picked on floor f" (treasures.md) | Immediate on focus |
 | Triggered | Flare: outline flash 0.15 s on a hook-hosted `effect_resolved` (static brightening under `reduce_motion`) | |
 | Tray empty | Tray hidden (Empty State) | |
+
+**Accessibility**: Tooltip on focus as well as hover (match-ui U5 "Keyboard inspect"; `--pose=focus:treasure:<n>`, O18 measures the 44x44 rect); rarity is a word in the tooltip, never the frame colour alone.
+
+**Implementation Notes**: `TreasureChip` is a 44x44 `Control` (the hit rect) drawing a centred 40x40 visual; the tray is an `HBoxContainer` with 4 px separation (44 + 4 = 48 px pitch). If `treasure_floors` ever grows past 3 the tray moves, it does not extend (match-ui F6).
 
 ---
 
@@ -822,6 +845,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: The readable log (rng-event-log UI Requirements; match-ui U10, F5, F6).
+**When NOT to Use**: Run-shell screens (they have no event feed — warnings are toasts, results are summaries) and diagnostics: `diagnostic: true` events never reach the feed outside `--ai-debug` (match-ui U3.4a).
 
 **States and behaviors**:
 
@@ -830,10 +854,12 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Ticker (collapsed) | 3 newest lines, 13 px × `text_scale`, `text_light`/`text_muted` on `table_dark` at 24,48,400,42; non-interactive | — | — |
 | Drawer (open) | Panel 0,40,300,290 (never over the player portrait); last 200 lines grouped under command roots, children indented; groups > 6 collapse to "+N more" (List Item expandable) | `L` / top-bar button toggles; Esc closes it first (Escape / Cancel) | Non-blocking: play continues; focus enters the drawer only when the toggle was by keyboard |
 | New line | Appended at the bottom; auto-scroll unless the player has scrolled up (then a "↓ new" affordance) | — | — |
-| Rejection line | `command_rejected` renders as a `text_muted` line "— rejected: not enough mana" (*required by accessibility-requirements*) | — | — |
+| Rejection line | The player's own `command_rejected` renders as a `text_muted` line keyed `feed.command_rejected` `{command, code}` ("— rejected: not enough mana") — match-ui U3.4a; a boss-side rejection is a plain diagnostic and never prints | — | — |
 | Boss hand | Never shown until played | — | — |
 
 **Accessibility**: The feed is the non-animated, non-timed record of everything (Pillar 4); line height ≥ 1.3; scales with `text_scale` (the drawer grows to 360 px wide at 150%, still clear of the portrait). Drawer is a Scroll Container.
+
+**Implementation Notes**: `EventFeed` renders `MatchViewState.feed_lines[]` (already localised keys + params, grouped by `cause_seq`); the ticker and the drawer are two views of the same ring buffer (`FEED_MAX_LINES` 200), so opening the drawer never re-reads the log. Group collapse (`FEED_GROUP_COLLAPSE` 6) is a List Item expandable row.
 
 ---
 
@@ -842,6 +868,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: `submit` returns `accepted = false` (match-ui U5); run-shell intents dropped while `transitioning` are **silent** debug events, not this pattern (run-ui U4).
+**When NOT to Use**: Inputs the `InputRouter` ignores by state (a disabled End Turn, a number key for an empty slot) — those produce *nothing*, not a rejection; run-shell `E_*` draft rejections, which are a Toast plus uncommit (run-ui U8); and boss-side `command_rejected`, which is a diagnostic.
 
 **Behavior** (all simultaneous, ≤ 50 ms after the rejection):
 - Originating control shakes 0.2 s `reject_shake` (3 px horizontal; under `reduce_motion` a 2-frame outline flash instead).
@@ -853,6 +880,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Accessibility**: Reason is text (tooltip + feed), never a colour or a sound alone; the 1.5 s tooltip is acceptable only because the feed line persists. Works identically for keyboard-issued commands (tooltip anchors to the source).
 
+**Implementation Notes**: One `reject_shake` `AnimStep` emitted by the projection for the player's `command_rejected` (match-ui U3); the tooltip is the Tooltip rejection variant via `TooltipService.show(anchor, "reject.<code>", mode)`; `--pose=reject:<code>` freezes it for capture.
+
 ---
 
 #### Skip & Playback
@@ -860,6 +889,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Any time the animation queue is busy (player command playback, boss turn, end banner) — match-ui U4.5, U6.
+**When NOT to Use**: As a substitute for `anim_speed = instant` (skip is per-moment, the setting is persistent); on the Mulligan / Choice overlays (nothing is animating — their keys select); and the end banner's *exit* is Continue / auto-advance, not a skip — `Esc` there does nothing (DD-X09).
 
 **Behavior**:
 - **Skip-all** triggers: LMB anywhere outside an interactive control, `Space`, `Enter` (while busy), and any new command (flush then submit). Latency ≤ 100 ms; every remaining `apply_final` runs in order within one frame; impact extras cancelled; skipped SFX dropped.
@@ -869,6 +899,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Accessibility**: Skipping never produces a state the animation was not heading to (match-ui U4.6 invariant, AC L6). The skip input is the same key as End Turn, hence the `end_turn_arm_ms` guard (End Turn Button).
 
+**Implementation Notes**: `AnimationQueue.skip_all()` runs every remaining step's `apply_final` in `seq` order inside one frame (match-ui U4.5); the skip hint is a `Label` at `hud.md`'s rect shown by a 1 s timer the queue owns; `--pause-at=<seq>` captures mid-playback.
+
 ---
 
 #### Floating Number
@@ -876,6 +908,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Damage, heal and stat-change pops on tokens and portraits (match-ui Visual/Audio).
+**When NOT to Use**: Mana changes (the bar simply updates — match-ui U3 `mana_*` → no step), deck-count ticks (pile pill), `dealt = 0` with `prevented > 0` or `healed{amount: 0}` (no pop, feed line only), and anything in the run shell ("Deck 21 → 24" is a hint line, not a pop).
 
 **Variants**:
 
@@ -891,6 +924,23 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Accessibility**: Supplementary — the stamp numeral and the feed line carry the same number; pops may be disabled by `anim_speed = instant` without losing information.
 
+**Implementation Notes**: `FloatingNumberPool` of pre-instanced `Label`s on the top `CanvasLayer`; one `number_pop` `AnimStep` per `damage_dealt` / `healed` / `armor_*` event, coalesced past `COALESCE_THRESHOLD` (8) into one step (match-ui U4.3); `reduce_motion` swaps the rise tween for a fade in place.
+
+---
+
+### Screen-Owned Compound Patterns
+
+Compound components a single screen spec introduced and owns. They are indexed here so a second screen can reuse them by name and so `/ux-review` can find them; the **owning spec holds the full specification** (geometry, states, focus order) and this library holds only the contract a reuser must respect. Promote one into a full entry above when a third screen adopts it.
+
+| Pattern | Owning spec | Contract for reusers |
+|---|---|---|
+| **Deck Drawer** | `draft-picker.md` §5.2 "Deck drawer", §6 "Deck drawer open", §7.2 | Non-blocking right drawer `960, 96, 320, 624` over the content, 250 ms slide (fade under `reduce_motion`); header "Deck · n cards" (or "Starter deck · 15 cards" on hero select); Treasure Chip row; 44 px List Item rows (cost stamp, name, type initial) with Card Inspect on hover / focus; Overlay Open / Close row "Deck drawer"; `Esc` / RMB / the toggle closes it first; keyboard open moves focus into the first row, mouse open does not. Reused by `hero-select.md`. |
+| **Bundle Panel** | `draft-picker.md` §5.2 "Option row (bundle)", §5.3 | 340x320 `parchment`-framed `table_dark` panel at run-ui F4 slot x (90 / 470 / 850): 32 px theme-label band, pitch text, three Compact Card Rows, hint line; one Pick One of N slot (select-then-confirm); hover / focus a panel shows "N cards share *theme*" and "Deck a → b". |
+| **Compact Card Row** | `draft-picker.md` §5.3, §12 | 300x64 read-only List Item: cost stamp, name, type initial; focusable for Card Inspect (+ reading panel at ≥ 125 % `text_scale`, which is why the row never reflows); never selectable on its own — selection is the panel's. Also the Deck Drawer's row type. |
+| **Curve Strip** | `hero-select.md` §5.2, §5.3, §12 | 308x28 six-column cost curve (0–5+) of the starter deck: numerals carry the count, bars are decoration (no colour meaning); not focusable on its own — the hero panel's tooltip / Deck Drawer is the reading path. |
+| **Locked Hero Panel** | `hero-select.md` §5.3, §6 "Locked", §12 | Desaturated silhouette panel with lock glyph, name, condition text and progress "n / m" (Meta `unlock_progress`, F6); **focusable, never selectable** (Start stays disabled while it is focused, run-ui AC-3); tooltip immediate on focus; the "locked-item progress pattern" meta-progression's UX flag asks for — the treasure codex reuses it. |
+| **Top Bar** | `hud.md` §4.2 "Top bar", §3.2 | `0, 0, 1280, 40` `bg_edge` strip: turn indicator (16 px), floor / boss name (ellipsised at x 1150), feed toggle and menu button as Button (Secondary) with 44x44 hits and `L` / `Esc` equivalents; focus stops 7–8 of the match idle order. Match only — run screens have the title row. The menu button, like `Esc`, does nothing in `Ended` (DD-X09). |
+
 ---
 
 ### Navigation Patterns
@@ -905,6 +955,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Category**: Navigation
 **Status**: Draft
+**When to Use**: Every Run UI base-screen change (run-ui U2 inventory) and the `begin_match` / `match_view_finished` hand-off; never inside the match, which has no screens, only overlays.
+**Accessibility**: Transitions are skippable by any input, fade-only under `reduce_motion`, 0 at `instant`; focus always lands on a named default (Focus Management), never on nothing except on drafts by design.
 
 The run shell has **one base screen at a time plus overlays** (run-ui U1): base screens *replace* each other; there is no push/pop slide stack, because every base transition is event-driven (`run_floor_entered`, `draft_offered`, `run_ended`) and the only "back" is to the main menu. Overlays use Overlay Open / Close.
 
@@ -926,6 +978,8 @@ The run shell has **one base screen at a time plus overlays** (run-ui U1): base 
 
 **Category**: Navigation
 **Status**: Draft
+**When to Use**: Anything stacked on a base screen or the match table — modals (pause, confirm, resume prompt, Mulligan, Choice, match end) and non-blocking drawers (deck, feed); toasts are their own pattern.
+**Accessibility**: Modals trap focus and return it to the trigger; drawers never steal focus unless opened by keyboard; the dim is `table_dark` (a value change, not a hue), and every modal's `Esc` behaviour is in the table below.
 
 | Overlay | Modal? | Dims base | Esc | Focus on open | Focus on close |
 |---------|--------|-----------|-----|---------------|----------------|
@@ -933,7 +987,7 @@ The run shell has **one base screen at a time plus overlays** (run-ui U1): base 
 | Confirmation Dialog | Yes | Yes | Cancel | Cancel | Trigger |
 | Resume prompt | Yes | Yes | Back | Continue | Continue button on menu |
 | Mulligan / Choice overlay | Yes, **no cancel** | Yes | Opens Pause over it | First option | n/a (closes on confirm) |
-| Match-end banner | Yes, auto-advance 4 s | Yes | Nothing (banner continues) | Continue | n/a |
+| Match-end banner | Yes, auto-advance 4 s | Yes | **Nothing** (banner continues; the pause menu is unreachable in `Ended` — DD-X09, match-ui U5 / U9) | Continue | n/a |
 | Deck drawer (draft) | No | No | Closes it | Drawer only if opened by key | Trigger |
 | Feed drawer (match) | No | No | Closes it | Drawer only if opened by `L` | Trigger / previous |
 | Toast | No | No | Ignored | Never | — |
@@ -947,6 +1001,8 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 
 **Category**: Navigation
 **Status**: Draft
+**When to Use**: Every screen and overlay — each `/ux-design` spec's Focus Order table is an instance of these rules, never a replacement for them.
+**Accessibility**: The focus ring is the one non-negotiable visual (2 px `state_actionable`, 3 px offset, at every `anim_speed`); focus never lands on an element with no visible ring and never disappears when its element does.
 
 > Focus management is the most common keyboard and gamepad accessibility failure
 > in game UIs. These rules must be implemented consistently.
@@ -959,7 +1015,7 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 | Modal open / close | Trapped inside; returns to the trigger (Modal Dialog). |
 | Element disabled / destroyed | Focus moves to the next element in tab order; if a focused hand card is played or burned, focus goes to the card now at that index, else End Turn. |
 | Tab order — run screens | Title-less: options/panels left→right → hints → Primary → Secondary (Back) → Progress Strip → chips. Each `/ux-design` screen spec includes a **Focus Order table** listing every stop in order; `/ux-review` checks it. |
-| Tab order — match idle (`PlayerTurn.Main`, queue idle) | Hand left→right → player row left→right → hero power → player portrait → treasure chips → End Turn → feed toggle → menu button → boss intent banner → boss row left→right → boss portrait → (wrap). `Tab` here *inspects* (Card Inspect / Tooltip); `Enter` on a playable card or legal attacker enters Click-to-Select; this extends match-ui U5, where `Tab` is defined only inside `KeyTargeting` (Open Questions). |
+| Tab order — match idle (`PlayerTurn.Main`, queue idle) | Hand left→right → player row left→right → hero power → player portrait → treasure chips → End Turn → feed toggle → menu button → boss intent banner → boss row left→right → boss portrait → (wrap). `Tab` here *inspects* (Card Inspect / Tooltip); `Enter` on a playable card or legal attacker enters Click-to-Select — per match-ui U5 "Keyboard inspect (focus cycling in `Idle`)", which names this table as the owner of the stop list; `hud.md` Focus Order holds the per-element stops. |
 | Tab order — targeting | `Tab` cycles legal targets/positions only (match-ui U5); leaving the set requires Esc. |
 | Number keys | Run screens: `1/2/3` focus option *n* (run-ui U3). Match: `1`–`9`,`0` select hand card *n* (into targeting); Mulligan/Choice: `1`–`3` toggle/select option *n*. Always "focus/select", never "commit". |
 | Gamepad (post-v1) | d-pad = `focus_neighbor_*` spatial moves over the same graph; `ui_accept` = Enter; `ui_cancel` = Esc; shoulder = `Tab`/`Shift+Tab`. No v1 decision may require a pointer with no focus equivalent. |
@@ -971,17 +1027,19 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 
 **Category**: Navigation
 **Status**: Draft
+**When to Use**: Every `Esc` / RMB / (post-v1) B press anywhere in the game resolves through this one chain; a screen spec states which step applies to it, never a different behaviour.
+**Accessibility**: `Esc` is the universal "undo my last intent" and is never rebound, never commits, and never traps — from every state except `Ended` and `data_error` it reaches the pause menu within two presses.
 
 > The "go back" action is the most-used navigation input in all menu systems.
 > It must be consistent across every screen with no exceptions.
 
 | Platform | Input | Behavior |
 |----------|-------|---------|
-| PC (keyboard) | `Esc` | One priority chain, first match wins: (1) cancel an active drag / click-to-select / keyboard-targeting session; (2) close a non-modal drawer (feed, deck); (3) cancel/close the top-most modal **that has a cancel** (confirm → Cancel, pause → Resume, resume prompt → Back, glossary); (4) on a modal with no cancel (Mulligan, Choice, match-end banner) or with nothing open: open the **pause menu**; (5) on a run base screen: `back` (settings/run log → menu; hero select → menu); (6) on the main menu: Quit confirm. |
+| PC (keyboard) | `Esc` | One priority chain, first match wins: (1) cancel an active drag / click-to-select / keyboard-targeting session; (2) close a non-modal drawer (feed, deck); (3) cancel/close the top-most modal **that has a cancel** (confirm → Cancel, pause → Resume, resume prompt → Back, glossary); (4) on a modal with no cancel (Mulligan, Choice) or with nothing open: open the **pause menu**; (4a) **on the match-end banner (`Ended`): nothing** — no cancel, no pause menu; Continue / `Enter` / the 4 s auto-advance is the only exit (DD-X09; match-ui U5, U9, Edge Cases, O19); (5) on a run base screen: `back` (settings/run log → menu; hero select → menu); (6) on the main menu: Quit confirm. |
 | PC (mouse) | RMB | Steps (1) and (2) only — RMB cancels a targeting session or closes a drawer; it never opens the pause menu and never navigates (so a stray right-click during play costs nothing). |
 | PC (gamepad, post-v1) | B / Circle | Same chain as `Esc`. |
 
-**Rules**: `Esc` is never rebound to anything else and never commits an action. Every screen's UX spec states its `Esc` behaviour explicitly, including "opens pause menu" for the no-cancel overlays — this corrects match-ui U5's "close overlay" wording for Mulligan/Choice (Open Questions). A Choice has no legal "back" (match-rules States); the only way out is concede from the pause menu, which the chain makes reachable in two presses.
+**Rules**: `Esc` is never rebound to anything else and never commits an action. Every screen's UX spec states its `Esc` behaviour explicitly, including "opens pause menu" for Mulligan / Choice and "nothing" for the match-end banner — per match-ui U5 (its chain skips the no-cancel overlays to step (4)) and DD-X09 (the banner is the one modal where the chain stops). A Choice has no legal "back" (match-rules States); the only way out is concede from the pause menu, which the chain makes reachable in two presses.
 
 ---
 
