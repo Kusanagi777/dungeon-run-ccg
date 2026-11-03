@@ -9,6 +9,7 @@
 > minimum) with real content; sections 5–9 are deferred stubs — v1 ships placeholder art
 > (flat shapes, solid fills, system text) and the final 2D stylized illustration style is an
 > Alpha concern. `/asset-spec` owns per-asset specs when that time comes.
+> **REVISED 2026-11-03 (ux-review)**: §4 Text table — one row added, `text_muted` (`#B8AC96`) on `table_lit` (`#4A3626`) at 5.08:1 (computed; AA at every size, AAA large only), so the HUD skip hint and the summary sub-labels can cite it instead of substituting `text_light`. Nothing else changed.
 > **Foundation**: the "Torchlit Ledger" Visual Identity Anchor from
 > `design/gdd/game-concept.md`, built from directly. Constants cited from
 > `design/design-decisions.md` (DD-M01, DD-M08, DD-M09, DD-R01, DD-T05).
@@ -169,6 +170,7 @@ tables as-is.
 | --- | --- | --- | --- |
 | `text_light` | `#F2E9D8` | `bg_edge` 14.75 · `table_dark` 13.07 · `table_lit` 9.43 · `ink` 14.33 · hero primaries 6.2–6.7 · band colours 5.5–7.4 | All AA at any size |
 | `text_muted` | `#B8AC96` | Secondary labels on `bg_edge` (7.94) and `table_dark` (7.03): run seed, floor counter, log timestamps | AA |
+| `text_muted` on `table_lit` | `#B8AC96` on `#4A3626` | Secondary labels inside the lit pool: HUD skip hint, summary sub-labels, draft hint lines (added 2026-11-03, ux-review — `hud.md`, `run-summary.md`) | **5.08:1** (WCAG 2.1 relative luminance) — AA at every size (≥ 4.5 body, ≥ 3 large); AAA only at large text (≥ 18 px regular / 14 px bold). 13 px `text_muted` on `table_lit` is therefore allowed; do not drop it below 12 px |
 | `text_ink` | `#1F1A14` | Card rules text and card name on `parchment` (12.72); labels on `know2` gold (7.20) | AA |
 | `text_ink_muted` | `#5A4E40` | Flavour text / reminder text on `parchment` (5.95) | AA |
 
