@@ -528,7 +528,7 @@ func test_boss_def_adds_passive_text_only_with_passive() -> void:
 
 func test_match_state_defaults_match_setup_step_2() -> void:
 	# Act
-	var state: Dictionary = MatchFactory.make_match_state()
+	var state: MatchState = MatchFactory.make_match_state()
 	var player: Dictionary = state.players[MatchFactory.SIDE_PLAYER]
 	var boss: Dictionary = state.players[MatchFactory.SIDE_BOSS]
 
@@ -542,12 +542,12 @@ func test_match_state_defaults_match_setup_step_2() -> void:
 	assert_int(state.turn).is_zero()
 	assert_str(state.phase).is_equal(MatchFactory.PHASE_MULLIGAN)
 	assert_int(state.next_entity_id).is_equal(MatchFactory.BOSS_HERO_ENTITY_ID + 1)
-	assert_bool(GameAssertions.is_json_representable(state)).is_true()
+	assert_bool(GameAssertions.is_json_representable(state.players)).is_true()
 
 
 func test_summon_fills_board_to_board_size_then_returns_empty() -> void:
 	# Arrange
-	var state: Dictionary = MatchFactory.make_match_state()
+	var state: MatchState = MatchFactory.make_match_state()
 	var board: Array = state.players[MatchFactory.SIDE_PLAYER].board
 
 	# Act
@@ -564,7 +564,7 @@ func test_summon_fills_board_to_board_size_then_returns_empty() -> void:
 
 func test_summon_at_position_inserts_at_index() -> void:
 	# Arrange (match-rules AC-11: position = 2 → board[2])
-	var state: Dictionary = MatchFactory.make_match_state()
+	var state: MatchState = MatchFactory.make_match_state()
 	MatchFactory.summon(state, MatchFactory.SIDE_BOSS, 1, 1)
 	MatchFactory.summon(state, MatchFactory.SIDE_BOSS, 1, 1)
 	MatchFactory.summon(state, MatchFactory.SIDE_BOSS, 1, 1)
@@ -582,7 +582,7 @@ func test_summon_at_position_inserts_at_index() -> void:
 
 func test_derived_health_follows_f6_arithmetic() -> void:
 	# Arrange (match-rules F6 example: a 2/2 buffed to 2/4 with damage_taken 3 → health 1)
-	var state: Dictionary = MatchFactory.make_match_state()
+	var state: MatchState = MatchFactory.make_match_state()
 	var minion: Dictionary = MatchFactory.summon(state, MatchFactory.SIDE_PLAYER, 2, 2, -1, ["taunt"])
 	minion.enchantments.append(MatchFactory.make_enchantment(0, 2, ["windfury"]))
 	minion.damage_taken = 3
@@ -601,7 +601,7 @@ func test_derived_health_follows_f6_arithmetic() -> void:
 
 func test_deal_deck_and_draw_top_move_instances_between_zones() -> void:
 	# Arrange
-	var state: Dictionary = MatchFactory.make_match_state()
+	var state: MatchState = MatchFactory.make_match_state()
 	MatchFactory.deal_deck(state, MatchFactory.SIDE_PLAYER, CardFactory.make_starter_deck_ids("war"))
 
 	# Act
