@@ -66,19 +66,19 @@ Systems, one paragraph each (balanced density):
 
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
-| 1 | Card Database | Core | MVP | In Review | design/gdd/card-database.md | — |
+| 1 | Card Database | Core | MVP | Approved | design/gdd/card-database.md | — |
 | 2 | RNG & Event Log (inferred) | Core | MVP | Approved | design/gdd/rng-event-log.md | — |
 | 3 | Match Rules | Gameplay | MVP | Approved | design/gdd/match-rules.md | Card Database, RNG & Event Log |
 | 4 | Card Effects | Gameplay | MVP | In Review | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
 | 5 | Boss AI | Gameplay | MVP | Approved | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression |
 | 6 | Heroes | Gameplay | MVP | Approved | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
 | 7 | Run Structure | Progression | MVP | Approved | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
-| 8 | Reward Draft | Economy | MVP | In Review | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
+| 8 | Reward Draft | Economy | MVP | Approved | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
 | 9 | Treasures | Gameplay | MVP | Approved | design/gdd/treasures.md | Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes |
 | 10 | Meta Progression | Persistence | Vertical Slice | Approved | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
-| 11 | Match UI | UI | MVP | In Review | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
+| 11 | Match UI | UI | MVP | Approved | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
 | 12 | Run UI | UI | MVP | Approved | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
-| 13 | Content | Gameplay | MVP → Alpha | In Review | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
+| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
 immediately replay a run") can be tested without unlocks; it is still required for v1 (Alpha).
@@ -166,7 +166,7 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 | 10 | Match UI | MVP | Presentation | game-designer, ux-designer, ui-programmer | M |
 | 11 | Run UI | MVP | Presentation | game-designer, ux-designer, ui-programmer | M |
 | 12 | Meta Progression | Vertical Slice | Feature | systems-designer, game-designer | S |
-| 13 | Content | Gameplay | MVP → Alpha | In Review | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
+| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
 
 ---
 
@@ -197,8 +197,8 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 |--------|-------|
 | Total systems identified | 13 |
 | Design docs started | 13 |
-| Design docs reviewed | 13 (8 Approved; 5 In Review awaiting a final pass) |
-| Design docs approved | 8 |
+| Design docs reviewed | 13 (12 Approved; Card Effects awaiting a final pass) |
+| Design docs approved | 12 |
 | MVP systems designed | 12/12 (In Review) |
 | Vertical Slice systems designed | 1/1 (In Review) |
 
