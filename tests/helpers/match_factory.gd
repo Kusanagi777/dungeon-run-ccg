@@ -3,33 +3,37 @@
 ## Based on: design/gdd/match-rules.md C1 (data model), C2 (commands and
 ## rejection codes), C3 (setup), C14/AC-42 (MatchResult).
 ##
-## Returns plain Dictionaries whose field names are the GDD's, so a test can
-## build "a 3/4 attacker and a 2/5 defender on a 7-minion board" in two lines
-## and read `damage_taken`, `attacks_used`, `board[2]` back exactly as the
-## acceptance criteria phrase them. Rules are pure data (DD-T02): nothing here
-## touches a Node, and ids come from the state's own `next_entity_id` so two
-## tests never share a counter.
+## Builds "a 3/4 attacker and a 2/5 defender on a 7-minion board" in two lines,
+## so a test reads `damage_taken`, `attacks_used`, `board[2]` back exactly as
+## the acceptance criteria phrase them. Rules are pure data (DD-T02): nothing
+## here touches a Node, and ids come from the state's own `next_entity_id` so
+## two tests never share a counter.
 ##
-## TODO(E1 story): swap to the production MatchState / PlayerState / Character
-## / Enchantment / Weapon / CardInstance / MatchConfig / CommandResult /
-## MatchResult types once the rules engine exists.
+## Swapped to the production types by match-rules story 001 (ADR-0001: a type
+## change, not a rename). `make_match_state` returns a production `MatchState`,
+## and every record comes from the production builders (`MatchRecords`,
+## `MatchState.make_player_state`), so fixtures and the engine share one field
+## list. `MatchConfig` stays a Dictionary (Run Structure owns its shape, R3).
+## `make_rules_config` is the injected `match_rules` body — the `config` of
+## `assets/data/match_rules.json` — built from `TestConstants`. Since
+## match-rules story 002 `make_match_state` carries a real (empty)
+## `HookRegistry`, and `make_hook_installer` builds `HookInstaller`s.
 class_name MatchFactory
 extends RefCounted
 
 ## Side names as the event catalogue spells them (rng-event-log rule D).
-const SIDE_PLAYER: String = "player"
-const SIDE_BOSS: String = "boss"
-## Phase names per match-rules C2 (the production enum spelling is the
-## engine's to settle; tests compare against these constants, not literals).
-const PHASE_MULLIGAN: String = "mulligan"
-const PHASE_MAIN: String = "main"
-const PHASE_CHOICE: String = "choice"
-const PHASE_ENDED: String = "ended"
+const SIDE_PLAYER: String = MatchRecords.SIDE_PLAYER
+const SIDE_BOSS: String = MatchRecords.SIDE_BOSS
+## Phase names — the production spelling (`MatchState.PHASE_*`).
+const PHASE_MULLIGAN: String = MatchState.PHASE_MULLIGAN
+const PHASE_MAIN: String = MatchState.PHASE_MAIN
+const PHASE_CHOICE: String = MatchState.PHASE_CHOICE
+const PHASE_ENDED: String = MatchState.PHASE_ENDED
 ## Character kinds — heroes and minions share one representation (C1).
-const KIND_HERO: String = "hero"
-const KIND_MINION: String = "minion"
+const KIND_HERO: String = MatchRecords.KIND_HERO
+const KIND_MINION: String = MatchRecords.KIND_MINION
 ## Zones of a CardInstance (C1).
-const ZONES: Array[String] = ["deck", "hand", "board", "graveyard", "resolving"]
+const ZONES: Array[String] = MatchRecords.ZONES
 ## match-rules C2 rejection codes — the closed set, in the GDD's order.
 const REJECTION_CODES: Array[String] = [
 	"MATCH_ENDED", "NOT_YOUR_TURN", "WRONG_PHASE", "CHOICE_PENDING", "ENGINE_BUSY",
@@ -43,69 +47,62 @@ const PLAYER_HERO_ENTITY_ID: int = 1
 const BOSS_HERO_ENTITY_ID: int = 2
 
 
+## The `match_rules` config body (match-rules F9 Limits and Tuning Knobs,
+## `assets/data/match_rules.json` `config`), every value from `TestConstants`,
+## with `overrides` merged on top, frozen with `make_read_only()` as the Card
+## Database freezes real bodies (CR-7). Pass it straight to
+## `RulesEngine.new(db, body, resolver)` — never through `Boot`.
+static func make_rules_config(overrides: Dictionary = {}) -> Dictionary:
+	var body: Dictionary = {
+		"board_size": TestConstants.BOARD_SIZE,
+		"hand_size": TestConstants.HAND_SIZE,
+		"starting_hand_player": TestConstants.STARTING_HAND_PLAYER,
+		"starting_hand_boss": TestConstants.STARTING_HAND_BOSS,
+		"max_mana": TestConstants.MAX_MANA_CRYSTALS,
+		"hero_power_cost": TestConstants.HERO_POWER_COST,
+		"mulligan_rounds": TestConstants.MULLIGAN_ROUNDS,
+		"turn_cap": TestConstants.TURN_CAP,
+		"resolution_step_cap": TestConstants.RESOLUTION_STEP_CAP,
+		"max_attacks_cap": TestConstants.MAX_ATTACKS_CAP,
+		"max_attacks_windfury": TestConstants.MAX_ATTACKS_WINDFURY,
+		"starting_health_player": TestConstants.PLAYER_STARTING_HEALTH,
+		"fatigue_base": TestConstants.FATIGUE_BASE,
+		"fatigue_step": TestConstants.FATIGUE_STEP,
+	}
+	body.merge(overrides, true)
+	body.make_read_only()
+	return body
+
+
 ## A C1 Character base: shared by heroes and minions.
 static func make_character(entity_id: int, controller: String, base_attack: int, base_health: int, keywords: Array = []) -> Dictionary:
-	return {
-		"entity_id": entity_id,
-		"controller": controller,
-		"base_attack": base_attack,
-		"base_health": base_health,
-		"enchantments": [],
-		"damage_taken": 0,
-		"keywords": keywords.duplicate(),
-		"attacks_used": 0,
-		"frozen": false,
-		"frozen_on_turn": 0,
-		"silenced": false,
-	}
+	return MatchRecords.character(entity_id, controller, base_attack, base_health, keywords)
 
 
 ## A hero (C1: `armor`, `base_attack = 0`, same representation as a minion).
 static func make_hero(controller: String, base_health: int = TestConstants.PLAYER_STARTING_HEALTH, entity_id: int = PLAYER_HERO_ENTITY_ID) -> Dictionary:
-	var hero: Dictionary = make_character(entity_id, controller, 0, base_health)
-	hero["kind"] = KIND_HERO
-	hero["armor"] = 0
-	return hero
+	return MatchRecords.hero(entity_id, controller, base_health)
 
 
 ## A minion (C1: adds `def_id`, `summoning_sick`, `summoned_on_turn`).
 static func make_minion(entity_id: int, controller: String, attack: int, health: int, keywords: Array = [], def_id: String = "") -> Dictionary:
-	var minion: Dictionary = make_character(entity_id, controller, attack, health, keywords)
-	minion["kind"] = KIND_MINION
-	minion["def_id"] = def_id
-	minion["summoning_sick"] = true
-	minion["summoned_on_turn"] = 0
-	return minion
+	return MatchRecords.minion(entity_id, controller, attack, health, keywords, def_id)
 
 
 ## A Weapon (C1).
 static func make_weapon(entity_id: int, attack: int, durability: int, def_id: String = "", keywords: Array = []) -> Dictionary:
-	return {
-		"entity_id": entity_id,
-		"def_id": def_id,
-		"attack": attack,
-		"durability": durability,
-		"keywords": keywords.duplicate(),
-		"enchantments": [],
-	}
+	return MatchRecords.weapon(entity_id, def_id, attack, durability, keywords)
 
 
 ## An Enchantment (C1). `source_entity_id` null = no source; `expires` is
 ## null or "end_of_turn".
 static func make_enchantment(attack_delta: int = 0, health_delta: int = 0, keywords_added: Array = [], source_entity_id: Variant = null, is_aura: bool = false, expires: Variant = null) -> Dictionary:
-	return {
-		"source_entity_id": source_entity_id,
-		"attack_delta": attack_delta,
-		"health_delta": health_delta,
-		"keywords_added": keywords_added.duplicate(),
-		"is_aura": is_aura,
-		"expires": expires,
-	}
+	return MatchRecords.enchantment(attack_delta, health_delta, keywords_added, source_entity_id, is_aura, expires)
 
 
 ## A CardInstance (C1).
 static func make_card_instance(instance_id: int, def_id: String, zone: String = "deck") -> Dictionary:
-	return {"instance_id": instance_id, "def_id": def_id, "zone": zone, "cost_modifiers": []}
+	return MatchRecords.card_instance(instance_id, def_id, zone)
 
 
 ## A PlayerState (C1) for `side` at match setup (C3 step 2: mana 0/0,
@@ -114,40 +111,26 @@ static func make_card_instance(instance_id: int, def_id: String, zone: String = 
 static func make_player_state(side: String, overrides: Dictionary = {}) -> Dictionary:
 	var is_player: bool = side == SIDE_PLAYER
 	var hero_health: int = TestConstants.PLAYER_STARTING_HEALTH if is_player else boss_health_for_band(1)
-	var state: Dictionary = {
-		"hero": make_hero(side, hero_health, PLAYER_HERO_ENTITY_ID if is_player else BOSS_HERO_ENTITY_ID),
-		"mana_current": 0,
-		"mana_max": 0,
-		"deck": [],
-		"hand": [],
-		"board": [],
-		"weapon": null,
-		"hero_power": {"def_id": "power_test", "used_this_turn": false},
-		"fatigue_counter": 0,
-		"graveyard": [],
-		"turns_taken": 0,
-		"stats": {"damage_dealt_by_card": {}, "damage_taken": 0, "cards_played": 0, "minions_summoned": 0},
-	}
+	var hero: Dictionary = make_hero(side, hero_health, PLAYER_HERO_ENTITY_ID if is_player else BOSS_HERO_ENTITY_ID)
+	var state: Dictionary = MatchState.make_player_state(hero, "power_test")
 	state.merge(overrides, true)
 	return state
 
 
-## A MatchState (C1) at the end of setup: turn 0, Mulligan phase, player
-## active, both heroes created, `next_entity_id` past the two hero ids.
-static func make_match_state(overrides: Dictionary = {}) -> Dictionary:
-	var state: Dictionary = {
-		"turn": 0,
-		"active_side": SIDE_PLAYER,
-		"phase": PHASE_MULLIGAN,
-		"players": {SIDE_PLAYER: make_player_state(SIDE_PLAYER), SIDE_BOSS: make_player_state(SIDE_BOSS)},
-		"pending_choice": null,
-		"result": null,
-		"next_entity_id": BOSS_HERO_ENTITY_ID + 1,
-		"hooks": [],
-		"floor": 1,
-		"band": 1,
-	}
-	state.merge(overrides, true)
+## A production MatchState (C1) at the end of setup: turn 0, Mulligan phase,
+## player active, both heroes created, `next_entity_id` past the two hero ids,
+## built from `make_match_config()` (no log, no streams). Each key of
+## `overrides` is assigned to the MatchState property of that name.
+static func make_match_state(overrides: Dictionary = {}) -> MatchState:
+	var state: MatchState = MatchState.from_config(make_match_config())
+	state.phase = PHASE_MULLIGAN
+	state.players[SIDE_PLAYER] = make_player_state(SIDE_PLAYER)
+	state.players[SIDE_BOSS] = make_player_state(SIDE_BOSS)
+	state.next_entity_id = BOSS_HERO_ENTITY_ID + 1
+	state.hooks = HookRegistry.new()
+	for key: String in overrides:
+		assert(key in state, "MatchState has no field '%s'" % key)
+		state.set(key, overrides[key])
 	return state
 
 
@@ -180,37 +163,44 @@ static func make_match_config(floor: int = 1, rng: TestRngService = null, log: T
 	return config
 
 
+## A HookInstaller (treasures T3.2; ADR-0005) for `host_id` on `side`
+## (`SIDE_PLAYER` → a treasure, `SIDE_BOSS` → the boss passive unless
+## `host_kind` says otherwise). `hook_points` gives one effect per entry, in
+## order: `{id: "<host_id>.<i>", trigger: <point>, scope: {}, condition: {},
+## ops: [], once_per_turn: false}` (card-effects C1 shape).
+static func make_hook_installer(host_id: String, side: String, hook_points: Array, state: Dictionary = {}, host_kind: StringName = &"") -> HookInstaller:
+	var kind: StringName = host_kind
+	if kind == &"":
+		kind = HookInstaller.HOST_KIND_TREASURE if side == SIDE_PLAYER else HookInstaller.HOST_KIND_PASSIVE
+	var effects: Array[Dictionary] = []
+	for i: int in hook_points.size():
+		effects.append({
+			"id": "%s.%d" % [host_id, i],
+			"trigger": str(hook_points[i]),
+			"scope": {},
+			"condition": {},
+			"ops": [],
+			"once_per_turn": false,
+		})
+	return HookInstaller.new(kind, host_id, StringName(side), effects, state)
+
+
 ## A CommandResult (C2): `{accepted, rejection: null | {code, detail}, events: [first, last]}`.
 static func make_command_result(accepted: bool, code: String = "", detail: String = "", seq_first: int = 0, seq_last: int = 0) -> Dictionary:
-	return {
-		"accepted": accepted,
-		"rejection": null if accepted else {"code": code, "detail": detail},
-		"events": [seq_first, seq_last],
-	}
+	return MatchRecords.command_result(accepted, code, detail, seq_first, seq_last)
 
 
-## A MatchResult with the AC-42 fields. `result` is `win | loss | fault`;
-## a fault carries `winner = null`.
+## A MatchResult with the AC-42 / C14 fields (incl. `final_health`).
+## `result` is `win | loss | fault`; a fault carries `winner = null`.
 static func make_match_result(result: String = "loss", winner: Variant = SIDE_BOSS, reason: String = "hero_dead", floor: int = 1, turns: int = 0, overrides: Dictionary = {}) -> Dictionary:
-	var out: Dictionary = {
-		"result": result,
-		"winner": null if result == "fault" else winner,
-		"reason": reason,
-		"floor": floor,
-		"turns": turns,
-		"turns_per_side": {SIDE_PLAYER: 0, SIDE_BOSS: 0},
-		"stats": {
-			SIDE_PLAYER: {"damage_dealt_by_card": {}, "damage_taken": 0, "cards_played": 0, "minions_summoned": 0},
-			SIDE_BOSS: {"damage_dealt_by_card": {}, "damage_taken": 0, "cards_played": 0, "minions_summoned": 0},
-		},
-	}
+	var out: Dictionary = MatchRecords.match_result(result, winner, reason, floor, turns)
 	out.merge(overrides, true)
 	return out
 
 
 ## Take the next entity id from the state (C1: assigned at creation).
-static func alloc_entity_id(state: Dictionary) -> int:
-	var id: int = int(state.next_entity_id)
+static func alloc_entity_id(state: MatchState) -> int:
+	var id: int = state.next_entity_id
 	state.next_entity_id = id + 1
 	return id
 
@@ -219,12 +209,12 @@ static func alloc_entity_id(state: Dictionary) -> int:
 ## insert positions are 0..board.size inclusive). Returns the minion, or an
 ## empty Dictionary when the board already holds `BOARD_SIZE` (the engine's
 ## `summon_failed {reason: board_full}` case) — no id is consumed then.
-static func summon(state: Dictionary, side: String, attack: int, health: int, position: int = -1, keywords: Array = [], def_id: String = "") -> Dictionary:
+static func summon(state: MatchState, side: String, attack: int, health: int, position: int = -1, keywords: Array = [], def_id: String = "") -> Dictionary:
 	var board: Array = state.players[side].board
 	if board.size() >= TestConstants.BOARD_SIZE:
 		return {}
 	var minion: Dictionary = make_minion(alloc_entity_id(state), side, attack, health, keywords, def_id)
-	minion.summoned_on_turn = int(state.turn)
+	minion.summoned_on_turn = state.turn
 	var index: int = board.size() if position < 0 else clampi(position, 0, board.size())
 	board.insert(index, minion)
 	state.players[side].stats.minions_summoned += 1
@@ -233,7 +223,7 @@ static func summon(state: Dictionary, side: String, attack: int, health: int, po
 
 ## Fill `side`'s deck with CardInstances for `def_ids`, in list order (index 0
 ## is the top, C1); each takes the next entity id as its `instance_id`.
-static func deal_deck(state: Dictionary, side: String, def_ids: Array) -> void:
+static func deal_deck(state: MatchState, side: String, def_ids: Array) -> void:
 	var deck: Array = state.players[side].deck
 	for def_id: Variant in def_ids:
 		deck.append(make_card_instance(alloc_entity_id(state), str(def_id), "deck"))
@@ -241,7 +231,7 @@ static func deal_deck(state: Dictionary, side: String, def_ids: Array) -> void:
 
 ## Draw the top card of `side`'s deck into its hand (no fatigue, no burn — a
 ## fixture move, not the engine's draw). Returns the CardInstance or {}.
-static func draw_top(state: Dictionary, side: String) -> Dictionary:
+static func draw_top(state: MatchState, side: String) -> Dictionary:
 	var deck: Array = state.players[side].deck
 	if deck.is_empty():
 		return {}
@@ -252,7 +242,7 @@ static func draw_top(state: Dictionary, side: String) -> Dictionary:
 
 
 ## Find a character by `entity_id` across both heroes and boards; {} if none.
-static func find_entity(state: Dictionary, entity_id: int) -> Dictionary:
+static func find_entity(state: MatchState, entity_id: int) -> Dictionary:
 	for side: String in [SIDE_PLAYER, SIDE_BOSS]:
 		var player: Dictionary = state.players[side]
 		if int(player.hero.entity_id) == entity_id:
@@ -264,6 +254,8 @@ static func find_entity(state: Dictionary, entity_id: int) -> Dictionary:
 
 
 # --- Derived values (C1: never stored) --------------------------------------
+# Fixture-side mirrors of `RulesEngine.max_health` / `health` / `attack`, kept
+# for suites that need a value without building an engine.
 
 ## `max_health = base_health + Σ enchantment.health_delta`
 static func max_health_of(character: Dictionary) -> int:

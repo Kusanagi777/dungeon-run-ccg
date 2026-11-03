@@ -1,12 +1,12 @@
 # Story 001: Match data model, derived values and rules config
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -67,18 +67,17 @@ This is the first story of the engine: the record shapes every later story mutat
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
+*The code and test files this story creates or changes (replaced by /dev-story with the files it changed).*
 
-- `src/gameplay/match/rules_engine.gd` (constructor, `rules_config` reference, derived-value accessors, `state_snapshot`)
-- `src/gameplay/match/match_state.gd` (MatchState / PlayerState / EffectRuntime construction from `MatchConfig`)
-- `src/gameplay/match/match_records.gd` (Character / Enchantment / Weapon / CardInstance / CommandResult / MatchResult record builders)
-- `assets/data/match_rules.json`
-- `tests/helpers/match_factory.gd` (swap marker `TODO(E1 story)` → production records)
-- `tests/unit/match_rules/match_rules_data_model_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` — created (constructor, `rules_config` reference, `rule(key)`, `load_state` / `state`, derived-value accessors, `state_snapshot`)
+- `src/gameplay/match/match_state.gd` — created (MatchState fields, `from_config`, `make_player_state`, `make_effect_runtime`)
+- `src/gameplay/match/match_records.gd` — created (Character / hero / minion / Enchantment / Weapon / CardInstance / CommandResult / MatchResult builders)
+- `assets/data/match_rules.json` — created (`schema_version` 1, `config` with the 14 F9 / Tuning Knob values)
+- `tests/helpers/match_factory.gd` — modified (swap to production records and `MatchState`; `make_rules_config` fixture)
+- `tests/helpers/test_constants.gd` — modified (`MAX_ATTACKS_WINDFURY` mirror; not in the planned list)
+- `tests/unit/framework/test_helpers_test.gd` — modified (fixture states typed `MatchState` after the swap; not in the planned list)
+- `tests/unit/match_rules/match_rules_data_model_test.gd` — created (17 test functions)
+- `.godot/global_script_class_cache.cfg` — regenerated (MatchRecords, MatchState, RulesEngine)
 
 ## QA Test Cases
 
@@ -94,7 +93,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_data_model_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 17 test functions, passing (full suite exit 0, 2026-11-03)
 
 ---
 
@@ -102,3 +101,18 @@ checks scope against it.*
 
 - Depends on: None (first story of the epic; the Foundation epics `card-database` and `rng-event-log` supply `CardDatabase`, `RngStream` and `EventLog` — tests use `TestRngService` / `TestEventLog` doubles until they land)
 - Unlocks: `production/epics/match-rules/story-002-hook-registry.md`, `production/epics/match-rules/story-003-match-setup.md`
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 3/3 passing — AC-41 `match_rules_data_model_test.gd::test_rules_json_has_config_envelope_with_tuning_knob_defaults`, `::test_engine_reads_every_knob_from_the_injected_rules_config`, `::test_engine_source_binds_no_knob_to_a_literal` (scanner first shown catching three deliberately broken lines); C1 derived values `::test_buffed_damaged_minion_derives_max_health_and_health`, `::test_hero_with_windfury_weapon_derives_attack_and_two_attacks`, `::test_no_record_stores_a_derived_value` (+ edge cases: `::test_hero_enchantment_grants_windfury_without_a_weapon`, `::test_weapon_without_windfury_leaves_one_attack`, `::test_removing_windfury_weapon_returns_max_attacks_to_one`, `::test_max_attacks_is_clamped_to_max_attacks_cap_from_config`, `::test_health_goes_non_positive_when_damage_reaches_max_health`, `::test_enchantment_removal_lowers_health_with_damage_unchanged`, `::test_attack_never_goes_below_zero`); C1 / C3 step 1 `::test_match_state_from_config_holds_exactly_c1_fields`, `::test_records_carry_the_c1_field_names`, `::test_state_snapshot_is_a_json_representable_value_copy`, `::test_no_record_references_a_node`
+**Deviations** (all ADVISORY):
+- `match_rules.json` keys are the GDD knob names in lowercase snake_case (`MAX_ATTACKS_CAP` → `max_attacks_cap`) per DD-T01 / `data-files.md` and `card_database.json`'s precedent; ADR-0005's `cfg.HAND_SIZE` pseudo-code and the GDD's UPPER_CASE names read as the same knobs. `MAX_ATTACKS_WINDFURY` (a Tuning Knobs row, not in AC-41's list) is in the file too, mirrored by a new `TestConstants.MAX_ATTACKS_WINDFURY`. The one rule literal is `RulesEngine.ATTACKS_PER_TURN = 1` (DD-M08/M10; no knob row exists).
+- `max_attacks` has no `modify_max_attacks` fold yet. This story says story 002 adds it; story 002's Out of Scope and Files give the engine's call sites to stories 007/011/012, so the fold is left for story 012 (the clamp is already single and after `n`).
+- API additions not in `architecture.md` §API Boundaries: `load_state(state)` (the seam until `start` in story 003, and for `clone` in 017), `rule(key)` and `rules_config()`. `state()` is ADR-0007's addition.
+- `MatchState` has no `band` field (story AC and GDD C1 list none; `architecture.md` lists one). `MatchResult` gains `final_health{player, boss}` (GDD C14; `architecture.md` lists it, the old factory did not).
+- `db` and `resolver` are `Variant` until `CardDatabase` / `EffectResolver` exist (the story allows the stub; `TODO` markers in `rules_engine.gd`); `MatchState.log` / `rng_match` are `RefCounted` so `TestEventLog` / `TestRngStream` fit.
+- Two files outside the planned list: `tests/helpers/test_constants.gd` (one constant) and `tests/unit/framework/test_helpers_test.gd` (five fixture variables retyped `MatchState`, one JSON check narrowed to `state.players`) — both forced by the factory swap.
+- Two unit tests read versioned repo files (`assets/data/match_rules.json`, the `src/` tree) as static checks, the QA plan's AC-41 approach.
+**Test Evidence**: `tests/unit/match_rules/match_rules_data_model_test.gd` (17 tests); full suite `commands.test` exit 0, 185 test cases, 0 failures; mutation check (weapon branch of `has_windfury` → `return false`) observed failing, exit 100, then restored; ADR-0001 gates G1, G2, G2b, G3, G6 and the data-read gate: 0 hits under `src/gameplay/` (patterns first shown matching a broken sample)
+**Run result**: N/A — headless `RefCounted` rules data with no scene, Node or rendered output; nothing reaches the screen until Match UI exists
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run; engine-specialist check NOT ASSESSED — no agent spawned)

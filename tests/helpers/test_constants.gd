@@ -43,6 +43,8 @@ const TURN_CAP: int = 100
 const RESOLUTION_STEP_CAP: int = 1000
 ## match-rules F9 MAX_ATTACKS_CAP (not registered)
 const MAX_ATTACKS_CAP: int = 4
+## match-rules Tuning Knobs MAX_ATTACKS_WINDFURY (C1 `max_attacks`; not registered)
+const MAX_ATTACKS_WINDFURY: int = 2
 ## match-rules F5 FATIGUE_BASE (DD-M07; not registered)
 const FATIGUE_BASE: int = 1
 ## match-rules F5 FATIGUE_STEP (DD-M07; not registered)

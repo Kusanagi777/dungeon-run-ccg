@@ -1,12 +1,12 @@
 # Story 002: HookRegistry: install order, fold, copy
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -70,16 +70,14 @@ The registry is the seam Treasures and the boss passive use to alter match rules
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
+*The code and test files this story creates or changes (replaced by /dev-story with the files it changed).*
 
-- `src/gameplay/match/hook_registry.gd`
-- `src/gameplay/match/hook_installer.gd`
-- `tests/helpers/match_factory.gd` (`hooks: []` → `HookRegistry.new()`; `make_hook_installer` helper)
-- `tests/unit/match_rules/match_rules_hook_registry_test.gd`
-
----
+- `src/gameplay/match/hook_registry.gd` — created (catalogue constants, `install`, `set_evaluators`, `entries`, `fold`, `run_triggers`, `gate`, `hosts`, `copy`, `entry_count`)
+- `src/gameplay/match/hook_installer.gd` — created (`HookInstaller` with `to_dict` / `from_dict`)
+- `src/gameplay/match/match_state.gd` — modified (`hooks` typed `HookRegistry`; not in the planned list)
+- `tests/helpers/match_factory.gd` — modified (`hooks: []` → `HookRegistry.new()`; `make_hook_installer`)
+- `tests/unit/match_rules/match_rules_hook_registry_test.gd` — created (18 test functions)
+- `.godot/global_script_class_cache.cfg` — regenerated (HookInstaller, HookRegistry)
 
 ## QA Test Cases
 
@@ -95,7 +93,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_hook_registry_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 18 test functions, passing (full suite exit 0, 2026-11-03)
 
 ---
 
@@ -103,3 +101,17 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-001-data-model-and-rules-config.md` (for the `MatchState.hooks` slot and the factory swap; the registry class itself has no dependency and may be built in parallel)
 - Unlocks: `production/epics/match-rules/story-003-match-setup.md`, `production/epics/match-rules/story-007-damage-heal-armor.md`, `production/epics/match-rules/story-011-effective-cost-and-temporary-mana.md`, `production/epics/match-rules/story-017-clone-and-replay.md`
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 4/4 passing — Installation order `match_rules_hook_registry_test.gd::test_install_order_is_player_installers_then_boss_in_effect_order`, `::test_hosts_lists_each_installer_with_its_state_in_order` (+ `::test_catalogue_equals_the_match_rules_hook_table`, `::test_installer_with_zero_effects_records_its_host_and_no_entries`, `::test_hookless_event_trigger_effect_installs_no_entry`, `::test_effect_without_id_defaults_to_host_id_and_index`); Duplicate host `::test_duplicate_host_install_returns_false_and_changes_nothing`, `::test_same_installer_list_on_a_fresh_registry_yields_an_equal_registry`; Fold semantics `::test_fold_chains_three_deltas_without_clamping`, `::test_fold_on_a_point_without_entries_returns_the_input`, `::test_set_then_mul_folds_to_six`, `::test_opposing_deltas_fold_back_to_the_input_through_a_negative`, `::test_run_triggers_calls_each_entry_in_order_with_side_and_ctx`; Copy by value `::test_copy_is_by_value_with_evaluators_unset`, `::test_copy_of_an_entry_free_registry_after_set_evaluators_runs_nothing` (+ `::test_registry_entries_and_hosts_hold_no_object_reference`, `::test_hook_installer_round_trips_through_to_dict`, `::test_factory_match_state_carries_an_empty_hook_registry`)
+**Deviations** (all ADVISORY):
+- An effect's hook point is read from its `trigger` field (card-effects C1 and the treasures table: `{"trigger": "modify_cost", …}`); the Implementation Notes' `effect.hook_point` is read as that field. An effect whose trigger is not one of the 12 hook points (a hook-less event trigger such as `on_minion_died`) installs no entry — ADR-0005 rule 9 — while its host is still listed by `hosts()`.
+- `effect_id` is the effect's `id`, defaulting to `<host_id>.<index>` (card-effects C1). `install` stores `duplicate(true)` copies of each effect and the state blob, so a registry never shares containers with its installers.
+- `entries(point)` returns a read-only shallow copy (the "read-only view"); `gate()` returns `true` for every point and asserts in debug if ever called on a gate point, since v1 has none and ADR-0005 gives no gate evaluator.
+- The debug bound `DEBUG_MAX_ENTRIES = 12` is a code constant citing treasures F5 (`(MAX_TREASURES_HELD + 1) × MAX_EFFECTS_PER_TREASURE`), not read from data; a performance guardrail, not a gameplay value (story 018 exercises it).
+- `MatchState.hooks` is now typed `HookRegistry` (`match_state.gd`, outside the planned list). `MatchState.from_config` still leaves it null: `start()` creates it (story 003).
+- Carried from story 001: `RulesEngine.max_attacks` does not fold `modify_max_attacks` yet. Story 001 said this story adds the fold; this story's Out of Scope gives the engine's fold-then-clamp call sites to stories 007/011/012, so it stays open for story 012.
+**Test Evidence**: `tests/unit/match_rules/match_rules_hook_registry_test.gd` (18 tests); full suite `commands.test` exit 0, 203 test cases, 0 failures; mutation checks — a `maxi(0, …)` clamp inside `fold` and a shallow `duplicate(false)` in `copy` each observed failing (exit 100), then restored; gates G1, G2, G2b, G3, G6: 0 hits under `src/gameplay/`; `priority|weight|sort|signal|emit|log.append|RulesEngine|EventLog|MatchState|is_enabled|duration_turns|stacks|clamp` in the registry and installer: doc-comment hits only
+**Run result**: N/A — headless `RefCounted` plain-data registry with no scene, Node or rendered output; no hook site fires yet and nothing reaches the screen
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run; engine-specialist check NOT ASSESSED — no agent spawned)

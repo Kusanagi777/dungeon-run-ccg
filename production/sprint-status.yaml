@@ -84,20 +84,20 @@ stories:
     name: "Match data model, derived values and rules config"
     file: "production/epics/match-rules/story-001-data-model-and-rules-config.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-002"
     name: "HookRegistry: install order, fold, copy"
     file: "production/epics/match-rules/story-002-hook-registry.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-database-001"
     name: "File manifest, parse and envelope (CR-5 stages 1–3)"
     file: "production/epics/card-database/story-001-manifest-parse-envelope.md"
