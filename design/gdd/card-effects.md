@@ -583,7 +583,7 @@ keyword under DD-M09, or UI the MVP does not have; a card needing one is a GDD c
 
 | Text pattern | Why not v1 | Needs |
 |---|---|---|
-| "+N Durability", "destroy your weapon", "shuffle X into your deck", "discard", "refresh your hero power", "remove Taunt from" | No match-rules primitive | Primitives `modify_durability`, `add_card_to_deck`, `discard`, `refresh_hero_power`, `remove_keyword` (requested, Open Questions) |
+| ~~"+N Durability", "shuffle X into your deck", "discard", "refresh your hero power", "remove Taunt from"~~ — **moved to v1 on 2026-11-03** (cross-review C-22): primitives `modify_durability`, `add_card_to_deck`, `discard`, `refresh_hero_power`, `remove_keyword` are in match-rules Interactions; ops `weapon_durability`, `shuffle_into_deck`, `discard`, `hero_power_refresh`, `remove_keyword` (C5). "Destroy your weapon" is `destroy` on `owner_weapon` (already v1) | — | — |
 | Secrets ("when the enemy attacks, …" hidden until it fires) | Hidden triggered cards in a secret zone; anti-Pillar 4 unless telegraphed | New zone + keyword + UI |
 | Quests / multi-turn progress with a hand display | Counters exist (C5) but the UI to show progress does not | Match UI work; a `quest` keyword |
 | "Your Battlecries trigger twice", "Deathrattles trigger twice" | A trigger-count modifier over other cards' effects | `modify_trigger_count` value trigger (v2 candidate) |

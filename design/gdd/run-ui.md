@@ -364,12 +364,18 @@ t_toast = clamp(toast_base_ms + chars × toast_per_char_ms, toast_min_ms, toast_
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | chars | int | 1 – 200 | calculated | Length of the resolved toast text |
-| toast_base_ms, toast_per_char_ms | int | 1000–3000, 20–50 | data file (2000, 30) | Reading-time model |
-| toast_min_ms, toast_max_ms | int | 1500–3000, 4000–8000 | data file (2000, 6000) | Bounds |
+| toast_base_ms, toast_per_char_ms | int | 3000–6000, 20–50 | data file (5000, 30) | Reading-time model (base = the accessibility floor, so every toast is "5 s plus reading time") |
+| toast_min_ms, toast_max_ms | int | 5000–6000, 6000–10000 | data file (5000, 8000) | Bounds — the 5000 ms floor is an accessibility requirement (accessibility-requirements "Reading time", WCAG 2.2.1), never lowered; the cap keeps a queue of 8 under 66 s |
 | toast_gap_ms | int | 100 – 500 | data file (150) | Pause between queued toasts |
 
-**Output Range:** 2000 – 6000 ms. **Example:** "New hero unlocked: Lady Tallow" (32 chars) →
-2960 ms; a 40-row save-failed detail is capped at 6000 ms and the detail lives in the log.
+The timer counts only while the toast is neither hovered nor focused (U5 pause rule); exactly
+one toast is visible at a time (registry formula `toast_visible_ms`: `clamp(5000 + 30·chars,
+5000, 8000)`, revised 2026-11-03 from `clamp(2000 + 30·chars, 2000, 6000)` — the registry row
+and its `output_range` are updated by the registry owner, not here).
+
+**Output Range:** 5000 – 8000 ms. **Example:** "New hero unlocked: Lady Tallow" (32 chars) →
+5960 ms; a 40-row save-failed detail is capped at 8000 ms and the detail lives in the log and
+the menu status line. The "Copied" flash after Copy seed is not a toast (1500 ms, non-informational).
 
 ### F4. Layout at 1280x720 — option slots and the progress strip
 
@@ -437,6 +443,13 @@ floor 3), two gem marks under nodes 1 and 3, two treasure icons at left, "24 car
 - **If an unlock toast is raised during a transition or a match**: queued until the shell is
   idle (U5); after a victory it therefore shows over the summary, which is where the player
   expects it.
+- **If an unlock toast is still showing when the player restarts** (summary → New Run → `run_start`
+  → `boss_intro` is < 5 s, cross-review S-05): the toast is not cut short — it persists on the
+  toast layer across every transition until its `t_toast` elapses or it is dismissed (U5); the ack
+  was already sent on show, so nothing is re-queued. A warning toast in the same position may be
+  dropped; its content is in the log and the menu status line.
+- **If the player hovers or focuses a toast**: its timer pauses; moving away resumes it; a click
+  or `Enter` dismisses it (U5).
 - **If more than `toast_queue_max` toasts are pending**: warnings drop oldest-first; unlock
   toasts are never dropped (they are also listed on the summary and in the run log, so a
   dropped toast would still not lose information).
@@ -492,8 +505,14 @@ floor 3), two gem marks under nodes 1 and 3, two treasure icons at left, "24 car
 
 **Accessibility**
 - **If a screen has a pick action, it is keyboard-reachable**: `1`/`2`/`3` + `Enter` on all
-  three-option screens, Tab/arrows elsewhere (U3). A screenshot fixture with keyboard-only
-  navigation proves it (AC-19).
+  three-option screens **and** `Tab` / `Shift+Tab` + `Enter` everywhere (the number keys are a
+  shortcut, never the only path — U3); the focused control always shows the 2 px
+  `state_actionable` focus ring. A screenshot fixture with keyboard-only navigation proves it
+  (AC-19).
+- **If `text_scale` is 1.25 or 1.5**: every Run UI text scales (titles, buttons, hints, strip
+  labels, toasts, settings rows, summary tables); the 150x210 card thumbnail does not — its
+  reading path is the 1.5x preview plus the reading panel (interaction-patterns Card Inspect);
+  the bundle panel's compact rows wrap or scroll (Scroll Container) rather than clip (AC-31).
 - **If `anim_speed = instant`**: every transition is 0 ms and every `committed` state resolves
   on the next event; the input lock still exists (it is state-based, not time-based), so
   double-picks remain impossible.
@@ -508,19 +527,19 @@ Card Database (UI Requirements: data-error screen, draft picker, boss intro, her
 Heroes (UI Requirements, Cross-References) name Run UI surfaces — consistent. Reward Draft
 (Interactions, Dependencies, UI Requirements), Meta Progression (Interactions, Dependencies, UI
 Requirements) and Match UI (Dependencies "Run UI depends on this") each name Run UI back —
-consistent as of 2026-11-03. Heroes, Boss AI, Treasures and Content are not in the index row —
-flagged for `/map-systems`, not edited here.
+consistent as of 2026-11-03. Heroes, Boss AI, Treasures and Content were added to the index row
+on 2026-11-03 (cross-review V-42) — consistent.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
-| Run Structure | This depends on Run Structure | Hard | The six commands and the run-scope events (Interactions). Run UI mirrors its phase machine (States and Transitions) and renders its read model; it never saves, never computes a seed, never decides a phase. |
+| Run Structure | This depends on Run Structure | Hard | The seven commands (incl. `suspend`, T21 — cross-review C-12) and the run-scope events (Interactions). Run UI mirrors its phase machine (States and Transitions) and renders its read model; it never saves, never computes a seed, never decides a phase. |
 | Reward Draft | This depends on Reward Draft | Hard (for drafts) | `draft_offered` with 1–3 id-sorted `option_ids` and `flags`; `pick(index)` maps to `draft_pick(kind, id)`, `skip_pick` to `draft_pick(kind, null)` under `allow_skip`. **Confirmed** (U8); the synergy numbers come from its `Offer` read model and are soft (hint hidden if absent). |
-| Meta Progression | This depends on Meta Progression | Soft for MVP (in-memory stub: no Continue, all heroes unlocked, no log, session-local settings — answers match-ui.md's open question for MVP), Hard from Vertical Slice | Load status and ReadOnly banner, Continue presence, unlock state and progress, hero stats, run log pages, pending notifications + ack, settings get/set, clear run records, typed-confirm reset. **Confirmed** (Interactions); Meta's UI Requirements name these surfaces as Run UI's. Open: M9 lacks `anim_speed`, `text_scale`, `high_contrast_states`. |
+| Meta Progression | This depends on Meta Progression | Soft for MVP (in-memory stub: no Continue, all heroes unlocked, no log, session-local settings — answers match-ui.md's open question for MVP), Hard from Vertical Slice | Load status and ReadOnly banner, Continue presence, unlock state and progress, hero stats, run log pages, pending notifications + ack, settings get/set (the DD-X07 record: Meta owns, Run UI edits, Match UI and Boss AI read — M9 carries `anim_speed`, `reduce_motion`, `text_scale`, `high_contrast_states`, `action_delay_ms` as of cross-review C-01), clear run records, typed-confirm reset. **Confirmed** (Interactions); Meta's UI Requirements name these surfaces as Run UI's. |
 | Card Database | This depends on Card Database | Hard | All definitions displayed; the `Failed` report for the data-error screen; `text.en` / key fallback rule. |
 | RNG & Event Log | This depends on RNG & Event Log | Hard | Event envelope the controller renders from; `run_seed_hex` display form; F1 for the seed echo. |
-| Match UI | Mutual (sibling) | Hard | Scene handoff at `begin_match`; control returns on `match_view_finished(result)` (click or 4 s auto) with `match_ended` already processed by Run Structure. **Confirmed in match-ui.md** (Core Rules "Match end", Dependencies). Shared: settings values, the pause-menu settings panel, art-bible theme resource. |
+| Match UI | Mutual (sibling) | Hard | Scene handoff at `begin_match`; control returns on `match_view_finished(result)` (click or 4 s auto) with `match_ended` already processed by Run Structure. **Confirmed in match-ui.md** (Core Rules "Match end", Dependencies). Shared: the pause-menu settings panel and the art-bible theme resource; settings values are not shared between the two — both read Meta's record (DD-X07). |
 | Heroes | This depends on Heroes (data) | Hard | Hero select content: identity line, power text, starter deck preview, colours, Locked/Available. |
-| Boss AI | Passthrough | Soft | `telegraph_mode` setting stored and shown; Boss AI reads it. |
+| Boss AI | Boss AI consumes a setting this GDD edits | Soft | `telegraph_mode` is Meta's setting (DD-X07); Run UI shows the control; Boss AI reads it and derives `effective_mode = min(boss.intent_mode, telegraph_mode)` (DD-X03, boss-ai C8.4). No direct call either way. |
 | Treasures | This depends on Treasures (data) | Soft | Treasure name/rarity/text for the draft and summary come through Card Database `TreasureDef`; no direct call. |
 | Content | Content depends on this | Soft | Bundle theme labels and boss intro lines must fit the boxes in F4 (≤ 24 chars label, ≤ 2 lines intro at 16 px) — a content authoring constraint this GDD imposes. |
 
@@ -537,10 +556,11 @@ Interacting knobs: `restart_budget_ms` is a *constraint* on the sum of `transiti
 | `transition_ms.fade` | 250 | 0 – 400 | Softer screen changes; eats restart headroom | Snappier; 0 = hard cut |
 | `run_start_ms` | 600 | 0 – 1000 | Longer seed card (more "ceremony"); above 1000 restarts feel slow | Shorter; 0 skips the seed card (seed still on the intro and summary) |
 | `transition_ms.intro_slide` / `draft_reveal` / `fly_to_strip` / `toast_in_out` | 300 / 360 / 400 / 200 | 0 – 600 each | More weight per event; the draft reveal above 500 reads as a stall | Instant state changes (art bible §7 v1 default is close to this) |
-| `anim_speed` (player setting) | `normal` | `instant \| fast \| normal` | — | `instant` zeroes every duration; accessibility requirement, never removed |
-| `text_scale` (player setting) | 1.0 | 1.0 – 1.5 (steps of 0.25) | Larger UI text (ui-code rule 7); above 1.25 the bundle panel's compact rows wrap to 2 lines and the F4 preview grows to fit the viewport | 1.0 = the art bible §4 typography table as printed; never below the 12 px minimum |
-| `high_contrast_states` (player setting) | false | bool | Swaps the state set to the art bible §4 colourblind alternates (danger orange, buff blue) — a theme change | — |
-| `toast_base_ms` / `toast_per_char_ms` / `toast_min_ms` / `toast_max_ms` / `toast_gap_ms` | 2000 / 30 / 2000 / 6000 / 150 | F3 ranges | Longer-lived toasts; a 6 s cap keeps a queue of 8 under 50 s | Toasts vanish before they are read |
+| `anim_speed` (player setting, Meta M9 / DD-X07) | `normal` | `instant \| fast \| normal` | — | `instant` zeroes every duration; accessibility requirement, never removed |
+| `reduce_motion` (player setting, Meta M9 / DD-X07) | false | bool | Slides (fly-to-strip, draft-reveal stagger, toast slide) become fades at half duration; no lift bounce; independent of `anim_speed` (accessibility-requirements Motion) | — |
+| `text_scale` (player setting, Meta M9 / DD-X07) | 1.0 | {1.0, 1.25, 1.5} — **three discrete steps** (100 / 125 / 150 %), each a fixture-tested layout; never a continuous slider (accessibility-requirements Visual) | Larger UI text (ui-code rule 7); at 1.25+ the bundle panel's compact rows wrap or scroll and the Card Inspect preview gains the reading panel; 1.5 is the committed maximum (WCAG 1.4.4's 200 % is a Known Intentional Limitation) | 1.0 = the art bible §4 typography table as printed; never below the 12 px minimum |
+| `high_contrast_states` (player setting, Meta M9 / DD-X07) | false | bool | Swaps the state set to the art bible §4 colourblind alternates (danger orange, buff blue) — a theme change | — |
+| `toast_base_ms` / `toast_per_char_ms` / `toast_min_ms` / `toast_max_ms` / `toast_gap_ms` | 5000 / 30 / 5000 / 8000 / 150 | F3 ranges (`toast_min_ms` never below 5000 — accessibility floor) | Longer-lived toasts; an 8 s cap keeps a queue of 8 under 66 s | Toasts vanish before they are read; below 5000 fails accessibility-requirements "Reading time" |
 | `toast_queue_max` | 8 | 4 – 16 | More warnings retained | Warnings dropped sooner; unlocks never dropped |
 | `summary_top_cards` | 10 | 5 – 36 | Longer damage table | Terser — owned by Run Structure (`run_structure.json`), pointed to, not duplicated |
 | `allow_custom_seed` | true | bool | Seed field shown — owned by Run Structure | Field hidden; seeds still shown on summaries |
@@ -561,7 +581,7 @@ fills, default font, letter glyphs. SFX list is the concept's "minimal" set; one
 | Main menu, hero select | `bg_edge` room, one warm `table_lit` pool behind the hero panels; panels in hero primary with `text_light`; locked = neutral grey `#6F655A` + lock glyph | Ambient loop (low); hover tick; hero-specific select sting (heroes.md) | Must |
 | Run start | Hero-colour panel, seed in `text_muted`, fade per F2 | Short "descent" whoosh | Should |
 | Boss intro | Band-colour portrait rectangle (ochre / rust / slate-violet), passive text in `text_light` at 16 px on `table_dark` — the brightest text block; band pips; Fight lit with `state_actionable` outline | Boss intro sting, 3 band variants (run-structure Visual/Audio) | Must |
-| Treasure / bundle draft | Table cleared: only the three offers on `table_lit`; `parchment` frames; focused/hovered option gets the `state_actionable` outline and lifts 8 px; Pick lit only when an option is focused | Draft reveal (3 soft card slaps staggered per F2); pick confirm | Must |
+| Treasure / bundle draft | Table cleared: only the three offers on `table_lit`; `parchment` frames; the focused option carries the 2 px `state_actionable` focus ring (3 px offset, U3), a hovered option lifts 8 px without the ring, an option both hovered and focused shows both; Pick lit only when an option is focused | Draft reveal (3 soft card slaps staggered per F2); pick confirm | Must |
 | Fly-to-strip | Picked cards/treasure shrink along a straight path to the strip; deck count ticks up ("24 → 27 cards") in `text_light` — no state colour, because art bible §4 rule (c) makes a state colour a readout of a current state, not an animation | Deck thump | Should |
 | Progress strip | Cleared nodes filled `text_light`, current ringed in band colour, upcoming hollow in band colour; gem marks for treasure floors | None | Must |
 | Victory summary | Full `table_lit` warmth; hero portrait saturates to its primary (the one allowed saturation, art bible §4 rule b) | Victory stinger | Must |
@@ -641,7 +661,7 @@ display contract. Per-screen layout, focus graphs and pixel specs come from `/ux
 | Bundle draft: step indicator, 1–3 panels × (theme label + pitch + 3 compact card rows), hover/focus 1.5x preview, "N cards share *theme*" + "Deck 21 → 24" hints, deck drawer, Pick (+ "Take nothing") | `draft-picker.md` (bundle variant) | `draft_offered{bundle}` | `post_match_reward/bundle` |
 | Summary: outcome headline, hero, floors cleared, killing boss and reason, seed + Copy, top-N damage, drafted cards, treasures, new unlocks, duration/turns, `attempt > 1` marks; New Run (same hero) / Hero Select / Main Menu | `run-summary.md` (victory + defeat + abandoned variants) | `run_ended` | Terminal phases |
 | Archived runs list (date, hero, result, floors n of F, seed, "custom seed" tag, `attempt > 1` marker), per-hero stats and bests header, hero filter, paging, Open; read-only summary | `run-log.md` | On open; on filter; on page | Menu |
-| Volumes, fullscreen, action delay, animation speed, text scale, boss telegraph mode, high-contrast state colours, keep run records + Clear run records (confirm), Reset profile (typed confirm) | `settings.md` | On change (live; Meta debounces the write) | Menu or pause |
+| Volumes, fullscreen, action delay, animation speed (3 labels), reduce motion, text scale (100 / 125 / 150 %), boss telegraph mode, high-contrast state colours, keep run records + Clear run records (confirm), Reset profile (typed confirm) — the DD-X07 record | `settings.md` | On change (live; Meta debounces the write) | Menu or pause |
 | Pause: Resume / Settings / Abandon run (confirm) / Quit to menu | `pause.md` | On open | Any run screen except match |
 | Toast: unlock (name + condition subtitle, acked to Meta when shown) or warning text, queued | `toast.md` (shared component) | Per queue drain | Shell idle (U5) |
 | Data error: validation report rows, Copy report, Quit | `data-error.md` | Once at boot | Card Database `Failed` |
@@ -656,20 +676,21 @@ systems index for this system if you update it.
 
 | This Document References | Target GDD | Specific Element Referenced | Nature |
 |---|---|---|---|
-| Six commands; phases `hero_select`…`abandoned`; T1–T18; `E_HERO_LOCKED`, `E_DRAFT_*` | `design/gdd/run-structure.md` | Core Rules R2–R6, R8, States and Transitions | State trigger |
+| Seven commands (incl. `suspend`); phases `hero_select`…`abandoned`; T1–T21; `E_HERO_LOCKED`, `E_DRAFT_*`, `E_PHASE` | `design/gdd/run-structure.md` | Core Rules R2–R6, R8 (R8.7), States and Transitions (T21) | State trigger |
 | `RunRecord` fields for summaries (`result`, `totals`, `match_summaries`, `drafts`, `run_seed_hex`); `summary_top_cards` | `design/gdd/run-structure.md` | R1, R10, Tuning Knobs | Data dependency |
 | Treasure before bundle; resume re-offers the same options; `allow_custom_seed` | `design/gdd/run-structure.md` | R5.2, R8.2, R9 | Rule dependency |
 | Restart under 5 s | `design/gdd/run-structure.md` | Game Feel, AC-29 | Rule dependency (this GDD owns the budget breakdown, F1) |
 | Upcoming floors show band only, never boss identity; Continue card contents; pause menu split | `design/gdd/run-structure.md` | UI Requirements | Rule dependency |
 | `floors_per_run` (8 / MVP 4), `floor_band`, `boss_sequence` | `design/gdd/run-structure.md` | Registry constants/formulas | Data dependency |
 | Seed parsing of any input; 16-hex display form | `design/gdd/rng-event-log.md` | F1 | Rule dependency |
-| Event envelope `{seq, type, payload}`; render-from-events | `design/gdd/rng-event-log.md` | Core Rules D; DD-T04 | Rule dependency |
+| Event envelope `{seq, turn, type, payload, cause_seq}`; render-from-events | `design/gdd/rng-event-log.md` | Core Rules D, rule 11; DD-T04 | Rule dependency |
 | `HeroDef`, `BossDef` (`intro_text`, `passive`), `TreasureDef`, `BundleDef`, `CardDef`; `Failed` report; `text.en` fallback | `design/gdd/card-database.md` | CR-3, States, UI Requirements | Data dependency |
-| Identity lines, colours, power text, Locked/Available, win counts on hero select; `HERO_LOCKED` | `design/gdd/heroes.md` | H-2, H-7, States, UI Requirements | Data dependency |
+| Identity lines, colours, power text, Locked/Available, win counts on hero select; `E_HERO_LOCKED`; no forced hero (DD-X02) | `design/gdd/heroes.md` | H-2, H-7, States, UI Requirements | Data dependency |
 | `draft_offered{floor, kind, option_ids[], flags[]}`; 1–3 offers; `short` / `reoffer` placeholders; empty offer skipped by the run; `allow_skip`; `Offer` synergy numbers; `E_UNKNOWN_ID` | `design/gdd/reward-draft.md` | D1, D8, D9, D11, States `Short`/`Empty`, UI Requirements | Ownership handoff (**confirmed**) |
-| `load_profile` statuses, `load_active_run`, `is_hero_unlocked`, `unlock_progress`, `stats_for_hero`, `run_log(offset, limit)`, `pending_notifications` / `ack_notification`, `unlock_granted` payload, `get_settings` / `set_setting`, `reset_profile(confirm_token)`, M9 settings keys, `run_log_cap`, ReadOnly banner | `design/gdd/meta-progression.md` | M1.1, M1.3, M3.6, M5, M6, M7.1, M8, M9, States, UI Requirements | Ownership handoff (**confirmed**; M9 additions proposed) |
+| `load_profile` statuses, `load_active_run`, `is_hero_unlocked`, `unlock_progress`, `stats_for_hero`, `run_log(offset, limit)`, `pending_notifications` / `ack_notification`, `unlock_granted` payload, `get_settings` / `set_setting`, `reset_profile(confirm_token)`, M9 settings keys (the DD-X07 record), `run_log_cap`, ReadOnly banner | `design/gdd/meta-progression.md` | M1.1, M1.3, M3.6, M5, M6, M7.1, M8, M9, States, UI Requirements | Ownership handoff (**confirmed**; M9 carries all DD-X07 keys — cross-review C-01) |
 | Scene handoff; `match_view_finished(result)` after the end banner (click or `MATCH_END_AUTO_S`); shared pause settings panel | `design/gdd/match-ui.md` | Core Rules "Match end", States `Ended`, Dependencies, Tuning Knobs `MATCH_END_AUTO_S` | Ownership handoff (**confirmed**) |
-| `telegraph_mode` setting | `design/gdd/boss-ai.md` | Tuning Knobs (telegraph) | Data dependency |
+| `telegraph_mode` setting consumed as `effective_mode = min(intent_mode, telegraph_mode)` (DD-X03) | `design/gdd/boss-ai.md` | C8.4, Tuning Knobs (`telegraph_mode`) | Data dependency (Boss AI consumes; Meta owns the value) |
+| Toast floor 5 s / cap 8 s, hover/focus pause, one visible at a time; focus ring 2 px `state_actionable` offset 3 px; `text_scale` three steps; Pick One of N `1/2/3` + Tab | `design/accessibility-requirements.md`, `design/ux/interaction-patterns.md` | "Reading time", Visual `text_scale`; Toast / Notification, Focus Management, Pick One of N | Rule dependency (applied 2026-11-03) |
 | Mood per state; tokens; card slot layout 150x210 / 225x315; portrait 120x160; typography; high-contrast swap | `design/art/art-bible.md` | §2, §4, §5, §7 | Data dependency |
 | Screenshot procedure, launch-argument reachability | `.claude/docs/run-and-observe.md` | Godot row; "Reaching the state" | Rule dependency |
 
@@ -678,7 +699,7 @@ systems index for this system if you update it.
 `qa-lead` not consulted — Lean mode (no Agent tool). AC-1–8 are observable states for
 screenshots (fixture named; `production/qa/evidence/` per run-and-observe); AC-9–22 are logic
 criteria for the shell state machine (unit tests with a stubbed `RunController`); AC-23–26
-cover formulas and performance.
+cover formulas and performance; AC-27–32 were added by the design and cross reviews.
 
 **Observable (screenshot per fixture)**
 - [ ] **AC-1** GIVEN fixture `fresh_profile`, WHEN launched with `--run-ui-screen=main_menu`, THEN New Run, Run Log, Settings, Quit are visible, **no Continue**, and the stats line reads 0 runs.
@@ -686,14 +707,14 @@ cover formulas and performance.
 - [ ] **AC-3** GIVEN fixture `locked_heroes`, WHEN hero select renders, THEN Fortune, Order and Shadow appear as grey silhouettes with a lock glyph and an unlock hint with progress, and Start is disabled while one of them is focused.
 - [ ] **AC-4** GIVEN fixture `mid_run_floor4` and `--run-ui-screen=boss_intro`, WHEN rendered, THEN "Floor 4 of 8", two band pips in rust, the passive text, the hero power text and "24 cards" are visible, the strip shows nodes 1–3 filled with initials, node 4 ringed, 5–8 hollow with no initials, two treasure icons and two gem marks, and Fight is focused.
 - [ ] **AC-5** GIVEN `draft_treasure_sample` / `draft_bundle_sample`, WHEN rendered, THEN three options sit at the F4 slot positions (±2 px), rarity/theme labels are legible at 1280x720, no card text is clipped without a preview, and Pick is dim until an option is focused.
-- [ ] **AC-6** GIVEN fixture `victory_sample`, WHEN `summary_victory` renders, THEN the hero panel is in its full primary colour, "8 of 8", the 16-hex seed with Copy, a 10-row damage table, drafted cards marked, treasures, one "New hero unlocked" line, and **New Run (same hero)** carries the focus outline.
+- [ ] **AC-6** GIVEN fixture `victory_sample`, WHEN `summary_victory` renders, THEN the hero panel is in its full primary colour, "8 of 8", the 16-hex seed with Copy, a 10-row damage table, drafted cards marked, treasures, one "New hero unlocked" line, and **New Run (same hero)** carries the 2 px `state_actionable` focus ring at a 3 px offset.
 - [ ] **AC-7** GIVEN fixture `defeat_sample`, WHEN `summary_defeat` renders, THEN the background is `bg_edge`, the headline names floor 5 and the boss, floor 3 shows "attempt 2", no `state_danger` fill larger than a stamp exists on screen, and New Run (same hero) is focused.
 - [ ] **AC-8** GIVEN fixture `data_error_sample`, WHEN launched, THEN 12 report rows are listed with file, id, code and message, Copy report and Quit are the only controls, and no other screen is reachable by any key.
 
 **Shell state machine (logic)**
 - [ ] **AC-9** GIVEN `draft_bundle` with an option focused, WHEN `pick(1)` is sent twice within 100 ms, THEN exactly one `draft_pick(bundle, option_ids[1])` reaches the controller and the second intent logs `ui_intent_rejected`.
 - [ ] **AC-10** GIVEN `transitioning == true`, WHEN any intent other than `skip` arrives, THEN it is dropped, no command is issued, and `skip` ends the transition immediately.
-- [ ] **AC-11** GIVEN every ShellState, WHEN each intent in U2 is sent, THEN only the rows in S1–S22 produce a command; every other (state, intent) pair is rejected with `bad_state` and changes nothing.
+- [ ] **AC-11** GIVEN every ShellState, WHEN each intent in U2 is sent, THEN only the rows in S1–S23 produce a command; every other (state, intent) pair is rejected with `bad_state` and changes nothing.
 - [ ] **AC-12** GIVEN a `main_menu` with an active run saved, WHEN `continue` is accepted and `resume()` returns `OK` with `status = post_match_reward/treasure`, THEN the shell enters `draft_treasure` with the three re-offered ids, no `hero_select` or `run_start` in between.
 - [ ] **AC-13** GIVEN `resume()` returns `E_CORRUPT`, WHEN Continue was pressed, THEN a reason dialog with a single New Run button appears, the Continue card is gone on return to the menu, and no `abandon()` command was sent by the UI.
 - [ ] **AC-14** GIVEN `hero_select` with an active run saved, WHEN `start_run` is sent, THEN `confirm` opens first and `new_run` is issued only after `confirm`; `cancel` leaves the run untouched.
@@ -701,7 +722,7 @@ cover formulas and performance.
 - [ ] **AC-16** GIVEN a queue of `toast_queue_max + 2` warnings and 1 unlock, WHEN drained, THEN the two oldest warnings were dropped and the unlock was shown.
 - [ ] **AC-17** GIVEN a summary, WHEN `new_run_same_hero` is sent, THEN `new_run(hero_id, "")` is issued with no confirm and the next state is `run_start`.
 - [ ] **AC-18** GIVEN `hero_select`, WHEN the seed field holds `"deckdelve"`, THEN the echo shows `48A10CC0B2ED54EC` (RNG & Event Log F1 example) and `start_run` passes the raw string, not the echo.
-- [ ] **AC-19** GIVEN any three-option screen, WHEN keys `2` then `Enter` are pressed with no mouse input, THEN option index 1 is picked/selected; GIVEN a full run driven only by keyboard, THEN every screen in U2 is reached and left without a mouse event.
+- [ ] **AC-19** GIVEN any three-option screen, WHEN keys `2` then `Enter` are pressed with no mouse input, THEN option index 1 is picked/selected; GIVEN the same screen, WHEN `Tab` is pressed twice from the no-focus start then `Enter`, THEN option index 1 is picked/selected the same way; GIVEN a full run driven only by keyboard, THEN every screen in U2 is reached and left without a mouse event, and at every focus stop a 2 px `state_actionable` ring offset 3 px is visible in the retained screenshot (also at `anim_speed = instant`).
 - [ ] **AC-20** GIVEN `anim_speed = instant`, WHEN any transition runs, THEN its duration is 0 ms, `committed` still blocks a second intent, and the result is identical to `normal`.
 - [ ] **AC-21** GIVEN an `option_ids` entry that does not resolve in Card Database, WHEN the draft renders, THEN that slot shows the missing-id frame, is not pickable, and the other two are.
 - [ ] **AC-22** GIVEN every user-visible string in `src/ui/run/**`, WHEN scanned, THEN each is a `tr()` key or data `text` — zero literal English strings (CI grep).
@@ -709,23 +730,24 @@ cover formulas and performance.
 **Formulas and performance**
 - [ ] **AC-23** GIVEN defaults, WHEN defeat → New Run (same hero) is timed from the Enter key to the boss intro's first rendered frame, THEN it is ≤ 1350 ms + 15 % and never above `restart_budget_ms`; path B via hero select with a 1500 ms scripted pause is ≤ 5000 ms (F1).
 - [ ] **AC-24** GIVEN F = 8 and F = 4, WHEN the strip lays out, THEN node centres are at 416 + 64·(f−1) and 544 + 64·(f−1) respectively (F4), and the strip width never exceeds 640 for F ≤ 12.
-- [ ] **AC-25** GIVEN toast texts of 10 and 200 chars, WHEN `t_toast` is computed, THEN the results are 2300 ms and 6000 ms (F3 bounds).
+- [ ] **AC-25** GIVEN toast texts of 10 and 200 chars, WHEN `t_toast` is computed, THEN the results are 5300 ms and 8000 ms (F3 bounds); GIVEN `toast_min_ms` read from `run_ui.json`, THEN it is ≥ 5000 (accessibility-requirements test plan "Reading time"); GIVEN a showing toast, WHEN it is hovered for 2 s, THEN it disappears 2 s later than its unhovered twin.
 - [ ] **AC-26** Performance: every base screen builds and renders its first frame within 100 ms on the minimum-spec machine (the one card-database and meta-progression ACs measure on; named in `project.yaml` platform notes) from its read model; building the victory summary from a 36-card, 8-summary record stays under 50 ms; no screen allocates per frame while idle (profiler: zero allocations over 60 idle frames on `main_menu`).
 - [ ] **AC-27** No hardcoded values: every duration, size and count in F1–F4 is read from `assets/data/run_ui.json` or the theme resource; a test changes `node_d` and observes the strip move.
 - [ ] **AC-28** GIVEN `draft_offered{kind: treasure, option_ids: [a, b], flags: [short]}`, WHEN `draft_treasure` renders, THEN two frames sit at F4 slots 0 and 1, slot 2 is a dimmed placeholder with the reason text, key `3` does nothing, and `pick(1)` sends `draft_pick(treasure, b)`; GIVEN `pick(2)`, THEN it is rejected `bad_index` and no command is issued.
-- [ ] **AC-29** GIVEN the shell in `match` and a buffered `match_faulted` + `run_floor_entered{floor: 4}`, WHEN `match_view_finished` arrives, THEN the shell enters `boss_intro` for floor 4 (S11b) with the strip unchanged and a `run_warning` toast queued; no draft screen is shown.
+- [ ] **AC-29** GIVEN the shell in `match` and a buffered `match_faulted` + `run_floor_entered{floor: 4}`, WHEN `match_view_finished` arrives, THEN the shell enters `boss_intro` for floor 4 (S11b) with the strip unchanged, the subtitle "Attempt 2" under the floor line (S-04) and a `run_warning` toast queued; no draft screen is shown.
 - [ ] **AC-30** GIVEN `reset_profile_requested`, WHEN the confirm dialog opens, THEN Confirm is disabled until the typed field equals the shown token, and `reset_profile(token)` is called only after Confirm; `Esc` or Cancel calls nothing.
-- [ ] **AC-31** (ui-code rule 8) GIVEN the window at 1280x720 and at the largest supported fullscreen resolution (3840x2160, `canvas_items` stretch) and `text_scale = 1.5`, WHEN each base screen in U2 renders from its fixture, THEN no text is clipped, no control is off-screen, and screenshots of both sizes are retained per fixture.
+- [ ] **AC-31** (ui-code rule 8) GIVEN the window at 1280x720 and at the largest supported fullscreen resolution (3840x2160, `canvas_items` stretch) and `text_scale = 1.5`, WHEN each base screen in U2 renders from its fixture, THEN no text is clipped, no control is off-screen, and screenshots of both sizes are retained per fixture; GIVEN the settings screen, THEN text scale offers exactly the three segments 100 % / 125 % / 150 % and no intermediate value can be stored.
+- [ ] **AC-32** GIVEN `summary_victory` with an unlock toast showing for 1 s, WHEN `new_run_same_hero` is sent, THEN the toast is still visible on `run_start` and on the floor-1 `boss_intro`, disappears when its `t_toast` elapses (not at the transition), and `ack_notification(key)` was called exactly once (S-05); GIVEN `pause` over `boss_intro`, WHEN `go_main_menu` is sent, THEN `suspend()` is issued, no `abandon()` and no `run_ended` occur, and the menu shows Continue for the same floor (C-12).
 
 ## Open Questions
 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
 | `assets/data/run_ui.json` is a new data file not in DD-T01 — add it (same situation as `run_structure.json`). | Owner (orchestrator) | Before `/create-architecture` | **Resolved 2026-11-03** — DD-T01 already lists `run_ui.json` |
-| **Meta M9 settings keys**: this GDD (and match-ui.md Dependencies) store `anim_speed`, `text_scale` and `high_contrast_states` through `set_setting`, but meta-progression.md M9 lists neither key nor default. Meta must add them (defaults `normal`, 1.0, false) or Run UI keeps them in a UI-owned `user://ui_settings.json`. | Meta Progression GDD | `/consistency-check` | Open — cross-GDD change, proposed to Meta |
-| **Pause → Quit to menu** between matches needs a Run Structure command that drops the in-memory run without ending it (the saved run reappears as Continue). run-structure.md has none: `return_to_menu` is legal only in terminal phases (T17) and `abandon` ends the run. Proposed `suspend()` from `pre_match` / `post_match_reward`: no event, no save, state → Menu. | Run Structure GDD | `/consistency-check` | Open — cross-GDD change |
-| Meta's UI Requirements say unlock toasts are "acked when dismissed or after 4 s"; this GDD owns toast timing (F3, 2–6 s) and acks when shown. Meta should defer to F3. | Meta Progression GDD | `/consistency-check` | Open — wording change in Meta |
-| "First run forces War" (heroes.md H-2 says Run Structure owns it; run-structure.md does not state it). This GDD pre-selects War on a fresh profile and never disables other available heroes. Confirm pre-select is enough. | Owner / Run Structure GDD | `/consistency-check` | Decision taken here: pre-select, not force |
+| **Meta M9 settings keys**: this GDD (and match-ui.md Dependencies) store `anim_speed`, `text_scale` and `high_contrast_states` through `set_setting`, but meta-progression.md M9 lists neither key nor default. Meta must add them (defaults `normal`, 1.0, false) or Run UI keeps them in a UI-owned `user://ui_settings.json`. | Meta Progression GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-01 / DD-X07**: Meta M9 stores the label set `anim_speed`, plus `reduce_motion`, `text_scale` (1.0 \| 1.25 \| 1.5), `high_contrast_states`, `action_delay_ms`; Run UI edits, Match UI and Boss AI read |
+| **Pause → Quit to menu** between matches needs a Run Structure command that drops the in-memory run without ending it (the saved run reappears as Continue). run-structure.md has none: `return_to_menu` is legal only in terminal phases (T17) and `abandon` ends the run. Proposed `suspend()` from `pre_match` / `post_match_reward`: no event, no save, state → Menu. | Run Structure GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-12**: run-structure adopted `suspend` (T21, R8.7); wired as S23 |
+| Meta's UI Requirements say unlock toasts are "acked when dismissed or after 4 s"; this GDD owns toast timing (F3, 2–6 s) and acks when shown. Meta should defer to F3. | Meta Progression GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-20**: Meta's UI Requirements defer to F3; F3 is now 5–8 s (accessibility floor), ack on show unchanged |
+| "First run forces War" (heroes.md H-2 says Run Structure owns it; run-structure.md does not state it). This GDD pre-selects War on a fresh profile and never disables other available heroes. Confirm pre-select is enough. | Owner / Run Structure GDD | `/consistency-check` | **Resolved 2026-11-03 — DD-X02 (cross-review C-11)**: pre-select, never force; heroes.md and run-structure.md aligned |
 | Bundle panels show three **compact card rows** (300x64) plus a 1.5x preview rather than three full 150x210 cards, because 9 full cards do not fit 1280 px at the 12 px text minimum. Confirm with `/ux-design draft-bundle`; alternative is a two-step bundle screen (pick a bundle, then see its cards). | ux-designer | `/ux-design draft-bundle` | Decision taken here: compact rows + preview |
 | `draft_offered` payload: does Reward Draft send `theme_labels[]` or does the UI read `BundleDef.name`? Does `TreasureDef.synergy_tags[]` / `CardDef.tags[]` exist for the hint? | Reward Draft + Card Database GDDs | `/design-system reward-draft` | **Resolved 2026-11-03** — payload is `{floor, kind, option_ids[], flags[]}`; label is `BundleDef.theme`; hints come from Reward Draft's `Offer` numbers; `TreasureDef.tags` is Reward Draft's request to Card Database (its open question, not this GDD's) |
 | Meta API names used here (`unlock_hint`, `profile_stats`, `list_runs`, `get_run`, `get_setting/set_setting`, `reset_profile`, `last_hero_id`, `unlock_granted`) and the settings key list. | Meta Progression GDD | `/design-system meta-progression` | **Resolved 2026-11-03** — replaced by Meta M1.3's names (Interactions); only the three M9 keys above remain open |
