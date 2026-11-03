@@ -94,3 +94,5 @@ checks scope against it.*
 
 - Depends on: `production/epics/rng-event-log/story-001-rng-stream-engine-pin-and-draw-primitives.md` (so `src/core/rng/` exists to be excluded and the tree is non-empty)
 - Unlocks: None (every later rules epic runs under it)
+
+> **QA note (2026-11-03, sprint-2 QA plan):** the lint test writes files and runs a subprocess, so it lives under `tests/integration/rng_event_log/`, not `tests/unit/` (testing standard: unit tests do no file I/O).

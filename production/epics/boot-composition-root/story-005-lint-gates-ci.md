@@ -103,3 +103,5 @@ checks scope against it.*
 
 - Depends on: `production/epics/boot-composition-root/story-004-boot-composition-root.md` (G4 needs the real `[autoload]` entry; G3's `boot.gd` exclusion needs the file)
 - Unlocks: `production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md`; every rules story in later epics (they are built against a green gate step)
+
+> **QA note (2026-11-03, sprint-2 QA plan):** the CI job installs ripgrep ≥ 14 explicitly and prints `rg --version`; patterns per the ADR-0001 G2b/G3/G6 errata.
