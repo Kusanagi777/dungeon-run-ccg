@@ -13,6 +13,7 @@
 > **Related UX Specs**: `design/ux/interaction-patterns.md` (Pick One of N "hero select" mode, Button (Primary / Secondary / Destructive), Confirmation Dialog, Input Field, Tooltip, Card Inspect, List Item, Scroll Container, Toast, Screen Replace, Focus Management, Escape / Cancel, Standard Shortcuts, Empty State "Hero select with no locked heroes", Success Confirmation); `design/accessibility-requirements.md`; `design/ux/draft-picker.md` (the Deck drawer is reused here for the starter deck); `main-menu.md` (entry; ReadOnly banner shared component), `run-start.md` / `boss-intro.md` (exit), `run-summary.md` (entry via Hero Select) — the first three not yet written.
 > **Accessibility Tier**: Standard with reduce-motion, visual-for-every-sound and the high-contrast state set elevated (`design/accessibility-requirements.md`). Hero identification is colour **plus** initial letter and name (audit row "Hero identification").
 > **Template**: UX Spec
+> **REVISED 2026-11-03 (ux-review)**: (1) a 13 px `text_light` **set blurb** line (`hero.set_blurb.{set}`, ≤ 52 chars / 2 lines — "War: weapons, aggression, armour") sits under the identity line (§5.1, §5.2, §5.3, §8, §13; heroes.md UI Requirements row); (2) stats line → the run-ui U7 format "NW · NL · best FN" rendered "3W · 5L · best F8" (28-char budget; wins **and losses**, Meta `stats_for_hero`), §5.1 / §5.2 / §5.3 / §8 / §13 aligned; (3) §6 and AC 5 cite the run-ui U10 settings variant `locked_heroes_ts150`; (4) §15 gamepad rows for every §11 untick; (5) §6 toast row cites run-ui F3 (5–8 s, hover / focus pause) and inherits the pattern library's toast focus / announcement OQ; Deck Drawer and `LockedHeroPanel` §15 rows resolved against the library's new entries.
 
 > **Sources read** (by section): run-ui U1–U10, States, F1–F4, Edge Cases, Tuning Knobs, Visual/Audio, Game Feel, UI Requirements, AC; heroes H-1–H-3, States, Interactions (Run UI row), Visual/Audio, UI Requirements, AC-16–18; run-structure R2, R9, UI Requirements; meta M1.3, M2, M3.7, F6, UI Requirements; rng-event-log F1 (via run-ui AC-18); art bible §2 (Main menu / hero select mood), §4, §7; accessibility-requirements Visual, Motor, Cognitive, Per-Feature Matrix (Heroes row); interaction-patterns entries named above.
 
@@ -118,7 +119,8 @@ Three launch heroes present, three locked (fixture `locked_heroes`). Panels use 
      │         ││ W  │ the Whet. │ ││ D  │ WYTHE     │ ││ K  │ ILSE      │               │  portrait 120x160
      │         ││    │ "Every    │ ││    │ "Nothing  │ ││    │ "I have   │               │  identity line
      │         ││    │  turn…"   │ ││    │  in my…"  │ ││    │  read…"   │               │
-     │         │└────┘ 3 wins·F8 │ │└────┘ 0 wins    │ │└────┘ 1 win·F5 │               │  stats (text_light)
+     │         ││    │ War: weap.│ ││    │ Decay: … │ ││    │ Knowl.: … │               │  set blurb 13 px
+     │         │└────┘3W·5L·bF8  │ │└────┘0W·0L·bF0  │ │└────┘1W·2L·bF5  │               │  stats "3W · 5L · best F8"
      │         │┌───────────────┐│ │┌───────────────┐│ │┌───────────────┐│               │  power plate
      │         ││(2) Whetstone  ││ ││(2) Rot        ││ ││(2) Insight    ││               │  parchment 308x96
      │         ││Equip a 1/2 …  ││ ││Deal 1 damage… ││ ││Draw a card…   ││               │
@@ -143,7 +145,7 @@ MVP (`fresh_profile`, `hero_war` only): one panel centred at `slot_x(0, 1, 340, 
 |-----------|-------------|-----------------|-------------|-------------------|
 | Title row | "Choose your hero" 28 px bold `text_light` on `bg_edge`, centred | 1280 x 48 (0–48) | No | Ellipsise (never expected) |
 | Hero panel row | n = 1–3 panels 340x340 (*spec* height) at F4 `slot_x(i, n, 340, 40)` (n = 3: 90 / 470 / 850; n = 2: 280 / 660; n = 1: 470), y 72–412; one warm `table_lit` pool 1140x380 behind them (art bible §2) | 1100 x 340 | No | > 3 launch heroes is not a v1 case (DD-H01); §15 |
-| Hero panel (each) | Fill hero primary, 2 px frame hero secondary, 4 px radius. Portrait placeholder 120x160 at (+16, +16): secondary fill + hero initial 24 px bold. Right of it (x +152, w 172): name 16 px bold `text_light`, identity line (`HeroDef.text`) 14 px `text_light` wrapped (≤ 3 lines), stats line "3 wins · best F8" 13 px `text_light` (Meta `stats_for_hero`). Power plate `parchment` 308x96 at (+16, +196): cost stamp "2" (34 px steel blue) + power name 14 px bold `text_ink`, power text 12 px `text_ink` (≤ 4 lines); Card Inspect text variant (1.5x) on hover / focus. Curve strip 308x28 at (+16, +300): one column per cost 1–6+ with the count numeral 12 px `text_light` over a bar whose height ∝ count (max 15) | 340 x 340 | No | Identity line > 3 lines ellipsises; full line in the panel tooltip |
+| Hero panel (each) | Fill hero primary, 2 px frame hero secondary, 4 px radius. Portrait placeholder 120x160 at (+16, +16): secondary fill + hero initial 24 px bold. Right of it (x +152, w 172): name 16 px bold `text_light`, identity line (`HeroDef.text`) 14 px `text_light` wrapped (≤ 3 lines), **set blurb** 13 px `text_light` (key `hero.set_blurb.{set}` — "War: weapons, aggression, armour" / "Decay: deaths, swarms, drain" / "Knowledge: spells, draw, tempo"; ≤ 52 chars, wraps to 2 lines in the 172 px column; heroes.md UI Requirements "Set identity blurb and theme tags"), stats line 13 px `text_light` in the run-ui U7 format `NW · NL · best FN` — "3W · 5L · best F8" (wins, losses, best floor from Meta `stats_for_hero`; zeros shown, "0W · 0L · best F0"; ≤ 28 chars at three-digit counts; at 150 % the word "best" is dropped — "3W · 5L · F8" — if the line would wrap). The column stacks name 20 / identity 54 / blurb 34 / stats 16 = 124 px inside the portrait's 160 px height. Power plate `parchment` 308x96 at (+16, +196): cost stamp "2" (34 px steel blue) + power name 14 px bold `text_ink`, power text 12 px `text_ink` (≤ 4 lines); Card Inspect text variant (1.5x) on hover / focus. Curve strip 308x28 at (+16, +300): one column per cost 1–6+ with the count numeral 12 px `text_light` over a bar whose height ∝ count (max 15) | 340 x 340 | No | Identity line > 3 lines ellipsises; full line in the panel tooltip |
 | Locked row | 0–3 panels 340x88 at the same x, y 428–516: neutral `#6F655A` fill (desaturated silhouette), lock glyph (letter "L" in a ring, v1) + name 16 px bold `text_light`, condition text + progress "— 0 / 1" 14 px `text_light` (Meta F6: "8 / 16 bosses defeated"; `each_launch` lists per-hero ticks in the tooltip) | 1100 x 88 | No | Absent when no locked `HeroDef` exists (U7); > 3 locked → §15 |
 | Seed row | Input Field: label "Seed (optional)" 16 px at (400, 548); `LineEdit` 332x36 at (548, 540) with placeholder "random"; clear "×" affordance; echo line "→ 48A10CC0B2ED54EC" / "→ Random" 13 px `text_muted` at (548, 580) | 480 x 60 (540–600) | No | Any text accepted (RNG F1 hashes everything); long input scrolls inside the field |
 | Action row | Back (Secondary, 160x44 at 40, 640); **Start** (Primary, 160x44 at 560, 640); Deck (Secondary, 160x44 at 1080, 640, label "Deck (15)") | 1280 x 80 (640–720) | No | Buttons grow, never clip |
@@ -160,7 +162,8 @@ MVP (`fresh_profile`, `hero_war` only): one panel centred at `slot_x(0, 1, 340, 
 | Portrait placeholder | Panel | Hero panel | Identification (colour + initial) | Yes | Yes — same placeholder rule as the HUD portrait (`hud.md`) |
 | Power plate | Panel + text | Hero panel | Hero power cost / name / text | Yes | Yes — Card Inspect text variant for the full text |
 | Curve strip | Compound | Hero panel | Starter-deck cost curve at a glance | Yes | **No — new** `CurveStrip` (6 columns, numerals + bars) |
-| Stats line | Text | Hero panel | wins · best floor | Yes (zeros allowed) | Yes — `Label` |
+| Set blurb line | Text | Hero panel | One-line set identity under the identity line ("War: weapons, aggression, armour") | Yes | Yes — `Label`, key `hero.set_blurb.{set}` |
+| Stats line | Text | Hero panel | wins · losses · best floor — "3W · 5L · best F8" (run-ui U7) | Yes (zeros allowed) | Yes — `Label` |
 | Locked panel ×0–3 | Compound (focusable, not selectable) | Locked row | Name, condition, progress | Conditional | **New** `LockedHeroPanel` — the "locked-item progress pattern" meta-progression's UX flag asks for (shared later by the treasure codex) |
 | Seed field | Input Field | Seed row | Optional seed | Conditional (`allow_custom_seed`) | Yes — Input Field (seed variant) |
 | Seed echo | Text | Seed row | Normalised 16-hex / "Random" | Conditional | Yes — Input Field "Typing" state |
@@ -207,8 +210,8 @@ MVP (`fresh_profile`, `hero_war` only): one panel centred at `slot_x(0, 1, 340, 
 | Deck drawer open | Deck button | Right drawer over the panels (covers panel 3 and locked panel 3) | Non-blocking; `Esc` / RMB / toggle closes it first | Reused from `draft-picker.md` |
 | ReadOnly profile | Meta `ReadOnly` | Banner strip | Start still works; the run is not saved (Meta M6) | run-ui Edge Cases |
 | Saved run uses a now-locked hero | Not this screen's concern | That hero shows locked here; Continue on the menu still works (R8.4) | — | Noted so the apparent contradiction is expected |
-| Toast showing | Retro unlock drained on the menu; rejection | Banner top-right; hover / focus pauses | Never steals focus | |
-| `text_scale` 125 % / 150 % | Setting | Panel text grows; the identity line wraps to 4 lines and the stats line moves under the portrait; power plate text goes to the reading panel on hover / focus (plate keeps name + cost + first line); locked hint wraps to 2 lines (row 88 → 112 px, pushing the seed row to 564 and the echo to 604 — still above the action row) | — | AC-31; fixture variant `locked_heroes` with `settings.text_scale` 1.5 |
+| Toast showing | Retro unlock drained on the menu; rejection | Banner top-right; visible 5–8 s (run-ui F3 `toast_min_ms` 5000 / `toast_max_ms` 8000), hover / focus pauses the timer, one at a time | Never steals focus | Inherits the pattern library's Toast open question (focus / live-region announcement — AccessKit NOT SOURCEABLE) |
+| `text_scale` 125 % / 150 % | Setting | Panel text grows; the identity line wraps to 4 lines, the set blurb and the stats line move under the portrait (stats drops "best" → "3W · 5L · F8"); power plate text goes to the reading panel on hover / focus (plate keeps name + cost + first line); locked hint wraps to 2 lines (row 88 → 112 px, pushing the seed row to 564 and the echo to 604 — still above the action row) | — | AC-31; fixture **`locked_heroes_ts150`** (run-ui U10 settings variant, `settings.text_scale` 1.5) |
 | `reduce_motion` / `instant` | Setting | Lifts instant; drawer fades; 0 ms transitions | `committed` still blocks a double Start | AC-20 |
 | Empty | — | **Cannot occur**: Card Database refuses a data set with no `HeroDef` (`Failed` → `data_error`); this screen is never built without ≥ 1 hero | — | Stated for the reviewer |
 
@@ -268,7 +271,8 @@ Mapping interactions for: **keyboard + mouse**. Covering **Partial** gamepad sup
 | Starter deck `CardDef`s (cost for the curve; name / text / stamps for the drawer) | Card Database | On open; on selection change | Card Database | Records | Validation guarantees 15 resolvable ids |
 | Available / Locked per hero | Meta Progression `is_hero_unlocked(id)` | On open | Meta (M3.7) | bool | Absent Meta (MVP) → Available |
 | Unlock hint: condition text from the `unlock` object + `unlock_progress(key) → {met, progress, parts}` | Meta Progression | On open | Meta (M2, F6) | `{met: bool, progress: 0–1, parts: {hero_id: bool}}` + current / target numbers ("8 / 16") | No definition for the key → lock without a hint |
-| `stats_for_hero(id)` → wins, best floor | Meta Progression | On open | Meta (M7) | `HeroStats` | Zeros allowed; absent Meta → line hidden |
+| `stats_for_hero(id)` → wins, losses, best floor (stats line "NW · NL · best FN", run-ui U7) | Meta Progression | On open | Meta (M7, UI Requirements) | `HeroStats` | Zeros allowed ("0W · 0L · best F0"); absent Meta → line hidden |
+| Set blurb per hero set (`hero.set_blurb.{set}`) | Localisation string table (heroes.md UI Requirements) | On open | Heroes | string ≤ 52 chars | Missing key → line hidden, never the raw key |
 | `last_hero_id()` | Meta Progression | On open | Meta (M1.3) | id or null | null → War (DD-X02) |
 | `load_active_run()` non-null | Meta Progression | On open | Meta | header fields | Null → Start needs no confirm |
 | `allow_custom_seed` | Run Structure data | Static | Run Structure | bool | false → seed row hidden |
@@ -331,11 +335,11 @@ Platform Target is keyboard + mouse; **Touch** dropped (not supported); **Gamepa
 - [x] Esc key closes or cancels (drawer → confirm → Back) and does not quit the game
 
 **Gamepad** (post-v1 — mapping only)
-- [ ] All interactive elements reachable with D-Pad and left stick — mapping defined, not implemented
-- [ ] Face button mapping documented — `ui_accept` / `ui_cancel` only
+- [ ] All interactive elements reachable with D-Pad and left stick — mapping defined, not implemented (§15 "Gamepad: d-pad graph")
+- [ ] Face button mapping documented — `ui_accept` / `ui_cancel` only (§15 "Gamepad: face buttons")
 - [x] No action requires analog stick precision
-- [ ] Trigger and bumper shortcuts — library default (shoulders = Tab), nothing screen-specific
-- [ ] Controller disconnection handling — not specified anywhere (§15)
+- [ ] Trigger and bumper shortcuts — library default (shoulders = Tab), nothing screen-specific (§15 "Gamepad: bumpers")
+- [ ] Controller disconnection handling — not specified anywhere (§15 "Controller disconnection")
 
 **Mouse**
 - [x] Hover states defined for all interactive elements
@@ -404,7 +408,8 @@ Streams: (1) three identities, (2) three powers, (3) three curves / stats, (4) l
 | Title "Choose your hero" | 16 | 30 | 85 % | Centre | Shrink to 24 px then ellipsise | Low |
 | Hero name ("Halvard, the Whetted") | 20 | 24 (172 px at 16 px bold ≈ 20 chars) | 20 % | Right-align | Ellipsise; full name in the tooltip | **High** — "Mother Wythe" fits, long translated epithets will not; flag for the localization engineer |
 | Identity line (`HeroDef.text`, ~45–55) | 55 | 3 lines × ~22 = 66 | 20 % | Right-align, wrap | Ellipsise line 3; full line in the tooltip | Medium |
-| Stats "3 wins · best F8" | 17 | 28 | 65 % | Mirror | Wraps under the portrait | Low |
+| Stats "3W · 5L · best F8" (`hero.stats` = "{w}W · {l}L · best F{f}") | 18 | 28 | 55 % | Mirror (numerals stay LTR) | Drops "best " ("3W · 5L · F8"), then moves under the portrait | Low |
+| Set blurb "War: weapons, aggression, armour" (`hero.set_blurb.war`) | 32 | 52 (2 lines × 26 at 13 px in 172 px) | 60 % | Right-align, wrap | Ellipsise line 2; full line in the panel tooltip | Low |
 | Power name ("Whetstone") | 9 | 20 | 120 % | Right-align | Ellipsise | Low |
 | Power text (≤ 90, content.md) | ≤ 90 | 4 lines × ~40 at 12 px in 296 px = 160 | 75 % | Right-align, wrap | Ellipsise; full text in Card Inspect | Medium |
 | Locked condition + progress ("Win a run with any hero — 0 / 1") | ~32 | 2 lines × 40 | 150 % | Right-align | Row grows 88 → 112 px (pushes the seed row 24 px) | Low |
@@ -417,7 +422,7 @@ Streams: (1) three identities, (2) three powers, (3) three curves / stats, (4) l
 
 ## 14. Acceptance Criteria
 
-Fixtures: run-ui U10 `fresh_profile` and `locked_heroes` with `--run-ui-screen=hero_select`, captured per `.claude/docs/run-and-observe.md` into `production/qa/evidence/`.
+Fixtures: run-ui U10 `fresh_profile`, `locked_heroes` and the settings variant `locked_heroes_ts150` (`text_scale` 1.5) with `--run-ui-screen=hero_select`, captured per `.claude/docs/run-and-observe.md` into `production/qa/evidence/`.
 
 **Performance**
 - [ ] First frame within 100 ms of the read model (run-ui AC-26) and `select_ready` ≤ 300 ms (F1) on the reference machine
