@@ -1,0 +1,2104 @@
+{
+	"fixture_note": "match-ui story 001 L1 stream. Hand-built (no full match is playable before match-rules 010+): C15 types only, payload shapes from the merged rules engine where it emits the event, else the rng-event-log catalogue. Boss starting health is 4 so the match fits nine turns. Re-record from a real match once MUI-004 / MR-012+ land.",
+	"log_schema_version": 1,
+	"engine_version": "",
+	"data_version": "",
+	"run_seed_hex": "",
+	"scope": "match",
+	"floor": 1,
+	"events": [
+		{
+			"seq": 1,
+			"turn": 0,
+			"type": "deck_shuffled",
+			"payload": {
+				"side": "player",
+				"instance_ids": [
+					3,
+					4,
+					5,
+					6,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 2,
+			"turn": 0,
+			"type": "deck_shuffled",
+			"payload": {
+				"side": "boss",
+				"instance_ids": [
+					13,
+					14,
+					15,
+					16,
+					17,
+					18,
+					19,
+					20
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 3,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 3,
+				"card_id": "war_shield_squire",
+				"hand_size": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 4,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 4,
+				"card_id": "neutral_torch_imp",
+				"hand_size": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 5,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 5,
+				"card_id": "war_rusted_axe",
+				"hand_size": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 6,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 13,
+				"card_id": "boss_tinder_imp",
+				"hand_size": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 7,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 14,
+				"card_id": "boss_ember_bolt",
+				"hand_size": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 8,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 15,
+				"card_id": "neutral_crypt_brute",
+				"hand_size": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 9,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 16,
+				"card_id": "boss_tinder_imp",
+				"hand_size": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 10,
+			"turn": 0,
+			"type": "mulligan_offered",
+			"payload": {
+				"side": "player",
+				"instance_ids": [
+					3,
+					4,
+					5
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 11,
+			"turn": 0,
+			"type": "deck_shuffled",
+			"payload": {
+				"side": "player",
+				"instance_ids": [
+					6,
+					5,
+					7,
+					8,
+					9,
+					10,
+					11,
+					12
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 12,
+			"turn": 0,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 6,
+				"card_id": "neutral_tunnel_rat",
+				"hand_size": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 13,
+			"turn": 0,
+			"type": "mulligan_resolved",
+			"payload": {
+				"side": "player",
+				"replaced_instance_ids": [
+					5
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 14,
+			"turn": 0,
+			"type": "match_started",
+			"payload": {
+				"floor": 1,
+				"hero_id": 1,
+				"boss_id": 2,
+				"player_deck_size": 7,
+				"boss_deck_size": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 15,
+			"turn": 1,
+			"type": "turn_started",
+			"payload": {
+				"turn": 1,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 16,
+			"turn": 1,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "player",
+				"mana_max": 1,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 17,
+			"turn": 1,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "player",
+				"mana_available": 1,
+				"mana_max": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 18,
+			"turn": 1,
+			"type": "turn_reset",
+			"payload": {
+				"side": "player",
+				"entity_ids": [
+					1
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 19,
+			"turn": 1,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 5,
+				"card_id": "war_rusted_axe",
+				"hand_size": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 20,
+			"turn": 1,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 21,
+			"turn": 1,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 1,
+				"mana_available": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 22,
+			"turn": 1,
+			"type": "card_played",
+			"payload": {
+				"side": "player",
+				"instance_id": 3,
+				"card_id": "war_shield_squire",
+				"cost_paid": 1,
+				"target_id": null,
+				"board_index": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 23,
+			"turn": 1,
+			"type": "minion_summoned",
+			"payload": {
+				"side": "player",
+				"entity_id": 3,
+				"card_id": "war_shield_squire",
+				"position": 0,
+				"attack": 1,
+				"health": 3,
+				"keywords": [
+					"taunt"
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 24,
+			"turn": 1,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 1,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 25,
+			"turn": 1,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 1,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 26,
+			"turn": 2,
+			"type": "turn_started",
+			"payload": {
+				"turn": 2,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 27,
+			"turn": 2,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "boss",
+				"mana_max": 1,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 28,
+			"turn": 2,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "boss",
+				"mana_available": 1,
+				"mana_max": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 29,
+			"turn": 2,
+			"type": "turn_reset",
+			"payload": {
+				"side": "boss",
+				"entity_ids": [
+					2
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 30,
+			"turn": 2,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 17,
+				"card_id": "neutral_ogre_porter",
+				"hand_size": 5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 31,
+			"turn": 2,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 32,
+			"turn": 2,
+			"type": "ai_intent_shown",
+			"payload": {
+				"boss_id": "boss_torchbearer",
+				"intent_key": "intent.develop",
+				"target_id": null,
+				"amount": 0,
+				"effective_mode": "full"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 33,
+			"turn": 2,
+			"type": "ai_decision",
+			"payload": {
+				"diagnostic": true,
+				"turn": 2,
+				"chosen": "play_card",
+				"score": 1.5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 34,
+			"turn": 2,
+			"type": "ai_intent_committed",
+			"payload": {
+				"intent_key": "intent.develop",
+				"target_id": null,
+				"amount": 0,
+				"kept": true,
+				"effective_mode": "full"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 35,
+			"turn": 2,
+			"type": "mana_spent",
+			"payload": {
+				"side": "boss",
+				"amount": 1,
+				"mana_available": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 36,
+			"turn": 2,
+			"type": "card_played",
+			"payload": {
+				"side": "boss",
+				"instance_id": 13,
+				"card_id": "boss_tinder_imp",
+				"cost_paid": 1,
+				"target_id": null,
+				"board_index": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 37,
+			"turn": 2,
+			"type": "minion_summoned",
+			"payload": {
+				"side": "boss",
+				"entity_id": 13,
+				"card_id": "boss_tinder_imp",
+				"position": 0,
+				"attack": 1,
+				"health": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 38,
+			"turn": 2,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 2,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 39,
+			"turn": 2,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 2,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 40,
+			"turn": 3,
+			"type": "turn_started",
+			"payload": {
+				"turn": 3,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 41,
+			"turn": 3,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "player",
+				"mana_max": 2,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 42,
+			"turn": 3,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "player",
+				"mana_available": 2,
+				"mana_max": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 43,
+			"turn": 3,
+			"type": "turn_reset",
+			"payload": {
+				"side": "player",
+				"entity_ids": [
+					1,
+					3
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 44,
+			"turn": 3,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 7,
+				"card_id": "war_sharpen",
+				"hand_size": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 45,
+			"turn": 3,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 46,
+			"turn": 3,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 2,
+				"mana_available": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 47,
+			"turn": 3,
+			"type": "card_played",
+			"payload": {
+				"side": "player",
+				"instance_id": 5,
+				"card_id": "war_rusted_axe",
+				"cost_paid": 2,
+				"target_id": null,
+				"board_index": null
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 48,
+			"turn": 3,
+			"type": "weapon_equipped",
+			"payload": {
+				"side": "player",
+				"entity_id": 5,
+				"card_id": "war_rusted_axe",
+				"attack": 2,
+				"durability": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 49,
+			"turn": 3,
+			"type": "command_rejected",
+			"payload": {
+				"side": "player",
+				"command": {
+					"type": "use_hero_power",
+					"issuer": "player",
+					"target_id": null
+				},
+				"code": "NOT_ENOUGH_MANA",
+				"detail": "",
+				"diagnostic": true
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 50,
+			"turn": 3,
+			"type": "attack_declared",
+			"payload": {
+				"attacker_id": 3,
+				"defender_id": 13
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 51,
+			"turn": 3,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 3,
+				"target": 13,
+				"requested": 1,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 1,
+				"health_after": 0
+			},
+			"cause_seq": 50
+		},
+		{
+			"seq": 52,
+			"turn": 3,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 13,
+				"target": 3,
+				"requested": 1,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 1,
+				"health_after": 2
+			},
+			"cause_seq": 50
+		},
+		{
+			"seq": 53,
+			"turn": 3,
+			"type": "minion_died",
+			"payload": {
+				"instance_id": 13,
+				"card_id": "boss_tinder_imp",
+				"side": "boss",
+				"board_index": 0
+			},
+			"cause_seq": 50
+		},
+		{
+			"seq": 54,
+			"turn": 3,
+			"type": "card_to_graveyard",
+			"payload": {
+				"side": "boss",
+				"instance_id": 13,
+				"card_id": "boss_tinder_imp"
+			},
+			"cause_seq": 50
+		},
+		{
+			"seq": 55,
+			"turn": 3,
+			"type": "attack_resolved",
+			"payload": {
+				"attacker_id": 3,
+				"defender_id": 13
+			},
+			"cause_seq": 50
+		},
+		{
+			"seq": 56,
+			"turn": 3,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 3,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 57,
+			"turn": 3,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 3,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 58,
+			"turn": 4,
+			"type": "turn_started",
+			"payload": {
+				"turn": 4,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 59,
+			"turn": 4,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "boss",
+				"mana_max": 2,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 60,
+			"turn": 4,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "boss",
+				"mana_available": 2,
+				"mana_max": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 61,
+			"turn": 4,
+			"type": "turn_reset",
+			"payload": {
+				"side": "boss",
+				"entity_ids": [
+					2
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 62,
+			"turn": 4,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 18,
+				"card_id": "boss_ember_bolt",
+				"hand_size": 5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 63,
+			"turn": 4,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 64,
+			"turn": 4,
+			"type": "mana_spent",
+			"payload": {
+				"side": "boss",
+				"amount": 1,
+				"mana_available": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 65,
+			"turn": 4,
+			"type": "card_played",
+			"payload": {
+				"side": "boss",
+				"instance_id": 14,
+				"card_id": "boss_ember_bolt",
+				"cost_paid": 1,
+				"target_id": 1,
+				"board_index": null
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 66,
+			"turn": 4,
+			"type": "spell_cast",
+			"payload": {
+				"side": "boss",
+				"instance_id": 14,
+				"card_id": "boss_ember_bolt",
+				"target_id": 1,
+				"spell_damage": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 67,
+			"turn": 4,
+			"type": "effect_resolved",
+			"payload": {
+				"effect_id": "boss_ember_bolt.0",
+				"host_id": 14,
+				"host_kind": "card",
+				"source_id": 14,
+				"owner": "boss",
+				"trigger": "cast",
+				"depth": 0,
+				"fizzled": false,
+				"ops": [
+					"damage"
+				]
+			},
+			"cause_seq": 66
+		},
+		{
+			"seq": 68,
+			"turn": 4,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 14,
+				"target": 1,
+				"requested": 2,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 2,
+				"health_after": 28
+			},
+			"cause_seq": 67
+		},
+		{
+			"seq": 69,
+			"turn": 4,
+			"type": "card_to_graveyard",
+			"payload": {
+				"side": "boss",
+				"instance_id": 14,
+				"card_id": "boss_ember_bolt"
+			},
+			"cause_seq": 66
+		},
+		{
+			"seq": 70,
+			"turn": 4,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 4,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 71,
+			"turn": 4,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 4,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 72,
+			"turn": 5,
+			"type": "turn_started",
+			"payload": {
+				"turn": 5,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 73,
+			"turn": 5,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "player",
+				"mana_max": 3,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 74,
+			"turn": 5,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "player",
+				"mana_available": 3,
+				"mana_max": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 75,
+			"turn": 5,
+			"type": "turn_reset",
+			"payload": {
+				"side": "player",
+				"entity_ids": [
+					1,
+					3
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 76,
+			"turn": 5,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 8,
+				"card_id": "neutral_cellar_guard",
+				"hand_size": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 77,
+			"turn": 5,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 78,
+			"turn": 5,
+			"type": "hero_power_used",
+			"payload": {
+				"side": "player",
+				"power_id": "power_whetstone",
+				"target_id": null
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 79,
+			"turn": 5,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 2,
+				"mana_available": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 80,
+			"turn": 5,
+			"type": "armor_gained",
+			"payload": {
+				"side": "player",
+				"entity_id": 1,
+				"amount": 2,
+				"armor": 2
+			},
+			"cause_seq": 78
+		},
+		{
+			"seq": 81,
+			"turn": 5,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 1,
+				"mana_available": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 82,
+			"turn": 5,
+			"type": "card_played",
+			"payload": {
+				"side": "player",
+				"instance_id": 4,
+				"card_id": "neutral_torch_imp",
+				"cost_paid": 1,
+				"target_id": null,
+				"board_index": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 83,
+			"turn": 5,
+			"type": "minion_summoned",
+			"payload": {
+				"side": "player",
+				"entity_id": 4,
+				"card_id": "neutral_torch_imp",
+				"position": 1,
+				"attack": 1,
+				"health": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 84,
+			"turn": 5,
+			"type": "trigger_queued",
+			"payload": {
+				"instance_id": 4,
+				"card_id": "neutral_torch_imp",
+				"trigger": "on_summon"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 85,
+			"turn": 5,
+			"type": "trigger_resolved",
+			"payload": {
+				"instance_id": 4,
+				"card_id": "neutral_torch_imp",
+				"effect_id": "neutral_torch_imp.0",
+				"trigger": "on_summon",
+				"once_per_turn": true,
+				"exhausted": true
+			},
+			"cause_seq": 84
+		},
+		{
+			"seq": 86,
+			"turn": 5,
+			"type": "enchantment_applied",
+			"payload": {
+				"instance_id": 3,
+				"attack_delta": 1,
+				"health_delta": 1,
+				"keywords_added": [],
+				"source_entity_id": 4,
+				"is_aura": false,
+				"expires": null
+			},
+			"cause_seq": 85
+		},
+		{
+			"seq": 87,
+			"turn": 5,
+			"type": "counter_changed",
+			"payload": {
+				"source_id": 4,
+				"key": "buffs_given",
+				"value": 1
+			},
+			"cause_seq": 85
+		},
+		{
+			"seq": 88,
+			"turn": 5,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 5,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 89,
+			"turn": 5,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 5,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 90,
+			"turn": 6,
+			"type": "turn_started",
+			"payload": {
+				"turn": 6,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 91,
+			"turn": 6,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "boss",
+				"mana_max": 3,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 92,
+			"turn": 6,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "boss",
+				"mana_available": 3,
+				"mana_max": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 93,
+			"turn": 6,
+			"type": "turn_reset",
+			"payload": {
+				"side": "boss",
+				"entity_ids": [
+					2
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 94,
+			"turn": 6,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 19,
+				"card_id": "neutral_spark_fiend",
+				"hand_size": 5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 95,
+			"turn": 6,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 96,
+			"turn": 6,
+			"type": "mana_spent",
+			"payload": {
+				"side": "boss",
+				"amount": 3,
+				"mana_available": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 97,
+			"turn": 6,
+			"type": "card_played",
+			"payload": {
+				"side": "boss",
+				"instance_id": 17,
+				"card_id": "neutral_ogre_porter",
+				"cost_paid": 3,
+				"target_id": null,
+				"board_index": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 98,
+			"turn": 6,
+			"type": "minion_summoned",
+			"payload": {
+				"side": "boss",
+				"entity_id": 17,
+				"card_id": "neutral_ogre_porter",
+				"position": 0,
+				"attack": 3,
+				"health": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 99,
+			"turn": 6,
+			"type": "armor_lost",
+			"payload": {
+				"side": "player",
+				"entity_id": 1,
+				"amount": 2,
+				"armor": 0
+			},
+			"cause_seq": 98
+		},
+		{
+			"seq": 100,
+			"turn": 6,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 17,
+				"target": 1,
+				"requested": 3,
+				"prevented": 0,
+				"armor_absorbed": 2,
+				"dealt": 3,
+				"health_after": 27
+			},
+			"cause_seq": 98
+		},
+		{
+			"seq": 101,
+			"turn": 6,
+			"type": "frozen",
+			"payload": {
+				"entity_id": 3,
+				"frozen_on_turn": 6
+			},
+			"cause_seq": 98
+		},
+		{
+			"seq": 102,
+			"turn": 6,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 6,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 103,
+			"turn": 6,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 6,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 104,
+			"turn": 7,
+			"type": "turn_started",
+			"payload": {
+				"turn": 7,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 105,
+			"turn": 7,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "player",
+				"mana_max": 4,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 106,
+			"turn": 7,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "player",
+				"mana_available": 4,
+				"mana_max": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 107,
+			"turn": 7,
+			"type": "turn_reset",
+			"payload": {
+				"side": "player",
+				"entity_ids": [
+					1,
+					3,
+					4
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 108,
+			"turn": 7,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 9,
+				"card_id": "war_warcry",
+				"hand_size": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 109,
+			"turn": 7,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 110,
+			"turn": 7,
+			"type": "thawed",
+			"payload": {
+				"entity_id": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 111,
+			"turn": 7,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 1,
+				"mana_available": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 112,
+			"turn": 7,
+			"type": "card_played",
+			"payload": {
+				"side": "player",
+				"instance_id": 7,
+				"card_id": "war_sharpen",
+				"cost_paid": 1,
+				"target_id": null,
+				"board_index": null
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 113,
+			"turn": 7,
+			"type": "spell_cast",
+			"payload": {
+				"side": "player",
+				"instance_id": 7,
+				"card_id": "war_sharpen",
+				"target_id": null,
+				"spell_damage": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 114,
+			"turn": 7,
+			"type": "effect_resolved",
+			"payload": {
+				"effect_id": "war_sharpen.0",
+				"host_id": 7,
+				"host_kind": "card",
+				"source_id": 7,
+				"owner": "player",
+				"trigger": "cast",
+				"depth": 0,
+				"fizzled": false,
+				"ops": [
+					"discover"
+				]
+			},
+			"cause_seq": 113
+		},
+		{
+			"seq": 115,
+			"turn": 7,
+			"type": "discover_offered",
+			"payload": {
+				"side": "player",
+				"source_id": 7,
+				"effect_id": "war_sharpen.0",
+				"kind": "discover",
+				"option_card_ids": [
+					"war_whetstone_blade",
+					"war_iron_resolve",
+					"war_pit_brawler"
+				]
+			},
+			"cause_seq": 114
+		},
+		{
+			"seq": 116,
+			"turn": 7,
+			"type": "choice_requested",
+			"payload": {
+				"side": "player",
+				"kind": "discover",
+				"options": [
+					"war_whetstone_blade",
+					"war_iron_resolve",
+					"war_pit_brawler"
+				],
+				"source_id": 7,
+				"effect_id": "war_sharpen.0"
+			},
+			"cause_seq": 114
+		},
+		{
+			"seq": 117,
+			"turn": 7,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "choice",
+				"side": "player"
+			},
+			"cause_seq": 114
+		},
+		{
+			"seq": 118,
+			"turn": 7,
+			"type": "choice_made",
+			"payload": {
+				"side": "player",
+				"picked_index": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 119,
+			"turn": 7,
+			"type": "discover_picked",
+			"payload": {
+				"side": "player",
+				"picked_index": 1,
+				"picked_card_id": "war_iron_resolve"
+			},
+			"cause_seq": 118
+		},
+		{
+			"seq": 120,
+			"turn": 7,
+			"type": "card_added_to_hand",
+			"payload": {
+				"side": "player",
+				"instance_id": 21,
+				"card_id": "war_iron_resolve",
+				"hand_size": 4
+			},
+			"cause_seq": 118
+		},
+		{
+			"seq": 121,
+			"turn": 7,
+			"type": "card_to_graveyard",
+			"payload": {
+				"side": "player",
+				"instance_id": 7,
+				"card_id": "war_sharpen"
+			},
+			"cause_seq": 118
+		},
+		{
+			"seq": 122,
+			"turn": 7,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "player"
+			},
+			"cause_seq": 118
+		},
+		{
+			"seq": 123,
+			"turn": 7,
+			"type": "healed",
+			"payload": {
+				"source": 1,
+				"target": 1,
+				"requested": 2,
+				"amount": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 124,
+			"turn": 7,
+			"type": "attack_declared",
+			"payload": {
+				"attacker_id": 3,
+				"defender_id": 17
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 125,
+			"turn": 7,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 3,
+				"target": 17,
+				"requested": 2,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 2,
+				"health_after": 2
+			},
+			"cause_seq": 124
+		},
+		{
+			"seq": 126,
+			"turn": 7,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 17,
+				"target": 3,
+				"requested": 3,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 3,
+				"health_after": 0
+			},
+			"cause_seq": 124
+		},
+		{
+			"seq": 127,
+			"turn": 7,
+			"type": "minion_died",
+			"payload": {
+				"instance_id": 3,
+				"card_id": "war_shield_squire",
+				"side": "player",
+				"board_index": 0
+			},
+			"cause_seq": 124
+		},
+		{
+			"seq": 128,
+			"turn": 7,
+			"type": "attack_resolved",
+			"payload": {
+				"attacker_id": 3,
+				"defender_id": 17
+			},
+			"cause_seq": 124
+		},
+		{
+			"seq": 129,
+			"turn": 7,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 7,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 130,
+			"turn": 7,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 7,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 131,
+			"turn": 8,
+			"type": "turn_started",
+			"payload": {
+				"turn": 8,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 132,
+			"turn": 8,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "boss",
+				"mana_max": 4,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 133,
+			"turn": 8,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "boss",
+				"mana_available": 4,
+				"mana_max": 4
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 134,
+			"turn": 8,
+			"type": "turn_reset",
+			"payload": {
+				"side": "boss",
+				"entity_ids": [
+					2,
+					17
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 135,
+			"turn": 8,
+			"type": "card_drawn",
+			"payload": {
+				"side": "boss",
+				"instance_id": 20,
+				"card_id": "neutral_wolf_rider",
+				"hand_size": 5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 136,
+			"turn": 8,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 137,
+			"turn": 8,
+			"type": "mana_spent",
+			"payload": {
+				"side": "boss",
+				"amount": 2,
+				"mana_available": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 138,
+			"turn": 8,
+			"type": "card_played",
+			"payload": {
+				"side": "boss",
+				"instance_id": 19,
+				"card_id": "neutral_spark_fiend",
+				"cost_paid": 2,
+				"target_id": null,
+				"board_index": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 139,
+			"turn": 8,
+			"type": "minion_summoned",
+			"payload": {
+				"side": "boss",
+				"entity_id": 19,
+				"card_id": "neutral_spark_fiend",
+				"position": 1,
+				"attack": 2,
+				"health": 2,
+				"keywords": [
+					"stealth"
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 140,
+			"turn": 8,
+			"type": "effect_resolved",
+			"payload": {
+				"effect_id": "neutral_spark_fiend.0",
+				"host_id": 19,
+				"host_kind": "card",
+				"source_id": 19,
+				"owner": "boss",
+				"trigger": "battlecry",
+				"depth": 0,
+				"fizzled": false,
+				"ops": [
+					"damage"
+				]
+			},
+			"cause_seq": 139
+		},
+		{
+			"seq": 141,
+			"turn": 8,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 19,
+				"target": 4,
+				"requested": 1,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 1,
+				"health_after": 0
+			},
+			"cause_seq": 140
+		},
+		{
+			"seq": 142,
+			"turn": 8,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 19,
+				"target": 1,
+				"requested": 1,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 1,
+				"health_after": 28
+			},
+			"cause_seq": 140
+		},
+		{
+			"seq": 143,
+			"turn": 8,
+			"type": "minion_died",
+			"payload": {
+				"instance_id": 4,
+				"card_id": "neutral_torch_imp",
+				"side": "player",
+				"board_index": 0
+			},
+			"cause_seq": 140
+		},
+		{
+			"seq": 144,
+			"turn": 8,
+			"type": "attack_declared",
+			"payload": {
+				"attacker_id": 17,
+				"defender_id": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 145,
+			"turn": 8,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 17,
+				"target": 1,
+				"requested": 3,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 3,
+				"health_after": 25
+			},
+			"cause_seq": 144
+		},
+		{
+			"seq": 146,
+			"turn": 8,
+			"type": "attack_resolved",
+			"payload": {
+				"attacker_id": 17,
+				"defender_id": 1
+			},
+			"cause_seq": 144
+		},
+		{
+			"seq": 147,
+			"turn": 8,
+			"type": "turn_ending",
+			"payload": {
+				"turn": 8,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 148,
+			"turn": 8,
+			"type": "turn_ended",
+			"payload": {
+				"turn": 8,
+				"side": "boss"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 149,
+			"turn": 9,
+			"type": "turn_started",
+			"payload": {
+				"turn": 9,
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 150,
+			"turn": 9,
+			"type": "crystal_gained",
+			"payload": {
+				"side": "player",
+				"mana_max": 5,
+				"gained": 1
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 151,
+			"turn": 9,
+			"type": "mana_refilled",
+			"payload": {
+				"side": "player",
+				"mana_available": 5,
+				"mana_max": 5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 152,
+			"turn": 9,
+			"type": "turn_reset",
+			"payload": {
+				"side": "player",
+				"entity_ids": [
+					1
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 153,
+			"turn": 9,
+			"type": "card_drawn",
+			"payload": {
+				"side": "player",
+				"instance_id": 10,
+				"card_id": "neutral_lantern_bearer",
+				"hand_size": 5
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 154,
+			"turn": 9,
+			"type": "phase_changed",
+			"payload": {
+				"phase": "main",
+				"side": "player"
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 155,
+			"turn": 9,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 2,
+				"mana_available": 3
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 156,
+			"turn": 9,
+			"type": "card_played",
+			"payload": {
+				"side": "player",
+				"instance_id": 10,
+				"card_id": "neutral_lantern_bearer",
+				"cost_paid": 2,
+				"target_id": null,
+				"board_index": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 157,
+			"turn": 9,
+			"type": "minion_summoned",
+			"payload": {
+				"side": "player",
+				"entity_id": 10,
+				"card_id": "neutral_lantern_bearer",
+				"position": 0,
+				"attack": 2,
+				"health": 3,
+				"keywords": [
+					"divine_shield"
+				]
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 158,
+			"turn": 9,
+			"type": "silenced",
+			"payload": {
+				"entity_id": 17
+			},
+			"cause_seq": 157
+		},
+		{
+			"seq": 159,
+			"turn": 9,
+			"type": "keyword_removed",
+			"payload": {
+				"entity_id": 19,
+				"keyword": "stealth"
+			},
+			"cause_seq": 157
+		},
+		{
+			"seq": 160,
+			"turn": 9,
+			"type": "mana_spent",
+			"payload": {
+				"side": "player",
+				"amount": 1,
+				"mana_available": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 161,
+			"turn": 9,
+			"type": "card_played",
+			"payload": {
+				"side": "player",
+				"instance_id": 9,
+				"card_id": "war_warcry",
+				"cost_paid": 1,
+				"target_id": 2,
+				"board_index": null
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 162,
+			"turn": 9,
+			"type": "spell_cast",
+			"payload": {
+				"side": "player",
+				"instance_id": 9,
+				"card_id": "war_warcry",
+				"target_id": 2,
+				"spell_damage": 0
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 163,
+			"turn": 9,
+			"type": "effect_resolved",
+			"payload": {
+				"effect_id": "war_warcry.0",
+				"host_id": 9,
+				"host_kind": "card",
+				"source_id": 9,
+				"owner": "player",
+				"trigger": "cast",
+				"depth": 0,
+				"fizzled": false,
+				"ops": [
+					"damage"
+				]
+			},
+			"cause_seq": 162
+		},
+		{
+			"seq": 164,
+			"turn": 9,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 9,
+				"target": 2,
+				"requested": 3,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 3,
+				"health_after": 1
+			},
+			"cause_seq": 163
+		},
+		{
+			"seq": 165,
+			"turn": 9,
+			"type": "card_to_graveyard",
+			"payload": {
+				"side": "player",
+				"instance_id": 9,
+				"card_id": "war_warcry"
+			},
+			"cause_seq": 162
+		},
+		{
+			"seq": 166,
+			"turn": 9,
+			"type": "attack_declared",
+			"payload": {
+				"attacker_id": 1,
+				"defender_id": 2
+			},
+			"cause_seq": 0
+		},
+		{
+			"seq": 167,
+			"turn": 9,
+			"type": "damage_dealt",
+			"payload": {
+				"source": 5,
+				"target": 2,
+				"requested": 2,
+				"prevented": 0,
+				"armor_absorbed": 0,
+				"dealt": 2,
+				"health_after": -1
+			},
+			"cause_seq": 166
+		},
+		{
+			"seq": 168,
+			"turn": 9,
+			"type": "weapon_durability_changed",
+			"payload": {
+				"side": "player",
+				"entity_id": 5,
+				"delta": -1,
+				"durability": 1
+			},
+			"cause_seq": 166
+		},
+		{
+			"seq": 169,
+			"turn": 9,
+			"type": "attack_resolved",
+			"payload": {
+				"attacker_id": 1,
+				"defender_id": 2
+			},
+			"cause_seq": 166
+		},
+		{
+			"seq": 170,
+			"turn": 9,
+			"type": "match_ended",
+			"payload": {
+				"result": "win",
+				"winner": "player",
+				"reason": "hero_dead",
+				"floor": 1,
+				"turns": 9,
+				"turns_per_side": {
+					"player": 5,
+					"boss": 4
+				},
+				"stats": {
+					"player": {
+						"damage_dealt_by_card": {
+							"war_shield_squire": 3,
+							"war_warcry": 3,
+							"war_rusted_axe": 2
+						},
+						"damage_taken": 9,
+						"cards_played": 7,
+						"minions_summoned": 3
+					},
+					"boss": {
+						"damage_dealt_by_card": {
+							"boss_ember_bolt": 2,
+							"neutral_ogre_porter": 7,
+							"neutral_spark_fiend": 2
+						},
+						"damage_taken": 5,
+						"cards_played": 4,
+						"minions_summoned": 3
+					}
+				},
+				"final_health": {
+					"player": 25,
+					"boss": -1
+				}
+			},
+			"cause_seq": 0
+		}
+	]
+}
