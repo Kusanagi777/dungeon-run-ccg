@@ -1,11 +1,11 @@
 ## Automated smoke seed created by /test-setup.
 ##
-## There is no run/main_scene yet (unset until the first UI story), so the
-## launch-based smoke in project.yaml `commands.smoke` cannot run. Until it can,
-## this suite is the automated half of the smoke gate: it checks that the project
-## settings load, that gdUnit4 is enabled, and that the scene tree can create and
-## free a node headlessly. It runs with every `-a res://tests` run, in CI too.
-## Replace entry 1 of critical-paths.md with a real main-scene check once one exists.
+## The automated half of the smoke gate: it checks that the project settings
+## load, that gdUnit4 is enabled, and that the scene tree can create and free a
+## node headlessly. It runs with every `-a res://tests` run, in CI too. The
+## launch-based half is project.yaml `commands.smoke`, which launches
+## run/main_scene (res://src/scenes/boot.tscn since 2026-11-03); the scene
+## itself is covered by tests/integration/boot/boot_scene_test.gd.
 extends GdUnitTestSuite
 
 const EXPECTED_PROJECT_NAME := "Dungeon Run CCG"

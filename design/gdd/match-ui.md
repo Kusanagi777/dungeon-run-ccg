@@ -9,6 +9,7 @@
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): (1) F1 hand arc inverted — with a bottom-centre pivot, `HAND_BASE_Y` 716 and a 24-px downward dip the outer cards sat at y 740 and their rotated attack stamps were off the 720-px viewport, so O1 was unsatisfiable; `HAND_BASE_Y` is now 696, the centre card rises `ARC_H`, the hand zone is 240, 462, 800, 258 and F2's preview top is y 381; (2) the match-end hand-off is confirmed as Run UI's sibling contract (`match_view_finished(result)` → Run UI, which run-ui.md names) — run-structure.md never names this system, so its row is now indirect (`MatchConfig`, the match driver); (3) treasure tray added (F6 zone, inventory row, `treasure_tray` fixture, `healed{amount: 0}` suppressed) — treasures.md is Designed and places the tray on the match screen; stale "undesigned" / "in progress" wording removed; (4) C15 events this GDD does not draw (`turn_reset`, `card_to_graveyard`) are a declared silent set, not `feed.unknown` lines; (5) `reduce_motion` setting defined (`ui-code.md` rule 4) — shake, hit-stop and lethal slow-down drop; (6) `match_ui.json` is already in DD-T01 and loads through Card Database `config("match_ui")`; (7) U12 cross-reference F7 → F6; Open Questions updated with the cross-GDD items the review found (`intent_banner_s` 1.2 vs 0.3, run-ui's `anim_speed` labels and action-delay slider, `telegraph_mode`, `ui-code.md` gamepad / text-scale deferrals).
 > **REVISED 2026-11-03 (cross-review)**: C-01 (`anim_speed` is the DD-X07 label set `instant | fast | normal` with a `SPEED_DIV` table in F3; F4 consumes Meta's `action_delay_ms`; `reduce_motion` and `text_scale` are read from Meta; telegraph rendering follows Boss AI's `effective_mode`, DD-X03), C-07 (the four losing event aliases deleted, the five 2026-11-03 primitive events placed in U3 — DD-X04), S-04 (`fault` end banner copy "floor replayed, not lost", no defeat sting), C-30 housekeeping (`intent_banner_s` OQ, Cross-References status words). Accessibility / pattern-library resolutions (`design/accessibility-requirements.md`, `design/ux/interaction-patterns.md` Open Questions) folded into U5, States, F6, U11, Tuning Knobs and AC: click-to-select mouse path, `end_turn_arm_ms` 300 ms, `Esc` never cancels Mulligan/Choice, `Tab` focus cycling in `Idle` with a 2 px focus ring, 44x44 treasure-chip hit area, hero power `Blocked` reason on focus.
 > **REVISED 2026-11-03 (re-review, `/design-review` lean, independent reviewer — blocking items fixed in place)**: (1) F6 mana bar `1000, 676, 256, 32` sat inside the hand zone — for every n ≥ 6 the right-most card (x 890–1040, rotated edge to x 1048 at y 676) covered its first crystals, and the outer cards' rotated top corners reach x 188 / 1092, so O1's "within x 240–1040", O3's "no overlap" and F1's "nothing is clipped" were false by the document's own numbers; the mana bar is now a two-row `1060, 652, 196, 56`, the deck pile `1180, 540, 76, 106`, the tray holds the three v1 slots (`MAX_TREASURES_HELD`, treasures.md; a fourth slot would sit under card 0's corner), `HAND_W` safe range 700–800, F1 states the rotated envelope and O1 tests it; (2) rng-event-log rule 12a's `diagnostic: true` events (`ai_decision`, `ai_plan_aborted`, `ai_fault`) and card-effects' `counter_changed` were in neither the U3 table nor the silent set, so rule 4 would have printed `feed.unknown` lines every boss turn in release — U3.4a filters diagnostics (player `command_rejected` keeps its tooltip **and** gains a `feed.command_rejected` line, accessibility-requirements "Reading time"), `counter_changed` projects to `counters{}` with a feed line and no badge (card-effects Gaps), L9/L18 test it, `--ai-debug` documented in U11; (3) L15 assumed `Space` ends the turn while U5 gives `Idle` focus to the left-most playable card (where `Space` is not End Turn) — precondition added. Also aligned: U5 idle focus order to interaction-patterns Focus Management (the owner it names), `reduce_motion` in the pause-menu row and O15, O17 defined as state equality plus a retained pose pair, Open Questions (accessibility tier → `design/accessibility-requirements.md`; Meta Progression is Designed).
+> **REVISED 2026-11-03 (ux-review)**: (1) F6 boss strip `1136, 262, 120, 28` split side by side — hand count `1136, 262, 60, 28`, boss compact mana counter `1196, 262, 60, 28` (hud.md §4.2 proposal accepted); (2) Visual/Audio + States: the player hand dims to 60 % (`table_dark`, art bible §2) for the whole `BossTurn` state; (3) U3 projection row for `trigger_resolved{once_per_turn: true, exhausted: true}` → dimmed once-per-turn trigger icon on the source card; (4) U5 / U9 / States / Edge Cases / O19: `Esc` on the match-end banner does nothing and the pause menu is unreachable in `Ended` (DD-X09) — the former fall-through to "open the pause menu" removed; (5) U11 fixtures: `boss_intent_hidden` added, `match_end_fault` confirmed, `*_ts150` (`text_scale` 1.5) variants of the hud fixtures; (6) Interactions / Dependencies Meta row: `gamma` read setting applied via `CanvasModulate` (DD-X10).
 > **REVISED 2026-11-03 (housekeeping)**: Interactions Run UI row — settings are read from Meta Progression (DD-X07), not handed over by Run UI as "current settings values".
 > **Implements Pillar**: Pillar 4 (readable, deterministic rules — the UI is a projection of the event log); Pillar 3 (lose fast, learn fast — every loss is legible on screen); Sensation aesthetic (crisp card feedback)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No `Agent` tool in this run: `game-designer`, `ux-designer`, `ui-programmer`, `art-director`, `systems-designer` and `qa-lead` not consulted — Lean mode. Review manually before production.
@@ -191,6 +192,7 @@ events of the five primitives match-rules added on 2026-11-03 (`remove_keyword` 
 | `counter_changed` (card-effects C5) | `counters[source_id][key] = value` — read by the source's hover / focus tooltip; **no board badge in v1** (card-effects Gaps: "the UI to show progress does not" exist yet) | none; feed line `feed.counter_changed` |
 | `minion_died` (group by `cause_seq`) | Board remove all in group, then re-space | death group (0.3 s) then gap-close (0.2 s) |
 | `trigger_queued` / `trigger_resolved` | `armed_sources` | rim glow on/off (0.15 s) |
+| `trigger_resolved{once_per_turn: true, exhausted: true}` (card-effects C6.7 / UI Requirements) | `exhausted_sources` += source until the next `turn_started` | once-per-turn trigger icon on the source card dims to 60 % (0.15 s); the rim glow stays off for the rest of the turn; `turn_started` clears the dim with no step |
 | `effect_resolved` | none (ops already applied by their own events) | feed group line; `fizzled` → "fizzle" wisp on source (0.2 s) |
 | `discover_offered` (Card Effects: `kind`, options) + `choice_requested` (Match Rules: the phase) | `pending_choice` is filled from `discover_offered` (player side only); the overlay step is emitted when the **second** of the pair is projected, whichever order the engine emits them | open Choice overlay (0.2 s) |
 | `choice_made` / `discover_picked` | `pending_choice = null` | overlay close (0.15 s) |
@@ -278,7 +280,10 @@ events of the five primitives match-rules added on 2026-11-03 (`remove_keyword` 
   confirm → Cancel); (4) otherwise open the pause menu (concede + settings). **`Esc` never cancels
   or closes the Mulligan screen, the Choice overlay or the end banner** — they have no cancel (U8,
   U9; a Choice has no legal "back"), so as a cancel it is a no-op there and the chain falls
-  through to (4), which keeps concede two presses away. `1`–`9`,`0` = pick hand card 1–10 into
+  through to (4), which keeps concede two presses away — **except on the end banner (`Ended`,
+  DD-X09): there `Esc` does nothing at all.** The pause menu is reachable in every view state
+  except `Ended`; the banner's Continue click / `Enter` or `MATCH_END_AUTO_S` is the only exit, so
+  the chain never falls through to (4) once `result` is set. `1`–`9`,`0` = pick hand card 1–10 into
   **keyboard targeting**: `Tab`/`Shift+Tab` cycle legal positions or targets (the arrow follows),
   `Enter` confirms, `Esc` cancels; `H` = hero power; `L` = toggle the feed panel; `A` then a
   number = pick attacker by board index and cycle defenders with `Tab`. Every action reachable by
@@ -358,7 +363,9 @@ Salvage reference: `mulligan_screen.gd` (toggle-and-confirm flow kept; the proto
   not know about floors or drafts.
 - **Concede** lives in the pause menu (`Esc` with nothing open, or the top-bar button) behind a
   confirm dialog; confirming sends `concede`. It is available in every phase except `Ended`,
-  including during the boss turn (match-rules C14).
+  including during the boss turn (match-rules C14). **The pause menu itself is unreachable in
+  `Ended`** (DD-X09): once the end banner is up, `Esc` and the top-bar menu button do nothing;
+  settings wait for Run UI's next screen.
 - **Settings quick-access** (same pause menu): master/SFX volume, `anim_speed` and `reduce_motion`.
   Settings are display-and-audio only and never touch the match.
 
@@ -395,9 +402,14 @@ godot --path . --windowed --resolution 1280x720 --write-movie production/qa/evid
 
 Required fixtures (one JSON each): `mulligan`, `turn1_player`, `midgame_full_board` (7 v 7),
 `hand_10`, `targeting_taunt`, `targeting_stealth`, `choice_discover`, `choice_choose_one`,
-`boss_intent_full`, `boss_intent_plan_changed`, `boss_turn_playback`, `fatigue_and_burn`,
+`boss_intent_full`, `boss_intent_plan_changed`, `boss_intent_hidden` (a band-3 boss with
+`effective_mode = hidden` — the "?" banner frame), `boss_turn_playback`, `fatigue_and_burn`,
 `treasure_tray` (two held treasures, one hook firing), `divine_shield_hit`, `simultaneous_deaths`, `match_end_victory`, `match_end_defeat`,
-`match_end_both_dead`, `match_end_concede`, `match_end_fault` (a scripted `resolution_overflow`). A story that adds a screen adds its fixture in the same
+`match_end_both_dead`, `match_end_concede`, `match_end_fault` (a scripted `resolution_overflow`).
+**Settings variants**: every fixture `hud.md` cites (`turn1_player`, `midgame_full_board`,
+`hand_10`, `boss_intent_full`, `boss_turn_playback`, `treasure_tray`, `fatigue_and_burn`) also
+exists as `<name>_ts150` — the same command list with the profile `text_scale = 1.5` — so the
+§10.2 reflow is captured, not asserted (accessibility-requirements Visual "Text scale"). A story that adds a screen adds its fixture in the same
 story; `/qa-plan` lists them.
 
 #### U12. What this GDD does not decide
@@ -423,10 +435,10 @@ below except `Ended`.
 | `Dragging` | Press-and-move (> `CLICK_DRAG_PX`) on a playable card or legal attacker / hero power | Release, right-click, Esc | Arrow or lifted card; legal drops lit; End Turn disabled |
 | `KeyTargeting` | Number key / `A` + number / `H`; a click (< `CLICK_DRAG_PX`) on a playable card, legal attacker or `Ready` hero power; `Enter` on such a focused source | Enter or LMB on a lit target/slot (submit); Esc, RMB, click on empty table | Same visuals as `Dragging`, cursor-free or pointer-entered (`entered_by`); `Tab` or hover over a lit target cycles |
 | `Playback` | Queue non-empty | Queue drained | Controls locked except skip, pause menu, feed; `playing = true` |
-| `BossTurn` | `turn_started{side: boss}` | `turn_started{side: player}` and queue drained | Intent banner commit beat; paced groups (U6); skip |
+| `BossTurn` | `turn_started{side: boss}` | `turn_started{side: player}` and queue drained | Intent banner commit beat; paced groups (U6); skip; the player's hand dims to 60 % (one step to `table_dark`, art bible §2) for the whole state and restores on exit |
 | `ChoiceOpen` | `choice_requested{side: player}` | `choose` accepted or concede | Overlay; table dimmed; no cancel — `Esc` is a no-op as a cancel and opens the pause menu instead (U5) |
 | `Menu` | `Esc` with nothing open, or top-bar button | `Esc`, Resume, or a confirmed concede | Concede confirm + settings; underlying playback keeps running |
-| `Ended` | `match_ended` projected and queue drained | `match_view_finished` emitted | End banner; click or `MATCH_END_AUTO_S`; no commands |
+| `Ended` | `match_ended` projected and queue drained | `match_view_finished` emitted | End banner; click or `MATCH_END_AUTO_S`; no commands; `Esc` does nothing and the pause menu is unreachable (DD-X09) |
 
 Transitions (explicit): `Loading → Mulligan` (fixture/new match with `mulligan_offered`) or
 `Loading → Idle` (resume/fixture past mulligan); `Mulligan → Playback → Idle`; `Idle → Dragging`
@@ -436,7 +448,7 @@ click on a legal source, or `Enter` on a focused source); `Idle → Playback` on
 start-of-turn trigger); `Playback → Idle` on drain when `phase == PlayerTurn.Main`; `Playback →
 BossTurn` on `turn_started{boss}`; `BossTurn → Playback → Idle` on `turn_started{player}`; any
 state except `Ended` `→ ChoiceOpen` on a player `choice_requested`, `ChoiceOpen → Playback` on
-`choose`; any state `→ Menu` and back; any state `→ Ended` once `match_ended` is drained. A command
+`choose`; any state **except `Ended`** `→ Menu` and back (DD-X09); any state `→ Ended` once `match_ended` is drained. A command
 issued from `Playback` flushes the queue first (U4.7). Any (state, input) pair not listed is
 ignored by the `InputRouter` — never forwarded to `submit`.
 
@@ -453,7 +465,7 @@ ignored by the `InputRouter` — never forwarded to `submit`.
 | **Treasures** | upstream (display) | Held treasure ids in pick order (from `MatchConfig`) for the tray (F6 zone); hook-hosted `effect_resolved` with `host_kind = treasure` for the tray flare and feed attribution; `healed{amount: 0}` suppressed (treasures.md Edge Cases); boss `passive` plate | Nothing | Treasures (data and tray order); card-effects (event) |
 | **Run Structure** | upstream (indirect) | `MatchConfig` (R3: hero, boss, floor, band, held treasures) reaches this system through Run UI's `begin_match` scene swap; the match driver that calls Boss AI is Run Structure's (boss-ai Interactions) and is wrapped by `MatchController` | Nothing directly — `concede` goes through `submit`; the end-of-match hand-off goes to Run UI | Run Structure owns `MatchConfig` and the driver; it never references this system (run-structure.md, verified 2026-11-03) |
 | **Run UI** | mutual (sibling hand-off) | Scene swap at `begin_match` with the `MatchConfig` and `MatchController`; this GDD reads settings from Meta Progression (DD-X07), not from Run UI | `match_view_finished(result)` after the end banner (run-ui.md `match` screen and Interactions "Match UI" — contract confirmed); shared theme tokens and the pause-menu settings panel | Run UI reuses, never imports, match presenters |
-| **Meta Progression** | upstream (soft) | Persisted `anim_speed` (label set per DD-X07), `high_contrast_states`, `reduce_motion`, `action_delay_ms`, `text_scale`, volumes via `settings_changed` | Settings changes to persist (`set_setting`) | Meta Progression owns the settings record; absent at MVP → session-local |
+| **Meta Progression** | upstream (soft) | Persisted `anim_speed` (label set per DD-X07), `high_contrast_states`, `reduce_motion`, `action_delay_ms`, `text_scale`, `gamma` (0.8–1.4, DD-X10 — applied to the match scene through a `CanvasModulate` brightness adjustment, never to colour tokens), volumes via `settings_changed` | Settings changes to persist (`set_setting`) | Meta Progression owns the settings record; absent at MVP → session-local |
 
 Every partner GDD exists (verified 2026-11-03): treasures.md places the tray on the match screen
 (its UI Requirements), run-ui.md names the `match_view_finished` hand-off and the shared settings
@@ -591,7 +603,7 @@ pixels; the board is seven 90-px tokens with 8-px gaps = 678 px, centred (art bi
 | Feed ticker / feed drawer (open) | 24, 48, 400, 42 / 0, 40, 300, 290 | drawer never covers the player portrait |
 | Boss deck pile + count | 24, 96, 76, 106 | 0.5x card back |
 | Boss intent banner | 980, 52, 276, 36 | above the boss portrait |
-| Boss portrait (120x160, art bible §5) + hand count strip | 1136, 96, 120, 160 / 1136, 262, 120, 28 | band colour |
+| Boss portrait (120x160, art bible §5) + hand / mana strip | 1136, 96, 120, 160 / 1136, 262, 120, 28 | band colour; the strip is split side by side (ux-review 2026-11-03, `hud.md` §4.2): **boss hand count** 1136, 262, 60, 28 (left half) and **boss compact mana counter** "n/m" 1196, 262, 60, 28 (right half) — the counter match-rules and this GDD's UI Requirements list now has an F6 rect; at `text_scale` ≥ 125 % the mana half relocates into the portrait panel's bottom-right corner (`hud.md` §10.2) and the strip holds the hand count alone |
 | Boss row (7 slots) | 301, 176, 678, 126 | centre line y = 318 |
 | End Turn button | 1116, 296, 140, 44 | lit by state |
 | Player row (7 slots) | 301, 334, 678, 126 | summon-position gap opens during drag |
@@ -649,8 +661,10 @@ pixels; the board is seven 90-px tokens with 8-px gaps = 678 px, centred (art bi
   press that arrives the frame the boss turn finishes): the key is consumed and nothing happens —
   it is neither a skip (nothing left to skip) nor an End Turn (not yet armed). A click on the
   button is never gated.
-- **If `Esc` is pressed on the Mulligan screen, the Choice overlay or the end banner**: nothing is
+- **If `Esc` is pressed on the Mulligan screen or the Choice overlay**: nothing is
   cancelled or closed (no cancel exists); the pause menu opens over the overlay instead (U5).
+- **If `Esc` (or the top-bar menu button) is pressed on the end banner**: nothing happens — no
+  cancel, no pause menu (DD-X09); the banner waits for Continue or `MATCH_END_AUTO_S`.
 - **If the player presses a number key for an empty hand slot**: ignored.
 - **If a hover is active when its card leaves the hand** (played by keyboard, or burned): the
   preview is dismissed in the same step; no orphaned 1.5x card remains.
@@ -696,7 +710,7 @@ UI row and needs none: the hand-off partner is Run UI (see its row).
 | Treasures | This depends on Treasures | Soft | Tray contents in pick order and `source_id` for feed lines / tray flare (treasures.md Dependencies lists Match UI); no treasure held → tray hidden |
 | Run Structure | This depends on Run Structure | Hard (indirect) | `MatchConfig` fields (hero, boss, floor, band, treasures) and the match driver, delivered through Run UI's scene swap; nothing flows back to Run Structure from this system, so run-structure.md needs no Match UI row |
 | Run UI | Mutual (sibling) | Hard | Run UI swaps this scene in at `begin_match` and takes control back on `match_view_finished(result)` (run-ui.md Interactions and Dependencies — bidirectional); shared theme and the pause-menu settings panel |
-| Meta Progression | This depends on Meta Progression | Soft | Persisted `anim_speed` (label set per DD-X07), `high_contrast_states`, `reduce_motion`, `action_delay_ms`, `text_scale`, volumes (meta-progression.md M9 stores them and lists Match UI); absent at MVP → session-local defaults |
+| Meta Progression | This depends on Meta Progression | Soft | Persisted `anim_speed` (label set per DD-X07), `high_contrast_states`, `reduce_motion`, `action_delay_ms`, `text_scale`, `gamma` (DD-X10, applied via `CanvasModulate`), volumes (meta-progression.md M9 stores them and lists Match UI); absent at MVP → session-local defaults |
 | Content | Indirect | Soft | Card text length is bounded by the card frame (art bible) and `MAX_OPS_PER_EFFECT` (card-effects); no runtime interface |
 
 ## Tuning Knobs
@@ -755,6 +769,8 @@ steps fire no sound. Visual rules: art bible §4 tokens only; saturated colour o
 | Death group | Tokens fade + 2-px drop together; gap-close after | `sfx.ui.death_thud` (one per group) | Must |
 | Draw / burn / fatigue | Card back slides deck → hand / burned card dissolves over deck / "Fatigue N" label | `sfx.ui.draw` / `sfx.ui.burn` / `sfx.ui.heartbeat` | Must / Should / Should |
 | End Turn press; turn start | Button depress; turn banner (boss turn only) in band colour | `sfx.ui.end_turn` / `sfx.ui.turn_chime` | Must |
+| Boss turn (whole `BossTurn` state) | Player hand dims to 60 % (one step to `table_dark`, art bible §2 "Match — boss turn"); restores on `turn_started{player}`; not a step, so skip does not affect it | none | Must |
+| Once-per-turn trigger exhausted (`trigger_resolved{once_per_turn, exhausted}`) | Trigger icon on the source card dims to 60 % until the next `turn_started`; rim glow off (U3) | none | Should |
 | Intent shown / committed / plan changed | Banner per boss-ai rows; `lethal` pulses `state_danger` once | `sfx.ui.page_turn` / none / `sfx.ui.plan_changed` | Must |
 | Rejection | 0.2 s shake, tooltip, related control flash | `sfx.ui.deny` (soft) | Must |
 | Overlay open / close (Choice, Mulligan, Menu) | Table dims to `table_dark`; cards scale in 0.2 s | `sfx.ui.overlay` | Should |
@@ -837,7 +853,7 @@ match-rules', card-effects', boss-ai's and heroes' UI Requirements tables and ar
 | **Match HUD — top bar** | Turn indicator (side + number), floor/boss name, feed toggle, menu button | `turn_started`, `phase_changed`; match config | `turn1_player` | `design/ux/hud.md` |
 | **Hero portraits** (both) | Health 24 px, armour, weapon slot (attack/durability), hero power button (`Ready/Blocked/Used`; `Blocked` reason and name/cost/text in a tooltip on hover **or focus**), boss hand count, boss passive plate | `damage_dealt`, `healed`, `armor_*`, `weapon_*`, `hero_power_used`; `hero_power_state()` | `midgame_full_board`, `fatigue_and_burn` | `hud.md` |
 | **Treasure tray** | Held treasures as chips in pick order (3 in v1, `MAX_TREASURES_HELD`; 40 px visual, 44x44 hit rect — F6), tooltip with the treasure `text` on hover or focus, flare on a hook-hosted `effect_resolved` | `MatchConfig` treasures; `effect_resolved{host_kind: treasure}` | `treasure_tray` | `hud.md` |
-| **Mana bar** (player) + boss compact counter | 10 crystals (full/spent/temporary/locked), "n/m" | `mana_*`, `crystal_gained` | `turn1_player`, `midgame_full_board` | `hud.md` |
+| **Mana bar** (player) + boss compact counter | 10 crystals (full/spent/temporary/locked), "n/m" (F6 `1060, 652, 196, 56`); boss "n/m" in the right half of the boss strip (F6 `1196, 262, 60, 28`) | `mana_*`, `crystal_gained` | `turn1_player`, `midgame_full_board`, `*_ts150` | `hud.md` |
 | **Deck piles** | Count, fatigue-next label, burn flash | `card_drawn`, `card_burned`, `fatigue_damage` | `fatigue_and_burn` | `hud.md` |
 | **End Turn button** | Enabled / disabled / actionable-outline states; key-armed after `end_turn_arm_ms` (click never gated) | `phase()`, `legal_commands()`, queue idle + arm timer | `turn1_player`, `boss_turn_playback` | `hud.md` |
 | **Hand fan** | Up to 10 cards (F1), effective cost (`effective_cost`), playable lit / unaffordable dimmed, hover preview (F2), drag | `card_drawn`, `card_played`, `card_burned`, `enchantment_*`; `hand()` | `hand_10`, `--pose=hover:<id>` | `design/ux/hand.md` |
@@ -850,7 +866,7 @@ match-rules', card-effects', boss-ai's and heroes' UI Requirements tables and ar
 | **Event feed** | 3-line ticker; drawer with grouped, collapsible lines; localised | every event; U10 | `--pose=feed:open` | `design/ux/event-feed.md` |
 | **Rejection tooltip** | `reject.<code>` copy at the cursor, 1.5 s; control shake | `command_rejected` | `--pose=reject:<code>` | `targeting.md` |
 | **Match end overlay** | Victory / defeat / both-dead / concede / fault banner ("floor replayed, not lost" copy, no stinger — U9); continue | `match_ended` → `match_view_finished` | `match_end_*` incl. `match_end_fault` | `design/ux/match-end.md` |
-| **Pause menu** | Concede (with confirm), Resume, settings quick-access (volumes, `anim_speed`, `reduce_motion`) | — | `--pose=menu:concede`, `menu:settings` | `design/ux/pause-menu.md` |
+| **Pause menu** | Concede (with confirm), Resume, settings quick-access (volumes, `anim_speed`, `reduce_motion`); unreachable in `Ended` (DD-X09) | — | `--pose=menu:concede`, `menu:settings` | `design/ux/pause-menu.md` |
 | **AI debug overlay** | `ai_decision` panel; debug builds / `--ai-debug` only | `ai_decision` | `boss_turn_playback --ai-debug` | none (dev tool) |
 
 📌 **UX Flag — Match UI**: This system has UI requirements. In Phase 4 (Pre-Production), run
@@ -1009,6 +1025,8 @@ U11 fixtures in `production/qa/evidence/` (UI gate, BLOCKING per coding standard
   the chip's tooltip is shown and its hit rect (debug outline) measures 44x44 around the 40 px chip.
 - [ ] **O19** GIVEN `choice_discover`, WHEN `Esc` is pressed, THEN the Choice overlay is still open
   with its options unchanged and the pause menu is open above it; the same holds for `mulligan`.
+  GIVEN `match_end_victory`, WHEN `Esc` is pressed, THEN the view state is still `Ended`, no pause
+  menu is open and the capture is pixel-identical to the un-pressed one (DD-X09).
 
 ## Open Questions
 

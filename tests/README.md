@@ -70,11 +70,51 @@ gdUnit4 writes `reports/report_<n>/` at the project root on every run
 need a main scene: it checks the project settings load, the gdUnit4 plugin is
 enabled, and a Node can be added to the tree and freed headlessly. The
 launch-based smoke in `project.yaml` (`commands.smoke`: `godot --headless
---quit-after 5`) needs `run/main_scene`, which is unset until the first UI story;
-until then it prints `Can't run project: no main scene defined` and does not
-exit, so run it under a timeout or skip it. Once a main scene exists,
-`commands.smoke` becomes the real "game launches" check and entry 1 of
-`smoke/critical-paths.md` should point at it.
+--quit-after 5`) launches `run/main_scene`, which is
+`res://src/scenes/boot.tscn` (the display-only boot screen, set 2026-11-03 by
+the test-rig exit item). Verified the same day: `timeout 30 godot --headless
+--quit-after 5` exits 0 and prints no `SCRIPT ERROR`. Keep the `timeout`: the
+command exits 0 even on a parse error, so read its output, and a missing main
+scene makes it hang. `tests/integration/boot/boot_scene_test.gd` is the
+automated counterpart — it loads the boot scene and asserts the main-scene
+setting.
+
+## Run and observe (Linux/CI)
+
+`.claude/docs/run-and-observe.md` is the procedure; `tools/capture.sh` is the
+Linux/CI implementation of its Godot row:
+
+```bash
+bash tools/capture.sh <scene-res-path> <out-dir> [frames]
+bash tools/capture.sh res://src/scenes/boot.tscn production/qa/evidence/<story-slug>
+# → prints production/qa/evidence/<story-slug>/01-<scene-basename>.png
+```
+
+It runs the command observed to work on this container
+(`docs/architecture/spikes/2026-11-03-engine-probes.md`, Probe C):
+`xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --windowed --resolution
+1280x720 --rendering-driver opengl3 --write-movie <dir>/f.png --quit-after 60
+res://<scene>.tscn`, keeps the **last** frame as `01-<scene-basename>.png`,
+deletes the other frames and the `.wav`, and exits non-zero when Godot failed
+(3) or when the frame is a single colour (4, a blank capture — checked by a
+dependency-free PNG reader run with `python3 -I`). `frames` defaults to 60;
+raise it for a scene that animates in.
+
+Things to know:
+
+- **CI evidence is Compatibility/llvmpipe output.** There is no Vulkan device
+  under Xvfb, so every frame is rendered by the Compatibility (OpenGL 3)
+  renderer on Mesa's software rasteriser, not the project's Forward+ renderer.
+  2D `Control`/`Label`/`ColorRect` output matched expected colours exactly;
+  anything Forward+-only (glow, HDR, 3D lighting) will differ or be absent.
+- Frames are the project viewport size (1280x720), not `--resolution`.
+- Never add `--headless`: `--headless --write-movie` crashes (exit 134).
+- `production/.gdignore` keeps Godot from importing the evidence PNGs; the
+  folder is versioned, so the kept frame is committed with the story.
+- The first run of this rig is `production/qa/evidence/rig-check-2026-11-03/`
+  (rig proof, not story evidence).
+- Capturing an evidence frame does not replace looking at it: `Read` the PNG
+  and compare it to the acceptance criteria (run-and-observe step 4).
 
 ## Helpers
 
@@ -158,5 +198,6 @@ verified locally on Godot 4.7.2 (2026-11-03): `--export-release` and
 above, so a CI export job should run `--import` first and retry once. Adding an
 export job means running `EXPORT_TEMPLATES=1 bash tools/setup.sh` (about 1 GB
 download, 2 GB unpacked) and uploading `build/windows/` as an artifact.
-`run/main_scene` is still unset, so the exported `.exe` builds but cannot
-launch into a scene until the first UI story sets one.
+`run/main_scene` is `res://src/scenes/boot.tscn` since 2026-11-03, so an
+export now launches into the boot screen (the export itself was not re-run
+after that change).

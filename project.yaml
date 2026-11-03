@@ -62,9 +62,10 @@ commands:
   build: "godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe"
   test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode"
   run: "godot --path . --windowed --resolution 1280x720"
-  # smoke needs run/main_scene, which is unset until the first UI story. Until
-  # then it prints "Can't run project: no main scene defined" and never exits —
-  # run it under a timeout. It exits 0 even on a parse error: read its output.
+  # smoke launches run/main_scene (res://src/scenes/boot.tscn since 2026-11-03;
+  # verified exit 0, no SCRIPT ERROR). Still run it under a timeout: with no
+  # main scene it never exits, and it exits 0 even on a parse error — read its
+  # output. Screenshot capture for run-and-observe: tools/capture.sh.
   smoke: "godot --headless --quit-after 5"
 
 workflow_overrides:

@@ -6,7 +6,10 @@
 
 ## Core Stability (always run)
 
-1. Game launches to main menu without crash
+1. Game launches without crash — `timeout 30 godot --headless --quit-after 5`
+   (`commands.smoke`) exits 0 with no `SCRIPT ERROR`; it launches
+   `run/main_scene` = `res://src/scenes/boot.tscn` (boot screen until a main
+   menu exists)
 2. New game / session can be started from the main menu
 3. Main menu responds to all inputs without freezing
 
