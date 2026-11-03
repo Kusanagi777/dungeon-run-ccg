@@ -74,9 +74,9 @@
 
 **Local proof (2026-11-03)**: templates present at `~/.local/share/godot/export_templates/4.7.2.stable/`; `godot --headless --path . --import` twice, then `godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe` exited 0 and produced `build/windows/deckdelve.exe` of 109176608 bytes (about 104 MiB, PCK embedded). A string scan of the exe found no `res://tests`, `prototypes`, `production`, `design` or `docs` paths. `build/` is gitignored.
 
-**CI run**: not yet verified. The orchestrator checks the first run after push (workflow green, artifact `deckdelve-windows-<sha>` present, exe size in the "Verify the export" log, cache save on the first run and hit on the second).
+**CI run**: verified 2026-11-03 by the orchestrator — run https://github.com/Kusanagi777/dungeon-run-ccg/actions/runs/41714090015 (head 85ba444, `pull_request`) completed **success**; artifact `deckdelve-windows-0da81e779bcd7f55850d2f6bd55b00ab4bf9f635` (the PR merge-ref sha), 38,964,535 bytes zipped, expires 2026-11-17. The first run on ac76506 was cancelled by `cancel-in-progress` when 85ba444 was pushed (expected). Cache hit on a second run: to be confirmed on the next push. Owner first-launch screenshot: pending (`production/qa/evidence/windows-first-light-<date>/`).
 
-**Status**: [x] Local build passes; [ ] CI run pending
+**Status**: [x] Local build passes; [x] CI run green with artifact; [ ] owner first launch on Windows
 
 ---
 
