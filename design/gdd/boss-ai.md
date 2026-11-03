@@ -511,6 +511,8 @@ profiles:       {<key>: Profile}            default, aggro, control, tempo, pass
 bands:          {"1"|"2"|"3": Profile overlay}
 boss_overrides: {<boss id>: Profile overlay with required "extends"}
 presentation:   {action_delay_s 0.6, max_turn_playback_s 10, intent_banner_s 0.3, plan_changed_s 1.2}
+runtime:        {planner_mode worker|time_sliced|immediate (default worker), slice_ms 2, replay_budget_ms 2}
+                (owned here, consumed by the match driver's PlannerTask seam — ADR-0006; added 2026-11-03)
 
 Profile = { extends?: key,
             weights:  {w_board, w_face, w_self, w_trade, w_threat, w_mana, w_card, w_over, w_heal, w_hp, w_passive},

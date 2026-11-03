@@ -155,9 +155,9 @@ Bundle variant (`draft_bundle`), F4 panels 340 wide at x 90 / 470 / 850, gap 40:
      Hover/focus on a card row → 225x315 Card Inspect preview, anchored per panel (table below)
 ```
 
-**Bundle preview anchoring** (ux-review 2026-11-03 — the earlier "panel's outer edge" rule put the left panel's preview at x < 0). Rows sit at y 212 / 284 / 356 (centres 244 / 316 / 388); the preview is 225x315 and is always clamped to x 0–1055, y **96**–405 (so the title and strip rows stay visible and the bottom edge stays ≥ 15 px above Pick at y 640):
+**Bundle preview anchoring** (ux-review 2026-11-03 — the earlier "panel's outer edge" rule put the left panel's preview at x < 0). Rows sit at y 212 / 284 / 356 (centres 244 / 316 / 388); the preview is 225x315 and is always clamped to x 0–1055, y **96–310** (so the title and strip rows stay visible and the bottom edge — top + 315 ≤ 625 — stays ≥ 15 px above Pick at y 640):
 
-| Hovered / focused panel | Side | Preview rect (row 1 / row 2 / row 3) | Reading panel at ≥ 125 % (max 360 wide, same y) |
+| Hovered / focused panel | Side | Preview rect (row 1 / row 2 / row 3) at 100 % — the **rule** is top = row centre − 157, clamped to y 96–310; at 125 / 150 % the rows are 80 / 96 px tall (§12) so the centres move to 252 / 340 / 428 and 260 / 364 / 468, and the same rule yields tops 96 / 183 / 271 and 103 / 207 / 310 | Reading panel at ≥ 125 % (max 360 wide, same y) |
 |---|---|---|---|
 | Left (x 90–430) | **Right** of the panel, 8 px gap | `438, 96, 225, 315` / `438, 159, 225, 315` / `438, 231, 225, 315` (top = row centre − 157, clamped) | Right of the preview: `671, y, 360, 315` |
 | Right (x 850–1190) | **Left** of the panel, 8 px gap | `617, 96, 225, 315` / `617, 159, 225, 315` / `617, 231, 225, 315` | Left of the preview: `249, y, 360, 315` |
@@ -165,7 +165,7 @@ Bundle variant (`draft_bundle`), F4 panels 340 wide at x 90 / 470 / 850, gap 40:
 
 The clamped middle-panel preview overlaps the panel's own rows 1–2 (and row 3's top), so the `InspectLayer` draws it with `mouse_filter = MOUSE_FILTER_IGNORE`: the pointer still rests on the row underneath, the row stays hovered and the preview does not flicker; focus is unaffected. A left-panel preview overlaps the middle panel's left 193 px and a right-panel preview the middle panel's right 193 px — acceptable because only one option is inspected at a time and the panel beneath is not the one being read. Nothing moves; neighbours never shift (Card Inspect rule).
 
-Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320, 624 over the content; the title and strip rows stay visible; Pick (560–720) stays clear of it; the covered option (bundle panel 3 / nothing in the treasure variant) is still focusable — focusing it closes the drawer.
+Deck drawer open (either variant): right drawer 320 px (*spec*) at **960, 96, 320, 536** over the content (ends y 632 — 8 px above the action row, so the "Deck (n)" toggle at 1080, 640 stays **visible and clickable** while the drawer is open; ux-review 2026-11-03, the earlier 624 px drawer covered its own toggle); the title and strip rows stay visible; Pick (560–720) stays clear of it; the drawer header carries a **"×" close button** at its right end (44x44 hit at 1232, 100, accessible name "Close deck") as a second pointer close path; the covered option (bundle panel 3 / nothing in the treasure variant) is still focusable — focusing it closes the drawer.
 
 ### 5.2 Layout Zones
 
@@ -175,11 +175,11 @@ Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320,
 | Progress strip row | Progress Strip pattern: held-treasure chips x 40–200, F nodes (F4: `strip_w` 472, `x0` 404, node centres 416 + 64·(f−1) for F = 8; 544 + 64·(f−1) for F = 4), deck size x 1080–1240 | 1280 x 48 (48–96) | No | F > 10 shrinks `seg_len` (F4); initials dropped below 16 px |
 | Header (treasure) | Empty breathing space per F4's "96–240 for header" — holds the *reoffer/short* reason line when present (centred, 16 px `text_muted`, y 200) | 1280 x 144 (96–240) | No | — |
 | Option row (treasure) | 3 slots 150x210 at x 367, 565, 763, y 240 (F4) — Card (Hand) static variant with the spell slot layout (text box y 122–200), rarity pill ("Common"/"Rare" word, 12 px on `ink`) overlapping the name band's right end | 723 x 210 (240–450) | No | Text > 4 lines ellipsises; full text in Card Inspect (run-ui Edge Cases) |
-| Option row (bundle) | 3 panels 340x320 at x 90, 470, 850, y 136–456 (*spec* y inside F4's x): `parchment`-framed `table_dark` panel; theme label 32 px band (16 px bold `text_light` on `ink`); pitch 2 lines 14 px `text_light` (36 px); three compact card rows 300x64 with 8 px gaps (x 110, y 212 / 284 / 356): cost stamp 34 px, name 14 px bold, type initial, attack/health stamps 26 px, first text line 12 px `text_ink` on `parchment`, ellipsised | 1100 x 320 | No (rows fixed at 3) | At `text_scale` ≥ 125 % the first-line text is dropped from the row (name + stamps stay) and the reading panel carries it (§12) |
+| Option row (bundle) | 3 panels 340x320 at x 90, 470, 850, y 136–456 (*spec* y inside F4's x): `parchment`-framed `table_dark` panel; theme label 32 px band (16 px bold `text_light` on `ink`); pitch 2 lines 14 px `text_light` (36 px); three compact card rows 300x64 with 8 px gaps (x 110, y 212 / 284 / 356): cost stamp 34 px, name 14 px bold, type initial, attack/health stamps 26 px, first text line 12 px `text_ink` on `parchment`, ellipsised; the panel's last band **y 420–456** holds the **theme-tag chip** (one `ink` pill with the bundle's tag word, 12 px, left-aligned at x 110 — the same tag the synergy hint counts). The hint lines are **not** inside the panel: they render in the hint zone at y 470 / 494 (library `Bundle Panel` contract says the same) | 1100 x 320 | No (rows fixed at 3) | At `text_scale` ≥ 125 % the first-line text is dropped from the row (name + stamps stay) and the reading panel carries it (§12) |
 | Hint zone | Line 1 under the focused/hovered option (treasure: "fits your plan" iff `affine` = 1; bundle: "N cards in your deck share *theme*"); line 2 (bundle only) "Deck a → b"; 16 px `text_light`, centred under the option; hidden (not blank) when the read model lacks the number | 1280 x 72 (450/456–528) | No | ≤ 48 chars English; wraps to 2 lines at 150 % |
 | Action row | Take nothing (Secondary, 160x44 at 40, 640 — only under `allow_skip`); **Pick** (Primary, 160x44 at 560, 640); Deck drawer toggle (Secondary, 160x44 at 1080, 640, label "Deck (n)") | 1280 x 80 (640–720) | No | Labels grow the button, never clip (Button pattern) |
-| Deck drawer (overlay, non-blocking) | 960, 96, 320, 624 (*spec*): header "Deck · n cards" + "Treasures" chip row (held, pick order); List Item rows 44 px (cost stamp, name, type initial, a "drafted f3" tag for non-starter cards) in acquisition order; Scroll Container | 320 x 624 | Yes — vertical | Bar always shown when > 13 rows; focus follows scroll |
-| Toast layer | Top-right (Toast pattern): 400 x ≥ 48 at (856, 56) — below the title row, clear of the menu button | — | No | One at a time (run-ui U5) |
+| Deck drawer (overlay, non-blocking) | 960, 96, 320, 536 (*spec*; ends y 632 so the toggle at y 640 stays visible): header "Deck · n cards" with a "×" close button (44x44 hit at 1232, 100) at its right end + "Treasures" chip row (held, pick order); List Item rows 44 px (cost stamp, name, type initial, a "drafted f3" tag for non-starter cards) in acquisition order; Scroll Container | 320 x 536 | Yes — vertical | Bar always shown when > 11 rows; focus follows scroll |
+| Toast layer | Top-right (Toast pattern): 400 x ≥ 48 at (856, 56) — below the title row, clear of the menu button. **While a toast is up it covers the strip's deck-size label (x 1080–1240, y 48–96)**: on this screen the toast shifts left to **x 656** (656–1056) for its whole display so the label stays readable — "Deck a → b" is the number the player is checking here; the strip nodes (ends x 864 at F = 8) are decorative and may sit under it | — | No | One at a time (run-ui U5) |
 
 ### 5.3 Component Inventory
 
@@ -191,8 +191,8 @@ Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320,
 | Progress strip | Compound | Strip row | Floor progress, held treasures, deck size | Yes | Yes — Progress Strip (`progress-strip.md`) |
 | Treasure chips (strip) | Chip | Strip row | Held treasures, tooltip | Yes when ≥ 1 held | Yes — Treasure Chip |
 | Treasure option frame ×1–3 | Card (static) | Option row | One offer: name, rarity pill, text | Yes | Yes — Card (Hand) static variant + Pick One of N slot |
-| Bundle panel ×1–3 | Compound | Option row | Theme label, pitch, 3 compact rows | Yes | **No — new** `BundlePanel` (Gaps row "Compact card row"; composed of List Item rows + Card Inspect) |
-| Compact card row ×3 per panel | List Item (read-only, focusable) | Bundle panel | One card of the bundle; Card Inspect on hover/focus | Yes | **No — new** `CompactCardRow` 300x64 (Gaps) |
+| Bundle panel ×1–3 | Compound | Option row | Theme label, pitch, 3 compact rows, theme-tag chip | Yes | **Owned here** — library Screen-Owned entry `Bundle Panel` (composed of List Item rows + Card Inspect) |
+| Compact card row ×3 per panel | List Item (read-only, focusable) | Bundle panel | One card of the bundle; Card Inspect on hover/focus | Yes | **Owned here** — library Screen-Owned entry `Compact Card Row` (300x64) |
 | Short-offer placeholder ×0–2 | Panel | Option row | Dimmed frame with the one-line reason | Yes | Yes — Empty State "Draft with `short` offers" |
 | Missing-id error frame | Panel | Option row | "missing: <id>", not pickable | Yes | Yes — Error State |
 | Synergy hint | Text | Hint zone | "fits your plan" / "N cards share *theme*" | Yes | Yes — Pick One of N hint line |
@@ -200,7 +200,7 @@ Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320,
 | Pick | Button | Action row | Confirms the selected option | Yes | Yes — Button (Primary) |
 | Take nothing | Button | Action row | `skip_pick` under `allow_skip` | Conditional | Yes — Button (Secondary) |
 | Deck drawer toggle | Button | Action row | Opens / closes the drawer | Yes | Yes — Button (Secondary) |
-| Deck drawer | Drawer | Overlay | Current deck + held treasures | Yes | **New** `DeckDrawer` (Gaps row) built from Scroll Container + List Item + Treasure Chip; non-blocking Overlay Open / Close row "Deck drawer (draft)" |
+| Deck drawer | Drawer | Overlay | Current deck + held treasures | Yes | **Owned here** — library Screen-Owned entry `Deck Drawer` (reused by `hero-select.md`), built from Scroll Container + List Item + Treasure Chip + a header "×" Button (Secondary); non-blocking Overlay Open / Close row "Deck drawer (draft)" |
 | Card Inspect preview (+ reading panel) | Overlay | Over the content | 225x315 card on hover / focus | Yes | Yes — Card Inspect |
 | Reason line (short/reoffer) | Text | Header | "No more treasures in this run" / "…bundles…" | Conditional | Yes — Empty State |
 | Pause overlay | Modal | Over everything | Resume / Settings / Abandon / Quit to menu | Yes | Yes — Modal Dialog (`pause.md`) |
@@ -238,12 +238,12 @@ Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320,
 | Empty offer | `option_ids == []` | **Never shown** — the run skips the step (D8c) | — | Stated so a reviewer does not look for a missing state |
 | Missing id | An `option_ids` entry fails to resolve in Card Database | That slot is an error frame "missing: <id>" (`text_muted` on `table_dark`), the others normal; `ui_data_missing` warning toast | Not pickable; not focusable | run-ui AC-21 |
 | Take-nothing available | `allow_skip = true` | Fourth control at bottom-left | `Tab`-reachable, `skip_pick`; no fly-to-strip | Default off (reward-draft D9) |
-| Deck drawer open | Deck button / `Enter` on it | Right drawer 320 px slides in (fade under `reduce_motion`); covers bundle panel 3 | Non-blocking: options, Pick stay live; `Esc` / RMB / the toggle closes it first (Escape chain step 2); focus enters the drawer only when opened by key | Gaps row resolved here |
+| Deck drawer open | Deck button / `Enter` on it | Right drawer 320 px (960, 96, 320, 536) slides in (fade under `reduce_motion`); covers bundle panel 3; the toggle at y 640 and Pick stay uncovered | Non-blocking: options, Pick stay live; `Esc` / RMB / the toggle / the header "×" closes it first (Escape chain step 2), focus returning to the toggle; focus enters the drawer (at the "×") only when opened by key | Library `Deck Drawer` entry |
 | Pause open | `Esc` (chain step 4) / menu button | Modal over a `table_dark`-dimmed base; Resume focused | Base input disabled; a toast arriving queues | `pause.md` |
 | Abandon confirm | Pause → Abandon run | Confirmation Dialog: "Abandon this run?" / "Abandon counts as a loss." / [Cancel ●] [Abandon run] | Cancel focused | Destructive pattern |
 | Rejected pick | `E_NOT_OFFERED` / `E_DRAFT_DONE` / `E_DRAFT_KIND` / `E_UNKNOWN_ID` | Toast "That option is no longer offered."; the committed option un-locks, siblings brighten | Screen un-committed; `E_UNKNOWN_ID` → fresh `draft_offered` rebuilds | Error State row |
 | Resume into a draft | `resume()` OK | Same offer, no reveal stagger; strip and deck from the record | Identical behaviour | run-ui AC-12 |
-| Toast showing | Unlock / warning queued while idle | Banner top-right for `t_toast` 5–8 s; hover/focus pauses | Never steals focus | Unlocks are rare here (granted at `archive_run`) — mostly `save_failed` |
+| Toast showing | Unlock / warning queued while idle | Banner top-right (shifted to x 656 on this screen so the deck-size label stays visible, §5.2) for `t_toast` 5–8 s; hover (or LMB hold) pauses | Never steals focus (toasts take no focus) | Unlocks are rare here (granted at `archive_run`) — mostly `save_failed` |
 | ReadOnly profile | Meta `ReadOnly` | Banner strip above the title row | Picks still work; the run is not saved (Meta M6) | run-ui Edge Cases |
 | `text_scale` 125 % / 150 % | Setting | §12 narrative: title and hints grow; compact rows drop their text line; reading panel on Card Inspect | — | Fixture **`draft_bundle_sample_ts150`** (run-ui U10 settings variant, `settings.text_scale` 1.5; AC-31) |
 | `reduce_motion` / `instant` | Setting | Stagger → one fade / 0 ms; fly-to-strip → fade; drawer slide → fade | `committed` still blocks a second intent (state-based) | run-ui AC-20 |
@@ -264,7 +264,7 @@ Mapping interactions for: **keyboard + mouse** (resolved in Phase 2h from techni
 | Mouse hover | PC | Highlight (lift 8 px) + Card Inspect + hint — **without** moving focus or selecting | Lift, no ring | `ui_hover` | Hover and focus may differ; both shown when both |
 | Mouse click | PC | Focus **and** select the clicked option (first click); on a bundle card row: selects the panel | Ring + persistent outline; Pick lights | `ui_select` | A single click never commits (Pick One of N) |
 | Mouse wheel | PC | Scroll the deck drawer when open (3 rows per notch); no-op elsewhere | — | — | Scroll Container |
-| Right mouse button | PC | Close the drawer if open; otherwise no-op (never opens pause, never navigates) | — | `ui_select` cancel variant | Escape / Cancel RMB rule |
+| Right mouse button | PC | Close the drawer if open; otherwise no-op (never opens pause, never navigates) | — | `ui_select` cancel variant | Escape / Cancel RMB rule; the discoverable pointer closes are the still-visible toggle and the header "×" |
 | `Esc` | KB | Chain: (2) close the drawer → (3) cancel the open confirm / close pause → (4) open the pause menu | — | — | Never abandons; never picks |
 | Gamepad d-pad / A / B / shoulders | post-v1 | `focus_neighbor_*` over the same graph / Enter / Esc / Tab | Same | Same | No v1 decision blocks this |
 
@@ -278,9 +278,9 @@ Mapping interactions for: **keyboard + mouse** (resolved in Phase 2h from techni
 | LMB | PC | — (pointer over Pick, Actionable) | Pick | As above | | `ui_pick` | |
 | LMB ×2 (double-click) | PC | Pointer over an option | Select + Pick in one gesture | As above | | `ui_select` + `ui_pick` | Shortcut, not the only path; the second click within the OS double-click time |
 | `Enter` / LMB | KB / PC | Take nothing focused / hovered (`allow_skip` only) | `skip_pick` | `committed`; no fly-to-strip | | `ui_select` | |
-| `Enter` / LMB | KB / PC | Deck drawer toggle | Open / close the drawer | Slide 250 ms (fade under `reduce_motion`) | | `ui_select` | Keyboard open moves focus into the drawer's first row; close returns it to the toggle |
+| `Enter` / LMB | KB / PC | Deck drawer toggle (always visible — the drawer ends at y 632), or the drawer header "×" | Open / close the drawer | Slide 250 ms (fade under `reduce_motion`) | | `ui_select` | Keyboard open moves focus into the drawer (header "×" first, then rows); close by any path returns it to the toggle |
 | `Enter` / LMB | KB / PC | Menu button, or `Esc` with nothing open | Open Pause | Modal open `fade` 250 ms | | `sfx.ui.overlay` | Resume focused |
-| `Enter` / LMB | KB / PC | Toast focused / hovered | Dismiss early | Fade 200 ms | | — | Unlock already acked on show |
+| LMB | PC | Toast hovered (toasts never take focus — no keyboard dismiss) | Dismiss early | Fade 200 ms | | — | Unlock already acked on show |
 | Any input | all | During `transitioning` | `skip` the transition to its end state | Instant | 0 | — | The only intent accepted while transitioning (U4) |
 
 ### 7.3 State-Specific Behaviors
@@ -426,7 +426,7 @@ Project-wide commitments are in `design/accessibility-requirements.md` (Standard
 2. Option 2
 3. Option 3 (stops for placeholders and missing-id frames are **skipped**)
 4. Pick (Primary) — focusable even when Idle so its reason tooltip is reachable
-5. Deck drawer toggle (Secondary) — when the drawer is open by key, focus is inside it: header → rows (Up/Down) → `Tab` returns to this stop and closes nothing; `Esc` closes
+5. Deck drawer toggle (Secondary) — when the drawer is open by key, focus is inside it: header "×" (close stop) → rows (Up/Down) → `Tab` returns to this stop and closes nothing; `Esc` or `Enter` on the "×" closes and focus lands here
 6. Take nothing (Secondary) — only when `allow_skip`
 7. Menu button (title row)
 8. Progress strip nodes, left → right (inspect only: tooltips)
@@ -481,9 +481,13 @@ Fixtures are run-ui U10's (`--run-ui-screen=<id> --run-ui-fixture=<name>`), capt
 - [ ] GIVEN `draft_bundle_sample`, THEN three 340-wide panels sit at x 90 / 470 / 850 (±2 px), each with a theme label, a pitch and three 300x64 rows, and no card text is clipped without a preview (AC-5)
 - [ ] GIVEN F = 8, THEN the strip's node centres are at 416 + 64·(f−1) (AC-24) with the current floor ringed and upcoming nodes hollow with no initials
 - [ ] GIVEN the window at 3840x2160 fullscreen, THEN the layout is the 1280x720 layout scaled uniformly, nothing re-flowed (AC-31)
-- [ ] GIVEN `draft_bundle_sample_ts150` (`settings.text_scale = 1.5` in the fixture profile), THEN no text clips, the compact rows show name + stamps without their text line, and focusing a row opens the preview **and** the reading panel at the §5.1 rects (AC-31; accessibility matrix)
+- [ ] GIVEN `draft_bundle_sample_ts150` (`settings.text_scale = 1.5` in the fixture profile), THEN no text clips, the compact rows show name + stamps without their text line, and focusing a row opens the preview **and** the reading panel placed by the §5.1 rule — top = row centre − 157 clamped to y 96–310, side per panel (left → right of the panel, right → left, middle → above), i.e. at 150 % tops 103 / 207 / 310 — fully inside the viewport (AC-31; accessibility matrix)
 - [ ] GIVEN `draft_bundle_sample` with row 1 of each panel hovered in turn, THEN the preview sits at `438, 96` (left panel), `528, 96` (middle) and `617, 96` (right), fully inside the viewport, and the hovered row stays hovered under the middle panel's preview (no flicker)
-- [ ] All states in §6 that have a fixture render correctly; the Empty state does not exist and no "no offers" copy is reachable
+- [ ] GIVEN an `option_ids` entry that fails to resolve (missing-id state), THEN that slot shows the frame text "missing: <id>" in `text_muted` on `table_dark`, `Tab` never lands on it, and the other options remain pickable
+- [ ] GIVEN `allow_skip = false` (default), THEN no "Take nothing" button exists at 40, 640; GIVEN `allow_skip = true`, THEN it is present there as a Secondary and `Tab`-reachable as stop 6
+- [ ] GIVEN Meta `ReadOnly`, THEN the ReadOnly banner strip renders **above** the title row and the title row, strip and options are shifted by nothing (the banner overlays y 0–24)
+- [ ] GIVEN the drawer open (`draft_bundle_sample`, toggle clicked), THEN the drawer occupies 960, 96, 320, 536, the "Deck (n)" toggle at 1080, 640 is fully visible, and clicking either the toggle or the header "×" closes the drawer
+- [ ] The Empty state does not exist and no "no offers" copy is reachable
 
 **Input**
 - [ ] GIVEN `draft_bundle_sample` and keys `2` then `Enter` then `Enter` with no mouse input, THEN option index 1 is picked and exactly one `draft_pick(bundle, option_ids[1])` is issued (run-ui AC-19, AC-9)
@@ -517,9 +521,10 @@ Fixtures are run-ui U10's (`--run-ui-screen=<id> --run-ui-fixture=<name>`), capt
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
 | Player journey map not yet created — author `design/player-journey.md` from `.claude/docs/templates/player-journey.md` to source the "30-second draft" emotional target instead of inferring it from the Core Loop. | Jacob | Before Pre-Production gate | Open |
-| reward-draft UI Requirements still asks "whether to show the synergy count at all". This spec shows it on focus / hover only, never as a ranking. Confirm, then close that OQ. | Jacob + Reward Draft GDD owner | `/ux-review draft-picker` | **Ratified 2026-11-03** (designer default, `/ux-review`): show on focus / hover, never as a ranking; reward-draft's OQ can cite this row |
+| reward-draft UI Requirements still asks "whether to show the synergy count at all". This spec shows it on focus / hover only, never as a ranking. Confirm, then close that OQ. | Jacob + Reward Draft GDD owner | `/ux-review draft-picker` | **Ratified 2026-11-03** (designer default, `/ux-review`): show on focus / hover as a hint line (not a tooltip), never as a ranking; reward-draft § Open Questions marked Resolved and its UI Requirements row reworded "hover/focus tooltip" the same day — both GDD edits made |
 | `text_scale` reading path for compact rows — reading panel on focus, rows drop their text line (no reflow, no scroll). Approve as the resolution of the pattern library's Gaps row and the accessibility matrix's pending item. | Jacob | `/ux-review draft-picker` | **Ratified 2026-11-03** (designer default, `/ux-review`): reading panel; the library's Gaps row is closed and `Compact Card Row` is indexed there; fixture `draft_bundle_sample_ts150` |
-| Deck drawer geometry (right drawer 960, 96, 320, 624; covers bundle panel 3; non-blocking) — accept, then move the Gaps row into a `Deck Drawer` pattern entry (also reused by `hero-select.md` for the starter deck). | ux-designer (`interaction-patterns.md`) | Before the first draft story | **Resolved 2026-11-03** — `Deck Drawer` entry under the library's Screen-Owned Compound Patterns points back to this spec; Gaps row closed |
+| Deck drawer geometry (right drawer 960, 96, 320, **536**; covers bundle panel 3; non-blocking; header "×" close) — accept, then move the Gaps row into a `Deck Drawer` pattern entry (also reused by `hero-select.md` for the starter deck). | ux-designer (`interaction-patterns.md`) | Before the first draft story | **Resolved 2026-11-03** — `Deck Drawer` entry under the library's Screen-Owned Compound Patterns points back to this spec; Gaps row closed. **Amended the same day** (`/ux-review` round 2): drawer shortened from 624 to 536 px so it no longer covers its own toggle, plus a header "×" close stop; library contract and `hero-select.md` carry the same rect |
+| Bundle preview anchoring (§5.1 table: left panel → right side, right → left, middle → above; clamped to the viewport) supersedes run-ui F4's "anchored to the panel's outer edge" prose and the Card Inspect pattern's Preview row. | Run UI GDD owner + ux-designer (`interaction-patterns.md`) | `/ux-review draft-picker` | **Resolved 2026-11-03** — run-ui F4 now reads "anchored beside the panel, clamped to the viewport (draft-picker.md §5.1)"; the Card Inspect Preview row cites this spec's anchoring table; run-ui's own Open Question on the anchoring remains for its owner to close against this row |
 | New fixtures: `draft_treasure_short` (`option_ids` of 2, `flags: [short]`) and a `text_scale` 1.5 profile variant of `draft_bundle_sample` — add to run-ui U10's required list. | Run UI GDD owner / `/qa-plan` | Before the first draft story | **Resolved 2026-11-03** — run-ui U10 lists `draft_treasure_short` and `draft_bundle_sample_ts150` |
 | Gamepad: d-pad graph (§11) — the Focus Management spatial map over this screen's stops (options → hints → action row → strip) is defined by the library but no `focus_neighbor_*` wiring is specified per panel / row. | ux-designer | Before gamepad work (post-v1) | Open — post-v1; nothing in v1 may make the mapping impossible |
 | Gamepad: face buttons (§11) — `ui_accept` = select / second press confirm, `ui_cancel` = Esc chain; whether a third button maps to "Deck drawer" or "Take nothing" is undecided. | ux-designer | Before gamepad work (post-v1) | Open — post-v1 |

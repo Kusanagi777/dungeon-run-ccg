@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -32,6 +32,12 @@ Review record for this authoring run (2026-11-03, `review_mode: lean`,
   authoring report, not written.
 - **Numbering:** fixed by DD-X08 and `architecture.md` §Required ADRs (kept
   separate from ADR-0008 and ADR-0009 for the reasons recorded there).
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** no decision
+  change; the dependency row's "none Accepted" note updated. The `MetaApi`
+  restatement includes `load_status`, now also in ADR-0004's list (the owner of
+  that interface). TD-009 / TD-006 halves agree with ADR-0004/0005/0008/0009.
+  Dependencies ADR-0001, ADR-0004, ADR-0008 Accepted first.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
@@ -84,7 +90,7 @@ memory, no run log, no notifications) and as the `ProfileStore`-backed
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split; `Boot` as the one composition root whose `services()` only scene roots and debug loaders may call); ADR-0004 (save format — defines `MetaApi`, `ProfileStore`, `SettingsBus` and `MetaFacade`; this ADR only fixes how they are **injected** and consumed); ADR-0008 (match driver and the Run ↔ Match ↔ UI hand-off — `RunController` receives the `MatchDriver` from `RunMachine.begin_match()` and hands `MatchView` a `MatchController`). All written 2026-11-03 and `Proposed`; none Accepted. ADR-0004 Decision 9 already names `MetaFacade` / `MetaStub` at the paths used here and the shared contract suite (`tests/unit/meta/meta_api_contract_test.gd`) |
+| **Depends On** | ADR-0001 (rules / presentation split; `Boot` as the one composition root whose `services()` only scene roots and debug loaders may call); ADR-0004 (save format — defines `MetaApi`, `ProfileStore`, `SettingsBus` and `MetaFacade`; this ADR only fixes how they are **injected** and consumed); ADR-0008 (match driver and the Run ↔ Match ↔ UI hand-off — `RunController` receives the `MatchDriver` from `RunMachine.begin_match()` and hands `MatchView` a `MatchController`). All written 2026-11-03; all Accepted 2026-11-03 before this ADR. ADR-0004 Decision 9 already names `MetaFacade` / `MetaStub` at the paths used here and the shared contract suite (`tests/unit/meta/meta_api_contract_test.gd`) |
 | **Enables** | Every Run UI story; the nine run fixtures (U10); `/ux-review` of `design/ux/hero-select.md`, `draft-picker.md`, `run-summary.md` can assume this shell |
 | **Blocks** | Run UI epic; the MVP build's main menu / hero select / boss intro / drafts / summaries; `data_error` screen (card-database CR-8) |
 | **Ordering Note** | `MetaStub` can ship **before** ADR-0004's `ProfileStore` exists — that is the point of the seam — but `MetaApi` itself is ADR-0004's interface, so a change there is a change here. ADR-0009 supplies `CardFrame`, `PauseMenu` (settings panel) and the `Transition` helper's tween conventions; the Run UI epic can start on the shell and `main_menu` / `hero_select` before ADR-0009's presenters exist |

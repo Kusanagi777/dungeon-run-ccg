@@ -30,6 +30,18 @@ Review record for this authoring run (2026-11-03, `review_mode: lean`,
   (`/architecture-review` owns the registries).
 - **Numbering:** fixed by `design/design-decisions.md` DD-X08 and
   `architecture.md` §Required ADRs.
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** the
+  clone-and-replay protocol is unchanged and is what ADR-0008 and (now)
+  `architecture.md` describe. Changes in this ADR: the ADR-0008 reconciliation
+  bullets and the `MatchDriver` interface comments said boss-turn `submit`
+  returns `ENGINE_BUSY / planner_live`, named a `MatchQuery.is_busy()`, limited
+  `is_planning()` to boss tasks and kept an event "forwarding/buffering" step —
+  all of which contradicted ADR-0008 as adopted (ADR-0008 owns the driver API);
+  aligned to ADR-0008. "`architecture.md` is not edited" notes updated, since it
+  now is. TD paragraph now matches the `architecture.md` mapping. Dependencies
+  ADR-0001 and ADR-0008 were Accepted first (ADR-0008 before this one, per both
+  ADRs' dependency rows — not the reverse).
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
@@ -80,7 +92,7 @@ immediate implementation serves tests and the sim harness.
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split — `BossAI`, `RulesEngine` are `RefCounted`, Node-free, constructor-injected; this is what makes off-thread execution safe by construction), ADR-0008 (match driver ownership — `MatchDriver` is the only caller of `PlannerTask`). Both written 2026-11-03 and `Proposed`; neither is Accepted |
+| **Depends On** | ADR-0001 (rules / presentation split — `BossAI`, `RulesEngine` are `RefCounted`, Node-free, constructor-injected; this is what makes off-thread execution safe by construction), ADR-0008 (match driver ownership — `MatchDriver` is the only caller of `PlannerTask`). Both written 2026-11-03; both Accepted 2026-11-03 before this ADR |
 | **Enables** | ADR-0009 (Match UI boss-turn playback assumes the whole turn, or a prefix of it, is already in the log when the UI sees it — U6) |
 | **Blocks** | Every Boss AI story that calls `play_turn` / `forecast` from the driver; the `boss_turn_playback` fixture story (match-ui U11); the A30 and A22 acceptance stories |
 | **Ordering Note** | ADR-0003 (RNG + event log) is a transitive dependency through ADR-0008: `RulesEngine.clone()` must copy `rng_match` state (TR-match-rules-003) for the replay below to be sound. Implement `PlannerTask` + `ImmediatePlannerTask` first (no engine risk), then `WorkerPoolPlannerTask`, then `TimeSlicedPlannerTask` only if (3) in Verification Required fails on Windows |

@@ -369,9 +369,10 @@ Producer/consumer and kind: `submit` is a synchronous call; events are a synchro
 ```
 RulesEngine: PlayerTurn.End → BossTurn.Start → BossTurn.Main   (turn_started{side: boss} appended)
 MatchDriver.on_phase(BossTurn.Main):
-    PlannerTask.start(func(): boss_ai.play_turn(engine))      ← mechanism per ADR-0006
+    PlannerTask.start(func(): boss_ai.play_turn(engine.clone()) → TurnPlan)   ← over a clone, per ADR-0006
 MatchView._process → MatchDriver.tick()  (≤ 2 ms main-thread per frame; polls task; UI shows "boss thinking")
-PlannerTask completes → all boss commands already submitted, events already in EventLog
+PlannerTask completes → tick() replays the TurnPlan's commands into the live engine on the main thread
+(ai_decision before each; ai_fault{replay_divergence} on checksum mismatch); subscribers fire as normal
 MatchView then paces the burst it holds (U6): intent banner → command groups with ai_action_delay gaps,
 compressed to max_turn_playback_s; skip-all drains in one frame.
 ```
@@ -598,7 +599,7 @@ class_name MatchDriver extends RefCounted              # owned by Run Structure 
 func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask) -> void
 func submit(command: Command) -> CommandResult        # PLAYER commands; rejects while the planner task is live (except concede, queued)
 func legal_commands() -> Array[Command]; func query() -> MatchQuery
-func tick() -> void                                   # called from MatchView._process; ≤ 2 ms; polls PlannerTask; replays buffered events to subscribers
+func tick() -> void                                   # called from MatchView._process; ≤ 2 ms; polls PlannerTask; replays the TurnPlan into the live engine (ADR-0006/0008)
 func subscribe(callback: Callable) -> void; func events_since(seq: int) -> Array
 signal match_ended(result: MatchResult)
 

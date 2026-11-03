@@ -257,7 +257,7 @@ data file — a manual "content version" string would be forgotten on the exact 
 |-------|-----------------|----------------|----------|
 | `Unloaded` | process start | `load()` called by the boot sequence | queries are illegal (debug assert; release returns `null`/empty and logs `E_NOT_LOADED`) |
 | `Loading` | `load()` | pipeline CR-5 finishes | synchronous; nothing else runs; must finish within `data_load_budget_ms` (Formulas) |
-| `Ready` | zero errors | `reload()` in a debug build, or process exit | snapshot frozen; all queries valid; `report()` holds warnings only |
+| `Ready` | zero errors | `reload()` in a debug build, or process exit | snapshot frozen; all queries valid; `report()` holds warnings only. Exception (ADR-0002, 2026-11-03): during CR-5 stage 7 the loader hands its own delegated validators `has(id)` / record lookups over the not-yet-frozen tables; outside the loader, queries before `Ready` remain illegal |
 | `Failed` | one or more errors | process exit (release) or `reload()` (debug) | queries illegal as in `Unloaded`; `report()` holds the full report; CR-8 applies |
 | `Reloading` (debug only) | `reload()` from `Ready` or `Failed` | pipeline finishes | builds a **new** snapshot; on success it replaces the old one atomically, on failure the previous `Ready` snapshot stays active and the new report is shown; a match in progress keeps the snapshot handle it started with |
 

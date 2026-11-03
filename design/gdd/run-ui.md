@@ -250,8 +250,9 @@ reuse those records: `draft_treasure_sample`, `draft_bundle_sample` (offers of 3
 `resume_prompt` (from `mid_run_floor4`), `data_error_sample` (a 12-row validation report),
 `toast_sample` (3 queued). **Settings variants** (`text_scale = 1.5` in the fixture profile,
 everything else equal): `draft_bundle_sample_ts150`, `locked_heroes_ts150`,
-`victory_sample_ts150` — the three layouts the 150 % reflow stresses most (compact card rows,
-the locked-hero hint, the damage table); AC-31 captures them. Each fixture names the screens it
+`victory_sample_ts150`, `defeat_sample_ts150` — the layouts the 150 % reflow stresses most
+(compact card rows, the locked-hero hint, the damage table, and the defeat summary's five-row
+left column — run-summary.md §6 / §14); AC-31 captures them. Each fixture names the screens it
 serves (Acceptance Criteria).
 
 ### States and Transitions
@@ -420,7 +421,7 @@ node_cx(f)   = strip_x0 + node_d / 2 + (f − 1) × (node_d + seg_len)          
 **Output Range:** treasure slots at x = 367, 565, 763 (y = 240, leaving 96–240 for header and
 240–450 for cards, 450–720 for hint and Pick); bundle panels at x = 90, 470, 850 (each panel:
 theme label 32 px, three compact card rows 300x64 with 8 px gaps, Pick row), hover preview
-225x315 anchored to the panel's outer edge. Strip: **F = 8** → `strip_w = 472`, `x0 = 404`,
+225x315 anchored beside the panel, clamped to the viewport (draft-picker.md §5.1 anchoring table). Strip: **F = 8** → `strip_w = 472`, `x0 = 404`,
 node centres at 416, 480, …, 864; **F = 4** → `strip_w = 216`, `x0 = 532`, centres 544, 608,
 672, 736. Treasure icons occupy x 40–200 left of the strip, deck size x 1080–1240 right of it;
 the strip never exceeds 640 px (F ≤ 10 at these constants; F > 10 shrinks `seg_len` to fit).

@@ -629,7 +629,7 @@ run-scope events (`src/ui/**` display-only); no weight, flag or pity state is ev
 | Step indicator "Treasure → Bundle" / "Bundle" | Draft screen header | On `draft_offered` | Treasure floors show both steps, current one highlighted |
 | Bundle option: 3 card previews (name, cost, stats, text), theme label, `BundleDef.text` pitch | One panel per option, left to right in `option_ids` order | On `draft_offered` | kind = bundle |
 | Treasure option: name, rarity frame (common/rare), `text` | One panel per option | On `draft_offered` | kind = treasure |
-| Synergy count — "N cards in your deck share *theme*" (bundle `n_tag(theme)`) / "fits your plan" (treasure `affine`) | Hover tooltip on the option | On hover | Shows the number, never the weight; Open Questions asks whether to show it at all |
+| Synergy count — "N cards in your deck share *theme*" (bundle `n_tag(theme)`) / "fits your plan" (treasure `affine`) | Hover/focus tooltip on the option | On hover or focus | Shows the number, never the weight; shown as a hint line under the focused / hovered option (draft-picker.md §5.2 Hint zone) — Open Questions resolved |
 | Deck size preview "Deck 21 → 24" | Below the bundle options | On hover of an option | kind = bundle |
 | Empty slot placeholder with reason ("No more treasures in this run") | In place of the missing option | On `draft_offered` with `short` | `len(option_ids) < 3` |
 | Confirm control (select, then Confirm; or double-click) | Bottom centre | — | Always; "Take nothing" appears only when `allow_skip` |
@@ -736,7 +736,7 @@ returns the first candidate). Every test is a Logic story: automated unit tests 
 | The brief's coherence target "top theme ≥ 45 % by floor 8" is unreachable from one tag with ~3 bundles per tag (F7); set as `plan_share ≥ 0.45` plus `top_tag_share ≥ 0.30`. Accept, or raise bundles-per-tag in Content? | owner | first balance pass | Reinterpreted here |
 | Card Database OQ "MVP 8 treasures vs 9 needed": DD-H06 already raised to 10; F6 shows 10 → 10/7/4; the 8-case falls to D8 `fewer`. | — | — | **Resolved** by F6 + D8 |
 | Concept doc says the first treasure is on floor 2; DD-R05 says 1/3/5 (inherited from run-structure OQ). This GDD follows DD-R05. | owner | before Content batch 1 | **Resolved 2026-11-03** — game-concept.md now reads "floor 1, per DD-R05" (Flow State Design) and lists the cadence as resolved (Open Questions) |
-| Should the synergy count / "fits your plan" hint be shown at all? Player Fantasy wants pity felt as luck; the brief asks for a hover count. | ux-designer (`/ux-design draft-picker`) | Pre-Production | Proposed: show the count on hover only |
+| Should the synergy count / "fits your plan" hint be shown at all? Player Fantasy wants pity felt as luck; the brief asks for a hover count. | ux-designer (`/ux-design draft-picker`) | Pre-Production | **Resolved 2026-11-03**: shown on hover/focus only, as a hint line under the focused option, never as a ranking (draft-picker.md §15 row 2) |
 | v2 sinks: card removal at a treasure floor, or "forge" a bundle into one card. Out of v1. | owner | post-MVP | Deferred |
 | Content brief: neutral bundle theme vocabulary (≥ 3 themes), `B ≥ 13` per hero at v1 (DD-H05 gives 20), `n_universal` hard floor 3 / recommended 7 (F6), ~3 bundles per plan tag. | Content GDD | `/design-system content` | Proposed |
 | `/balance-check` rule for the "take the strongest" risk: flag any bundle whose pick rate when offered exceeds 60 % over ≥ 30 offers, and any below 10 %. | economy-designer | first balance pass | Proposed |
