@@ -896,7 +896,30 @@ depending on Match Rules; the sibling GDDs are expected to mirror these rows (ch
 
 ## Tuning Knobs
 
-[To be designed]
+`systems-designer` not consulted — Lean mode (knobs derived from the Formulas variable tables).
+All knobs live in `assets/data/match_rules.json` (`schema_version` per DD-T01) and are read once
+at `RulesEngine.start`. Owner rows in `design/design-decisions.md` are unchanged; values below are
+the defaults those rows set, with the safe ranges this GDD adds.
+
+| Parameter | Current value | Safe range | Effect of increase | Effect of decrease | Interacts with |
+|---|---|---|---|---|---|
+| `STARTING_HEALTH_PLAYER` (DD-M02) | 30 | 25–40 | Longer matches (F8: +5 health ≈ +1 turn at k = 0.8); boss burst less lethal; weakens Pillar 3 pacing | Faster losses; band-3 bosses need damage ceilings re-checked | Boss band health, F8 |
+| Boss band health (DD-M02; read from boss def) | 30 / 40 / 50 | 25–35 / 35–45 / 45–60 | Band feels like a stat wall (anti-Pillar 2) unless the passive is the real threat | Bosses fold to tempo; passives never come online | F8 `k` from Content |
+| `MAX_MANA` (DD-M04) | 10 | 7–10 | More late-game swing; only matters if matches exceed 7 turns per side | Caps the curve early; 7 makes 8+ cost cards undraftable — Content must agree | F4, Content cost curve |
+| `BOARD_SIZE` (DD-M01) | 7 | 5–7 | Wider boards; AoE and Taunt walls stronger; UI must fit cards at 1280×720 | Board-fill denial easier; token decks weaker | Match UI layout, Boss AI |
+| `HAND_SIZE` (DD-M06) | 10 | 8–12 | Fewer burns; draw engines stronger | Burns common; draw cards worse; hand fan must still fit | Match UI hand fan |
+| `STARTING_HAND_PLAYER` (DD-M05) | 3 | 3–4 | Smoother openings; reduces mulligan importance | Riskier turn-1; raises variance | `STARTING_HAND_BOSS`, F8 `k` |
+| `STARTING_HAND_BOSS` (DD-M03/M05) | 4 | 3–5 | Boss tempo compensation grows; at 5 band-1 bosses may out-curve new players | At 3 the player's first-move advantage is uncompensated | `STARTING_HAND_PLAYER` |
+| `FATIGUE_BASE` / `FATIGUE_STEP` (DD-M07) | 1 / 1 | 1–3 / 1–2 | Stalls end sooner; control plans punished | Mill plans (none in v1) safer; `TURN_CAP` carries more weight | F5, `TURN_CAP` |
+| `HERO_POWER_COST` (DD-M13) | 2 | 1–3 | Hero power becomes a late-turn filler only; hero identity weaker | At 1 it is used every turn — Heroes must weaken power effects | Heroes GDD, F1 |
+| `MULLIGAN_ROUNDS` (DD-M05) | 1 | 0–1 | n/a (Hearthstone rules) | 0 disables the mulligan phase entirely (Mulligan → PlayerTurn.Start) | Match UI mulligan screen |
+| `MAX_ATTACKS_WINDFURY` | 2 | 2 | Only 2 is designed; a higher value is Mega-Windfury and out of v1 | — | F3 |
+| `TURN_CAP` | 100 | 40–200 | Safety net only; never reached in play | Below ~40 real stall matches could hit it unfairly | AI simulation harness |
+| `RESOLUTION_STEP_CAP` | 1000 | 200–5000 | Allows longer legitimate chains | Risk of aborting legitimate Deathrattle chains in wide boards | Card Effects |
+
+Knobs owned elsewhere that move this system's outcomes (do not duplicate): Content's damage
+density (F8 `k`), Heroes' hero-power effect strength, Treasures' hook magnitudes, Boss AI's
+aggression weights.
 
 ## Visual/Audio Requirements
 
