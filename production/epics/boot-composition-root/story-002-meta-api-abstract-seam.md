@@ -1,12 +1,12 @@
 # Story 002: MetaApi abstract seam
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation (file lives at `src/gameplay/meta/` per the layer map; the seam is a Foundation contract)
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -64,10 +64,6 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
 - `src/gameplay/meta/meta_api.gd`
 - `tests/unit/boot/boot_meta_api_test.gd`
 
@@ -87,7 +83,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boot/boot_meta_api_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 11 test functions, passing (full suite exit 0, 2026-11-03)
 
 ---
 
@@ -95,3 +91,14 @@ checks scope against it.*
 
 - Depends on: `production/epics/boot-composition-root/story-001-settings-bus.md` (the `settings_bus: SettingsBus` field needs the class)
 - Unlocks: `production/epics/boot-composition-root/story-003-meta-stub.md`; the Meta Progression epic's `MetaFacade` story; Run Structure / Reward Draft / Run UI stories that take `MetaApi`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 3/3 passing — AC-1 `boot_meta_api_test.gd::test_meta_api_declares_exactly_the_m13_methods_plus_load_status`, `::test_meta_api_methods_carry_m13_typed_returns`, `::test_every_meta_api_method_is_abstract`; AC-2 `::test_meta_api_declares_only_unlock_granted_with_five_typed_args`, `::test_meta_api_declares_only_settings_bus_variable_typed_settings_bus`, `::test_concrete_subclass_settings_bus_starts_null`; AC-3 `::test_meta_api_new_is_refused_at_parse_time`, `::test_subclass_missing_overrides_is_refused_at_parse_time`, `::test_concrete_subclass_instantiates_and_is_meta_api`, `godot-parse-check.gd` exit 0 on the file alone, G1/G2/G2b/G3 grep on it: no hits
+**Engine observations (4.7.2)**: `@abstract` refusal is parse-time — `MetaApi.new()` written in source fails with `Cannot construct abstract class "MetaApi"`, so the test compiles it from a string (`GDScript.reload()` != OK, captured with `assert_error(...).is_runtime_error(...)`); `load(path).new()` is NOT refused at runtime (matches engine-validation-2026-11-03.md). `Script.can_instantiate()` returns true for the abstract script, so `godot-parse-check.gd` passes it. `@abstract func` sets `METHOD_FLAG_VIRTUAL_REQUIRED` (128) — observed, not in `docs/engine-reference/`.
+**Deviations**: None. `load_status()` values are documented `StringName`s (`&"FRESH"` …); no constants were declared, because AC-2 allows nothing beyond the signal and `settings_bus`. `save_errors.gd` is still absent: the doc comment carries the `TODO(meta-progression)` marker.
+**Test Evidence**: `tests/unit/boot/boot_meta_api_test.gd` (11 tests); full suite `commands.test` exit 0, 87 test cases, 0 failures; mutation check (`load_status` made concrete) observed failing, exit 100, then restored
+**Run result**: N/A — an abstract declaration with no scene, Node or rendered output; nothing a player can see changes
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run)
