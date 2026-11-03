@@ -1009,11 +1009,46 @@ count them.
 
 ## UI Requirements
 
-[To be designed]
+Everything below is derivable from `MatchState` and the event stream; the UI holds no rules
+state of its own.
+
+| Information | Display location | Update frequency | Condition |
+|---|---|---|---|
+| Hero health, armour, weapon (attack/durability) | Hero portraits, both sides | On each relevant event | Always |
+| Mana `current/max` | Mana bar, player side; boss shows a compact counter | `mana_refilled`, `mana_spent`, `crystal_gained` | Always |
+| Hand with effective cost (F1) per card, playable cards lit | Hand fan | Every event (costs can change) | Player's Main |
+| Board minions: attack, health, keywords, status overlays (Frozen, Stealth, Divine Shield, Taunt, Silenced, summoning-sick), can-attack indicator | Board rows | Every event | Always |
+| Legal targets for the dragged card / attacker | Target highlights + arrow | On drag start, from `legal_commands()` | During targeting |
+| Rejection reason | Tooltip at the cursor | On `command_rejected` | 1.5 s |
+| Deck count, fatigue counter when deck empty | Deck pile | `card_drawn`, `fatigue_damage` | Always |
+| Hero power (cost, used state) | Beside the portrait | `hero_power_used`, Start step | Always |
+| Event feed (human-readable rendering of C15 events) | Side feed, scrollable | Every event | Always; also the post-match replay source |
+| Mulligan hand with keep/replace toggles | Mulligan screen | Once | Mulligan phase |
+| Discover options | Centre panel | `choice_requested` | Choice phase (player side) |
+| Turn indicator, turn number, end-turn button state | Top bar / button | `phase_changed` | Always; button enabled only in `PlayerTurn.Main` |
+| Concede | Menu | — | Any phase except Ended |
+
+📌 **UX Flag — Match Rules**: This system has UI requirements. In Phase 4 (Pre-Production), run
+`/ux-design` to create a UX spec for each screen or HUD element this system contributes to
+**before** writing epics (match HUD, mulligan screen, targeting, Discover panel, event feed).
+Stories that reference UI should cite `design/ux/[screen].md`, not the GDD directly.
 
 ## Cross-References
 
-[To be designed]
+| This document references | Target GDD | Specific element referenced | Nature |
+|---|---|---|---|
+| Card record fields read in C1/C6 (`cost`, `type`, stats, `keywords`, `targeting`) | `design/gdd/card-database.md` | Card / hero / boss / weapon record schema | Data dependency |
+| "nothing else parses JSON" | `design/gdd/card-database.md` | Single-loader rule (DD-T01) | Rule dependency |
+| `match` stream shuffle/pick; `log.append` with `seq` | `design/gdd/rng-event-log.md` | Named streams (DD-T03); append-only event shape (DD-T04) | Data dependency |
+| Trigger points and primitive API (Interactions) | `design/gdd/card-effects.md` | Resolver contract; `targeting.mode`; `ChoiceRequest` for Discover | Ownership handoff |
+| Spell Damage applied to spell operations (F7) | `design/gdd/card-effects.md` | Damage operation input | Rule dependency |
+| `legal_commands()`, `clone()`, typed rejections | `design/gdd/boss-ai.md` | AI command loop | Ownership handoff |
+| Hero power cost/once-per-turn (C7); hero starting health | `design/gdd/heroes.md` | Hero record; hero power effect | Data dependency |
+| Hook table (Interactions) | `design/gdd/treasures.md` | Hook installers and hook chain order | Ownership handoff |
+| `MatchConfig` in, `MatchResult` out (C3, C14) | `design/gdd/run-structure.md` | Match start config; result record; no mid-match save in v1 | State trigger |
+| Event rendering table (Visual/Audio, UI Requirements) | `design/gdd/match-ui.md` | Event playback pacing; rejection messaging | Data dependency |
+| Boss band health defaults (C3 step 2) | `design/design-decisions.md` DD-M02 | 30 / 40 / 50 by band | Data dependency |
+| Expected match length 3–6 minutes | `design/gdd/game-concept.md` | Session length / core loop | Rule dependency |
 
 ## Acceptance Criteria
 
