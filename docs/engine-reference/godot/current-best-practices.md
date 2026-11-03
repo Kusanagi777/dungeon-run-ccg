@@ -48,6 +48,13 @@ This supplements (not replaces) the agent's built-in knowledge.
 - **Writing one element of a packed array no longer calls the property's
   setter.** A setter on a `PackedInt32Array` (etc.) property no longer runs on
   `arr[i] = v`; assign the whole array where the setter has to run
+- **A bare call to a method named like a global `@GlobalScope` function resolves
+  to the global, not the class's own method** (observed on 4.7.2, 2026-11-03,
+  rng-event-log story 001): inside `RngStream`, `randi_range(lo, hi)` called the
+  global unseeded generator while `self.randi_range(lo, hi)` called the class
+  method. Call such methods through `self.` (`randi`, `randf`, `randi_range`,
+  `randf_range`, `seed`, `randomize` …); the no-global-RNG lint must still
+  catch the bare forms inside `src/core/rng/`
 
 ## Physics (4.7)
 
