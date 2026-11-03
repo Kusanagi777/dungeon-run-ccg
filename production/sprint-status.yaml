@@ -61,14 +61,14 @@ stories:
     name: "Grep gates G1–G6 and the per-file parse check in CI"
     file: "production/epics/boot-composition-root/story-005-lint-gates-ci.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     wave: 1
     serialised: false
     blocker: ""
     note: "needs G3 exclusion amendment (doc comments, class_name Services) before start"
-    completed: ""
+    completed: "2026-11-03"
   - id: "boss-ai-match-driver-002"
     name: "ProfileResolver and the ai_profiles validator"
     file: "production/epics/boss-ai-match-driver/story-002-profile-resolver-and-validator.md"

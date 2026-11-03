@@ -26,6 +26,17 @@ jobs:
       - name: Install Godot 4.7.2 and gdUnit4
         run: bash tools/setup.sh
 
+      # The grep gates are validated on ripgrep 14 (no look-around; ADR-0001
+      # erratum 2026-11-03). Installed explicitly from the Ubuntu archive
+      # (24.04 ships 14.1.0) rather than trusting the runner image, and the
+      # version is printed so an image change shows in the log.
+      # tools/lint/gates.sh refuses (exit 2) on rg < 14 as well.
+      - name: Install ripgrep >= 14
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ripgrep
+          rg --version
+
       # A fresh checkout has no .godot/ class cache. Without the import,
       # GdUnitCmdTool.gd fails to load and the test run exits 1 having run
       # nothing. Godot's very first headless import on a clean machine has been
@@ -43,6 +54,20 @@ jobs:
             exit "$first"
           fi
           godot --headless --path . --import
+
+      # Blocking: the rules / presentation split (ADR-0001 Decision 6) and the
+      # per-file parse check (ADR-0001 Implementation Guidelines). gates.sh
+      # prints `<gate> hits: <n>` per gate and exits 1 on any hit, 2 when it
+      # could not run; parse-check.sh prints `ok:` / `PARSE FAIL:` per rules
+      # file, one godot run per file, and needs the class cache built above.
+      # Both run even when the first fails, so the log shows every finding.
+      - name: Lint gates G1-G6 and per-file parse check
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          status=0
+          bash tools/lint/gates.sh . || status=1
+          bash tools/lint/parse-check.sh || status=1
+          exit "$status"
 
       # Exactly project.yaml commands.test. Exit 0 = all passed; 100 = a test
       # failed; 101 = passed with leaked nodes (warning, but fails this job so
