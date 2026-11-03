@@ -77,7 +77,7 @@ Systems, one paragraph each (balanced density):
 | 10 | Meta Progression | Persistence | Vertical Slice | Approved | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
 | 11 | Match UI | UI | MVP | Approved | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
 | 12 | Run UI | UI | MVP | Approved | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
-| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
+| 13 | Content | MVP → Alpha | Feature | game-designer, systems-designer, economy-designer | L |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
 immediately replay a run") can be tested without unlocks; it is still required for v1 (Alpha).
@@ -165,7 +165,7 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 | 10 | Match UI | MVP | Presentation | game-designer, ux-designer, ui-programmer | M |
 | 11 | Run UI | MVP | Presentation | game-designer, ux-designer, ui-programmer | M |
 | 12 | Meta Progression | Vertical Slice | Feature | systems-designer, game-designer | S |
-| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
+| 13 | Content | MVP → Alpha | Feature | game-designer, systems-designer, economy-designer | L |
 
 ---
 
@@ -198,8 +198,8 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 | Design docs started | 13 |
 | Design docs reviewed | 13 (all Approved 2026-11-03) |
 | Design docs approved | 13 |
-| MVP systems designed | 12/12 (In Review) |
-| Vertical Slice systems designed | 1/1 (In Review) |
+| MVP systems designed | 12/12 (Approved) |
+| Vertical Slice systems designed | 1/1 (Approved) |
 
 ---
 
