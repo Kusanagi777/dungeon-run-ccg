@@ -84,13 +84,13 @@ stories:
     name: "EffectValidator — schema, trigger, selector, op and reference checks"
     file: "production/epics/card-effects/story-003-validator-schema-codes.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     wave: 1
     serialised: false
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "rng-event-log-002"
     name: "RngService — seed derivation (F1–F3) and memoised named streams"
     file: "production/epics/rng-event-log/story-002-rng-service-seed-derivation-and-streams.md"
