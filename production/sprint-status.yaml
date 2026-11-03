@@ -27,7 +27,7 @@ stories:
     name: "Primitive API, draw, burn and fatigue"
     file: "production/epics/match-rules/story-006-primitives-draw-burn-fatigue.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 3
     lane: 1
@@ -36,7 +36,7 @@ stories:
     contract: false
     blocker: ""
     note: "critical lane opener (2 links); /code-review at M1"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-007"
     name: "Damage, healing and armour pipeline"
     file: "production/epics/match-rules/story-007-damage-heal-armor.md"

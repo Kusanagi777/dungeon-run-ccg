@@ -1,12 +1,12 @@
 # Story 006: Primitive API, draw, burn and fatigue
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -34,10 +34,10 @@ Everything that changes a match goes through one of these calls, and every call 
 
 *From GDD `design/gdd/match-rules.md`, scoped to this story:*
 
-- [ ] AC-31 **GIVEN** a hand of 10, **WHEN** a draw happens, **THEN** `card_burned` is emitted (with the definition id), the hand stays at 10, the deck shrank by 1, the card is in the graveyard, no `on_draw` trigger event and no `on_draw` hook invocation.
-- [ ] AC-32 **GIVEN** an empty deck and hero health 30, **WHEN** four draws occur, **THEN** `fatigue_damage` amounts are 1, 2, 3, 4 and health is 20 (F5: `FATIGUE_BASE + (k − 1) × FATIGUE_STEP`, counter per side, never reset); armour of 2 before the first draw absorbs it fully (health 29 after 1 + 2 instead of 27 — fatigue goes through F2, story 007 completes armour; this story routes fatigue through `apply_damage(hero, k, source = FATIGUE)`).
-- [ ] AC-33 **GIVEN** one card left in the deck, **WHEN** a "draw 2" effect resolves (`draw(side, 2)`), **THEN** one `card_drawn` then one `fatigue_damage {amount: 1}` — effects that draw N call the per-card draw N times.
-- [ ] Interactions / C15 **GIVEN** each of the 24 primitives (`draw`, `apply_damage`, `apply_heal`, `apply_armor`, `apply_enchantment`, `remove_enchantment`, `summon_minion`, `destroy`, `silence`, `freeze`, `add_keyword`, `return_to_hand`, `transform`, `add_mana`, `equip_weapon`, `discover`, `add_card_to_hand`, `set_stats`, `remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`, `recompute_auras` via the loop) called once on a started match, **THEN** each appends exactly one event of its C15 type (`card_drawn`/`card_burned`/`fatigue_damage`, `damage_dealt`, `healed`, `armor_gained`, `enchantment_applied`, `enchantment_removed`, `minion_summoned`/`summon_failed`, `minion_died` (via the death check), `silenced`, `frozen`, `keyword_removed` for `remove_keyword`, `mana_added`, `weapon_equipped`, `choice_requested`, `card_added_to_deck`, `weapon_durability_changed`, `hero_power_refreshed`, `card_discarded`, …) with the acting `entity_id`s and resulting numbers in the payload, the payload passes `assert_json_representable`, and `cause_seq` equals the `seq` the engine holds for the current step (0 for the direct consequence of a command); `add_card_to_deck(side, def_id, random)` and `discard(side, random)` draw exactly one index from `rng_match` and nothing from any other stream.
+- [x] AC-31 **GIVEN** a hand of 10, **WHEN** a draw happens, **THEN** `card_burned` is emitted (with the definition id), the hand stays at 10, the deck shrank by 1, the card is in the graveyard, no `on_draw` trigger event and no `on_draw` hook invocation.
+- [x] AC-32 **GIVEN** an empty deck and hero health 30, **WHEN** four draws occur, **THEN** `fatigue_damage` amounts are 1, 2, 3, 4 and health is 20 (F5: `FATIGUE_BASE + (k − 1) × FATIGUE_STEP`, counter per side, never reset); armour of 2 before the first draw absorbs it fully (health 29 after 1 + 2 instead of 27 — fatigue goes through F2, story 007 completes armour; this story routes fatigue through `apply_damage(hero, k, source = FATIGUE)`).
+- [x] AC-33 **GIVEN** one card left in the deck, **WHEN** a "draw 2" effect resolves (`draw(side, 2)`), **THEN** one `card_drawn` then one `fatigue_damage {amount: 1}` — effects that draw N call the per-card draw N times.
+- [x] Interactions / C15 **GIVEN** each of the 24 primitives (`draw`, `apply_damage`, `apply_heal`, `apply_armor`, `apply_enchantment`, `remove_enchantment`, `summon_minion`, `destroy`, `silence`, `freeze`, `add_keyword`, `return_to_hand`, `transform`, `add_mana`, `equip_weapon`, `discover`, `add_card_to_hand`, `set_stats`, `remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`, `recompute_auras` via the loop) called once on a started match, **THEN** each appends exactly one event of its C15 type (`card_drawn`/`card_burned`/`fatigue_damage`, `damage_dealt`, `healed`, `armor_gained`, `enchantment_applied`, `enchantment_removed`, `minion_summoned`/`summon_failed`, `minion_died` (via the death check), `silenced`, `frozen`, `keyword_removed` for `remove_keyword`, `mana_added`, `weapon_equipped`, `choice_requested`, `card_added_to_deck`, `weapon_durability_changed`, `hero_power_refreshed`, `card_discarded`, …) with the acting `entity_id`s and resulting numbers in the payload, the payload passes `assert_json_representable`, and `cause_seq` equals the `seq` the engine holds for the current step (0 for the direct consequence of a command); `add_card_to_deck(side, def_id, random)` and `discard(side, random)` draw exactly one index from `rng_match` and nothing from any other stream.
 
 ---
 
@@ -73,9 +73,10 @@ Everything that changes a match goes through one of these calls, and every call 
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (24 primitives, `emit` with `cause_seq`, full `draw`)
-- `src/gameplay/match/match_records.gd` (`ChoiceRequest` record `{side, kind, options, source_id, effect_id}`)
-- `tests/unit/match_rules/match_rules_primitives_test.gd`
+- `src/gameplay/match/rules_engine.gd` — `PRIMITIVES` (23 engine calls + the resolver's `recompute_auras`), `SOURCE_FATIGUE` and reason constants, the full `draw` (burn, fatigue F5 through `apply_damage`, `on_draw` hooks then trigger point), `apply_damage` / `apply_heal` / `apply_armor` skeletons (armour absorption included), `apply_enchantment`, `remove_enchantment`, `summon_minion`, `destroy`, `silence`, `freeze`, `add_keyword`, `return_to_hand`, `transform`, `equip_weapon`, `discover`, `add_card_to_hand`, `set_stats`, `remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`; lookup helpers (`_character`, `_minion`, `_weapon`, `_owner_of`, `_card_def`), `_raise` (resolve → queue, no loop)
+- `src/gameplay/match/match_records.gd` — `choice_request` (`ChoiceRequest {side, kind, options, source_id, effect_id}`), keyword, deck-position, `PICK_RANDOM` and choice-kind constants
+- `tests/helpers/match_factory.gd` — `make_started_engine` takes an optional trailing `db` (the engine's `card(def_id)` lookup); every existing caller unchanged
+- `tests/unit/match_rules/match_rules_primitives_test.gd` — 30 test functions
 
 ---
 
@@ -93,7 +94,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_primitives_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (30 test functions)
 
 ---
 
@@ -101,3 +102,22 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-005-turn-structure-and-mana.md`
 - Unlocks: `production/epics/match-rules/story-007-damage-heal-armor.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 22:21:36 UTC, ended 22:34:39 UTC)
+**Criteria**: 4/4 passing — AC-31 (`test_draw_into_a_full_hand_burns_the_card_without_on_draw`, `test_successful_draw_runs_on_draw_hooks_then_the_on_draw_trigger_point`), AC-32 (`test_four_empty_deck_draws_deal_fatigue_1_2_3_4`, `test_fatigue_counter_is_per_side_and_never_resets_across_turns`, `test_fatigue_amount_reads_the_fatigue_knobs`, `test_armour_absorbs_fatigue_before_health`, `test_empty_deck_at_match_start_applies_fatigue_1_2_3_before_the_mulligan`), AC-33 (`test_draw_two_with_one_card_left_draws_one_then_takes_fatigue_1`), Interactions / C15 (22 tests, one per primitive group, plus `test_primitive_on_a_missing_entity_is_a_no_op_without_an_event` and `test_primitives_stamp_the_cause_seq_the_engine_holds_for_the_step`). Watched fail: the suite against the story-005 engine (parse error on the missing API, then 14 failures with the API in place and `draw` not yet completed); mutant firing `on_draw` hooks on a burn (the AC-31 test fails).
+**Deviations** (advisory):
+- `apply_damage` already absorbs armour (needed by AC-32's armour clause, verified here rather than deferred); `armor_lost`, the `modify_damage` fold, Divine Shield, Poisonous, Lifesteal and `on_hero_damaged` remain story 007.
+- `destroy` emits no event: C15 has none for the `pending_destroy` mark; the death check's `minion_died` / `weapon_destroyed` (story 009) is its event. AC-40's "minion_died (via the death check)" is verified there.
+- `transform` emits `minion_transformed {side, old_entity_id, entity_id, card_id, position}` — not in the C15 vocabulary (no transform event exists there); needs a match-rules C15 row (as `card_added_to_hand` got on 2026-11-03).
+- `return_to_hand` emits `card_added_to_hand` / `card_burned` with an extra `returned_entity_id` key (C15 has no bounce event).
+- `add_keyword` is an enchantment with `keywords_added = [kw]` (one `enchantment_applied`, so Silence strips it); `set_stats` is an enchantment too (`enchantment_applied` with `reason: set_stats`; setting health clears `damage_taken`).
+- `remove_enchantment(target, index)`: enchantments carry no id, so the GDD's `id` is the list index.
+- `discover` sets `pending_choice` and emits `choice_requested` but does not enter `Choice` (story 016).
+- `summon_minion` / `transform` / `equip_weapon` read definitions through `db.card(def_id)`; with no database (every pre-006 test) they are no-ops with a warning. `MatchFactory.make_started_engine` gained an optional trailing `db` parameter; the suite uses a test-local `FixtureDb`.
+- `on_draw` fires for every successful draw, setup and mulligan redraws included (C11 has no exception) — design question for Treasures: should starting-hand draws trigger "whenever you draw" hooks?
+- Damage attribution: `damage_dealt_by_card` is keyed by the source record's `def_id`; a hero source (no `def_id`) and `SOURCE_FATIGUE` attribute nothing.
+- `recompute_auras` is the resolver's (24th call); the C10 loop that calls it is story 009.
+**Test Evidence**: `tests/unit/match_rules/match_rules_primitives_test.gd` (30 tests); full suite 723 test cases, 0 failures, exit 0, 36 SCRIPT ERROR lines (the same intentional negative-test count as the baseline); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — the story changes headless engine primitives and the event log only; no scene, node or screen renders them (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

@@ -49,7 +49,7 @@ const PLAYER_HERO_ENTITY_ID: int = 1
 const BOSS_HERO_ENTITY_ID: int = 2
 ## Fixture boss deck size of [method make_started_engine] — not a gameplay
 ## value: large enough for the starting hand plus 12 boss turns of draws
-## (match-rules AC-06) before story 006's fatigue branch exists.
+## (match-rules AC-06) without the boss taking fatigue (story 006).
 const STARTED_BOSS_DECK_SIZE: int = 20
 
 
@@ -180,16 +180,19 @@ static func make_match_config(floor: int = 1, rng: TestRngService = null, log: T
 ## keeps the boss deck), every other key replaced; `floor` picks the streams.
 ## The boss deck defaults to [constant STARTED_BOSS_DECK_SIZE] fixture cards
 ## (`make_match_config`'s one-card boss deck cannot deal a starting hand).
+## [param db] is the card lookup the engine reads definitions from
+## (`card(def_id)`: `summon_minion`, `transform`, `equip_weapon` — match-rules
+## story 006); null by default, as before that story.
 ## [codeblock]
 ## var engine: RulesEngine = MatchFactory.make_started_engine(null, null, {"boss": {"health": 42}})
 ## engine.phase()   # "mulligan"
 ## [/codeblock]
-static func make_started_engine(rng: TestRngService = null, log: TestEventLog = null, overrides: Dictionary = {}, rules_overrides: Dictionary = {}, resolver: TestEffectResolver = null) -> RulesEngine:
+static func make_started_engine(rng: TestRngService = null, log: TestEventLog = null, overrides: Dictionary = {}, rules_overrides: Dictionary = {}, resolver: TestEffectResolver = null, db: Variant = null) -> RulesEngine:
 	var service: TestRngService = rng if rng != null else TestRngService.new()
 	var match_log: TestEventLog = log if log != null else TestEventLog.new()
 	var config: Dictionary = make_started_config(service, match_log, overrides)
 	var bound: TestEffectResolver = resolver if resolver != null else TestEffectResolver.new()
-	var engine: RulesEngine = RulesEngine.new(null, make_rules_config(rules_overrides), bound)
+	var engine: RulesEngine = RulesEngine.new(db, make_rules_config(rules_overrides), bound)
 	engine.start(config)
 	return engine
 

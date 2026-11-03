@@ -33,8 +33,22 @@ const KIND_MINION: String = "minion"
 const ZONES: Array[String] = ["deck", "hand", "board", "graveyard", "resolving"]
 ## Enchantment `expires` values other than null (C1).
 const EXPIRES_END_OF_TURN: String = "end_of_turn"
-## Keyword spelling of DD-M09 in snake_case (card-database CR-3).
+## Keyword spellings of DD-M09 in snake_case (card-database CR-3) that the
+## engine itself reads (C1 derived values, F2).
 const KEYWORD_WINDFURY: String = "windfury"
+const KEYWORD_DIVINE_SHIELD: String = "divine_shield"
+const KEYWORD_POISONOUS: String = "poisonous"
+const KEYWORD_LIFESTEAL: String = "lifesteal"
+## `add_card_to_deck` positions (match-rules Interactions): index 0, the end,
+## or one `rng_match` index.
+const POSITION_TOP: String = "top"
+const POSITION_BOTTOM: String = "bottom"
+const POSITION_RANDOM: String = "random"
+## `discard(side, PICK_RANDOM)`: one `rng_match` hand index instead of a given one.
+const PICK_RANDOM: String = "random"
+## `ChoiceRequest.kind` values (ADR-0007 Key Interfaces).
+const CHOICE_DISCOVER: String = "discover"
+const CHOICE_CHOOSE_ONE: String = "choose_one"
 ## MatchResult `result` values, from the player's side (C14).
 const RESULTS: Array[String] = ["win", "loss", "fault"]
 ## C2 command types (the `Command.type` spellings).
@@ -184,6 +198,17 @@ static func command_result(accepted: bool, code: String = "", detail: String = "
 		"rejection": null if accepted else {"code": code, "detail": detail},
 		"events": [seq_first, seq_last] as Array[int],
 	}
+
+
+## A ChoiceRequest (C1 `pending_choice`; ADR-0007 Key Interfaces):
+## `{side, kind: discover | choose_one, options, source_id, effect_id}`.
+## [param options] is plain data (definition ids for Discover, option
+## records for Choose One) and is stored as given.
+## [codeblock]
+## var req: Dictionary = MatchRecords.choice_request("player", MatchRecords.CHOICE_DISCOVER, ["a_01", "b_02", "c_03"], 7, "scout.0")
+## [/codeblock]
+static func choice_request(side: String, kind: String, options: Array, source_id: Variant, effect_id: String) -> Dictionary:
+	return {"side": side, "kind": kind, "options": options, "source_id": source_id, "effect_id": effect_id}
 
 
 ## Per-side Run Structure stats (C1 `PlayerState.stats`, C14), all zero.
