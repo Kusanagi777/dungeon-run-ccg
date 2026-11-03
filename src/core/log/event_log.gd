@@ -27,9 +27,26 @@
 ## copy, and an edit is refused by the engine. [method snapshot] returns a
 ## writable deep copy.
 ##
-## Caller bugs (an append to a sealed log, a re-entrant append) assert in debug
-## builds and push a warning in release; the release behaviour is the one the
-## GDD names, and it also runs in debug once the assert has been reported.
+## Payloads hold rule 14 values only. At append a `StringName` (value or key)
+## becomes a `String`; any other non-JSON value (an Object, a `Vector2`, a
+## `Color`, a `Callable`, a non-String key…) is a caller bug: reported, then
+## replaced by `"<unserializable:ClassName>"` (a key by its `str()` form) and
+## its key path listed in `payload._coerced` (Edge Cases), so a bug report
+## always serialises. Diagnostics (`command_rejected`, `ai_decision`,
+## `ai_plan_aborted`, `ai_fault`, `run_warning`) are ordinary appends with
+## `payload.diagnostic = true` (rule 12a): there is no second channel and no
+## filter here — filtering is `MatchViewState`'s job.
+##
+## [method to_json] is the bug-report attachment and replay input (rule 17);
+## [method from_json] rebuilds a log from it. 64-bit values travel as 16-hex
+## strings (`run_seed_hex`): JSON numbers are doubles, exact only to 2^53.
+## Known limit: a float payload value with no fractional part (`2.0`) comes
+## back as the `int` 2 — gameplay quantities are ints (Edge Cases).
+##
+## Caller bugs (an append to a sealed log, a re-entrant append, a non-JSON
+## payload value) assert in debug builds and push a warning in release; the
+## release behaviour is the one the GDD names, and it also runs in debug once
+## the assert has been reported.
 ##
 ## Single-thread-only: the log has no lock. A worker plans on a clone with its
 ## own scratch log and never appends to or subscribes to the live log
@@ -41,10 +58,20 @@ extends RefCounted
 const SCOPE_MATCH: String = "match"
 ## `scope` of a run log, sealed by `run_ended` (rule 15).
 const SCOPE_RUN: String = "run"
+## rng-event-log rule 17 `log_schema_version` written by [method to_json] and
+## the only one [method from_json] reads (older logs are migrated by Meta
+## Progression first; newer ones are kept opaque — Edge Cases).
+const LOG_SCHEMA_VERSION: int = 1
+## The rule 11 envelope keys, in stamping order.
+const ENVELOPE_KEYS: Array[String] = ["seq", "turn", "type", "payload", "cause_seq"]
 
 ## The log's lifecycle (GDD States and Transitions): `OPEN → SEALED`, or
 ## `OPEN → FAULTED → SEALED` on overflow (Story 007). Nothing returns to `OPEN`.
 enum State { OPEN, FAULTED, SEALED }
+
+## 2^63 as a float: a whole-number float at or beyond it does not fit an int64,
+## so [method from_json] leaves it a float.
+const _INT64_FLOAT_BOUND: float = 9223372036854775808.0
 
 ## The type that seals a log of each scope (rule 15).
 const _SEALING_TYPE: Dictionary[String, String] = {
@@ -81,8 +108,10 @@ func _init(max_events: int, scope: String, meta: Dictionary = {}) -> void:
 
 ## Rule 13: appends one event and returns its `seq`; `-1` when the log is
 ## sealed (nothing stored, no subscriber notified; assert in debug, warning in
-## release). `payload` is deep-copied; `cause_seq` is the `seq` of the event
-## whose resolution emitted this one, 0 for the direct result of a command.
+## release). `payload` is deep-copied with rule 14 coercion (see the class
+## notes: a non-JSON value is reported, replaced and listed in `_coerced`);
+## `cause_seq` is the `seq` of the event whose resolution emitted this one, 0
+## for the direct result of a command.
 ## Appending the scope's sealing type (`match_ended` / `run_ended`) seals the
 ## log after this event. A subscriber that appends re-enters: reported (assert
 ## in debug, warning in release), then accepted with the next `seq` and
@@ -93,7 +122,12 @@ func append(type: StringName, payload: Dictionary, cause_seq: int = 0) -> int:
 	if _state == State.SEALED:
 		_caller_bug("EventLog.append: the log is sealed; '%s' dropped" % type_name)
 		return -1
-	var stored_payload: Dictionary = payload.duplicate(true)
+	# Untyped on purpose: the list must compare equal to its JSON round trip.
+	var coerced: Array = []
+	var stored_payload: Dictionary = _json_copy(payload, "", coerced)
+	if not coerced.is_empty():
+		_caller_bug("EventLog.append: '%s' payload holds non-JSON values at %s" % [type_name, ", ".join(PackedStringArray(coerced))])
+		stored_payload["_coerced"] = coerced
 	if _notifying:
 		_caller_bug("EventLog.append: re-entrant append of '%s' from a subscriber" % type_name)
 		stored_payload["_reentrant"] = true
@@ -176,6 +210,159 @@ func snapshot() -> Dictionary:
 		"floor": int(_meta.get("floor", 0)),
 		"events": events,
 	}
+
+
+## Rule 17: the log as tab-indented JSON text (`JSON.stringify(dict, "\t")`):
+## `{log_schema_version, engine_version, data_version, run_seed_hex, scope,
+## floor, events[]}`. Payloads are JSON-only by construction (append-time
+## coercion), so this always succeeds. Compare logs with F6
+## (`EventLogAssertions.canonical_json`), not by this text: its float
+## formatting is the engine's, not F6's 6 decimals.
+## Example: `var text: String = log.to_json()`.
+func to_json() -> String:
+	var header: Dictionary = snapshot()
+	header["log_schema_version"] = LOG_SCHEMA_VERSION
+	return JSON.stringify(header, "\t")
+
+
+## Rule 17: rebuilds a log from [method to_json] text, or returns `null` with
+## a pushed error (never an assert) when `text` is not JSON (the message names
+## the 1-based line), its top level is not an object, its
+## `log_schema_version` is not [constant LOG_SCHEMA_VERSION], its `scope` is
+## unknown, or an event is not a rule 11 envelope with `seq` = its position.
+## Every integral number comes back as `int` (`seq`, `turn`, `cause_seq`,
+## payload counts — JSON numbers parse as floats); the header's
+## `engine_version`, `data_version`, `run_seed_hex` and `floor` become the
+## rebuilt log's meta; the turn is the last event's; the log is sealed when its
+## last event is the scope's sealing type. `max_events` caps further appends
+## on an unsealed rebuilt log; 0 (default) takes the number of events read.
+## Example: `var copy: EventLog = EventLog.from_json(log.to_json())`.
+static func from_json(text: String, max_events: int = 0) -> EventLog:
+	var parsed: Dictionary = JsonText.parse(text)
+	if not parsed.ok:
+		push_error("EventLog.from_json: line %d: %s" % [parsed.line, parsed.message])
+		return null
+	if typeof(parsed.data) != TYPE_DICTIONARY:
+		push_error("EventLog.from_json: the top level is not an object")
+		return null
+	var header: Dictionary = _ints_from_json(parsed.data)
+	var version: Variant = header.get("log_schema_version")
+	if typeof(version) != TYPE_INT or version != LOG_SCHEMA_VERSION:
+		push_error("EventLog.from_json: log_schema_version %s is not %d" % [str(version), LOG_SCHEMA_VERSION])
+		return null
+	var scope: Variant = header.get("scope")
+	if typeof(scope) != TYPE_STRING or not _SEALING_TYPE.has(scope):
+		push_error("EventLog.from_json: unknown scope %s" % str(scope))
+		return null
+	var raw_events: Variant = header.get("events")
+	if typeof(raw_events) != TYPE_ARRAY:
+		push_error("EventLog.from_json: `events` is not an array")
+		return null
+	var events: Array[Dictionary] = []
+	for i: int in (raw_events as Array).size():
+		var event: Variant = raw_events[i]
+		if not _is_envelope(event, i + 1):
+			push_error("EventLog.from_json: event at index %d is not a rule 11 envelope with seq %d" % [i, i + 1])
+			return null
+		events.append(event)
+	var meta: Dictionary = {}
+	for key: String in ["engine_version", "data_version", "run_seed_hex", "floor"]:
+		if header.has(key):
+			meta[key] = header[key]
+	var log: EventLog = EventLog.new(max_events if max_events > 0 else events.size(), scope, meta)
+	log._restore_events(events)
+	return log
+
+
+# Installs events read by from_json and derives turn and state from them.
+func _restore_events(events: Array[Dictionary]) -> void:
+	for event: Dictionary in events:
+		_freeze(event)
+		_events.append(event)
+	if _events.is_empty():
+		return
+	var last: Dictionary = _events.back()
+	_turn = last.turn
+	if last.type == _SEALING_TYPE[_scope]:
+		_state = State.SEALED
+
+
+# Whether `value` is a rule 11 envelope whose seq is `seq` (types as read
+# back from JSON, after integral numbers became ints).
+static func _is_envelope(value: Variant, seq: int) -> bool:
+	if typeof(value) != TYPE_DICTIONARY or value.size() != ENVELOPE_KEYS.size():
+		return false
+	for key: String in ENVELOPE_KEYS:
+		if not value.has(key):
+			return false
+	return typeof(value.seq) == TYPE_INT and value.seq == seq \
+		and typeof(value.turn) == TYPE_INT \
+		and typeof(value.type) == TYPE_STRING \
+		and typeof(value.payload) == TYPE_DICTIONARY \
+		and typeof(value.cause_seq) == TYPE_INT
+
+
+# A rule 14 deep copy of `value`: StringName → String; every other non-JSON
+# value (and any non-String key) is replaced and its path appended to
+# `coerced`. `path` is the key path so far ("" at the payload's top level).
+static func _json_copy(value: Variant, path: String, coerced: Array) -> Variant:
+	match typeof(value):
+		TYPE_NIL, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING:
+			return value
+		TYPE_STRING_NAME:
+			return String(value)
+		TYPE_ARRAY:
+			var out: Array = []
+			for i: int in (value as Array).size():
+				out.append(_json_copy(value[i], "%s[%d]" % [path, i], coerced))
+			return out
+		TYPE_DICTIONARY:
+			var out: Dictionary = {}
+			for key: Variant in value:
+				var name: String
+				match typeof(key):
+					TYPE_STRING, TYPE_STRING_NAME:
+						name = String(key)
+					_:
+						name = str(key)
+						coerced.append("%s[key %s]" % [path, name])
+				var child_path: String = name if path.is_empty() else "%s.%s" % [path, name]
+				out[name] = _json_copy(value[key], child_path, coerced)
+			return out
+	coerced.append(path)
+	return "<unserializable:%s>" % _class_name_of(value)
+
+
+# The class name a coerced value is reported by: a script's global name, an
+# Object's engine class, otherwise the Variant type name.
+static func _class_name_of(value: Variant) -> String:
+	if typeof(value) == TYPE_OBJECT and is_instance_valid(value):
+		var script: Script = (value as Object).get_script()
+		if script != null and not script.get_global_name().is_empty():
+			return script.get_global_name()
+		return (value as Object).get_class()
+	return type_string(typeof(value))
+
+
+# `value` read back from JSON with every whole-number float turned into an
+# int (JSON numbers are doubles; the log's numbers are ints by design).
+static func _ints_from_json(value: Variant) -> Variant:
+	match typeof(value):
+		TYPE_FLOAT:
+			if is_finite(value) and value == floorf(value) and absf(value) < _INT64_FLOAT_BOUND:
+				return int(value)
+			return value
+		TYPE_ARRAY:
+			var out: Array = []
+			for item: Variant in value:
+				out.append(_ints_from_json(item))
+			return out
+		TYPE_DICTIONARY:
+			var out: Dictionary = {}
+			for key: Variant in value:
+				out[key] = _ints_from_json(value[key])
+			return out
+	return value
 
 
 # Stamps, freezes and stores one event, and queues it for delivery.
