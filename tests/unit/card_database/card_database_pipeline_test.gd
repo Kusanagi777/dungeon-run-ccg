@@ -358,7 +358,7 @@ func test_report_entries_are_copies() -> void:
 	assert_str(report.entries()[0].message).is_equal("e")
 
 
-func test_report_to_text_lists_counts_and_each_entry() -> void:
+func test_report_to_text_lists_each_entry() -> void:
 	# Arrange
 	var report: ValidationReport = ValidationReport.new()
 	report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA_VERSION, "heroes.json", null, "schema_version", "found 0, expected 1")
@@ -367,12 +367,11 @@ func test_report_to_text_lists_counts_and_each_entry() -> void:
 	# Act
 	var text: String = report.to_text()
 
-	# Assert
+	# Assert — story 008 format (card_database_state_machine_test.gd covers ordering)
 	var lines: PackedStringArray = text.split("\n")
-	assert_int(lines.size()).is_equal(3)
-	assert_str(lines[0]).contains("1 error(s), 1 warning(s)")
-	assert_str(lines[1]).is_equal("error E_SCHEMA_VERSION heroes.json (schema_version): found 0, expected 1")
-	assert_str(lines[2]).is_equal("warning W_UNKNOWN_FILE stray.json: not loaded")
+	assert_int(lines.size()).is_equal(2)
+	assert_str(lines[0]).is_equal("[error] E_SCHEMA_VERSION heroes.json.schema_version — found 0, expected 1")
+	assert_str(lines[1]).is_equal("[warning] W_UNKNOWN_FILE stray.json — not loaded")
 
 
 # --- CardDatabase state seam ----------------------------------------------------------

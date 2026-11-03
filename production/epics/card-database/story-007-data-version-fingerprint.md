@@ -1,12 +1,12 @@
 # Story 007: `data_version` fingerprint (CR-9)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -62,10 +62,12 @@
 
 ## Files
 
-- `src/core/data/data_loader.gd` (`canonical_json`, `fingerprint`, stage 9)
-- `src/core/data/card_database.gd` (`data_version()`)
-- `tests/fixtures/data/fingerprint/`, `tests/fixtures/data/fingerprint_reordered/`, `tests/fixtures/data/fingerprint_changed/`
-- `tests/unit/card_database/card_database_fingerprint_test.gd`
+- `src/core/data/data_loader.gd` (`canonical_json`, `fingerprint`, `_records_in_id_order`, stage 9 `snapshot.data_version`)
+- `src/core/data/card_database.gd` (`data_version()` reads `snapshot.data_version`; `_data_version` field removed)
+- `tests/fixtures/data/fingerprint/` (new: byte copy of `clean/`, every required file, no optional set file)
+- `tests/fixtures/data/fingerprint_reordered/` (new: same parsed content, `records` reversed, keys reversed at every depth, 4-space indent)
+- `tests/fixtures/data/fingerprint_changed/` (new: `war_shield_bearer.attack` 1 → 2)
+- `tests/unit/card_database/card_database_fingerprint_test.gd` (new, 18 tests)
 
 ---
 
@@ -83,7 +85,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_fingerprint_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). The epic's Definition of Done additionally requires the known-answer string to match on the owner's Windows machine — record that run in the story's close-out.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (2026-11-03: 18 tests; full suite 832/832)
 
 ---
 
@@ -91,3 +93,21 @@
 
 - Depends on: `production/epics/card-database/story-006-freeze-and-queries.md`
 - Unlocks: `production/epics/card-database/story-010-shipped-data-and-export-inclusion.md`; `rng-event-log` stories that take `data_version` in `RngService.snapshot()`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 23:01:05 UTC, ended 23:07:32 UTC, both by `date -u`)
+**Verification**: `godot --headless --path . --import` exit 0; parse check of the three changed scripts exit 0; `commands.test` 832 test cases, 0 errors, 0 failures, exit 0 (only the intentional negative-test errors); `commands.smoke` exit 0, no SCRIPT ERROR. Seen failing first: the suite did not parse before `canonical_json` / `fingerprint` existed; mutation "hash the parsed body without id-sorting `records`" turned 4 tests red (reordered equality, known answer, static = loaded, record order), mutation "drop the `name` update" turned 3 red (known answer, static = loaded, SHA-256 KAT).
+**Criteria**: 3/3 passing (none deferred)
+- AC-1 — `test_reordered_root_gives_identical_query_sequences`, `test_reordered_root_gives_the_same_data_version`, `test_data_version_is_sixteen_lowercase_hex_characters`, `test_one_attack_changed_by_one_gives_a_different_data_version`, `test_reordered_fixture_really_differs_in_record_order_keys_and_whitespace` (guards against a vacuous fixture)
+- AC-2 — `test_data_version_of_the_fingerprint_root_is_the_known_answer`, `test_static_fingerprint_over_the_same_bodies_equals_data_version`, `test_static_fingerprint_is_sha256_of_name_then_canonical_body`, `test_static_fingerprint_depends_on_entry_order`, `test_canonical_json_*` (2)
+- AC-3 — `test_data_version_when_unloaded_returns_empty_with_one_logged_error`, `test_data_version_when_failed_returns_empty_with_one_logged_error` (stage 7: `card_database_validators_test.gd::test_data_version_during_stage_7_returns_empty_and_the_guard_fires`, story 004), `test_fingerprint_covers_only_the_files_loaded`, `test_snapshot_carries_the_data_version`, `test_version_key_matcher_finds_an_authored_version_key`, `test_no_fixture_or_shipped_data_file_authors_a_version_string`
+**Known answer**: `fingerprint/` → `4667ce6e5d01302f`, recorded 2026-11-03 on Linux x86_64, Godot 4.7.2.stable.official.ed1daf0bf (the CI container). It was computed first by an independent Python reference (`hashlib.sha256` over `name` + compact sorted-key JSON with numbers as `N.0`, records id-sorted, manifest order) and the first green run matched it; SHA-256("abc") from `HashingContext` also matched the published digest. **Open: the epic Definition of Done's re-check on the owner's Windows machine** — run `card_database_fingerprint_test.gd` there and record the result here.
+**Engine finding** (closes the Linux half of ADR-0002 Verification Required item 2): on 4.7.2 `JSON.stringify(v, "", true, true)` is compact (no spaces), sorts keys at every depth, keeps list order, renders a parsed (float) `2` as `2.0`, an int as `2`, `0.1` as `0.1`, `1e20` as `1e+20`, non-ASCII unescaped; a read-only container serialises like a writable one.
+**Deviations**:
+- ADVISORY — **records are hashed in id order.** ADR-0002 Decision 5 hashes "the parsed body"; with that rule alone, AC-1 ("the same records authored in two different file orders … the same `data_version()`") fails — reversing a file's `records` changed the hash (observed: Python reference `b9e82f1b…` vs `71c434bd…`). `DataLoader.fingerprint` therefore sorts a definition envelope's top-level `records` by id before `canonical_json` (the CR-6 order; control manifest "never depend on file order or authoring order"); every other list (starter decks, bundle cards, effects) keeps its order. ADR-0002 Decision 5 / control manifest line 47 / CR-9 need a one-line erratum to say so (owner / technical-director; not edited here).
+- ADVISORY — the test parses fixture files itself (`JSON.parse_string` in `tests/`, outside the single-parser gate, which scans `src/`) to build the static-call bodies.
+**Test Evidence**: `tests/unit/card_database/card_database_fingerprint_test.gd`
+**Run result**: N/A — the fingerprint is a string with no screen; it is first displayed by Treasures / Run UI (their epics)
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode; `/code-review` due at M2)

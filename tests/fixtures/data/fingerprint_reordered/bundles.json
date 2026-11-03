@@ -1,0 +1,53 @@
+{
+    "records": [
+        {
+            "text": {
+                "en": "",
+                "key": "bundle.bundle_neutral_fire.text"
+            },
+            "unlock": null,
+            "cards": [
+                "neutral_torch_imp",
+                "neutral_ember_hound",
+                "neutral_arcane_spark"
+            ],
+            "theme": "fire",
+            "set": "neutral",
+            "name": "Fire",
+            "id": "bundle_neutral_fire"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "bundle.bundle_war_armor.text"
+            },
+            "unlock": null,
+            "cards": [
+                "war_shield_bearer",
+                "war_plate_squire",
+                "war_iron_vanguard"
+            ],
+            "theme": "armor",
+            "set": "war",
+            "name": "Armor",
+            "id": "bundle_war_armor"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "bundle.bundle_war_weapons.text"
+            },
+            "unlock": null,
+            "cards": [
+                "war_axe_thrower",
+                "war_iron_axe",
+                "war_whetstone"
+            ],
+            "theme": "weapons",
+            "set": "war",
+            "name": "Weapons",
+            "id": "bundle_war_weapons"
+        }
+    ],
+    "schema_version": 1
+}

@@ -1,0 +1,82 @@
+{
+    "records": [
+        {
+            "spell_damage": 1,
+            "text": {
+                "en": "",
+                "key": "card.neutral_bog_lurker.text"
+            },
+            "tags": [],
+            "effects": [],
+            "keywords": [
+                "spell_damage"
+            ],
+            "rarity": "common",
+            "health": 3,
+            "attack": 3,
+            "cost": 3,
+            "type": "minion",
+            "set": "neutral",
+            "name": "Neutral Bog Lurker",
+            "id": "neutral_bog_lurker"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.neutral_arcane_spark.text"
+            },
+            "tags": [
+                "fire"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "cost": 1,
+            "type": "spell",
+            "set": "neutral",
+            "name": "Neutral Arcane Spark",
+            "id": "neutral_arcane_spark"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.neutral_ember_hound.text"
+            },
+            "tags": [
+                "fire"
+            ],
+            "effects": [],
+            "keywords": [
+                "charge"
+            ],
+            "rarity": "common",
+            "health": 1,
+            "attack": 2,
+            "cost": 2,
+            "type": "minion",
+            "set": "neutral",
+            "name": "Neutral Ember Hound",
+            "id": "neutral_ember_hound"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.neutral_torch_imp.text"
+            },
+            "tags": [
+                "fire"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "health": 1,
+            "attack": 1,
+            "cost": 1,
+            "type": "minion",
+            "set": "neutral",
+            "name": "Neutral Torch Imp",
+            "id": "neutral_torch_imp"
+        }
+    ],
+    "schema_version": 1
+}

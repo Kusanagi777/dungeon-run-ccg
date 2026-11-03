@@ -92,8 +92,17 @@ const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
 ## passing (ADR-0002 Decision 4: a missing validator never passes silently;
 ## code review 2026-11-03).
 const W_VALIDATOR_PENDING: StringName = &"W_VALIDATOR_PENDING"
+## A query, `config()`, `data_version()` or `snapshot_handle()` called while
+## the database is not `Ready` (States table) — a caller bug, logged through
+## `push_error` with this code as the message prefix; and the one entry of a
+## `reload()` asked of a database that never finished a `load()` (story 008).
+const E_NOT_LOADED: StringName = &"E_NOT_LOADED"
+## `reload()` in a release build: the one entry of the report it returns; the
+## database is untouched (a release build loads once per process; story 008).
+const E_NOT_SUPPORTED: StringName = &"E_NOT_SUPPORTED"
 
 var _entries: Array[Dictionary] = []
+var _record_count: int = -1
 
 
 ## Records one problem. `record_id` and `field` are `null` for a file-level
@@ -145,22 +154,40 @@ func has_errors() -> bool:
 	return false
 
 
-## The report as text, one entry per line in `entries()` order, after a count
-## line. This is what the `data_error` screen and the headless validate command
-## print (CR-8). Example line:
-## `error E_PARSE cards_war.json: line 4: Expected '}' or ','`.
+## The report as text — the contract the `data_error` screen (Run UI, ADR-0011
+## S2) and `tools/content/validate.gd` (content epic) print (CR-8); keep it
+## stable. One line per entry, no header, joined by `\n` (`""` for an empty
+## report): every error, then every warning, each group in `entries()` order.
+## A line is `[<severity>] <code> <file>#<record_id>.<field> — <message>`
+## (U+2014 between spaces); `#<record_id>` and `.<field>` are left out when
+## `null`. Example lines:
+## `[error] E_UNKNOWN_REF heroes.json#hero_war.starter_deck — starter_deck[14]: no CardDef "x" …`,
+## `[error] E_PARSE match_ui.json — line 5: Expected '}'`,
+## `[warning] W_UNKNOWN_FILE stray.json — not in the DD-T01 file manifest; not loaded`.
 func to_text() -> String:
 	var lines: PackedStringArray = []
-	var error_count: int = _with_severity(SEVERITY_ERROR).size()
-	lines.append("Data validation: %d error(s), %d warning(s)" % [error_count, _entries.size() - error_count])
-	for e: Dictionary in entries():
+	for e: Dictionary in errors() + warnings():
 		var where: String = e.file
 		if e.record_id != null:
-			where += " [%s]" % str(e.record_id)
+			where += "#" + str(e.record_id)
 		if e.field != null:
-			where += " (%s)" % str(e.field)
-		lines.append("%s %s %s: %s" % [e.severity, e.code, where, e.message])
+			where += "." + str(e.field)
+		lines.append("[%s] %s %s — %s" % [e.severity, e.code, where, e.message])
 	return "\n".join(lines)
+
+
+## The number of records the load froze into its snapshot (every definition
+## record, all types), or `-1` when the load did not reach stage 9 (it failed,
+## or this report never came from a load). The debug overlay's "Data reloaded:
+## N records" reads it (card-database Visual/Audio Requirements).
+## Example: `db.reload().record_count()`.
+func record_count() -> int:
+	return _record_count
+
+
+## Loader-only: records [method record_count] at stage 9.
+func set_record_count(count: int) -> void:
+	_record_count = count
 
 
 func _with_severity(severity: StringName) -> Array[Dictionary]:

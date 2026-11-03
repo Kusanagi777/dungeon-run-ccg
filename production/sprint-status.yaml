@@ -126,7 +126,7 @@ stories:
     name: "data_version fingerprint (CR-9)"
     file: "production/epics/card-database/story-007-data-version-fingerprint.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 2
@@ -134,12 +134,13 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    completed: ""
+    note: "records hashed in id order (ADR-0002 D5 erratum owed); known answer 4667ce6e5d01302f on Linux, Windows re-check open"
+    completed: "2026-11-03"
   - id: "card-database-008"
     name: "State machine, visible failure and debug reload() (States table, CR-8)"
     file: "production/epics/card-database/story-008-state-machine-and-debug-reload.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     lane: 2
@@ -147,8 +148,8 @@ stories:
     serialised: false
     contract: true
     blocker: ""
-    note: "[C] E_NOT_LOADED for queries before Ready; merges last at M2"
-    completed: ""
+    note: "[C] E_NOT_LOADED for queries before Ready; merges last at M2; to_text() format changed (no header); reload() has no E_BUSY planner check (ADR-0006, unstoried)"
+    completed: "2026-11-03"
   - id: "card-effects-004"
     name: "Validator step bound and targeting spec"
     file: "production/epics/card-effects/story-004-validator-step-bound-targeting.md"
