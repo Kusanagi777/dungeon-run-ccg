@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Designed
 > **Author**: `/design-system` (game-designer role) for the owner. `systems-designer`, `creative-director`, `qa-lead` and `art-director` not consulted — Lean mode (no `Agent` tool available in this run). Review manually before production.
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03

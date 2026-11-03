@@ -496,6 +496,55 @@ formulas:
     added: 2026-11-03
     revised: ""
 
+  - name: spell_damage_requested
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/match-rules.md
+      - design/gdd/content.md
+      - design/gdd/match-ui.md
+    variables:
+      - amount
+      - spell_damage_owner
+      - scales
+    output_range: [0, 40]
+    expression: "amount + (scales ? spell_damage(owner) : 0)"
+    added: 2026-11-03
+    revised: ""
+  - name: discover_pool
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/card-database.md
+      - design/gdd/boss-ai.md
+      - design/gdd/match-ui.md
+    variables:
+      - collectible_pool
+      - DISCOVER_COUNT
+      - DISCOVER_EXCLUDE_HAND
+    output_range: [0, 3]
+    expression: "n_options = min(DISCOVER_COUNT, |distinct(filter(base) minus source)|); n_options randi_range draws"
+    added: 2026-11-03
+    revised: ""
+  - name: effect_step_bound
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/match-rules.md
+      - design/gdd/content.md
+    variables:
+      - ops
+      - MAX_REPEAT
+      - MAX_SUMMON_COUNT
+      - EFFECT_STATIC_STEP_LIMIT
+    output_range: [1, 250]
+    expression: "1 + sum(steps(op)); rejected above EFFECT_STATIC_STEP_LIMIT"
+    added: 2026-11-03
+    revised: ""
+
 # ─── CONSTANTS ───────────────────────────────────────────────────────────────
 # Named numerical values referenced across multiple systems.
 # Register a constant when it is defined in one GDD but another GDD must
@@ -807,5 +856,46 @@ constants:
       - design/gdd/meta-progression.md
     value: 1
     unit: version
+    added: 2026-11-03
+    revised: ""
+  - name: discover_count
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/match-ui.md
+      - design/gdd/boss-ai.md
+    value: 3
+    unit: options
+    added: 2026-11-03
+    revised: ""
+  - name: max_ops_per_effect
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/content.md
+    value: 8
+    unit: ops
+    added: 2026-11-03
+    revised: ""
+  - name: max_repeat
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/content.md
+    value: 10
+    unit: iterations
+    added: 2026-11-03
+    revised: ""
+  - name: effect_static_step_limit
+    status: active
+    source: design/gdd/card-effects.md
+    referenced_by:
+      - design/gdd/card-effects.md
+      - design/gdd/match-rules.md
+    value: 250
+    unit: steps
     added: 2026-11-03
     revised: ""
