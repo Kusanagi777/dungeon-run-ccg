@@ -339,13 +339,33 @@ func test_weighted_pick_max_total_is_accepted() -> void:
 	assert_int(stream.draws).is_equal(1)
 
 
+func test_weighted_pick_integral_float_weights_are_accepted() -> void:
+	# Arrange — JSON numbers arrive as floats; whole ones are valid weights
+	var stream: RngStream = _seeded()
+
+	# Act
+	var index: int = stream.weighted_pick([5.0, 0.0, 15.0])
+
+	# Assert
+	assert_int(index).is_not_equal(1)
+	assert_int(index).is_between(0, 2)
+	assert_int(stream.draws).is_equal(1)
+
+
 func test_weighted_pick_invalid_weights_return_minus_one_without_draw() -> void:
-	# Arrange — empty, negative weight, total 0, total 65,537
+	# Arrange — empty, negative weight, total 0, total 65,537, a fractional
+	# float, a numeric String, one weight above the cap, and int64 weights
+	# whose sum wraps to a valid-looking total of 1
+	var wrap: int = 9223372036854775807
 	var cases: Array[Array] = [
 		[[], "RngStream.weighted_pick: bad weights []"],
 		[[3, -1, 4], "RngStream.weighted_pick: bad weights [3, -1, 4]"],
 		[[0, 0], "RngStream.weighted_pick: bad weights [0, 0]"],
 		[[MAX_SPAN, 1], "RngStream.weighted_pick: bad weights [%d, 1]" % MAX_SPAN],
+		[[2.5, 1], "RngStream.weighted_pick: bad weights [2.5, 1]"],
+		[["5", 1], "RngStream.weighted_pick: bad weights [\"5\", 1]"],
+		[[70000], "RngStream.weighted_pick: bad weights [70000]"],
+		[[wrap, wrap, 3], "RngStream.weighted_pick: bad weights [%d, %d, 3]" % [wrap, wrap]],
 	]
 
 	for c: Array in cases:
@@ -425,6 +445,30 @@ func test_fork_does_not_disturb_parent_sequence_beyond_one_draw() -> void:
 	assert_int(parent.randi32()).is_equal(raw.randi())
 	assert_int(parent.draws).is_equal(2)
 	assert_int(child.draws).is_equal(1)
+
+
+func test_fork_bad_label_returns_null_without_draw() -> void:
+	# Arrange — F3: a label is [a-z0-9_]+; "a/b" would name the same stream as
+	# fork("a").fork("b") under a different seed
+	var cases: Array[Array] = [
+		["a/b", "RngStream.fork: bad label \"a/b\""],
+		["", "RngStream.fork: bad label \"\""],
+		["Sim_3", "RngStream.fork: bad label \"Sim_3\""],
+		["sim-3", "RngStream.fork: bad label \"sim-3\""],
+		["sim_3\n", "RngStream.fork: bad label \"sim_3\\n\""],
+	]
+
+	for c: Array in cases:
+		var parent: RngStream = _seeded("ai_1")
+		var label: String = c[0]
+		var out: Dictionary = {}
+
+		# Act
+		await _assert_rejected(func() -> void: out.value = parent.fork(label), c[1])
+
+		# Assert
+		assert_object(out.value).is_null()
+		assert_int(parent.draws).is_equal(0)
 
 
 func test_fork_of_fork_names_full_path() -> void:

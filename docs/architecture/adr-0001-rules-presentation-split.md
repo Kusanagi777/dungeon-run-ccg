@@ -32,6 +32,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   TD-009 split across ADR-0004/0005/0008/0011).
 - **Erratum 2026-11-03 (boot-composition-root story 004)**: on Godot 4.7.2 a script declaring `class_name Boot` that is also registered as the autoload `Boot` fails to parse ("Class \"Boot\" hides an autoload singleton") and the autoload never loads. `src/core/boot.gd` is therefore `extends Node` with no `class_name`; the autoload name `Boot` and every `Boot.boot()` / `Boot.services()` / `Boot.booted` reference work unchanged; tests that need a fresh instance `preload` the script. Also observed: gdUnit4 runs under `godot -s` do create autoloads (`/root/Boot` idle, `booted == false`), answering QQ-04.
 - **Erratum 2026-11-03 (engine validation, `docs/architecture/engine-validation-2026-11-03.md`)**: G2b's negative look-ahead does not run on the installed ripgrep 14.1.0 and would flag the `await plan_turn/score_all` lines ADR-0006 requires; replaced by the deny-list pattern in the gate table. Advisory: G2 `%[A-Z]` false-positives on `"%X" % v`; G1 misses `extends Button/Label/Resource`; `@abstract` refusal is parse-time, so Verification (1) is a parse-check test.
+- **Erratum 2026-11-03 (code review)**: two gate patterns in Decision 6 were wrong. **G6** `randi\(|randf\(|…` flagged the legitimate injected-stream calls `stream.randf()` / `stream.randi_range()` and missed bare `randi_range(`, `randf_range(` and `seed(`; it is now `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|pick_random\(` — the `(^|[^.\w])` prefix is the look-around-free way to skip `obj.` calls and identifiers that end in a token (`_fork_seed(`), and `\.shuffle\(\)` / `pick_random\(` are kept (the global-RNG `Array` methods; `stream.shuffle(deck)` takes an argument and is not hit). The same correction applies to the ADR-0003 rule 7 lint token list. **G3** excluded only `boot.gd`, but `src/core/services.gd` and `src/core/boot_result.gd` are the composition root's own types and name `Boot` / `Services` by definition; G3 now also excludes those two files and drops doc-comment lines (`^\s*##`) as a second filter, so prose that describes the composition root is not a reference to it. Verified on ripgrep 14.1.0 against the current tree (0 hits each) and a planted file (every bare call hit; `stream.randf()`, `self.randf()`, `stream.shuffle(cards)`, `rng.seed = 4`, `_fork_seed(1)` not hit).
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
@@ -189,10 +190,10 @@ and API Boundaries this ADR binds.
    | G1 no Node in rules | `extends (Node|Control|Node2D|CanvasItem|Timer)` | `src/gameplay/**`, `src/ai/**` | 0 hits |
    | G2 no tree access in rules | `get_tree\(|get_node\(|\$[A-Za-z%]|%[A-Z]|queue_free|add_child` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
    | G2b no coroutines in rules | `\bawait\b` | `src/gameplay/**`, `src/core/**` (minus `boot.gd`); under `src/ai/**` `await` is allowed only on the planner's own coroutines (`checkpoint()`, `plan_turn`, `score_all`, lethal search — ADR-0006's time-slicing seam), so the gate there is a look-around-free deny-list: `\bawait\b.*(get_tree|process_frame|physics_frame|create_timer|\.timeout|\.finished|tween|signal)` (ripgrep 14 rejects `(?!…)`; erratum 2026-11-03, engine validation) | 0 hits |
-   | G3 no composition root in rules | `\bBoot\b|\bServices\b` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
+   | G3 no composition root in rules | `\bBoot\b|\bServices\b` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`, `services.gd`, `boot_result.gd`; hit lines that are doc comments, `^\s*##`, are dropped by a second filter — ripgrep has no look-around) (erratum 2026-11-03, code review) | 0 hits |
    | G4 one autoload | `^[A-Za-z_]+=` lines under `[autoload]` in `project.godot` | — | exactly 1, named `Boot` |
    | G5 UI never mutates | `\.submit\(` outside `*_controller.gd`, `*_driver.gd`, `*_view.gd` input path; `MatchState|RunState` type names | `src/ui/**` | 0 hits of state types; `submit` only via the controller |
-   | G6 no global RNG in rules | `randi\(|randf\(|randomize\(|\.shuffle\(\)|pick_random\(` | `src/gameplay/**`, `src/ai/**` | 0 hits (owned by ADR-0003, listed here because it is the same gate script) |
+   | G6 no global RNG in rules | `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|pick_random\(` (erratum 2026-11-03, code review) | `src/gameplay/**`, `src/ai/**` | 0 hits (owned by ADR-0003, listed here because it is the same gate script) |
 
    Each gate is a distinctive token, not a word (`skill-authoring.md` "assert
    something that cannot be true by accident"), and the gate script is run once
@@ -344,7 +345,9 @@ and ADR-0008 fix the resolver and driver contracts.
 ### Neutral
 
 - `src/core/boot.gd` is a `Node` and is the one file under `src/core/` exempt from
-  gates G2/G3; the gate script names the exemption explicitly.
+  gate G2; G3 also exempts the composition root's own types `services.gd` and
+  `boot_result.gd` (erratum 2026-11-03, code review); the gate script names
+  each exemption explicitly.
 - Presenters and screens become thinner than idiomatic Godot UI; the projection
   (`MatchViewState`) carries the logic instead.
 

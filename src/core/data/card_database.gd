@@ -1,9 +1,9 @@
 ## The Card Database: the one owner of game data (card-database CR-1..CR-9;
 ## ADR-0002). It runs `DataLoader` once at boot and holds the result.
 ##
-## `Boot.boot()` constructs it and calls `load(validators)` (boot epic); tests
-## inject a `DataLoader` over a fixture root. Nothing under `src/core/**`
-## references `Boot` (ADR-0001).
+## The composition root constructs it and calls `load(validators)` (boot
+## epic); tests inject a `DataLoader` over a fixture root. Nothing under
+## `src/core/data/` references the composition root (ADR-0001, gate G3).
 ##
 ## [codeblock]
 ## var db: CardDatabase = CardDatabase.new(DataLoader.new("res://tests/fixtures/data/minimal/"))

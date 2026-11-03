@@ -80,7 +80,7 @@ in Feature, ADR-0001's UI channels in Presentation) has those rules repeated the
 - **Never a second autoload** — a sibling of `Boot` is an architecture change (new ADR); gate G4 — source: ADR-0001
 - **Never rules as `Node`s under a headless `SceneTree` with signals** — a node graph cannot be cloned thousands of times per boss turn and signals cannot be replayed from a log (TD-005) — source: ADR-0001 (Alt 3)
 - **Never a second composition path** (`main.tscn` only, debug loaders re-implementing composition) — two paths is how TD-006 happened — source: ADR-0001 (Alt 1)
-- **Never reference `Boot` or `Services` from `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`)** — gate G3 — source: ADR-0001
+- **Never reference `Boot` or `Services` from `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`, `services.gd`, `boot_result.gd`; doc-comment lines `^\s*##` are not references)** — gate G3 — source: ADR-0001 (erratum 2026-11-03, code review)
 - **Never `.tres` / `.res` `Resource` files with `@export` for game data** — no schema gate, needs the editor import step, nested-resource `duplicate()` deprecation, unreadable by tooling (TD-008) — source: ADR-0002 (Alt 1)
 - **Never a per-system loader or any JSON parse outside `CardDatabase`** — `FileAccess.open("res://assets/data/…")`, `JSON.parse_string`, `JSON.new().parse`, `load("res://assets/data/…")` appear nowhere else in `src/` (`tools/content/validate.gd` composes `DataLoader` and is allowed) — cross-reference checks and the fingerprint need one parser — source: ADR-0002 (Alt 2)
 - **Never one bundled `game_data.json`** — CN-6 batch ownership — source: ADR-0002 (Alt 3)
@@ -425,12 +425,12 @@ From `docs/engine-reference/godot/current-best-practices.md`; every row is a pos
   | G1 no Node in rules | `extends (Node\|Control\|Node2D\|CanvasItem\|Timer)` | `src/gameplay/**`, `src/ai/**` | 0 hits |
   | G2 no tree access in rules | `get_tree\(\|get_node\(\|\$[A-Za-z%]\|%[A-Z]\|queue_free\|add_child` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
   | G2b no coroutines in rules | `\bawait\b` (under `src/ai/**`: `\bawait\b(?!.*\.checkpoint\(\))`) | `src/gameplay/**`, `src/core/**` (minus `boot.gd`), `src/ai/**` | 0 hits |
-  | G3 no composition root in rules | `\bBoot\b\|\bServices\b` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
+  | G3 no composition root in rules | `\bBoot\b\|\bServices\b` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`, `services.gd`, `boot_result.gd`; hit lines that are doc comments, `^\s*##`, are dropped by a second filter — ripgrep has no look-around) | 0 hits |
   | G4 one autoload | `^[A-Za-z_]+=` lines under `[autoload]` in `project.godot` | — | exactly 1, named `Boot` |
   | G5 UI never mutates | `\.submit\(` outside `*_controller.gd`, `*_driver.gd`, `*_view.gd` input path; `MatchState\|RunState` type names | `src/ui/**` | 0 hits of state types; `submit` only via the controller |
-  | G6 no global RNG in rules | `randi\(\|randf\(\|randomize\(\|\.shuffle\(\)\|pick_random\(` | `src/gameplay/**`, `src/ai/**` | 0 hits |
+  | G6 no global RNG in rules | `(^\|[^.\w])(randi\|randf\|randi_range\|randf_range\|seed\|randomize)\(\|\.shuffle\(\)\|pick_random\(` (ADR-0001 erratum 2026-11-03, code review) | `src/gameplay/**`, `src/ai/**` | 0 hits |
   | G7 no direct state writes from effects | the ADR-0007 field-write pattern, `log\.append\(`, `RandomNumberGenerator` | `src/gameplay/effects/**` | 0 hits |
-  | Lint `tools/lint/no_global_rng.sh` | `randi(`, `randf(`, `randi_range(`, `randomize(`, `.shuffle(`, `.pick_random(`, `RandomNumberGenerator.new(` | `src/` minus `src/ui/`, `src/core/rng/`, and the allow-listed run-creation path | any hit fails the build |
+  | Lint `tools/lint/no_global_rng.sh` | `(^\|[^.\w])(randi\|randf\|randi_range\|randf_range\|seed\|randomize)\(\|\.shuffle\(\)\|\.pick_random\(\|RandomNumberGenerator\.new\(` (regex, not fixed strings; ADR-0003 erratum 2026-11-03, code review) | `src/` minus `src/ui/`, `src/core/rng/`, and the allow-listed run-creation path | any hit fails the build |
   | Data-read gate | `FileAccess.open("res://assets/data/`, `JSON.parse_string`, `JSON.new().parse`, `load("res://assets/data/` | `src/` minus `src/core/data/` | 0 hits |
 
 - **Threading**: everything runs on the main thread (input, player `submit`, `EventLog` subscribers, `AnimationQueue`, presenters, `ProfileStore` writes, data load) except the Boss AI planner, which runs over `RulesEngine.clone()` in a `PlannerTask` exposing only `start` / `poll` / `result`; no Node, autoload, signal emission or live-log append from the worker; the live engine is main-thread only — source: ADR-0006, ADR-0008, ADR-0003; architecture.md §Threading model
