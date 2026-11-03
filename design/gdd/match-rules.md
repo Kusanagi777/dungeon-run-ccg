@@ -1004,7 +1004,9 @@ Dependencies section (verified 2026-11-03).
 `systems-designer` not consulted — Lean mode (knobs derived from the Formulas variable tables).
 All knobs live in `assets/data/match_rules.json` (`schema_version` per DD-T01) and are read once
 at `RulesEngine.start`. Owner rows in `design/design-decisions.md` are unchanged; values below are
-the defaults those rows set, with the safe ranges this GDD adds.
+the defaults those rows set, with the safe ranges this GDD adds. Each UPPER_CASE knob below maps to
+the snake_case key of the same name in `assets/data/match_rules.json` (`MAX_MANA` → `max_mana`,
+`STARTING_HEALTH_PLAYER` → `starting_health_player`).
 
 | Parameter | Current value | Safe range | Effect of increase | Effect of decrease | Interacts with |
 |---|---|---|---|---|---|
