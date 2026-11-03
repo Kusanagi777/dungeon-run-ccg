@@ -12,6 +12,7 @@
 > **REVISED 2026-11-03** (lean design-review, verdict NEEDS REVISION → revised, now In Review): (1) `MatchConfig` aligned to Run Structure R3 — the engine receives the memoised `rng_match` / `rng_ai` streams and `boss.health`, and never seeds (C3, Dependencies, AC-01, AC-42); (2) `resolution_overflow` and the log's `event_cap` are now **fault** results (`result: fault`, no winner) per Run Structure T9 and RNG & Event Log, not boss wins (C10, C14, States, Edge Cases, AC-30); (3) five primitives requested by Card Effects / Heroes added (`remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`) with their events (Interactions, C15); (4) hook clamps requested by Treasures R-4/R-5 added (`modify_heal`, `modify_starting_hand_size`, `modify_max_attacks`, new `MAX_ATTACKS_CAP`); (5) hero health unified on `damage_taken` (C1, C9, F2); hero Windfury via weapon **or** enchantment made explicit (C1, F3); `clone()` carries hooks (C2); (6) F8 `k = 0.8` case corrected to n = 9; F2 output range corrected; (7) AC-18, AC-19, AC-30, AC-39, AC-40 rewritten — they were unsatisfiable or non-deterministic as written; (8) event envelope now `{seq, turn, type, payload, cause_seq}` (C15); (9) Open Questions updated (boss mulligan closed by Boss AI; `match_rules.json` now in DD-T01; event-name reconciliation added).
 > **REVISED 2026-11-03 (cross-review)**: C-02 / S-02 (`crystal_bonus` — permanent `add_mana` at `on_match_start` for Hollow Crown: C1, C4 Start step 2, C5, F4, AC-06); C-04 (no stored `targeting` field — Card Effects derives `targeting_spec(def_id)`: Interactions, Dependencies, Cross-References); C-05 (RNG stream handle API per rng-event-log F4: Interactions, Cross-References); C-16 (Card Effects' three questions answered in C4: `until_end_of_turn` expiry covers card instances in hand/deck, expires at the recipient's controller's End step; observer candidate order is player side first everywhere); C-18 (`MAX_ATTACKS_CAP` rationale aligned to Treasures F3); C-07 / DD-X04 (C15 spelling authoritative; OQ closed); C-30 (OQs on DD-M11 and rng rule 12a closed; 12a cited in C15).
 > **REVISED 2026-11-03 (housekeeping)**: C5 defines `add_mana(side, n, temporary=true)` (temporary crystals, expire at the End step; "not used by v1 content" removed — Content's `decay_soul_tithe` / `neutral_treasure_map` use it) with new AC-45; Dependencies sentence about systems-index rows deleted; States `turn > TURN_CAP` row applies at `*Turn.Start` (both sides); AC-02 boss health → `MatchConfig.boss.health`; F3 `attacks_used` range → `0–MAX_ATTACKS_CAP`; Dependencies `match` stream → `match_<floor>`; Open Question added on defender-hero weapon damage (C8 step 4 unchanged).
+> **REVISED 2026-11-03 (DSL spike follow-ups, `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED)**: C15 adds `card_added_to_hand` for the `add_card_to_hand` primitive (Interactions primitive list names it; finding 2); C10 states an aura recompute with no net change emits no `auras_recomputed` (finding 8).
 
 ## Summary
 
@@ -412,7 +413,9 @@ run_action(initial_step):
 - **recompute_auras()** strips every `is_aura` enchantment, then re-applies auras from every
   living aura source in board order (player left to right, then boss). Aura loss reduces
   `max_health` while `damage_taken` is untouched (F6), so a minion kept alive by an aura dies in
-  the next pass of the loop. One `auras_recomputed` event lists net stat changes.
+  the next pass of the loop. One `auras_recomputed` event lists net stat changes; a recompute
+  whose net changes are empty emits **no** event (2026-11-03, DSL spike finding 8 — the loop
+  recomputes after every step, so an empty event would flood the log).
 - **Summons during the loop** (Deathrattle "summon a 2/2") go through `summon_minion(side,
   def_id, position)`, which inserts at the dead minion's former index when it still fits, else at
   the rightmost slot; a full board makes the summon a no-op with a `summon_failed` event.
@@ -530,7 +533,7 @@ RNG & Event Log's catalogue mirrors them, and `choice_requested` (this GDD) and 
 `mana_spent`, `mana_added`; **cards** `card_drawn`, `card_burned`, `fatigue_damage`,
 `card_played`, `spell_cast`, `card_to_graveyard`, `minion_summoned`, `summon_failed`,
 `weapon_equipped`, `weapon_destroyed`, `weapon_durability_changed`, `hero_power_used`,
-`hero_power_refreshed`, `card_added_to_deck`, `card_discarded`; **combat** `attack_declared`,
+`hero_power_refreshed`, `card_added_to_deck`, `card_added_to_hand`, `card_discarded`; **combat** `attack_declared`,
 `attack_cancelled`, `attack_resolved`, `damage_dealt`, `divine_shield_popped`, `armor_lost`,
 `healed`, `armor_gained`; **status** `enchantment_applied`, `enchantment_removed`,
 `keyword_removed`, `auras_recomputed`, `frozen`, `thawed`, `silenced`, `stealth_lost`,
@@ -542,6 +545,10 @@ fault).
 Payloads always carry the acting `entity_id`s and the resulting numbers
 (e.g. `damage_dealt {source, target, requested, prevented, armor_absorbed, dealt, health_after}`)
 so the log alone explains the outcome.
+`card_added_to_hand {side, instance_id, card_id, hand_size}` (added 2026-11-03, DSL spike
+finding 2) is the event of the `add_card_to_hand` primitive — Discover's pick, `add_to_hand`,
+`copy_to_hand` — shaped like `card_drawn`; the producing effect is attributed through `cause_seq`.
+A full hand emits `card_burned` instead and no `card_added_to_hand`.
 
 ### States and Transitions
 
@@ -625,7 +632,7 @@ enchantment)`, `remove_enchantment(target, id)`, `summon_minion(side, def_id, po
 `destroy(target)`, `silence(target)`, `freeze(target)`, `add_keyword(target, kw)`,
 `return_to_hand(target)`, `transform(target, def_id)`, `add_mana(side, n, temporary)`,
 `equip_weapon(side, def_id)`, `discover(side, options) → ChoiceRequest`, `add_card_to_hand(side,
-def_id)`, `set_stats(target, attack, health)`, and — added for Card Effects' v1 card texts and
+def_id)` (`card_added_to_hand`; full hand → `card_burned`), `set_stats(target, attack, health)`, and — added for Card Effects' v1 card texts and
 Heroes — `remove_keyword(target, kw)` (`keyword_removed`; removing Taunt/Stealth/Divine Shield
 takes effect at the next legality or damage evaluation), `add_card_to_deck(side, def_id,
 position: top | bottom | random)` (`card_added_to_deck`; `random` draws one `rng_match` index),

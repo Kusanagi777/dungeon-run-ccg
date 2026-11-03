@@ -14,6 +14,7 @@
 > **REVISED 2026-11-03 (re-review, `/design-review` lean)**: catalogue §D re-mirrored to the owner tables once more — `run_ended.abandon_reason` enum is Run Structure's (`player | data_version_mismatch | save_corrupt`, not `player/system`) and the row carries `floor_reached`, `ended_by`; `match_ended` row is the C14 `MatchResult` (`winner`, not `winner_side`; full `reason` enum incl. `event_cap`); `ai_intent_*` rows carry `effective_mode` (DD-X03, boss-ai C8.4); `discover_offered` / `discover_picked` carry Card Effects' `effect_id`, `kind`, label-key and `picked_index` fields; rows added for `deck_grew`, `run_warning` (Run Structure R10), `counter_changed` (Card Effects), `hook_install_skipped` (Treasures). Rule 13 states how `turn` is stamped (`set_turn(n)` by Match Rules); the `max_match_events` edge case names Match Rules as the emitter of the forced `match_ended`. Open Question 7 closed.
 > **REVISED 2026-11-03 (housekeeping)**: §D `match_summary.result` defined as match-rules C14 `win | loss | fault` with `winner` and `reason` added; `draft_offered.flags[]` enum re-mirrored to reward-draft D11 (`pity_forced | coverage_forced | universal_forced | universal_missing | reoffer | short`); F7 `run_total_events` reported in the run log summary (Run Structure R10), not `run_ended`; rule 12a states explicitly that the player's own `command_rejected` events are diagnostic (`payload.diagnostic = true`).
 > **REVISED 2026-11-03 (cross-review b)**: N-02 — §D `run_ended` row adopts Run Structure's nested `result` Dictionary (`result.outcome: victory | defeat | abandoned`, `result.abandon_reason`, …) with `run_seed_hex` beside it, matching run-structure R1/R6 and the path meta-progression F2 reads; the previous flat `result` enum would not have parsed in Meta's fold.
+> **REVISED 2026-11-03 (DSL spike follow-up)**: §D adds `card_added_to_hand {side, instance_id, card_id, hand_size}`, mirroring the event match-rules C15 added for the `add_card_to_hand` primitive (DD-X04; `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` finding 2).
 
 ## Summary
 
@@ -157,6 +158,7 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `command_rejected` | Match Rules | `side, command, code` + `diagnostic: true` (rule 12a) |
 | `card_drawn` | Match Rules | `side, instance_id, card_id, hand_size` |
 | `card_burned` | Match Rules | `side, instance_id, card_id` (DD-M06) |
+| `card_added_to_hand` | Match Rules | `side, instance_id, card_id, hand_size` (match-rules C15, added 2026-11-03 from the DSL spike; the `add_card_to_hand` primitive — Discover pick, `add_to_hand`, `copy_to_hand`; a full hand emits `card_burned` instead) |
 | `fatigue_damage` | Match Rules | `side, amount` (DD-M07; followed by `damage_dealt`) |
 | `card_played` | Match Rules | `side, instance_id, card_id, cost_paid, target_id, board_index` |
 | `minion_summoned` | Match Rules | `side, instance_id, card_id, board_index, attack, health, keywords[]` |

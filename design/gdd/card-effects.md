@@ -13,6 +13,7 @@
 > **REVISED 2026-11-03 (re-review, `/design-review` lean at workflow `full`)**: residual step-unit wording aligned to C6.0 (States `Resolving` row, Edge Cases recursion entry, AC-09 explicit log order, AC-16 one `trigger_resolved` between the hook step and row 34's pass and none between its two pings); `effect_resolved.ops[].outcome` closed set now carries `partial`, `fatigue`, `no_such_trigger` (already used by C5 / Edge Cases); C6.3 / C9 / Tuning Knobs state the End-step exception to "hooks first" (match-rules C4 End steps 2–3: card `turn_end` triggers, then `on_turn_end` hooks) and the minion-played row gains `on_card_played` observers in the spell row's position; `mana` op `this_turn` note corrected (Content's `decay_soul_tithe` uses it — Open Question to Match Rules); C8.1 Match UI overlay wording matches match-ui U3; AC-17 "Scarabs" → Husks; AC-37 names its replay fixture; `then: cast` targeting gap logged in Open Questions.
 > **REVISED 2026-11-03 (final re-review, `/design-review` lean at workflow `full`)**: Edge Cases "boss passive on the player's action" and AC-25 claimed a hook-step order for row 37's `on_heal` passive, which C2/C9 make a boss-side hero-slot observer — both now state the observer order (player-side `on_heal` observers first, then the passive); F6 defines `count(op)`, `max_targets(adjacent | side-scoped)` and the ceiling for a non-literal `count`/`n`/`times` (Raise Dead's `count: {ref}`); C5 `summon` defaults to `end` for a non-minion source; AC-26 names its board layout; C5 `mana` row and the Open Questions take match-rules C5's temporary-crystal rule as resolved (Soul Tithe, Treasure Map); the RNG direct-draw and Heroes H-3 rows are closed against the current sibling texts.
 > **REVISED 2026-11-03 (cross-review)**: C-02 (`mana` op row: permanent `add_mana` at `on_match_start` raises `crystal_bonus`), C-04 (`targeting_spec` derived, confirmed by Match Rules), C-07 / DD-X04 (`discover_offered` ≠ `choice_requested`, pairing stated in C8 and Interactions), C-16 (a/b/c answered by Match Rules C4: card-instance expiry, recipient-controller expiry, player-side-first observer order — C6.3, F3, Edge Cases aligned), C-22 (five primitives landed in Match Rules: C5 rows, C10, C11, Edge Cases, AC-06, Interactions, Dependencies, Tuning Knobs de-provisionalised), C-25 (dependents count: five), V-35 housekeeping (Treasures rows closed via C-26). Open Questions rows closed accordingly.
+> **REVISED 2026-11-03 (DSL spike follow-ups, `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED)**: AC-12/13/14/23/25/34/43/46 name the `damage_dealt` field `dealt` (match-rules C15 payload; was `amount`, finding 1); C3 states `chosen` is a reference that may name a dying target (finding 5); Edge Cases add the row-45 late-counter case (finding 4); States `Active` aura row: no `auras_recomputed` when nothing changed (finding 8). No grammar change.
 
 ## Summary
 
@@ -221,6 +222,10 @@ that ordered list (F5). "Friendly"/"enemy" are relative to the effect **owner**.
 yield a **dying** entity — one with `health ≤ 0` or `pending_destroy` that the death check after
 this pass will remove (C6.0); a dying entity is reachable only through an explicit reference
 (`self`, `target`, `trigger_subject`, `trigger_source`) and is what the `is_dying` predicate tests.
+**`chosen` is such a reference, not a search** (2026-11-03, DSL spike finding 5): it names the
+command's `target_id` — the same entity as `target` — so a later op of the same effect that reuses
+the effect-level `chosen` (rows 15, 33) reaches it even when an earlier op of this pass made it
+dying. Only the legality check at command time (C1 rule 1) filters it.
 
 | Selector | Yields | Notes |
 |---|---|---|
@@ -637,7 +642,7 @@ asserts in debug.
 | State | Entry condition | Exit condition | Behaviour |
 |---|---|---|---|
 | `Inactive` | Source not in play (hand, deck, dead) | Source enters play → `Active` | Not consulted by `recompute_auras()` |
-| `Active` | Source in play, not silenced | Source leaves play → `Inactive`; Silence → `Suppressed` | Re-applied on every recompute to the current selector matches; one `auras_recomputed` event per recompute lists net changes |
+| `Active` | Source in play, not silenced | Source leaves play → `Inactive`; Silence → `Suppressed` | Re-applied on every recompute to the current selector matches; one `auras_recomputed` event per recompute lists net changes, and none when nothing changed (match-rules C10) |
 | `Suppressed` | Source Silenced | Never (Silence is permanent, match-rules C13) | Skipped by recompute; recipients lose the enchantment at the next pass (F3) |
 
 ### Interactions with Other Systems
@@ -964,6 +969,15 @@ already decides the case, the entry says so and adds only what this system contr
   to 0 and logged (`values.clamped_from`); `apply_damage(…, 0)` pops no shield (match-rules C9).
 - **If a `counter.<key>` is read on a source that was never given one**: 0. Counters die with the
   source's `entity_id`; a bounced-and-replayed minion starts at 0.
+- **If a death queues row 45's `add_counter` but row 45 itself dies before that op resolves**
+  (e.g. the dead minion's own Deathrattle, queued first, kills row 45) (2026-11-03, DSL spike
+  finding 4): that death is **missed**. Row 45's Deathrattle is queued with the raise-time
+  snapshot (C6.5) taken while `counter.seen` did not yet include it; the late `add_counter` still
+  resolves (queued = earned) but raises only the live bucket of a source no longer in play, so
+  the Deathrattle reads the snapshot and deals what it had (0 if it had seen nothing). C6.5 is
+  unchanged; this is deterministic and legible from the log (`counter_changed` after
+  `minion_died` of row 45, and `effect_resolved.ops[0].values.read_from == "snapshot"`). Pinned by
+  `test_row45_counter_raised_before_death_but_resolved_after_is_not_in_snapshot`.
 
 **Choices**
 
@@ -1288,13 +1302,13 @@ refers to the C11 coverage table.
   are offered; **GIVEN** a filter matching 0, **THEN** no `Choice` phase, op outcome
   `empty_pool`, and the following op in the same effect still runs.
 - [ ] AC-12 **GIVEN** row 33 cast on an enemy 3/3, **WHEN** `choose(0)` (Smite), **THEN**
-  `damage_dealt{amount: 2}` and no `healed`; **WHEN** `choose(1)` instead, **THEN** `healed` and no
+  `damage_dealt{dealt: 2}` and no `healed`; **WHEN** `choose(1)` instead, **THEN** `healed` and no
   `damage_dealt`.
 - [ ] AC-13 **GIVEN** row 44 (hero power "Deal 1") and two Spell Damage +1 minions, **WHEN** used
-  on the enemy hero, **THEN** `damage_dealt.amount == 1`; **GIVEN** row 18 cast instead, **THEN**
-  `amount == 5` and `effect_resolved.ops[0].values.requested == 5`.
+  on the enemy hero, **THEN** `damage_dealt.dealt == 1`; **GIVEN** row 18 cast instead, **THEN**
+  `dealt == 5` and `effect_resolved.ops[0].values.requested == 5`.
 - [ ] AC-14 **GIVEN** row 19 ("Deal 2 to all enemies") with +1 Spell Damage and an enemy board of
-  3 plus hero, **WHEN** cast, **THEN** four `damage_dealt{amount: 3}` in canonical order (board
+  3 plus hero, **WHEN** cast, **THEN** four `damage_dealt{dealt: 3}` in canonical order (board
   left to right, then hero).
 - [ ] AC-15 **GIVEN** row 8 (War hero power) with no weapon, **WHEN** used, **THEN**
   `weapon_equipped` (1/2 `war_whetstone_blade`) and `ops[0].values.branch == "else"`; **WHEN** used
@@ -1330,14 +1344,14 @@ refers to the C11 coverage table.
   casts a spell, **THEN** no draw (scope `by: owner`).
 - [ ] AC-23 **GIVEN** row 22 with 4 cards in hand, **WHEN** the owner's End step runs, **THEN**
   `effect_resolved{fizzled: condition_false}` and no damage; with 5 cards, **THEN** one
-  `damage_dealt{amount: 3}` on a random enemy character chosen with exactly one stream draw.
+  `damage_dealt{dealt: 3}` on a random enemy character chosen with exactly one stream draw.
 - [ ] AC-24 **GIVEN** row 34 and a single enemy minion at 1 health, **WHEN** the Start step runs,
   **THEN** `effect_resolved.ops` has two entries: the first `applied` (minion dies), the second
   `no_target`; the hero is never hit.
 - [ ] AC-25 **GIVEN** row 37 (boss passive "whenever the player heals, deal 1 to their hero") and
   a player minion "whenever you heal, gain +1/+1", **WHEN** the player heals, **THEN** the log
   reads `healed`, then the minion's `enchantment_applied`, then the passive's
-  `damage_dealt{amount: 1}` with `source_id` equal to the passive id — two
+  `damage_dealt{dealt: 1}` with `source_id` equal to the passive id — two
   `trigger_resolved{trigger: on_heal}` in that order (player-side observers before the boss
   hero-slot observer: `on_heal` has no hook, C2 / C9 / C6.3).
 
@@ -1371,7 +1385,7 @@ refers to the C11 coverage table.
   "minions cost 1 less" installed, **WHEN** the player reads a 3-cost minion's `effective_cost`,
   **THEN** 3 (fold: treasure first −1, passive +1); a 0-cost minion reads 0.
 - [ ] AC-34 **GIVEN** row 40 (treasure "spells deal 1 more"), **WHEN** row 18 is cast for 3 with 0
-  Spell Damage, **THEN** `damage_dealt.amount == 4`; **WHEN** row 44 (hero power) is used, **THEN**
+  Spell Damage, **THEN** `damage_dealt.dealt == 4`; **WHEN** row 44 (hero power) is used, **THEN**
   1 (scope `type: spell`).
 - [ ] AC-35 **GIVEN** row 43 (treasure "hero attacks twice"), **WHEN** the hero with a weapon
   attacks twice, **THEN** both accepted and the third is `CANNOT_ATTACK`.
@@ -1405,7 +1419,7 @@ refers to the C11 coverage table.
 **Hero powers, hosts and counters (added by the 2026-11-03 review)**
 
 - [ ] AC-43 **GIVEN** row 16 (Rot) used on an enemy 2/1, **WHEN** resolved, **THEN** the log reads
-  `damage_dealt{amount: 1}`, `minion_summoned{decay_husk}` at the rightmost friendly slot,
+  `damage_dealt{dealt: 1}`, `minion_summoned{decay_husk}` at the rightmost friendly slot,
   `effect_resolved` (`ops[1].outcome == applied`), then `minion_died` for the target — the Husk
   arrives before the target's Deathrattle resolves; **GIVEN** an enemy 2/3 instead, **THEN**
   damage only, no `minion_summoned`, `ops[1].outcome == skipped`; **GIVEN** a 1/1 with Divine
@@ -1420,7 +1434,7 @@ refers to the C11 coverage table.
   one death check, **THEN** exactly one `minion_summoned{decay_husk}` with `source_id` equal to
   the treasure id, its `trigger_resolved` **after** row 11's two, and no `E_FX_TRIGGER` at load.
 - [ ] AC-46 **GIVEN** row 45 after three minions (either side) died while it was in play, **WHEN**
-  it dies, **THEN** `damage_dealt{amount: 3}` on the enemy hero read from `counter.seen` in the
+  it dies, **THEN** `damage_dealt{dealt: 3}` on the enemy hero read from `counter.seen` in the
   raise-time snapshot; **GIVEN** the same minion bounced to hand and replayed, **THEN** its
   counter reads 0.
 

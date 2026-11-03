@@ -33,6 +33,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   (ADR-0002 now names `derive_targeting_spec`, this ADR's spelling). Dependencies
   ADR-0001 and ADR-0002 were Accepted first.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
+- **Erratum 2026-11-03 (DSL spike)** (`docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED; findings 3 and 9): (a) `resolve()` **returns the triggers it queues** — plain-data queue entries carrying the C6.5 raise-time snapshot — instead of `void`; the engine appends them to Q, so the queue stays engine-owned (Decision 1, Alternative 1 unchanged) and match-rules Interactions' `resolve(trigger_point, context) → steps` now agrees. Key Interfaces updated. (b) Gate G7 (Decision 9) gains the subscript forms `x["field"] = …`, `x["field"] += …` and `(x["enchantments"] as Array).append(…)` for the same field lists: the spike's stub engine held 7 such writes and the old pattern saw none of them. Two of the 7 (`pending_destroy`, a whole `enchantments` reassignment) are outside G7's field list in either form; typed state classes remain the stronger fix. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -224,7 +225,7 @@ nothing at runtime.**
    `targeting_spec` for the host (one derivation, two callers: the validator checks
    it, the resolver memoises it). The test stub is `func(_k, _id, _fx, _db, _configs): return []` (five parameters — stage 7b always passes five arguments, ADR-0002).
 9. **Grep gate G7** (CI): under `src/gameplay/effects/**`, zero hits for direct
-   state writes — `\.(board|hand|deck|graveyard|enchantments|keywords)\s*\.(append|erase|insert|remove_at|clear)\(|\.(damage_taken|base_attack|base_health|armor|mana_current|mana_max|frozen|silenced|attacks_used|durability|next_entity_id)\s*[+\-]?=` — and zero hits for `log\.append\(` and `RandomNumberGenerator`.
+   state writes — `\.(board|hand|deck|graveyard|enchantments|keywords)\s*\.(append|erase|insert|remove_at|clear)\(|\.(damage_taken|base_attack|base_health|armor|mana_current|mana_max|frozen|silenced|attacks_used|durability|next_entity_id)\s*[+\-]?=|\[\s*["'](board|hand|deck|graveyard|enchantments|keywords)["']\s*\](\s+as\s+Array\s*\))?\s*\.(append|erase|insert|remove_at|clear)\(|\[\s*["'](damage_taken|base_attack|base_health|armor|mana_current|mana_max|frozen|silenced|attacks_used|durability|next_entity_id)["']\s*\]\s*[+\-]?=([^=]|$)` (the last two alternatives, added 2026-11-03, are the subscript forms `x["field"] = …` / `(x["enchantments"] as Array).append(…)`; DSL spike finding 9) — and zero hits for `log\.append\(` and `RandomNumberGenerator`.
 
 ### Architecture Diagram
 
@@ -255,7 +256,7 @@ class_name EffectResolver extends RefCounted
 func _init(db: CardDatabase, effects_config: Dictionary) -> void
 func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void   # at RulesEngine.start, before on_match_start
 func unbind() -> void                                                      # at match_ended; breaks the engine↔resolver cycle
-func resolve(trigger_point: StringName, ctx: Dictionary) -> void           # ctx: {candidates: Array[int], subject, source, amount, side, ...}
+func resolve(trigger_point: StringName, ctx: Dictionary) -> Array[Dictionary]  # ctx: {candidates: Array[int], subject, source, amount, side, ...}; returns the triggers it queues (plain data with the C6.5 snapshot), which the engine appends to Q (erratum 2026-11-03)
 func legal_targets(def_id: String, source: Dictionary) -> Array[int]
 func targeting_spec(def_id: String) -> Dictionary                          # {mode: none|optional|required, filter}; memoised per def_id
 func recompute_auras() -> void                                             # called by the engine's C10 loop
@@ -456,7 +457,7 @@ passing `MatchState` in `ctx` (one signature change in `resolve`).
   (`weakref.get_ref() == null`).
 - `tools/content/validate.gd` exits non-zero on a planted `E_FX_BUDGET` card and
   zero on the MVP batch (content CN-6).
-- Gate G7 watched to fail on a planted `state.players["player"].board.append(...)`
+- Gate G7 watched to fail on a planted `state.players["player"].board.append(...)` and on a planted `target["damage_taken"] = 0` (subscript form, 2026-11-03)
   under `src/gameplay/effects/`.
 
 ## Verification / How We Know

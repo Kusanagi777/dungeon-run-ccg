@@ -553,7 +553,7 @@ Invariants callers respect: commands are validated before any mutation; `MatchSt
 class_name EffectResolver extends RefCounted
 func _init(db: CardDatabase, effects_config: Dictionary) -> void
 func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void   # C6.1 at RulesEngine.start
-func resolve(trigger_point: StringName, ctx: Dictionary) -> void           # queues or runs effects; one pass = one C10 step
+func resolve(trigger_point: StringName, ctx: Dictionary) -> Array[Dictionary]  # runs effects; returns the triggers it queues for the engine to append (ADR-0007 erratum 2026-11-03); one pass = one C10 step
 func legal_targets(def_id: String, source: Dictionary) -> Array[int]
 func targeting_spec(def_id: String) -> Dictionary                          # {mode: none|optional|required, filter}
 func recompute_auras() -> void
