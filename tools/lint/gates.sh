@@ -110,10 +110,12 @@ run_gate G2 --glob '!src/core/boot.gd' \
 
 # G2b — no coroutines in rules. Two scopes, one gate: bare `await` in gameplay
 # and core; under src/ai the look-around-free deny-list (ADR-0006 lets the
-# planner await its own coroutines).
+# planner await its own coroutines). Hit lines that are comments (`#`, `##`)
+# are dropped, as for G3: a doc comment saying "no `await`" is not a coroutine
+# (erratum 2026-11-03, found when match-rules 003-005 merged).
 if g2b_main="$(rg_hits --glob '!src/core/boot.gd' -e '\bawait\b' -- src/gameplay src/core)" \
 	&& g2b_ai="$(rg_hits -e '\bawait\b.*(get_tree|process_frame|physics_frame|create_timer|\.timeout|\.finished|tween|signal)' -- src/ai)"; then
-	report G2b "$(printf '%s\n%s' "$g2b_main" "$g2b_ai" | sed '/^$/d')"
+	report G2b "$(printf '%s\n%s' "$g2b_main" "$g2b_ai" | rg -v '^[^:]+:[0-9]+:\s*#' | sed '/^$/d')"
 else
 	echo "G2b: could not run" >&2
 	broken=1
