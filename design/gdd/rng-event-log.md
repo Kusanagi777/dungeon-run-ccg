@@ -12,6 +12,7 @@
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): F4 `weighted_pick` total bounded to the `randi_range` span (was 2^31−1 against a 65,536 span); rule 12a admits flagged diagnostic events (`command_rejected`, `ai_decision`) on the same log — answers match-rules' open question; rule 18 archives keyed by `run_id` (run-structure / meta-progression); rule 19 and AC-14 read Match Rules' actual `damage_dealt` fields (`source`, `dealt`); catalogue §D realigned to the owner GDDs' published names (`mulligan_resolved`, `weapon_destroyed`, `healed`, `enchantment_applied`, `trigger_resolved`; `treasure_granted` owner → Run Structure; Boss AI's four added types and `amount`); Card Effects draws directly (no per-effect fork); floor-retry edge case follows run-structure R8.3 (same streams at `draws = 0`, no `retry_<n>` fork); stale "not yet authored" dependency text removed; Tuning Knobs section added; AC-1/AC-3 made executable; Open Questions 2–3 closed.
 > **REVISED 2026-11-03 (cross-review)**: C-09 — catalogue `draft_offered` / `draft_picked` rows carry `flags[]` and `option_index` (DD-X05, reward-draft D11); `run_ended.result` is `victory/defeat/abandoned` with `abandon_reason` (run-structure R6); Interactions table lists `treasure_granted` under Run Structure, matching the catalogue. C-05 — Open Question 8 closed (Match Rules adopts the F4 stream API and stream handles). Verified already in place: `ai_intent_committed` and `amount` on `ai_intent_shown` (V-43), `treasure_granted` owner = Run Structure (V-19), rule 18 keyed by `run_id` (V-21).
 > **REVISED 2026-11-03 (re-review, `/design-review` lean)**: catalogue §D re-mirrored to the owner tables once more — `run_ended.abandon_reason` enum is Run Structure's (`player | data_version_mismatch | save_corrupt`, not `player/system`) and the row carries `floor_reached`, `ended_by`; `match_ended` row is the C14 `MatchResult` (`winner`, not `winner_side`; full `reason` enum incl. `event_cap`); `ai_intent_*` rows carry `effective_mode` (DD-X03, boss-ai C8.4); `discover_offered` / `discover_picked` carry Card Effects' `effect_id`, `kind`, label-key and `picked_index` fields; rows added for `deck_grew`, `run_warning` (Run Structure R10), `counter_changed` (Card Effects), `hook_install_skipped` (Treasures). Rule 13 states how `turn` is stamped (`set_turn(n)` by Match Rules); the `max_match_events` edge case names Match Rules as the emitter of the forced `match_ended`. Open Question 7 closed.
+> **REVISED 2026-11-03 (housekeeping)**: §D `match_summary.result` defined as match-rules C14 `win | loss | fault` with `winner` and `reason` added; `draft_offered.flags[]` enum re-mirrored to reward-draft D11 (`pity_forced | coverage_forced | universal_forced | universal_missing | reoffer | short`); F7 `run_total_events` reported in the run log summary (Run Structure R10), not `run_ended`; rule 12a states explicitly that the player's own `command_rejected` events are diagnostic (`payload.diagnostic = true`).
 
 ## Summary
 
@@ -108,8 +109,10 @@ boss AI is untestable.
 12. Every state mutation in Match Rules, Card Effects, Boss AI (intent only), Run Structure, Reward
     Draft and Treasures emits exactly one event (DD-T04), after the mutation is applied and before
     the next begins. A mutation emitting zero or two events is a rules bug.
-12a. **Diagnostic events.** An event that records no mutation — Match Rules' `command_rejected`,
-    Boss AI's `ai_decision`, `ai_plan_aborted`, `ai_fault` — is appended to the **same** log
+12a. **Diagnostic events.** An event that records no mutation — Match Rules' `command_rejected`
+    (the **player's** rejected commands included, per Match UI's request: match-ui U3 rule 4a
+    filters them from the feed and shows the shake/tooltip instead), Boss AI's `ai_decision`,
+    `ai_plan_aborted`, `ai_fault` — is appended to the **same** log
     with `payload.diagnostic = true`; there is no second channel. It takes the next `seq`, may be
     a `cause_seq` target, counts toward `max_match_events` and is compared by F6 (a rejected
     command is part of `commands[]`, and Boss AI is a pure function of state and stream, so both
@@ -174,8 +177,8 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `log_overflow` | this system | `cap, seq` |
 | `run_started` | Run Structure | `run_seed_hex, hero_id, data_version, log_schema_version, boss_ids[]` |
 | `run_floor_entered` | Run Structure | `floor, band, boss_id` |
-| `match_summary` | this system | `floor, result, turns, event_count, cards_played, damage_by_card{card_id: int}` |
-| `draft_offered` / `draft_picked` | Reward Draft | `floor, kind (bundle/treasure), option_ids[] (1–3, id-sorted), flags[] (short \| pity_forced \| universal_forced \| coverage)` / `floor, kind, picked_id, option_index, card_ids_added[]` (reward-draft D11, DD-X05: `Offer{option_ids[], flags[]}` on events; `offered_ids[]` only inside the persisted DraftRecord) |
+| `match_summary` | this system | `floor, result (win \| loss \| fault — match-rules C14 `MatchResult.result`), winner (PLAYER \| BOSS \| null on fault), reason (the C14 `MatchResult.reason` enum), turns, event_count, cards_played, damage_by_card{card_id: int}` |
+| `draft_offered` / `draft_picked` | Reward Draft | `floor, kind (bundle/treasure), option_ids[] (1–3, id-sorted), flags[] ⊆ {pity_forced \| coverage_forced \| universal_forced \| universal_missing \| reoffer \| short}` (reward-draft D11) / `floor, kind, picked_id, option_index, card_ids_added[]` (reward-draft D11, DD-X05: `Offer{option_ids[], flags[]}` on events; `offered_ids[]` only inside the persisted DraftRecord) |
 | `treasure_granted` | Run Structure | `floor, treasure_id` (the append is Run Structure's mutation, R5.4; offered by Reward Draft, applied by Treasures) |
 | `match_faulted` / `run_resumed` | Run Structure | `floor, attempt` / `floor, phase, attempt` |
 | `run_saved` | Run Structure | `floor, phase` (DD-R08) |
@@ -364,7 +367,7 @@ run_total_events = Σ_floors match.event_count + run_scope_events
 | log_memory_budget_bytes | int | 500,000 – 20,000,000 | data file (default 2,000,000) | In-memory budget for the open match log; the one tuning knob |
 | avg_event_bytes | int | 100 – 400 | constant (200, estimate) | Mean serialised event size; re-measure once real logs exist |
 | max_match_events | int | 2,500 – 100,000 | calculated (10,000 at defaults) | Hard cap; hit ⇒ `log_overflow` |
-| run_total_events | int | typical 3,000 – 20,000 | calculated | Reported in `run_ended` diagnostics; not capped |
+| run_total_events | int | typical 3,000 – 20,000 | calculated | Reported in the run log summary (Run Structure R10); not capped |
 
 **Output Range:** a 20-turn match emits 300 – 2,000 events (~60 – 400 KB); eight matches plus
 ~40 run events stay under 20,000. At the minimum budget the cap (2,500) still exceeds a typical

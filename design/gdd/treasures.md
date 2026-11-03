@@ -9,6 +9,7 @@
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned) · Pillar 4 (readable, deterministic rules)
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in session): T6 pool contract restated against the now-designed reward-draft.md (pool snapshot at `init_run`, exclusions derived from `drafts[]`, per-item rarity weights — `draft_state.offered_treasure_ids` no longer exists); T8 affinity tally corrected (10 universal / 4 war / 3 decay / 3 knowledge); Dependencies paragraph updated — every partner GDD now exists and bidirectionality was re-verified; R-8 closed (`treasures_balance.json` is already in DD-T01); AC-13 split into deterministic pre/post-R-5 forms; AC-14's "reference machine" replaced by a ratio; AC-17 tied to R-13; Open Questions gained the cross-GDD conflicts the review found (universal-tag detection, `unlock` field shape, unlock-state interface name, `once_per_turn` key for hosts without an `entity_id`, Run UI `synergy_tags`, Content CN-5 split) and R-14 now records that meta-progression M2.1 already accepts this GDD's four keys while its M10 table and the registry's `unlock_keys_v1` still list six placeholders.
 > **REVISED 2026-11-03 (cross-review)**: C-06 (T1 `unlock` is the `{key, condition}` object, DD-X01; R-17 resolved) · C-02 (Hollow Crown rides match-rules' new `crystal_bonus`: T8 row 1, T9 sketch, Edge Cases, AC-9, AC-15 reworded to `mana_added` / `crystal_gained`; R-1 resolved) · C-19 (States: `unlock_granted`, meta M3.6) · C-26 ("contract — to be confirmed" markers removed from Interactions, Dependencies, F4; `unlocked_keys()` read once at `init_run`; `w_rarity` per item; F2 clamp markers and `MAX_ATTACKS_CAP = 4`; R-2, R-3, R-4, R-5, R-6, R-7, R-9, R-10, R-11, R-13, R-14, R-16, R-19, R-20 and the `aura`-on-weapon row closed against card-effects / match-rules / card-database / rng / run-structure / meta / reward-draft / run-ui / content; AC-13 re-issued in its post-R-5 form, AC-17's R-13 clause settled) · C-30 (States "Passed" row cites `drafts[]`; systems-index row closed per V-29). D-01 and D-03 assign no change to this GDD (D-03 is a Content/Meta choice still open with the owner).
+> **REVISED 2026-11-03 (housekeeping)**: tray capacity is three chips (match-ui F6; ≤ 3 treasures per run, DD-R05) — Tuning Knobs `MAX_TREASURES_HELD` row and UI Requirements no longer say "≤ 4" / "fits 4"; T6 signature unified as `pool(unlocked_keys, exclude_ids)`; Dependencies paragraph's stale "undesigned / provisional" sentence dropped.
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `systems-designer` and `qa-lead` not consulted for Formulas / Acceptance Criteria — Lean mode, no Agent tool in this session; review manually before production. Technical feasibility: category `Gameplay`, rule-only → Scripting domain; no engine reference for `scripting` under `docs/engine-reference/godot/modules/`, so feasibility was **not** checked against the pinned engine (the design has no engine surface: plain `RefCounted` data, DD-T02). Prior art: `docs/architecture/modifier-hook-chain.md` (reverse-documented prototype, not an ADR).
 
 ## Summary
@@ -179,7 +180,7 @@ needs a `persist: true` flag on `add_counter` — an Open Question, not assumed.
 - **Membership predicate (this GDD owns it).** A treasure is *available* to a run when
   `unlock == null` or `unlock.key ∈ MetaProgression.unlocked_keys()` (meta-progression M1.3;
   `is_treasure_unlocked(id)` is its membership helper — R-18 resolved), and it is neither held
-  (`run_state.treasures[]`) nor previously offered this run. `Treasures.pool(is_unlocked, exclude_ids)
+  (`run_state.treasures[]`) nor previously offered this run. `Treasures.pool(unlocked_keys, exclude_ids)
   -> TreasureDef[]` implements the predicate over Card Database `treasure_pool()` and returns
   id-ascending order (CR-6) so a seeded draw is reproducible (DD-R09). It is a pure function.
 - **When it is evaluated (Reward Draft owns this).** Reward Draft snapshots the unlock-filtered pool
@@ -612,8 +613,7 @@ Effects, Match Rules, Run Structure, RNG & Event Log, Heroes and Boss AI name Tr
 Dependencies; Reward Draft lists Treasures upstream (data) and carries the T6 contract; Meta
 Progression lists Treasures as Mutual/Soft; Match UI and Run UI list Treasures as Soft (Run UI
 reads `TreasureDef` through Card Database only); Content lists Treasures as a soft concurrent
-dependency (CN-5). Match UI, Run UI and Card Effects still mark their rows "undesigned /
-provisional" — a wording update on their side, flagged for `/consistency-check`.
+dependency (CN-5).
 
 | System | Direction | Hard/Soft | Nature of Dependency |
 |--------|-----------|-----------|---------------------|
@@ -666,7 +666,7 @@ Structure), `HAND_SIZE`, `MAX_MANA`, `MAX_ATTACKS_CAP = 4` (Match Rules).
 | Plague Bell / Captured Standard Attack | 1 / 1 | 1–2 | 2 → Bell 6.0, Standard 8.0; out of band | — |
 | Focusing Prism bonus | 1 | 1–2 | 2 → 5.2, Rare | — |
 | Living Armory count | 1 | 1–2 | 2 → 8.0; out of band | — |
-| `MAX_TREASURES_HELD` (derived, not a knob) | 3 (MVP 2) | — | Set by `treasure_floors`; F5 and the tray width assume ≤ 4 | — |
+| `MAX_TREASURES_HELD` (derived, not a knob) | 3 (MVP 2) | — | Set by `treasure_floors`; F5 and the match-screen tray (three chips, match-ui F6; a run holds at most 3 treasures, DD-R05) assume ≤ 3 | — |
 
 ## Visual/Audio Requirements
 
@@ -737,7 +737,7 @@ situation didn't allow it".
 
 | Information | Display Location | Update Frequency | Condition |
 |-------------|-----------------|-----------------|-----------|
-| Held treasures as chips, **in pick order** (= installation order) | Run strip's treasure tray on the match screen (next to the player hero portrait) and on the pre-match boss intro | On `treasure_granted`; populated at match-screen open with no animation | Always when ≥ 1 held; tray fits 4 chips |
+| Held treasures as chips, **in pick order** (= installation order) | Run strip's treasure tray on the match screen (next to the player hero portrait) and on the pre-match boss intro | On `treasure_granted`; populated at match-screen open with no animation | Always when ≥ 1 held; tray has 3 chip slots (match-ui F6) |
 | Chip tooltip: name, rarity (colour + word), rules `text`, tags as small pills, "picked on floor f" | Hover / keyboard focus on a chip | Static per treasure | Any screen showing chips |
 | Treasure fired: feed line naming the treasure and the result ("Scholar's Candle: drew a card") | Event feed; chip flare | Per hook-hosted `effect_resolved` | Always; zero-effect firings (`healed 0`, `empty_pool`) shown as "… (no effect)" |
 | Discounted cost from `modify_cost` on hand cards and the hero-power button | Card cost gem / power button | Every F1 evaluation (Match UI reads `legal_commands()` / state) | While the discount applies |

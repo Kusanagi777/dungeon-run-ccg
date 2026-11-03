@@ -11,6 +11,7 @@
 > **Design decisions honoured**: DD-M01–DD-M13, DD-T02–DD-T04 (`design/design-decisions.md`). Numbers refined only in Tuning Knobs; owner rows unchanged.
 > **REVISED 2026-11-03** (lean design-review, verdict NEEDS REVISION → revised, now In Review): (1) `MatchConfig` aligned to Run Structure R3 — the engine receives the memoised `rng_match` / `rng_ai` streams and `boss.health`, and never seeds (C3, Dependencies, AC-01, AC-42); (2) `resolution_overflow` and the log's `event_cap` are now **fault** results (`result: fault`, no winner) per Run Structure T9 and RNG & Event Log, not boss wins (C10, C14, States, Edge Cases, AC-30); (3) five primitives requested by Card Effects / Heroes added (`remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`) with their events (Interactions, C15); (4) hook clamps requested by Treasures R-4/R-5 added (`modify_heal`, `modify_starting_hand_size`, `modify_max_attacks`, new `MAX_ATTACKS_CAP`); (5) hero health unified on `damage_taken` (C1, C9, F2); hero Windfury via weapon **or** enchantment made explicit (C1, F3); `clone()` carries hooks (C2); (6) F8 `k = 0.8` case corrected to n = 9; F2 output range corrected; (7) AC-18, AC-19, AC-30, AC-39, AC-40 rewritten — they were unsatisfiable or non-deterministic as written; (8) event envelope now `{seq, turn, type, payload, cause_seq}` (C15); (9) Open Questions updated (boss mulligan closed by Boss AI; `match_rules.json` now in DD-T01; event-name reconciliation added).
 > **REVISED 2026-11-03 (cross-review)**: C-02 / S-02 (`crystal_bonus` — permanent `add_mana` at `on_match_start` for Hollow Crown: C1, C4 Start step 2, C5, F4, AC-06); C-04 (no stored `targeting` field — Card Effects derives `targeting_spec(def_id)`: Interactions, Dependencies, Cross-References); C-05 (RNG stream handle API per rng-event-log F4: Interactions, Cross-References); C-16 (Card Effects' three questions answered in C4: `until_end_of_turn` expiry covers card instances in hand/deck, expires at the recipient's controller's End step; observer candidate order is player side first everywhere); C-18 (`MAX_ATTACKS_CAP` rationale aligned to Treasures F3); C-07 / DD-X04 (C15 spelling authoritative; OQ closed); C-30 (OQs on DD-M11 and rng rule 12a closed; 12a cited in C15).
+> **REVISED 2026-11-03 (housekeeping)**: C5 defines `add_mana(side, n, temporary=true)` (temporary crystals, expire at the End step; "not used by v1 content" removed — Content's `decay_soul_tithe` / `neutral_treasure_map` use it) with new AC-45; Dependencies sentence about systems-index rows deleted; States `turn > TURN_CAP` row applies at `*Turn.Start` (both sides); AC-02 boss health → `MatchConfig.boss.health`; F3 `attacks_used` range → `0–MAX_ATTACKS_CAP`; Dependencies `match` stream → `match_<floor>`; Open Question added on defender-hero weapon damage (C8 step 4 unchanged).
 
 ## Summary
 
@@ -247,8 +248,15 @@ There is no action limit and no timer.
   crystal destruction in v1. `add_mana(side, n, temporary=false)` at `on_match_start` (hook table)
   raises that side's `crystal_bonus` permanently (Treasures R-1, Hollow Crown) — the Start step
   then reads it every turn (C4 step 2, F4), emitting `mana_added {side, n, temporary: false}` at
-  the hook and `crystal_gained` at each Start step where `mana_max` rose; temporary gain
-  (`temporary=true`) is not used by v1 content. Both clamp to `MAX_MANA`.
+  the hook and `crystal_gained` at each Start step where `mana_max` rose. Temporary gain
+  (`add_mana(side, n, temporary=true)`, the card-effects C5 `mana` op with `duration: this_turn`
+  — Content's `decay_soul_tithe` and `neutral_treasure_map`) grants `n` **temporary crystals**
+  that last until the end of the current turn: `mana_max` and `mana_current` both rise by `n`,
+  clamped to `MAX_MANA`, and `mana_added {side, n, temporary: true}` is emitted. The temporary
+  crystals expire at that side's End step (C4 End step 5, alongside `end_of_turn` enchantments):
+  `mana_max` drops back by the temporary amount and `mana_current` is reduced by the same amount,
+  floored at 0; the next Start step refill (C4 step 2, F4) ignores them. Both forms clamp to
+  `MAX_MANA`.
 - The hero power's cost is `HERO_POWER_COST` (2, DD-M13) and goes through the same F1 pipeline.
 
 #### C6. Playing cards
@@ -565,7 +573,7 @@ handler calling `submit` from inside an event callback) is rejected rather than 
 | `Mulligan` | `concede` | — | `Ended` | `match_ended(reason=concede)` |
 | `PlayerTurn.Start` | Start step done | no hero ≤ 0, `turn ≤ TURN_CAP` | `PlayerTurn.Main` | `phase_changed` |
 | `PlayerTurn.Start` | Start step done | a hero ≤ 0 | `Ended` | `match_ended` |
-| `PlayerTurn.Start` | Start step begins | `turn > TURN_CAP` | `Ended` | `match_ended(reason=turn_cap)` |
+| `*Turn.Start` (either side) | Start step begins | `turn > TURN_CAP` | `Ended` | `match_ended(reason=turn_cap)` |
 | `*Turn.Main` | any accepted command | — | `Resolving` | (events of the command) |
 | `Resolving` | loop stable | no hero ≤ 0 | the originating `Main` / `Start` / `End` | `phase_changed` only if the phase differs |
 | `Resolving` | loop stable | a hero ≤ 0 | `Ended` | `match_ended` |
@@ -732,7 +740,7 @@ where taunters(side) = { m ∈ side.board : m.taunt ∧ ¬m.stealth }
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | A.attack | int | 0–99 | calculated | Derived attack (C1); hero = weapon + buffs |
-| attacks_used | int | 0–2 | state | Attacks this turn, reset at Start |
+| attacks_used | int | 0–`MAX_ATTACKS_CAP` | state | Attacks this turn, reset at Start |
 | max_attacks | int | 0–`MAX_ATTACKS_CAP` (4) | calculated | 2 with Windfury (minion keyword, hero enchantment or hero's weapon), else 1; hooks may change it within the clamp |
 | taunters | set | 0–7 entries | calculated | Enemy Taunt minions without Stealth |
 
@@ -969,14 +977,12 @@ names the exact outcome; "the engine decides" is not an answer here.
 
 Hard = the engine cannot run a match without it; soft = the engine runs with a null
 implementation. Bidirectionality: every sibling GDD below names Match Rules in its own
-Dependencies section (verified 2026-11-03). The systems index lists Card Effects, Boss AI, Run
-Structure and Match UI as depending on Match Rules but **not** Heroes, Treasures or Content —
-their index rows should be corrected to match their GDDs.
+Dependencies section (verified 2026-11-03).
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
 | Card Database | This depends on Card Database | Hard | Reads card, hero, boss and weapon records by `def_id`: `cost`, `type`, `attack`, `health`, `durability`, `keywords[]`, `effects[]` (opaque to this GDD). Targeting is **not** a stored field: Card Effects derives `targeting_spec(def_id) → {mode: none\|optional\|required, filter}` from the effect's `chosen` selector (card-effects C1 rule 1) and this GDD calls it during C6 validation. Never parses JSON itself (DD-T01). |
-| RNG & Event Log | This depends on RNG & Event Log | Hard | `match` stream for every shuffle and random pick (DD-T03); `log.append` for every event in C15 (DD-T04); `seq` numbering is the log's. Tests inject a fixed seed through it. |
+| RNG & Event Log | This depends on RNG & Event Log | Hard | `match_<floor>` stream for every shuffle and random pick (DD-T03); `log.append` for every event in C15 (DD-T04); `seq` numbering is the log's. Tests inject a fixed seed through it. |
 | Card Effects | Card Effects depends on this | Hard (for them) | They implement the resolver behind the trigger points and call only the primitive API (Interactions). They never touch `MatchState` fields directly. Provisional: the resolver returns steps synchronously, or raises exactly one `ChoiceRequest` per Discover. |
 | Boss AI | Boss AI depends on this | Hard (for them) | Consumes `legal_commands()`, `MatchState.clone()`, `submit()`, `ChoiceRequest`; receives typed rejections. Provisional: AI never relies on state outside `MatchState`. |
 | Run Structure | Mutual | Hard | In: `MatchConfig` (C3) with the memoised `rng_match` / `rng_ai` streams, the log and `boss.health` — Run Structure owns the record shape (its R3). Out: `MatchResult` (C14) with `result: win \| loss \| fault`; a fault returns the run to `pre_match` (its T9). Run Structure owns save/resume **between** matches; an in-progress match is not saved in v1 (Open Questions). |
@@ -1157,7 +1163,7 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
   no RNG call outside `rng_match` (the service's other streams report `draws = 0`).
 - [ ] AC-02 **GIVEN** setup complete, **WHEN** `mulligan_offered` is emitted, **THEN** the player
   hand has 3 cards, the boss hand has 4, both heroes have `mana 0/0`, player health 30, boss
-  health equal to its definition.
+  health equal to `MatchConfig.boss.health`.
 - [ ] AC-03 **GIVEN** the Mulligan phase, **WHEN** `mulligan([true, false, false])` is accepted,
   **THEN** the deck size is unchanged, the hand has 3 cards, card 0 is the same instance, and the
   returned instances are somewhere in the deck.
@@ -1308,6 +1314,13 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 - [ ] AC-44 **GIVEN** a `modify_heal` hook returning −3 and a `modify_starting_hand_size` hook
   returning 14, **WHEN** a 2-point heal and a match start resolve, **THEN** `healed {amount: 0}`
   is emitted (never damage) and the starting hand is exactly `HAND_SIZE` with no `card_burned`.
+- [ ] AC-45 **GIVEN** player Main on turn 3 with mana 1/3, **WHEN** an effect calls
+  `add_mana(PLAYER, 2, temporary=true)` (C5), **THEN** `mana_added {side: PLAYER, n: 2,
+  temporary: true}` is emitted and the player reads 3/5; **WHEN** the player's End step runs,
+  **THEN** the player reads `mana_max 3` and `mana_current ≤ 3` before `turn_ended`, no
+  `crystal_gained` was emitted, and the next player Start step refills to 4/4 (F4, no
+  `crystal_bonus` change); **GIVEN** mana 9/10, **WHEN** `add_mana(PLAYER, 2, temporary=true)`
+  resolves, **THEN** the player reads 10/10 (clamped to `MAX_MANA`).
 
 ## Open Questions
 
@@ -1320,5 +1333,6 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 | Save/resume **mid-match**: DD-R08 saves after matches and drafts only; a crash mid-match loses the match. Acceptable for v1? If not, the event log is the replay source and the engine needs `restore(log)`. | Run Structure GDD | Vertical Slice | Open |
 | Queued triggers resolve even if their source left play (C10) — confirm this reading over Hearthstone's partial rules; it is simpler and is what the acceptance tests assert. | Owner | Before Card Effects design-review | Open — proposed here |
 | Should `command_rejected` be written to the same log (flagged diagnostic) or a separate channel? Affects RNG & Event Log's replay purity. | RNG & Event Log GDD | Before `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: same log, `payload.diagnostic = true` (rng-event-log rule 12a; cited in C15) |
-| Temporary mana / Overload: excluded from v1; Knowledge's set may want "gain 1 mana crystal this turn only". | Heroes / Content | Alpha content pass | Deferred |
+| Temporary mana / Overload: excluded from v1; Knowledge's set may want "gain 1 mana crystal this turn only". | Heroes / Content | Alpha content pass | **Partly resolved 2026-11-03 (housekeeping)** — temporary mana is defined in C5 (`add_mana(side, n, temporary=true)`, AC-45) for Content's `decay_soul_tithe` / `neutral_treasure_map`; Overload remains excluded |
+| C8 step 4: a **defending hero** holding a weapon deals `D.attack` (weapon attack) back to the attacker. Hearthstone's rule is 0 for a defending hero. Owner to confirm the intended reading; if Hearthstone's rule is adopted, C8 step 4, F3 and AC-19 change here and Boss AI F3 trade quality follows. | Owner | Before Card Effects / Boss AI implementation stories | Open — raised by the 2026-11-03 housekeeping pass; C8 left as written |
 | Mega-Windfury, Elusive/spell immunity, Immune, Reborn: not in DD-M09; any card needing them is a GDD change here. | Content | Alpha content pass | Deferred |

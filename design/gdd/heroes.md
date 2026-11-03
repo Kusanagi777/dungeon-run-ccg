@@ -11,6 +11,7 @@
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place): H-3 DSL sketches rewritten in card-effects v1 vocabulary (Whetstone, Rot, Insight — card-effects C11 rows 8, 16, 25 were rewritten to these powers the same day: `is_dying` for Rot, `buff cost` on `deck_top` then `draw` for Insight) and Rot's resolution order corrected to card-effects C6.0 / match-rules C10 (one effect = one step; death check after it — the Husk arrives before the Deathrattle, and a full board is not freed mid-effect). H-4 `war_quartermaster` and H-5 `war_cleave_through` texts updated to Content's v1 redesigns. F2 example and H-4 plan-card counts corrected (Decay scores 5, not 6). AC-4 fixture corrected (3 weapons, not 1). Rejection codes aligned with their owners (`NOT_ENOUGH_MANA`, `E_HERO_LOCKED`). AC-1 scoped by content batch (DD-H06: War only at MVP). AC-9/10/11/18 rewritten. Open Questions 1, 3, 4, 7 resolved from sibling GDDs; two new rows added (first-run-forces-War ownership; Content's `armour` tag on `war_iron_vanguard`).
 > **REVISED 2026-11-03 (re-review)**: `/design-review` lean re-review after the cross-review fixes — C-03, C-11 / DD-X02 and C-30 verified applied; two Acceptance Criteria corrected in place: AC-10 asserted the Husk at board index 1 after the dead minion's slot closed (match-rules C10's dense board puts it at index 0), and AC-16 required all three launch heroes selectable on a fresh profile, which contradicts AC-1's batch scoping (War only at MVP-0, DD-H06). No rule, formula or value changed.
 > **REVISED 2026-11-03 (cross-review)**: C-03 option B (`PLAN_MAX` 6 → 7 in F2 and Tuning Knobs; F2 output War 7; AC-3; H-4 note; OQ resolved — Content keeps the `armour` tag), C-11 / DD-X02 (no forced first hero: H-2, Interactions and Dependencies rows for Run Structure, OQ resolved), C-30 housekeeping (OQ rows on `refresh_hero_power` — now in the match-rules API — and `HeroDef.unlock` in CR-3 marked resolved; Edge Cases and H-7 wording aligned).
+> **REVISED 2026-11-03 (housekeeping)**: AC-9 asserts `ops[1].outcome == applied` (card-effects AC-43 form) instead of `values.branch == "then"`; H-4 `war_quartermaster` note no longer calls `weapon_durability` a v2 op (card-effects moved it to v1, C-22) — the conditional-draw redesign is kept; Edge Cases `W_HERO_HEALTH` kept and now listed in Content CN-6 step 3's validator warning codes.
 
 ## Summary
 
@@ -186,7 +187,9 @@ scores War 7 — within `PLAN_MAX` 7 (cross-review C-03, option B). Each
 starter contains exactly one card that interacts with the hero power's output (Quartermaster with
 the Whetstone Blade; Culling with a Husk; Candle Acolyte with Frost Lance) so the power is taught
 by turn 3. `war_quartermaster` was "Give your weapon +1 Durability" until Content's v1 redesign
-(2026-11-03): `weapon_durability` is a v2 op (card-effects C11), so it is a conditional draw.
+(2026-11-03) made it a conditional draw; the redesign stands on its own merits (it teaches the
+power by turn 3) even though card-effects has since moved `weapon_durability` to v1 (C5,
+cross-review C-22 — the op is available, the card simply no longer needs it).
 
 **H-5 — Card set identity (~25 cards per set, DD-H03).** The set is what Reward Draft can offer
 this hero beyond neutrals (`collectible_pool(hero_set)`, `bundle_pool(hero_set)`); it is where the
@@ -557,7 +560,8 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
   `weapon_destroyed`; weapon attack = 3 until the End step, 2 afterwards (`enchantment_removed`).
 - [ ] AC-9 **GIVEN** Decay and an enemy 2/1, **WHEN** Rot targets it, **THEN** the events are
   `damage_dealt(1)`, `minion_summoned(decay_husk)` on the player side at the rightmost slot,
-  `effect_resolved` with `ops[1].values.branch == "then"`, then `minion_died` — in that order;
+  `effect_resolved` with `ops[1].outcome == applied` (card-effects AC-43 form), then
+  `minion_died` — in that order;
   **GIVEN** an enemy 2/3 instead, **THEN** it has `damage_taken 1`, `ops[1].outcome == skipped`
   and no `minion_summoned`.
 - [ ] AC-10 **GIVEN** Decay and a friendly 1/1 with "Deathrattle: draw a card", **WHEN** Rot

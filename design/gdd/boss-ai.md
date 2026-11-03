@@ -13,6 +13,8 @@
 
 > **REVISED 2026-11-03 (cross-review)**: C-01 (DD-X03 — `effective_mode = min(intent_mode, telegraph_mode)` in C8.4; Meta Progression added to Interactions, Dependencies, Tuning Knobs, Cross-References; A19 extended), C-14 (one parent `ai_<floor>` draw per new fork label — C9, A3, A5), C-15 (`ai_profiles.json` is loaded by Card Database, read via `config("ai_profiles")` — Interactions, Dependencies), C-30 (intent events are catalogued in rng §D; diagnostics cite rule 12a — C9, Interactions, Dependencies, Cross-References, Open Questions), D-04 (boss `intent_mode` capped at `class_only`; `hidden` is reserved for a boss whose passive text announces concealment and recorded in Content B2 — C8.4, F9, UI Requirements, A19), D-07 (harness win-rate basis = `target_win_rate_by_floor` — Open Questions, C11).
 
+> **REVISED 2026-11-03 (housekeeping)**: Edge Case "`ai_profiles.json` absent" reworded — Card Database CR-1 fails the load with `E_MISSING_FILE`; the headless-test fallback is an injected stub profile, not a runtime default; C8.1 forecast mana `mana_max + 1` → `mana_max_by_turn(t_side + 1)` (includes `crystal_bonus`).
+
 ## Summary
 
 Boss AI is the opponent that pilots every boss deck: each boss turn it lists the legal moves,
@@ -203,8 +205,9 @@ consume no RNG. The decision is logged as an `ai_decision` with `kind = choice`.
 #### C8. Telegraphing — the intent is the plan
 
 1. **Forecast.** When `PlayerTurn.Main` begins, the driver calls `forecast(engine)`: the AI runs
-   the planner on a clone **as if** it were its own turn with next turn's mana (`mana_max + 1`,
-   F4 of Match Rules) and its current hand, using `ai_stream.fork("forecast_<turn>")`, and emits
+   the planner on a clone **as if** it were its own turn with next turn's mana
+   (`mana_max_by_turn(t_side + 1)` = `min(t_side + 1 + crystal_bonus, MAX_MANA)`, F4 of Match
+   Rules, so a boss `crystal_bonus` is forecast too) and its current hand, using `ai_stream.fork("forecast_<turn>")`, and emits
    `ai_intent_shown {boss_id, intent_key, target_id, amount, effective_mode}` describing the plan's **dominant
    action** — the first lethal step if lethal is proven, else the highest-scoring action class.
 2. **Commit.** When `BossTurn.Main` begins the AI plans for real and emits
@@ -271,8 +274,9 @@ consume no RNG. The decision is logged as an `ai_decision` with `kind = choice`.
 boss_override` (later wins, shallow per section). Boss AI supplies the `ai_profile` validator
 that Card Database injects at CR-5 stage 7: unknown key → `E_AI_PROFILE_UNKNOWN`; a weight
 outside its Tuning Knobs range or non-finite → `E_AI_WEIGHT_RANGE`; unknown field →
-`E_AI_UNKNOWN_FIELD`; missing file → `E_AI_PROFILES_MISSING`. Any error falls back to `default`
-at runtime so a match still runs in release; CI treats every `E_AI_*` as a failure.
+`E_AI_UNKNOWN_FIELD`; a missing file is Card Database CR-1's `E_MISSING_FILE` (the load fails;
+no runtime default — Edge Cases). Any `E_AI_*` error falls back to `default` at runtime so a
+match still runs in release; CI treats every `E_AI_*` as a failure.
 
 #### C11. Boss mulligan and simulation harness
 
@@ -599,9 +603,12 @@ budget), `off`.
   overlay; the intent banner still works. Debug/CI builds fail the load.
 - **If a profile weight is outside its range or non-finite**: `E_AI_WEIGHT_RANGE`; that single
   weight is clamped to its safe range at runtime (never silently zeroed) and the error is logged.
-- **If `ai_profiles.json` is absent**: `E_AI_PROFILES_MISSING`; a built-in copy of the `default`
-  profile embedded in the loader is used so headless tests still run; release builds ship the
-  file, so this is a CI condition.
+- **If `ai_profiles.json` is absent**: Card Database CR-1 fails the whole load with
+  `E_MISSING_FILE` naming the file — there is no runtime default and the match never starts
+  (card-database Edge Cases: "no built-in defaults path"). Headless tests that need an AI without
+  the data file **inject a stub profile** (a `default`-shaped dictionary passed to the planner's
+  constructor, C1), the same way they inject a seed; the stub never ships in the loader. Release
+  builds ship the file, so a missing file is a CI condition.
 - **If an op type appears in a card that has no `op_values` row**: valued 1.0, `E_AI_OP_UNVALUED`
   logged once per op type per load.
 - **If the sandbox simulation itself raises `resolution_overflow`**: that candidate scores

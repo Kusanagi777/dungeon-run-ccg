@@ -11,6 +11,7 @@
 > **Decision register rows honoured**: DD-R01–R09, DD-H06, DD-M02, DD-M12, DD-T01–T04.
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): (1) Reward Draft contract reconciled to reward-draft.md D1/D3/D8/D9 — `init_run` at R2 step 5 and on a schema-less resume (R8.2), `offer → Offer{option_ids[], flags[]}`, `pick(kind, id, offer, run_state) → Pick`, `draft_state = {schema_version, treasure_pool[]}`, empty offer ⇒ step skipped with `DraftRecord{picked_id: null}` (R5.7, T19/T20), invariants count non-null picks; (2) Treasures contract reconciled to treasures.md T4/T5 — `treasure_state = {schema_version, by_treasure{}}`, `collect_state` called in R4 before S2; (3) R6 abandon accounting fixed — an abandon from `post_match_reward` credits the won floor and every abandon sets `floor_reached` (Meta Progression F3 reads it); (4) Meta Progression contract marked confirmed (`archive_run` return value, `E_READONLY`, loss accounting, custom-seed exclusion); (5) stale "partner GDD does not exist" text, `*(planned)*` cross-references and two resolved Open Questions updated; AC-2 made assertable, AC-32–35 added. Cross-GDD items left open are listed in `design/gdd/reviews/run-structure-review-log.md`.
 > **REVISED 2026-11-03 (cross-review)**: C-11 / DD-X02 (no first-run hero rule; Heroes and Run UI naming closed), C-12 (`suspend` command: Core Rules, States T21, R8.7, Interactions, Dependencies, Edge Cases, AC-36), C-17 (Run Structure owns the match-driver interface — Interactions / Dependencies Boss AI rows), C-30 housekeeping (Open Questions on `MatchConfig.seed`, catalogue owner / `defeat`, `BossDef.tags`, rule 18, treasures T6 marked resolved). DD-X05 verified already applied (R5.3 `Offer{option_ids[], flags[]}`; `offered_ids` only in the persisted DraftRecord).
+> **REVISED 2026-11-03 (housekeeping)**: MVP boss pool is 5 bosses split 3/1/1 (DD-H06, cross-review D-06) — F2 table, Interactions and Dependencies Content rows updated and the Open Question marked resolved; R3's stale `MatchConfig.seed` paragraph deleted (OQ already resolved); stale "to be confirmed" (R5), "not in CR-3" (F2) and "index omits Meta Progression" (Dependencies) markers removed.
 
 ## Summary
 
@@ -161,9 +162,6 @@ unknown version is repaired on resume, R8.2, not rejected); every id resolves in
    }
    ```
 
-   Match Rules C3 names a `seed` field here; per RNG & Event Log rule 3 (streams are owned and
-   memoised) the run passes the stream objects instead. Field name flagged for
-   `/consistency-check`; Match Rules settles it.
 3. `in_match` is never saved (DD-R08). A quit during a match leaves the S1/S4 save at
    `pre_match` for this floor (R8).
 
@@ -197,7 +195,8 @@ match-start snapshot with no special code. Then:
    leaves the bigger decision to be made around a smaller one. It also fixes the draw order on
    `draft_<floor>`: Reward Draft draws treasure offers before bundle offers, so a resume between
    the two picks regenerates the same bundle offers from the restored stream position
-   (**contract — to be confirmed in reward-draft.md**). Alternative rejected: bundle first, so a
+   (contract confirmed — reward-draft.md Cross-References "treasure-before-bundle", AC-1).
+   Alternative rejected: bundle first, so a
    treasure can complement the new cards — weaker, because 3 cards out of 18–36 shift the deck
    less than one treasure shifts the rules.
 3. `reward_step` is `treasure` on a treasure floor, else `bundle`. **After** the S2 (or S3)
@@ -426,7 +425,7 @@ reconciles anything still marked open.
 | **Meta Progression / Persistence** | downstream (record) and upstream (unlock check, storage) | `is_hero_unlocked(id)`, `load_active_run()`, `save_active_run()` result codes (`OK | E_IO | E_READONLY`), `archive_run → {ok, unlocks_granted[]}` | `RunRecord` dict at every save point and `archive_run(record)` at run end; `seed_source`, `abandon_reason`, `result.floor_reached` for statistics | **Confirmed by meta-progression.md M1, M7, M8, F3**: Meta owns file format, path, atomic write, `log_schema_version` migration; `abandoned/player` folds as a loss when `abandon_counts_as_loss` (read from this system's data file); system abandons are void; custom-seed runs count for unlocks but not personal bests (R9); `archive_run` is idempotent on `run_id`; it never mutates a record |
 | **Run UI** | downstream | Commands (seven): `new_run`, `begin_match`, `draft_pick`, `abandon`, `resume`, `suspend`, `return_to_menu` | The run-scope event stream; `RunState` read model (floor, band, boss intro data, progress strip, summary data, `run_seed_hex`); rejection codes | This GDD; UI is display-only (`src/ui/**`) |
 | **Boss AI** | indirect | — | `ai_id` and `rng_ai` inside `MatchConfig` | Run Structure owns the match driver interface (`begin_match` constructs the engine, the `BossAI(ai_id, rng_ai, config("ai_profiles"))` and the driver that calls `forecast` / `play_turn` / `choose` at the Match Rules phase transitions); the driver is rules-side code (DD-T02), wrapped but not owned by Match UI's `MatchController` (cross-review C-17) |
-| **Content** | soft | Pool sizes per band (6/6/4 target, DD-R02; 2/1/1 MVP) | `run_warning{boss_pool_short}` when a band is short | Content authors bosses; this GDD degrades gracefully |
+| **Content** | soft | Pool sizes per band (6/6/4 target, DD-R02; 3/1/1 MVP, DD-H06) | `run_warning{boss_pool_short}` when a band is short | Content authors bosses; this GDD degrades gracefully |
 
 ## Formulas
 
@@ -471,10 +470,10 @@ draw-free, so turning the knob on or off does not change the band draws.
 **Variables:**
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
-| pool_b | BossDef[] | 0 – 20 per band | Card Database `bosses_in_band(b)` | Available bosses; 6/6/4 at v1, 2/1/1 at MVP |
+| pool_b | BossDef[] | 0 – 20 per band | Card Database `bosses_in_band(b)` | Available bosses; 6/6/4 at v1, 3/1/1 at MVP (5 bosses, DD-H06) |
 | s_b | int | 1 – 6 | data file (`band_split`) | Floors in band b |
 | run | stream | — | RNG & Event Log `stream("run")` | The only stream used; draw order fixed as above |
-| no_adjacent_shared_theme | bool | — | data file (default `false`) | Requires `BossDef.tags[]`, not in Card Database CR-3 today (Open Questions) |
+| no_adjacent_shared_theme | bool | — | data file (default `false`) | Requires `BossDef.tags[]` (Card Database CR-3); inert until Content tags bosses |
 
 **Output Range:** `F` boss ids; distinct whenever `len(pool_b) ≥ s_b` for every band (DD-R02);
 repeats, flagged by `run_warning{boss_pool_short, band, needed, available}`, only when a band
@@ -703,9 +702,7 @@ lists Reward Draft, Treasures, Meta Progression and Run UI as depending on Run S
 below) — consistent. Match Rules (its Dependencies) and RNG & Event Log (its Dependencies) and
 Card Database (its Dependencies) each already name Run Structure — consistent. Heroes, Reward
 Draft, Treasures, Meta Progression and Run UI each name Run Structure in their Dependencies
-(checked 2026-11-03) — consistent. The index omits Meta Progression from this system's
-dependency column although `is_hero_unlocked` and the persistence API make it a mutual
-dependency (R7); flagged for the index.
+(checked 2026-11-03) — consistent.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
@@ -718,7 +715,7 @@ dependency (R7); flagged for the index.
 | Meta Progression / Persistence | Mutual | Soft for starting a run (MVP: `is_hero_unlocked` is always true, saves may be in-memory); Hard for DD-R08 | Receives `RunRecord` at S1–S5 and `archive_run` at run end; owns file format, path, atomic write, migrations; answers `is_hero_unlocked`. **Contract confirmed** (R7): `abandoned/player` counts as a loss (M7), `seed_source = custom` is excluded from personal bests but counts for unlocks (M3.4). |
 | Run UI | Run UI depends on this | Soft (the machine runs headless in tests) | Issues the seven commands (incl. `suspend`, T21); renders hero select, boss intro, progress strip, draft picker (with Reward Draft), summaries from the read model and the run-scope events. |
 | Boss AI | Indirect | Soft | Receives `ai_id` and `rng_ai` through `MatchConfig`; the run's match driver (owned here, Interactions row Boss AI, C-17) constructs `BossAI` at `begin_match` and calls `forecast` / `play_turn` / `choose` at Match Rules' phase transitions; no run-scope interface. |
-| Content | Content depends on this | Soft | Pool sizes per band must cover `band_split` (6/6/4 ≥ 3/3/2; MVP 2/1/1 ≥ 2/1/1 exactly — no slack, see Open Questions); `target_win_rate_by_floor` is Content's tuning target. |
+| Content | Content depends on this | Soft | Pool sizes per band must cover `band_split` (6/6/4 ≥ 3/3/2; MVP 3/1/1 ≥ 2/1/1 — one spare band-1 boss, DD-H06); `target_win_rate_by_floor` is Content's tuning target. |
 
 ## Tuning Knobs
 
@@ -970,7 +967,7 @@ fixture hero `hero_war` with a 15-card starter deck, and stub Match Rules with a
 | `no_adjacent_shared_theme` needs `BossDef.tags[]` (`^[a-z_]+$`, may be `[]`), not in Card Database CR-3. Add the field or drop the knob. | Card Database GDD / Content | Alpha content pass | **Resolved 2026-11-03 — cross-review C-30**: Card Database CR-3 now carries `BossDef.tags`; the knob stays inert until Content tags bosses |
 | Mid-match restore from the event log (`restore(log)`) so a crash does not restart the match — currently restart with the same streams (R8.3). | Run Structure + Match Rules | Vertical Slice | Deferred; accepted for MVP |
 | RNG & Event Log rule 18 keys archived match logs by `run_seed_hex` alone; a replayed seed would overwrite them. Suggest `<run_seed_hex>-<started_at>` (= `run_id`). | RNG & Event Log GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: rng-event-log rule 18 now keys the folder by `run_id` |
-| MVP boss pool 2/1/1 equals `band_split [2, 1, 1]` exactly: every MVP run has the same four bosses, only band-1 order varies. Acceptable for the MVP hypothesis, or author one spare band-1 boss? | Owner / Content | MVP content plan | Open |
+| MVP boss pool 2/1/1 equals `band_split [2, 1, 1]` exactly: every MVP run has the same four bosses, only band-1 order varies. Acceptable for the MVP hypothesis, or author one spare band-1 boss? | Owner / Content | MVP content plan | **Resolved 2026-11-03 — DD-H06 / cross-review D-06**: the MVP pool is 5 bosses split 3/1/1, so band 1 draws 2 of 3 and MVP runs vary (F2, Dependencies) |
 | Should `abandoned / player` count as a loss (this GDD: yes) and should `seed_source = custom` runs be excluded from personal bests (this GDD: yes, unlocks still count)? | Meta Progression GDD | `/design-system meta-progression` | **Confirmed** (meta-progression.md M3.4, M7.2, M7.4) |
 | Does any v1 treasure need cross-match state (`treasure_state`)? If none, drop the field before implementation. | Treasures GDD | `/design-system treasures` | **Answered** (treasures.md T4): none in v1; the field and the `collect_state` call stay as the schema-versioned hook (`by_treasure` is always `{}` in v1). **Resolved 2026-11-03 — cross-review C-30**: treasures.md T6 now marks `draft_state.offered_treasure_ids[]` superseded (exclusion derives from `drafts[]`, reward-draft D7); its States row is treasures' own housekeeping |
 | `target_win_rate_by_floor` is an analysis knob living in a gameplay data file; move to a `balance/` config if `/balance-check` prefers. | systems-designer | First balance pass | Open |
