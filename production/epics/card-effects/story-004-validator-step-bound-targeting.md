@@ -94,3 +94,16 @@ checks scope against it.*
 
 - Depends on: `production/epics/card-effects/story-003-validator-schema-codes.md`, `production/epics/card-effects/story-002-runtime-binding-config.md` (resolver memo). Cross-epic: `production/epics/match-rules/` (`legal_commands()` calling `targeting_spec(def_id)`; `HAND_SIZE` in `match_rules.json`).
 - Unlocks: `production/epics/card-effects/story-005-fixture-set-database-injection.md`, `production/epics/card-effects/story-006-play-triggers-one-pass.md`
+
+> **Blocker (2026-11-03, sprint-3 lane `lane/s3-card-effects-002-005`, checked 23:15 UTC):**
+> not started. In-epic dependencies are met (story 003 Complete; story 002 Complete in
+> commit `e1c58eb` on that lane). The cross-epic one is not: AC-07's last clause
+> ("match-rules' `legal_commands()` still lists the minion") needs match-rules story 010
+> (`play_card` in `legal_commands()`, which then calls `targeting_spec(def_id)`), and on
+> this branch `RulesEngine.legal_commands()` still lists only the mulligan and `end_turn`
+> (`_validate` carries `TODO(stories 010, 012, 016): play_card`). The story allows no
+> stub for it, so it stays Ready and waits for MR-010 to merge (sprint-3 plan: M2; if
+> MR-010 misses M2, CE-004/005 carry). Story 002 left the memo entry
+> (`EffectResolver._memo_entry`, `{effects}`) ready for `targeting_spec`, and
+> `EffectValidator` reads caps snake_case (`caps.effect_static_step_limit`,
+> `caps.max_summon_count`, `caps.max_repeat`).

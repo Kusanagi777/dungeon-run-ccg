@@ -52,12 +52,13 @@ class FixtureDb:
 
 func _caps() -> Dictionary:
 	return {
-		"MAX_OPS_PER_EFFECT": TestConstants.MAX_OPS_PER_EFFECT,
-		"MAX_REPEAT": TestConstants.MAX_REPEAT,
+		# snake_case keys: the `card_effects.json` spelling (DD-T01, story 002).
+		"max_ops_per_effect": TestConstants.MAX_OPS_PER_EFFECT,
+		"max_repeat": TestConstants.MAX_REPEAT,
 		# card-effects F6: MAX_SUMMON_COUNT default 7 (= BOARD_SIZE).
-		"MAX_SUMMON_COUNT": TestConstants.BOARD_SIZE,
-		"EFFECT_STATIC_STEP_LIMIT": TestConstants.EFFECT_STATIC_STEP_LIMIT,
-		"DISCOVER_COUNT": TestConstants.DISCOVER_COUNT,
+		"max_summon_count": TestConstants.BOARD_SIZE,
+		"effect_static_step_limit": TestConstants.EFFECT_STATIC_STEP_LIMIT,
+		"discover_count": TestConstants.DISCOVER_COUNT,
 	}
 
 
