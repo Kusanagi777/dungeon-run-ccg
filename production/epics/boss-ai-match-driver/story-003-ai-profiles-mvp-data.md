@@ -1,12 +1,12 @@
 # Story 003: ai_profiles.json — archetypes, bands, runtime block and the five MVP overrides
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Config/Data
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -62,12 +62,8 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `assets/data/ai_profiles.json`
-- `tests/unit/boss_ai/boss_ai_profiles_data_test.gd` (loads the real file through the Story 002 validator and asserts zero `E_AI_*`)
+- `assets/data/ai_profiles.json` (new)
+- `tests/integration/boss_ai/boss_ai_profiles_data_test.gd` (new, 16 tests — integration, not `tests/unit/`: it reads versioned repository files through `DataLoader` over a staged `user://` root)
 
 ---
 
@@ -85,7 +81,7 @@ checks scope against it.*
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-*.md`); the data test above is additional, not the gate.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Data test created (16 tests, passing); no `production/qa/smoke-*.md` for sprint 2 yet — `commands.test` and `commands.smoke` were run by hand (Completion Notes)
 
 ---
 
@@ -93,3 +89,20 @@ checks scope against it.*
 
 - Depends on: `production/epics/boss-ai-match-driver/story-002-profile-resolver-and-validator.md`
 - Unlocks: `production/epics/boss-ai-match-driver/story-016-sim-harness.md`, `production/epics/boss-ai-match-driver/story-018-windows-planner-a30-and-determinism.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 21:16:30 UTC, finished 21:20:45 UTC)
+**Criteria**: 4/4 passing (`tests/integration/boss_ai/boss_ai_profiles_data_test.gd`, each value pinned to the GDD/registry text it comes from, not to literals) — AC-1 `::test_shipped_file_loads_through_data_loader_with_no_entry_naming_it` (schema_version 1, strict JSON), `::test_op_values_are_f9s_nineteen_card_effects_ops_with_its_values`, `::test_keyword_values_are_the_f2_multipliers`, `::test_default_weights_and_ranges_are_the_f1_table` (also pins `BossAI.RANGES` weight rows to F1), `::test_default_rules_and_intent_are_the_story_list`, `::test_archetypes_carry_exactly_f9s_deltas`; AC-2 `::test_band_overlays_carry_f9s_rules_and_f7s_budgets`, `::test_presentation_and_runtime_are_f9s_lines`; AC-3 `::test_boss_overrides_are_the_five_mvp_bosses_of_content_b1` (the 11 non-MVP B1 bosses absent), `::test_override_ids_are_registry_bosses_split_three_one_one_by_band` (DD-H06), `::test_torchbearer_override_resolves_as_aggro_with_its_band_overlay`, `::test_rot_warden_and_hollow_king_resolve_their_extra_values`, `::test_no_mvp_boss_or_band_overlay_resolves_to_hidden`; AC-4 `::test_shipped_file_reports_zero_e_ai_rows`, plus `commands.smoke` exit 0 with the file present. Format: `::test_sections_are_in_f9_order`, `::test_integer_knobs_are_written_without_a_fractional_part_and_indent_is_two_spaces`.
+**Deviations** (all ADVISORY):
+- The data test is at `tests/integration/boss_ai/boss_ai_profiles_data_test.gd`, not the story's `tests/unit/boss_ai/` path: it loads the shipped file through `DataLoader`, which needs a complete CR-1 root, so it stages one under `user://` (file writes) — the precedent set by commit `ce5cd52` (match-rules AC-41 checks moved to integration for the same reason). The QA plan's spot checks are all covered.
+- `profiles.default` also sets `intent_mode: "full"`, `choice_preference: {}` and `synergy_tags: []`. AC-1 lists only weights and rules, but C8.4 makes `full` the default and no band 2/3 overlay sets an intent, so without it bands 2 and 3 resolve no `intent_mode`; story 002's validator requires it.
+- `rules.BV_NORM` / `THREAT_NORM` keep F9's upper-case names, against `.claude/rules/data-files.md` snake_case keys — the GDD schema names them so.
+- No `_note` keys: story 002's validator rejects underscore keys (closed sets), so each override's reason stays in content.md CN-3 B1/B2, as the story allows.
+- F2's `flat_bonus` (spell_damage, deathrattle, aura) and `taunt_bonus` are "data file" values with no home in F9's schema, so they are not in the file; A29 will need them when the story 004 scorer lands (open item).
+- The 7 non-structural Card Effects C5 ops beyond F9's 19 (`remove_keyword`, `shuffle_into_deck`, `discard`, `weapon_durability`, `hero_power_refresh`, `add_counter`, `set_counter`; `conditional`/`repeat`/`choose_one`/`aura`/`modify_value` are valued by rule) have no row: any loaded card using one will report `E_AI_OP_UNVALUED` once card-database exposes `cards_by_type` (story 002 notes). That is the GDD's own design, flagged for the content batches.
+- Test evidence gap (ADVISORY at `qa.level: standard`): no sprint-2 `production/qa/smoke-*.md` exists; `/smoke-check` is a sprint-level run and was not run by this lane. `commands.test` (399 test cases, exit 0) and `commands.smoke` (exit 0, no SCRIPT ERROR) were run by hand.
+**Test Evidence**: `tests/integration/boss_ai/boss_ai_profiles_data_test.gd` (16 tests); full suite exit 0, 399 test cases, 0 failures, 0 orphans; no new SCRIPT ERROR. Seen failing, one data mutation per run (exit 100, file restored): `boss_torchbearer` extends `control`; band 3 `lethal_max_nodes` 400; band 3 `intent_mode: hidden` (validator rows; the resolver still refuses it); `overextend_cap_aoe: 4.0`; aggro `w_face` 3.5. First run also failed on the test's own F9 parser (a bold label followed by a line break) and was fixed in the test.
+**Run result**: N/A — a data file nothing reads at runtime yet (the loader's stage 7 and `config()` are card-database stories 004/006; the match driver is story 013), so nothing a player can see changes
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run)

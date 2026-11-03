@@ -132,12 +132,12 @@ func services() -> Services:
 ## rng_event_log}}`; each later epic adds its own line here, and a missing one
 ## is `E_DELEGATED` once the loader's stage 7 runs.
 ## TODO(card-effects): "effects": EffectValidator.validate
-## TODO(boss-ai): "ai_profile": BossAI.validate_profile
+## TODO(boss-ai): "ai_profile": BossAI.validate_ai_profile (7b; exists, registered once stage 7b runs)
 ## TODO(treasures): "treasure": Treasures.validate
 ## TODO(each config owner): its `configs` entry (control manifest: the static
 ## `validate_config` each owner registers here).
 func _collect_validators(meta: MetaApi) -> Dictionary:
-	var configs: Dictionary = {"match_rules": RulesEngine.validate_rules_config}
+	var configs: Dictionary = {"match_rules": RulesEngine.validate_rules_config, "ai_profiles": BossAI.validate_profiles_config}
 	return {
 		"unlock": meta.validate_unlock_defs if meta != null else _validate_unlock_defs_mvp,
 		"configs": configs,
