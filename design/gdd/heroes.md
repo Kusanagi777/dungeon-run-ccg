@@ -496,7 +496,7 @@ calls a power "slow" after floor 3.
 | Information | Display Location | Update Frequency | Condition |
 |-------------|-----------------|-----------------|-----------|
 | Hero name, identity line, portrait colour | Hero select (Run UI) | On screen open | Always; locked heroes show unlock text instead of the line |
-| Hero power name, cost, text | Hero select preview; Match UI button tooltip | Open / hover | Always |
+| Hero power name, cost, text | Hero select preview; Match UI button tooltip | Open / hover or focus | Always |
 | Starter deck preview (15 cards, curve strip) | Hero select, expandable | On selection | Always — the player should see the plan before committing |
 | Set identity blurb and theme tags | Hero select preview | On selection | Always (one line: "War: weapons, aggression, armour") |
 | Power state (Ready / Blocked + reason / Used) | Beside the hero portrait (Match UI) | `hero_power_used`, Start step, mana or board change | Always |

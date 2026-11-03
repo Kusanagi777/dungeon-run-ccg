@@ -519,6 +519,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Every card in the hand fan (match-ui F1), mulligan and Choice rows (at 1.5x), draft treasure frames, deck drawer thumbnails (static variant).
+**When NOT to Use**: Minions on the board (Board Token), treasure chips (Treasure Chip), static run-summary drafted-card marks (a text row, Card Inspect on focus is enough), hero panels (Pick One of N option).
 
 **States**:
 
@@ -542,6 +543,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Mouse play of a hand card, mouse attack from a token, mouse-targeted hero power (match-ui U5).
+**When NOT to Use**: As the only path for any player — a player without a sustained hold routes through Click-to-Select / Keyboard Targeting; never on run screens (drafts and hero select are Pick One of N, no drag anywhere in the run shell).
 
 **States and behaviors**:
 
@@ -553,7 +555,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Drop (illegal) | Card tweens back 0.15 s, ease-out, no bounce | Release elsewhere | No command, no event | 0.15 s |
 | Cancel | Same as illegal drop | RMB / Esc during drag | No command | 0.15 s |
 
-**Accessibility**: Drag is a hold input, so it is **never the only path** — Click-to-Select / Keyboard Targeting provides the hold-free equivalent for the same three sources. Drop zones are whole tokens/slots (≥ 90x126), not edges. Under `reduce_motion` the squash is dropped; the travel remains (it is positional information).
+**Accessibility**: Drag is a hold input, so it is **never the only path** — Click-to-Select / Keyboard Targeting provides the hold-free equivalent for the same three sources. Drop zones are whole tokens/slots (≥ 90x126), not edges. Under `reduce_motion` the squash is dropped; the card-to-slot travel remains (it is positional information and is the one travel `reduce_motion` keeps — Animation Standards "Motion reduction overrides"; run-shell slides such as fly-to-strip become fades).
 
 **Implementation Notes**: `InputRouter` (match-ui U1) owns a single `Dragging` session; the dragged visual is a duplicate on a top `CanvasLayer`; `legal_commands()` is queried once on pickup and cached for the session (match-rules budgets it at < 1 frame per hover).
 
@@ -564,6 +566,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft (per match-ui U5 "Click to select" and Tuning Knobs `CLICK_DRAG_PX` 8 px — both entries, pointer and key, are in the GDD; `--pose=select:<id>` captures it)
 **When to Use**: The hold-free path for playing, attacking and targeted hero powers. One state machine, two entries: pointer click or number key.
+**When NOT to Use**: Run-shell picks (drafts, hero select) — those are Pick One of N's select-then-confirm, not a targeting session; Mulligan / Choice toggles (Pick One of N toggle / select variants).
 
 **States and behaviors**:
 
@@ -586,6 +589,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Any targeting session (drag, click-to-select, keyboard) whose source is a targeted card, an attacker or a targeted hero power (match-ui U7).
+**When NOT to Use**: Untargeted plays (a minion into a slot gap, an untargeted spell — the lit slot / "cast" affordance is the cue, no arrow); anywhere in the run shell.
 
 **States**:
 
@@ -607,6 +611,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Every minion on either row (match-ui UI Requirements "Board rows").
+**When NOT to Use**: Cards in the hand or any card-shaped option (Card (Hand)); heroes (Hero Portrait & Health Stamp); treasures (Treasure Chip).
 
 **States**:
 
@@ -633,12 +638,13 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft (per match-ui F2 for the hover preview and U5 "Keyboard inspect" for the focus path; the `text_scale` reading panel is accessibility-requirements Visual "Text scaling")
 **When to Use**: Any card-shaped thing: hand cards, board tokens, mulligan/Choice/draft options, bundle compact rows, deck drawer rows, run-summary drafted cards, hero power and boss passive plates (text-only variant).
+**When NOT to Use**: Hero power / treasure / status text that fits a Tooltip (a name plus 1–2 lines) — the Tooltip pattern owns those; non-card controls (buttons, sliders, seed pill).
 
 **States and behaviors**:
 
 | State | Visual | Input | Response | Duration |
 |-------|--------|-------|----------|---------|
-| Preview (100% text) | Full card at 1.5x (225x315, text ×1.5 = 18 px body) in place for hand cards (F2: bottom on the baseline, clamped to the viewport, on top; neighbours do not move) or anchored beside the element elsewhere (bundle panel outer edge, run-ui F4) | Hover (tween `HOVER_IN_S` 0.1 s) or **keyboard focus (immediate)** | — | ≤ 100 ms to complete |
+| Preview (100% text) | Full card at 1.5x (225x315, text ×1.5 = 18 px body) in place for hand cards (F2: bottom on the baseline, clamped to the viewport, on top; neighbours do not move) or anchored beside the element elsewhere (bundle rows: per draft-picker.md §5.1 anchoring table — toward screen centre, clamped to the viewport; run-ui F4) | Hover (tween `HOVER_IN_S` 0.1 s) or **keyboard focus (immediate)** | — | ≤ 100 ms to complete |
 | Preview + reading panel (125% / 150%) | The 1.5x card **plus** a `parchment` panel beside it (toward screen centre) with name (`ink` band), keyword reminder lines, and rules text at 18 px × `text_scale`, no line cap, `text_ink`; max width 360 px, scrolls only if > 50% viewport height | As above | — | as above |
 | Token inspect | Preview above the row (boss row: below) with the full card including name and text | Hover / focus on a token | — | as above |
 | Dismiss | Preview fades 0.1 s (0 under `instant`) | Mouse out / focus move / any command / card leaves hand (match-ui Edge Cases) | — | 0.1 s |
@@ -654,6 +660,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: The one End Turn control (match-ui F6: 1116, 296, 140, 44).
+**When NOT to Use**: Any run-screen Primary (Fight, Pick, Start, Continue are Button (Primary)); the match-end banner's Continue (Button (Primary)); never duplicated as a second "pass" control.
 
 **States**:
 
@@ -678,13 +685,14 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: The player's hero power (match-ui F6: 152, 390, 48, 48); the weapon slot below it is display-only.
+**When NOT to Use**: The boss's hero power (display-only plate on the boss portrait, Hero Portrait & Health Stamp); the hero-select power preview (text on the Pick One of N option, Tooltip / Card Inspect text-only variant) — neither is a control.
 
 **States**:
 
 | State | Visual | Notes |
 |-------|--------|-------|
 | Ready | Hero primary fill (the one place the hero colour is a control — art bible §4 "hero power button"), cost "2" stamp, `state_actionable` outline when affordable | Click / `H` enters Click-to-Select or submits directly if untargeted (after confirm per rule 2) |
-| Blocked | Dimmed; reason in Tooltip on **hover or focus** (match-ui says hover — amended here) | e.g. not enough mana, a treasure rule |
+| Blocked | Dimmed; reason in Tooltip on **hover or focus** (match-ui U5) | e.g. not enough mana, a treasure rule |
 | Used | Dimmed, "✓" letter badge | Once per turn (DD-M13) |
 | Focused | Focus ring; Tooltip (name, cost, text) immediately | Tab order after the player row |
 
@@ -699,6 +707,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Both portraits (120x160; player at 24,334; boss at 1136,96 — match-ui F6).
+**When NOT to Use**: Hero panels on hero select (Pick One of N option with the Curve Strip); the run-summary hero portrait (static image + name, no stamps, no targeting); the boss-intro portrait (run-ui U2, static).
 
 **States and behaviors**:
 
@@ -774,12 +783,13 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Mulligan (3 cards, toggle keep/replace, Confirm), Choice overlay (Discover 3 cards / Choose One 3 plates, select-then-Confirm, no cancel), Treasure draft (1–3 frames), Bundle draft (1–3 panels), Hero select (hero panels, Start). Geometry: match-ui F6 Choice row and run-ui F4 slots.
+**When NOT to Use**: Lists longer than 3 (List Item in a Scroll Container — run log, deck drawer, settings); a single button (Button (Primary / Secondary)); targeting in the match (Click-to-Select / Keyboard Targeting).
 
 **States and behaviors**:
 
 | State | Visual | Input | Response | Duration |
 |-------|--------|-------|----------|---------|
-| Revealed | Options left→right in `option_ids` order (run-ui U8); staggered reveal 3 × 120 ms (one fade under `reduce_motion`); **no option focused on drafts** (forcing a choice), first option focused on Mulligan/Choice, pre-selected hero focused on hero select | Event | Primary (Pick / Confirm / Start) Idle until a selection exists (except Mulligan: Confirm always Actionable, replacing none is legal) | `draft_reveal` 360 ms |
+| Revealed | Options left→right in `option_ids` order (run-ui U8); staggered reveal 3 × 120 ms (one fade under `reduce_motion`); **no option focused on drafts** (forcing a choice), first option focused on Mulligan/Choice, **Start** focused on hero select with the hero pre-selected per run-ui U7 (Focus Management "Screen open") | Event | Primary (Pick / Confirm / Start) Idle until a selection exists (except Mulligan: Confirm always Actionable, replacing none is legal) | `draft_reveal` 360 ms |
 | Focused / hovered option | `state_actionable` outline + lift 8 px; Card Inspect for card options; the hint line under the option ("fits your plan" / "N cards share *theme*" / "Deck 21 → 24") | `1`/`2`/`3` move focus; Tab cycles; mouse hover highlights **without selecting** (run-ui U3) | — | 80 ms |
 | Selected | Outline persists after focus leaves; others at full brightness still (not dimmed until committed) | Click on the option / `Enter` on a focused option (first Enter = select) | Primary becomes Actionable | — |
 | Toggle variant (Mulligan) | Each card toggles keep ↔ replace: replace shows a crossed card-back overlay + "Replace" word | Click / `1`–`3` | — | — |
@@ -895,7 +905,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 - **Skip-all** triggers: LMB anywhere outside an interactive control, `Space`, `Enter` (while busy), and any new command (flush then submit). Latency ≤ 100 ms; every remaining `apply_final` runs in order within one frame; impact extras cancelled; skipped SFX dropped.
 - **Boss turn**: controls lock (skip, concede/pause, settings, feed stay live); commit beat `intent_banner_s`; command groups paced by F4 within `max_turn_playback_s`; a "Click or Space to skip" hint (`text_muted`, static — no pulse under `reduce_motion`, and never a pulse faster than 1 Hz anyway) appears after 1 s under the boss portrait.
 - **Run shell**: any input during a transition skips it to its end state (run-ui U4); `run_start` is skippable.
-- **Settings interplay**: `anim_speed` divides durations; `instant` = always skipped; `reduce_motion` removes hit-stop/shake/slow-down/slides/loops but keeps positional travel; `action_delay_ms` (Meta) paces boss groups.
+- **Settings interplay**: `anim_speed` divides durations; `instant` = always skipped; `reduce_motion` removes hit-stop/shake/slow-down/slides/loops and keeps only the match's card-to-slot travel (run-shell slides, fly-to-strip included, become fades — run-ui F2); `action_delay_ms` (Meta) paces boss groups.
 
 **Accessibility**: Skipping never produces a state the animation was not heading to (match-ui U4.6 invariant, AC L6). The skip input is the same key as End Turn, hence the `end_turn_arm_ms` guard (End Turn Button).
 
@@ -1195,7 +1205,7 @@ ease-in, no bounce** (match-ui Game Feel; run-ui Game Feel) — ease-in reads as
 | Victory portrait saturation | 400 | linear | The one colour ramp |
 | Boss action gap | 600 (compressed by F4, floor 150) | — | Paced, not eased |
 
-**Motion reduction overrides**: When `reduce_motion` is enabled (see accessibility-requirements.md), all slide and scale animations are replaced with fades at half duration; hit-stop, screen shake and lethal slow-down are removed; looping or pulsing indicators (skip hint, `lethal` banner pulse) are static; positional travel that carries information (card to slot, fly-to-strip) is kept but un-squashed. `reduce_motion` is independent of `anim_speed`.
+**Motion reduction overrides**: When `reduce_motion` is enabled (see accessibility-requirements.md), all slide and scale animations are replaced with fades at half duration; hit-stop, screen shake and lethal slow-down are removed; looping or pulsing indicators (skip hint, `lethal` banner pulse) are static; the **one** positional travel kept is the match's card-to-slot travel (match-ui owns it; un-squashed, because the slot it lands in is information) — run-shell slides, including fly-to-strip, become fades per the table row above, run-ui F2 and accessibility-requirements Visual "Reduce motion". `reduce_motion` is independent of `anim_speed`.
 
 ---
 

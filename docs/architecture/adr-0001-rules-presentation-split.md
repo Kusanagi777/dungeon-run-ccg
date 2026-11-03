@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -26,6 +26,11 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   every class and signal name is the one the GDD or `architecture.md`
   §API Boundaries already uses.
 - Numbering fixed by `design/design-decisions.md` DD-X08.
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** no change to
+  this ADR; its TD list agrees with `architecture.md` §Tech-debt retirement
+  mapping (TD-008/TD-011 are ADR-0002's, TD-002/004 ADR-0007's, TD-007 ADR-0003's,
+  TD-009 split across ADR-0004/0005/0008/0011).
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
