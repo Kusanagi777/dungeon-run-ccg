@@ -32,7 +32,11 @@
 ## [method apply_damage] and the healing fold; story 008 the C14 end —
 ## `win_loss_check` at the end of every action, `concede`, [method fault],
 ## the full `MatchResult` ([method result]), `resolver.unbind()` at `Ended`
-## and the idempotent teardown [method end_match].
+## and the idempotent teardown [method end_match]; story 009 the C10 loop —
+## [method run_action], the engine-owned trigger queue Q, the DD-M11 death
+## check with Deathrattles and `on_minion_died`, `recompute_auras` after every
+## step and the `resolution_step_cap` fault — with every command handler, C4
+## sub-step and step-boundary hook entry run as its own step.
 ## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
@@ -136,6 +140,13 @@ const ENCHANT_REASON_SET_STATS: String = "set_stats"
 const SUMMON_FAILED_BOARD_FULL: String = "board_full"
 ## `weapon_destroyed.reason` when [method equip_weapon] replaces a weapon.
 const WEAPON_REPLACED: String = "replaced"
+## `weapon_destroyed.reason` when the death check breaks a weapon at
+## durability ≤ 0 (or marked `pending_destroy`, C10).
+const WEAPON_BROKEN: String = "broken"
+## The `ctx` key the engine sets to `true` when it executes a queued trigger:
+## `resolver.resolve(point, ctx)` with it runs that one effect pass (one C10
+## step) instead of collecting responders (story 009; card-effects C6.6).
+const CTX_QUEUED: String = "queued"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
 ## start at `MatchState.FIRST_ENTITY_ID`).
 const NO_ENTITY: int = -1
@@ -173,9 +184,16 @@ var _resolving: bool = false
 var _call_first_seq: int = 0
 var _call_last_seq: int = 0
 ## The engine-owned trigger queue Q (C10; ADR-0007 erratum: `resolve()`
-## returns the triggers it queues and the engine appends them here). Drained
-## by the C10 loop (story 009).
+## returns the triggers it queues and the engine appends them here): step
+## Dictionaries `{point, ctx, cause_seq}` — `ctx` is the resolver's entry
+## (`source_id`, `effect_id`, …) carrying the source's raise-time `snapshot`,
+## `cause_seq` the event that raised it. Drained by [method _drain].
 var _queue: Array[Dictionary] = []
+## Steps executed by the current action ([method run_action]); reset per action.
+var _steps: int = 0
+## True while `resolver.recompute_auras()` runs: the aura enchantments it
+## re-applies are silent (one `auras_recomputed` lists the net changes).
+var _recomputing_auras: bool = false
 ## The `{source, target}` contexts of the `modify_damage` / `modify_heal`
 ## folds, reused on every call (ADR-0005: the fold allocates nothing; the
 ## engine does not build a context per hit either).
@@ -318,9 +336,9 @@ func start(config: Dictionary) -> void:
 	# C3 step 3: decks, player first
 	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck)
 	_build_deck(MatchRecords.SIDE_BOSS, config.boss.deck)
-	# C3 step 4: on_match_start, before any card is drawn
+	# C3 step 4: on_match_start, before any card is drawn — each entry a step
 	for side: String in MatchRecords.SIDES:
-		_state.hooks.run_triggers(&"on_match_start", StringName(side), {})
+		_run_hook_steps(&"on_match_start", side, {})
 	# C3 step 5: starting hands, fold then clamp once
 	_draw(MatchRecords.SIDE_PLAYER, _starting_hand_size(MatchRecords.SIDE_PLAYER, rule("starting_hand_player")), false)
 	_draw(MatchRecords.SIDE_BOSS, _starting_hand_size(MatchRecords.SIDE_BOSS, rule("starting_hand_boss")), false)
@@ -374,13 +392,41 @@ func submit(command: Dictionary) -> Dictionary:
 			_end_step(_state.active_side)
 		MatchRecords.CMD_CONCEDE:
 			_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_CONCEDE)
-	# The end of every action: its C10 loop (story 009), then C14.
+	# The end of every action: its C10 loop drained (the handlers run their
+	# steps through _run_step, so this is normally already stable), then C14.
 	if not _halted():
-		_run_resolution_loop()
+		_drain()
 		@warning_ignore("return_value_discarded")
 		_win_loss_check()
 	_resolving = false
 	return MatchRecords.command_result(true, "", "", _call_first_seq, _call_last_seq)
+
+
+## Runs one action through the C10 loop (story 009; GDD C10 `run_action`):
+## [param initial_step] (a Callable with no arguments — mutations through
+## primitives) is executed as step 1, then the loop drains: death check →
+## `recompute_auras()` → pop queue Q → execute, until no one died and Q is
+## empty; a step past `resolution_step_cap` is `fault(resolution_overflow)`.
+## Then `win_loss_check()` (C14). The step counter starts at 0 per action.
+## Every command handler and engine step runs this way internally; this
+## public entry drives an engine-initiated fixture step (tests, the card-
+## effects suites). Called while the engine is resolving it does nothing and
+## reports an error: triggers queue, never nest.
+## [codeblock]
+## engine.run_action(func() -> void: engine.apply_damage(target_id, 1, null))
+## [/codeblock]
+func run_action(initial_step: Callable) -> void:
+	if _resolving:
+		push_error("RulesEngine.run_action: called while resolving — triggers queue, never nest (C10)")
+		return
+	if _halted() or _torn_down:
+		return
+	_resolving = true
+	_cause_seq = 0
+	_run_step(initial_step)
+	@warning_ignore("return_value_discarded")
+	_win_loss_check()
+	_resolving = false
 
 
 ## Every command the engine would accept now (C2): in Mulligan the "keep
@@ -518,13 +564,13 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 			continue
 		card.zone = "hand"
 		player.hand.append(card)
-		emit(&"card_drawn", {"side": side, "instance_id": instance_id, "card_id": def_id, "hand_size": player.hand.size()})
+		var drawn_seq: int = emit(&"card_drawn", {"side": side, "instance_id": instance_id, "card_id": def_id, "hand_size": player.hand.size()})
 		if _halted():
 			return
 		if not fire_on_draw:
 			continue
 		_state.hooks.run_triggers(&"on_draw", StringName(side), {"instance_id": instance_id, "card_id": def_id})
-		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id})
+		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id}, drawn_seq)
 
 
 ## Primitive (C5, match-rules Interactions): [param side] gains [param n]
@@ -606,18 +652,19 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 	var to_health: int = amount - armor_absorbed
 	target.damage_taken = int(target.damage_taken) + to_health
 	var dealt: int = armor_absorbed + to_health
-	emit(&"damage_dealt", {
+	var dealt_seq: int = emit(&"damage_dealt", {
 		"source": source, "target": target_id, "requested": requested, "prevented": prevented,
 		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
 	})
 	if dealt > 0 and not _halted():
-		_after_damage_dealt(target, source, source_side, dealt)
+		_after_damage_dealt(target, source, source_side, dealt, dealt_seq)
 	return dealt
 
 
 ## F2 step 5, once `dealt > 0`: stats, Poisonous, Lifesteal, the
-## `on_hero_damaged` hooks and trigger point `on_damage` (in that order).
-func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int) -> void:
+## `on_hero_damaged` hooks and trigger point `on_damage` (in that order) —
+## its triggers queue with `cause_seq` [param dealt_seq], the `damage_dealt`.
+func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int, dealt_seq: int) -> void:
 	var target_id: int = int(target.entity_id)
 	var target_side: String = str(target.controller)
 	_record_damage_stats(target_side, source, source_side, dealt)
@@ -628,7 +675,7 @@ func _after_damage_dealt(target: Dictionary, source: Variant, source_side: Strin
 		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
 	if target.kind == MatchRecords.KIND_HERO:
 		_state.hooks.run_triggers(&"on_hero_damaged", StringName(target_side), {"amount_dealt": dealt, "source": source})
-	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source})
+	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source}, dealt_seq)
 
 
 ## Primitive (C9): heals the character [param target_id] from
@@ -656,8 +703,8 @@ func apply_heal(target_id: int, amount: int, source: Variant) -> int:
 	var heal: int = maxi(0, _state.hooks.fold(&"modify_heal", StringName(source_side if source_side != "" else target_side), amount, _heal_ctx))
 	var restored: int = mini(heal, int(target.damage_taken))
 	target.damage_taken = int(target.damage_taken) - restored
-	emit(&"healed", {"source": source, "target": target_id, "requested": amount, "amount": restored})
-	_raise(&"on_heal", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": restored, "source": source})
+	var healed_seq: int = emit(&"healed", {"source": source, "target": target_id, "requested": amount, "amount": restored})
+	_raise(&"on_heal", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": restored, "source": source}, healed_seq)
 	return restored
 
 
@@ -697,6 +744,10 @@ func apply_enchantment(target_id: int, enchantment: Dictionary) -> void:
 	if enchantment.has("cost_delta"):
 		applied["cost_delta"] = int(enchantment.cost_delta)
 	_enchantments_of(record).append(applied)
+	# An aura re-applied by the C10 recompute is silent: the pass's one
+	# `auras_recomputed` lists the net changes (C10, DSL spike finding 8).
+	if applied.is_aura and _recomputing_auras:
+		return
 	emit(&"enchantment_applied", _enchantment_payload(target_id, applied))
 
 
@@ -765,8 +816,8 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 
 ## Primitive (C10, States "pending_destroy"): marks the minion or weapon
 ## [param target_id] `pending_destroy`; it leaves play in the next death check
-## (story 009), whose `minion_died` / `weapon_destroyed` is the event — C15
-## has no event for the mark itself.
+## (C10, after the current step), whose `minion_died` / `weapon_destroyed` is
+## the event — C15 has no event for the mark itself.
 ## [codeblock]
 ## engine.destroy(minion_id)
 ## [/codeblock]
@@ -905,10 +956,10 @@ func transform(target_id: int, def_id: String) -> int:
 
 ## Primitive (C6 weapons): [param side] equips [param def_id] (a weapon
 ## definition). A held weapon is destroyed first — `weapon_destroyed {side,
-## entity_id, card_id, reason: replaced}` — then `weapon_equipped {side,
+## entity_id, card_id, reason: replaced}` and its Deathrattle queued (it
+## resolves after the current step, C10) — then `weapon_equipped {side,
 ## entity_id, card_id, attack, durability}`. Returns the new weapon's id, or
 ## [constant NO_ENTITY].
-## TODO(story 009): queue the replaced weapon's Deathrattle.
 ## [codeblock]
 ## var axe_id: int = engine.equip_weapon("player", "war_iron_axe")
 ## [/codeblock]
@@ -920,9 +971,9 @@ func equip_weapon(side: String, def_id: String) -> int:
 		return NO_ENTITY
 	var player: Dictionary = _state.players[side]
 	if player.weapon != null:
-		var old: Dictionary = player.weapon
-		player.weapon = null
-		emit(&"weapon_destroyed", {"side": side, "entity_id": int(old.entity_id), "card_id": str(old.def_id), "reason": WEAPON_REPLACED})
+		_weapon_leaves(side, WEAPON_REPLACED)
+		if _halted():
+			return NO_ENTITY
 	var weapon: Dictionary = MatchRecords.weapon(_take_entity_id(), def_id, int(def.get("attack", 0)), int(def.get("durability", 0)), def.get("keywords", []))
 	player.weapon = weapon
 	emit(&"weapon_equipped", {
@@ -1046,7 +1097,7 @@ func add_card_to_deck(side: String, def_id: String, position: String = MatchReco
 ## Primitive (match-rules Interactions, added 2026-11-03): changes the weapon
 ## [param weapon_id]'s durability by [param delta] and emits
 ## `weapon_durability_changed {side, entity_id, delta, durability}`; a weapon
-## at ≤ 0 breaks in the next death check (story 009).
+## at ≤ 0 breaks in the next death check (C10).
 ## [codeblock]
 ## engine.modify_durability(axe_id, -1)
 ## [/codeblock]
@@ -1262,8 +1313,17 @@ func _validate(type: String, command: Dictionary) -> String:
 ## C3 step 7 (DD-M05): unkept cards return to the bottom of the deck in hand
 ## order **before** one shuffle of the whole deck, then the same number is
 ## drawn; `mulligan_resolved {side, replaced_instance_ids}`. Kept cards keep
-## their hand order; redraws append right.
+## their hand order; redraws append right. The mulligan through
+## `match_started` (C3 step 8) is one step with its C10 loop; then the
+## player's first Start step (DD-M03).
 func _do_mulligan(keep_mask: Array) -> void:
+	_run_step(_mulligan_step.bind(keep_mask))
+	if _halted():
+		return
+	_start_step(MatchRecords.SIDE_PLAYER)
+
+
+func _mulligan_step(keep_mask: Array) -> void:
 	var player: Dictionary = _state.players[MatchRecords.SIDE_PLAYER]
 	var kept: Array[Dictionary] = []
 	var replaced: Array[int] = []
@@ -1285,7 +1345,7 @@ func _do_mulligan(keep_mask: Array) -> void:
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
 	if _halted():
 		return
-	# C3 step 8: match_started, then the player's first Start step (DD-M03)
+	# C3 step 8: match_started
 	emit(&"match_started", {
 		"floor": _state.floor,
 		"hero_id": int(_state.players[MatchRecords.SIDE_PLAYER].hero.entity_id),
@@ -1293,9 +1353,6 @@ func _do_mulligan(keep_mask: Array) -> void:
 		"player_deck_size": _state.players[MatchRecords.SIDE_PLAYER].deck.size(),
 		"boss_deck_size": _state.players[MatchRecords.SIDE_BOSS].deck.size(),
 	})
-	if _halted():
-		return
-	_start_step(MatchRecords.SIDE_PLAYER)
 
 
 ## C4 Start step for [param side] (engine-driven; no command is accepted
@@ -1338,16 +1395,16 @@ func _start_step(side: String) -> void:
 	emit(&"turn_reset", {"side": side, "entity_ids": reset_ids})
 	if _halted():
 		return
-	# 4. on_turn_start hooks; 5. turn_start triggers in engine candidate order
-	_state.hooks.run_triggers(&"on_turn_start", StringName(side), {})
-	_run_resolution_loop()
+	# 4. on_turn_start hooks, each entry a step; 5. turn_start triggers in
+	#    engine candidate order (one step); each followed by its C10 loop
+	_run_hook_steps(&"on_turn_start", side, {})
 	if _halted():
 		return
 	_fire_trigger_point(&"turn_start", side)
 	if _halted():
 		return
-	# 6. draw one, turn 1 included; 7. win/loss, then Main
-	draw(side, 1)
+	# 6. draw one, turn 1 included (a step); 7. win/loss, then Main
+	_run_step(draw.bind(side, 1))
 	if _win_loss_check():
 		return
 	_set_phase(MatchState.PHASE_MAIN)
@@ -1362,21 +1419,21 @@ func _end_step(side: String) -> void:
 	emit(&"turn_ending", {"turn": _state.turn, "side": side})
 	if _halted():
 		return
-	# 2. turn_end triggers (same candidate order); 3. on_turn_end hooks
+	# 2. turn_end triggers (same candidate order); 3. on_turn_end hooks, each
+	#    entry a step; each followed by its C10 loop
 	_fire_trigger_point(&"turn_end", side)
 	if _halted():
 		return
-	_state.hooks.run_triggers(&"on_turn_end", StringName(side), {})
-	_run_resolution_loop()
+	_run_hook_steps(&"on_turn_end", side, {})
 	if _halted():
 		return
 	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
-	# 5. end_of_turn enchantments on everything `side` owns, then auras
+	# 5. end_of_turn enchantments on everything `side` owns — one step, whose
+	#    C10 loop recomputes the auras (and kills what lost its health buff)
 	#    TODO(story 011): temporary crystals expire here too.
-	_expire_end_of_turn(side)
+	_run_step(_expire_end_of_turn.bind(side))
 	if _halted():
 		return
-	_resolver.recompute_auras()
 	# 6.
 	if _win_loss_check():
 		return
@@ -1386,13 +1443,30 @@ func _end_step(side: String) -> void:
 	_start_step(MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER)
 
 
-## Fires trigger point [param point] for [param side] (ADR-0007 Decision 1):
-## `ctx.candidates` in the engine's one observer order; the triggers the
-## resolver returns join the engine's queue Q, then the C10 loop runs.
+## Fires trigger point [param point] for [param side] as one step (ADR-0007
+## Decision 1): `ctx.candidates` in the engine's one observer order; the
+## triggers the resolver returns join the engine's queue Q, then the C10 loop
+## drains.
 func _fire_trigger_point(point: StringName, side: String) -> void:
-	var queued: Array[Dictionary] = _resolver.resolve(point, {"side": side, "candidates": _candidates_in_order()})
-	_queue.append_array(queued)
-	_run_resolution_loop()
+	_run_step(_fire_step.bind(point, side))
+
+
+func _fire_step(point: StringName, side: String) -> void:
+	_enqueue(point, _resolver.resolve(point, {"side": side, "candidates": _candidates_in_order()}), _cause_seq)
+
+
+## A trigger hook point at a step boundary (C3 step 4, C4 Start 4 / End 3;
+## story 010's `on_card_played`): each entry on [param point] for
+## [param side] runs as its own step followed by the full C10 loop (ADR-0005
+## rule 4). Hook points reached inside a primitive (`on_draw`,
+## `on_hero_damaged`, `on_minion_summoned`) run synchronously within the
+## current step instead — a C10 loop there would run a death check between
+## the ops of one effect pass (ADR-0007, card-effects C6.0).
+func _run_hook_steps(point: StringName, side: String, ctx: Dictionary) -> void:
+	for index: int in _state.hooks.entries(point).size():
+		if _halted():
+			return
+		_run_step(_state.hooks.run_trigger_entry.bind(point, index, StringName(side), ctx))
 
 
 ## The one observer order (C4 step 5, C10; cross-review C-16c): player board
@@ -1454,11 +1528,258 @@ func _characters_of(side: String) -> Array[Dictionary]:
 	return out
 
 
-## C10 resolution loop (death check → `recompute_auras()` → queue pop) after a
-## step. TODO(story 009): the real loop and `RESOLUTION_STEP_CAP`; until then
-## queued triggers wait in [member _queue].
-func _run_resolution_loop() -> void:
-	pass
+## One action of the C10 loop without the closing `win_loss_check` (the
+## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed as
+## step 1 of a fresh step count, then [method _drain]. The `cause_seq` the
+## step ran under is restored afterwards, so the next step of the same
+## command is again a direct consequence of it.
+func _run_step(step: Callable) -> void:
+	if _halted():
+		return
+	var cause: int = _cause_seq
+	_steps = 0
+	step.call()
+	_steps += 1
+	_drain()
+	_cause_seq = cause
+
+
+## The C10 loop after a step: `dead = death_check()`; `recompute_auras()`;
+## stable when nobody died and Q is empty; with Q empty but deaths, check
+## again (aura loss may have killed something); else pop the front of Q and
+## execute it as the next step. Before a step past `resolution_step_cap` the
+## match ends with `fault(resolution_overflow, steps)`. No recursion: what a
+## step raises is appended to Q.
+func _drain() -> void:
+	while not _halted():
+		var dead: Array[int] = _death_check()
+		if _halted():
+			break
+		_recompute_auras()
+		if _halted():
+			break
+		if dead.is_empty() and _queue.is_empty():
+			break
+		if _queue.is_empty():
+			continue
+		if _steps >= rule("resolution_step_cap"):
+			fault(MatchRecords.REASON_RESOLUTION_OVERFLOW, _steps)
+			break
+		_execute_queued(_queue.pop_front())
+	if _halted():
+		_queue.clear()
+
+
+## Executes one queued trigger as a step: `trigger_resolved {point,
+## source_id, effect_id}` with the raising event's `cause_seq` (card-effects
+## C6.6), then `resolver.resolve(point, ctx)` with `ctx[CTX_QUEUED] = true` —
+## the one effect pass — whose primitives are attributed to that
+## `trigger_resolved`. It resolves whether or not its source is still in
+## play; `ctx.snapshot` holds the source as it was at raise time.
+func _execute_queued(step: Dictionary) -> void:
+	var point: StringName = step.point
+	var ctx: Dictionary = step.ctx
+	_cause_seq = int(step.cause_seq)
+	var seq: int = emit(&"trigger_resolved", {"point": String(point), "source_id": int(ctx.source_id), "effect_id": str(ctx.get("effect_id", ""))})
+	if _halted():
+		return
+	_cause_seq = seq
+	ctx[CTX_QUEUED] = true
+	_enqueue(point, _resolver.resolve(point, ctx), seq)
+	_steps += 1
+
+
+## Appends the triggers [param entries] the resolver returned for
+## [param point] to Q as steps `{point, ctx, cause_seq: raise_seq}`, each
+## with `trigger_queued {point, source_id, effect_id}` (`cause_seq`
+## [param raise_seq]). An entry is `{source_id: int, effect_id, …}` (an
+## optional `point` overrides [param point]); it keeps its own `snapshot` or
+## gets one — [param dead_snapshot] for a Deathrattle (the source has just
+## left play), else a value copy of the source now. Nothing is queued for a
+## source that is not in play (or in hand) at raise time (C10).
+func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}) -> void:
+	for entry: Dictionary in entries:
+		if _halted():
+			return
+		var source_id: int = int(entry.source_id)
+		var snapshot: Dictionary = dead_snapshot
+		if snapshot.is_empty():
+			var live: Dictionary = _live_record(source_id)
+			if live.is_empty():
+				continue
+			snapshot = live.duplicate(true)
+		var ctx: Dictionary = entry.duplicate(true)
+		if not ctx.has("snapshot"):
+			ctx["snapshot"] = snapshot
+		var step_point: StringName = StringName(str(entry.get("point", point)))
+		_queue.append({"point": step_point, "ctx": ctx, "cause_seq": raise_seq})
+		var cause: int = _cause_seq
+		_cause_seq = raise_seq
+		emit(&"trigger_queued", {"point": String(step_point), "source_id": source_id, "effect_id": str(entry.get("effect_id", ""))})
+		_cause_seq = cause
+
+
+## C10 `death_check()`: marks every minion with `health ≤ 0` or
+## `pending_destroy` and every weapon with `durability ≤ 0` or
+## `pending_destroy`; all of them leave play in this one step (they do not see
+## each other die). Then, in DD-M11 order — player board left to right, boss
+## board left to right, player weapon, boss weapon — one `minion_died {side,
+## entity_id, card_id, position}` / `weapon_destroyed {…, reason: broken}`
+## each; their Deathrattles are raised in exactly that order (one
+## `resolve(&"deathrattle", …)` per entity, `cause_seq` its death); then
+## `on_minion_died` is raised per dead minion for the observers still in
+## play. Returns the dead entity ids.
+func _death_check() -> Array[int]:
+	var dead: Array[Dictionary] = []
+	for side: String in MatchRecords.SIDES:
+		var board: Array = _state.players[side].board
+		var kept: Array[Dictionary] = []
+		for index: int in board.size():
+			var minion: Dictionary = board[index]
+			if health(minion) <= 0 or bool(minion.get("pending_destroy", false)):
+				var snapshot: Dictionary = minion.duplicate(true)
+				snapshot["position"] = index
+				dead.append(snapshot)
+			else:
+				kept.append(minion)
+		if kept.size() != board.size():
+			board.assign(kept)
+	var broken: Array[Dictionary] = []
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		var weapon: Variant = player.weapon
+		if weapon != null and (int(weapon.durability) <= 0 or bool(weapon.get("pending_destroy", false))):
+			broken.append(_take_weapon(side))
+	var ids: Array[int] = []
+	if dead.is_empty() and broken.is_empty():
+		return ids
+	var died_seqs: Array[int] = []
+	for snapshot: Dictionary in dead:
+		ids.append(int(snapshot.entity_id))
+		died_seqs.append(emit(&"minion_died", {
+			"side": str(snapshot.controller), "entity_id": int(snapshot.entity_id),
+			"card_id": str(snapshot.def_id), "position": int(snapshot.position),
+		}))
+	for snapshot: Dictionary in broken:
+		ids.append(int(snapshot.entity_id))
+		died_seqs.append(emit(&"weapon_destroyed", _weapon_destroyed_payload(snapshot, WEAPON_BROKEN)))
+	if _halted():
+		return ids
+	var leaving: Array[Dictionary] = []
+	leaving.append_array(dead)
+	leaving.append_array(broken)
+	for i: int in leaving.size():
+		_queue_deathrattle(leaving[i], died_seqs[i])
+	for i: int in dead.size():
+		var snapshot: Dictionary = dead[i]
+		_raise(&"on_minion_died", {
+			"side": str(snapshot.controller), "candidates": _candidates_in_order(),
+			"subject": int(snapshot.entity_id), "snapshot": snapshot,
+		}, died_seqs[i])
+	return ids
+
+
+## [param side]'s weapon leaves play: `player.weapon = null`; returns a value
+## copy carrying `controller` (a Weapon record has none, C1).
+func _take_weapon(side: String) -> Dictionary:
+	var player: Dictionary = _state.players[side]
+	var snapshot: Dictionary = (player.weapon as Dictionary).duplicate(true)
+	snapshot["controller"] = side
+	player.weapon = null
+	return snapshot
+
+
+static func _weapon_destroyed_payload(snapshot: Dictionary, reason: String) -> Dictionary:
+	return {"side": str(snapshot.controller), "entity_id": int(snapshot.entity_id), "card_id": str(snapshot.def_id), "reason": reason}
+
+
+## A held weapon replaced by [method equip_weapon] leaves play now:
+## `weapon_destroyed {…, reason}` and its Deathrattle queued (C6, C10).
+func _weapon_leaves(side: String, reason: String) -> void:
+	var snapshot: Dictionary = _take_weapon(side)
+	var seq: int = emit(&"weapon_destroyed", _weapon_destroyed_payload(snapshot, reason))
+	if not _halted():
+		_queue_deathrattle(snapshot, seq)
+
+
+## Raises trigger point `deathrattle` for the one entity that just left play
+## ([param snapshot], with its former `position` for a minion): candidates
+## `[entity_id]` (several Deathrattles on it are the resolver's to order,
+## enchantment order, base first); the entries queue with the death's
+## [param died_seq] and the snapshot.
+func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
+	var entity_id: int = int(snapshot.entity_id)
+	var candidates: Array[int] = [entity_id]
+	var ctx: Dictionary = {"side": str(snapshot.controller), "candidates": candidates, "subject": entity_id, "snapshot": snapshot}
+	_enqueue(&"deathrattle", _resolver.resolve(&"deathrattle", ctx), died_seq, snapshot)
+
+
+## C10 `recompute_auras()`: strips every `is_aura` enchantment (characters,
+## weapons, hand `cost_modifiers`), then `resolver.recompute_auras()`
+## re-applies the auras of every living source (its `apply_enchantment(…,
+## is_aura = true)` calls are silent); one `auras_recomputed {changes:
+## [{entity_id, attack, health, max_health}]}` lists the characters whose
+## derived stats changed, in candidate order — none when nothing changed.
+## Aura loss leaves `damage_taken` alone (F6): the next death check kills.
+func _recompute_auras() -> void:
+	var before: Dictionary = _stat_map()
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		for character: Dictionary in _characters_of(side):
+			_strip_auras(character.enchantments)
+		if player.weapon != null:
+			_strip_auras(player.weapon.enchantments)
+		for card: Dictionary in player.hand:
+			_strip_auras(card.cost_modifiers)
+	_recomputing_auras = true
+	_resolver.recompute_auras()
+	_recomputing_auras = false
+	var after: Dictionary = _stat_map()
+	var changes: Array[Dictionary] = []
+	for entity_id: int in after:
+		var stats: Array = after[entity_id]
+		if before.get(entity_id) != stats:
+			changes.append({"entity_id": entity_id, "attack": int(stats[0]), "health": int(stats[1]), "max_health": int(stats[2])})
+	if not changes.is_empty():
+		emit(&"auras_recomputed", {"changes": changes})
+
+
+## `entity_id → [attack, health, max_health]` for every character in play,
+## in candidate order (board left to right, then the hero; player first).
+func _stat_map() -> Dictionary:
+	var out: Dictionary = {}
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		var characters: Array = player.board.duplicate()
+		if player.hero != null:
+			characters.append(player.hero)
+		for character: Dictionary in characters:
+			out[int(character.entity_id)] = [attack(character), health(character), max_health(character)]
+	return out
+
+
+static func _strip_auras(enchantments: Array) -> void:
+	for i: int in range(enchantments.size() - 1, -1, -1):
+		if bool(enchantments[i].get("is_aura", false)):
+			enchantments.remove_at(i)
+
+
+## The hero, weapon, board minion or hand card [param entity_id] — a source
+## "in play (or in hand for hand triggers)" at raise time (C10) — else `{}`.
+func _live_record(entity_id: int) -> Dictionary:
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		for slot: String in ["hero", "weapon"]:
+			var record: Variant = player[slot]
+			if record != null and int(record.entity_id) == entity_id:
+				return record
+		for minion: Dictionary in player.board:
+			if int(minion.entity_id) == entity_id:
+				return minion
+		for card: Dictionary in player.hand:
+			if int(card.instance_id) == entity_id:
+				return card
+	return {}
 
 
 ## C14 `win_loss_check()` — the one place a match ends on health, run at the
@@ -1802,11 +2123,13 @@ static func _strip_keyword(record: Dictionary, keyword: String) -> void:
 
 
 ## Raises trigger point [param point] mid-step (ADR-0007 erratum): the
-## triggers the resolver returns join queue Q; the C10 loop runs after the
-## step, never here.
-func _raise(point: StringName, ctx: Dictionary) -> void:
-	var queued: Array[Dictionary] = _resolver.resolve(point, ctx)
-	_queue.append_array(queued)
+## triggers the resolver returns join queue Q with `cause_seq`
+## [param raise_seq] (the event that raised them); the C10 loop runs after
+## the step, never here.
+func _raise(point: StringName, ctx: Dictionary, raise_seq: int) -> void:
+	if _halted():
+		return
+	_enqueue(point, _resolver.resolve(point, ctx), raise_seq)
 
 
 func _find_record(entity_id: int) -> Dictionary:

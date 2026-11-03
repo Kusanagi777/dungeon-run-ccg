@@ -69,7 +69,7 @@ stories:
     name: "Resolution loop: death check, trigger queue, auras, step cap"
     file: "production/epics/match-rules/story-009-resolution-loop.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 3
     lane: 1
@@ -78,7 +78,7 @@ stories:
     contract: false
     blocker: ""
     note: "edits test_effect_resolver.gd; /code-review at M2"
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-database-006"
     name: "Freeze and CR-6 queries (CR-5 stage 9, CR-6, CR-7)"
     file: "production/epics/card-database/story-006-freeze-and-queries.md"
