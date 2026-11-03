@@ -1,12 +1,12 @@
 # Story 005: Grep gates G1–G6 and the per-file parse check in CI
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -34,10 +34,10 @@
 
 *From ADR-0001 Decision 6 (gate table) and Implementation Guidelines, and `docs/architecture/architecture.md` §Dependency injection "Enforcement", scoped to this story:*
 
-- [ ] `tools/lint/gates.sh` runs G1, G2, G2b, G3, G5 and G6 with `rg --glob "*.gd"` over exactly the scopes in ADR-0001 Decision 6 (G2/G2b exclude `src/core/boot.gd`; G3 excludes `src/core/boot.gd`, `src/core/services.gd` and `src/core/boot_result.gd` and drops hit lines that are doc comments — `rg … | rg -v '^[^:]+:[0-9]+:\s*##'`, since ripgrep 14 has no look-around; G6 is `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|pick_random\(`, so `stream.randf()` / `stream.randi_range(…)` / `stream.shuffle(deck)` are not hits and bare `randi_range(` / `randf_range(` / `seed(` are (ADR-0001 erratum 2026-11-03, code review); G2b under `src/gameplay/**` and `src/core/**` is `\bawait\b`, under `src/ai/**` it is the look-around-free deny list `\bawait\b.*(get_tree|process_frame|physics_frame|create_timer|\.timeout|\.finished|tween|signal)`), prints every hit as `<gate> <file>:<line>` and exits non-zero on any hit, zero on a clean tree; it refuses to run (exit 2 with a message) when `rg` is absent or older than 14.
-- [ ] G4 asserts exactly one `^[A-Za-z_]+=` line under `[autoload]` in `project.godot`, named `Boot`; G5 asserts zero hits of `MatchState|RunState` under `src/ui/**` and `\.submit\(` only in `*_controller.gd`, `*_driver.gd` and `*_view.gd` there.
-- [ ] `tools/lint/parse-check.sh` runs `.claude/scripts/godot-parse-check.gd` once per script (one `godot --headless --path . -s … -- <one path>` invocation per file, so each file is proven alone) over every `.gd` under `src/gameplay/**`, `src/ai/**` and `src/core/**`, and fails on any `PARSE FAIL` line or non-zero exit.
-- [ ] Every gate has been watched failing: `tests/integration/boot/boot_lint_gates_test.gd` runs `gates.sh` (via `OS.execute`) against each deliberately broken fixture under `tests/fixtures/lint/<gate>/` and asserts a non-zero exit naming that gate, then against the real tree and asserts zero; `.github/workflows/tests.yml` runs both scripts as one blocking step after the import and before the gdUnit4 run.
+- [x] `tools/lint/gates.sh` runs G1, G2, G2b, G3, G5 and G6 with `rg --glob "*.gd"` over exactly the scopes in ADR-0001 Decision 6 (G2/G2b exclude `src/core/boot.gd`; G3 excludes `src/core/boot.gd`, `src/core/services.gd` and `src/core/boot_result.gd` and drops hit lines that are doc comments — `rg … | rg -v '^[^:]+:[0-9]+:\s*##'`, since ripgrep 14 has no look-around; G6 is `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|pick_random\(`, so `stream.randf()` / `stream.randi_range(…)` / `stream.shuffle(deck)` are not hits and bare `randi_range(` / `randf_range(` / `seed(` are (ADR-0001 erratum 2026-11-03, code review); G2b under `src/gameplay/**` and `src/core/**` is `\bawait\b`, under `src/ai/**` it is the look-around-free deny list `\bawait\b.*(get_tree|process_frame|physics_frame|create_timer|\.timeout|\.finished|tween|signal)`), prints every hit as `<gate> <file>:<line>` and exits non-zero on any hit, zero on a clean tree; it refuses to run (exit 2 with a message) when `rg` is absent or older than 14.
+- [x] G4 asserts exactly one `^[A-Za-z_]+=` line under `[autoload]` in `project.godot`, named `Boot`; G5 asserts zero hits of `MatchState|RunState` under `src/ui/**` and `\.submit\(` only in `*_controller.gd`, `*_driver.gd` and `*_view.gd` there.
+- [x] `tools/lint/parse-check.sh` runs `.claude/scripts/godot-parse-check.gd` once per script (one `godot --headless --path . -s … -- <one path>` invocation per file, so each file is proven alone) over every `.gd` under `src/gameplay/**`, `src/ai/**` and `src/core/**`, and fails on any `PARSE FAIL` line or non-zero exit.
+- [x] Every gate has been watched failing: `tests/integration/boot/boot_lint_gates_test.gd` runs `gates.sh` (via `OS.execute`) against each deliberately broken fixture under `tests/fixtures/lint/<gate>/` and asserts a non-zero exit naming that gate, then against the real tree and asserts zero; `.github/workflows/tests.yml` runs both scripts as one blocking step after the import and before the gdUnit4 run.
 
 ---
 
@@ -69,15 +69,11 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `tools/lint/gates.sh`
-- `tools/lint/parse-check.sh`
-- `.github/workflows/tests.yml` (one new blocking step)
-- `tests/fixtures/lint/<gate>/…` (one broken miniature tree per gate G1–G6)
-- `tests/integration/boot/boot_lint_gates_test.gd`
+- `tools/lint/gates.sh` — created (G1, G2, G2b, G3, G4, G5, G6; `[root]` argument; rg >= 14 guard)
+- `tools/lint/parse-check.sh` — created (one `godot-parse-check.gd` run per file under `src/gameplay`, `src/ai`, `src/core`)
+- `.github/workflows/tests.yml` — modified (step "Install ripgrep >= 14"; blocking step "Lint gates G1-G6 and per-file parse check" after the imports, before gdUnit4)
+- `tests/integration/boot/boot_lint_gates_test.gd` (+ `.uid`) — created, 11 test functions
+- `tests/fixtures/lint/` — created: `.gdignore`; `g1`, `g2`, `g2b`, `g3`, `g4`, `g4_wrong_name`, `g5`, `g6` miniature trees (each a `project.godot` and/or `src/` with one planted violation plus must-not-hit files); `fake_rg13/rg` (version-guard fixture)
 
 ---
 
@@ -95,7 +91,7 @@ checks scope against it.*
 **Required evidence**:
 - Integration: `tests/integration/boot/boot_lint_gates_test.gd` — must exist and pass; plus a green `tests.yml` run whose lint step log shows each gate reported 0 hits and each rules file `ok:`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created 2026-11-03 — 11 test functions, passing (full suite `commands.test` 348/348, exit 0); the green `tests.yml` run is pending the first push (not pushed from the lane)
 
 ---
 
@@ -105,3 +101,24 @@ checks scope against it.*
 - Unlocks: `production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md`; every rules story in later epics (they are built against a green gate step)
 
 > **QA note (2026-11-03, sprint-2 QA plan):** the CI job installs ripgrep ≥ 14 explicitly and prints `rg --version`; patterns per the ADR-0001 G2b/G3/G6 errata.
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-11-03
+**Started / finished (UTC)**: 2026-11-03 21:00 — 2026-11-03 21:11
+**Criteria**: 4/4 passing (none deferred)
+**Deviations** (advisory):
+- Fixtures sit behind `tests/fixtures/lint/.gdignore` although the Implementation Notes call that unnecessary: the planted files are deliberately wrong (a second `Services` class_name, scripts naming types that do not exist) and must not be imported, parsed or registered by Godot.
+- Beyond the AC, `gates.sh` exits 2 (never 0) when rg itself errors or the root is missing, and prints `<gate> hits: <n>` for every gate so a gate that did not run is visible in the log; G4 also fails a single autoload not named `Boot` (fixture `g4_wrong_name`); the rg-missing and rg-13 refusals are tested (`fake_rg13/rg`).
+- The CI ripgrep step installs from the Ubuntu archive unconditionally (QA note) rather than relying on the runner image as the Implementation Notes assumed; `tools/setup.sh` unchanged.
+- The data-read gate (ADR-0002, `JSON.new(` / `JSON.parse_string`) is not in `gates.sh` — Out of Scope here; it stays the gdUnit4 suite `tests/unit/card_database/card_database_single_parser_test.gd`.
+- Pending: the first green `tests.yml` run (the lane does not push); the same steps ran locally with ripgrep 14.1.0 and Godot 4.7.2.
+**Patterns**: transcribed from ADR-0001 Decision 6 with its 2026-11-03 errata and the control manifest gate table; all 0 hits on the current tree, so no pattern correction was needed.
+**Watched failing**: every gate on its fixture (the suite) and again on a planted violation in a scratch copy of the real `src/` + `project.godot` (G1 `extends Control`, G2 `queue_free()`, G2b `await` in `src/core/rng/` and `await get_tree().create_timer(…).timeout` in `src/ai/`, G3 `Services` in `meta_stub.gd`, G4 a second autoload, G5 `RunState` and `.submit(` in `boot_screen.gd`, G6 `randi_range(1, 6)` in `match_state.gd`) — each exit 1 naming its gate; `parse-check.sh` on a scratch copy of the project with a planted syntax error — exit 1, `PARSE FAIL: res://src/gameplay/match/broken_rule.gd`, 19 checked. Nothing planted was committed.
+**Verification**: `godot --headless --path . --import` exit 0; `commands.test` 348 test cases, 0 failures, exit 0 (SCRIPT ERRORs only the existing negative tests); `commands.smoke` exit 0, no SCRIPT ERROR; `bash tools/lint/gates.sh` exit 0 (every gate 0 hits); `bash tools/lint/parse-check.sh` 18 checked, 0 failed.
+**Run result**: N/A — CI tooling; nothing a player can see changed (no scene, script under `src/` or asset touched).
+**TD retired**: TD-001, TD-002, TD-005, TD-006, TD-007, TD-010 (architecture.md §Tech-debt retirement mapping).
+**Test Evidence**: `tests/integration/boot/boot_lint_gates_test.gd` (11 tests)
+**Reviewed by**: self, no independent review (review_mode lean: QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run in the lane)

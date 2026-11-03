@@ -53,8 +53,9 @@ This supplements (not replaces) the agent's built-in knowledge.
   rng-event-log story 001): inside `RngStream`, `randi_range(lo, hi)` called the
   global unseeded generator while `self.randi_range(lo, hi)` called the class
   method. Call such methods through `self.` (`randi`, `randf`, `randi_range`,
-  `randf_range`, `seed`, `randomize` …); the no-global-RNG lint must still
-  catch the bare forms inside `src/core/rng/`
+  `randf_range`, `seed`, `randomize` …); `src/core/rng/` is excluded from the
+  no-global-RNG lint (ADR-0003), so inside it the guard is the scripted-trace
+  tests in `tests/unit/rng_event_log/` (every draw is counted), not the lint
 - **An autoload script must not declare a `class_name` equal to its autoload
   name** (observed on 4.7.2, 2026-11-03): `class_name Boot` on the script
   registered as autoload `Boot` is a parse error ("Class \"Boot\" hides an

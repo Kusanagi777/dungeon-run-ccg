@@ -1,0 +1,5 @@
+# Godot skips this folder. Each subfolder is a miniature project tree for
+# tools/lint/gates.sh, holding a deliberately broken script per gate
+# (story boot-composition-root/story-005). They are data for
+# tests/integration/boot/boot_lint_gates_test.gd, not game scripts: Godot must
+# not import, parse or register them.

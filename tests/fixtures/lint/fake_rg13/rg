@@ -1,0 +1,4 @@
+#!/bin/sh
+# Lint fixture (story boot-composition-root/story-005): a ripgrep older
+# than 14, for the version guard in tools/lint/gates.sh.
+echo "ripgrep 13.0.0"

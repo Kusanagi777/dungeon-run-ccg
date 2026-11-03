@@ -1,0 +1,11 @@
+; Lint fixture (story boot-composition-root/story-005): G4 planted violation,
+; exactly one autoload but not named Boot.
+config_version=5
+
+[autoload]
+
+GameManager="*res://src/game_manager.gd"
+
+[display]
+
+window/size/viewport_width=1280
