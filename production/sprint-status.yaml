@@ -69,7 +69,7 @@ stories:
     name: "Resolution loop: death check, trigger queue, auras, step cap"
     file: "production/epics/match-rules/story-009-resolution-loop.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 3
     lane: 1
@@ -78,7 +78,7 @@ stories:
     contract: false
     blocker: ""
     note: "edits test_effect_resolver.gd; /code-review at M2"
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-database-006"
     name: "Freeze and CR-6 queries (CR-5 stage 9, CR-6, CR-7)"
     file: "production/epics/card-database/story-006-freeze-and-queries.md"
@@ -262,7 +262,7 @@ stories:
     name: "Playing minions, spells, weapons and the hero power"
     file: "production/epics/match-rules/story-010-play-card-and-hero-power.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 3
     lane: 1
@@ -271,7 +271,7 @@ stories:
     contract: false
     blocker: ""
     note: "critical-lane stretch, directly after MR-009; CE-004 AC-07 / CE-005 / CE-006 need it at M2"
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-effects-006"
     name: "Play triggers, chosen targeting and the one-pass contract"
     file: "production/epics/card-effects/story-006-play-triggers-one-pass.md"

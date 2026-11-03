@@ -38,12 +38,20 @@ const BLADE_DURABILITY: int = 3
 const MISSING_ID: int = 9999
 
 
-## `CardDatabase.card(id)` stand-in: the definitions a test registers, `null`
-## for any other id.
+## `CardDatabase.has(id)` / `card(id)` stand-in: the definitions a test
+## registers. Like the production `card()` (which asserts in debug on an
+## unknown id, card-database story 006) an unknown lookup is a caller bug —
+## recorded in [member unknown_lookups] instead of asserting.
 class FixtureDb extends RefCounted:
 	var cards: Dictionary = {}
+	var unknown_lookups: Array[String] = []
+
+	func has(id: String) -> bool:
+		return cards.has(id)
 
 	func card(id: String) -> Variant:
+		if not cards.has(id):
+			unknown_lookups.append(id)
 		return cards.get(id)
 
 
@@ -141,6 +149,32 @@ func _amounts(log: TestEventLog, side: String) -> Array[int]:
 
 # --- AC-31: burn --------------------------------------------------------------
 
+func test_starting_hand_and_mulligan_draws_fire_no_on_draw() -> void:
+	# Arrange: an on_draw hook and an on_draw trigger script before setup
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.hook_scripts["t_quill.0"] = _hook_marker
+	resolver.scripts[&"on_draw"] = [_trigger_marker]
+	var quill: HookInstaller = MatchFactory.make_hook_installer("t_quill", SIDE_PLAYER, [&"on_draw"])
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [quill]}}, {}, resolver, _db())
+	var setup_hooks: int = _hook_runs(resolver, "t_quill.0")
+	var setup_resolves: int = _resolves(resolver, &"on_draw")
+	var replace_all: Array[bool] = []
+	for _card: Dictionary in _player(engine).hand:
+		replace_all.append(false)
+	var hand_before: int = _player(engine).hand.size()
+
+	# Act: replace the whole hand (C3 step 7), then the turn-1 Start-step draw
+	assert_bool(engine.submit(MatchRecords.mulligan(replace_all)).accepted).is_true()
+
+	# Assert (DD-X13): setup and mulligan draws fired nothing; the Start-step draw did
+	assert_int(setup_hooks).is_equal(0)
+	assert_int(setup_resolves).is_equal(0)
+	assert_int(log.count(&"card_drawn")).is_equal(hand_before * 2 + TestConstants.STARTING_HAND_BOSS + 1)
+	assert_int(_hook_runs(resolver, "t_quill.0")).is_equal(1)
+	assert_int(_resolves(resolver, &"on_draw")).is_equal(1)
+
+
 func test_draw_into_a_full_hand_burns_the_card_without_on_draw() -> void:
 	# Arrange: an on_draw hook on the player's side, an on_draw trigger script
 	var log: TestEventLog = TestEventLog.new()
@@ -219,11 +253,11 @@ func test_four_empty_deck_draws_deal_fatigue_1_2_3_4() -> void:
 	assert_int(int(_player(engine, SIDE_BOSS).fatigue_counter)).is_equal(0)
 	var last: Dictionary = log.last()
 	assert_dict(last.payload).is_equal({"side": SIDE_PLAYER, "amount": 4, "counter": 4})
-	# each fatigue hit went through apply_damage with the FATIGUE source
+	# each fatigue hit went through apply_damage with no source (DD-X14)
 	var hits: Array[Dictionary] = log.of_type(&"damage_dealt")
 	assert_int(hits.size()).is_equal(FATIGUE_DRAWS)
 	for hit: Dictionary in hits:
-		assert_str(str(hit.payload.source)).is_equal(RulesEngine.SOURCE_FATIGUE)
+		assert_that(hit.payload.source).is_null()
 		assert_int(int(hit.payload.target)).is_equal(int(hero.entity_id))
 
 
@@ -534,17 +568,80 @@ func test_return_to_hand_moves_a_fresh_card_instance_of_its_definition() -> void
 	# Act
 	var instance_id: int = engine.return_to_hand(int(minion.entity_id))
 
-	# Assert
-	var event: Dictionary = _assert_one(_since(log, before), "card_added_to_hand")
+	# Assert: one minion_returned (C15, code review 2026-11-03), no card_added_to_hand
+	var event: Dictionary = _assert_one(_since(log, before), "minion_returned")
 	assert_dict(event.payload).is_equal({
-		"side": SIDE_PLAYER, "instance_id": instance_id, "card_id": DEF_GRUNT,
-		"hand_size": hand.size(), "returned_entity_id": int(minion.entity_id),
+		"side": SIDE_PLAYER, "entity_id": int(minion.entity_id), "card_id": DEF_GRUNT,
+		"instance_id": instance_id, "burned": false,
 	})
 	assert_bool(_player(engine).board.is_empty()).is_true()
 	var card: Dictionary = hand[hand.size() - 1]
 	assert_int(int(card.instance_id)).is_equal(instance_id)
 	assert_str(str(card.def_id)).is_equal(DEF_GRUNT)
 	assert_bool(instance_id != int(minion.entity_id)).is_true()
+
+
+func test_return_to_hand_into_a_full_hand_burns_with_one_minion_returned() -> void:
+	# Arrange: a full hand
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _engine(log)
+	var minion: Dictionary = MatchFactory.summon(engine.state(), SIDE_PLAYER, 4, 4, -1, [], DEF_GRUNT)
+	_fill_hand(engine, SIDE_PLAYER)
+	var before: int = log.events.size()
+
+	# Act
+	var instance_id: int = engine.return_to_hand(int(minion.entity_id))
+
+	# Assert: burned: true and no separate card_burned
+	var event: Dictionary = _assert_one(_since(log, before), "minion_returned")
+	assert_dict(event.payload).is_equal({
+		"side": SIDE_PLAYER, "entity_id": int(minion.entity_id), "card_id": DEF_GRUNT,
+		"instance_id": instance_id, "burned": true,
+	})
+	assert_int(_player(engine).hand.size()).is_equal(TestConstants.HAND_SIZE)
+	var grave: Array = _player(engine).graveyard
+	assert_int(int(grave[grave.size() - 1].instance_id)).is_equal(instance_id)
+	assert_bool(_player(engine).board.is_empty()).is_true()
+
+
+func test_summon_of_an_unknown_definition_asks_has_before_card() -> void:
+	# Arrange: CardDatabase.card() asserts on an unknown id (card-database 006)
+	var log: TestEventLog = TestEventLog.new()
+	var db: FixtureDb = _db()
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {}, {}, null, db)
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var before: int = log.events.size()
+
+	# Act
+	var id: int = engine.summon_minion(SIDE_PLAYER, "neutral_test_missing", -1)
+
+	# Assert: the documented no-op, and card() was never asked for the unknown id
+	assert_int(id).is_equal(RulesEngine.NO_ENTITY)
+	assert_array(_since(log, before)).is_empty()
+	assert_array(db.unknown_lookups).is_empty()
+
+
+func test_fatigue_folds_modify_damage_with_no_source() -> void:
+	# Arrange: a player-side modify_damage hook; the player's deck is empty
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var effects: Array[Dictionary] = [{
+		"id": "t_ward.0", "trigger": "modify_damage", "scope": {}, "condition": {},
+		"ops": [{"op": TestEffectResolver.OP_MODIFY_VALUE, "delta": -1}], "once_per_turn": false,
+	}]
+	var ward: HookInstaller = HookInstaller.new(HookInstaller.HOST_KIND_TREASURE, "t_ward", &"player", effects)
+	var engine: RulesEngine = _engine(TestEventLog.new(), null, {"player": {"hook_installers": [ward]}}, {}, resolver)
+	_player(engine).deck.clear()
+	var calls_before: int = resolver.hook_calls.size()
+
+	# Act
+	engine.draw(SIDE_PLAYER, 1)
+
+	# Assert (DD-X14): the fold ran with ctx.source null, on the target's side
+	var calls: Array[Dictionary] = resolver.hook_calls.slice(calls_before)
+	assert_int(calls.size()).is_equal(1)
+	if calls.size() == 1:
+		assert_that(calls[0].ctx.source).is_null()
+		assert_str(String(calls[0].side)).is_equal(SIDE_PLAYER)
 
 
 func test_transform_replaces_the_minion_in_place_with_a_new_entity() -> void:
@@ -568,8 +665,8 @@ func test_transform_replaces_the_minion_in_place_with_a_new_entity() -> void:
 	var sheep: Dictionary = _player(engine, SIDE_BOSS).board[1]
 	var event: Dictionary = _assert_one(_since(log, before), "minion_transformed")
 	assert_dict(event.payload).is_equal({
-		"side": SIDE_BOSS, "old_entity_id": int(victim.entity_id), "entity_id": id,
-		"card_id": DEF_SHEEP, "position": 1,
+		"side": SIDE_BOSS, "entity_id": id, "from_card_id": "", "to_card_id": DEF_SHEEP,
+		"old_entity_id": int(victim.entity_id), "position": 1,
 	})
 	assert_int(int(sheep.entity_id)).is_equal(id)
 	assert_bool(id != int(victim.entity_id)).is_true()

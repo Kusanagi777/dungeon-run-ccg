@@ -1,12 +1,12 @@
 # Story 009: Resolution loop: death check, trigger queue, auras, step cap
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -69,15 +69,11 @@ This is the rule that makes Pillar 4 true: every action runs the same loop, ever
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (`run_action`, `execute`, `death_check`, `recompute_auras`, trigger queue, step cap)
-- `tests/helpers/test_effect_resolver.gd` (scripted `recompute_auras`, `on_heal` ping-pong fixture, Deathrattle scripts)
-- `tests/unit/match_rules/match_rules_resolution_loop_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` (`run_action`, `_run_step` / `_drain` / `_execute_queued`, `_enqueue` with the raise-time snapshot and the in-play guard, `_death_check` in DD-M11 order with Deathrattle and `on_minion_died` raises, `_recompute_auras` with one net-change `auras_recomputed`, the `resolution_step_cap` fault; every command handler, C4 sub-step and step-boundary hook entry runs as its own step; `equip_weapon` queues the replaced weapon's Deathrattle; constants `CTX_QUEUED`, `WEAPON_BROKEN`)
+- `src/gameplay/match/hook_registry.gd` (`run_trigger_entry(point, index, side, ctx)` — one entry as one step)
+- `tests/helpers/test_effect_resolver.gd` (event-trigger responders `add_trigger` / `passes` / `pass_ids`, `subject_is`; fixtures `add_deathrattle_summon`, `add_heal_ping_pong`, `auras`; `candidates_for` skips executed queued passes)
+- `tests/unit/match_rules/match_rules_resolution_loop_test.gd` (new, 12 tests)
+- `tests/unit/match_rules/match_rules_turn_structure_test.gd` (End-step aura assertion re-expressed for a per-step recompute)
 
 ## QA Test Cases
 
@@ -93,7 +89,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_resolution_loop_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (12 test functions)
 
 ---
 
@@ -101,3 +97,19 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-008-win-loss-concede-result.md`
 - Unlocks: `production/epics/match-rules/story-010-play-card-and-hero-power.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 22:58:58 UTC, ended 23:21:20 UTC; the code-review fix commit for stories 006–008 ran 23:06–23:14 inside that window)
+**Criteria**: 4/4 passing — AC-27 (`test_simultaneous_deaths_leave_in_dd_m11_order_and_queue_deathrattles_in_that_order`, `test_a_broken_weapon_leaves_after_the_minions_and_its_deathrattle_queues_after_theirs`), AC-28 (`test_on_damage_trigger_resolves_before_its_own_deathrattle_from_the_raise_time_snapshot`, `test_nothing_is_queued_for_a_source_not_in_play_at_raise_time`), AC-29 (`test_deathrattle_summon_on_a_full_board_takes_the_dead_minions_index`, `test_a_second_simultaneous_summon_on_the_refilled_board_fails`, `test_deathrattle_summon_past_the_board_end_goes_rightmost`, `test_aura_loss_kills_the_buffed_minion_in_the_next_pass_after_the_sources_deathrattle`), AC-30 (`test_heal_ping_pong_faults_resolution_overflow_after_exactly_the_step_cap`, `test_the_step_counter_resets_per_action`); plus `test_replacing_a_weapon_queues_the_old_weapons_deathrattle` (story-006 TODO) and `test_each_hook_trigger_entry_is_followed_by_the_full_loop` (story 008's open item: hook entries now run the loop after **each** entry). Watched fail: 11 of 12 against a `run_action` stub with no loop; the 12th (in-play guard) fails with the guard disabled.
+**Deviations** (advisory):
+- **Queued-trigger execution interface (not fixed by ADR-0007 Key Interfaces):** the engine executes a popped trigger by calling `resolver.resolve(point, ctx)` with `ctx[RulesEngine.CTX_QUEUED] = true` (`ctx` = the resolver's own entry plus `snapshot`); the resolver runs that one pass. No new resolver method. A queue entry the resolver returns must carry `source_id: int` and `effect_id` (optional `point`, `snapshot`). Card-effects story 008 implements against this; record it as an ADR-0007 Key Interfaces note.
+- The engine attaches `ctx.snapshot` (a value copy of the source at raise time, or the dead snapshot with `position` for a Deathrattle) when the resolver's entry has none, and drops an entry whose source is not on the board, a hero, a weapon or in hand at raise time — the resolver remains the owner of "who responds" (C6.5 snapshot fields are the resolver's).
+- Hook trigger points reached **inside** a primitive (`on_draw`, `on_hero_damaged`, `on_minion_summoned`) still run synchronously within the current step: a C10 loop there would run a death check between the ops of one effect pass (ADR-0007, card-effects C6.0 / C6.3 "inside F2 … synchronous"). Step-boundary hook points (`on_match_start`, `on_turn_start`, `on_turn_end`; story 010's `on_card_played`) run one entry per step through the new `HookRegistry.run_trigger_entry` (file outside the story's list).
+- `run_action(step: Callable)` is public (the C10 entry for engine-driven fixture steps); `win_loss_check` runs after it and at the C4 points, not after each C4 sub-step (DD-M12 "when the current action finishes").
+- Deathrattles are raised with one `resolve(&"deathrattle", {candidates: [id], subject, snapshot})` per dead entity, and `on_minion_died` once per dead minion with the survivors as candidates.
+- `trigger_queued` / `trigger_resolved` payload `{point, source_id, effect_id}`; `minion_died {side, entity_id, card_id, position}`; `weapon_destroyed.reason: broken` from the death check; `auras_recomputed {changes: [{entity_id, attack, health, max_health}]}`. Aura enchantments re-applied during the recompute emit no `enchantment_applied`.
+- `match_rules_turn_structure_test.gd`: "`aura_recomputes == before + 1` over a whole `end_turn`" pinned the story-005 placeholder; it now asserts a recompute between the End-step expiry and `turn_ended`.
+- A dead minion's card is not moved to the graveyard (not in C10; story 015 / Content can add it).
+**Test Evidence**: `tests/unit/match_rules/match_rules_resolution_loop_test.gd` (12 tests); full suite 833 test cases, 0 failures, exit 0, 45 SCRIPT ERROR lines (the same intentional negatives as before the story); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — the loop is headless rules code; no scene, node or screen renders it yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

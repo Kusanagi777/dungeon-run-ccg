@@ -282,7 +282,9 @@ func test_end_turn_runs_the_end_step_in_c4_order_then_the_boss_start() -> void:
 	var hand_card: Dictionary = state.players[SIDE_PLAYER].hand[0]
 	hand_card.cost_modifiers.append(MatchFactory.make_enchantment(0, 0, [], null, false, MatchRecords.EXPIRES_END_OF_TURN))
 	var before: int = log.events.size()
-	var auras_before: int = resolver.aura_recomputes
+	# the log size at every recompute (story 009: the C10 loop recomputes after every step)
+	var recompute_at: Array[int] = []
+	resolver.aura_scripts.append(func(_e: RulesEngine) -> void: recompute_at.append(log.events.size()))
 
 	# Act
 	var result: Dictionary = engine.submit(MatchRecords.end_turn(SIDE_PLAYER))
@@ -300,7 +302,10 @@ func test_end_turn_runs_the_end_step_in_c4_order_then_the_boss_start() -> void:
 	assert_array(right.enchantments).is_equal([lasting])
 	assert_int(hand_card.cost_modifiers.size()).is_equal(0)
 	assert_int(boss_minion.enchantments.size()).is_equal(1)
-	assert_int(resolver.aura_recomputes).is_equal(auras_before + 1)
+	# End step 5: auras are recomputed after the expiry and before turn_ended
+	var expired_at: int = int(removed[1].seq)
+	var ended_at: int = int(log.first(&"turn_ended").seq)
+	assert_bool(recompute_at.any(func(size: int) -> bool: return size >= expired_at and size < ended_at)).is_true()
 	assert_dict(log.first(&"turn_ending").payload).is_equal({"turn": 1, "side": SIDE_PLAYER})
 	assert_dict(log.first(&"turn_ended").payload).is_equal({"turn": 1, "side": SIDE_PLAYER})
 	assert_str(String(engine.active_side())).is_equal(SIDE_BOSS)

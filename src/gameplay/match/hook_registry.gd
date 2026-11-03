@@ -145,14 +145,32 @@ func fold(point: StringName, side: StringName, value: int, ctx: Dictionary) -> i
 
 
 ## Runs the entries on trigger point [param point] in installation order:
-## `run_entry.call(entry, side, ctx)` each — one step per entry; the engine
-## runs its C10 loop after each (story 009). Runs nothing when no evaluator
-## is set.
+## `run_entry.call(entry, side, ctx)` each, back to back — the engine's form
+## for a hook point reached inside a primitive (`on_draw`, `on_hero_damaged`,
+## `on_minion_summoned`), which belongs to the current step. Runs nothing when
+## no evaluator is set.
 func run_triggers(point: StringName, side: StringName, ctx: Dictionary) -> void:
 	if not _run_entry.is_valid():
 		return
 	for entry: Dictionary in _entries.get(point, _NO_ENTRIES):
 		_run_entry.call(entry, side, ctx)
+
+
+## Runs the one entry at [param index] (installation order) on trigger point
+## [param point]: `run_entry.call(entry, side, ctx)`. The engine's form at a
+## step boundary (C3 step 4, C4 Start 4 / End 3, C6 `on_card_played`): it runs
+## each entry as its own step and its C10 loop after it (ADR-0005 rule 4;
+## match-rules story 009). An index outside the list, or no evaluator, runs
+## nothing.
+## [codeblock]
+## for i in hooks.entries(&"on_turn_start").size():
+##     engine_step(hooks.run_trigger_entry.bind(&"on_turn_start", i, &"player", {}))
+## [/codeblock]
+func run_trigger_entry(point: StringName, index: int, side: StringName, ctx: Dictionary) -> void:
+	var list: Array = _entries.get(point, _NO_ENTRIES)
+	if not _run_entry.is_valid() or index < 0 or index >= list.size():
+		return
+	_run_entry.call(list[index], side, ctx)
 
 
 ## Gate check (reserved kind: AND over a gate point's entries, short-circuit,

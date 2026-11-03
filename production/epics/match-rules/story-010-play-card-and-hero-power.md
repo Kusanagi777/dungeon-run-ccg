@@ -1,12 +1,12 @@
 # Story 010: Playing minions, spells, weapons and the hero power
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -69,16 +69,11 @@ Playing a card is the longest validation chain in the engine and the order of it
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (`play_card` minion/spell/weapon handlers, `use_hero_power`, `legal_commands` expansion, `effective_cost` base)
-- `tests/helpers/test_effect_resolver.gd` (scripted `targeting_spec` / `legal_targets` per `def_id`)
-- `tests/helpers/card_factory.gd` (fixture set additions if the 2/2 weapon with Deathrattle and the required-target Battlecry minion are missing)
-- `tests/unit/match_rules/match_rules_play_card_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` (`play_card` minion / spell / weapon handlers and `use_hero_power` in C6 / C7 check order, `legal_commands()` expansion, `effective_cost` F1 base, `spell_damage` F7; the spell's `resolving` zone in record lookups; `_run_step(step, cause)` so play steps run under `card_played` / `spell_cast` / `hero_power_used`; constants `TARGETING_*`, `CARD_*`, the new `R_*` codes)
+- `src/gameplay/match/match_state.gd` (PlayerState `resolving` — the spell being cast)
+- `src/gameplay/match/match_records.gd` (`play_card` / `use_hero_power` command builders)
+- `tests/unit/match_rules/match_rules_play_card_test.gd` (new, 15 tests)
+- `tests/unit/match_rules/match_rules_data_model_test.gd` (PlayerState field list gains `resolving`)
 
 ## QA Test Cases
 
@@ -94,7 +89,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_play_card_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (15 test functions)
 
 ---
 
@@ -102,3 +97,23 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-009-resolution-loop.md`
 - Unlocks: `production/epics/match-rules/story-011-effective-cost-and-temporary-mana.md`, `production/epics/match-rules/story-012-attack-legality.md`, `production/epics/match-rules/story-016-choice-phase-and-discover.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 23:33:29 UTC, ended 23:42:03 UTC)
+**Criteria**: 4/4 passing — AC-11 (`test_minion_on_a_full_board_is_board_full`, `test_minion_position_outside_zero_to_board_size_is_invalid_position`, `test_played_minion_enters_the_slot_sick_and_runs_the_play_steps_in_order`, `test_play_card_checks_run_in_the_c6_order`), AC-13 (`test_required_target_spell_with_no_legal_target_is_not_playable`, `test_required_target_battlecry_with_no_legal_target_still_plays_its_body`, `test_required_target_rules_target_required_and_illegal_target`, `test_optional_target_accepts_null_and_none_ignores_target_id`, `test_accepted_spell_resolves_from_the_resolving_zone_then_goes_to_the_graveyard`, `test_a_resolving_spell_is_the_damage_source_for_lifesteal_and_stats`), AC-14 (`test_playing_a_weapon_destroys_the_old_one_and_resolves_its_deathrattle_first`), AC-15 (`test_hero_power_pays_marks_used_fires_and_is_once_per_turn`, `test_hero_power_is_usable_again_after_the_next_own_start_step`, `test_required_target_hero_power_with_no_legal_target_is_not_usable`), plus `test_legal_commands_expand_cards_positions_targets_and_the_hero_power` (C2). Watched fail: 15 of 15 against the story-009 engine (play_card / use_hero_power were `WRONG_PHASE`); mutant — the `resolving` zone dropped from the record lookups — fails the Lifesteal/stats test.
+**Decisions recorded** (open item from story 008):
+- **Where a cast spell lives:** a new PlayerState field `resolving` (Array of CardInstance, zone `resolving`) holds the spell from `spell_cast` until `card_to_graveyard`. `_find_record` / `_owner_of` / the in-play test search it, so a spell's `instance_id` is a damage source: its definition's Lifesteal / Poisonous apply and `damage_dealt_by_card` attributes to its `def_id`. C1's PlayerState list in the GDD should gain `resolving` (owner: match-rules GDD; `MatchState` is [S] for this story, the data-model test updated).
+- **Battlecry with no legal target** (contract for card-effects story 006): the engine does **not** call `resolve(&"battlecry", …)` at all.
+- **Play ctx** for `battlecry` / `on_cast` / `hero_power`: `{side, candidates: [host], source, target_id, card_id}` (spell: `source` = its instance id; minion / weapon: the new entity; power: the hero). Observer points carry `{side, candidates, subject, card_id}`. `legal_targets(def_id, source)` gets `{side, source_id, card_id}` (the hand card's instance id, or the hero for the power).
+- Play steps run under `cause_seq` = `card_played` (minion, weapon), `spell_cast` (spell), `hero_power_used` (power) — card-effects C6.6.
+**Deviations** (advisory):
+- The play order follows card-effects C6.3 (the table testers assert), which adds two steps the story's notes do not list: `on_card_played` **observers** after the hooks, and the `on_minion_summoned` **hooks** between `on_play` and `on_summon` (the played minion is placed by the handler, not `summon_minion`, so its hooks run as their own steps there). Spells also run `on_card_played` hooks + observers between `on_cast` and `after_cast`; weapons skip `on_play`.
+- Spells and weapons emit `card_played` too (C6 lists it for minions; C15 has one event for every play and `stats.cards_played` counts all).
+- `legal_commands()` lists no `concede` (GDD C2 lists only the active side's expansions plus `end_turn`; story 008 decided the same) — the story's note said "and concede for the player".
+- The C6 "type" check returns `INVALID_INDEX` for a hand card with no minion / spell / weapon definition (C2 has no type code); it is not double-failed in the order test.
+- `TARGET_STEALTHED` is not produced: an enemy Stealth character is simply not in `legal_targets` (the resolver's filter), so it is `ILLEGAL_TARGET` / `NO_LEGAL_TARGET`.
+- The hero power's cost is `rule("hero_power_cost")`; its `def_id` is not yet read from the hero record at `start` (still the C3 step 2 TODO) — tests set `hero_power.def_id`.
+- No `card_factory.gd` additions: the fixtures are test-local `CardFactory` records; Deathrattle / Battlecry behaviour is scripted on the resolver double.
+**Test Evidence**: `tests/unit/match_rules/match_rules_play_card_test.gd` (15 tests); full suite 848 test cases, 0 failures, exit 0, 45 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — headless rules code; no scene, node or screen renders a play yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

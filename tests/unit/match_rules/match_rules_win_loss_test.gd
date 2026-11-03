@@ -334,6 +334,78 @@ func test_log_overflow_ends_the_match_with_exactly_one_event_cap_match_ended() -
 	assert_int(engine.state().players[SIDE_PLAYER].hand.size()).is_equal(hand_before)
 
 
+## A started engine past the mulligan on a production `EventLog` whose cap is
+## exactly the events a "keep all" mulligan leaves (counted on a reference
+## run), so the log is full and still Open.
+func _engine_on_a_full_log(resolver: TestEffectResolver) -> RulesEngine:
+	var reference_log: TestEventLog = TestEventLog.new()
+	_engine(reference_log)
+	var log: EventLog = EventLog.new(reference_log.events.size(), EventLog.SCOPE_MATCH)
+	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(), null, {"log": log})
+	var engine: RulesEngine = RulesEngine.new(null, MatchFactory.make_rules_config(), resolver)
+	engine.start(config)
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	assert_int(log.state()).is_equal(EventLog.State.OPEN)
+	return engine
+
+
+func test_match_ended_refused_at_the_log_cap_is_logged_as_an_event_cap_fault() -> void:
+	# Arrange: the log is full, so concede's match_ended is the append that overflows
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine_on_a_full_log(resolver)
+	var log: EventLog = engine.state().log as EventLog
+	var cap: int = log.max_events()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.concede())
+
+	# Assert: log_overflow, then one match_ended(fault, event_cap); the log sealed
+	var events: Array[Dictionary] = log.events_since(0)
+	assert_int(events.size()).is_equal(cap + 2)
+	assert_str(str(events[cap].type)).is_equal("log_overflow")
+	EventLogAssertions.assert_last_type(events, &"match_ended")
+	assert_int(EventLogAssertions.count_type(events, &"match_ended")).is_equal(1)
+	var payload: Dictionary = events[events.size() - 1].payload
+	assert_array([payload.result, payload.reason, payload.winner]).is_equal([MatchRecords.RESULT_FAULT, MatchRecords.REASON_EVENT_CAP, null])
+	assert_bool(log.is_sealed()).is_true()
+	assert_bool(result.accepted).is_true()
+	var outcome: Dictionary = engine.result()
+	assert_array([outcome.result, outcome.reason, outcome.winner]).is_equal([MatchRecords.RESULT_FAULT, MatchRecords.REASON_EVENT_CAP, null])
+	assert_int(resolver.unbind_count).is_equal(1)
+
+
+func test_rejection_that_overflows_the_log_returns_an_empty_event_range() -> void:
+	# Arrange: the log is full; the boss's end_turn is NOT_YOUR_TURN
+	var engine: RulesEngine = _engine_on_a_full_log(TestEffectResolver.new())
+
+	# Act: its command_rejected diagnostic is the append that overflows
+	var result: Dictionary = engine.submit(MatchRecords.end_turn(SIDE_BOSS))
+
+	# Assert: rejected with range [0, 0], and the match faulted on event_cap
+	_assert_rejected(result, "NOT_YOUR_TURN")
+	assert_array(result.events).is_equal([0, 0])
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+
+
+func test_submit_after_end_match_on_a_live_engine_is_match_ended() -> void:
+	# Arrange: a live match torn down by the driver's teardown entry
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _engine(log)
+	var turn: int = engine.state().turn
+	engine.end_match()
+	var before: int = log.events.size()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.end_turn(SIDE_PLAYER))
+
+	# Assert: rejected, unlogged, nothing moved
+	_assert_rejected(result, "MATCH_ENDED")
+	assert_array(result.events).is_equal([0, 0])
+	assert_int(log.events.size()).is_equal(before)
+	assert_int(engine.state().turn).is_equal(turn)
+
+
 func test_ended_engine_is_collected_after_unbind() -> void:
 	# Arrange: a weak reference only, once the match has ended
 	var resolver: TestEffectResolver = TestEffectResolver.new()

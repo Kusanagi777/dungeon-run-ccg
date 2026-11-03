@@ -24,8 +24,21 @@
 ##   `"friendly"` (the default — the fold side equals `entry.side`), `"enemy"`
 ##   or `"any"`.
 ## - `legal_targets` / `targeting_spec` answer from [member targets_by_def] /
-##   [member specs_by_def]; `recompute_auras()` counts calls and runs
-##   [member aura_scripts]; `resume` records its arguments.
+##   [member specs_by_def]; `recompute_auras()` counts calls, re-applies the
+##   fixture [member auras] and runs [member aura_scripts]; `resume` records
+##   its arguments.
+## - **Event triggers** (match-rules story 009, the C10 queue): a test
+##   registers responders with [method add_trigger] — `{point, source_id,
+##   effect_id, run, guard}`. A *collecting* `resolve(point, ctx)` walks
+##   `ctx.candidates` in engine order and, per candidate, the registered
+##   triggers in registration order (the resolver orders only within one
+##   entity), and returns one queue entry `{source_id, effect_id}` for each
+##   whose `guard` (if set) answers true. When the engine pops that entry it
+##   calls `resolve(point, ctx)` again with `ctx[RulesEngine.CTX_QUEUED] =
+##   true`: the double records it in [member passes] and runs the trigger's
+##   `run` as `run.call(engine, ctx)` — one effect pass, one C10 step.
+##   Fixture builders: [method add_deathrattle_summon], [method
+##   add_heal_ping_pong] (AC-30), [member auras].
 ##
 ## Scripts are bound methods or lambdas that capture nothing mutable (lambdas
 ## capture locals by value — current-best-practices "GDScript (4.5+)").
@@ -79,6 +92,50 @@ var aura_scripts: Array[Callable] = []
 var aura_recomputes: int = 0
 ## Every `resume` call: `{choice, option_index}`.
 var resume_calls: Array[Dictionary] = []
+## Registered event-trigger responders, in registration order:
+## `{point: StringName, source_id: int, effect_id: String, run: Callable,
+## guard: Callable}` (see [method add_trigger]).
+var triggers: Array[Dictionary] = []
+## Every queued pass the engine executed, in order: `{point, ctx}` (a deep
+## copy, so `ctx.snapshot` is the raise-time snapshot the engine carried).
+var passes: Array[Dictionary] = []
+## Fixture auras (C10 `recompute_auras`): `entity_id → {attack_delta,
+## health_delta}` — each living source buffs every **other** minion on its
+## own board, sources in board order, player side first.
+var auras: Dictionary = {}
+
+
+## Registers an event-trigger responder: entity [param source_id] responds to
+## trigger point [param point] (when [param guard], called `(engine, ctx)`,
+## is unset or answers true) with effect [param effect_id], whose pass is
+## [param pass_script] `(engine, ctx)` (unset: a pass that does nothing).
+## [codeblock]
+## resolver.add_trigger(&"on_damage", id, "m.0", draw_one, resolver.subject_is.bind(id))
+## [/codeblock]
+func add_trigger(point: StringName, source_id: int, effect_id: String, pass_script: Callable = Callable(), guard: Callable = Callable()) -> void:
+	triggers.append({"point": point, "source_id": source_id, "effect_id": effect_id, "run": pass_script, "guard": guard})
+
+
+## `guard` helper: true when `ctx.subject` is [param entity_id] (bind it).
+func subject_is(_engine: RulesEngine, ctx: Dictionary, entity_id: int) -> bool:
+	return ctx.get("subject") == entity_id
+
+
+## Fixture Deathrattle (C10 summons): when [param source_id] dies, summon
+## [param count] × [param def_id] for its controller at its former index
+## (`ctx.snapshot.position`) — the engine clamps a past-the-end index to the
+## rightmost slot and a full board answers `summon_failed`.
+func add_deathrattle_summon(source_id: int, def_id: String, count: int = 1) -> void:
+	add_trigger(&"deathrattle", source_id, "dr_summon.%d" % source_id, _summon_from_snapshot.bind(def_id, count))
+
+
+## AC-30 fixture: each of [param first_id] and [param second_id] has
+## "whenever the other friendly minion is healed, heal this one for 1". A
+## full-health heal restores 0 and still emits `healed` (C9), so the pair
+## ping-pongs forever — one queued step per heal — until the step cap.
+func add_heal_ping_pong(first_id: int, second_id: int) -> void:
+	add_trigger(&"on_heal", first_id, "ping.%d" % first_id, _heal_one.bind(first_id), subject_is.bind(second_id))
+	add_trigger(&"on_heal", second_id, "ping.%d" % second_id, _heal_one.bind(second_id), subject_is.bind(first_id))
 
 
 ## ADR-0007 Decision 2: store the engine, install [param installers] in order
@@ -103,22 +160,50 @@ func unbind() -> void:
 	engine = null
 
 
-## Records the call, runs the scripted Callables for [param point], returns
-## the scripted queued triggers.
+## Records the call. For a queued pass (`ctx[RulesEngine.CTX_QUEUED]`) runs
+## that trigger's `run` and returns `[]`; otherwise runs the scripted
+## Callables for [param point] and returns the scripted [member queued]
+## entries followed by the registered responders among `ctx.candidates`.
 func resolve(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 	resolve_calls.append({"point": point, "ctx": ctx.duplicate(true)})
+	var out: Array[Dictionary] = []
+	if ctx.get(RulesEngine.CTX_QUEUED, false):
+		passes.append({"point": point, "ctx": ctx.duplicate(true)})
+		for trigger: Dictionary in triggers:
+			if trigger.effect_id == str(ctx.get("effect_id", "")) and (trigger.run as Callable).is_valid():
+				(trigger.run as Callable).call(engine, ctx)
+				break
+		return out
 	for script: Callable in scripts.get(point, []):
 		script.call(engine, ctx)
-	var out: Array[Dictionary] = []
 	out.assign(queued.get(point, []))
+	for candidate: Variant in ctx.get("candidates", []):
+		for trigger: Dictionary in triggers:
+			if trigger.point != point or int(trigger.source_id) != int(candidate):
+				continue
+			var guard: Callable = trigger.guard
+			if guard.is_valid() and not guard.call(engine, ctx):
+				continue
+			out.append({"source_id": int(candidate), "effect_id": str(trigger.effect_id)})
 	return out
 
 
-## `ctx.candidates` of every recorded `resolve` call on [param point], in call order.
+## The `effect_id` of every executed queued pass on [param point] (all points
+## when empty), in execution order.
+func pass_ids(point: StringName = &"") -> Array[String]:
+	var out: Array[String] = []
+	for entry: Dictionary in passes:
+		if point == &"" or entry.point == point:
+			out.append(str(entry.ctx.effect_id))
+	return out
+
+
+## `ctx.candidates` of every recorded `resolve` call that fired trigger point
+## [param point] (the engine executing a queued pass is not a fire), in call order.
 func candidates_for(point: StringName) -> Array:
 	var found: Array = []
 	for call: Dictionary in resolve_calls:
-		if call.point == point:
+		if call.point == point and not call.ctx.get(RulesEngine.CTX_QUEUED, false):
 			found.append(call.ctx.get("candidates", []))
 	return found
 
@@ -135,11 +220,39 @@ func targeting_spec(def_id: String) -> Dictionary:
 	return specs_by_def.get(def_id, DEFAULT_TARGETING_SPEC)
 
 
-## Counts the call and runs [member aura_scripts].
+## Counts the call, re-applies [member auras] (every living source in board
+## order, player side first, through `apply_enchantment(…, is_aura = true)`
+## — the engine stripped every aura enchantment first), then runs
+## [member aura_scripts].
 func recompute_auras() -> void:
 	aura_recomputes += 1
+	for side: String in MatchRecords.SIDES:
+		var board: Array = engine.state().players[side].board
+		for source: Dictionary in board:
+			var aura: Variant = auras.get(int(source.entity_id))
+			if aura == null:
+				continue
+			for other: Dictionary in board:
+				if other.entity_id == source.entity_id:
+					continue
+				engine.apply_enchantment(int(other.entity_id), {
+					"attack_delta": int(aura.get("attack_delta", 0)), "health_delta": int(aura.get("health_delta", 0)),
+					"source_entity_id": int(source.entity_id), "is_aura": true,
+				})
 	for script: Callable in aura_scripts:
 		script.call(engine)
+
+
+func _summon_from_snapshot(bound_engine: RulesEngine, ctx: Dictionary, def_id: String, count: int) -> void:
+	var snapshot: Dictionary = ctx.snapshot
+	for _i: int in count:
+		@warning_ignore("return_value_discarded")
+		bound_engine.summon_minion(str(snapshot.controller), def_id, int(snapshot.position))
+
+
+func _heal_one(bound_engine: RulesEngine, _ctx: Dictionary, entity_id: int) -> void:
+	@warning_ignore("return_value_discarded")
+	bound_engine.apply_heal(entity_id, 1, entity_id)
 
 
 ## Records the `choose` continuation call.
