@@ -28,7 +28,19 @@
 ## ADR-0004 inherits the rule) because JSON numbers are doubles, exact only to
 ## 2^53 (probe E).
 ##
-## `snapshot()` / `restore()` and the command guard are Story 003.
+## Save and resume (rule 10, F5; story 003): [method snapshot] records each
+## stream's `draws` — forks under their full `"<parent>/<label>"` name plus the
+## parent position each fork was taken at — and [method restore] rebuilds them
+## by reseed-and-discard, forks through `stream(parent).fork(label)`, never by
+## persisting `RandomNumberGenerator.state`. A snapshot is refused while a
+## command is open ([method begin_command] / [method end_command]); the
+## persisted form ([method snapshot_to_json_dict]) carries `run_seed_hex`.
+## [codeblock]
+## var save: Dictionary = rng.snapshot_to_json_dict()  # between commands only
+## var snap: Dictionary = RngService.snapshot_from_json_dict(loaded)
+## var resumed: RngService = RngService.new(snap.run_seed, db.data_version())
+## if resumed.restore(snap) != OK: pass  # data_version changed: run abandoned
+## [/codeblock]
 ##
 ## NOT SOURCEABLE: signed-int64 wraparound of the F2/F3 constants has no page
 ## in `docs/engine-reference/godot/`; it is pinned on the installed engine by
@@ -87,6 +99,8 @@ var data_version: String:
 var _run_seed: int = 0
 var _data_version: String = ""
 var _streams: Dictionary = {}
+## Open [method begin_command] calls not yet matched by [method end_command].
+var _open_commands: int = 0
 
 
 ## A service for `seed_value` under `version`. Creates no stream and takes no
@@ -120,6 +134,118 @@ func stream(stream_name: String) -> RngStream:
 ## Example: `rng.has_stream("draft_2")`.
 func has_stream(stream_name: String) -> bool:
 	return _streams.has(stream_name)
+
+
+## Opens a command (rule 8): from here until the matching [method end_command]
+## a draw sequence is in progress and [method snapshot] is refused. Commands
+## nest; the guard holds until the outermost `end_command()`. Called by
+## `MatchDriver` and `RunMachine` around command processing.
+## Example: `rng.begin_command(); engine.apply(cmd); rng.end_command()`.
+func begin_command() -> void:
+	_open_commands += 1
+
+
+## Closes the innermost open command. Without an open command it is a caller
+## bug: `push_error`, and the guard stays balanced (nothing is closed).
+## Example: see [method begin_command].
+func end_command() -> void:
+	if _open_commands == 0:
+		push_error("RngService.end_command: no command is open")
+		return
+	_open_commands -= 1
+
+
+## Rule 10: `{run_seed: int, data_version: String, streams: {name: draws},
+## fork_points: {fork_name: parent_draws_before_fork}}` — every stream this
+## service has served, forks included under their full `"<parent>/<label>"`
+## name (recursively). Every value is JSON-safe except `run_seed`, which stays
+## an `int` in memory (persist with [method snapshot_to_json_dict]). Refused
+## between [method begin_command] and [method end_command]: `push_error` and
+## `{}` (Edge Cases "mid-command"). Takes no draw.
+## Example: `rng.snapshot().streams["match_3"] == 37`.
+func snapshot() -> Dictionary:
+	if _open_commands > 0:
+		push_error("RngService.snapshot: refused while a command is open (begin_command() without end_command())")
+		return {}
+	var positions: Dictionary = {}
+	var fork_points: Dictionary = {}
+	for stream_name: String in _streams:
+		_record_positions(_streams[stream_name], positions, fork_points)
+	return {"run_seed": run_seed, "data_version": data_version, "streams": positions, "fork_points": fork_points}
+
+
+## Rule 10 / F5: puts every stream back at the position `snap` records.
+## Returns `ERR_INVALID_DATA` having changed nothing when `snap.data_version`
+## differs from this service's (Edge Cases "saved run with a different
+## data_version" — Run Structure ends the run `abandoned`), and, with a
+## `push_error`, when `snap.run_seed` is not this service's or an entry is
+## malformed (a non-`int` or negative `draws`, a fork whose parent is absent,
+## whose name breaks rule 3, or whose fork point is missing, outside the
+## parent's draws or shared with a sibling). Otherwise each root is restored in
+## place (`stream(name)`; held references stay valid), its forks re-taken
+## through `fork(label)` at their recorded parent positions so their F3 seeds
+## match, every cached fork the snapshot does not hold is dropped, and streams
+## the snapshot lacks are removed. Returns `OK`.
+## Example: `RngService.new(snap.run_seed, "1.1").restore(snap) == ERR_INVALID_DATA` for a `"1.0"` snap.
+func restore(snap: Dictionary) -> Error:
+	if snap.get("data_version") != data_version:
+		return ERR_INVALID_DATA
+	var problem: String = _snapshot_problem(snap)
+	if not problem.is_empty():
+		push_error("RngService.restore: %s" % problem)
+		return ERR_INVALID_DATA
+	var positions: Dictionary = snap.streams
+	for stream_name: String in _streams.keys():
+		if not positions.has(stream_name):
+			_streams.erase(stream_name)
+	for stream_name: String in positions:
+		if not stream_name.contains("/"):
+			_rebuild(stream(stream_name), positions, snap.get("fork_points", {}))
+	return OK
+
+
+## The persisted form of [method snapshot] (rule 10; ADR-0003 Decision 4,
+## ADR-0004): `run_seed` replaced by `run_seed_hex`, 16 uppercase hex digits,
+## because a JSON number is exact only to 2^53 (probe E). `{}` (and the
+## snapshot's error) while a command is open.
+## Example: `RngService.new(42, "v").snapshot_to_json_dict().run_seed_hex == "000000000000002A"`.
+func snapshot_to_json_dict() -> Dictionary:
+	var snap: Dictionary = snapshot()
+	if snap.is_empty():
+		return {}
+	return {
+		"run_seed_hex": to_hex_u64(snap.run_seed),
+		"data_version": snap.data_version,
+		"streams": snap.streams,
+		"fork_points": snap.fork_points,
+	}
+
+
+## The inverse of [method snapshot_to_json_dict] for a parsed JSON Dictionary:
+## `run_seed_hex` → `run_seed` ([method parse_hex_u64]) and every integral
+## float in `streams` / `fork_points` back to `int` (every JSON number parses
+## as a float). A missing or malformed `run_seed_hex` (not exactly 16 hex
+## digits) or a `streams` / `fork_points` that is not a Dictionary is a data
+## fault: `push_error` and `{}` (which [method restore] rejects). Other bad
+## values are passed through for [method restore] to reject. The caller parses
+## the text (the profile loader, ADR-0004); this takes the parsed Dictionary.
+## Example: `RngService.snapshot_from_json_dict(parsed_save.rng_snapshot).run_seed`.
+static func snapshot_from_json_dict(d: Dictionary) -> Dictionary:
+	var hex: Variant = d.get("run_seed_hex")
+	if typeof(hex) != TYPE_STRING or hex.begins_with("0x") or not _whole_match(_hex_seed_regex, hex):
+		push_error("RngService.snapshot_from_json_dict: run_seed_hex %s is not 16 hex digits" % str(hex).c_escape())
+		return {}
+	var streams: Variant = d.get("streams")
+	var fork_points: Variant = d.get("fork_points", {})
+	if typeof(streams) != TYPE_DICTIONARY or typeof(fork_points) != TYPE_DICTIONARY:
+		push_error("RngService.snapshot_from_json_dict: streams and fork_points must be objects")
+		return {}
+	return {
+		"run_seed": parse_hex_u64(hex),
+		"data_version": d.get("data_version"),
+		"streams": _whole_floats_to_int(streams),
+		"fork_points": _whole_floats_to_int(fork_points),
+	}
 
 
 ## Builds the stream [method stream] memoises. The one construction seam: a
@@ -231,6 +357,80 @@ static func parse_hex_u64(hex16: String) -> int:
 ## Example: `RngService.is_valid_stream_name("ai_1/sim_3")` → true.
 static func is_valid_stream_name(stream_name: String) -> bool:
 	return _whole_match(_name_regex, stream_name)
+
+
+# --- snapshot / restore internals ----------------------------------------------
+
+# Records `stream` and, recursively, its cached forks into the two maps.
+func _record_positions(stream: RngStream, positions: Dictionary, fork_points: Dictionary) -> void:
+	positions[stream.name] = stream.draws
+	for child: RngStream in stream._forks.values():
+		fork_points[child.name] = child.forked_at
+		_record_positions(child, positions, fork_points)
+
+
+# F5 for `stream` and its snapshotted forks: reseed (dropping every cached
+# fork), replay each fork call at its recorded parent position in position
+# order, then discard up to the stream's own `draws`.
+func _rebuild(stream: RngStream, positions: Dictionary, fork_points: Dictionary) -> void:
+	stream.restore(0)
+	var prefix: String = stream.name + "/"
+	var children: Array[String] = []
+	for stream_name: String in positions:
+		if stream_name.begins_with(prefix) and not stream_name.substr(prefix.length()).contains("/"):
+			children.append(stream_name)
+	children.sort_custom(func(a: String, b: String) -> bool: return fork_points[a] < fork_points[b])
+	for child_name: String in children:
+		stream._skip_to(fork_points[child_name])
+		_rebuild(stream.fork(child_name.substr(prefix.length())), positions, fork_points)
+	stream._skip_to(positions[stream.name])
+
+
+# Why `snap` (data_version already matched) cannot be restored, or "".
+func _snapshot_problem(snap: Dictionary) -> String:
+	var seed_value: Variant = snap.get("run_seed")
+	if typeof(seed_value) != TYPE_INT or seed_value != run_seed:
+		var shown: String = to_hex_u64(seed_value) if typeof(seed_value) == TYPE_INT else str(seed_value)
+		return "snapshot run_seed %s is not this service's %s" % [shown, to_hex_u64(run_seed)]
+	var positions: Variant = snap.get("streams")
+	var fork_points: Variant = snap.get("fork_points", {})
+	if typeof(positions) != TYPE_DICTIONARY or typeof(fork_points) != TYPE_DICTIONARY:
+		return "streams and fork_points must be Dictionaries"
+	var taken: Dictionary = {}
+	for key: Variant in positions:
+		var draws: Variant = positions[key]
+		if typeof(key) != TYPE_STRING or typeof(draws) != TYPE_INT or draws < 0:
+			return "stream %s has bad draws %s" % [str(key), str(draws)]
+		var stream_name: String = key
+		if not stream_name.contains("/"):
+			continue
+		var parent: String = stream_name.substr(0, stream_name.rfind("/"))
+		if not is_valid_stream_name(stream_name) or not positions.has(parent):
+			return "fork %s has no parent stream or breaks rule 3" % stream_name
+		var point: Variant = fork_points.get(stream_name)
+		var parent_draws: Variant = positions[parent]
+		if typeof(point) != TYPE_INT or point < 0 or typeof(parent_draws) != TYPE_INT or point >= parent_draws:
+			return "fork %s has bad fork point %s" % [stream_name, str(point)]
+		var slot: String = "%s@%d" % [parent, point]
+		if taken.has(slot):
+			return "forks %s and %s share fork point %d" % [taken[slot], stream_name, point]
+		taken[slot] = stream_name
+	for fork_name: Variant in fork_points:
+		if not positions.has(fork_name) or not str(fork_name).contains("/"):
+			return "fork point %s names no snapshotted fork" % str(fork_name)
+	return ""
+
+
+# A copy of `d` with every whole-number float value as `int` (JSON numbers
+# arrive as floats); other values unchanged.
+static func _whole_floats_to_int(d: Dictionary) -> Dictionary:
+	var out: Dictionary = {}
+	for key: Variant in d:
+		var value: Variant = d[key]
+		if typeof(value) == TYPE_FLOAT and is_finite(value) and value == floorf(value):
+			value = int(value)
+		out[key] = value
+	return out
 
 
 # Caller-bug report, as `RngStream._reject`: asserts in debug builds (the

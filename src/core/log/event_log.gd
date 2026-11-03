@@ -101,6 +101,11 @@ enum State { OPEN, FAULTED, SEALED }
 ## so [method from_json] leaves it a float.
 const _INT64_FLOAT_BOUND: float = 9223372036854775808.0
 
+## The player's `side` value in match payloads (rng-event-log catalogue:
+## `side` ∈ {player, boss}); [method reduce_to_summary] attributes damage and
+## counts plays for this side only.
+const _SIDE_PLAYER: String = "player"
+
 ## The type that seals a log of each scope (rule 15).
 const _SEALING_TYPE: Dictionary[String, String] = {
 	SCOPE_MATCH: "match_ended",
@@ -109,6 +114,9 @@ const _SEALING_TYPE: Dictionary[String, String] = {
 
 var _max_events: int
 var _scope: String
+# The type that seals this log (`_SEALING_TYPE[_scope]`, "" for a bad scope),
+# looked up once: append compares against it on every call.
+var _sealing_type: String = ""
 var _meta: Dictionary
 var _events: Array[Dictionary] = []
 var _subscribers: Array[Callable] = []
@@ -129,6 +137,7 @@ var _pending: Array[Dictionary] = []
 func _init(max_events: int, scope: String, meta: Dictionary = {}) -> void:
 	_max_events = max_events
 	_scope = scope
+	_sealing_type = _SEALING_TYPE.get(scope, "")
 	_meta = meta.duplicate(true)
 	if not _SEALING_TYPE.has(scope):
 		push_error("EventLog: unknown scope \"%s\" (expected \"%s\" or \"%s\")" % [scope, SCOPE_MATCH, SCOPE_RUN])
@@ -158,18 +167,26 @@ func append(type: StringName, payload: Dictionary, cause_seq: int = 0) -> int:
 	if _state == State.OPEN and _events.size() >= _max_events:
 		_overflow(type_name)
 		return -1
-	# Untyped on purpose: the list must compare equal to its JSON round trip.
-	var coerced: Array = []
-	var stored_payload: Dictionary = _json_copy(payload, "", coerced)
-	if not coerced.is_empty():
-		_caller_bug("EventLog.append: '%s' payload holds non-JSON values at %s" % [type_name, ", ".join(PackedStringArray(coerced))])
-		stored_payload["_coerced"] = coerced
+	# Fast path (the 10,000-append budget, story 010): a payload that is already
+	# rule 14 plain is deep-copied natively and its nested containers frozen in
+	# one pass. Anything else takes the coercing copy below.
+	var stored_payload: Dictionary = payload.duplicate(true)
+	if not _freeze_plain_children(stored_payload):
+		# Untyped on purpose: the list must compare equal to its JSON round trip.
+		var coerced: Array = []
+		stored_payload = _json_copy(payload, "", coerced)
+		@warning_ignore("return_value_discarded")
+		_freeze_plain_children(stored_payload)
+		if not coerced.is_empty():
+			_caller_bug("EventLog.append: '%s' payload holds non-JSON values at %s" % [type_name, ", ".join(PackedStringArray(coerced))])
+			coerced.make_read_only()
+			stored_payload["_coerced"] = coerced
 	if _notifying:
 		_caller_bug("EventLog.append: re-entrant append of '%s' from a subscriber" % type_name)
 		stored_payload["_reentrant"] = true
 	var seq: int = _store(type_name, stored_payload, cause_seq)
 	# Faulted accepts exactly one more event, whatever its type (ADR-0003 D8).
-	if _state == State.FAULTED or type_name == _SEALING_TYPE.get(_scope, ""):
+	if _state == State.FAULTED or type_name == _sealing_type:
 		_state = State.SEALED
 	_deliver()
 	return seq
@@ -260,6 +277,71 @@ func to_json() -> String:
 	var header: Dictionary = snapshot()
 	header["log_schema_version"] = LOG_SCHEMA_VERSION
 	return JSON.stringify(header, "\t")
+
+
+## Rules 18-19: the sealed match log reduced to its `match_summary` payload,
+## `{floor, result, winner, reason, turns, event_count, cards_played,
+## damage_by_card}` (the catalogue row). `result`, `winner`, `reason`, `turns`
+## (and `floor`, else the header's) are copied from the `match_ended` payload
+## (match-rules C14 `MatchResult`; a fault's `winner` is `null`);
+## `event_count` is [method size]; `cards_played` counts the player's
+## `card_played` events. `damage_by_card` (rule 19) sums `damage_dealt.dealt`
+## — damage actually applied (match-rules C15), never `requested` — per
+## `card_id`, over events whose `source` is a player-owned instance in the
+## `instance_id → card_id` map built, in log order, from `minion_summoned`,
+## `weapon_equipped` and `card_played` (`side == "player"`) and from
+## `hero_power_used`, whose `power_id` is mapped under the player's hero
+## instance (`match_started.hero_id`). A source with no entry (fatigue, a boss
+## instance, an unknown id) attributes to nothing, silently. Reads only: the
+## log is not changed and nothing is appended (Run Structure appends the
+## summary to the run log). A log that is not a sealed match log is a caller
+## bug: `push_error` and `{}` — never an assert on payload data.
+## Example: `run_log.append(&"match_summary", match_log.reduce_to_summary())`.
+func reduce_to_summary() -> Dictionary:
+	var ended: Dictionary = {}
+	if _scope == SCOPE_MATCH and is_sealed():
+		for i: int in range(_events.size() - 1, -1, -1):
+			if _events[i].type == _SEALING_TYPE[SCOPE_MATCH]:
+				ended = _events[i].payload
+				break
+	if ended.is_empty():
+		push_error("EventLog.reduce_to_summary: the match log is not sealed by match_ended")
+		return {}
+	var card_of: Dictionary = {}
+	var player_hero: Variant = null
+	var cards_played: int = 0
+	var damage_by_card: Dictionary = {}
+	for event: Dictionary in _events:
+		var payload: Dictionary = event.payload
+		var is_player: bool = payload.get("side") == _SIDE_PLAYER
+		match event.type:
+			"match_started":
+				player_hero = _as_int(payload.get("hero_id"))
+			"minion_summoned", "weapon_equipped", "card_played":
+				var instance: Variant = _as_int(payload.get("instance_id"))
+				if is_player and instance != null:
+					card_of[instance] = payload.get("card_id")
+				if is_player and event.type == "card_played":
+					cards_played += 1
+			"hero_power_used":
+				if is_player and player_hero != null:
+					card_of[player_hero] = payload.get("power_id")
+			"damage_dealt":
+				var source: Variant = _as_int(payload.get("source"))
+				var dealt: Variant = _as_int(payload.get("dealt"))
+				if source != null and dealt != null and card_of.has(source):
+					var card_id: String = str(card_of[source])
+					damage_by_card[card_id] = int(damage_by_card.get(card_id, 0)) + dealt
+	return {
+		"floor": ended.get("floor", _meta.get("floor", 0)),
+		"result": ended.get("result"),
+		"winner": ended.get("winner"),
+		"reason": ended.get("reason"),
+		"turns": ended.get("turns"),
+		"event_count": _events.size(),
+		"cards_played": cards_played,
+		"damage_by_card": damage_by_card,
+	}
 
 
 ## Rule 17: rebuilds a log from [method to_json] text, or returns `null` with
@@ -398,6 +480,12 @@ func _restore_events(events: Array[Dictionary]) -> void:
 		_state = State.SEALED
 
 
+# `value` as an int when it is a whole number (see _is_whole_number), else
+# null — payload ids and amounts may arrive as JSON floats.
+static func _as_int(value: Variant) -> Variant:
+	return int(value) if _is_whole_number(value) else null
+
+
 # Whether `value` is an int, or a finite float with no fractional part (JSON
 # numbers arrive as floats).
 static func _is_whole_number(value: Variant) -> bool:
@@ -509,16 +597,22 @@ func _store(type_name: String, payload: Dictionary, cause_seq: int) -> int:
 		"payload": payload,
 		"cause_seq": cause_seq,
 	}
-	_freeze(event)
+	# Every caller passes a payload whose nested containers are already frozen
+	# (_freeze_plain_children, or primitives only); freeze the two levels left.
+	payload.make_read_only()
+	event.make_read_only()
 	_events.append(event)
-	_pending.append(event)
+	# With no subscriber there is no one to deliver to (subscribe() covers only
+	# later events), so the queue is skipped.
+	if not _subscribers.is_empty():
+		_pending.append(event)
 	return seq
 
 
 # Notifies every subscriber of every queued event, in seq order. A nested
 # append only queues its event; the outermost call drains the queue.
 func _deliver() -> void:
-	if _notifying:
+	if _notifying or _pending.is_empty():
 		return
 	_notifying = true
 	var i: int = 0
@@ -529,6 +623,44 @@ func _deliver() -> void:
 		i += 1
 	_pending.clear()
 	_notifying = false
+
+
+# One pass over a fresh copy `d`: true when every key is a String and every
+# value a rule 14 plain value (null, bool, int, float, String, or an untyped
+# Array / Dictionary of those), freezing each nested container on the way;
+# `d` itself stays writable (append may still add `_coerced` / `_reentrant`).
+# False at the first other key or value (a StringName, an Object, a typed
+# container…): the caller then discards `d` and takes the coercing copy.
+static func _freeze_plain_children(d: Dictionary) -> bool:
+	if d.is_typed():
+		return false
+	for key: Variant in d:
+		if typeof(key) != TYPE_STRING:
+			return false
+		var value: Variant = d[key]
+		if typeof(value) > TYPE_STRING and not _freeze_plain(value):
+			return false
+	return true
+
+
+# _freeze_plain_children for a nested value, which is frozen whole.
+static func _freeze_plain(value: Variant) -> bool:
+	match typeof(value):
+		TYPE_DICTIONARY:
+			if not _freeze_plain_children(value):
+				return false
+			(value as Dictionary).make_read_only()
+			return true
+		TYPE_ARRAY:
+			var items: Array = value
+			if items.is_typed():
+				return false
+			for item: Variant in items:
+				if typeof(item) > TYPE_STRING and not _freeze_plain(item):
+					return false
+			items.make_read_only()
+			return true
+	return typeof(value) <= TYPE_STRING
 
 
 # Makes `value` and every container inside it read-only.

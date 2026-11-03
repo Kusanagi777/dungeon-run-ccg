@@ -4,7 +4,9 @@
 ## Each stream owns one `RandomNumberGenerator` whose `seed` is set once in
 ## `_init`. `randi32()` is the only call that touches the generator, and every
 ## draw primitive is defined over it, so `draws` is exact and engine-independent:
-## it is the number a snapshot records and a restore discards (F5, Story 003).
+## it is the number a snapshot records and a restore discards (F5, Story 003):
+## [method restore] reseeds the generator and discards that many outputs —
+## never by copying `RandomNumberGenerator.state` (ADR-0003 Decision 3).
 ##
 ## Construction: `RngService.stream(name)` builds streams for the rules
 ## (Story 002); tests construct one directly with a literal seed:
@@ -14,6 +16,7 @@
 ## rng.shuffle(deck)                             # deck.size() - 1 draws
 ## var pick: int = rng.weighted_pick([5, 0, 15]) # 1 draw; index or -1
 ## var sim: RngStream = rng.fork("sim_3")        # "match_1/sim_3", 1 parent draw
+## rng.restore(37)                               # reseed, discard 37; forks dropped
 ## [/codeblock]
 ##
 ## Invalid input (a bad range, bad weights, a bad fork label) is a caller bug:
@@ -48,13 +51,19 @@ var name: String = ""
 ## Count of `randi32()` outputs consumed so far (rule 4). Never written by
 ## callers. Example: after `shuffle([a, b, c])`, `draws` has risen by 2.
 var draws: int = 0
+## For a fork, the parent's `draws` just before the one parent draw that
+## seeded it (rule 5); -1 for a root stream. Set by the parent's [method fork];
+## `RngService.snapshot()` records it so `restore()` can replay the fork call
+## at the same parent position (F3 seed reproduced). Never written by callers.
+## Example: a fork taken when its parent had drawn 5 has `forked_at == 5`.
+var forked_at: int = -1
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
-## The [method fork] memo, `"<name>/<label>" → child`. Any restore of this
-## stream's position (rng-event-log story 003's `restore()`; the
-## `TestRngStream.restore` double) must clear it, or a fork after restore
-## returns the pre-restore child without its parent draw (code review
-## 2026-11-03).
+## The F2/F3 seed the generator was seeded with; [method restore] reseeds it.
+var _stream_seed: int = 0
+## The [method fork] memo, `"<name>/<label>" → child`. [method restore] clears
+## it, or a fork after restore would return the pre-restore child without
+## taking its parent draw (code review 2026-11-03).
 var _forks: Dictionary = {}
 
 
@@ -63,6 +72,7 @@ var _forks: Dictionary = {}
 ## Example: `var s: RngStream = RngStream.new("draft_1", 42)`.
 func _init(stream_name: String, stream_seed: int) -> void:
 	name = stream_name
+	_stream_seed = stream_seed
 	_rng.seed = stream_seed
 
 
@@ -157,9 +167,39 @@ func fork(label: String) -> RngStream:
 	var child_name: String = "%s/%s" % [name, label]
 	if _forks.has(child_name):
 		return _forks[child_name]
+	var parent_position: int = draws
 	var child: RngStream = _make_child(child_name, RngService.fork_seed(randi32(), name, label))
+	child.forked_at = parent_position
 	_forks[child_name] = child
 	return child
+
+
+## F5: reseed the generator with this stream's seed and discard
+## `target_draws` outputs, so the next output is the one the stream gave after
+## that many draws on a fresh run; `draws == target_draws` afterwards. Clears
+## the fork memo: a fork after restore takes its parent draw and is seeded from
+## it, exactly as on a fresh run (ADR-0003 erratum 2026-11-03). O(target_draws);
+## budget ≤ 5 ms at 10,000 (measured by the non-blocking perf suite, story 010).
+## A negative `target_draws` is a caller bug: asserts (debug) or logs (release)
+## and restores to 0. Called by `RngService.restore()`; rules code never calls it.
+## Example: `stream.restore(37)`.
+func restore(target_draws: int) -> void:
+	if target_draws < 0:
+		_reject("RngStream.restore: negative draws %d" % target_draws)
+	_forks.clear()
+	_rng.seed = _stream_seed
+	draws = 0
+	_skip_to(maxi(target_draws, 0))
+
+
+## Discards outputs until `draws == target_draws` (no-op when already there or
+## past it). The one forward skip, for `RngService.restore()` replaying a fork
+## at its recorded parent position; rules code never calls it (a skip is a
+## "free" draw — ADR-0003 Implementation Guidelines).
+func _skip_to(target_draws: int) -> void:
+	while draws < target_draws:
+		@warning_ignore("return_value_discarded")
+		randi32()
 
 
 ## Builds the child [method fork] memoises, seeded with its F3 seed. The one

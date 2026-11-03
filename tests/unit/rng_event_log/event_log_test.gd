@@ -132,6 +132,23 @@ func test_stored_events_are_read_only_to_readers_and_subscribers() -> void:
 	assert_bool((delivered[0] as Dictionary).is_read_only()).is_true()
 
 
+func test_payloads_taking_the_coercing_copy_are_stored_read_only_too() -> void:
+	# Arrange — StringName and typed-array values skip the plain fast path (story 010)
+	var log: EventLog = _match_log()
+	var typed: Array[int] = [1, 2]
+
+	# Act
+	log.append(&"card_drawn", {"name": &"imp", "ids": typed, "detail": {"key": &"k"}})
+	var event: Dictionary = log.events_since(0)[0]
+
+	# Assert — converted to plain JSON values, and frozen at every level
+	assert_int(typeof(event.payload.name)).is_equal(TYPE_STRING)
+	assert_bool((event.payload.ids as Array).is_typed()).is_false()
+	assert_bool((event.payload as Dictionary).is_read_only()).is_true()
+	assert_bool((event.payload.ids as Array).is_read_only()).is_true()
+	assert_bool((event.payload.detail as Dictionary).is_read_only()).is_true()
+
+
 # --- AC-2: cause_seq, events_since bounds --------------------------------------
 
 func test_event_appended_while_event_forty_resolves_has_cause_forty_and_a_later_seq() -> void:
