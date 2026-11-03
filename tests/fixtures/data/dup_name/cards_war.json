@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_shield_bearer",
+      "name": "War Shield Bearer",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "armor"
+      ],
+      "text": {
+        "key": "card.war_shield_bearer.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_plate_squire",
+      "name": "War Plate Squire",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "armor"
+      ],
+      "text": {
+        "key": "card.war_plate_squire.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_iron_vanguard",
+      "name": "War Iron Vanguard",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "armor"
+      ],
+      "text": {
+        "key": "card.war_iron_vanguard.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_axe_thrower",
+      "name": "War Axe Thrower",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_axe_thrower.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_iron_axe",
+      "name": "War Iron Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_iron_axe.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_whetstone",
+      "name": "War Whetstone",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_whetstone.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_battle_cry",
+      "name": "War Battle Cry",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 4,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_battle_cry.text",
+        "en": ""
+      },
+      "art": "cards/war_battle_cry_alt"
+    },
+    {
+      "id": "war_recruit",
+      "name": "War Recruit",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_recruit.text",
+        "en": ""
+      },
+      "token": true
+    }
+  ]
+}

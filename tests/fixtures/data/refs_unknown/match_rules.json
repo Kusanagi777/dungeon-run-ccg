@@ -1,4 +1,10 @@
 {
   "schema_version": 1,
-  "config": {}
+  "config": {
+    "boss_starting_health_by_band": [
+      30,
+      40,
+      50
+    ]
+  }
 }

@@ -188,14 +188,14 @@ stories:
     name: "Budget warnings and pool thresholds (CR-5 stage 8, Formulas)"
     file: "production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0.5
     wave: 3
     serialised: false
     blocker: ""
     note: "rebase onto CDB-004 (data_loader.gd)"
-    completed: ""
+    completed: "2026-11-03"
   - id: "rng-event-log-004"
     name: "No-global-RNG lint (tools/lint/no_global_rng.sh) in CI"
     file: "production/epics/rng-event-log/story-004-no-global-rng-lint.md"

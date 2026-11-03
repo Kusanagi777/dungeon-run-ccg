@@ -80,12 +80,13 @@ func test_parse_error_does_not_stop_the_pipeline() -> void:
 
 func test_parse_error_entries_have_the_cr5_shape_and_file_order() -> void:
 	# Act
-	var entries: Array[Dictionary] = _report().entries()
+	var report: ValidationReport = _report()
 
-	# Assert
-	for e: Dictionary in entries:
+	# Assert — every entry has the shape; the errors are the three faults in
+	# file order (stage 8 adds warnings about minimal/'s empty sets and pools)
+	for e: Dictionary in report.entries():
 		assert_array(e.keys()).contains_exactly_in_any_order(["severity", "code", "file", "record_id", "field", "message"])
-	var files: Array = entries.map(func(e: Dictionary) -> String: return e.file)
+	var files: Array = report.errors().map(func(e: Dictionary) -> String: return e.file)
 	assert_array(files).is_equal(["cards_war.json", "match_rules.json", "run_ui.json"])
 
 

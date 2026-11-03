@@ -68,6 +68,18 @@ const E_TAG_MISMATCH: StringName = &"E_TAG_MISMATCH"
 ## `E_FX_OP: unknown op "bogus" (at effects/0/ops/1/op)`); an owner code
 ## starting `W_` is merged with severity `warning`, every other one `error`.
 const E_DELEGATED: StringName = &"E_DELEGATED"
+## Stage 8 (Formulas): a pool under its threshold — a hero set's collectible
+## pool under `min_collectible_pool`, its bundle pool under `min_bundle_pool`,
+## the default-unlocked treasures under `min_treasure_pool` — or, with "not
+## checked" in the message, a pool check whose inputs were absent (CR-5 step 8).
+const W_POOL_SIZE: StringName = &"W_POOL_SIZE"
+## Stage 8: a boss `health` that differs from its band default (DD-M02), or a
+## "not checked" note when the band defaults are absent (CR-5 step 8).
+const W_BAND_HEALTH: StringName = &"W_BAND_HEALTH"
+## Stage 8: a `cards_<set>.json` that parsed with `records: []` (Edge Cases).
+const W_EMPTY_SET: StringName = &"W_EMPTY_SET"
+## Stage 8: two different card ids with the same `name` (Edge Cases).
+const W_DUP_NAME: StringName = &"W_DUP_NAME"
 ## A `.json` file not in `DataLoader.FILE_MANIFEST`; it is not loaded (CR-1).
 const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
 

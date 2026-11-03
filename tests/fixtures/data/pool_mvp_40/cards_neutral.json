@@ -1,0 +1,575 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_torch_imp",
+      "name": "Neutral Torch Imp",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.neutral_torch_imp.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_ember_hound",
+      "name": "Neutral Ember Hound",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "tags": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.neutral_ember_hound.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_arcane_spark",
+      "name": "Neutral Arcane Spark",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.neutral_arcane_spark.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_bog_lurker",
+      "name": "Neutral Bog Lurker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_bog_lurker.text",
+        "en": ""
+      },
+      "spell_damage": 1
+    },
+    {
+      "id": "neutral_filler_01",
+      "name": "Filler 01",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_01.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_02",
+      "name": "Filler 02",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_02.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_03",
+      "name": "Filler 03",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_03.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_04",
+      "name": "Filler 04",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_04.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_05",
+      "name": "Filler 05",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_05.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_06",
+      "name": "Filler 06",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_06.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_07",
+      "name": "Filler 07",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_07.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_08",
+      "name": "Filler 08",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_08.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_09",
+      "name": "Filler 09",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_09.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_10",
+      "name": "Filler 10",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_10.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_11",
+      "name": "Filler 11",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_11.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_12",
+      "name": "Filler 12",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_12.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_13",
+      "name": "Filler 13",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_13.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_14",
+      "name": "Filler 14",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_14.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_15",
+      "name": "Filler 15",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_15.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_16",
+      "name": "Filler 16",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_16.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_17",
+      "name": "Filler 17",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_17.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_18",
+      "name": "Filler 18",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_18.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_19",
+      "name": "Filler 19",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_19.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_20",
+      "name": "Filler 20",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_20.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_21",
+      "name": "Filler 21",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_21.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_22",
+      "name": "Filler 22",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_22.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_23",
+      "name": "Filler 23",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_23.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_24",
+      "name": "Filler 24",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_24.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_25",
+      "name": "Filler 25",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_25.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_26",
+      "name": "Filler 26",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_26.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_27",
+      "name": "Filler 27",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_27.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_28",
+      "name": "Filler 28",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_28.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_filler_29",
+      "name": "Filler 29",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_filler_29.text",
+        "en": ""
+      }
+    }
+  ]
+}

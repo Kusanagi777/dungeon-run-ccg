@@ -204,7 +204,8 @@ func test_missing_extra_and_fractional_knobs_are_each_e_schema() -> void:
 
 
 func test_knobs_at_their_low_range_edges_raise_no_entry() -> void:
-	# Act — 10 / 3 / 1 / 50 / 1
+	# Act — 10 / 3 / 50 / 1 at their floors (max_records 5000: it has no
+	# stated range, and a floor of 1 would trip stage 8's E_COUNT)
 	var db: CardDatabase = _load("schema_knob_edges_low")
 
 	# Assert

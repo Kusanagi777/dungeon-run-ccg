@@ -96,8 +96,11 @@ func test_bad_values_root_reports_one_error_per_faulty_file_and_fails() -> void:
 	# Act
 	var result: DataLoader.LoadResult = DataLoader.new(ROOT).run(ValidatorStubs.accept_all())
 
-	# Assert — each fault reported once, nothing else, no snapshot
+	# Assert — each fault reported once, nothing else, no snapshot; the only
+	# warnings are stage 8's about minimal/'s empty sets and treasure pool
 	var files: Array = result.report.errors().map(func(e: Dictionary) -> String: return e.file)
 	assert_array(files).is_equal(Array(FAULTY_FILES))
-	assert_array(result.report.warnings()).is_empty()
+	var stage_8: Array[StringName] = [ValidationReport.W_EMPTY_SET, ValidationReport.W_POOL_SIZE]
+	var other_warnings: Array = result.report.warnings().filter(func(e: Dictionary) -> bool: return not stage_8.has(e.code))
+	assert_array(other_warnings).is_empty()
 	assert_that(result.snapshot).is_null()

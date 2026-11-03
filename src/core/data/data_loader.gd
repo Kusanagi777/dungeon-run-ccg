@@ -12,10 +12,10 @@
 ## Implemented here: stage 1 (discover), 2 (read and parse), 3 (envelope),
 ## 4 (per-record schema and the `card_database.json` knobs, through
 ## `RecordSchemas`), 5 (id uniqueness), 6 (cross-references), the id-sorted
-## staging (`LoadResult.staging`) and 7 (the injected validators, 7a configs
-## then 7b records, with the database's stage-7 lookups open). Stage 8 slots
-## into `run()` at the marked point (card-database story 005); stage 9
-## (freeze, `data_version`) is stories 006-007.
+## staging (`LoadResult.staging`), 7 (the injected validators, 7a configs
+## then 7b records, with the database's stage-7 lookups open) and 8 (budget
+## warnings and pool thresholds). Stage 9 (freeze, `data_version`) is
+## card-database stories 006-007.
 ##
 ## [codeblock]
 ## var loader: DataLoader = DataLoader.new("res://tests/fixtures/data/minimal/")
@@ -161,7 +161,8 @@ func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	var staging: Dictionary = _build_staging(pool)
 	# Stage 7 — delegated validators: 7a config bodies, 7b staged records.
 	staging = _run_validators(validators, staged, pool, staging, db, report)
-	# Stage 8 — budget warnings (Story 005) slots in here.
+	# Stage 8 — budget warnings and pool thresholds, every threshold from data.
+	_check_budgets(staged, staging, report)
 	# Stage 9 — freeze, index_of, data_version (Stories 006-007) replace this.
 	if report.has_errors():
 		return LoadResult.new(report, null, staging)
@@ -626,6 +627,146 @@ func _merge_delegated(result: Variant, file: String, record_id: Variant, default
 
 func _absent_or(value: Variant) -> String:
 	return "absent" if value == null else "found %s, not a Callable" % type_string(typeof(value))
+
+
+## Stage 8 (CR-5 step 8, Formulas, Edge Cases): budget checks over the
+## staging. Warnings never block; two pool faults are errors. Every threshold
+## is read from data, none is a literal here:
+## - `max_records` (`card_database.json`): all records across every definition
+##   file above it is `E_COUNT`;
+## - per hero set in the staged heroes, `collectible_pool_size = n_nontoken(set)
+##   + n_nontoken(neutral)` under `min_collectible_pool` is `W_POOL_SIZE`;
+##   `bundle_pool_size = n_bundles(set) + n_bundles(neutral)` under the hard
+##   floor is `E_COUNT` — the floor is the `min_bundle_pool` range floor (3,
+##   DD-R04: one draft needs three offers; Formulas "Bundle pool size") — and
+##   under `min_bundle_pool` is `W_POOL_SIZE`;
+## - `min_treasure_pool = treasure_drafts_per_run × treasure_offers_per_draft`
+##   with `treasure_drafts_per_run = |treasure_floors ∩ [1, floors_per_run − 1]|`
+##   (Run Structure's `run_structure.json`; Reward Draft F-K) and
+##   `treasure_offers_per_draft` from `reward_draft.json` (Reward Draft Tuning
+##   Knobs); fewer treasures with `unlock: null` is `W_POOL_SIZE`;
+## - a boss `health` other than `boss_starting_health_by_band[band − 1]` from
+##   `match_rules.json` (registry `boss_starting_health_by_band`, source
+##   match-rules; DD-M02) is `W_BAND_HEALTH`;
+## - a `cards_<set>.json` with `records: []` is `W_EMPTY_SET`; two card ids
+##   sharing a `name` are one `W_DUP_NAME` naming every id.
+## When another owner's input is absent or malformed the check does not run
+## and says so: one `W_POOL_SIZE` / `W_BAND_HEALTH` whose message reads "not
+## checked" and names the missing keys (their owners' validators report the
+## fault itself). A `card_database.json` that failed stage 4 already failed
+## the load; the knob checks are then skipped.
+func _check_budgets(staged: Array[Dictionary], staging: Dictionary, report: ValidationReport) -> void:
+	var configs: Dictionary = {}
+	var n_records: int = 0
+	for item: Dictionary in staged:
+		if item.row["class"] == "config":
+			configs[String(item.row.name).get_basename()] = item.body.config
+			continue
+		n_records += item.body.records.size()
+		if item.row.record_type == "CardDef" and item.body.records.is_empty():
+			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_EMPTY_SET, item.row.name, null, null,
+				"set file has no records")
+	var cards: Array = staging.records.CardDef
+	var knobs: Variant = configs.get("card_database")
+	if knobs != null:
+		if n_records > int(knobs.max_records):
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_COUNT, RecordSchemas.CARD_DATABASE_FILE, null, "max_records",
+				"%d records across all definition files, above max_records %d" % [n_records, int(knobs.max_records)])
+		_check_hero_set_pools(knobs, cards, staging.records.HeroDef, staging.records.BundleDef, report)
+	_check_treasure_pool(configs, staging.records.TreasureDef, report)
+	_check_band_health(configs, staging.records.BossDef, report)
+	_check_duplicate_names(cards, staging.files, report)
+
+
+func _check_hero_set_pools(knobs: Dictionary, cards: Array, heroes: Array, bundles: Array, report: ValidationReport) -> void:
+	var hero_sets: Array = []
+	for hero: Dictionary in heroes:
+		if not hero_sets.has(hero["set"]):
+			hero_sets.append(hero["set"])
+	hero_sets.sort()
+	var min_collectible: int = int(knobs.min_collectible_pool)
+	var min_bundles: int = int(knobs.min_bundle_pool)
+	var hard_floor: int = int(RecordSchemas.KNOB_RANGES.min_bundle_pool[0])
+	for hero_set: String in hero_sets:
+		var collectible: int = 0
+		for c: Dictionary in cards:
+			if (c["set"] == hero_set or c["set"] == "neutral") and not c.get("token", false):
+				collectible += 1
+		if collectible < min_collectible:
+			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_POOL_SIZE, "cards_%s.json" % hero_set, null, "min_collectible_pool",
+				"collectible pool for %s: %d < %d (n_nontoken(%s) + n_nontoken(neutral) vs min_collectible_pool)" % [hero_set, collectible, min_collectible, hero_set])
+		var pool: int = 0
+		for b: Dictionary in bundles:
+			if b["set"] == hero_set or b["set"] == "neutral":
+				pool += 1
+		if pool < hard_floor:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_COUNT, "bundles.json", null, "min_bundle_pool",
+				"bundle pool for %s: %d bundles, below the hard floor %d (DD-R04: one draft offers %d)" % [hero_set, pool, hard_floor, hard_floor])
+		elif pool < min_bundles:
+			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_POOL_SIZE, "bundles.json", null, "min_bundle_pool",
+				"bundle pool for %s: %d < %d (n_bundles(%s) + n_bundles(neutral) vs min_bundle_pool)" % [hero_set, pool, min_bundles, hero_set])
+
+
+func _check_treasure_pool(configs: Dictionary, treasures: Array, report: ValidationReport) -> void:
+	var missing: PackedStringArray = []
+	var run_structure: Dictionary = configs.get("run_structure", {})
+	var floors_per_run: Variant = run_structure.get("floors_per_run")
+	var treasure_floors: Variant = run_structure.get("treasure_floors")
+	var offers: Variant = Dictionary(configs.get("reward_draft", {})).get("treasure_offers_per_draft")
+	if not RecordSchemas.is_whole_number(floors_per_run):
+		missing.append("run_structure.floors_per_run")
+	if not treasure_floors is Array or not Array(treasure_floors).all(RecordSchemas.is_whole_number):
+		missing.append("run_structure.treasure_floors")
+	if not RecordSchemas.is_whole_number(offers):
+		missing.append("reward_draft.treasure_offers_per_draft")
+	if not missing.is_empty():
+		report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_POOL_SIZE, "treasures.json", null, null,
+			"min_treasure_pool not checked: %s absent or not whole numbers" % ", ".join(missing))
+		return
+	var drafts: int = 0
+	for f: Variant in treasure_floors:
+		if int(f) >= 1 and int(f) < int(floors_per_run):
+			drafts += 1
+	var needed: int = drafts * int(offers)
+	var unlocked: int = 0
+	for t: Dictionary in treasures:
+		if t["unlock"] == null:
+			unlocked += 1
+	if unlocked < needed:
+		report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_POOL_SIZE, "treasures.json", null, null,
+			"%d < %d: treasures unlocked by default vs min_treasure_pool (%d treasure drafts × %d offers, no repeats in a run)" % [unlocked, needed, drafts, int(offers)])
+
+
+func _check_band_health(configs: Dictionary, bosses: Array, report: ValidationReport) -> void:
+	if bosses.is_empty():
+		return
+	var by_band: Variant = Dictionary(configs.get("match_rules", {})).get("boss_starting_health_by_band")
+	var usable: bool = by_band is Array and Array(by_band).all(RecordSchemas.is_whole_number)
+	if usable:
+		for boss: Dictionary in bosses:
+			usable = usable and int(boss["band"]) <= Array(by_band).size()
+	if not usable:
+		report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_BAND_HEALTH, "bosses.json", null, null,
+			"band health not checked: match_rules.boss_starting_health_by_band absent, not whole numbers, or missing a band")
+		return
+	for boss: Dictionary in bosses:
+		var expected: int = int(by_band[int(boss["band"]) - 1])
+		if int(boss["health"]) != expected:
+			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_BAND_HEALTH, "bosses.json", boss["id"], "health",
+				"health %d differs from the band %d default %d (DD-M02)" % [int(boss["health"]), int(boss["band"]), expected])
+
+
+func _check_duplicate_names(cards: Array, files: Dictionary, report: ValidationReport) -> void:
+	var by_name: Dictionary = {}
+	for c: Dictionary in cards:
+		if not by_name.has(c["name"]):
+			by_name[c["name"]] = []
+		by_name[c["name"]].append(c["id"])
+	for card_name: String in by_name:
+		var ids: Array = by_name[card_name]
+		if ids.size() > 1:
+			report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_DUP_NAME, files[ids[0]], ids[0], "name",
+				"name \"%s\" is shared by %s (names are display text; rename)" % [card_name, ", ".join(ids)])
 
 
 func _body_key(row: Dictionary) -> String:
