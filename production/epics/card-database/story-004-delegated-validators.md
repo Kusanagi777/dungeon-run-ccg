@@ -1,12 +1,12 @@
 # Story 004: Delegated validators and the stage-7 lookup exception (CR-5 stage 7)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 

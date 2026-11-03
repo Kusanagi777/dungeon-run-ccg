@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_torch_imp",
+      "name": "Neutral Torch Imp",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.neutral_torch_imp.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_ember_hound",
+      "name": "Neutral Ember Hound",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "tags": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.neutral_ember_hound.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_arcane_spark",
+      "name": "Neutral Arcane Spark",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.neutral_arcane_spark.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_bog_lurker",
+      "name": "Neutral Bog Lurker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_bog_lurker.text",
+        "en": ""
+      },
+      "spell_damage": 1
+    },
+    {
+      "id": "neutral_bogus_bolt",
+      "name": "Bogus Bolt",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "bogus"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_bogus_bolt.text",
+        "en": ""
+      }
+    }
+  ]
+}

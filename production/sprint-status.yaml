@@ -164,7 +164,7 @@ stories:
     name: "Delegated validators and the stage-7 lookup exception (CR-5 stage 7)"
     file: "production/epics/card-database/story-004-delegated-validators.md"
     priority: must-have
-    status: ready-for-dev
+    status: in-progress
     owner: ""
     estimate_days: 1
     wave: 3
