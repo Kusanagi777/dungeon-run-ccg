@@ -217,7 +217,7 @@ stories:
     estimate_days: 0.5
     wave: 3
     serialised: false
-    blocker: ""
+    blocker: "2026-11-03: main_menu (BootResult.ok) path needs CardDatabase.config()/heroes()/treasure_pool() — card-database story 006; real data load is Failed (only match_rules.json ships); tools/capture.sh lacks the documented [-- <args>] pass-through"
     note: "stretch; UI — retained screenshot"
     completed: ""
 
