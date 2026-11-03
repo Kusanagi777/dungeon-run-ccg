@@ -1,12 +1,12 @@
 # Story 001: RngStream — engine golden pin and F4 draw primitives
 
 > **Epic**: RNG & Event Log
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -68,10 +68,6 @@ This is the first RNG story and the first file under `src/core/rng/`. It builds 
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
 - `src/core/rng/rng_stream.gd`
 - `tests/unit/rng_event_log/rng_engine_pins_test.gd`
 - `tests/unit/rng_event_log/rng_stream_test.gd`
@@ -92,7 +88,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/rng_event_log/rng_engine_pins_test.gd` and `tests/unit/rng_event_log/rng_stream_test.gd` — must exist and pass (`/story-done` checks that they EXIST; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created 2026-11-03 — 31 test functions (4 pin + 27 stream); full suite `commands.test` 97/97 passed, exit 0
 
 ---
 
@@ -100,3 +96,17 @@ checks scope against it.*
 
 - Depends on: None
 - Unlocks: `production/epics/rng-event-log/story-002-rng-service-seed-derivation-and-streams.md`, `production/epics/rng-event-log/story-004-no-global-rng-lint.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 4/4 passing (none deferred)
+- Golden pin — `rng_engine_pins_test.gd` (4 tests): 100-value seed-42 sequence pinned in full, recorded on 4.7.2.stable.official.ed1daf0bf; first five `492690617, 1919685028, 3561993920, 683038915, 1183706632`.
+- `weighted_pick([5, 0, 15])` × 10,000 — `rng_stream_test.gd::test_weighted_pick_ten_thousand_draws_match_weights`.
+- `fork("x")` twice — `test_fork_twice_returns_same_child_and_costs_one_parent_draw` (+ F3 seed cross-checked against `TestRngStream.fork_seed`).
+- Exact draw counts, invalid inputs and the F4 trace — the `randi_range` / `randf` / `shuffle` / `weighted_pick` tests in `rng_stream_test.gd`. Invalid inputs assert in debug (the assert sits in `_reject`, so the caller still returns its fallback with no draw) and `push_error` in release; tests check the return value and `draws` in both build types.
+**Deviations**: None blocking. Engine finding (ADVISORY): on 4.7.2 a bare `randi_range(...)` call inside a class that defines `randi_range` resolves to the `@GlobalScope` utility — the global RNG, no draw counted. Observed failing (F4 trace: `draws == 0`, array shuffled by the global RNG) before `shuffle` / `weighted_pick` were changed to `self.randi_range(...)`. Relevant to Story 004's lint (a bare call inside `src/core/rng/` is exempt from it) and to `docs/engine-reference/godot/` (not edited — out of scope).
+**Test Evidence**: `tests/unit/rng_event_log/rng_engine_pins_test.gd`, `tests/unit/rng_event_log/rng_stream_test.gd`
+**Run result**: N/A — `RngStream` is a `RefCounted` class with no scene, node or output a player can see; it is first drawn from by Story 002+ consumers.
+**Reviewed by**: self, no independent review (Lean mode: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped; engine-specialist check NOT ASSESSED — no agent available; `/code-review` still to run before sprint close-out)
