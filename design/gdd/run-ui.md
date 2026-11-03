@@ -156,8 +156,9 @@ raised during a match or a transition waits; the queue drains in arrival order w
 `toast_gap_ms` pause. Toasts are never modal and never steal focus. Queue cap `toast_queue_max`
 (default 8): beyond it the oldest *warning* is dropped first, unlocks are never dropped.
 **Reading time** (accessibility-requirements "Reading time"; interaction-patterns Toast): exactly
-one toast is visible at a time; it stays for `t_toast` ≥ 5 s (F3); hover or keyboard focus on
-the toast **pauses** its timer; a click on it, or `Enter` while it is focused, dismisses it early;
+one toast is visible at a time; it stays for `t_toast` ≥ 5 s (F3); hover (or an LMB hold) on
+the toast **pauses** its timer; a click on it dismisses it early — toasts take no focus and have
+no key path (interaction-patterns Toast; accessibility-requirements "Reading time");
 a dismissed or expired unlock toast is still acked (it was acked on show). A warning toast is
 never the sole channel: every `run_warning` is in the event log, and the latest *actionable*
 warning (`save_failed`, `boss_pool_short`) is repeated as a status line on the next summary or
@@ -231,8 +232,9 @@ immediately — no confirm, no second screen (Pillar 3; F1 budget). Copy seed wr
 per floor, the same `node_d` as the progress strip, F4) built from `match_summaries` — a cleared
 cell shows the boss initial on the band colour, a cell with `attempt > 1` carries a small "×n"
 mark, and on a defeat the killing boss's cell is ringed `state_danger` with every later cell
-hollow. It is read-only (no focus stop) and its tooltip / Card Inspect text variant on hover or
-focus of the block names each floor's boss. `summary_abandoned` does **not** carry it — it stays
+hollow. It is read-only — one focus stop for inspection (`Left`/`Right` over the cells, `Enter`
+does nothing; `run-summary.md` §12 stop 8) — and each cell's tooltip on hover or focus names
+that floor's boss. `summary_abandoned` does **not** carry it — it stays
 one line plus New Run · Main Menu (U2).
 
 **U10 — Debug fixtures and screenshot reachability.** Per `.claude/docs/run-and-observe.md`,

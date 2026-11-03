@@ -736,9 +736,9 @@ The twenty match fixtures and nine run fixtures the GDDs require are stories' de
 | Data load | `Unloaded → Ready` ≤ `data_load_budget_ms` 200; snapshot ≤ `data_memory_budget_mb` 4; ~900 O(1) checks at v1 | card-database Formulas | performance test asserts the measured load time |
 | Event log memory | `log_memory_budget_bytes` 2,000,000 → `max_match_events` 10,000; typical match 300–2,000 events (60–400 KB) | rng-event-log F7 | unit test on the overflow path; `avg_event_bytes` re-measured on real logs |
 | Profile save | synchronous ≤ `max_save_ms` 50 at `run_log_cap` 200; file ≤ `max_profile_bytes` 2 MB (≈ 1.7 MB estimated) | meta-progression M4.3, F5 | measured at Vertical Slice |
-| Draw calls | **NOT SOURCEABLE / TBD** — no sourced figure for a Godot 4.7 2D project; `technical-preferences.md` says "set once target hardware is known" | — | set after the first Match UI story is profiled; record here |
-| Memory ceiling | **NOT SOURCEABLE / TBD** — `technical-preferences.md` placeholder | — | as above |
-| Minimum spec | **TBD** — "mid-range desktop, SSD" is the only phrase in any GDD (card-database Formulas) | — | producer decision before Pre-Production gate |
+| Draw calls | **≤ 500 per frame (provisional)** — `project.yaml` `performance.draw_call_limit`; set 2026-11-03 at the Pre-Production gate as a ceiling for a 2D card UI (≈ 30 card views + text), not a sourced figure | TD-PHASE-GATE entry condition 2 | `/perf-profile` after the first Match UI story confirms or lowers it; record here |
+| Memory ceiling | **≤ 1024 MB resident (provisional)** — `project.yaml` `performance.memory_ceiling_mb`; Godot 4.7 Forward+ baseline plus data snapshot (4 MB) and event log (2 MB) leave wide headroom | TD-PHASE-GATE entry condition 2 | as above |
+| Minimum spec | **Windows 10 64-bit, a GPU with Vulkan 1.2 or Direct3D 12 (Intel UHD 620 class or better), 4 GB RAM, 1280x720 display, 300 MB disk, SSD recommended** (provisional, set 2026-11-03 at the Pre-Production gate; the Compatibility renderer is the documented fallback per ADR-0010) | producer / TD-PHASE-GATE entry condition 2 | the first Windows playtest build (Pre-Production goal 5) runs on this spec |
 
 ---
 

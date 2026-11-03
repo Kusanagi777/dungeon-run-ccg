@@ -132,7 +132,7 @@ Three launch heroes present, three locked (fixture `locked_heroes`). Panels use 
  428 │         ┌─🔒 FORTUNE ─────┐ ┌─🔒 ORDER ───────┐ ┌─🔒 SHADOW ──────┐               │  locked 340x88
      │         │ Win a run with  │ │ Defeat 16 bosses│ │ Reach floor 8   │               │  (neutral grey,
  516 │         │ any hero — 0/1  │ │ — 8/16          │ │ with Decay — 0/1│               │  text_light)
- 540 │                 Seed (optional) [________________________________] ×               │  field 332x36
+ 540 │                 Seed (optional) [________________________________] ×               │  Control 332x44 (36 px visual)
  580 │                                 → Random                                           │  echo 13 px
  640 │ [Back]                      ( Start )                             [Deck (15)]     │  buttons 160x44
  720 └───────────────────────────────────────────────────────────────────────────────────┘

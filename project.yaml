@@ -72,3 +72,10 @@ workflow_overrides:
   system_overrides:
     match-rules: full
     card-effects: full
+
+performance:
+  enforce: warn
+  target_fps: 60
+  frame_budget_ms: 16.6
+  draw_call_limit: 500
+  memory_ceiling_mb: 1024
