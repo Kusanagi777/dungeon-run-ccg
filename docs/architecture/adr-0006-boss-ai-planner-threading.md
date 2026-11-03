@@ -80,7 +80,7 @@ immediate implementation serves tests and the sim harness.
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split — `BossAI`, `RulesEngine` are `RefCounted`, Node-free, constructor-injected; this is what makes off-thread execution safe by construction), ADR-0008 (match driver ownership — `MatchDriver` is the only caller of `PlannerTask`). Both are `Proposed` or unwritten on 2026-11-03; neither is Accepted |
+| **Depends On** | ADR-0001 (rules / presentation split — `BossAI`, `RulesEngine` are `RefCounted`, Node-free, constructor-injected; this is what makes off-thread execution safe by construction), ADR-0008 (match driver ownership — `MatchDriver` is the only caller of `PlannerTask`). Both written 2026-11-03 and `Proposed`; neither is Accepted |
 | **Enables** | ADR-0009 (Match UI boss-turn playback assumes the whole turn, or a prefix of it, is already in the log when the UI sees it — U6) |
 | **Blocks** | Every Boss AI story that calls `play_turn` / `forecast` from the driver; the `boss_turn_playback` fixture story (match-ui U11); the A30 and A22 acceptance stories |
 | **Ordering Note** | ADR-0003 (RNG + event log) is a transitive dependency through ADR-0008: `RulesEngine.clone()` must copy `rng_match` state (TR-match-rules-003) for the replay below to be sound. Implement `PlannerTask` + `ImmediatePlannerTask` first (no engine risk), then `WorkerPoolPlannerTask`, then `TimeSlicedPlannerTask` only if (3) in Verification Required fails on Windows |

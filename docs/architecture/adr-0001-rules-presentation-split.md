@@ -180,7 +180,8 @@ and API Boundaries this ADR binds.
    | Gate | Pattern | Scope | Expected |
    |---|---|---|---|
    | G1 no Node in rules | `extends (Node|Control|Node2D|CanvasItem|Timer)` | `src/gameplay/**`, `src/ai/**` | 0 hits |
-   | G2 no tree access in rules | `get_tree\(|get_node\(|\$[A-Za-z%]|%[A-Z]|queue_free|add_child|await ` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
+   | G2 no tree access in rules | `get_tree\(|get_node\(|\$[A-Za-z%]|%[A-Z]|queue_free|add_child` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
+   | G2b no coroutines in rules | `\bawait\b` | `src/gameplay/**`, `src/core/**` (minus `boot.gd`); under `src/ai/**` the one allowed form is `await <planner>.checkpoint()` (ADR-0006's time-slicing seam), so the pattern there is `\bawait\b(?!.*\.checkpoint\(\))` | 0 hits |
    | G3 no composition root in rules | `\bBoot\b|\bServices\b` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
    | G4 one autoload | `^[A-Za-z_]+=` lines under `[autoload]` in `project.godot` | — | exactly 1, named `Boot` |
    | G5 UI never mutates | `\.submit\(` outside `*_controller.gd`, `*_driver.gd`, `*_view.gd` input path; `MatchState|RunState` type names | `src/ui/**` | 0 hits of state types; `submit` only via the controller |
@@ -250,8 +251,10 @@ and ADR-0008 fix the resolver and driver contracts.
   a plain Dictionary record) and **must** receive every collaborator through
   `_init(...)` or an explicit `bind(...)`.
 - Rules code **must never** reference `Boot`, `Services`, `get_tree()`, `get_node()`,
-  `$`/`%` node paths, `queue_free`, `add_child`, `await`, `Tween`, `Timer`, a
-  `.tscn`, or a global RNG function (gates G1–G3, G6).
+  `$`/`%` node paths, `queue_free`, `add_child`, `Tween`, `Timer`, a `.tscn`, or a
+  global RNG function (gates G1–G3, G6); `await` is banned under `src/gameplay/**`
+  and `src/core/**`, and under `src/ai/**` is allowed only as
+  `await <planner>.checkpoint()` (gate G2b; ADR-0006).
 - UI code **must** mutate match or run state only by calling `MatchController.submit`
   or `RunController.intent`; it **must never** hold a `MatchState`/`RunState` or a
   live rules object, and **must** render numbers from events, not from queries
@@ -409,7 +412,7 @@ are a script, not code the game depends on.
 
 ## Validation Criteria
 
-- Gates G1–G6 run in CI; each has been watched to fail on a planted violation
+- Gates G1–G6 (incl. G2b) run in CI; each has been watched to fail on a planted violation
   (`skill-authoring.md`: a gate you have not watched fail is not a gate).
 - A full match (`tests/integration/match_rules/`) and a full run
   (`tests/integration/run_structure/`) complete under `commands.test` with no

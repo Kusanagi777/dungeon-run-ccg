@@ -18,11 +18,13 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   `Dictionary`, `Array`, `StringName`, `Callable` and `static func`; nothing
   post-cutoff is relied on.
 - **GDD sync: checked 6 referenced GDDs** (`card-effects`, `match-rules`,
-  `card-database`, `heroes`, `treasures`, `boss-ai`) — no rename. Two
-  **additions** to `architecture.md` §API Boundaries are introduced here and
-  reported, not silently assumed: `RulesEngine.state()` (resolver-only live
-  read) and `EffectResolver.apply_value_hook` / `run_hook_effect` (the
-  value/trigger hook evaluation entry points ADR-0005's registry calls through).
+  `card-database`, `heroes`, `treasures`, `boss-ai`) — no rename. **Additions**
+  to `architecture.md` §API Boundaries are introduced here and reported, not
+  silently assumed: `RulesEngine.state()` / `emit()` / `rng_match()`
+  (resolver-only surface), `EffectResolver.unbind()`, and
+  `EffectResolver.apply_value_hook` / `run_hook_effect` — the evaluator
+  Callables ADR-0005's `HookRegistry.set_evaluators` receives (shape aligned
+  with ADR-0005, and the stage-7b call shape with ADR-0002, on 2026-11-03).
 - Numbering fixed by DD-X08.
 
 ## Date
@@ -149,10 +151,14 @@ nothing at runtime.**
 2. **Binding and lifetime.** `RulesEngine._init(db, rules_config, resolver)` stores
    the resolver; `RulesEngine.start(config)` calls `resolver.bind(self,
    config.player.hook_installers + config.boss.hook_installers)` (C3 step 1, before
-   `on_match_start`). `bind` stores the engine reference and installs hook entries
+   `on_match_start`). `bind` stores the engine reference, installs hook entries
    through `state.hooks.install(installer)` in installation order (treasures in
-   pick order, then the boss passive). On `match_ended` the engine calls
-   `resolver.unbind()`, which clears the engine reference — this breaks the
+   pick order, then the boss passive), and registers itself as the registry's
+   evaluator: `state.hooks.set_evaluators(apply_value_hook, run_hook_effect)`
+   (ADR-0005's addition — the registry stores plain data and calls back through
+   these two Callables). On `match_ended` the engine calls
+   `resolver.unbind()`, which clears the engine reference and the registry's
+   evaluators — this breaks the
    `RefCounted` cycle. The resolver keeps **no per-instance index**: effects are
    looked up by `def_id` through `CardDatabase.card(id).effects` and memoised per
    `def_id` in a resolver-local Dictionary that is derived data, rebuildable from
@@ -160,7 +166,9 @@ nothing at runtime.**
 3. **Clone.** `RulesEngine.clone()` deep-copies `MatchState` (including
    `state.effects` and `state.hooks.copy()`), constructs a fresh
    `EffectResolver.new(db, effects_config)` and binds it to the clone with no
-   installers (entries are already in the copied registry). Nothing in the
+   installers (entries are already in the copied registry; `HookRegistry.copy()`
+   leaves evaluators unset, so the clone's `bind` re-registers them — ADR-0005).
+   The clone's scratch log is what ADR-0006's planner reads. Nothing in the
    resolver is shared between live and clone except the immutable `CardDatabase`
    and the frozen config body. The per-`def_id` memo starts empty in the clone;
    its cost is bounded by the number of distinct defs touched in one look-ahead
@@ -194,13 +202,14 @@ nothing at runtime.**
    caps) -> Array` is `static`, allocates its own report, touches no engine, no RNG,
    no file. `caps` is the `card_effects` config body (`MAX_OPS_PER_EFFECT`,
    `MAX_REPEAT`, `MAX_SUMMON_COUNT`, `EFFECT_STATIC_STEP_LIMIT`, `DISCOVER_COUNT`).
-   `Boot` registers it under `"effects"`; Card Database stage 7 invokes the
-   registered Callable as `callable.call(host_kind, host_id, effects, db)`, and
-   `Boot` binds `caps` from the parsed `card_effects` body **before** calling
-   `load()` by reading the file's `config` object through `DataLoader`'s parse
-   step — the exact stage-7 Callable contract is ADR-0002's; this ADR fixes only
-   that the validator is static and pure and that `caps` is a parameter, never a
-   lookup through a global. It returns `[{code, host_id, effect_id, path, message}]`
+   `Boot` registers it under `"effects"`; Card Database stage 7b invokes the
+   registered Callable as `callable.call(host_kind, host_id, effects, db,
+   configs_bodies)` (ADR-0002 — `db` in `Loading` answers lookups only during
+   stage 7, and the parsed config bodies travel as the fifth argument), so `Boot`
+   registers `func(k, id, fx, db, bodies): return
+   EffectValidator.validate_effects(k, id, fx, db, bodies["card_effects"])`.
+   This ADR fixes only that the validator is static and pure and that `caps` is
+   a parameter, never a lookup through a global. It returns `[{code, host_id, effect_id, path, message}]`
    with the closed set `E_FX_SCHEMA, E_FX_TRIGGER, E_FX_SELECTOR, E_FX_FILTER,
    E_FX_OP, E_FX_OP_TARGET, E_FX_OP_UNAVAILABLE, E_FX_REF, E_FX_REF_PATH,
    E_FX_CHOSEN, E_FX_BUDGET, W_FX_KEYWORD_MISMATCH, W_FX_UNREACHABLE` (card-effects
@@ -244,8 +253,8 @@ func legal_targets(def_id: String, source: Dictionary) -> Array[int]
 func targeting_spec(def_id: String) -> Dictionary                          # {mode: none|optional|required, filter}; memoised per def_id
 func recompute_auras() -> void                                             # called by the engine's C10 loop
 func resume(choice: ChoiceRequest, option_index: int) -> void              # `choose` continuation
-func apply_value_hook(entry: HookEntry, value: int, ctx: Dictionary) -> int  # one fold step; condition re-evaluated per call (C1 condition row)
-func run_hook_effect(entry: HookEntry, ctx: Dictionary) -> void            # one synchronous step at a hook point (C9)
+func apply_value_hook(entry: HookEntry, side: StringName, value: int, ctx: Dictionary) -> int  # one fold step; condition re-evaluated per call (C1); shape fixed by ADR-0005 set_evaluators
+func run_hook_effect(entry: HookEntry, side: StringName, ctx: Dictionary) -> void            # one synchronous step at a hook point (C9)
 class_name ChoiceRequest   # {side, kind: discover|choose_one, options: Array, source_id, effect_id}
 class_name EffectRuntime   # plain data in MatchState.effects: {once_marks: Dictionary, counters: Dictionary, per_turn: Dictionary, pending_choice: Variant}
 
@@ -369,9 +378,9 @@ static func derive_targeting_spec(effects: Array) -> Dictionary            # the
   asserts it equals `snapshot_entity` for every entity (match-ui U4.6).
 - **`RefCounted` cycle leak** (`NOT SOURCEABLE` from the reference): teardown test
   above; `unbind()` mandated.
-- **Stage-7 `caps` availability**: if ADR-0002 decides config bodies are not
-  readable before freeze, `Boot` parses `card_effects.json` once itself to bind
-  `caps`. Recorded as an open point for ADR-0002.
+- **Stage-7 `caps` availability**: resolved by ADR-0002's stage-7b call shape
+  (config bodies arrive as the fifth argument); if that shape changes, `Boot`'s
+  registering lambda is the one place to adapt.
 
 ## GDD Requirements Addressed
 
@@ -450,7 +459,7 @@ passing `MatchState` in `ctx` (one signature change in `resolve`).
 | No post-cutoff API is needed | `breaking-changes.md` 4.6→4.7 Core/GDScript rows (typed-return override, packed-array setter, `is_class` `StringName`) — none used here | sourced |
 | `RefCounted` cycle is not auto-collected; `unbind()` needed | — | **NOT SOURCEABLE** from the reference; proven by `effect_resolver_teardown_test.gd` |
 | `clone()` + fresh resolver fits the planner budget | boss-ai F7 (≈60 ms band-3 worst case), A22 | to be measured by the sim harness; no claim made here |
-| Stage-7 Callable contract and `caps` availability | card-database CR-5 stage 7 | design-sourced; exact binding is ADR-0002's (open point) |
+| Stage-7 Callable contract and `caps` availability | card-database CR-5 stage 7; ADR-0002 Key Interfaces (stage 7b: `call(host_kind, host_id, value, db, configs_bodies)`) | design-sourced; aligned with ADR-0002 on 2026-11-03 |
 
 ## Related
 
