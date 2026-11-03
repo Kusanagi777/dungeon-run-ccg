@@ -1,37 +1,31 @@
 ## RNG service test double for RNG & Event Log rules 2, 3 and 10.
 ##
-## Created with `(run_seed, data_version)`; `stream(name)` returns a memoised
-## `TestRngStream` seeded by F2 `stream_seed(run_seed, name)`, so two services
-## built with the same seed hand out identical sequences (match-rules AC-01,
-## rng-event-log AC "two services created with run_seed = 42"). `snapshot()` and
-## `restore()` follow rule 10 / F5. A test that needs a scripted or constant
-## stream registers it with `install(stream)` before the code under test asks.
-##
-## TODO(E1 story): swap to the production RngService once it exists.
+## This double **is** the production [RngService] (`extends RngService`,
+## ADR-0003 Migration Plan step 2: the `TODO(E1)` swap is a type change, not a
+## rename): `stream(name)` is the production memoised, rule-3-checked,
+## F2-seeded `stream()`, so two services built with the same seed hand out
+## identical sequences (match-rules AC-01, rng-event-log AC "two services
+## created with run_seed = 42"). What the double adds:
+##   - defaults `(TestConstants.DEFAULT_TEST_SEED, "test")`, so a test may
+##     write `TestRngService.new()`;
+##   - streams are `TestRngStream`s (seeded mode — the production generator),
+##     so `calls`, `count_calls` and `restore` work on every served stream;
+##   - `install(stream)` registers a scripted, constant or recording stream
+##     under its own name before the code under test asks for it;
+##   - `snapshot()` / `restore()` per rule 10 / F5 until the production ones
+##     land (rng-event-log story 003), and `draws_outside([...])`.
 class_name TestRngService
-extends RefCounted
-
-## The run's single 64-bit seed (rule 1).
-var run_seed: int = 0
-## Card Database `data_version` the service was created under (rule 10).
-var data_version: String = ""
-
-var _streams: Dictionary = {}
+extends RngService
 
 
 func _init(seed_value: int = TestConstants.DEFAULT_TEST_SEED, version: String = "test") -> void:
-	run_seed = seed_value
-	data_version = version
+	super(seed_value, version)
 
 
-## Rule 2: the memoised stream for `stream_name`, created on first use with
-## F2's seed. Logs an error for a name outside rule 3's pattern (still served).
+## Rule 2: the production memoised stream for `stream_name`, as the
+## `TestRngStream` it was built as (or the one [method install] registered).
 func stream(stream_name: String) -> TestRngStream:
-	if not TestRngStream.is_valid_stream_name(stream_name):
-		push_error("TestRngService.stream: '%s' violates the rule 3 name pattern" % stream_name)
-	if not _streams.has(stream_name):
-		_streams[stream_name] = TestRngStream.seeded(stream_name, TestRngStream.stream_seed_for(run_seed, stream_name))
-	return _streams[stream_name]
+	return super(stream_name)
 
 
 ## Register a prepared stream (scripted, constant or recording) under its own
@@ -41,20 +35,15 @@ func install(prepared: TestRngStream) -> TestRngStream:
 	return prepared
 
 
-## True when `stream_name` has been requested or installed in this service.
-func has_stream(stream_name: String) -> bool:
-	return _streams.has(stream_name)
-
-
 ## Rule 10: `{run_seed, data_version, streams: {name: draws}}`, JSON-only.
 func snapshot() -> Dictionary:
 	var positions: Dictionary = {}
 	for stream_name: String in _streams:
-		positions[stream_name] = (_streams[stream_name] as TestRngStream).draws
+		positions[stream_name] = (_streams[stream_name] as RngStream).draws
 	return {"run_seed": run_seed, "data_version": data_version, "streams": positions}
 
 
-## Rule 10 / F5: rebuild every stream named in `snapshot` at its recorded
+## Rule 10 / F5: rebuild every stream named in `snap` at its recorded
 ## position. Returns an error when `data_version` differs (rng-event-log
 ## Edge Cases "saved run with a different data_version") and creates nothing.
 func restore(snap: Dictionary) -> Error:
@@ -74,5 +63,11 @@ func draws_outside(allowed: Array) -> int:
 	var total: int = 0
 	for stream_name: String in _streams:
 		if not allowed.has(stream_name):
-			total += (_streams[stream_name] as TestRngStream).draws
+			total += (_streams[stream_name] as RngStream).draws
 	return total
+
+
+## Streams this service builds are `TestRngStream`s in seeded mode, seeded by
+## F2 exactly as production (the production construction seam).
+func _make_stream(stream_name: String, stream_seed: int) -> RngStream:
+	return TestRngStream.seeded(stream_name, stream_seed)

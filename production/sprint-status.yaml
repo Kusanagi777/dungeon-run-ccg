@@ -95,14 +95,14 @@ stories:
     name: "RngService — seed derivation (F1–F3) and memoised named streams"
     file: "production/epics/rng-event-log/story-002-rng-service-seed-derivation-and-streams.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     wave: 2
     serialised: true
     blocker: ""
     note: "merges first in W2: swaps test_rng_service.gd / test_rng_stream.gd"
-    completed: ""
+    completed: "2026-11-03"
   - id: "rng-event-log-007"
     name: "Overflow fault (log_overflow → Faulted → Sealed) and the rng_event_log config knobs"
     file: "production/epics/rng-event-log/story-007-overflow-fault-and-config-knobs.md"

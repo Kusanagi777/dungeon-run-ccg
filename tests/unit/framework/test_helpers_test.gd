@@ -149,25 +149,25 @@ func test_different_seeds_produce_different_sequences() -> void:
 	assert_array(seq_a).is_not_equal(seq_b)
 
 
-func test_stream_seed_matches_gdd_f2_examples() -> void:
-	# rng-event-log F2 example values for run_seed = 42 and run_seed = 0
+# The F1 / F2 GDD example pins moved to tests/unit/rng_event_log/rng_service_test.gd
+# (rng-event-log story 002; ADR-0003 Decision 10(d)) so they run against the
+# production RngService. The helper's statics now delegate to it; this checks
+# the delegation only.
+func test_helper_seed_statics_delegate_to_rng_service() -> void:
 	var seed42: int = TestConstants.DEFAULT_TEST_SEED
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.stream_seed_for(seed42, "run"))).is_equal(TestConstants.EXPECTED_STREAM_SEED_42_RUN_HEX)
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.stream_seed_for(seed42, "match_1"))).is_equal("8E28D71DC7508C82")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.stream_seed_for(seed42, "match_2"))).is_equal("3FC25FB4D7E5C7F5")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.stream_seed_for(seed42, "draft_1"))).is_equal("FFC74EA120AA040F")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.stream_seed_for(seed42, "ai_1"))).is_equal("89527D2C36D9A252")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.stream_seed_for(0, "run"))).is_equal("8AE616A7F56EA560")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.fnv1a64("run".to_utf8_buffer()))).is_not_equal(TestRngStream.to_hex_u64(TestRngStream.fnv1a64("rum".to_utf8_buffer())))
+	assert_int(TestRngStream.stream_seed_for(seed42, "run")).is_equal(RngService.stream_seed_for(seed42, "run"))
+	assert_int(TestRngStream.fork_seed(7, "ai_1", "sim_1")).is_equal(RngService.fork_seed(7, "ai_1", "sim_1"))
+	assert_int(TestRngStream.run_seed_from_input("deckdelve")).is_equal(TestRngStream.parse_hex_u64(TestConstants.EXPECTED_RUN_SEED_DECKDELVE_HEX))
+	assert_int(TestRngStream.run_seed_from_input("")).is_zero()
+	assert_str(TestRngStream.to_hex_u64(seed42)).is_equal("000000000000002A")
 
 
-func test_run_seed_from_input_matches_gdd_f1_examples() -> void:
-	# rng-event-log F1 examples; run-structure AC-24 restates "deckdelve"
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.run_seed_from_input("42"))).is_equal("000000000000002A")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.run_seed_from_input("-1"))).is_equal("FFFFFFFFFFFFFFFF")
-	assert_str(TestRngStream.to_hex_u64(TestRngStream.run_seed_from_input("deckdelve"))).is_equal(TestConstants.EXPECTED_RUN_SEED_DECKDELVE_HEX)
-	assert_int(TestRngStream.run_seed_from_input(TestConstants.EXPECTED_RUN_SEED_DECKDELVE_HEX)).is_equal(TestRngStream.run_seed_from_input("deckdelve"))
-	assert_int(TestRngStream.run_seed_from_input("0x000000000000002A")).is_equal(TestConstants.DEFAULT_TEST_SEED)
+func test_helper_doubles_are_production_types() -> void:
+	# ADR-0003 Migration Plan step 2: the swap is a type change, not a rename
+	assert_bool(TestRngService.new() is RngService).is_true()
+	assert_bool(TestRngStream.seeded("run", 1) is RngStream).is_true()
+	assert_bool(TestRngStream.scripted("run", [1]) is RngStream).is_true()
+	assert_bool(TestRngService.new().stream("match_1").fork("sim_1") is TestRngStream).is_true()
 
 
 func test_shuffle_consumes_n_minus_one_draws() -> void:
