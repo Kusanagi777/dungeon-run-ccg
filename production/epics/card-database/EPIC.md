@@ -6,7 +6,7 @@
 > **Control Manifest**: Foundation Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 3 of 14 — plan E1 (Foundation), ADR-0002
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories card-database`
+> **Stories**: 10 (see Stories table) — created 2026-11-03 by `/create-stories card-database`
 
 ## Overview
 
@@ -46,6 +46,25 @@ Requirements covered by Accepted ADRs: 6 / 6. Untraced Requirements: None.
 ## Gate Entry Conditions Carried
 
 - None named directly. Enables **condition 5** (first playable needs the War starter deck and one band-1 boss loaded through this module) and **condition 1** (the DD-H06 batch validates here).
+
+## Stories
+
+Created 2026-11-03 (`/create-stories card-database`; QL-STORY-READY skipped — Lean mode). Dependency order is the pipeline order: 001 → 002 → 003 → 004 → 005 → 006 → {007, 008, 009} → 010.
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | File manifest, parse and envelope (CR-5 stages 1–3) | Logic | Ready | ADR-0002 (+0001) |
+| 002 | Record schema validation (CR-3, CR-5 stage 4) | Logic | Ready | ADR-0002 |
+| 003 | Id uniqueness and cross-references (CR-5 stages 5–6) | Logic | Ready | ADR-0002 |
+| 004 | Delegated validators and the stage-7 lookup exception (CR-5 stage 7) | Logic | Ready | ADR-0002 (+0007) |
+| 005 | Budget warnings and pool thresholds (CR-5 stage 8, Formulas) | Logic | Ready | ADR-0002 |
+| 006 | Freeze and CR-6 queries (CR-5 stage 9, CR-6, CR-7) | Logic | Ready | ADR-0002 |
+| 007 | `data_version` fingerprint (CR-9) | Logic | Ready | ADR-0002 |
+| 008 | State machine, visible failure and debug `reload()` (States, CR-8) | Logic | Ready | ADR-0002 (+0001, 0011) |
+| 009 | Load and memory budget test (Formulas) | Logic | Ready | ADR-0002 |
+| 010 | Shipped data boots `Ready` and ships in the export (CR-1, CR-8, export) | Integration | Ready | ADR-0002 (+0001) |
+
+Placement notes: `tools/content/validate.gd` (CN-6.3) is a story in the **content** epic (its Scope names it; ADR-0002 calls it "content CN-6.3") — this epic supplies `ValidationReport.to_text()`, `state()` and the report it prints (Story 008). The `data_error` screen is the **run-ui** epic's (ADR-0011 S2); `Boot.boot()` composition and the production validator map are the **boot-composition-root** epic's. Stories 009 and 010 depend on the content MVP-0 / MVP-1 batches; 010 also on the boot story.
 
 ## Definition of Done
 
