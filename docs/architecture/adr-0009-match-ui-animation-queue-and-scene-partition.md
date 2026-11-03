@@ -80,7 +80,7 @@ and `MatchDebugLoader` is the `--fixture` / `--pose` seam of U11.
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split — `src/ui/` is display-only over events, commands and queries); ADR-0003 (event log — `cause_seq`, `subscribe` / `events_since`, synchronous main-thread subscribers; the view-state is a projection of that log); ADR-0008 (match driver — `MatchController` wraps `MatchDriver`; `tick()` is driven from `MatchView._process`). All `Proposed` or unwritten on 2026-11-03 |
+| **Depends On** | ADR-0001 (rules / presentation split — `src/ui/` is display-only over events, commands and queries); ADR-0003 (event log — `cause_seq`, `subscribe` / `events_since`, synchronous main-thread subscribers; the view-state is a projection of that log); ADR-0008 (match driver — `MatchController` wraps `MatchDriver`; `tick()` is driven from `MatchView._process`; `MatchController.on_setting_changed` and `is_planning()` are its additions). All written 2026-11-03 and `Proposed`; none Accepted |
 | **Enables** | ADR-0011 (Run UI reuses the `CardFrame` scene, the `Transition` tween helper and the pause-menu settings panel); the twenty match fixtures (U11) and every Visual / UI story under `src/ui/match/` |
 | **Blocks** | Every Match UI story; the `boss_turn_playback`, `midgame_full_board`, `simultaneous_deaths` fixtures; AC L6 (skip-at-every-index invariant test) |
 | **Ordering Note** | ADR-0006's replay-per-tick rule means the boss turn may enter the log across a few frames; the F4 compression rule below is written for that. ADR-0010 fixes the capture launch line this ADR's fixtures use; it does not change this ADR's content |

@@ -84,7 +84,7 @@ memory, no run log, no notifications) and as the `ProfileStore`-backed
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split; `Boot` as the one composition root whose `services()` only scene roots and debug loaders may call); ADR-0004 (save format — defines `MetaApi`, `ProfileStore`, `SettingsBus` and `MetaFacade`; this ADR only fixes how they are **injected** and consumed); ADR-0008 (match driver and the Run ↔ Match ↔ UI hand-off — `RunController` receives the `MatchDriver` from `RunMachine.begin_match()` and hands `MatchView` a `MatchController`). All `Proposed` or unwritten on 2026-11-03 |
+| **Depends On** | ADR-0001 (rules / presentation split; `Boot` as the one composition root whose `services()` only scene roots and debug loaders may call); ADR-0004 (save format — defines `MetaApi`, `ProfileStore`, `SettingsBus` and `MetaFacade`; this ADR only fixes how they are **injected** and consumed); ADR-0008 (match driver and the Run ↔ Match ↔ UI hand-off — `RunController` receives the `MatchDriver` from `RunMachine.begin_match()` and hands `MatchView` a `MatchController`). All written 2026-11-03 and `Proposed`; none Accepted. ADR-0004 Decision 9 already names `MetaFacade` / `MetaStub` at the paths used here and the shared contract suite (`tests/unit/meta/meta_api_contract_test.gd`) |
 | **Enables** | Every Run UI story; the nine run fixtures (U10); `/ux-review` of `design/ux/hero-select.md`, `draft-picker.md`, `run-summary.md` can assume this shell |
 | **Blocks** | Run UI epic; the MVP build's main menu / hero select / boss intro / drafts / summaries; `data_error` screen (card-database CR-8) |
 | **Ordering Note** | `MetaStub` can ship **before** ADR-0004's `ProfileStore` exists — that is the point of the seam — but `MetaApi` itself is ADR-0004's interface, so a change there is a change here. ADR-0009 supplies `CardFrame`, `PauseMenu` (settings panel) and the `Transition` helper's tween conventions; the Run UI epic can start on the shell and `main_menu` / `hero_select` before ADR-0009's presenters exist |
@@ -351,8 +351,10 @@ signal unlock_granted(key: String, kind: StringName, id: String, by_run_id: Stri
 var settings_bus: SettingsBus
 
 # src/gameplay/meta/meta_stub.gd — MVP implementation (this ADR)
-class_name MetaStub extends MetaApi                     # new
+class_name MetaStub extends MetaApi                     # path and role per ADR-0004 Decision 9; behaviour fixed here
 func _init(db: CardDatabase, mirror: ProfileStore = null) -> void   # settings from db.config("profile_defaults")
+static func from_fixture(db: CardDatabase, fixture: Dictionary) -> MetaStub   # RunDebugLoader: profile fields, optional active_run
+var calls: Array[Dictionary]                             # records every mutator call for tests (ADR-0004)
 # every override has an explicit `return` (4.7 typed-return rule)
 
 # src/core/save/settings_bus.gd — ADR-0004's class, consumed here

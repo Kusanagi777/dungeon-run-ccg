@@ -190,6 +190,33 @@ and the "events replayed on the main thread in `tick()`" rule stay as written.
 `architecture.md` is not edited by this run; `/propagate-design-change` or the
 architecture owner should align the two sentences when this ADR is Accepted.
 
+**Reconciliation with ADR-0008** (written the same day, `Proposed`). ADR-0008
+Decision 3 and its guideline say that while a task is live "main-thread code
+must never read or write `RulesEngine`, `EffectResolver`, `BossAI` or the match
+`EventLog`" and that `_boss_turn()` calls `boss_ai.play_turn(engine)`. Under
+this ADR those read as follows, and ADR-0008 should adopt the wording on
+acceptance of either:
+
+- **Boss-turn and boss-choice tasks**: ADR-0008's gate stands unchanged —
+  `submit` returns `ENGINE_BUSY / planner_live`, `concede` is queued,
+  `MatchQuery.is_busy()` is true. The engine is in `BossTurn.Main` or a boss
+  `Choice`, so no player command is legal anyway; the invariant costs nothing
+  and keeps the driver simple. The task body is `plan_turn(engine.clone())`,
+  and `_on_task_done()` replays the plan into the live engine **before** it
+  forwards `events_since(_cursor)` — ADR-0008's forwarding step is unchanged.
+- **Forecast tasks** (`PlayerTurn.Main`): the gate is **relaxed** — the task
+  owns a clone, so player `submit` and `MatchQuery` proceed normally against the
+  live engine and `is_busy()` is false. If the player's command moves the engine
+  out of `PlayerTurn.Main` (end turn, concede) before the forecast returns, the
+  driver discards the result and appends nothing. This is the one behavioural
+  difference from ADR-0008 as written and the reason the clone design is
+  chosen (boss-ai C1.4 runs `forecast` while the player acts).
+- ADR-0008's "the driver's own work per `tick()` is one poll plus bookkeeping
+  (≤ 2 ms)" holds with `replay_budget_ms` defaulting to **2**: replay continues
+  on the next tick once the budget is spent (minimum one command per tick, so a
+  single worst-case 5 ms `submit` — match-rules budget — may still overrun one
+  frame; that is engine time, not `src/ai/**` time).
+
 ### Architecture Diagram
 
 ```
@@ -298,7 +325,8 @@ class_name TurnPlan extends RefCounted                   # new — plain data, J
 class_name MatchDriver extends RefCounted
 func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask) -> void
 func tick() -> void              # ≤ 2 ms of AI work: one poll(); replay bounded by replay_budget_ms, carried to the next tick
-func submit(command: Command) -> CommandResult   # while planner is live: rejects with ENGINE_BUSY except concede → queued
+func submit(command: Command) -> CommandResult   # boss-turn / boss-choice task live: ENGINE_BUSY/planner_live except concede → queued (ADR-0008); forecast task live: passes through
+func is_planning() -> bool                       # ADR-0008 addition; true only for boss-turn / boss-choice tasks under this ADR
 func shutdown() -> void          # new — if a task is live, blocks on poll()/wait until it ends; MatchView calls it on _exit_tree
 ```
 
@@ -346,7 +374,7 @@ func shutdown() -> void          # new — if a task is live, blocks on poll()/w
 **Tuning note (open point for the data owner):** boss-ai F9 defines
 `ai_profiles.json` with `presentation` and profile blocks. This ADR proposes a
 sibling `runtime {planner_mode: "worker" | "time_sliced", slice_ms: 1.5,
-replay_budget_ms: 4}` block validated by `BossAI.validate_profiles_config`. If
+replay_budget_ms: 2}` block validated by `BossAI.validate_profiles_config`. If
 the data owner prefers another home (ADR-0002 config loading), only the
 `config()` name changes.
 
@@ -445,7 +473,7 @@ driver's `submit()` replay on the main thread.
 | `clone()` carries hooks and continuation | Confirmed in boss-ai Open Questions (2026-11-03): `hooks` is a `MatchState` field, `clone()` is a deep copy | boss-ai A20 (passive doubling heal scored correctly from the sandbox) |
 
 ## Performance Implications
-- **CPU**: main thread — one `is_task_completed` per frame while planning (sub-microsecond), plus replay bounded by `replay_budget_ms` (4 ms default; typical turn ≪ 1 ms); worker — 50 ms p95 target per turn (A22), ≈ 60–80 ms band-3 worst case, on a pool thread. Forecast doubles the per-round worker cost (F7 note) — off-thread, so it costs frames nothing.
+- **CPU**: main thread — one `is_task_completed` per frame while planning (sub-microsecond), plus replay bounded by `replay_budget_ms` (2 ms default; typical turn ≪ 1 ms); worker — 50 ms p95 target per turn (A22), ≈ 60–80 ms band-3 worst case, on a pool thread. Forecast doubles the per-round worker cost (F7 note) — off-thread, so it costs frames nothing.
 - **Memory**: one extra `RulesEngine` clone per planned turn (the planner's own sandboxes already clone per evaluation); one `TurnPlan` (≤ 30 commands + ≤ 30 diagnostics, a few KB). Released when replay ends.
 - **Load Time**: none.
 - **Network**: n/a.
