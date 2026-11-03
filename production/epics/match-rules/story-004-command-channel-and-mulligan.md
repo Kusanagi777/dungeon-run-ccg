@@ -1,12 +1,12 @@
 # Story 004: Command channel, rejection codes and mulligan
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -72,9 +72,9 @@
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (`submit`, `legal_commands`, `phase`, `pending_choice`, `result`, phase guard table, rejection constants, `mulligan` handler)
-- `src/gameplay/match/match_records.gd` (`CommandResult`, `Command` builders)
-- `tests/unit/match_rules/match_rules_command_channel_test.gd`
+- `src/gameplay/match/rules_engine.gd` — `submit`, `legal_commands`, `phase`, `active_side`, `pending_choice`, `result`, `PHASE_COMMANDS` guard table, `REJECTION_CODES`, `_resolving`, event-range tracking in `emit`, `mulligan` handler
+- `src/gameplay/match/match_records.gd` — `CMD_*` / `COMMAND_TYPES`, `command`, `mulligan`, `end_turn` builders (`command_result` already present)
+- `tests/unit/match_rules/match_rules_command_channel_test.gd` — 17 test functions
 
 ---
 
@@ -92,7 +92,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_command_channel_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (17 test functions)
 
 ---
 
@@ -100,3 +100,17 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-003-match-setup.md`
 - Unlocks: `production/epics/match-rules/story-005-turn-structure-and-mana.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 21:12:41 UTC, ended 21:18 UTC)
+**Criteria**: 4/4 passing — AC-03 (`test_mulligan_returns_unkept_cards_before_the_redraw`, `test_mulligan_event_order_is_shuffle_redraws_then_resolved`, `test_mulligan_keep_all_is_legal_and_keeps_the_hand`, `test_second_mulligan_is_wrong_phase`), AC-04 (`test_short_mask_is_invalid_mask_and_only_command_rejected_is_appended`, `test_mask_with_non_bool_entries_is_invalid_mask`), AC-37 (`test_nested_submit_from_a_subscriber_is_engine_busy_and_outer_result_is_intact`), C2 / States (`test_commands_outside_the_mulligan_set_are_wrong_phase`, `test_main_phase_commands_from_the_inactive_side_are_not_your_turn`, `test_choice_phase_accepts_only_choose_from_the_named_side`, `test_every_command_after_ended_is_match_ended`, `test_rejection_code_set_is_the_closed_c2_set`, `test_command_result_has_the_c2_shape`). Watched fail: the suite against the story-003 engine (parse error, exit 105); mutant without the `ENGINE_BUSY` guard (AC-37 fails); mutant counting diagnostics in the call's event range and letting the boss mulligan (2 tests fail).
+**Deviations** (advisory):
+- After an accepted mulligan the match rests in a `PlayerTurn.Start` placeholder (`phase = start`) under `TODO(story 005)`, as the story allows; story 005 replaces it with C3 step 8.
+- A boss `mulligan` and a boss `concede` are `WRONG_PHASE`, not `NOT_YOUR_TURN`: the States table has no boss row for either, and `NOT_YOUR_TURN` is kept for an active-side mismatch in Main.
+- `Main`, `Choice` and `Ended` guard rows are tested on fixture states (`load_state`), since no command reaches them yet; commands without a handler (play_card, attack, use_hero_power, choose, concede) are `WRONG_PHASE` until their stories.
+- A rejection's `CommandResult.events` is `[seq, seq]` of its own `command_rejected` (C2 gives no range for a rejection).
+- `active_side()` added (architecture.md §Core lists it with `phase()`; `MatchDriver` reads it, ADR-0008).
+- The mulligan shuffles the whole deck even on "keep all" (C3 step 7 text is unconditional) and emits `deck_shuffled` for it.
+**Test Evidence**: `tests/unit/match_rules/match_rules_command_channel_test.gd` (17 tests); full suite 369 test cases, 0 failures, exit 0; smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — the story changes the headless command channel and event log only; no scene, node or screen renders it (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

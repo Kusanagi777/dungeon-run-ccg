@@ -13,8 +13,10 @@
 ## `EffectRuntime` bag owned by Card Effects' resolver (ADR-0007). No field
 ## references a Node (DD-T02). Derived values are never stored (C1).
 ##
-## Construction is `from_config(config)`; `RulesEngine.start` (story 003) runs
-## C3 steps 2–8 on the result. Tests build fixtures through `MatchFactory`.
+## Construction is `from_config(config)`; `RulesEngine.start(config)` creates
+## the state this way, sets [member hooks], and runs C3 steps 1–6 on it.
+## Tests build fixtures through `MatchFactory` (`make_match_state`, or
+## `make_started_engine` for a state after setup).
 ## [codeblock]
 ## var state: MatchState = MatchState.from_config(config)
 ## state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(1, "player", 30)
@@ -56,8 +58,8 @@ var pending_choice: Variant = null
 var result: Variant = null
 ## The next id handed to a character, weapon or card instance (C1).
 var next_entity_id: int = FIRST_ENTITY_ID
-## The match's [HookRegistry] (ADR-0005; created by `RulesEngine.start`,
-## story 003). Null until then.
+## The match's [HookRegistry] (ADR-0005), created by `RulesEngine.start` at
+## C3 step 1 before the resolver binds. Null on a bare `from_config` state.
 var hooks: HookRegistry = null
 ## `EffectRuntime {once_marks, counters, per_turn, pending_choice}` — plain
 ## data whose code lives in `EffectResolver` (ADR-0007); see

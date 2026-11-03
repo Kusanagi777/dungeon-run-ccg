@@ -1,12 +1,12 @@
 # Story 003: Match setup: bind, heroes, shuffle, starting hands
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -70,11 +70,11 @@
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (`start`, `emit`, `rng_match`, `state`, hero creation, deck instantiation, happy-path `draw`)
-- `src/gameplay/match/match_state.gd`
-- `tests/helpers/test_effect_resolver.gd` (new scripted resolver double)
-- `tests/helpers/match_factory.gd` (`make_match_config` already present; add `make_started_engine(rng, log, overrides)` convenience)
-- `tests/unit/match_rules/match_rules_setup_test.gd`
+- `src/gameplay/match/rules_engine.gd` — `start`, `emit`, `rng_match`, hero creation, deck instantiation and shuffle, `hook_install_skipped`, `draw` (happy path and burn branch)
+- `src/gameplay/match/match_state.gd` — doc comments only (construction is now `RulesEngine.start`)
+- `tests/helpers/test_effect_resolver.gd` — new `TestEffectResolver` (ADR-0007 surface, scripted)
+- `tests/helpers/match_factory.gd` — `make_started_engine`, `make_started_config`, `make_boss_deck_ids`, `STARTED_BOSS_DECK_SIZE`
+- `tests/unit/match_rules/match_rules_setup_test.gd` — 15 test functions
 
 ---
 
@@ -92,7 +92,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_setup_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (15 test functions)
 
 ---
 
@@ -100,3 +100,17 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-001-data-model-and-rules-config.md`, `production/epics/match-rules/story-002-hook-registry.md`
 - Unlocks: `production/epics/match-rules/story-004-command-channel-and-mulligan.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 21:00:30 UTC, ended 21:13 UTC)
+**Criteria**: 3/3 passing — AC-01 (`test_start_twice_with_seed_42_gives_identical_decks_and_hands`, `test_start_uses_the_injected_stream_once_per_deck`, `test_start_shuffles_the_player_deck_before_the_boss_deck`), AC-02 (`test_setup_complete_state_is_mulligan_with_c3_values`, `test_setup_log_order_is_shuffles_hooks_draws_then_mulligan_offered`, `test_deck_shuffled_lists_the_instance_order_the_hand_is_drawn_from`), AC-43 (`test_boss_health_is_match_config_health`, `test_starting_hand_hook_over_hand_size_clamps_to_hand_size_without_burn`, `test_starting_hand_fold_is_clamped_once_after_the_whole_chain`, `test_duplicate_host_id_logs_hook_install_skipped_and_installs_the_first_only`). Watched fail: missing `start` (all), and one mutant removing the hand-size clamp, swapping the shuffle order and dropping the skip log (9 failures).
+**Deviations** (advisory):
+- Player hero health is `starting_health_player` and the hero power id is `""`: `CardDatabase` has no record queries yet (card-database story 006); `TODO(card-database story 006)` in `start`.
+- `card_drawn` payload is `{side, instance_id, card_id, hand_size}` (rng-event-log catalogue and match-rules C15's `card_added_to_hand` "shaped like `card_drawn`"), not the story's `def_id`.
+- `draw` also implements the burn branch (story 006 scope): without it the AC-43 clamp is unobservable, since a stub that skips full-hand draws masks a missing clamp. The fatigue branch and `on_draw` stay `TODO(story 006)`; an empty-deck draw is a no-op until then.
+- `rng_match()` returns `RefCounted` (ADR-0007 Key Interfaces says `RngStream`) so the `TestRngStream` double fits; matches `MatchState.rng_match`'s type.
+- `hook_install_skipped` is detected by the engine from the installer list after `bind` (the registry is fresh, so a skip is exactly an earlier equal `host_id`); the resolver emits nothing.
+- The engine↔resolver `RefCounted` cycle is not broken yet (`unbind` at `Ended` is story 008); a run leaves a few more resources in use at exit (gdUnit4 already reports ~100), no orphan Nodes.
+**Test Evidence**: `tests/unit/match_rules/match_rules_setup_test.gd` (15 tests); full suite 352 test cases, 0 failures, exit 0; smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — the story changes headless rules state and the event log only; no scene, node or screen renders it (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
