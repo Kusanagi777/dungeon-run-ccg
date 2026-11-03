@@ -184,7 +184,7 @@ Validator Callables bound at composition (`Boot.boot()`), with their owners — 
 
 ### Implementation Guidelines
 
-- **Must** route every read of `assets/data/*.json` through `CardDatabase`; **must never** call `FileAccess.open("res://assets/data/…")`, `JSON.parse_string`, `JSON.new().parse` or `load("res://assets/data/…")` anywhere else in `src/` (control-manifest grep gate; `tools/content/validate.gd` is allowed because it composes `DataLoader`).
+- **Must** route every read of `assets/data/*.json` through `CardDatabase`; **must never** call `FileAccess.open("res://assets/data/…")`, `JSON.parse_string`, `JSON.new(` (any `JSON` instance, so the two-line `var json := JSON.new()` + `json.parse(text)` form too) or `load("res://assets/data/…")` anywhere else in `src/` outside `src/core/data/` (control-manifest grep gate; `tools/content/validate.gd` is allowed because it composes `DataLoader`).
 - **Must** read `config(<name>)` once in the owner's `_init(...)` (or `bind`) and keep the reference; **must never** call `config()` per frame, per command or per hook invocation.
 - **Must** keep `schema_version_current` and `FILE_MANIFEST` the only data-shaped literals in `src/core/data/`; **must never** add a numeric gameplay default to loader code — a missing knob is `E_DELEGATED` from the owner's validator, not a fallback.
 - **Must** register a validator for every record field and every externally owned config file; **must never** make a missing validator pass silently in any build type. Tests inject `func(...): return []` stubs explicitly.

@@ -82,7 +82,7 @@ in Feature, ADR-0001's UI channels in Presentation) has those rules repeated the
 - **Never a second composition path** (`main.tscn` only, debug loaders re-implementing composition) — two paths is how TD-006 happened — source: ADR-0001 (Alt 1)
 - **Never reference `Boot` or `Services` from `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`)** — gate G3 — source: ADR-0001
 - **Never `.tres` / `.res` `Resource` files with `@export` for game data** — no schema gate, needs the editor import step, nested-resource `duplicate()` deprecation, unreadable by tooling (TD-008) — source: ADR-0002 (Alt 1)
-- **Never a per-system loader or any JSON parse outside `CardDatabase`** — `FileAccess.open("res://assets/data/…")`, `JSON.parse_string`, `JSON.new().parse`, `load("res://assets/data/…")` appear nowhere else in `src/` (`tools/content/validate.gd` composes `DataLoader` and is allowed) — cross-reference checks and the fingerprint need one parser — source: ADR-0002 (Alt 2)
+- **Never a per-system loader or any JSON parse outside `CardDatabase`** — `FileAccess.open("res://assets/data/…")`, `JSON.parse_string`, `JSON.new(` (any `JSON` instance, one line or two), `load("res://assets/data/…")` appear nowhere else in `src/` (`tools/content/validate.gd` composes `DataLoader` and is allowed) — cross-reference checks and the fingerprint need one parser — source: ADR-0002 (Alt 2)
 - **Never one bundled `game_data.json`** — CN-6 batch ownership — source: ADR-0002 (Alt 3)
 - **Never GDScript constants as game data** — source: ADR-0002 (Alt 4)
 - **Never a numeric gameplay default in loader code** — `SCHEMA_VERSION_CURRENT` and `FILE_MANIFEST` are the only data-shaped literals in `src/core/data/`; a missing knob is `E_DELEGATED`, not a fallback — source: ADR-0002
@@ -431,7 +431,7 @@ From `docs/engine-reference/godot/current-best-practices.md`; every row is a pos
   | G6 no global RNG in rules | `randi\(\|randf\(\|randomize\(\|\.shuffle\(\)\|pick_random\(` | `src/gameplay/**`, `src/ai/**` | 0 hits |
   | G7 no direct state writes from effects | the ADR-0007 field-write pattern, `log\.append\(`, `RandomNumberGenerator` | `src/gameplay/effects/**` | 0 hits |
   | Lint `tools/lint/no_global_rng.sh` | `randi(`, `randf(`, `randi_range(`, `randomize(`, `.shuffle(`, `.pick_random(`, `RandomNumberGenerator.new(` | `src/` minus `src/ui/`, `src/core/rng/`, and the allow-listed run-creation path | any hit fails the build |
-  | Data-read gate | `FileAccess.open("res://assets/data/`, `JSON.parse_string`, `JSON.new().parse`, `load("res://assets/data/` | `src/` minus `src/core/data/` | 0 hits |
+  | Data-read gate | `FileAccess.open("res://assets/data/`, `JSON.parse_string`, `JSON.new(`, `load("res://assets/data/` | `src/` minus `src/core/data/` | 0 hits |
 
 - **Threading**: everything runs on the main thread (input, player `submit`, `EventLog` subscribers, `AnimationQueue`, presenters, `ProfileStore` writes, data load) except the Boss AI planner, which runs over `RulesEngine.clone()` in a `PlannerTask` exposing only `start` / `poll` / `result`; no Node, autoload, signal emission or live-log append from the worker; the live engine is main-thread only — source: ADR-0006, ADR-0008, ADR-0003; architecture.md §Threading model
 - **Gameplay values are data-driven**: every number comes from `assets/data/*.json` through `config(<name>)`, read once at the owner's construction; the only code literals are `SCHEMA_VERSION_CURRENT`, `FILE_MANIFEST` and `PROFILE_SCHEMA_VERSION` — source: ADR-0002, ADR-0004; coding-standards
