@@ -31,6 +31,13 @@ extends Node
 
 ## The override keys [method boot] understands. Later epics append theirs.
 const OVERRIDE_KEYS: PackedStringArray = ["meta", "card_database"]
+## Config files whose owner has not shipped a stage-7a validator yet; each is
+## registered with [method _pending_config_validator] (accept-all) so the load
+## is not `E_DELEGATED`. Remove a name when its owner's `validate_config` lands.
+const PENDING_CONFIG_OWNERS: PackedStringArray = [
+	"card_effects", "run_structure", "reward_draft", "treasures_balance",
+	"heroes_balance", "match_ui", "run_ui", "profile_defaults", "content_budgets",
+]
 
 ## False until [method boot] has run once (the QQ-04 test asserts it at suite
 ## start); true from then on, whatever the load's outcome. Read-only: it is
@@ -125,30 +132,63 @@ func services() -> Services:
 
 
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5
-## step 2; ADR-0002 Decision 4): every owner that exists today. The full
-## shape is `{effects, ai_profile, unlock, treasure, configs: {match_rules,
-## card_effects, ai_profiles, run_structure, reward_draft, treasures_balance,
-## heroes_balance, match_ui, run_ui, profile_defaults, content_budgets,
-## rng_event_log}}`; each later epic adds its own line here, and a missing one
-## is `E_DELEGATED` once the loader's stage 7 runs.
-## TODO(card-effects): "effects": EffectValidator.validate
-## TODO(boss-ai): "ai_profile": BossAI.validate_ai_profile (7b; exists, registered once stage 7b runs)
-## TODO(treasures): "treasure": Treasures.validate
-## TODO(each config owner): its `configs` entry (control manifest: the static
-## `validate_config` each owner registers here).
+## step 2; ADR-0002 Decision 4): `{effects, ai_profile, unlock, treasure,
+## configs: {<every config file but card_database>}}`. A key missing here is
+## `E_DELEGATED` → `Failed` in every build (card-database story 004), so every
+## owner is registered — the real validator where its owner has shipped one,
+## else an explicit accept-all placeholder listed in
+## [constant PENDING_CONFIG_OWNERS] / [method _pending_record_validator]:
+## - `effects` → `EffectValidator.validate_effects` (card-effects 003), as the
+##   ADR-0007 stage-7b adapter with `caps = configs["card_effects"]`;
+## - `unlock` → the Meta seam's `validate_unlock_defs` (the `meta` override's,
+##   else [method _validate_unlock_defs_mvp]), adapted per record;
+## - `configs.match_rules` → `RulesEngine.validate_rules_config`;
+## - `configs.ai_profiles` → `BossAI.validate_profiles_config` (boss-ai 002);
+## - `configs.rng_event_log` → `EventLog.validate_config` (rng-event-log 007);
+## - placeholders: `ai_profile` (Boss AI), `treasure` (Treasures) and the
+##   nine configs in [constant PENDING_CONFIG_OWNERS].
+## TODO(boss-ai): "ai_profile" → BossAI.validate_profile_key (7b adapter, profiles = configs["ai_profiles"])
+## TODO(treasures): "treasure" → Treasures.validate_treasure_defs
+## TODO(each config owner): replace its placeholder with its static `validate_config`.
 func _collect_validators(meta: MetaApi) -> Dictionary:
-	var configs: Dictionary = {"match_rules": RulesEngine.validate_rules_config, "ai_profiles": BossAI.validate_profiles_config, "rng_event_log": EventLog.validate_config}
+	var configs: Dictionary = {}
+	for config_name: String in PENDING_CONFIG_OWNERS:
+		configs[config_name] = _pending_config_validator
+	configs["match_rules"] = RulesEngine.validate_rules_config
+	configs["ai_profiles"] = BossAI.validate_profiles_config
+	configs["rng_event_log"] = EventLog.validate_config
+	var unlock_defs: Callable = meta.validate_unlock_defs if meta != null else _validate_unlock_defs_mvp
 	return {
-		"unlock": meta.validate_unlock_defs if meta != null else _validate_unlock_defs_mvp,
+		"effects": func(host_kind: StringName, host_id: String, effects: Variant, db: Variant, bodies: Dictionary) -> Array:
+			return EffectValidator.validate_effects(host_kind, host_id, effects, db, bodies.get("card_effects", {})),
+		"ai_profile": _pending_record_validator,
+		"unlock": func(host_kind: StringName, host_id: String, unlock: Variant, _db: Variant, _bodies: Dictionary) -> Array:
+			return unlock_defs.call([{"host_kind": host_kind, "host_id": host_id, "unlock": unlock}]),
+		"treasure": _pending_record_validator,
 		"configs": configs,
 	}
 
 
 ## The MVP unlock validator when no `meta` override is given: `MetaStub` is
 ## built after the load (it reads `config("profile_defaults")`), so its
-## answer — no rules, `[]` (story 003) — stands in for it here.
+## answer — no rules, `[]` (story 003) — stands in for it here. Receives one
+## `{host_kind, host_id, unlock}` def per stage-7b call.
 ## TODO(meta-progression): replace with the real M2.4 validator.
 func _validate_unlock_defs_mvp(_defs: Array) -> Array:
+	return []
+
+
+## Placeholder stage-7b record validator for an owner that has not shipped
+## its validator yet (`ai_profile`, `treasure`): accepts everything. Listed in
+## [method _collect_validators]; it exists so the registration is explicit,
+## not to hide the gap.
+func _pending_record_validator(_host_kind: StringName, _host_id: String, _value: Variant, _db: Variant, _bodies: Dictionary) -> Array:
+	return []
+
+
+## Placeholder stage-7a config validator for each name in
+## [constant PENDING_CONFIG_OWNERS]: accepts every body.
+func _pending_config_validator(_body: Dictionary, _db: Variant) -> Array:
 	return []
 
 

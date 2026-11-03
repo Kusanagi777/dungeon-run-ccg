@@ -55,7 +55,7 @@ func after() -> void:
 # --- helpers -----------------------------------------------------------------
 
 func _body() -> Dictionary:
-	var result: DataLoader.LoadResult = DataLoader.new(STAGE_ROOT).run({})
+	var result: DataLoader.LoadResult = DataLoader.new(STAGE_ROOT).run(ValidatorStubs.accept_all())
 	GameAssertions.fail_if(result.snapshot == null, "staged load failed:\n%s" % result.report.to_text())
 	return result.snapshot.configs[BossAI.CONFIG_NAME]
 
@@ -153,7 +153,7 @@ func _content_b1() -> Dictionary:
 
 func test_shipped_file_loads_through_data_loader_with_no_entry_naming_it() -> void:
 	# Act
-	var result: DataLoader.LoadResult = DataLoader.new(STAGE_ROOT).run({})
+	var result: DataLoader.LoadResult = DataLoader.new(STAGE_ROOT).run(ValidatorStubs.accept_all())
 
 	# Assert — strict JSON, envelope and schema_version 1 (CR-1, CR-5 1-3)
 	var entries: Array = result.report.entries().filter(func(e: Dictionary) -> bool: return e.file == BossAI.PROFILES_FILE)

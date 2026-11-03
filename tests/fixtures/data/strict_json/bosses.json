@@ -1,7 +1,11 @@
 {
   "schema_version": 1,
   "records": [
-    {"id": "boss_a", "name": "id", "say": "a, ] and }, then {\"id\": 1,}"},
-    {"id": "boss_b", "tags": ["x", "y"], "nested": {"id": "inner", "name": "id"}}
+    {"id": "boss_a", "name": "a, ] and }, then {\"id\": 1,}", "band": 1, "health": 30, "hero_power": null,
+     "passive": {"id": "inner_a", "name": "id"}, "passive_text": {"key": "boss.boss_a.passive", "en": "{id}, [name]"},
+     "deck": ["boss_strict_card"], "ai_profile": "default", "tags": [], "intro_text": {"key": "boss.boss_a.intro", "en": ""}},
+    {"id": "boss_b", "name": "id", "band": 2, "health": 40, "hero_power": null,
+     "passive": {"id": "inner", "nested": {"id": "inner", "name": "id"}}, "passive_text": {"key": "boss.boss_b.passive", "en": ""},
+     "deck": ["boss_strict_card"], "ai_profile": "default", "tags": ["x", "y"], "intro_text": {"key": "boss.boss_b.intro", "en": ""}}
   ]
 }

@@ -26,7 +26,7 @@ const FAULT_LINES: Dictionary = {
 
 
 func _report() -> ValidationReport:
-	return DataLoader.new(ROOT).run({}).report
+	return DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).report
 
 
 func _entries_for(report: ValidationReport, file_name: String) -> Array[Dictionary]:
@@ -91,8 +91,11 @@ func test_repeated_keys_across_objects_and_punctuation_in_strings_are_not_faults
 	# Act
 	var report: ValidationReport = _report()
 
-	# Assert — bosses.json and every untouched minimal/ file are clean
-	assert_array(_entries_for(report, "bosses.json")).is_empty()
+	# Assert — bosses.json and every untouched minimal/ file are free of errors
+	# (stage 8 may note that band health went unchecked: match_rules.json is
+	# one of the faulty files here)
+	assert_array(_entries_for(report, "bosses.json").filter(
+		func(e: Dictionary) -> bool: return e.severity == ValidationReport.SEVERITY_ERROR)).is_empty()
 	var faulty: Array = report.errors().map(func(e: Dictionary) -> String: return e.file)
 	assert_array(_sorted(faulty)).is_equal(_sorted(FAULT_LINES.keys()))
 
@@ -102,11 +105,11 @@ func test_strict_json_fault_fails_the_load_with_no_snapshot() -> void:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(ROOT))
 
 	# Act
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 
 	# Assert
 	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
-	assert_that(DataLoader.new(ROOT).run({}).snapshot).is_null()
+	assert_that(DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).snapshot).is_null()
 
 
 func _sorted(items: Array) -> Array:

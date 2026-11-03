@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_t01",
+      "name": "Treasure 1",
+      "rarity": "rare",
+      "tags": [
+        "war",
+        "weapons"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t01.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t02",
+      "name": "Treasure 2",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t02.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t03",
+      "name": "Treasure 3",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t03.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t04",
+      "name": "Treasure 4",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t04.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t05",
+      "name": "Treasure 5",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t05.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t06",
+      "name": "Treasure 6",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t06.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t07",
+      "name": "Treasure 7",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t07.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_t08",
+      "name": "Treasure 8",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_t08.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "treasure_living_armory",
+      "name": "Living Armory",
+      "rarity": "rare",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": {
+        "key": "first_victory",
+        "condition": {
+          "type": "runs_won",
+          "at_least": 1
+        }
+      },
+      "text": {
+        "key": "treasure.treasure_living_armory.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_living_armory"
+    }
+  ]
+}

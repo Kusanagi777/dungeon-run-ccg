@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "config": {
+    "anything": "goes",
+    "nested": [
+      1,
+      2.5,
+      null
+    ]
+  }
+}

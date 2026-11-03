@@ -32,6 +32,54 @@ const E_MISSING_FILE: StringName = &"E_MISSING_FILE"
 const E_PARSE: StringName = &"E_PARSE"
 ## `schema_version` is not `DataLoader.SCHEMA_VERSION_CURRENT` (CR-5 step 3).
 const E_SCHEMA_VERSION: StringName = &"E_SCHEMA_VERSION"
+## A record field of the wrong type, out of range or off its pattern, or a
+## cross-field rule broken; a `card_database.json` knob fault (CR-3, CR-5 step 4).
+const E_SCHEMA: StringName = &"E_SCHEMA"
+## A required record field absent or `null` (CR-3, CR-5 step 4).
+const E_MISSING_FIELD: StringName = &"E_MISSING_FIELD"
+## A field CR-3 does not list for the record type, or one its by-type rule
+## forbids (CR-3, CR-5 step 4).
+const E_UNKNOWN_FIELD: StringName = &"E_UNKNOWN_FIELD"
+## A value outside a CR-3 / CR-4 enumeration (CR-5 step 4).
+const E_BAD_ENUM: StringName = &"E_BAD_ENUM"
+## A card `set` that is not its file's set, or an id prefix that disagrees
+## with the record type or set (CR-2, CR-5 step 4).
+const E_SET_MISMATCH: StringName = &"E_SET_MISMATCH"
+## A `text.key` that is not `card.<id>.text` (or `passive_text.key` not
+## `boss.<id>.passive`) (CR-3, Edge Cases).
+const E_TEXT_KEY: StringName = &"E_TEXT_KEY"
+## One id defined more than once, in one file or across files and record
+## types; the entry names every `file records[i]` and no copy is kept (CR-5 step 5).
+const E_DUP_ID: StringName = &"E_DUP_ID"
+## A list entry or `hero_power` naming no record of the expected type; the
+## message names the list index and the id (CR-5 step 6).
+const E_UNKNOWN_REF: StringName = &"E_UNKNOWN_REF"
+## A list of the wrong length (starter deck 15, bundle 3), found and expected
+## in the message (CR-5 step 6).
+const E_COUNT: StringName = &"E_COUNT"
+## A token card in a starter deck, bundle or boss deck (CR-5 step 6).
+const E_TOKEN_IN_LIST: StringName = &"E_TOKEN_IN_LIST"
+## A bundle card without the bundle's `theme` tag (CR-5 step 6).
+const E_TAG_MISMATCH: StringName = &"E_TAG_MISMATCH"
+## Stage 7 (CR-5 step 7): a validator the composition did not register (or
+## registered as a non-Callable), a validator returning something other than
+## an Array of entries, or one entry an owner's validator returned. An owner
+## entry's message is `"<owner code>: <owner message>"` (e.g.
+## `E_FX_OP: unknown op "bogus" (at effects/0/ops/1/op)`); an owner code
+## starting `W_` is merged with severity `warning`, every other one `error`.
+const E_DELEGATED: StringName = &"E_DELEGATED"
+## Stage 8 (Formulas): a pool under its threshold — a hero set's collectible
+## pool under `min_collectible_pool`, its bundle pool under `min_bundle_pool`,
+## the default-unlocked treasures under `min_treasure_pool` — or, with "not
+## checked" in the message, a pool check whose inputs were absent (CR-5 step 8).
+const W_POOL_SIZE: StringName = &"W_POOL_SIZE"
+## Stage 8: a boss `health` that differs from its band default (DD-M02), or a
+## "not checked" note when the band defaults are absent (CR-5 step 8).
+const W_BAND_HEALTH: StringName = &"W_BAND_HEALTH"
+## Stage 8: a `cards_<set>.json` that parsed with `records: []` (Edge Cases).
+const W_EMPTY_SET: StringName = &"W_EMPTY_SET"
+## Stage 8: two different card ids with the same `name` (Edge Cases).
+const W_DUP_NAME: StringName = &"W_DUP_NAME"
 ## A `.json` file not in `DataLoader.FILE_MANIFEST`; it is not loaded (CR-1).
 const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
 

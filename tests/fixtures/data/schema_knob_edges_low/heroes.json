@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_war",
+      "name": "Warden",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_sharpen",
+      "starter_deck": [
+        "war_shield_bearer",
+        "war_plate_squire",
+        "war_iron_vanguard",
+        "war_axe_thrower",
+        "war_iron_axe",
+        "war_whetstone",
+        "war_battle_cry",
+        "war_shield_bearer",
+        "war_plate_squire",
+        "war_iron_vanguard",
+        "war_axe_thrower",
+        "war_iron_axe",
+        "war_whetstone",
+        "war_battle_cry",
+        "neutral_torch_imp"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_war.text",
+        "en": ""
+      },
+      "art": "heroes/hero_war"
+    }
+  ]
+}

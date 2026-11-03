@@ -1,12 +1,12 @@
 # Story 003: Id uniqueness and cross-references (CR-5 stages 5–6)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -65,9 +65,11 @@
 
 ## Files
 
-- `src/core/data/data_loader.gd` (stages 5–6, staged sorted lists + `index_of`)
-- `tests/fixtures/data/dup_id/`, `tests/fixtures/data/refs_*/`
-- `tests/unit/card_database/card_database_references_test.gd`
+- `src/core/data/data_loader.gd` (stage 5 `_check_unique`, stage 6 `_check_references`, `_build_staging`; `LoadResult.staging`; stage 4 now also collects every record's string id)
+- `src/core/data/record_schemas.gd` (`count` 15 / 3 on the CR-3 `starter_deck` / `cards` specs)
+- `src/core/data/validation_report.gd` (the five stage 5–6 codes)
+- `tests/fixtures/data/dup_id/`, `refs_counts/`, `refs_unknown/`, `refs_sets_tags/`, `refs_tokens/`, `refs_missing_set_file/`
+- `tests/unit/card_database/card_database_references_test.gd` (21 tests)
 
 ---
 
@@ -85,7 +87,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_references_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 21 tests, passing
 
 ---
 
@@ -93,3 +95,19 @@
 
 - Depends on: `production/epics/card-database/story-001-manifest-parse-envelope.md`, `production/epics/card-database/story-002-record-schema-validation.md`
 - Unlocks: `production/epics/card-database/story-004-delegated-validators.md`, `production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md`
+
+## Completion Notes
+
+**Completed**: 2026-11-03 (started 2026-11-03T21:13:14Z, finished 2026-11-03T21:17:19Z UTC)
+**Criteria**: 4/4 passing (all covered by unit tests in `card_database_references_test.gd`; none deferred)
+**Run result**: N/A — stages 5–6 are headless loader validation with no scene, screen or log a player sees; the report reaches the player only through the `data_error` screen (Run UI epic)
+**Deviations** (advisory):
+- Stage 5 sees the id of **every** record with a string id, including one that failed stage 4 — otherwise the GDD's own AC ("one card id duplicated into a second set file → `E_DUP_ID`") could never fire, because a `war_` card in `cards_neutral.json` always fails its prefix at stage 4. Such a record gets both its stage-4 entry and the `E_DUP_ID`; stage 6 still reads only records that passed 4 and 5.
+- `E_DUP_ID` is one entry per id whose `file` is the first defining file in manifest order; every `file records[i]` is in the message (the report entry has one `file` slot).
+- A reference to a record that failed stage 4, 5 or 6 is `E_UNKNOWN_REF` ("unknown id, or its record failed validation"); a `hero_power` naming a non-HeroPowerDef record, or a list entry naming a non-card record, is `E_UNKNOWN_REF` with both types named.
+- The hero set-file check (`E_MISSING_FILE`, `file` = the missing `cards_<set>.json`, `record_id` = the hero, `field` = `set`) asks `FileAccess.file_exists` on the root, so a set file that is present but failed to parse is not reported twice.
+- The 15 / 3 list lengths are held as `count` on the CR-3 field specs in `RecordSchemas` (format knowledge, DD-R03 / DD-R04), not as numeric constants; `TestConstants.STARTER_DECK_SIZE` / `BUNDLE_CARD_COUNT` are pinned to them by a test.
+- The staging (`LoadResult.staging`: `{records: {type: id-sorted Array}, index_of: {id: {type, position}}, files: {id: file}}`) is built whatever the outcome and is provisional until Story 006 freezes it; a record failing stage 6 is not staged.
+- Fixture roots derive from `clean/` (story 002), not `minimal/`, via the same scratch generator.
+**Test Evidence**: `tests/unit/card_database/card_database_references_test.gd` (21 tests; seen failing before stages 5–6 existed); full suite exit 0, 390 test cases; smoke exit 0, no SCRIPT ERROR; parse check ok
+**Reviewed by**: self, no independent review (`/code-review` not run; LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode)

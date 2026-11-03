@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_rot_warden",
+      "name": "Rot Warden",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_sharpen",
+      "passive": null,
+      "deck": [
+        "boss_bone_shard",
+        "war_iron_axe"
+      ],
+      "ai_profile": "default",
+      "tags": [
+        "undead"
+      ],
+      "intro_text": {
+        "key": "boss.boss_rot_warden.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_rot_warden"
+    },
+    {
+      "id": "boss_bone_king",
+      "name": "Bone King",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "ops": [
+          {
+            "op": "summon",
+            "card": "boss_grave_rat"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_bone_king.passive",
+        "en": "Summons a rat each turn."
+      },
+      "deck": [
+        "boss_bone_shard",
+        "boss_grave_rat"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_bone_king.intro",
+        "en": ""
+      }
+    },
+    {
+      "id": "boss_mute_wraith",
+      "name": "Mute Wraith",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "ops": [
+          {
+            "op": "summon",
+            "card": "boss_grave_rat"
+          }
+        ]
+      },
+      "deck": [
+        "boss_bone_shard",
+        "boss_grave_rat"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_mute_wraith.intro",
+        "en": ""
+      }
+    },
+    {
+      "id": "boss_chatter_ghoul",
+      "name": "Chatter Ghoul",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_sharpen",
+      "passive": null,
+      "deck": [
+        "boss_bone_shard",
+        "war_iron_axe"
+      ],
+      "ai_profile": "default",
+      "tags": [
+        "undead"
+      ],
+      "intro_text": {
+        "key": "boss.boss_chatter_ghoul.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_rot_warden",
+      "passive_text": {
+        "key": "boss.boss_chatter_ghoul.passive",
+        "en": "Nothing."
+      }
+    },
+    {
+      "id": "boss_empty_husk",
+      "name": "Empty Husk",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": null,
+      "deck": [
+        "boss_bone_shard",
+        "war_iron_axe"
+      ],
+      "ai_profile": "default",
+      "tags": [
+        "undead"
+      ],
+      "intro_text": {
+        "key": "boss.boss_empty_husk.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_rot_warden"
+    },
+    {
+      "id": "boss_wrong_key",
+      "name": "Wrong Key",
+      "band": 4,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "ops": [
+          {
+            "op": "summon",
+            "card": "boss_grave_rat"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_bone_king.passive",
+        "en": ""
+      },
+      "deck": [],
+      "ai_profile": "default",
+      "tags": [
+        "Undead"
+      ],
+      "intro_text": {
+        "key": "boss.boss_wrong_key.intro",
+        "en": ""
+      }
+    }
+  ]
+}

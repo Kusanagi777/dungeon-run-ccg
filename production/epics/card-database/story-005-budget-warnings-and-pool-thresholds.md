@@ -1,12 +1,12 @@
 # Story 005: Budget warnings and pool thresholds (CR-5 stage 8, Formulas)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -66,9 +66,12 @@
 
 ## Files
 
-- `src/core/data/data_loader.gd` (stage 8)
-- `tests/fixtures/data/pool_*/`, `tests/fixtures/data/empty_set/`, `tests/fixtures/data/knobs_99/`
-- `tests/unit/card_database/card_database_budget_warnings_test.gd`
+- `src/core/data/data_loader.gd` (stage 8: `_check_budgets` and its four helpers)
+- `src/core/data/validation_report.gd` (`W_POOL_SIZE`, `W_BAND_HEALTH`, `W_EMPTY_SET`, `W_DUP_NAME`)
+- `tests/fixtures/data/pool_treasures/`, `pool_collectible/`, `pool_at_threshold/`, `pool_bundles_floor/`, `pool_bundles_warn/`, `pool_mvp_40/`, `empty_set/`, `band_health/`, `dup_name/`, `knobs_99/`, `max_records/`, `stage8_inputs_missing/`
+- `tests/fixtures/data/*/{run_structure,reward_draft,match_rules}.json` in `clean/` and every root derived from it (the stage-8 inputs other owners hold); `schema_knob_edges_low/card_database.json` (`max_records` 5000)
+- `tests/unit/card_database/card_database_budget_warnings_test.gd` (15 tests)
+- `tests/unit/card_database/card_database_{pipeline,bad_values,parse_error,strict_json,schema}_test.gd` (expectations that assumed a warning-free empty root)
 
 ---
 
@@ -86,7 +89,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_budget_warnings_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 15 tests, passing
 
 ---
 
@@ -94,3 +97,16 @@
 
 - Depends on: `production/epics/card-database/story-002-record-schema-validation.md`, `production/epics/card-database/story-003-uniqueness-and-cross-references.md`
 - Unlocks: `production/epics/card-database/story-006-freeze-and-queries.md`
+
+## Completion Notes
+
+**Completed**: 2026-11-03 (started 2026-11-03T21:28:15Z, finished 2026-11-03T21:33:35Z UTC)
+**Criteria**: 4/4 passing (all covered by unit tests in `card_database_budget_warnings_test.gd`; none deferred)
+**Run result**: N/A — stage 8 is headless loader validation with no scene, screen or log a player sees; its warnings reach the player only through the report (validate command / `data_error` screen)
+**Deviations** (advisory):
+- **DD-R05 / DD-M02 owners (the sprint plan's open point), read from data, no literal:** `treasure_drafts_per_run = |treasure_floors ∩ [1, floors_per_run − 1]|` from `run_structure.json` (Run Structure owns `floors_per_run` and `treasure_floors` — run-structure Tuning Knobs; the count formula is reward-draft's `K`); `treasure_offers_per_draft` from `reward_draft.json` (reward-draft Tuning Knobs lists it, "constant in v1"); `boss_starting_health_by_band` from `match_rules.json` (registry entry's source is match-rules; match-rules Tuning Knobs "Boss band health"). **Flag for those owners:** none of the three keys is in their shipped bodies or validators yet (`assets/data/match_rules.json` / `RulesEngine.CONFIG_KEYS` lack `boss_starting_health_by_band`; no `run_structure.json` / `reward_draft.json` ship). Until they do, stage 8 does not fall back: it emits one `W_POOL_SIZE` / `W_BAND_HEALTH` whose message says "not checked" and names the absent keys (skill-authoring obligation 3), and the load is not failed by it.
+- The bundle-pool hard floor (3, DD-R04) is read as `RecordSchemas.KNOB_RANGES.min_bundle_pool[0]` — the Formulas row defines the knob's range floor as that hard floor — so `src/core/data/` still holds no numeric constant besides `SCHEMA_VERSION_CURRENT`.
+- Entry placement: collectible-pool `W_POOL_SIZE` on `cards_<set>.json` (`field` `min_collectible_pool`); bundle-pool `E_COUNT` / `W_POOL_SIZE` on `bundles.json` (`field` `min_bundle_pool`); treasure-pool `W_POOL_SIZE` on `treasures.json`; `max_records` `E_COUNT` on `card_database.json` (counts every record in every definition file, failed ones included — "all records across all files"); `W_DUP_NAME` is one entry per shared name on the first id's file, listing every id. Pools count staged records only (passed stages 4–7).
+- Story-001/002 tests adjusted: `minimal/`-derived roots now carry stage-8 warnings (three empty required set files, treasure pool unchecked), so the "empty report" assertions on `minimal/`, `bad_values/`, `parse_error/` and `strict_json/` now assert no errors / no other warnings; `clean/` is the root that loads with an empty report. `schema_knob_edges_low/` uses `max_records` 5000 (it has no stated range; 1 would trip stage 8).
+**Test Evidence**: `tests/unit/card_database/card_database_budget_warnings_test.gd` (15 tests; seen failing before stage 8 existed); full suite exit 0, 481 test cases (two intentional guard `Assertion failed` SCRIPT ERRORs); `tools/lint/gates.sh` exit 0; parse check 21/0; smoke exit 0, no SCRIPT ERROR
+**Reviewed by**: self, no independent review (`/code-review` not run; LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode)

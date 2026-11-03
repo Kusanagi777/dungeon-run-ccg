@@ -1,12 +1,12 @@
 # Story 004: Delegated validators and the stage-7 lookup exception (CR-5 stage 7)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -65,11 +65,14 @@
 
 ## Files
 
-- `src/core/data/data_loader.gd` (stage 7a/7b)
-- `src/core/data/card_database.gd` (`_stage7_lookups_open`, staged lookup source)
-- `tests/helpers/validator_stubs.gd`
-- `tests/fixtures/data/delegated_*/`
-- `tests/unit/card_database/card_database_validators_test.gd`
+- `src/core/data/data_loader.gd` (stage 7a/7b `_run_validators`, `_record_calls`, `_merge_delegated`; `RECORD_VALIDATORS`, `CONFIG_VALIDATOR_EXEMPT`; `run(validators, db)`)
+- `src/core/data/card_database.gd` (`_stage7_lookups_open`, `_begin_stage7` / `_end_stage7`, the CR-6 lookups over one `_source()`, `config()`, `data_version()`)
+- `src/core/data/validation_report.gd` (`E_DELEGATED` and its message format)
+- `src/core/boot.gd` (`_collect_validators`: every owner registered — real or an explicit placeholder; `PENDING_CONFIG_OWNERS`)
+- `tests/helpers/validator_stubs.gd` (new, `ValidatorStubs`)
+- `tests/fixtures/data/delegated_effects/`; `tests/fixtures/data/minimal/match_rules.json` (the shipped knobs, so Boot's real `RulesEngine` validator accepts it)
+- `tests/unit/card_database/card_database_validators_test.gd` (20 tests)
+- `tests/unit/card_database/card_database_{pipeline,bad_values,parse_error,strict_json,schema,references}_test.gd`, `tests/integration/match_rules/match_rules_config_file_test.gd`, `tests/integration/boot/boot_composition_test.gd` (`run({})` / `load({})` / one-argument stubs → `ValidatorStubs.accept_all()`); `card_database_single_parser_test.gd` (the two stage-7 contract constants)
 
 ---
 
@@ -87,7 +90,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_validators_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 20 tests, passing
 
 ---
 
@@ -95,3 +98,20 @@
 
 - Depends on: `production/epics/card-database/story-003-uniqueness-and-cross-references.md`
 - Unlocks: `production/epics/card-database/story-006-freeze-and-queries.md`; the boot epic's `Boot.boot()` composition (consumes `ValidatorStubs.accept_all()`)
+
+## Completion Notes
+
+**Completed**: 2026-11-03 (started 2026-11-03T21:18:46Z, finished 2026-11-03T21:27:24Z UTC)
+**Criteria**: 4/4 passing (all covered by unit tests in `card_database_validators_test.gd`; none deferred)
+**Run result**: N/A — stage 7 is headless loader validation with no scene, screen or log a player sees; its entries reach the player only through the `data_error` screen (Run UI epic)
+**Deviations** (advisory):
+- **Boot registers every owner** (the story put Boot's adapters out of scope; the sprint lane asked for it, because a missing validator is now `E_DELEGATED` → `Failed`). Real: `effects` → `EffectValidator.validate_effects` (merged from `bootstrap/ccgs-template`, card-effects 003; 7b adapter with `caps = configs.get("card_effects", {})`), `configs.match_rules` → `RulesEngine.validate_rules_config`, `unlock` → the Meta seam's `validate_unlock_defs` adapted to one `{host_kind, host_id, unlock}` def per call (`MetaStub` / the MVP fallback answer `[]`). **Accept-all placeholders** (`Boot._pending_record_validator` / `_pending_config_validator`, `Boot.PENDING_CONFIG_OWNERS`): `ai_profile` (Boss AI), `treasure` (Treasures), and configs `card_effects`, `ai_profiles`, `run_structure`, `reward_draft`, `treasures_balance`, `heroes_balance`, `match_ui`, `run_ui`, `profile_defaults`, `content_budgets`, `rng_event_log`. Boot does not use `tests/helpers/ValidatorStubs` (production code must not depend on the test root).
+- Merge format (story's choice point): the owner code goes in the message, `"<owner code>: <message>"`, plus ` (at <path>)` for ADR-0007 entries that carry a `path` — documented on `ValidationReport.E_DELEGATED`; the entry keeps exactly six keys. An owner code starting `W_` (or `severity: warning`) merges as a **warning** and does not fail the load (card-effects' `W_FX_*`, per the card-effects lane's note); RulesEngine's report-shaped entries merge the same way.
+- A missing record validator's entry names the owner's CR-1 config file (`ai_profile` → `ai_profiles.json`, `effects` → `card_effects.json`, `unlock` → `profile_defaults.json`, `treasure` → `treasures_balance.json`) with `field` = the key; a missing config validator's entry names `<name>.json` with `field` `null`. A non-Callable value, a non-Array result (what a wrong-arity call returns) and a non-Dictionary entry are each `E_DELEGATED` errors.
+- A non-null BossDef `passive` (a CR-3 object) reaches `effects` wrapped as a one-effect list `[passive]` with host kind `boss` (EffectValidator's `effects: Array` parameter; its paths read `passive/0/…`); a `null` passive is skipped. 7b runs per record in type order (CardDef, HeroDef, HeroPowerDef, BossDef, TreasureDef, BundleDef) then id order; a TreasureDef gets `effects`, then `treasure` (the whole record), then `unlock`.
+- `configs` (the 7b fifth argument) holds the bodies whose 7a validator returned no error, plus `card_database` (checked at stage 4). A record any validator failed is dropped from the staging before stage 8.
+- `CardDatabase` gains the CR-6 lookups now (they answer during stage 7 and, from the unfrozen staging, in `Ready`); `config()` answers in `Ready`; `data_version()` returns `""` until Story 007. Signatures `config(config_name: String) -> Variant`, `heroes() -> Array`, `treasure_pool() -> Array` match `boot_composition_test.gd`'s `ConfigCardDatabase` overrides (ADR-0002 Key Interfaces says `config(...) -> Dictionary`; `Variant` because it returns `null` for an unknown name). Lookups outside stage 7 before `Ready` log and return `null` / `[]` / `false` (Story 008 adds `E_NOT_LOADED`).
+- Other epics' tests touched (shared, necessary): `boot_composition_test.gd` (its one-argument stubs and empty `configs` now fail the load) and `match_rules_config_file_test.gd` (`run({})`) use `ValidatorStubs.accept_all()`; `minimal/match_rules.json` now carries the shipped knobs so Boot's real `RulesEngine` validator passes on that fixture.
+- History: this story is commit `08717c6` (WIP) + the merge of `bootstrap/ccgs-template` (EffectValidator, lint gates) + the closing commit; the history rewrite to fold them into one commit was refused by the permission system.
+**Test Evidence**: `tests/unit/card_database/card_database_validators_test.gd` (20 tests; seen failing with the stage-7 call removed); full suite exit 0, 466 test cases (two intentional `Assertion failed` SCRIPT ERRORs from the guard tests); `tools/lint/gates.sh` exit 0; `tools/lint/parse-check.sh` 21 checked, 0 failed; smoke exit 0, no SCRIPT ERROR
+**Reviewed by**: self, no independent review (`/code-review` not run; LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode)

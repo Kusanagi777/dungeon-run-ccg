@@ -1,4 +1,11 @@
 {
   "schema_version": 1,
-  "config": {}
+  "config": {
+    "log_memory_budget_bytes": 2000000,
+    "avg_event_bytes": 200,
+    "keep_match_logs": {
+      "debug": true,
+      "release": false
+    }
+  }
 }

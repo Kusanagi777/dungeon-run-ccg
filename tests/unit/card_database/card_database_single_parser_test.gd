@@ -26,6 +26,7 @@ const DATA_SCRIPTS: Array[String] = [
 	"res://src/core/data/data_loader.gd",
 	"res://src/core/data/card_database.gd",
 	"res://src/core/data/validation_report.gd",
+	"res://src/core/data/record_schemas.gd",
 ]
 
 
@@ -79,8 +80,10 @@ func test_data_loader_declares_only_the_manifest_and_schema_version_as_data() ->
 		if not constants[key] is Script:
 			data_constants.append(key)
 
-	# Assert
-	assert_array(data_constants).contains_exactly_in_any_order(["SCHEMA_VERSION_CURRENT", "FILE_MANIFEST"])
+	# Assert — RECORD_VALIDATORS / CONFIG_VALIDATOR_EXEMPT are the stage-7
+	# composition contract (key → owner), not data; no number among them
+	assert_array(data_constants).contains_exactly_in_any_order(
+		["SCHEMA_VERSION_CURRENT", "FILE_MANIFEST", "RECORD_VALIDATORS", "CONFIG_VALIDATOR_EXEMPT"])
 
 
 func test_matcher_catches_each_forbidden_form() -> void:

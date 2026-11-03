@@ -21,7 +21,7 @@ const MATCH_RULES_FAULT_LINE: int = 1
 
 
 func _report() -> ValidationReport:
-	return DataLoader.new(ROOT).run({}).report
+	return DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).report
 
 
 func _entries_for(report: ValidationReport, code: StringName, file_name: String) -> Array[Dictionary]:
@@ -80,12 +80,13 @@ func test_parse_error_does_not_stop_the_pipeline() -> void:
 
 func test_parse_error_entries_have_the_cr5_shape_and_file_order() -> void:
 	# Act
-	var entries: Array[Dictionary] = _report().entries()
+	var report: ValidationReport = _report()
 
-	# Assert
-	for e: Dictionary in entries:
+	# Assert — every entry has the shape; the errors are the three faults in
+	# file order (stage 8 adds warnings about minimal/'s empty sets and pools)
+	for e: Dictionary in report.entries():
 		assert_array(e.keys()).contains_exactly_in_any_order(["severity", "code", "file", "record_id", "field", "message"])
-	var files: Array = entries.map(func(e: Dictionary) -> String: return e.file)
+	var files: Array = report.errors().map(func(e: Dictionary) -> String: return e.file)
 	assert_array(files).is_equal(["cards_war.json", "match_rules.json", "run_ui.json"])
 
 
@@ -94,8 +95,8 @@ func test_parse_error_leaves_the_database_failed() -> void:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(ROOT))
 
 	# Act
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 
 	# Assert
 	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
-	assert_that(DataLoader.new(ROOT).run({}).snapshot).is_null()
+	assert_that(DataLoader.new(ROOT).run(ValidatorStubs.accept_all()).snapshot).is_null()

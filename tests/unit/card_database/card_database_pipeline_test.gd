@@ -39,12 +39,12 @@ const ENTRY_KEYS: Array[String] = ["severity", "code", "file", "record_id", "fie
 
 func _load_case(case_name: String) -> CardDatabase:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(FIXTURES + case_name))
-	db.load({})
+	db.load(ValidatorStubs.accept_all())
 	return db
 
 
 func _run_case(case_name: String) -> DataLoader.LoadResult:
-	return DataLoader.new(FIXTURES + case_name).run({})
+	return DataLoader.new(FIXTURES + case_name).run(ValidatorStubs.accept_all())
 
 
 func _with_code(report: ValidationReport, code: StringName) -> Array[Dictionary]:
@@ -102,13 +102,20 @@ func test_file_manifest_rng_event_log_row_is_owned_by_rng_event_log() -> void:
 
 # --- Clean root ------------------------------------------------------------------
 
-func test_minimal_root_loads_ready_with_an_empty_report() -> void:
+func test_minimal_root_loads_ready_with_only_the_stage_8_warnings() -> void:
 	# Arrange / Act
 	var db: CardDatabase = _load_case("minimal")
 
-	# Assert
+	# Assert — no error; stage 8 notes the three empty required set files and
+	# that the treasure pool went unchecked (minimal/ has no run_structure /
+	# reward_draft knobs). clean/ is the root that loads with an empty report.
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
-	assert_int(db.report().entries().size()).is_equal(0)
+	assert_array(db.report().errors()).is_empty()
+	var codes: Array = db.report().warnings().map(func(e: Dictionary) -> String: return "%s %s" % [e.code, e.file])
+	assert_array(codes).contains_exactly_in_any_order([
+		"W_EMPTY_SET cards_boss.json", "W_EMPTY_SET cards_neutral.json", "W_EMPTY_SET cards_war.json",
+		"W_POOL_SIZE treasures.json",
+	])
 
 
 func test_minimal_root_snapshot_holds_every_required_file_by_class() -> void:
@@ -376,7 +383,7 @@ func test_card_database_load_returns_the_report_it_keeps() -> void:
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(FIXTURES + "schema_version_2"))
 
 	# Act
-	var returned: ValidationReport = db.load({})
+	var returned: ValidationReport = db.load(ValidatorStubs.accept_all())
 
 	# Assert
 	assert_object(returned).is_same(db.report())
