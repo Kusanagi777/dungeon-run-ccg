@@ -499,6 +499,28 @@ func _build_staging(pool: Dictionary) -> Dictionary:
 ## merged by [method _merge_delegated]. A record any validator failed is removed
 ## from `pool`, and the staging is rebuilt for stage 8. Returns the staging.
 func _run_validators(validators: Dictionary, staged: Array[Dictionary], pool: Dictionary, staging: Dictionary, db: CardDatabase, report: ValidationReport) -> Dictionary:
+	var config_validators: Variant = validators.get("configs", {})
+	if not config_validators is Dictionary:
+		config_validators = {}
+	var present: Dictionary = _check_registrations(validators, config_validators, report)
+	if db != null:
+		db._begin_stage7(staging)
+	var bodies: Dictionary = _run_config_validators(config_validators, staged, db, report)
+	var failed: Array[String] = _run_record_validators(present, staging, bodies, db, report)
+	if db != null:
+		db._end_stage7()
+	if failed.is_empty():
+		return staging
+	for id: String in failed:
+		pool.erase(id)
+	return _build_staging(pool)
+
+
+## Stage 7, registration check: one `E_DELEGATED` error per absent or
+## non-Callable [constant RECORD_VALIDATORS] key (`field` the key) and per
+## config row (except [constant CONFIG_VALIDATOR_EXEMPT]) with no Callable
+## under `configs.<name>`. Returns the registered record validators by key.
+func _check_registrations(validators: Dictionary, config_validators: Dictionary, report: ValidationReport) -> Dictionary:
 	var present: Dictionary = {}
 	for key: String in RECORD_VALIDATORS:
 		var spec: Dictionary = RECORD_VALIDATORS[key]
@@ -507,9 +529,6 @@ func _run_validators(validators: Dictionary, staged: Array[Dictionary], pool: Di
 		else:
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, spec.file, null, key,
 				"no `%s` record validator registered (owner: %s; %s) — %s" % [key, spec.owner, spec.validates, _absent_or(validators.get(key))])
-	var config_validators: Variant = validators.get("configs", {})
-	if not config_validators is Dictionary:
-		config_validators = {}
 	for row: Dictionary in FILE_MANIFEST:
 		if row["class"] != "config" or CONFIG_VALIDATOR_EXEMPT.has(row.name):
 			continue
@@ -517,10 +536,14 @@ func _run_validators(validators: Dictionary, staged: Array[Dictionary], pool: Di
 		if not config_validators.get(name) is Callable:
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, row.name, null, null,
 				"no config validator registered under configs.%s (owner: %s) — %s" % [name, row.owner, _absent_or(config_validators.get(name))])
+	return present
 
-	if db != null:
-		db._begin_stage7(staging)
-	# 7a — config validators.
+
+## Stage 7a: each staged config file in manifest order through its
+## `configs.<name>` validator, `call(body, db)`. Returns `configs_bodies`
+## (`{<name>: body}`): the bodies whose validator returned no error, plus the
+## exempt `card_database` body (checked at stage 4).
+func _run_config_validators(config_validators: Dictionary, staged: Array[Dictionary], db: CardDatabase, report: ValidationReport) -> Dictionary:
 	var bodies: Dictionary = {}
 	for item: Dictionary in staged:
 		var row: Dictionary = item.row
@@ -533,7 +556,14 @@ func _run_validators(validators: Dictionary, staged: Array[Dictionary], pool: Di
 		var validator: Variant = config_validators.get(name)
 		if validator is Callable and _merge_delegated(validator.call(item.body.config, db), row.name, null, null, "configs." + name, report):
 			bodies[name] = item.body.config
-	# 7b — record validators.
+	return bodies
+
+
+## Stage 7b: each staged record, in type then id order, through the
+## [method _record_calls] validators that are registered,
+## `call(host_kind, host_id, value, db, bodies)`. Returns the ids of the
+## records any validator failed.
+func _run_record_validators(present: Dictionary, staging: Dictionary, bodies: Dictionary, db: CardDatabase, report: ValidationReport) -> Array[String]:
 	var failed: Array[String] = []
 	for record_type: String in staging.records:
 		for rec: Dictionary in staging.records[record_type]:
@@ -547,13 +577,7 @@ func _run_validators(validators: Dictionary, staged: Array[Dictionary], pool: Di
 					ok = _merge_delegated(result, file, id, c[3], key, report) and ok
 			if not ok:
 				failed.append(id)
-	if db != null:
-		db._end_stage7()
-	if failed.is_empty():
-		return staging
-	for id: String in failed:
-		pool.erase(id)
-	return _build_staging(pool)
+	return failed
 
 
 ## The stage-7b calls for one record, in order: `[key, host_kind, value, field]`.
@@ -591,8 +615,10 @@ func _record_calls(record_type: String, rec: Dictionary) -> Array:
 ## `default_field` (the record field for 7b, `null` for 7a), and `message`
 ## `"<owner code>: <message>"` with ` (at <path>)` appended when the entry
 ## carries a `path`. `label` names the validator in a malformed-result entry.
-## An owner code starting `W_` (or an entry with `severity` `warning`) merges
-## as a warning and does not fail the record; anything else is an error. A
+## An entry's own `severity` (`warning` / `error`) decides how it merges; an
+## entry without one merges as a warning when its owner code starts `W_`, else
+## as an error (so a pending validator's `W_VALIDATOR_PENDING` with severity
+## `error` fails the load). A warning does not fail the record. A
 ## result that is not an Array, or an entry that is not a Dictionary, is one
 ## `E_DELEGATED` error (a validator called with the wrong arity returns null).
 func _merge_delegated(result: Variant, file: String, record_id: Variant, default_field: Variant, label: String, report: ValidationReport) -> bool:
@@ -608,7 +634,10 @@ func _merge_delegated(result: Variant, file: String, record_id: Variant, default
 			ok = false
 			continue
 		var code: String = str(entry.get("code", "E_UNSPECIFIED"))
-		var warning: bool = code.begins_with("W_") or entry.get("severity") == ValidationReport.SEVERITY_WARNING
+		var severity: Variant = entry.get("severity")
+		var warning: bool = code.begins_with("W_")
+		if severity == ValidationReport.SEVERITY_WARNING or severity == ValidationReport.SEVERITY_ERROR:
+			warning = severity == ValidationReport.SEVERITY_WARNING
 		var rid: Variant = record_id
 		if rid == null:
 			rid = entry.get("host_id", entry.get("record_id"))

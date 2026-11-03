@@ -88,6 +88,7 @@ in Feature, ADR-0001's UI channels in Presentation) has those rules repeated the
 - **Never a numeric gameplay default in loader code** — `SCHEMA_VERSION_CURRENT` and `FILE_MANIFEST` are the only data-shaped literals in `src/core/data/`; a missing knob is `E_DELEGATED`, not a fallback — source: ADR-0002
 - **Never call `config()` per frame, per command or per hook invocation** — source: ADR-0002
 - **Never let a missing validator pass silently in any build**; `OS.is_debug_build()` does not relax it — source: ADR-0002
+- **Never an accept-all placeholder validator in `Boot`**: an owner that has not shipped its validator is registered as a *pending* `static` validator returning one `W_VALIDATOR_PENDING` entry per config file (per host kind for a record key), a warning in a debug build and an error when `not OS.is_debug_build()`, so an exported load fails. **Release guardrail: `Boot.PENDING_CONFIG_OWNERS` and `Boot.PENDING_RECORD_OWNERS` are empty before a release build** (`/release-checklist` item; `tests/integration/boot/boot_validator_map_test.gd` pins the lists) — source: ADR-0002 Decision 4 (code review 2026-11-03, CDB-004)
 - **Never `assert()` on data or throw in release paths** — source: ADR-0002
 - **Never author a content-version string**; never depend on file order or authoring order — source: ADR-0002
 - **Never express a card text in GDScript** — an inexpressible text is a card-effects GDD change — source: ADR-0002

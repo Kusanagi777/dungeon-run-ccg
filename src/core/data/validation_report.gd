@@ -82,6 +82,16 @@ const W_EMPTY_SET: StringName = &"W_EMPTY_SET"
 const W_DUP_NAME: StringName = &"W_DUP_NAME"
 ## A `.json` file not in `DataLoader.FILE_MANIFEST`; it is not loaded (CR-1).
 const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
+## Stage 7 owner code (merged as `E_DELEGATED`, message
+## `"W_VALIDATOR_PENDING: …"`): the composition registered a *pending*
+## validator because the owner named in the message has not shipped its real
+## one — one entry per config file, and one per record host kind for a pending
+## record validator. The body or field is **not checked**. The pending
+## validator gives it severity `warning` in a debug build and `error` in an
+## exported one, so a shipped load with a pending validator fails instead of
+## passing (ADR-0002 Decision 4: a missing validator never passes silently;
+## code review 2026-11-03).
+const W_VALIDATOR_PENDING: StringName = &"W_VALIDATOR_PENDING"
 
 var _entries: Array[Dictionary] = []
 
