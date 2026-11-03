@@ -191,27 +191,29 @@ func test_canonical_json_renders_parsed_numbers_with_full_precision() -> void:
 
 # --- AC-3: not Ready; absent optional files; never authored --------------------------
 
+## Release-flagged databases (story 008 injects the build type): the log alone;
+## the debug-build assert is `card_database_state_machine_test.gd`'s.
 func test_data_version_when_unloaded_returns_empty_with_one_logged_error() -> void:
 	# Arrange
-	var db: CardDatabase = CardDatabase.new(DataLoader.new(DATA + "fingerprint/"))
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(DATA + "fingerprint/"), false)
 	var box: Dictionary = {"value": "untouched"}
 
 	# Act / Assert
 	await assert_error(func() -> void: box.value = db.data_version()) \
-		.is_push_error("CardDatabase.data_version() is illegal in state UNLOADED (before Ready)")
+		.is_push_error(CardDatabase.NOT_LOADED_MESSAGE % ["data_version", "UNLOADED"])
 	assert_str(box.value).is_empty()
 
 
 func test_data_version_when_failed_returns_empty_with_one_logged_error() -> void:
 	# Arrange
-	var db: CardDatabase = CardDatabase.new(DataLoader.new(DATA + "parse_error/"))
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(DATA + "parse_error/"), false)
 	db.load(ValidatorStubs.accept_all())
 	var box: Dictionary = {"value": "untouched"}
 
 	# Act / Assert
 	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
 	await assert_error(func() -> void: box.value = db.data_version()) \
-		.is_push_error("CardDatabase.data_version() is illegal in state FAILED (before Ready)")
+		.is_push_error(CardDatabase.NOT_LOADED_MESSAGE % ["data_version", "FAILED"])
 	assert_str(box.value).is_empty()
 
 

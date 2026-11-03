@@ -912,6 +912,7 @@ func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationR
 		"data_version": fingerprint(bodies),
 		"report": report,
 	}
+	report.set_record_count(Dictionary(staging.index_of).size())
 	_freeze_deep(snapshot)
 	return snapshot
 

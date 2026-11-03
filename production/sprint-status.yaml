@@ -140,7 +140,7 @@ stories:
     name: "State machine, visible failure and debug reload() (States table, CR-8)"
     file: "production/epics/card-database/story-008-state-machine-and-debug-reload.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     lane: 2
@@ -148,8 +148,8 @@ stories:
     serialised: false
     contract: true
     blocker: ""
-    note: "[C] E_NOT_LOADED for queries before Ready; merges last at M2"
-    completed: ""
+    note: "[C] E_NOT_LOADED for queries before Ready; merges last at M2; to_text() format changed (no header); reload() has no E_BUSY planner check (ADR-0006, unstoried)"
+    completed: "2026-11-03"
   - id: "card-effects-004"
     name: "Validator step bound and targeting spec"
     file: "production/epics/card-effects/story-004-validator-step-bound-targeting.md"

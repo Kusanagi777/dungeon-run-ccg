@@ -1,12 +1,12 @@
 # Story 008: State machine, visible failure and debug `reload()` (States table, CR-8)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: — (set by /dev-story when implementation begins)
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -66,11 +66,13 @@
 
 ## Files
 
-- `src/core/data/card_database.gd` (state machine, `reload()`, `E_NOT_LOADED`, `E_NOT_SUPPORTED`, `snapshot_handle()`, `last_reload_report()`)
-- `src/core/data/validation_report.gd` (`to_text()` format)
-- `tests/fixtures/data/three_errors/`
-- `tests/unit/card_database/card_database_state_machine_test.gd`
-- `tests/unit/card_database/card_database_reload_test.gd`
+- `src/core/data/card_database.gd` (state machine; `_init(loader, debug_build = OS.is_debug_build())`; second `load()` a no-op; `reload()`; `E_NOT_LOADED` log + debug assert for every query, `config`, `data_version`, `snapshot_handle` outside `Ready`; `snapshot_handle()`; `last_reload_report()`; `NOT_LOADED_MESSAGE`; asserts gated on the injected flag)
+- `src/core/data/validation_report.gd` (`to_text()` format; `E_NOT_LOADED`, `E_NOT_SUPPORTED`; `record_count()` / `set_record_count()`)
+- `src/core/data/data_loader.gd` (stage 9 sets the report's record count)
+- `tests/fixtures/data/three_errors/` (new: copy of `clean/`; `match_ui.json` unparseable, `neutral_bog_lurker` keyword `bogus`, `hero_war.starter_deck[14]` → `neutral_ghost`)
+- `tests/unit/card_database/card_database_state_machine_test.gd` (new, 15 tests)
+- `tests/unit/card_database/card_database_reload_test.gd` (new, 9 tests)
+- Contract fixes ([C] story): `tests/unit/card_database/card_database_pipeline_test.gd` (`to_text` test → new format, renamed `test_report_to_text_lists_each_entry`), `tests/unit/card_database/card_database_fingerprint_test.gd` (two not-Ready tests → `E_NOT_LOADED` message, release-flagged db)
 
 ---
 
@@ -88,7 +90,7 @@
 **Required evidence**:
 - Logic: `tests/unit/card_database/card_database_state_machine_test.gd`, `tests/unit/card_database/card_database_reload_test.gd` — must exist and pass (`/story-done` checks that they EXIST; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (2026-11-03: 15 + 9 tests; full suite 856/856)
 
 ---
 
@@ -96,3 +98,25 @@
 
 - Depends on: `production/epics/card-database/story-006-freeze-and-queries.md`
 - Unlocks: `production/epics/card-database/story-010-shipped-data-and-export-inclusion.md`; the boot epic's `data_error` routing; the content epic's `tools/content/validate.gd` story (reads `to_text()` and `state()`)
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 23:09:15 UTC, ended 23:16:18 UTC, both by `date -u`)
+**Verification**: `godot --headless --path . --import` exit 0; parse check of the 7 changed scripts exit 0; `commands.test` 856 test cases, 0 errors, 0 failures, exit 0 (also 0 failures with `-c`); the only new SCRIPT ERRORs are the 40 intentional debug-branch `Assertion failed: E_NOT_LOADED …` lines; `commands.smoke` exit 0, no SCRIPT ERROR; the reload tests' `user://cdb2_reload_test/` scratch root is gone after the run. Seen failing first: both suites failed to parse before `CardDatabase.new(loader, debug_build)` existed; mutations, one per run, each turned the named tests red — release guard removed from `reload()` (`test_release_reload_returns_e_not_supported_and_changes_nothing`), second `load()` re-runs (both second-load tests), failed reload from `Ready` drops the snapshot (`test_debug_reload_with_a_parse_error_keeps_the_previous_snapshot`), `to_text()` in plain `entries()` order (`test_to_text_is_one_line_per_entry_errors_first_in_entries_order`).
+**Criteria**: 4/4 passing (none deferred)
+- AC-1 — `card_database_state_machine_test.gd`: `test_three_files_with_one_error_each_give_one_report_with_all_three` (exactly the three errors, `Failed`, `report()` is the returned report), `test_three_errors_report_text_lists_each_entry_with_file_record_field_and_code`, `test_failed_database_answers_no_query_in_a_release_build` / `…_asserts_on_a_query_in_a_debug_build` (`card(id)` null, every pool empty), `test_to_text_*` (2), `test_failed_report_has_no_record_count`
+- AC-2 — `test_unloaded_database_answers_no_query_in_a_release_build`, `test_unloaded_database_asserts_on_a_query_in_a_debug_build` (all 17 queries + `config`, `data_version`, `snapshot_handle`; one `E_NOT_LOADED` each), `test_second_load_on_a_ready_release_database_changes_nothing`, `test_second_load_on_a_debug_database_is_also_a_no_op`, `test_unknown_id_in_ready_is_not_an_e_not_loaded_error`, `test_load_passes_through_loading_to_ready`
+- AC-3 — `card_database_reload_test.gd`: `test_debug_reload_swaps_in_the_edited_value_and_the_held_handle_keeps_the_old`, `test_debug_reload_passes_through_reloading`, `test_debug_reload_report_names_the_record_count`, `test_debug_reload_changes_data_version_when_a_value_changes`, `test_release_reload_returns_e_not_supported_and_changes_nothing`; `card_database_state_machine_test.gd::test_snapshot_handle_in_ready_is_the_frozen_snapshot`, `test_ready_report_names_the_record_count`
+- AC-4 — `test_debug_reload_with_a_parse_error_keeps_the_previous_snapshot` (`Ready`, `data_version()` unchanged, `last_reload_report()`), `test_debug_reload_from_failed_that_succeeds_is_ready`, `test_debug_reload_from_failed_that_fails_stays_failed_with_the_new_report`
+**Deviations**:
+- ADVISORY — **`to_text()` has no header line now** ("one line per entry", Implementation Notes); the count line the story-002 format printed is gone, so the `data_error` screen / validate command print their own summary (`errors().size()`, `warnings().size()`, `record_count()`). Fields without a record id render `file.field` (e.g. `heroes.json.schema_version`).
+- ADVISORY — "the returned report names the record count": `ValidationReport.record_count()` (set by the loader at stage 9, `-1` when the load did not freeze) rather than a report entry — the six-key entry shape has no info severity.
+- ADVISORY — a second `load()` is a no-op in a debug build too (the story allowed "may be treated as reload()"; documented in the class doc). `reload()` before any finished `load()` returns a one-entry `E_NOT_LOADED` report (not specified by the story).
+- ADVISORY — after a failed reload from `Failed`, `report()` becomes the new report (the data-error screen shows the latest); from `Ready` it keeps the active snapshot's warnings-only report and the new one is `last_reload_report()`.
+- ADVISORY — build type injected as `CardDatabase._init(loader, debug_build = OS.is_debug_build())`; it also gates the existing unknown-id and stage-7 asserts (behaviour in a real debug build unchanged). `has()` logs `E_NOT_LOADED` before `Ready` (AC-2 "any query"), which is where the 006 review's preference "`has()` never logs" stops: it never logs for an unknown id.
+- OUT OF SCOPE (not implemented, flagged) — control manifest Core layer: "`CardDatabase.reload()` returns `E_BUSY` while any `PlannerTask` is live" (ADR-0006) has no story here; `reload()` does not check planners.
+- OUT OF SCOPE (directed, [C] story) — contract fixes in `card_database_pipeline_test.gd` and `card_database_fingerprint_test.gd`.
+**Test Evidence**: `tests/unit/card_database/card_database_state_machine_test.gd`, `tests/unit/card_database/card_database_reload_test.gd`
+**Run result**: N/A — the database draws nothing; the `data_error` screen that renders `to_text()` and the reload overlay are Run UI / boot epic stories
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode; `/code-review` due at M2)
