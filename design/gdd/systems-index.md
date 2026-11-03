@@ -72,12 +72,12 @@ Systems, one paragraph each (balanced density):
 | 5 | Boss AI | Gameplay | MVP | Approved | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression |
 | 6 | Heroes | Gameplay | MVP | Approved | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
 | 7 | Run Structure | Progression | MVP | Approved | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
-| 8 | Reward Draft | Economy | MVP | Approved | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
+| 8 | Reward Draft | Economy | MVP | Approved | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log, Content |
 | 9 | Treasures | Gameplay | MVP | Approved | design/gdd/treasures.md | Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes |
 | 10 | Meta Progression | Persistence | Vertical Slice | Approved | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
 | 11 | Match UI | UI | MVP | Approved | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
 | 12 | Run UI | UI | MVP | Approved | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
-| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
+| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules, Run Structure (soft), Meta Progression (soft: unlock grammar) |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
 immediately replay a run") can be tested without unlocks; it is still required for v1 (Alpha).
@@ -130,9 +130,9 @@ and Run UI stories; boss intro lines are content, not a narrative system).
 1. Heroes — depends on: Card Database, Card Effects, Match Rules
 2. Run Structure — depends on: Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression
 3. Treasures — depends on: Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes
-4. Reward Draft — depends on: Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log
+4. Reward Draft — depends on: Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log, Content (bundle definitions)
 5. Meta Progression — depends on: Run Structure, Heroes, Treasures, Card Database, RNG & Event Log
-6. Content — depends on: Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules
+6. Content — depends on: Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules, Run Structure (soft), Meta Progression (soft: unlock grammar)
 
 ### Presentation Layer (depends on features)
 
@@ -176,6 +176,12 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
   the treasure pool and writes a "treasure granted" event. No cycle in the data flow.
 - Match UI ↔ Match Rules: none. The UI subscribes to the event log and sends commands; rules never
   reference UI (rule `src/ui/**`: display-only).
+- Run Structure ↔ Meta Progression (mutual): Run Structure calls Meta's save/archive/unlock API; Meta reads
+  the run record schema Run Structure owns. Resolution: Meta exposes the persistence interface (M1.3) and
+  Run Structure owns the record schema (R1); the MVP ships a Meta stub with defaults (gate condition).
+- Match UI ↔ Run UI (mutual): Run UI hosts the match scene and receives `match_view_finished`; Match UI
+  reads nothing from Run UI. Resolution: a one-way scene handoff contract defined in run-ui S11/U2; the
+  reverse edge is a signal only (no data dependency).
 
 ---
 

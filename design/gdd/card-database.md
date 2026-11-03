@@ -12,6 +12,7 @@
 > **REVISED 2026-11-03 (cross-review)**: C-06 (`unlock: {key, condition}` or `null` on HeroDef, TreasureDef and BundleDef — DD-X01; Open Question closed), C-21 (`profile_defaults.json` added to the CR-1 config-file list, owner Meta Progression, served by `config("profile_defaults")`; config count nine → ten), C-04 (`targeting` Open Question closed — Match Rules reworded), C-30 housekeeping (Open Questions on Run UI `tags` rename and Match UI / Boss AI `config()` wording closed).
 > **REVISED 2026-11-03 (re-review)** (`/design-review`, lean, NEEDS REVISION → revised in place): (1) the loader's own tuning knobs (`min_collectible_pool`, `min_bundle_pool`, `max_records`, `data_load_budget_ms`, `data_memory_budget_mb`) were sourced to "data file" but no CR-1 / DD-T01 file held them and the single-parser rule left nowhere else — `card_database.json` added as this system's own config file (DD-T01 row pending); `schema_version_current` declared the loader's one deliberate code constant (it cannot be read from a file whose envelope it validates) and the "no hardcoded values" AC rewritten to match; (2) the shipped-data AC restated Content CN-1's MVP counts wrongly (4 tokens / 8 boss-only / 4 bosses; CN-1 says 3 / 10 / 5 with the D-06 spare boss) — aligned; (3) stale DD-H05 numbers in Formulas (neutral bundles 6 → 12, v1 bundle pool 14 → 20), the MVP collectible split (18 + 22 → 25 + 15, CN-1) and the validation-cost example refreshed from CN-1; `min_bundle_pool` now points at Reward Draft's `bundle_pool_min`; (4) Dependencies intro said "three injected validators" — now four record validators plus the config validators.
 > **REVISED 2026-11-03 (final review, housekeeping)**: DD-T01 now lists `card_database.json`, so the three "row pending" markers (CR-1 table, Cross-References, Open Questions) are closed. No rule, knob or contract changed.
+> **REVISED 2026-11-03 (cross-review b)**: N-01 — `content_budgets.json` added to the CR-1 config-file table (owner Content, served by `config("content_budgets")`; read by the validate command and `/balance-check`, never at runtime), to the boot AC, and to Content's Interactions / Dependencies rows; DD-T01 amended to match. N-04 — config-file count settled on the CR-1 table's twelve rows (Core Rules rationale, Cross-References, Open Questions); the dated history notes above keep their counts.
 
 ## Summary
 
@@ -78,6 +79,7 @@ parses `assets/data/*.json`** (systems index: "nothing else parses JSON"; match-
 | `run_ui.json` | config | yes | Run UI | as above |
 | `profile_defaults.json` | config | yes | Meta Progression | default player settings (meta-progression M9); served by `config("profile_defaults")`; added 2026-11-03 (cross-review C-21) |
 | `card_database.json` | config | yes | Card Database (this GDD) | the loader's own knobs — `min_collectible_pool`, `min_bundle_pool`, `max_records`, `data_load_budget_ms`, `data_memory_budget_mb` (Formulas); the one config body this system schema-checks itself at stage 4 (no external owner to inject a validator); exposed as `config("card_database")` for tests. Added 2026-11-03 (re-review); DD-T01 lists it (register amended 2026-11-03) |
+| `content_budgets.json` | config | yes | Content | F1–F6 validator and /balance-check constants (content CN-6 step 2); read by the validate command and tooling, never at runtime; served by `config("content_budgets")`; added 2026-11-03 (cross-review b, N-01) |
 
 `user://profile.json` (DD-T01) is Meta Progression's save file, not content data: it is not under
 `assets/data/` and this loader never touches it. It is distinct from `profile_defaults.json`
@@ -86,8 +88,8 @@ above, which is content data (the defaults the save file starts from).
 Rationale: `hero_powers.json` and set `boss` exist because bosses and heroes reference powers by id
 (the brief requires those ids to be validated) and boss-only cards need a set that is never
 collectible (Pillar 2: boss decks are puzzles, not the player's pool). Both were accepted into
-DD-T01 on 2026-11-03. The config class exists because DD-T01 puts ten per-system knob files under
-`assets/data/` (eleven with this system's own `card_database.json`) and the index allows one JSON
+DD-T01 on 2026-11-03. The config class exists because DD-T01 puts eleven per-system knob files under
+`assets/data/` (twelve with this system's own `card_database.json`) and the index allows one JSON
 parser: without it every one of those files would be `W_UNKNOWN_FILE` and no system could reach
 its knobs. The Card Database follows its own rule: its thresholds and budgets are a config file
 like everyone else's, not literals in the loader.
@@ -282,7 +284,7 @@ once at composition.
 | Treasures | `treasure()` records with `rarity`, `tags`, `effects[]`, `unlock`; `treasure_pool()`; `has(id)`; `data_version()` | its own stage-7 validator (`E_TR_*`, T7) alongside the Card Effects one | Treasures owns `rarity`/`tags` semantics and hook semantics; this GDD owns the field shapes |
 | Meta Progression | `treasure().unlock`, `hero().unlock`, `bundle().unlock`, `heroes()` for unlock state display; `has(id)`, `boss(id)` inside its validator; `data_version()` for retro-grants; `config("profile_defaults")` | the unlock-key validator (`validate_unlock_defs`); the `profile_defaults.json` config validator | Meta Progression owns unlock keys and which ids are locked; `unlock` is the `{key, condition}` object (DD-X01) |
 | Match UI / Run UI | `name`, `text.key` / `text.en`, `art`, `rarity`, `intro_text`, `passive_text`, bundle `text`, treasure `tags` (synergy hint); `data_version()`; the `report()` on `Failed` (data-error screen); `config("match_ui")` / `config("run_ui")` | — | UI renders; it never reads JSON |
-| Content | authors every file in CR-1 against CR-3; reads `report()` from the headless validate command | the data itself | Content owns values; this GDD owns the schema and the checks |
+| Content | authors every file in CR-1 against CR-3; reads `report()` from the headless validate command; `config("content_budgets")` (validator and `/balance-check` constants, CN-6 step 2 — tooling only, never at runtime) | the data itself; the `content_budgets.json` config validator | Content owns values; this GDD owns the schema and the checks |
 | RNG & Event Log | nothing — the database is deterministic data; it emits no events and uses no RNG | — | — |
 
 ## Formulas
@@ -487,7 +489,7 @@ without this system; **Soft** = reads display data only.
 | Reward Draft | depends on this | Hard | `collectible_pool()`, `bundle_pool()`, `treasure_pool()`, `cards_by_tag()`; relies on id-sorted order for seeded draws |
 | Treasures | depends on this | Hard | treasure records (`rarity`, `tags`, `effects[]`, `unlock`), `treasure_pool()`, `data_version()`; supplies its stage-7 validator; `config("treasures_balance")` |
 | Meta Progression | depends on this | Hard | `unlock {key, condition}` on hero, treasure and bundle records (DD-X01), `data_version()`, `has(id)`; supplies the unlock-key validator; `config("profile_defaults")` |
-| Content | depends on this | Hard | the schema it authors against; the headless validate command |
+| Content | depends on this | Hard | the schema it authors against; the headless validate command; `config("content_budgets")` (tooling only) |
 | Match UI | depends on this | Soft | `name`, `text`, `art`, `rarity` for rendering; `config("match_ui")` |
 | Run UI | depends on this | Soft | boss `intro_text` / `passive_text`, bundle `text`, hero art, `data_version()`; the data-error screen renders `report()`; `config("run_ui")` |
 | RNG & Event Log | none | — | no RNG, no events; it keys entities by `card_id` strings from this database |
@@ -565,7 +567,7 @@ rows when any of them changes.
 | `data_version` | `design/gdd/meta-progression.md` | `data_versions_seen[]`, retro-grants M3.5 | Data dependency |
 | data-error screen, `passive_text` | `design/gdd/run-ui.md` | boot failure presentation (CR-8); boss intro | State trigger |
 | `BossDef.tags`, `passive_text`, boss cards in `cards_boss.json` | `design/gdd/content.md` | boss themes, CN-6 file layout | Data dependency |
-| file list and envelope | `design/design-decisions.md` | DD-T01 (as amended 2026-11-03: `hero_powers.json`, `cards_boss.json`, eleven config files incl. `profile_defaults.json` and `card_database.json`), DD-X01 | Data dependency |
+| file list and envelope | `design/design-decisions.md` | DD-T01 (as amended 2026-11-03: `hero_powers.json`, `cards_boss.json`, twelve config files incl. `profile_defaults.json`, `card_database.json` and `content_budgets.json`), DD-X01 | Data dependency |
 | MVP / v1 record counts, boss deck size | `design/gdd/content.md` | CN-1 scope table (MVP: 40 collectible, 3 tokens, 10 boss-only, 5 bosses, 10 treasures, 10 bundles); B2 (30-card boss decks) | Data dependency |
 
 ## Acceptance Criteria
@@ -584,8 +586,9 @@ under the test root, never the shipped data, except where "shipped data set" is 
 - [ ] **GIVEN** the shipped data set, **WHEN** loaded, **THEN** `config("match_rules")`,
   `config("card_effects")`, `config("ai_profiles")`, `config("run_structure")`,
   `config("reward_draft")`, `config("treasures_balance")`, `config("heroes_balance")`,
-  `config("match_ui")`, `config("run_ui")`, `config("profile_defaults")` and
-  `config("card_database")` each return a non-null frozen Dictionary, and `config("no_such")`
+  `config("match_ui")`, `config("run_ui")`, `config("profile_defaults")`,
+  `config("card_database")` and `config("content_budgets")` each return a non-null frozen
+  Dictionary, and `config("no_such")`
   returns `null` with one logged error.
 - [ ] **GIVEN** `card_database.json` with `min_bundle_pool: 2` (below its 3–30 range), **WHEN**
   loading, **THEN** `E_SCHEMA` names the file and the key and state is `Failed`; **GIVEN** it is
@@ -669,7 +672,7 @@ under the test root, never the shipped data, except where "shipped data set" is 
 |----------|-------|----------|------------|
 | DD-T01 lists five file kinds; this GDD adds `hero_powers.json` and set `boss` (`cards_boss.json`). Accept and update the register? | owner | before `/design-system match-rules` | **Resolved 2026-11-03**: DD-T01 amended; CR-1 updated |
 | MVP ships 8 treasures (DD-H06) but DD-R05 needs 9 distinct unlocked treasures per run (Formulas). Raise MVP to 9, or let Reward Draft re-offer treasures that were offered but not taken? | owner + Reward Draft GDD | `/design-system reward-draft` | **Resolved 2026-11-03**: DD-H06 raised to 10; Reward Draft D8 `fewer` covers the short-pool case |
-| Config files (CR-1): the nine per-system knob files are loaded here and served by `config(name)`. Match UI's open question offered "the UI reads its own file" as an alternative; Boss AI's Interactions row says Boss AI "supplies the `ai_profiles.json` loader". Both GDDs should reword to `config("match_ui")` / `config("ai_profiles")` + an injected config validator. | Match UI GDD, Boss AI GDD (`/consistency-check`) | before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-30**: Match UI reworded to `config("match_ui")` (its Tuning Knobs); Boss AI's loader wording is cross-review C-15 |
+| Config files (CR-1): the twelve config files are loaded here and served by `config(name)`. Match UI's open question offered "the UI reads its own file" as an alternative; Boss AI's Interactions row says Boss AI "supplies the `ai_profiles.json` loader". Both GDDs should reword to `config("match_ui")` / `config("ai_profiles")` + an injected config validator. | Match UI GDD, Boss AI GDD (`/consistency-check`) | before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-30**: Match UI reworded to `config("match_ui")` (its Tuning Knobs); Boss AI's loader wording is cross-review C-15 |
 | `unlock` shape: string key (this GDD, Heroes H-7, Treasures T1) or `{key, condition}` object on Hero/Treasure/Bundle records (Meta Progression M2.1)? Also whether `BundleDef` gets an `unlock` at all. | Jacob + Meta Progression GDD | before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-06 / DD-X01**: object form on HeroDef, TreasureDef, BundleDef (`null` for every v1 bundle); CR-3 updated |
 | Treasure tag field name: this GDD, Treasures and Reward Draft say `tags`; Run UI U8 says `synergy_tags[]`. | Run UI GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: `tags` is canonical; Run UI renamed |
 | Match Rules Dependencies says it reads `targeting {mode, filter}` from the card record; Card Effects C1 derives it and this GDD stores no such field. | Match Rules GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-04**: no field here; Match Rules reads `effects[]` and calls Card Effects' derived `targeting_spec(def_id)` |

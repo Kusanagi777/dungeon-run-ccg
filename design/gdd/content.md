@@ -12,6 +12,7 @@
 > **REVISED 2026-11-03 (cross-review)**: C-03 option B (Heroes raised `PLAN_MAX` to 7; Content **keeps** the `armour` tag on `war_iron_vanguard` so `bundle_war_armour_1` stays valid — no card row changed), C-23 (★ removed from `neutral_lantern_bearer`; it is an MVP-0 shared neutral in no starter, Heroes H-4), C-24 (`content_budgets.json` key list in CN-6 step 2), D-06 (MVP ships a spare band-1 boss — `boss_torchbearer` moves from Alpha-A to MVP-1 so the MVP pool is 5 = 3 / 1 / 1 and no two MVP runs need the same boss sequence; CN-1, CN-3, CN-6, F6, AC-2, AC-19), D-07 (AC-13 sim basis = `target_win_rate_by_floor`, harness reports boss win rate per floor; OQ resolved), D-04 (no boss uses `intent_mode: hidden`, noted in CN-3), DD-H05 (neutral bundles 6 → 12, 36 total: six new `bundle_neutral_*_2` rows in CN-4, batch table, CN-1, F5, F6, AC-3, Edge Cases, OQ resolved), C-30 housekeeping (`BossDef.tags` / `passive_text` exist in CR-3; Heroes H-4/H-5 carry the redesigned texts; Insight ships the tax text; card-effects C3 `tag` on board, C9 observers and C6.5 counter snapshot answered; `(concurrent)` labels and "must list Content" clauses dropped — Treasures and Reward Draft both list it).
 > **REVISED 2026-11-03 (re-review)** (`/design-review`, lean, verdict NEEDS REVISION → revised in session): (1) five boss deck recipes named cards from a later batch than the boss (AC-10 / "loads clean" would fail) — Hollow King at MVP-1 (VS neutrals), Lich Archivist at VS and Frost Hag at Alpha-A (Knowledge is Alpha-B), Bog Witch and Shadow of the Delve at Alpha-A (`neutral_ember_sprite` is Alpha-B); B2 now carries an explicit same-batch recipe for each and Edge Cases names the swap-in batch (the reversed ordering sentence for `pyre_sergeant` / `lich_archivist` is corrected); (2) card-effects de-provisionalised `remove_keyword`, `shuffle_into_deck`, `discard`, `weapon_durability`, `hero_power_refresh` on 2026-11-03 (C-22, C10: no v1 op raises `E_FX_OP_UNAVAILABLE`), so F5 / AC-7 / CN-2 / CN-5 / Edge Cases / Cross-References no longer say "provisional" — F5 defines an explicit `OPS_EXEMPT` set (`coverage.ops_exempt`, reported `W_COVERAGE_UNUSED`, never `E_COVERAGE`) and the `war_quartermaster` rationale is restated; (3) `war_pit_champion` Open Question resolved from Match Rules C1 / F3 (hero Windfury via enchantment); (4) `content_budgets.json` `curve.bucket` is an array (snake_case keys, `.claude/rules/data-files.md`); CN-4 names both starter cards in neutral bundles; AC-15 states each hero's band counts.
 > **REVISED 2026-11-03 (housekeeping)**: CN-6 step 3 validator warning list gains `W_HERO_HEALTH` (heroes.md Edge Cases); CN-5 MVP-1 note reads `n_universal` 7 against reward-draft F6's hard minimum 3 / recommended 7 (was "≥ Reward Draft's 5").
+> **REVISED 2026-11-03 (cross-review b)**: N-03 — CN-1 boss row and the MVP scope sentence attribute the 5 MVP bosses to DD-H06 as amended (raised from 4 per cross-review D-06) instead of "DD-H06's 4 plus a spare"; counts unchanged. (N-01 landed on the Card Database side: `content_budgets.json` is now in its CR-1 table and DD-T01, as CN-6 step 2 already claimed.)
 
 ## Summary
 
@@ -69,13 +70,13 @@ mode. Review manually before production.
 | Collectible cards | 120 (war 25, decay 25, knowledge 25, neutral 45) | 40 (war 25 + neutral 15) | 60 (+20 neutral) | 120 (+decay 25, knowledge 25, neutral 10) | Card Database CR-3 |
 | Tokens (never in pools) | 7 | 3 | 3 | 7 | Card Database CR-3 `token` |
 | Boss-only cards (`cards_boss.json`) | 32 (2 per boss) | 10 | 18 | 32 | Card Database CR-3, set `boss` |
-| Bosses | 16 (band 6 / 6 / 4, DD-R02) | 5 (3 / 1 / 1 — DD-H06's 4 plus one spare band-1 boss, cross-review D-06, so the MVP boss sequence varies between runs) | 9 (4 / 3 / 2 — one full run) | 16 | Card Database BossDef |
+| Bosses | 16 (band 6 / 6 / 4, DD-R02) | 5 (3 / 1 / 1, DD-H06 — raised from 4 per cross-review D-06 so the MVP boss sequence varies between runs) | 9 (4 / 3 / 2 — one full run) | 16 | Card Database BossDef |
 | Bundles | 36 (8 per hero + 12 neutral, DD-H05) | 10 (8 war + 2 neutral) | 16 (+6 neutral) | 36 (+8 decay, +8 knowledge, +4 neutral) | Card Database BundleDef |
 | Treasures | 20 (Treasures GDD) | 10 (DD-H06) | 12 | 20 | Treasures GDD |
 | Hero powers | 3 hero + 4 boss | 1 (`power_whetstone` — DD-H06 is War-only at MVP) | 3 (+`power_mend`, `power_drain` with their bosses) | 7 (+`power_rot` Alpha-A; +`power_insight`, `power_reinforce`, `power_brand` Alpha-B) | Heroes (hero) / this GDD (boss) |
 
 Batch definitions are in CN-6. Priorities follow the systems index: Content is MVP for the first
-40 cards, 5 bosses (DD-H06's 4 plus the D-06 spare) and 10 bundles and grows to Alpha scope.
+40 cards, 5 bosses (DD-H06 — raised from 4 per cross-review D-06) and 10 bundles and grows to Alpha scope.
 
 **Decision — starter cards are part of the hero set and collectible.** The 7 War, 6 Decay and 6
 Knowledge starter cards count toward their set's 25 and may appear in bundles and Discover.
@@ -788,7 +789,7 @@ hypothesis needs.
 | Match Rules | This depends on Match Rules (soft) | Keyword list, mana cap, `turns_to_lethal` for F4; Match Rules' registry entries already list content.md |
 | Reward Draft | Reward Draft depends on this (hard) | Bundle triples, theme tags, band suitability, tag counts per hero and per neutral theme. Reward Draft's Dependencies lists Content |
 | Match UI / Run UI | UI depends on this (soft) | Text that fits the frame (style guide), art keys, intro lines; no UI reads JSON directly |
-| Meta Progression | none at v1 | Unlock keys live on treasures and heroes, not on content records |
+| Meta Progression | soft (v1) | Unlock keys live on treasures and heroes, not on content records; Content authors `unlock` objects in heroes.json / treasures.json / bundles.json using Meta's M2.1 grammar (DD-X01), so Content depends on that grammar. Aligned with meta-progression Dependencies on 2026-11-03 (gate condition). |
 | RNG & Event Log | none | Content draws no RNG and emits no events |
 
 ## Tuning Knobs
