@@ -19,8 +19,8 @@
 ##     `weighted_pick`, `fork`) recorded once, so a test can assert "exactly
 ##     three `shuffle` calls and no other draw" (run-structure AC-2); calls a
 ##     primitive makes internally (`shuffle` → `randi_range`) are not recorded;
-##   - `restore(draws)`: F5 reseed-and-discard on this stream (the production
-##     service-level `snapshot()` / `restore()` are rng-event-log story 003);
+##   - `restore(draws)`: the production F5 reseed-and-discard, which also
+##     clears `calls` and restarts a scripted stream's script;
 ##   - the F1/F2/F3 statics under their old names, delegating to
 ##     [RngService] (the GDD example pins live in
 ##     `tests/unit/rng_event_log/rng_service_test.gd`).
@@ -141,21 +141,14 @@ func fork(label: String) -> TestRngStream:
 	return child
 
 
-## F5: reseed and discard `target_draws` outputs so the next output equals the
-## original stream's next output after that many draws. Clears recorded calls
-## and the fork memo: a fork after restore consumes its parent draw and is
-## seeded from it, as on a fresh run (code review 2026-11-03).
+## Production F5 `restore` (reseed, discard `target_draws`, fork memo cleared),
+## plus the double's own state: recorded calls are cleared and a scripted
+## stream restarts its script, so the discards replay the same values.
 ## Example: `stream.restore(37)`.
 func restore(target_draws: int) -> void:
 	calls.clear()
-	_forks.clear()
-	draws = 0
 	_script_index = 0
-	if _mode == Mode.SEEDED:
-		_rng.seed = stream_seed
-	for _i: int in range(target_draws):
-		@warning_ignore("return_value_discarded")
-		randi32()
+	super(target_draws)
 
 
 ## Number of recorded calls to `method` (e.g. "shuffle").

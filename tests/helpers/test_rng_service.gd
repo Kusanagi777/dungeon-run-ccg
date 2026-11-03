@@ -12,8 +12,9 @@
 ##     so `calls`, `count_calls` and `restore` work on every served stream;
 ##   - `install(stream)` registers a scripted, constant or recording stream
 ##     under its own name before the code under test asks for it;
-##   - `snapshot()` / `restore()` per rule 10 / F5 until the production ones
-##     land (rng-event-log story 003), and `draws_outside([...])`.
+##   - `draws_outside([...])`.
+## `snapshot()` / `restore()` / the command guard are the production ones
+## (rng-event-log story 003); a restore keeps an installed stream in place.
 class_name TestRngService
 extends RngService
 
@@ -33,29 +34,6 @@ func stream(stream_name: String) -> TestRngStream:
 func install(prepared: TestRngStream) -> TestRngStream:
 	_streams[prepared.name] = prepared
 	return prepared
-
-
-## Rule 10: `{run_seed, data_version, streams: {name: draws}}`, JSON-only.
-func snapshot() -> Dictionary:
-	var positions: Dictionary = {}
-	for stream_name: String in _streams:
-		positions[stream_name] = (_streams[stream_name] as RngStream).draws
-	return {"run_seed": run_seed, "data_version": data_version, "streams": positions}
-
-
-## Rule 10 / F5: rebuild every stream named in `snap` at its recorded
-## position. Returns an error when `data_version` differs (rng-event-log
-## Edge Cases "saved run with a different data_version") and creates nothing.
-func restore(snap: Dictionary) -> Error:
-	if str(snap.get("data_version", "")) != data_version:
-		return ERR_INVALID_DATA
-	# The production fields are read-only; the double rewrites the backing one.
-	_run_seed = int(snap.get("run_seed", run_seed))
-	_streams.clear()
-	var positions: Dictionary = snap.get("streams", {})
-	for stream_name: String in positions:
-		stream(stream_name).restore(int(positions[stream_name]))
-	return OK
 
 
 ## Total draws across every stream — AC-01's "no RNG call outside rng_match"

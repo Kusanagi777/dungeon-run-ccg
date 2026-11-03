@@ -179,7 +179,7 @@ stories:
     name: "Snapshot, restore and the command guard"
     file: "production/epics/rng-event-log/story-003-snapshot-restore-and-command-guard.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     lane: 4
@@ -188,7 +188,7 @@ stories:
     contract: false
     blocker: ""
     note: "starts after the RNG-002 fix pass merges; stream() takes root names only; forks keyed parent+label — snapshot key '<parent>/<label>', restore via stream(parent).fork(label)"
-    completed: ""
+    completed: "2026-11-03"
   - id: "rng-event-log-008"
     name: "reduce_to_summary() — match_summary and damage_by_card (rule 19)"
     file: "production/epics/rng-event-log/story-008-match-summary-reduction.md"
