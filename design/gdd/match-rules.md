@@ -182,14 +182,14 @@ appends to the live log or advances the live stream.
    `deck_shuffled` is emitted per side with the resulting instance order.
 4. `on_match_start` hooks run (Treasures, boss passive) **before** any card is drawn, so a hook
    may alter starting health, armour, mana or hand size (hook list in Interactions).
-5. Starting hands: the player draws `STARTING_HAND_PLAYER` (3), then the boss draws
+5. Starting hands: the player draws `STARTING_HAND_PLAYER` (3), then the boss draws Starting-hand draws do **not** fire `on_draw` hooks (DD-X13).
    `STARTING_HAND_BOSS` (4). The fourth boss card is DD-M03's compensation for the player always
    acting first; there is no Coin.
 6. Phase → **Mulligan**; `mulligan_offered` lists the player's hand. The boss does not mulligan in
    v1 (Boss AI may request one later; see Open Questions).
 7. On `mulligan(keep_mask)`: cards whose mask bit is false are returned to the deck, the deck is
    shuffled, and the same number of cards is drawn. Per DD-M05 the return happens **before** the
-   redraw, so a returned card can be drawn again — this is intended, not a bug. One round only
+   redraw, so a returned card can be drawn again — this is intended, not a bug. Mulligan redraws do **not** fire `on_draw` hooks (DD-X13). One round only
    (`MULLIGAN_ROUNDS` = 1). A mask of all `true` is a legal "keep all".
 8. `match_started` is emitted and the engine runs the Start step for PLAYER on turn 1 (DD-M03).
 
@@ -549,6 +549,12 @@ so the log alone explains the outcome.
 finding 2) is the event of the `add_card_to_hand` primitive — Discover's pick, `add_to_hand`,
 `copy_to_hand` — shaped like `card_drawn`; the producing effect is attributed through `cause_seq`.
 A full hand emits `card_burned` instead and no `card_added_to_hand`.
+`minion_returned {side, entity_id, card_id, instance_id, burned}` (added 2026-11-03, code review of
+story 006) is the event of `return_to_hand` (bounce): the minion leaves the board and its card goes to
+hand, or is burned when the hand is full (`burned: true`, no separate `card_burned`). It does not emit
+`card_added_to_hand`, so add-to-hand observers do not fire on a bounce.
+`minion_transformed {side, entity_id, from_card_id, to_card_id}` (added 2026-11-03) is the event of
+`transform`.
 
 ### States and Transitions
 
@@ -782,6 +788,8 @@ reaches 4 at global turn 8. With `crystal_bonus = 1` the player reads 2/2 on tur
 The `fatigue_damage(k)` formula is defined as:
 
 `fatigue_damage(k) = FATIGUE_BASE + (k − 1) × FATIGUE_STEP` for the k-th empty-deck draw by that side
+
+Fatigue damage has **no source** (DD-X14): `modify_damage` hooks that filter on the source (e.g. "your damage +1") never match it; reductions that apply to the target "whatever its source" (F2) still do.
 
 **Variables:**
 | Variable | Type | Range | Source | Description |
