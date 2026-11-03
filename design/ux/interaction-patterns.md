@@ -16,6 +16,7 @@
 >
 > **Template**: Interaction Pattern Library
 > **REVISED 2026-11-03 (ux-review)**: Mana Bar rect → match-ui F6's two rows (`1060, 652, 196, 20` "n/m" and `1060, 680, 196, 28` crystals) plus the boss compact counter rect `1196, 262, 60, 28`; Treasure Chip → ≤ 3 (`MAX_TREASURES_HELD`), 40x40 visual, 44x44 hit; Segmented Select labels → `Normal / Fast / Instant` (DD-X07), Animation Standards hit-stop "off at `fast`", the label OQ resolved; Escape / Cancel chain, Overlay table and Standard Shortcuts: `Esc` on the match-end banner does nothing and the pause menu is unreachable in `Ended` (DD-X09); stale "proposed / extends / Open Questions" markers on Click-to-Select, Card Inspect, End Turn, Focus Management and Event Feed → "per match-ui U5 / F6 / Tuning Knobs", the matching OQs Resolved; new index rows and short entries for `Deck Drawer`, `Bundle Panel`, `Compact Card Row`, `Curve Strip`, `Locked Hero Panel`, `Top Bar` pointing at their owning specs, and the Gaps rows Top bar / Deck drawer / Compact card row / Gamma slider closed; header "none exist yet" → the four specs; index name `Screen Replace` → `Screen Push / Pop / Replace`; When NOT to Use / Implementation Notes added to Mana Bar, Boss Intent Banner, Progress Strip, Treasure Chip, Event Feed, Rejection Feedback, Skip & Playback, Floating Number; one-line When to Use / Accessibility blocks on every Navigation and Feedback entry; List Item read-only 44 px row rule; "Used In" for Tooltip, Card Inspect, List Item and Scroll Container now names hero-select / run-summary.
+> **REVISED 2026-11-03 (ux-review round 3)**: Deck Drawer contract — keyboard open focuses the header "×" first (as both owning specs say); Button (Destructive) no longer lists hero-select Start — the guarded-Primary exception is carved in its When NOT to Use / Accessibility and the index mention moved to Confirmation Dialog; new Screen-Owned **Per-Floor Strip** row + index row (owner `run-summary.md`, reused by `run_detail`) and Progress Strip's When NOT to Use points at it; Standard Shortcuts Implementation Notes moved under the Rules paragraph so "Defaults:" meets its table; Loading State's two Accessibility blocks merged; Scroll Container's run-summary usage corrected to the deck list.
 
 > **Why this document exists**: Every UI screen spec should be able to say
 > "uses Button (Primary) pattern" rather than re-specifying hover states,
@@ -109,20 +110,20 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 |-------------|----------|-------------|------------------|--------|
 | Button (Primary) | Input | The screen's default-focus action, lit by `state_actionable` outline when pressable. One per screen. | main-menu (New Run), hero-select (Start), boss-intro (Fight), draft-picker (Pick), run-summary (New Run same hero), mulligan / choice-overlay (Confirm), settings (Back) | Draft |
 | Button (Secondary) | Input | Alternative or back action; `table_dark` + `text_light`, no outline unless focused. | All dialogs (Cancel), Back everywhere, Hero Select / Main Menu on summaries, Take nothing | Draft |
-| Button (Destructive) | Input | Ends or discards something: always opens Confirmation Dialog. | pause (Abandon run, Concede), main-menu (Abandon in resume prompt), settings (Clear run records, Reset profile), hero-select (Start while a run is saved) | Draft |
+| Button (Destructive) | Input | Ends or discards something: always opens Confirmation Dialog. | pause (Abandon run, Concede), main-menu (Abandon in resume prompt), settings (Clear run records, Reset profile) — not hero-select Start, a guarded Primary (see the entry's When NOT to Use) | Draft |
 | Toggle | Input | Binary setting as a `CheckButton`. | settings (fullscreen, reduce_motion, high_contrast_states, keep_run_records) | Draft |
 | Slider | Input | Continuous value with numeric readout. | settings and pause-menu (master / music / SFX volume), settings (action delay 0–2000 ms, gamma 0.8–1.4 — DD-X10) | Draft |
 | Dropdown / Select | Input | **Replaced by Segmented Select** for 3–4 option settings; no dropdown in v1. | settings (anim_speed, text_scale, telegraph_mode) | Draft |
 | List Item | Layout / Input | Selectable or read-only row in a scrollable list. | run-log (archived runs), draft-picker deck drawer + compact card rows, hero-select deck drawer, run-summary damage list, data-error rows, event-feed drawer lines | Draft |
 | Grid Item | Layout / Input | **Not used** — all collections are single rows (hand fan, board row, 3-option rows) or vertical lists. | — | N/A |
 | Modal Dialog | Feedback / Layout | Blocking overlay with focus trap. | pause-menu, confirm, resume prompt, glossary (proposed); the deck drawer is a Drawer, not a modal | Draft |
-| Confirmation Dialog | Feedback / Layout | Two-button consequence dialog, Cancel focused; typed-token variant for Reset profile. | Abandon, Concede, Clear run records, Reset profile, Start-over-saved-run | Draft |
+| Confirmation Dialog | Feedback / Layout | Two-button consequence dialog, Cancel focused; typed-token variant for Reset profile. | Abandon, Concede, Clear run records, Reset profile, hero-select (Start while a run is saved — the dialog is the whole destructive guard for that Primary) | Draft |
 | Toast / Notification | Feedback | Queued top-right banner, ≥ 5 s, pausable, never modal. | toast (unlocks, run warnings, draft rejections) | Draft |
 | Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution, hero-select (locked-panel progress, curve strip), run-summary (status line full text, custom-seed pill, Disabled New Run reason, per-floor strip cells) | Draft |
 | Progress Bar | Feedback / Layout | **Not used** — no loading bars; floor progress is the Progress Strip pattern. | — | N/A |
 | Input Field | Input | `LineEdit` with visible label. | hero-select (seed), confirm (typed token), settings Controls page (key capture — Alpha) | Draft |
 | Tab Bar | Navigation | **Not used in v1** — settings is one scrollable list; revisit if a Controls page is added. | — | N/A |
-| Scroll Container | Layout | Vertical scroll with visible bar and focus-follows-scroll. | run-log, deck drawer (draft-picker, hero-select), event-feed drawer, data-error, settings, run-summary (damage list at 150 % `text_scale`) | Draft |
+| Scroll Container | Layout | Vertical scroll with visible bar and focus-follows-scroll. | run-log, deck drawer (draft-picker, hero-select), event-feed drawer, data-error, settings, run-summary (deck list — 36 cards at every `text_scale`; the damage list is a fixed 8 / 7 / 6 rows and never scrolls) | Draft |
 | Card (Hand) | Game-Specific | The 150x210 hand card: playable / unaffordable / hovered / focused / lifted / targeting source. | hand | Draft |
 | Card Drag-to-Play | Game-Specific | Press-drag-release play and attack gesture with pre-release legality. | hand, hud (board), targeting | Draft |
 | Click-to-Select / Keyboard Targeting | Game-Specific | The hold-free path: select a source (click or number key), cycle or click a target, confirm. | hand, hud, targeting | Draft |
@@ -151,6 +152,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Curve Strip | Screen-owned compound | 308x28 six-column starter-deck cost curve (numerals + bars; numerals carry the count). Owning spec: `hero-select.md` §5.2 / §5.3. | hero-select | Draft |
 | Locked Hero Panel | Screen-owned compound | Focusable, non-selectable silhouette panel: name, condition text, progress "n / m" from Meta `unlock_progress`. Owning spec: `hero-select.md` §5.3 / §6; the "locked-item progress pattern" meta-progression's UX flag asks for. | hero-select (later: treasure codex) | Draft |
 | Top Bar | Screen-owned compound | `0, 0, 1280, 40` `bg_edge` strip: turn indicator, floor / boss name, feed toggle and menu button (44x44 hits, focus stops 7–8). Owning spec: `hud.md` §4.2 "Top bar". | hud | Draft |
+| Per-Floor Strip | Screen-owned compound | One 24 px cell per floor (`node_d`), 16 px apart, no connectors: boss initial on band colour, "×n" attempt mark, `state_danger` ring on the killing cell, hollow cells after it; focusable cells with tooltips, one Tab stop. Owning spec: `run-summary.md` §5.2 / §5.3 / §12. | run-summary (victory / defeat), run-log (`run_detail`) | Draft |
 | Screen Push / Pop / Replace | Navigation | Run base screens replace each other with a skippable fade; no push/pop slide. | All Run UI base screens | Draft |
 | Overlay Open / Close | Navigation | Dims the base to `table_dark`, stacks, restores focus. | pause-menu, confirm, resume prompt, deck drawer, feed drawer, mulligan, choice-overlay, match-end | Draft |
 | Focus Management | Navigation | Where focus starts, moves and returns, per screen; focus ring rules. | All screens | Draft |
@@ -229,8 +231,8 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Category**: Input
 **Status**: Draft
-**When to Use**: Abandon run (pause, resume prompt), Concede (match pause), Clear run records, Reset profile, Start a new run while one is saved. Anything that ends a run or deletes profile data.
-**When NOT to Use**: Quit to menu with the run saved (run-ui `pause.go_main_menu` — the run reappears as Continue, nothing is lost: Secondary); Take nothing in a draft (a legal choice, not a loss: Secondary).
+**When to Use**: Abandon run (pause, resume prompt), Concede (match pause), Clear run records, Reset profile. Anything that ends a run or deletes profile data.
+**When NOT to Use**: Quit to menu with the run saved (run-ui `pause.go_main_menu` — the run reappears as Continue, nothing is lost: Secondary); Take nothing in a draft (a legal choice, not a loss: Secondary); **hero-select Start while a run is saved** — a Primary whose destructive branch is fully guarded by a Confirmation Dialog (Cancel focused, run-ui U7) keeps its Primary visual, no "!" glyph and the screen's default focus, and takes only the critical rule below (never executes directly). The recorded deviation lives in `hero-select.md` §5.3 / §15; its accessible name carries the consequence ("Start run as <hero> — ends your current run"). Carved 2026-11-03 (ux-review round 3).
 
 **Interaction Specification**:
 
@@ -243,7 +245,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 > **Critical rule**: A Button (Destructive) NEVER executes its action directly.
 > It always triggers a Confirmation Dialog. There are no exceptions.
 
-**Accessibility**: Accessible name includes the consequence ("Abandon run — counts as a loss"). No red fill: `state_danger` is reserved for game-state readouts (art bible rule b); destructiveness is carried by the glyph, the label and the dialog. Never the default focus on any screen.
+**Accessibility**: Accessible name includes the consequence ("Abandon run — counts as a loss"). No red fill: `state_danger` is reserved for game-state readouts (art bible rule b); destructiveness is carried by the glyph, the label and the dialog. Never the default focus on any screen (the guarded Primary in When NOT to Use is not a Destructive button and keeps its default focus — the dialog's Cancel default makes a reflexive `Enter` safe).
 
 **Implementation Notes**: Same `Button` scene, `destructive` variation; the `pressed` handler only calls `open_confirm(spec)`.
 
@@ -810,7 +812,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 **Category**: Game-Specific
 **Status**: Draft
 **When to Use**: Shared overlay on `boss_intro`, `draft_treasure`, `draft_bundle`, `pause` (run-ui U6, F4).
-**When NOT to Use**: The match (Match UI owns the HUD and the top bar carries "Floor n"), the summaries (they use the compact **per-floor strip**, run-ui U9 — a read-only 8-cell recap with `attempt > 1` and the killing boss marked, not this interactive-tooltip strip), hero select and the main menu.
+**When NOT to Use**: The match (Match UI owns the HUD and the top bar carries "Floor n"), the summaries (they use the Screen-Owned **Per-Floor Strip**, run-ui U9 — a read-only variant that reuses this pattern's node drawing: focusable cells with tooltips, `attempt > 1` and the killing boss marked, but no connectors, gem marks, chips or deck size), hero select and the main menu.
 
 **States**:
 
@@ -946,12 +948,13 @@ Compound components a single screen spec introduced and owns. They are indexed h
 
 | Pattern | Owning spec | Contract for reusers |
 |---|---|---|
-| **Deck Drawer** | `draft-picker.md` §5.2 "Deck drawer", §6 "Deck drawer open", §7.2 | Non-blocking right drawer `960, 96, 320, 536` (ends y 632, so the "Deck (n)" toggle at y 640 stays visible and clickable while open) over the content, 250 ms slide (fade under `reduce_motion`); header "Deck · n cards" (or "Starter deck · 15 cards" on hero select) with a **"×" close button at its right end (44x44 hit, focus stop, accessible name "Close deck")**; Treasure Chip row; 44 px List Item rows (cost stamp, name, type initial) with Card Inspect on hover / focus; Overlay Open / Close row "Deck drawer"; `Esc` / RMB / the toggle / the "×" closes it first, focus returning to the toggle; keyboard open moves focus into the first row, mouse open does not. Reused by `hero-select.md`. |
+| **Deck Drawer** | `draft-picker.md` §5.2 "Deck drawer", §6 "Deck drawer open", §7.2 | Non-blocking right drawer `960, 96, 320, 536` (ends y 632, so the "Deck (n)" toggle at y 640 stays visible and clickable while open) over the content, 250 ms slide (fade under `reduce_motion`); header "Deck · n cards" (or "Starter deck · 15 cards" on hero select) with a **"×" close button at its right end (44x44 hit, focus stop, accessible name "Close deck")**; Treasure Chip row; 44 px List Item rows (cost stamp, name, type initial) with Card Inspect on hover / focus; Overlay Open / Close row "Deck drawer"; `Esc` / RMB / the toggle / the "×" closes it first, focus returning to the toggle; **keyboard open moves focus to the header "×" (the drawer's first stop), then `Down` into the rows**; mouse open does not move focus (aligned 2026-11-03, round 3, with both owning specs). Reused by `hero-select.md`. |
 | **Bundle Panel** | `draft-picker.md` §5.2 "Option row (bundle)", §5.3 | 340x320 `parchment`-framed `table_dark` panel at run-ui F4 slot x (90 / 470 / 850): 32 px theme-label band, pitch text, three Compact Card Rows, then a 36 px theme-tag chip band (the panel's y 420–456 at 100 %); the hint lines ("N cards share *theme*", "Deck a → b") render **outside** the panel in the screen's hint zone (draft-picker.md §5.2, y 470 / 494), not inside it; one Pick One of N slot (select-then-confirm); hover / focus a panel shows both hints. |
 | **Compact Card Row** | `draft-picker.md` §5.3, §12 | 300x64 read-only List Item: cost stamp, name, type initial; focusable for Card Inspect (+ reading panel at ≥ 125 % `text_scale`, which is why the row never reflows); never selectable on its own — selection is the panel's. Also the Deck Drawer's row type. |
 | **Curve Strip** | `hero-select.md` §5.2, §5.3, §12 | 308x28 six-column cost curve (columns 0 / 1 / 2 / 3 / 4 / 5 — heroes F1 `BUCKET`, `STARTER_MAX_COST` 5, so the ≥ 6 bucket is always 0 and has no column) of the starter deck: numerals carry the count, bars are decoration (no colour meaning); not focusable on its own — the hero panel's tooltip / Deck Drawer is the reading path. |
 | **Locked Hero Panel** | `hero-select.md` §5.3, §6 "Locked", §12 | Desaturated silhouette panel with lock glyph, name, condition text and progress "n / m" (Meta `unlock_progress`, F6); **focusable, never selectable** (Start stays disabled while it is focused, run-ui AC-3); tooltip immediate on focus; the "locked-item progress pattern" meta-progression's UX flag asks for — the treasure codex reuses it. |
 | **Top Bar** | `hud.md` §4.2 "Top bar", §3.2 | `0, 0, 1280, 40` `bg_edge` strip: turn indicator (16 px), floor / boss name (ellipsised at x 1150), feed toggle and menu button as Button (Secondary) with 44x44 hits and `L` / `Esc` equivalents; focus stops 7–8 of the match idle order. Match only — run screens have the title row. The menu button, like `Esc`, does nothing in `Ended` (DD-X09). |
+| **Per-Floor Strip** | `run-summary.md` §5.2 "Right column — per-floor strip", §5.3, §12 stop 8 (reused by `run_detail`, `run-log.md`) | One **24 px cell** per floor 1..F (`node_d` — the Progress Strip's node drawing, reused), **16 px apart on one row, no connectors, no gem marks, no chips, no deck size** (8 × 24 + 7 × 16 = 304 px; F > 9 → 8 px gaps, cells never below `node_d`); cleared cell = boss initial 12 px bold `text_light` on the band colour; killing cell (defeat) = initial inside a 2 px `state_danger` **ring** on `bg_edge` (never a fill); upcoming cells hollow (1 px `text_muted` outline, no initial — never the boss identity); "×n" 10 px attempt mark 2 px under a cell with `attempt > 1`; cells and marks do not scale with `text_scale`. **Every cell is focusable**: one Tab stop, `Left`/`Right` between cells, Tooltip 300 ms on hover / immediate on focus ("Floor f — boss (band b) · t turns · attempt a", "— you fell here" on the killing cell, "Floor f — band b" on hollow cells); `Enter` does nothing. Accessible names per cell (run-summary §12). Absent on `summary_abandoned`. |
 
 ---
 
@@ -1070,8 +1073,6 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 
 All shortcuts are `InputMap` actions (rebindable by Alpha, except `cancel` / `Esc` — accessibility-requirements Motor "Full input remapping" states the same exception). Defaults:
 
-**Implementation Notes**: One `shortcuts.json` string table maps action names → default keys for the Controls page; `InputRouter` (match) and `RunShell` (run) read actions, never key codes; `cancel` is omitted from the rebindable list the Controls page builds.
-
 | Key | Match (Match UI) | Run screens (Run UI) | Source |
 |-----|------------------|----------------------|--------|
 | `Enter` / `Space` | End Turn when Enabled and armed (`end_turn_arm_ms`); otherwise Skip-all; in `KeyTargeting`: `Enter` confirms; on a focused button: activate | Activate the focused button; second `Enter` on a selected option confirms (Pick / Start) | match-ui U5; run-ui U3 |
@@ -1089,6 +1090,8 @@ All shortcuts are `InputMap` actions (rebindable by Alpha, except `cancel` / `Es
 
 Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard conveniences; no shortcut commits a destructive action; the pause menu (via `Esc` or the top-bar menu button) is reachable from every state except `Ended` (DD-X09 — the banner's Continue / auto-advance is the only exit) and `data_error`. Any new screen must map onto this table rather than add keys; additions go through this library.
 
+**Implementation Notes**: One `shortcuts.json` string table maps action names → default keys for the Controls page; `InputRouter` (match) and `RunShell` (run) read actions, never key codes; `cancel` is omitted from the rebindable list the Controls page builds.
+
 ---
 
 ### Feedback and Loading Patterns
@@ -1100,7 +1103,7 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 **Category**: Feedback
 **Status**: Draft
 **When to Use**: The four waits below and nothing else — there are no other loads in a single-player, local-data game; a wait a spec cannot place in this table is a bug, not a new loading state.
-**Accessibility**: Text, never a spinner alone; every wait is either under 2 s or labelled; nothing times out into a blank screen.
+**Accessibility**: Text, never a spinner alone; every wait is either under 2 s or labelled and skippable; nothing times out into a blank screen, and a failed load is a screen the player can act on (copy report, quit), never a hang.
 
 | Scope | Pattern | Notes |
 |-------|---------|-------|
@@ -1108,8 +1111,6 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 | Match handoff (`begin_match` → Match UI first frame) | ≤ 500 ms (run-ui Game Feel); the boss intro stays visible until the match scene is ready, then `fade` | No loading screen; the Run shell hides, never frees, itself |
 | Run start | The `run_start` panel (hero colour, seed) for 600 ms, skippable | Doubles as the one "transition" screen |
 | Background async (profile save) | Nothing; failure surfaces as a `save_failed` toast + status line | Saves are small; no spinner |
-
-**Accessibility**: Text, not spinners; everything skippable; a failed load is a screen the player can act on (copy report, quit), never a hang.
 
 **Implementation Notes**: Boot is `boot.tscn` with a 2 s `Timer` that reveals the `loading_cards` label; match handoff is `RunShell.hide()` after `MatchScene.ready` (never `queue_free`); `run_start` is the run-ui U2 scene; the profile save is a `WorkerThreadPool` task whose failure emits `run_warning(save_failed)`.
 
