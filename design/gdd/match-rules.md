@@ -337,7 +337,8 @@ Resolution of an accepted `attack(A, D)`, in order:
    was committed). If both are still in play the attack proceeds **even if** a Taunt appeared or
    D lost Taunt in step 2; legality is evaluated once, at declaration.
 4. **Simultaneous damage** (one step, DD-M11): A deals `A.attack` to D, and D deals `D.attack` to
-   A if `D.attack > 0` (a hero with no weapon deals 0). Both `damage_dealt` events are emitted
+   A if `D.attack > 0` **and D is a minion**; a **defending hero never deals damage back**, weapon
+   or not (Hearthstone rule; owner decision N-05 / DD-X11, 2026-11-03). Both `damage_dealt` events are emitted
    in that order; no death check runs between them. Divine Shield, Poisonous and Lifesteal are
    applied per F2 inside this step. If A is a hero with a weapon, `weapon.durability −= 1`
    (`weapon_durability_changed`) in the same step.
@@ -1334,5 +1335,5 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 | Queued triggers resolve even if their source left play (C10) — confirm this reading over Hearthstone's partial rules; it is simpler and is what the acceptance tests assert. | Owner | Before Card Effects design-review | Open — proposed here |
 | Should `command_rejected` be written to the same log (flagged diagnostic) or a separate channel? Affects RNG & Event Log's replay purity. | RNG & Event Log GDD | Before `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: same log, `payload.diagnostic = true` (rng-event-log rule 12a; cited in C15) |
 | Temporary mana / Overload: excluded from v1; Knowledge's set may want "gain 1 mana crystal this turn only". | Heroes / Content | Alpha content pass | **Partly resolved 2026-11-03 (housekeeping)** — temporary mana is defined in C5 (`add_mana(side, n, temporary=true)`, AC-45) for Content's `decay_soul_tithe` / `neutral_treasure_map`; Overload remains excluded |
-| C8 step 4: a **defending hero** holding a weapon deals `D.attack` (weapon attack) back to the attacker. Hearthstone's rule is 0 for a defending hero. Owner to confirm the intended reading; if Hearthstone's rule is adopted, C8 step 4, F3 and AC-19 change here and Boss AI F3 trade quality follows. | Owner | Before Card Effects / Boss AI implementation stories | Open — raised by the 2026-11-03 housekeeping pass; C8 left as written |
+| C8 step 4: a **defending hero** holding a weapon deals `D.attack` (weapon attack) back to the attacker. Hearthstone's rule is 0 for a defending hero. Owner to confirm the intended reading; if Hearthstone's rule is adopted, C8 step 4, F3 and AC-19 change here and Boss AI F3 trade quality follows. | Owner | Before Card Effects / Boss AI implementation stories | **Resolved 2026-11-03 — owner: No, a defending hero does not deal damage back** (DD-X11). C8 step 4 reworded; F3 and AC-19 unaffected (AC-19's return damage comes from the defending minion); Boss AI trade quality needs no change (it never modelled hero retaliation) |
 | Mega-Windfury, Elusive/spell immunity, Immune, Reborn: not in DD-M09; any card needing them is a GDD change here. | Content | Alpha content pass | Deferred |

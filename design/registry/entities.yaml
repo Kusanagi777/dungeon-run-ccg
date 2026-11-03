@@ -614,9 +614,9 @@ items:
     tags: [universal, wild]
     power: 4.0
     mvp: false
-    unlock: bosses_defeated_16
+    unlock: first_victory  # was bosses_defeated_16; owner D-03 / DD-X12 2026-11-03
     added: 2026-11-03
-    revised: ""
+    revised: "2026-11-03"
   - name: treasure_stampede_horn
     status: active
     source: design/gdd/treasures.md
@@ -652,7 +652,7 @@ items:
       - design/gdd/meta-progression.md
       - design/gdd/heroes.md
       - design/gdd/treasures.md
-    keys: [hero_decay_first_win, hero_decay_floor_5, hero_knowledge_first_win, bosses_defeated_16, unlock.hero_fortune, unlock.hero_order, unlock.hero_shadow]
+    keys: [hero_decay_first_win, hero_decay_floor_5, hero_knowledge_first_win, first_victory, bosses_defeated_16, unlock.hero_fortune, unlock.hero_order, unlock.hero_shadow]
     notes: "Treasure keys are owned by treasures.md T8 (DD-X01); hero keys by heroes.md."
     added: 2026-11-03
     revised: ""

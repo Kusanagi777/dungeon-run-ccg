@@ -335,13 +335,14 @@ systems on change via `settings_changed{key, value}`; this system only stores th
 | `treasure_grave_tithe` (#13, Rare, decay) | `hero_decay_first_win` | `runs_won ≥ 1, hero: hero_decay` | First victory with Decay |
 | `treasure_plague_bell` (#15, Common, decay) | `hero_decay_floor_5` | `floor_reached ≥ 5, hero: hero_decay` | Fought the floor-5 boss with Decay (F3: cleared four) |
 | `treasure_dogeared_grimoire` (#17, Rare, knowledge) | `hero_knowledge_first_win` | `runs_won ≥ 1, hero: hero_knowledge` | First victory with Knowledge |
-| `treasure_living_armory` (#18, Rare, universal) | `bosses_defeated_16` | `boss_defeated(any) ≥ 16` | Sixteen bosses down — the size of the boss pool (DD-R02), ≈ 2 full victories or 4–6 runs. Read as a cumulative count, not "every boss once": `all_of` fan-out is 8 (M2.2), so the 16-distinct form is inexpressible; Treasures to confirm the reading (Open Questions) |
+| `treasure_living_armory` (#18, Rare, universal) | `first_victory` | `runs_won ≥ 1` (any hero) | **First victory with any hero** — owner decision D-03 / DD-X12 (2026-11-03): the Curiosity hook no longer starves on a War-only run. The previously planned `bosses_defeated_16` key stays defined below (reserved for a later treasure; AC-20 / `unlock_progress` still exercise it) |
+| *(reserved key, no treasure yet)* | `bosses_defeated_16` | `boss_defeated(any) ≥ 16` | Sixteen bosses down — the size of the boss pool (DD-R02), ≈ 2 full victories or 4–6 runs. Read as a cumulative count, not "every boss once": `all_of` fan-out is 8 (M2.2), so the 16-distinct form is inexpressible; Treasures to confirm the reading (Open Questions) |
 
   Milestones from the earlier draft that no treasure currently rewards — first victory with any
   hero, ten bosses down, floor 5 with every launch hero, a win with every launch hero (the
   concept's "done" line) — remain the content brief for any further locks Treasures/Content add;
   the grammar already expresses each (`hero: "each_launch"`, `all_of`). `unlock.hero_fortune`
-  below covers "first victory with any hero" for the Curiosity hook until then.
+  below covered "first victory with any hero" for the Curiosity hook until D-03 was decided; `first_victory` on Living Armory now does (DD-X12).
 
 - **Post-v1 heroes** (DD-H02, data only; conditions from heroes H-7 sketches, **confirmed**):
   `unlock.hero_fortune` = `runs_won ≥ 1`; `unlock.hero_order` = `runs_won(hero_war) ≥ 1`;

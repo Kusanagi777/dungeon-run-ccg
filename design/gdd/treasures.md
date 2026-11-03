@@ -247,7 +247,7 @@ their conditions defined by Meta Progression (M10; the record's field is `unlock
 | 15 | `treasure_plague_bell` | Plague Bell | Common | decay · husk, sacrifice | Your Husks have +1 Attack. | `aura` (`tag: husk`) on board (R-3, resolved: card-effects C3 reads `tag` on board minions) | 3.0 | — | `hero_decay_floor_5` |
 | 16 | `treasure_focusing_prism` | Focusing Prism | Common | knowledge · spell_damage, spells | Your spells deal 1 more damage. | `modify_damage` (`source: friendly spell`) → `modify_damage`; `delta +1` | 2.6 | — | null |
 | 17 | `treasure_dogeared_grimoire` | Dog-eared Grimoire | Rare | knowledge · spells | Your spells cost (1) less. | `modify_cost` (`type spell`) → `modify_cost`; `delta −1` | 4.2 | — | `hero_knowledge_first_win` |
-| 18 | `treasure_living_armory` | Living Armory | Rare | universal · wild | Start each match with a random Legendary minion in your hand. | `on_match_start`; op `add_to_hand from {pool collectible, rarity legendary, type minion}` | 4.0 | — | `bosses_defeated_16` |
+| 18 | `treasure_living_armory` | Living Armory | Rare | universal · wild | Start each match with a random Legendary minion in your hand. | `on_match_start`; op `add_to_hand from {pool collectible, rarity legendary, type minion}` | 4.0 | — | `first_victory` (`runs_won ≥ 1`, any hero — owner D-03 / DD-X12, 2026-11-03; was `bosses_defeated_16`) |
 | 19 | `treasure_stampede_horn` | Stampede Horn | Rare | universal · wild, aggro | Your minions have Rush. | `aura` (`all_friendly_minions`) → hero-slot aura (card-effects row 42) | 4.0 | ✔ | null |
 | 20 | `treasure_captured_standard` | Captured Standard | Rare | war · aggro | Your minions have +1 Attack. | `aura` (`all_friendly_minions`); `attack +1` | 4.0 | — | null |
 
