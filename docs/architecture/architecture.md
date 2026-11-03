@@ -499,7 +499,7 @@ func reset_profile(confirm_token: String) -> Error
 var settings_bus: SettingsBus                    # settings_changed(key, value)
 
 # src/core/boot.gd — the one autoload
-class_name Boot extends Node
+extends Node                                          # autoload `Boot`; no class_name — it would hide the autoload (ADR-0001 erratum 2026-11-03)
 func boot(overrides: Dictionary = {}) -> BootResult    # idempotent; overrides let debug loaders inject fixtures/stubs
 func services() -> Services                            # {card_database, profile_store, meta: MetaApi, settings_bus}
 ```

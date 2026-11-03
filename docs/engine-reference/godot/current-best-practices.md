@@ -55,6 +55,13 @@ This supplements (not replaces) the agent's built-in knowledge.
   method. Call such methods through `self.` (`randi`, `randf`, `randi_range`,
   `randf_range`, `seed`, `randomize` …); the no-global-RNG lint must still
   catch the bare forms inside `src/core/rng/`
+- **An autoload script must not declare a `class_name` equal to its autoload
+  name** (observed on 4.7.2, 2026-11-03): `class_name Boot` on the script
+  registered as autoload `Boot` is a parse error ("Class \"Boot\" hides an
+  autoload singleton") and the autoload never loads. Omit `class_name`, or give
+  it a different name, and `preload` the script where a fresh instance is needed
+- **gdUnit4 under `godot -s` instantiates autoloads** (observed 4.7.2): tests
+  can find `/root/<Autoload>`; keep autoload `_ready()` side-effect free
 
 ## Physics (4.7)
 

@@ -30,6 +30,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   this ADR; its TD list agrees with `architecture.md` §Tech-debt retirement
   mapping (TD-008/TD-011 are ADR-0002's, TD-002/004 ADR-0007's, TD-007 ADR-0003's,
   TD-009 split across ADR-0004/0005/0008/0011).
+- **Erratum 2026-11-03 (boot-composition-root story 004)**: on Godot 4.7.2 a script declaring `class_name Boot` that is also registered as the autoload `Boot` fails to parse ("Class \"Boot\" hides an autoload singleton") and the autoload never loads. `src/core/boot.gd` is therefore `extends Node` with no `class_name`; the autoload name `Boot` and every `Boot.boot()` / `Boot.services()` / `Boot.booted` reference work unchanged; tests that need a fresh instance `preload` the script. Also observed: gdUnit4 runs under `godot -s` do create autoloads (`/root/Boot` idle, `booted == false`), answering QQ-04.
 - **Erratum 2026-11-03 (engine validation, `docs/architecture/engine-validation-2026-11-03.md`)**: G2b's negative look-ahead does not run on the installed ripgrep 14.1.0 and would flag the `await plan_turn/score_all` lines ADR-0006 requires; replaced by the deny-list pattern in the gate table. Advisory: G2 `%[A-Z]` false-positives on `"%X" % v`; G1 misses `extends Button/Label/Resource`; `@abstract` refusal is parse-time, so Verification (1) is a parse-check test.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
@@ -163,7 +164,7 @@ and API Boundaries this ADR binds.
    never a live object). Presenters are projections of events; a presenter that
    holds a number the view-state cannot reproduce from events is a defect
    (match-ui U1, U3 idle invariant). `queue_free` appears only here.
-4. **One autoload, `Boot` (`src/core/boot.gd`, `class_name Boot extends Node`), as a
+4. **One autoload, `Boot` (`src/core/boot.gd`, `extends Node` with **no** `class_name` — erratum 2026-11-03), as a
    lazy composition root.** `_ready()` does nothing. `boot(overrides: Dictionary =
    {}) -> BootResult` constructs `CardDatabase` and calls `load(validators)` with
    the validators collected from `EffectValidator`, `BossAI`, `Treasures`,
@@ -221,7 +222,7 @@ and API Boundaries this ADR binds.
 
 ```gdscript
 # src/core/boot.gd — the one autoload (architecture.md §API Boundaries, Foundation)
-class_name Boot extends Node
+extends Node                                          # autoload name `Boot`; no class_name (erratum 2026-11-03)
 func boot(overrides: Dictionary = {}) -> BootResult    # idempotent; overrides: {meta: MetaApi, card_database: CardDatabase, ...}
 func services() -> Services                            # {card_database, profile_store, meta: MetaApi, settings_bus}
 var booted: bool                                       # false until boot(); asserted by the QQ-04 test
