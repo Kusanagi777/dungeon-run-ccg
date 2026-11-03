@@ -2,12 +2,13 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Designed
+> **Status**: In Review (revised after `/design-review` 2026-11-03; re-review decides Approved)
 > **Author**: Jacob (owner) + `/design-system` (guided, lean)
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned — the hero is the seed of that deck); Pillar 4 (hero powers are DSL effects, logged like any spell)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No engine reference for the `Scripting` domain under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (rule-only system, no engine surface). No `Agent` tool in this session: `systems-designer` (Formulas) and `qa-lead` (Acceptance Criteria) not consulted — Lean mode would have spawned both; review those two sections manually before production.
+> **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place): H-3 DSL sketches rewritten in card-effects v1 vocabulary (Whetstone, Rot, Insight — card-effects C11 rows 8, 16, 25 were rewritten to these powers the same day: `is_dying` for Rot, `buff cost` on `deck_top` then `draw` for Insight) and Rot's resolution order corrected to card-effects C6.0 / match-rules C10 (one effect = one step; death check after it — the Husk arrives before the Deathrattle, and a full board is not freed mid-effect). H-4 `war_quartermaster` and H-5 `war_cleave_through` texts updated to Content's v1 redesigns. F2 example and H-4 plan-card counts corrected (Decay scores 5, not 6). AC-4 fixture corrected (3 weapons, not 1). Rejection codes aligned with their owners (`NOT_ENOUGH_MANA`, `E_HERO_LOCKED`). AC-1 scoped by content batch (DD-H06: War only at MVP). AC-9/10/11/18 rewritten. Open Questions 1, 3, 4, 7 resolved from sibling GDDs; two new rows added (first-run-forces-War ownership; Content's `armour` tag on `war_iron_vanguard`).
 
 ## Summary
 
@@ -75,8 +76,11 @@ GDD owns *which* values go in those fields; Match Rules C3 reads `health`, `hero
 deck list through `MatchConfig`. Nothing about a hero is hardcoded: adding a hero is a data change
 plus a card set file.
 
-**H-2 — Launch heroes (DD-H01).** All three are `unlock: null` (available from the first launch;
-the first run forces War per the concept's onboarding note — Run Structure owns that rule).
+**H-2 — Launch heroes (DD-H01).** All three are `unlock: null` (available from the first launch).
+The concept's onboarding note ("the first run forces War") is **not yet owned by any GDD**:
+run-structure R2 guards only `is_hero_unlocked`, and meta-progression gives Decay and Knowledge
+`unlock: null`. Either Run Structure adds a first-run rule or Meta Progression keys the two on
+`runs_played ≥ 1` — Open Questions; this GDD does not restate it.
 
 | Hero id | Name | Identity line (`text.en`) | Set | Health | Hero power | Colour (art bible §4) |
 |---|---|---|---|---|---|---|
@@ -88,22 +92,29 @@ the first run forces War per the concept's onboarding note — Run Structure own
 `hero_power_cost` (2) through F1 (floor 0), once per turn (`used_this_turn`, reset in the Start
 step), targeting as for spells (a `required` power with no legal target is unusable), resolved at
 trigger point `hero_power`, one `hero_power_used` event. This GDD owns the **content** of the three
-powers. Each is prose (binding) plus a provisional DSL sketch — **to be validated against
-`card-effects.md`**; where the DSL differs, the prose wins and the sketch is corrected.
+powers. Each is prose (binding) plus a DSL sketch in **card-effects v1 vocabulary** (C3 selectors,
+C4 conditions, C5 ops), validated against `card-effects.md` on 2026-11-03: all three are
+expressible and are card-effects C11 rows 8, 16 and 25 verbatim. A hero power is a
+`hero_power`-trigger effect whose host is not a spell, so `damage` never adds Spell Damage
+(card-effects C5 `spell_damage: auto`). One effect resolves as **one pass in one step**
+(card-effects C6.0/C6.4): ops run in order against the live board, and the match-rules C10 death
+check runs **after** the whole power, not between its ops — an entity at 0 health mid-pass is
+*dying* (`is_dying`), still occupying its slot.
 
 *War — Whetstone (`power_whetstone`, 2).* "Equip a 1/2 Whetstone Blade. If you already have a
 weapon, give it +1 Attack this turn instead." Rejected alternatives: a plain "equip a 1/2" would
 destroy a drafted weapon (C6 step 2) and so punish the hero's own plan; a plain "+1 Attack" is dead
-on an empty slot for the first two turns. The conditional costs one `branch` op and buys a power
-that is always useful and never anti-synergistic. The +1 is an enchantment on the weapon with
-`expires: end_of_turn` (C1 Weapon has `enchantments[]`; C4 End step 5 removes it).
+on an empty slot for the first two turns. The conditional costs one `conditional` op and buys a
+power that is always useful and never anti-synergistic. The +1 is a `buff` enchantment on the
+weapon with `duration: until_end_of_turn` (match-rules C1 Weapon has `enchantments[]`; C4 End
+step 5 removes it). Card-effects C11 row 8 and its AC-15 already prove this exact shape.
 
 ```json
 { "id": "power_whetstone", "name": "Whetstone", "cost": 2,
-  "effects": [ { "trigger": "hero_power", "targeting": { "mode": "none" },
-    "ops": [ { "op": "branch", "if": { "has_weapon": "self" },
-      "then": [ { "op": "enchant", "target": "self_weapon", "attack_delta": 1, "expires": "end_of_turn" } ],
-      "else": [ { "op": "equip_weapon", "side": "self", "def_id": "war_whetstone_blade" } ] } ] } ] }
+  "effects": [ { "trigger": "hero_power",
+    "ops": [ { "op": "conditional", "if": { "exists": "owner_weapon" },
+      "then": [ { "op": "buff", "targets": "owner_weapon", "attack": 1, "duration": "until_end_of_turn" } ],
+      "else": [ { "op": "equip", "card_id": "war_whetstone_blade" } ] } ] } ] }
 ```
 
 Token: `war_whetstone_blade` — weapon, cost 1, 1 Attack / 2 Durability, `token: true`, set `war`.
@@ -112,15 +123,19 @@ Token: `war_whetstone_blade` — weapon, cost 1, 1 Attack / 2 Durability, `token
 Targets **any** minion, friendly included: rotting your own 1-health Deathrattle minion both
 fires the rattle and leaves a Husk, which is the sacrifice fantasy in one click. Rejected: "summon
 a Husk" (no decision), "destroy a friendly minion" (unusable on an empty board for the first turns
-and never removal). The two ops are sequential steps, so the C10 death check runs between them
-and the condition reads whether the target left play.
+and never removal). **"If it dies" is the card-effects `is_dying` predicate** (health ≤ 0 or
+`pending_destroy`, read after the damage and before the death check that follows the pass,
+C6.0): the whole power is one step, so the target still occupies its slot when the `conditional`
+runs, and the C10 death check (and any Deathrattle) comes after the Husk. A Divine Shield pop
+leaves health unchanged, so `is_dying` is false and no Husk (card-effects F2).
 
 ```json
 { "id": "power_rot", "name": "Rot", "cost": 2,
-  "effects": [ { "trigger": "hero_power", "targeting": { "mode": "required", "filter": "any_minion" },
-    "ops": [ { "op": "damage", "target": "chosen", "amount": 1 },
-      { "op": "summon", "side": "self", "def_id": "decay_husk", "position": "rightmost",
-        "if": { "left_play": "chosen" } } ] } ] }
+  "effects": [ { "trigger": "hero_power",
+    "targets": { "selector": "chosen", "filter": { "kind": "minion" } },
+    "ops": [ { "op": "damage", "amount": 1 },
+      { "op": "conditional", "if": { "test": [ "target", { "is_dying": true } ] },
+        "then": [ { "op": "summon", "card_id": "decay_husk", "position": "end" } ] } ] } ] }
 ```
 
 Token: `decay_husk` — minion, cost 1, 1/1, no text, `token: true`, set `decay`, tag `husk`.
@@ -131,22 +146,25 @@ feel samey") and says nothing about Pillar 1, whereas Insight makes every drafte
 sooner — the power is literally "see more of the deck you built". The tax is a sequencing test,
 not a penalty: used after spending mana it is free, used first to dig for an answer it costs one.
 The 15-card starter makes early overuse self-limiting through fatigue (C11), which no other
-cost achieves as legibly. If the DSL cannot bind the drawn card (Open Questions), the fallback is
-"Draw a card. Your hero takes 2 damage."
+cost achieves as legibly. No draw-binding is needed: the card about to be drawn *is* `deck_top`,
+and a cost enchantment travels with the card instance into hand (card-effects C5 `buff`, row 25),
+so the tax is applied **before** the draw. The earlier fallback ("Draw a card. Your hero takes 2
+damage") is withdrawn.
 
 ```json
 { "id": "power_insight", "name": "Insight", "cost": 2,
-  "effects": [ { "trigger": "hero_power", "targeting": { "mode": "none" },
-    "ops": [ { "op": "draw", "side": "self", "n": 1, "bind": "drawn" },
-      { "op": "enchant_card", "target": "$drawn", "cost_delta": 1, "expires": "end_of_turn",
-        "if": { "in_hand": "$drawn" } } ] } ] }
+  "effects": [ { "trigger": "hero_power",
+    "ops": [ { "op": "buff", "targets": { "selector": "deck_top", "n": 1 }, "cost": 1, "duration": "until_end_of_turn" },
+      { "op": "draw", "count": 1 } ] } ] }
 ```
 
 **H-4 — Starter decks (15 each, DD-R03).** Concept-level list — the first Content batch,
 authored in `cards_<set>.json` / `cards_neutral.json` against Card Database CR-3. Every starter
 has the same shape (four 1-drops, four 2s, four 3s, two 4s, one 5 — F1) so early turns feel the
 same speed and the *difference* is the plan cards (★, tag in brackets). Neutrals are shared (MVP
-budget: 7 neutrals + 8 War cards covers War's starter).
+budget: War's starter needs 7 War cards and 5 distinct neutrals — 8 copies; Content's MVP-0 batch
+authors all 7 shared neutrals, of which `neutral_lantern_bearer` sits in no launch starter and is
+held for bundles).
 
 Shared neutral cards: `neutral_torch_imp` 1 — 1/2 · `neutral_tunnel_rat` 1 — 2/1 ·
 `neutral_cellar_guard` 2 — 2/3 · `neutral_lantern_bearer` 2 — 2/2 Taunt ·
@@ -156,13 +174,18 @@ Shared neutral cards: `neutral_torch_imp` 1 — 1/2 · `neutral_tunnel_rat` 1 �
 |---|---|---|---|
 | 1 | `neutral_tunnel_rat` ×2 · ★`war_shield_squire` 1/2, Battlecry: Gain 2 Armour [armour] · ★`war_sharpen` spell: Give your weapon +2 Attack this turn [weapons] | `neutral_torch_imp` ×2 · `neutral_tunnel_rat` · ★`decay_grave_rat` 1/1, Deathrattle: Summon a 1/1 Husk [deathrattle] | `neutral_torch_imp` ×2 · `neutral_tunnel_rat` · ★`knowledge_candle_acolyte` 1/2, Spell Damage +1 [spell_damage] |
 | 2 | `neutral_cellar_guard` ×2 · ★`war_rusted_axe` weapon 2/2 [weapons] · ★`war_warcry` spell: Give your minions +1 Attack this turn [aggro] | `neutral_cellar_guard` ×2 · ★`decay_carrion_crow` 2/1, Deathrattle: Draw a card [deathrattle] · ★`decay_culling` spell: Destroy a friendly minion. Draw 2 cards [sacrifice] | `neutral_cellar_guard` ×2 · ★`knowledge_frost_lance` spell: Deal 2 damage to a minion and Freeze it [spells] · ★`knowledge_archive_seeker` 2/2, Battlecry: Discover a spell [discover] |
-| 3 | `neutral_dungeon_delver` ×2 · `war_iron_vanguard` 2/4 Taunt · ★`war_quartermaster` 2/3, Battlecry: Give your weapon +1 Durability [weapons] | `neutral_dungeon_delver` ×2 · ★`decay_husk_tender` 2/3, Battlecry: Summon a 1/1 Husk [husk] · `decay_grave_warden` 1/4 Taunt | `neutral_dungeon_delver` ×2 · ★`knowledge_study` spell: Draw 2 cards [draw] · ★`knowledge_lightning_lash` spell: Deal 3 damage to a minion [spells] |
+| 3 | `neutral_dungeon_delver` ×2 · `war_iron_vanguard` 2/4 Taunt · ★`war_quartermaster` 2/3, Battlecry: If you have a weapon, draw a card [weapons] | `neutral_dungeon_delver` ×2 · ★`decay_husk_tender` 2/3, Battlecry: Summon a 1/1 Husk [husk] · `decay_grave_warden` 1/4 Taunt | `neutral_dungeon_delver` ×2 · ★`knowledge_study` spell: Draw 2 cards [draw] · ★`knowledge_lightning_lash` spell: Deal 3 damage to a minion [spells] |
 | 4 | `neutral_crypt_brute` · ★`war_pit_brawler` 4/3 Charge [aggro] | `neutral_crypt_brute` · ★`decay_shambling_heap` 3/4, Deathrattle: Summon two 1/1 Husks [deathrattle] | `neutral_crypt_brute` · ★`knowledge_lorekeeper` 3/5, Spell Damage +1 [spell_damage] |
 | 5 | `neutral_ogre_porter` | `neutral_ogre_porter` | `neutral_ogre_porter` |
 
-Each starter: 15 cards, total cost 37, average 2.47, 6 plan cards (F1, F2). Each starter contains
-exactly one card that interacts with the hero power's output (Quartermaster with the Whetstone
-Blade; Culling with a Husk; Candle Acolyte with Frost Lance) so the power is taught by turn 3.
+Each starter: 15 cards, total cost 37, average 2.47; plan cards (★) War 6, Decay 5, Knowledge 6
+(F1, F2 — F2 counts *cards*, not tags). `war_iron_vanguard` and `decay_grave_warden` are the
+deliberate non-plan Taunts and carry **no** theme tag in Content's records; a theme tag on either
+pushes its starter over `PLAN_MAX` (Open Questions: Content tags Iron Vanguard `armour`). Each
+starter contains exactly one card that interacts with the hero power's output (Quartermaster with
+the Whetstone Blade; Culling with a Husk; Candle Acolyte with Frost Lance) so the power is taught
+by turn 3. `war_quartermaster` was "Give your weapon +1 Durability" until Content's v1 redesign
+(2026-11-03): `weapon_durability` is a v2 op (card-effects C11), so it is a conditional draw.
 
 **H-5 — Card set identity (~25 cards per set, DD-H03).** The set is what Reward Draft can offer
 this hero beyond neutrals (`collectible_pool(hero_set)`, `bundle_pool(hero_set)`); it is where the
@@ -170,7 +193,7 @@ plan lives. Composition is a Content target checked by F4, not a loader rule.
 
 | Set | Mechanics and keywords | Minions / Spells / Weapons | Theme tags (bundles, DD-H05) | Signature cards (3; text provisional) |
 |---|---|---|---|---|
-| `war` | Weapons as the damage source; hero attacks trigger things; Armour as the defensive resource; Charge/Rush; Windfury on weapons | 13 / 6 / 6 | `weapons`, `aggro`, `armour` | `war_duelists_edge` 4, weapon 3/3, "Whenever your hero attacks, gain 2 Armour" · `war_pit_champion` 5 legendary 4/6, "Battlecry: Your hero has Windfury this turn" · `war_cleave_through` 3 spell, "Deal 2 damage to a minion and the minions next to it" |
+| `war` | Weapons as the damage source; hero attacks trigger things; Armour as the defensive resource; Charge/Rush; Windfury on weapons | 13 / 6 / 6 | `weapons`, `aggro`, `armour` | `war_duelists_edge` 4, weapon 3/3, "Whenever your hero attacks, gain 2 Armour" · `war_pit_champion` 5 legendary 4/6, "Battlecry: Your hero has Windfury this turn" · `war_cleave_through` 3 spell, "Deal 2 damage to all enemy minions. If you have a weapon, deal 3 instead" (Content's v1 redesign — `adjacent` is source-relative only) |
 | `decay` | Deathrattle, sacrifice ("destroy a friendly minion" as a cost), Husk swarm, Poisonous, Lifesteal on a few finishers | 17 / 8 / 0 | `deathrattle`, `sacrifice`, `husk` | `decay_husk_mother` 5 legendary 3/6, "Whenever a friendly minion dies, summon a 1/1 Husk" · `decay_plague_of_rot` 4 spell, "Destroy all your Husks. Deal 1 damage to all enemies for each" · `decay_feast_of_worms` 3 spell, "Destroy a friendly minion. Summon three 1/1 Husks" |
 | `knowledge` | Spell damage scaling, draw, Discover, Freeze, cost reduction in hand (F1 `hand_aura_delta`), few but efficient minions | 11 / 14 / 0 | `spells`, `draw`, `spell_damage`, `discover` | `knowledge_grand_grimoire` 6 legendary 4/6, "Spell Damage +2. Battlecry: Discover a spell" · `knowledge_chain_lightning` 4 spell, "Deal 3 damage to a minion, then 2 to a random enemy minion" · `knowledge_apprentice` 2, 2/2, "Your spells cost (1) less" |
 
@@ -206,11 +229,11 @@ sketches are intent only, **not** valid DSL yet.
 
 | State | Entry Condition | Exit Condition | Behavior |
 |-------|----------------|----------------|----------|
-| **Hero: Locked** | `HeroDef.unlock` non-null and Meta Progression reports it unmet | Meta Progression grants the key | Shown greyed on hero select with its unlock text; `start_run(hero_id)` rejected `HERO_LOCKED` |
+| **Hero: Locked** | `HeroDef.unlock` non-null and Meta Progression reports it unmet | Meta Progression grants the key | Shown greyed on hero select with its unlock text; `new_run(hero_id)` rejected `E_HERO_LOCKED` (run-structure R2) |
 | **Hero: Available** | `unlock` null, or key met (launch heroes always) | Player selects it | Selectable; preview shows power and starter deck |
 | **Hero: Active** | Run Structure starts a run with it | Run ends (death/victory) | Fixed for the run; supplies `MatchConfig.player.hero_def_id` and the deck seed for every match |
 | **Power: Ready** | Start step of the hero's turn (`used_this_turn = false`) | `use_hero_power` accepted | Button lit if cost payable and a legal target exists (or targeting `none`) |
-| **Power: Blocked** | Ready, but mana < effective cost, or `required` targeting with no legal target | Mana or board changes | Button dimmed with reason (`INSUFFICIENT_MANA` / `NO_LEGAL_TARGET`); Freeze never blocks a power (match-rules Edge Cases) |
+| **Power: Blocked** | Ready, but mana < effective cost, or `required` targeting with no legal target | Mana or board changes | Button dimmed with reason (`NOT_ENOUGH_MANA` / `NO_LEGAL_TARGET` — match-rules' closed rejection set); Freeze never blocks a power (match-rules Edge Cases) |
 | **Power: Used** | `hero_power_used` | Next own Start step, or a `refresh_hero_power` effect (Edge Cases) | Second use rejected `HERO_POWER_USED` |
 | **War weapon slot: Empty** | match start; weapon destroyed | Whetstone (equip mode) or a weapon card | Whetstone takes the *equip* branch |
 | **War weapon slot: Held** | `weapon_equipped` | durability 0 or replaced | Whetstone takes the *+1 Attack* branch; playing a weapon card destroys the held one (C6) — the Whetstone Blade has no Deathrattle, so replacing it costs nothing |
@@ -220,9 +243,9 @@ sketches are intent only, **not** valid DSL yet.
 | System | Direction | Data in / out | Interface owner |
 |---|---|---|---|
 | **Card Database** | upstream | In: `HeroDef`, `HeroPowerDef`, card records for starter decks; `heroes()`, `hero(id)`, `hero_power(id)`; load-time validation (15 cards, own set/neutral, no tokens, power id exists) | Card Database owns the shape and the checks; this GDD owns the values |
-| **Card Effects** | upstream | In: the DSL that expresses H-3 (`branch`, `enchant` on weapon, `equip_weapon`, `damage`, `summon` with `left_play` condition, `draw` with `bind`, `enchant_card` cost delta). Out: three `hero_powers.json` records as the first DSL acceptance cases | Card Effects owns the DSL; this GDD files the required ops (Open Questions) |
+| **Card Effects** | upstream | In: the v1 DSL that expresses H-3 (`conditional` + `exists: owner_weapon`, `buff` on `owner_weapon` and on `deck_top` cards, `equip`, `damage`, `test: [target, {is_dying: true}]`, `summon`, `draw`). Out: three `hero_powers.json` records = C11 rows 8, 16, 25 (their AC-13/15/43 are the DSL acceptance cases) | Card Effects owns the DSL; this GDD owns the prose and the token ids |
 | **Match Rules** | upstream (rule), downstream (data) | In: C7 power rule, C1 `hero_power {def_id, used_this_turn}`, Start-step reset, F1 cost floor. Out: hero `health`, `hero_power` id, deck list via `MatchConfig` | Match Rules owns the rule; Heroes supplies the record (match-rules Dependencies row) |
-| **Run Structure** | downstream | Out: `hero_id`, starter deck as the run's initial deck (grows per DD-R06), "first run forces War" (its rule); `HERO_LOCKED` rejection | Run Structure |
+| **Run Structure** | downstream | Out: `hero_id`, starter deck as the run's initial deck (grows per DD-R06); `E_HERO_LOCKED` rejection via Meta Progression's `is_hero_unlocked`. "First run forces War" is unowned (Open Questions) | Run Structure |
 | **Reward Draft** | downstream | Out: `hero.set` selects `collectible_pool` / `bundle_pool`; theme tags in H-5 are the bundle themes it weights | Reward Draft owns weighting; this GDD owns which tags exist per set |
 | **Content** | downstream | Out: the starter lists (H-4), set composition targets (H-5, F4), signature cards, tokens `war_whetstone_blade` / `decay_husk` | Content authors the files; this GDD is the brief |
 | **Meta Progression** | downstream | Out: hero ids for per-hero stats; unlock keys for Fortune/Order/Shadow. In: unlock state at hero select | Meta Progression owns keys and conditions |
@@ -269,8 +292,9 @@ matches at H = 30).
 | PLAN_TAGS(hero) | string[] | 3–4 tags | data file (H-5 theme tags) | The hero set's theme tags |
 | PLAN_MIN / PLAN_MAX | int | 4 / 6 | data file | Share of the 15 that "shows the plan" |
 
-**Output Range:** 0–15; launch starters all score 6. **Example:** Decay: Grave Rat, Carrion Crow,
-Culling, Husk Tender, Shambling Heap plus Grave Rat's second tag → 6 → ok. Rationale (Pillar 1):
+**Output Range:** 0–15; launch starters score War 6, Decay 5, Knowledge 6 (a card with two plan
+tags counts once). **Example:** Decay: Grave Rat, Carrion Crow, Culling, Husk Tender, Shambling
+Heap → 5 → ok; Grave Warden (Taunt, no tag) does not count. Rationale (Pillar 1):
 below 4 the hero has no identity on turn 1; above 6 the starter *is* the plan and the draft only
 adds copies.
 
@@ -352,19 +376,24 @@ cases (no legal target, Frozen hero, cost 0); they are restated only where this 
   no Husk (C9). The log shows `divine_shield_popped` so the player sees why.
 - **If the target is a friendly minion with Stealth**: legal — Stealth blocks *enemy* targeting
   only (C12).
-- **If the target dies and the player's board is full (7)**: the Husk summon is a no-op with
-  `summon_failed` (C10). Killing a friendly minion first frees the slot, so the order is: damage
-  step → death check (slot freed) → summon step; a friendly 1-health target therefore always
-  leaves room for its own Husk.
+- **If the target's health reaches 0 and the player's board is full (7)**: the Husk summon is a
+  no-op with `summon_failed{board_full}` (match-rules C10). The whole power is one step, so a
+  friendly target at 0 health is **still on the board** when `summon` runs — its slot is not freed
+  until the death check after the power. Rotting your own minion on a full board therefore yields
+  no Husk; the player must make room first. (Accepted consequence of card-effects C6.4; the
+  alternative — a death check between ops — is an engine change this GDD does not request.)
+- **If the target has a Deathrattle**: order is `damage_dealt(1)` → `minion_summoned(decay_husk)`
+  → `minion_died` (death check) → the Deathrattle resolves. The Husk is on the board when the
+  rattle fires, so a rattle that reads the board ("for each friendly minion") counts it.
 - **If the target survives at 1 damage but dies later in the same resolution** (an aura source
-  died in the same step): `left_play` is evaluated when the summon step executes, after the C10
-  loop has settled the preceding step — the Husk **is** summoned. Rule: the condition reads the
-  state at the start of the summon step, not the damage result. A target with a Deathrattle
-  therefore has its rattle resolve before the Husk arrives.
+  died in the same death check): the `conditional` has already read `is_dying` as false during
+  the power — no Husk. Rule: the condition reads the live state **immediately after the `damage`
+  op**, nothing later.
 
 **Insight**
-- **If the deck is empty**: the draw deals fatigue damage (C11), nothing is drawn, the tax op
-  skips (`in_hand` false). Mana is still spent (C5, no refunds).
+- **If the deck is empty**: the tax op no-ops first (`deck_top` is empty → `ops[0]: no_target`),
+  then the draw deals fatigue damage (C11); nothing is drawn or enchanted. Mana is still spent
+  (C5, no refunds). With exactly one card left it is enchanted, drawn and shows the tax in hand.
 - **If the hand is full (10)**: the card burns (`card_burned`); no tax; mana spent.
 - **If the drawn card already has a cost enchantment** (a treasure's "spells cost 1 less"):
   deltas sum per F1 (`card_enchantment_delta`), floored at 0; the tax can net to zero.
@@ -376,8 +405,10 @@ cases (no legal target, Frozen hero, cost 0); they are restated only where this 
 - **If a set contains a weapon for a hero whose power never equips** (a Knowledge weapon): legal
   data; F4 tolerates one and `W_SET_SHARE` flags more. Rule of thumb: Knowledge and Decay ship 0
   weapons at v1 so "weapon" reads as War's word.
-- **If a locked hero id arrives in `start_run`** (edited save): Run Structure rejects
-  `HERO_LOCKED` after asking Meta Progression; no fallback to another hero.
+- **If a locked hero id arrives in `new_run`** (edited save): Run Structure rejects
+  `E_HERO_LOCKED` after asking Meta Progression `is_hero_unlocked`; no fallback to another hero.
+  A *saved* run for a hero that has since become locked still resumes
+  (`run_warning{hero_locked_at_resume}`, run-structure Edge Cases).
 - **If a hero's set file is missing** (`cards_fortune.json` before Fortune ships): `E_MISSING_FILE`
   — so unlock heroes are added to `heroes.json` only together with their set file (H-7).
 - **Same hero picked twice**: n/a — single player, one hero per run.
@@ -394,9 +425,9 @@ dependents, and this table adds **Reward Draft, Run UI, Match UI, Treasures** �
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
 | Card Database | This depends on Card Database | Hard | `HeroDef` / `HeroPowerDef` records and starter-deck validation (CR-3, CR-5 stage 6); queries `heroes()`, `hero()`, `hero_power()` |
-| Card Effects | This depends on Card Effects | Hard | The DSL that expresses H-3; ops listed in Interactions; validator for `hero_powers.json` (CR-5 stage 7). **Provisional** — card-effects.md is being written concurrently |
+| Card Effects | This depends on Card Effects | Hard | The DSL that expresses H-3; ops listed in Interactions; validator for `hero_powers.json` (CR-5 stage 7). Validated against card-effects.md (Designed, revised) 2026-11-03: all three powers are C11 rows 8, 16, 25 |
 | Match Rules | Mutual | Hard | They own the power rule (C7) and read our record (C3); we own the power content and the 30 health value's source row (DD-M02) |
-| Run Structure | Run Structure depends on this | Hard | hero select → `MatchConfig`; starter deck as the run's initial deck; `HERO_LOCKED`; "first run forces War" |
+| Run Structure | Run Structure depends on this | Hard | hero select → `MatchConfig`; starter deck copied verbatim as the run's initial deck (R2); `E_HERO_LOCKED`; "first run forces War" not yet placed (Open Questions) |
 | Reward Draft | Reward Draft depends on this | Hard | `hero.set` picks the pools; H-5 theme tags are the bundle themes |
 | Content | Content depends on this | Hard | H-4 lists, H-5 targets, F1–F5 checks in the validate command |
 | Meta Progression | Meta Progression depends on this | Soft | hero ids for stats; unlock keys for H-7 (absent at MVP — all heroes available) |
@@ -482,11 +513,11 @@ GDD directly.
 | Weapon replace-on-equip; hero attack from weapon; Windfury; death check between steps; `summon_failed`; Divine Shield; draw into empty deck / full hand | `design/gdd/match-rules.md` | C6, C8, C9, C10, C11, C12 | Rule dependency |
 | Frozen hero may still use its power; cost 0 still once per turn | `design/gdd/match-rules.md` | Edge Cases | Rule dependency |
 | Player starting health 30; boss health by band; match length model for F1 pacing; primitive API (`equip_weapon`, `summon_minion`, `draw`, `apply_enchantment`) | `design/gdd/match-rules.md` | `player_starting_health`, `boss_starting_health_by_band`, F8, Interactions | Data dependency |
-| DSL ops `branch`, `enchant`, `equip_weapon`, `damage`, `summon` + `left_play`, `draw` + `bind`, `enchant_card` | `design/gdd/card-effects.md` (concurrent) | Operation and condition vocabulary | Rule dependency (provisional) |
+| DSL ops `conditional`, `buff` (incl. `cost` on deck cards), `equip`, `damage`, `summon`, `draw`; selectors `owner_weapon`, `chosen`, `deck_top`; conditions `exists`, `test` + `is_dying`; one-pass step unit; C11 rows 8, 16, 25 | `design/gdd/card-effects.md` | C3, C4, C5, C6.0, C6.4, C11 | Rule dependency |
 | Hero identification colours | `design/art/art-bible.md` | §4 Hero and boss identification colours | Data dependency |
-| Unlock keys `unlock.hero_*` | `design/gdd/meta-progression.md` (undesigned) | Unlock condition table | Ownership handoff |
-| First run forces War; `HERO_LOCKED`; starter deck → run deck | `design/gdd/run-structure.md` (undesigned) | Hero select rules | Ownership handoff |
-| Theme tags per set as bundle themes | `design/gdd/reward-draft.md` (undesigned) | Bundle weighting input | Ownership handoff |
+| `HeroDef.unlock {key, condition}`; keys `unlock.hero_fortune/order/shadow`; `is_hero_unlocked` | `design/gdd/meta-progression.md` | M2.1, M2 condition grammar, M10 | Ownership handoff (resolved) |
+| `new_run` guard, `E_HERO_LOCKED`, `hero_locked_at_resume`; starter deck copied verbatim as the run deck | `design/gdd/run-structure.md` | R2, Edge Cases, AC-23 | Ownership handoff |
+| Theme tags per set as `plan_tags(hero)`; `plan_share` target | `design/gdd/reward-draft.md` | F3, Interactions (Heroes row) | Ownership handoff (resolved: no new field) |
 
 ## Acceptance Criteria
 
@@ -496,17 +527,21 @@ a fixed `match` seed and scripted decks (no Node, no scene). AC-1–6 cover H-1/
 F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
 
 **Data validity**
-- [ ] AC-1 **GIVEN** the shipped `assets/data/`, **WHEN** the Card Database loads, **THEN** `heroes()`
-  returns `hero_war`, `hero_decay`, `hero_knowledge`, each with `health = 30`, a `hero_power` id
-  that `hero_power()` resolves, and a `starter_deck` of exactly 15 ids, all `token == false` and
-  all with `set ∈ {hero.set, neutral}` (zero `E_*` entries in `report()`).
+- [ ] AC-1 **GIVEN** the shipped `assets/data/` of a content batch (Content CN-6: MVP-0 ships
+  `hero_war` only per DD-H06; `hero_decay` joins at Alpha-A and `hero_knowledge` at Alpha-B),
+  **WHEN** the Card Database loads, **THEN** `heroes()` returns exactly that batch's hero ids, each
+  with `health = 30`, a `hero_power` id that `hero_power()` resolves, and a `starter_deck` of
+  exactly 15 ids, all `token == false` and all with `set ∈ {hero.set, neutral}` (zero `E_*`
+  entries in `report()`). A hero whose starter references a card from a later batch must not be
+  in that batch's `heroes.json` (it would be `E_UNKNOWN_REF`, CR-8: no main menu).
 - [ ] AC-2 **GIVEN** each launch starter, **WHEN** F1 is evaluated, **THEN** avg cost ∈ [2.4, 2.8],
   max cost ≤ 5 and per-cost counts fall inside `BUCKET[k]`; **AND** a test fixture with a 6-cost
   card substituted fails with `E_STARTER_CURVE`.
 - [ ] AC-3 **GIVEN** each launch starter, **WHEN** F2 is evaluated, **THEN** plan_cards ∈ [4, 6].
 - [ ] AC-4 **GIVEN** `cards_war.json`, **WHEN** F4 is evaluated, **THEN** weapon share is 0.24 ± 0.08
-  and `cards_knowledge.json` / `cards_decay.json` contain 0 weapons (a 1-weapon fixture yields
-  `W_SET_SHARE`, not an error).
+  and `cards_knowledge.json` / `cards_decay.json` contain 0 weapons; **GIVEN** a Knowledge fixture
+  with 1 weapon of 25 (0.04, inside ± 0.08), **THEN** no warning; **GIVEN** 3 weapons of 25 (0.12),
+  **THEN** `W_SET_SHARE` is emitted and `report()` has zero `E_*` entries.
 - [ ] AC-5 **GIVEN** the nine signature cards, **WHEN** F5 is evaluated, **THEN** each has
   synergy ≥ 5.
 - [ ] AC-6 **GIVEN** `decay_husk` and `war_whetstone_blade`, **WHEN** `collectible_pool(set)` and
@@ -517,18 +552,24 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
   `hero_power_used`, `weapon_equipped(war_whetstone_blade)`; hero attack = 1, durability 2, mana 0.
 - [ ] AC-8 **GIVEN** War holding a 2/2 weapon, **WHEN** `use_hero_power`, **THEN** no
   `weapon_destroyed`; weapon attack = 3 until the End step, 2 afterwards (`enchantment_removed`).
-- [ ] AC-9 **GIVEN** Decay and an enemy 2/1, **WHEN** Rot targets it, **THEN** `damage_dealt(1)`,
-  `minion_died`, `minion_summoned(decay_husk)` on the player side, in that order; **GIVEN** an
-  enemy 2/3 instead, **THEN** it has `damage_taken 1` and no Husk is summoned.
+- [ ] AC-9 **GIVEN** Decay and an enemy 2/1, **WHEN** Rot targets it, **THEN** the events are
+  `damage_dealt(1)`, `minion_summoned(decay_husk)` on the player side at the rightmost slot,
+  `effect_resolved` with `ops[1].values.branch == "then"`, then `minion_died` — in that order;
+  **GIVEN** an enemy 2/3 instead, **THEN** it has `damage_taken 1`, `ops[1].outcome == skipped`
+  and no `minion_summoned`.
 - [ ] AC-10 **GIVEN** Decay and a friendly 1/1 with "Deathrattle: draw a card", **WHEN** Rot
-  targets it, **THEN** the rattle resolves (`card_drawn`) before `minion_summoned(decay_husk)`.
+  targets it, **THEN** `minion_summoned(decay_husk)` precedes `minion_died`, which precedes the
+  rattle's `card_drawn`; the Husk is at board index 1 (the dead minion's slot has closed up).
 - [ ] AC-11 **GIVEN** Decay with 7 friendly minions and an enemy 1/1, **WHEN** Rot kills it,
-  **THEN** `summon_failed` is emitted and the board stays at 7.
+  **THEN** `summon_failed{board_full}` is emitted and the player board stays at 7; **GIVEN** Decay
+  with 7 friendly minions and Rot targeting one of its own 1/1s, **THEN** `summon_failed{board_full}`
+  then `minion_died`, and the board ends at 6 with no Husk.
 - [ ] AC-12 **GIVEN** an enemy 1/1 with Divine Shield, **WHEN** Rot targets it, **THEN**
   `divine_shield_popped`, the minion lives, no Husk.
 - [ ] AC-13 **GIVEN** Knowledge with a 1-cost spell on top of the deck and 4 mana, **WHEN**
-  `use_hero_power`, **THEN** the card is drawn with effective cost 2 this turn, mana is 2, and the
-  cost is 1 at the start of the player's next turn.
+  `use_hero_power`, **THEN** `enchantment_applied{cost_delta: 1}` on that card instance precedes
+  `card_drawn`, the card sits in hand with effective cost 2 this turn, mana is 2, and the cost is 1
+  at the start of the player's next turn (`enchantment_removed` at the End step).
 - [ ] AC-14 **GIVEN** Knowledge with an empty deck, **WHEN** `use_hero_power`, **THEN**
   `fatigue_damage(1)` is emitted, hand size is unchanged, mana was spent.
 - [ ] AC-15 **GIVEN** any hero with a `modify_cost` hook setting the power to 0, **WHEN** the power
@@ -538,12 +579,16 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
 **Selection, unlocks, UI**
 - [ ] AC-16 **GIVEN** a fresh profile, **WHEN** hero select opens, **THEN** exactly the three launch
   heroes are selectable and any hero with a non-null `unlock` whose key is unmet shows as Locked;
-  `start_run` with that id is rejected `HERO_LOCKED`.
+  `new_run` with that id is rejected `E_HERO_LOCKED` (run-structure AC-23 covers the engine side;
+  this AC covers the hero-select state).
 - [ ] AC-17 **GIVEN** each launch hero on hero select, **WHEN** a screenshot is taken
   (`production/qa/evidence/`), **THEN** the portrait panel uses that hero's primary colour from art
   bible §4 and the power text matches `HeroPowerDef.text.en` exactly.
 - [ ] AC-18 **GIVEN** a match in progress, **WHEN** the power is Ready / Blocked / Used, **THEN**
-  the button renders the three states distinguishably and a Blocked tooltip names the reason code.
+  three retained screenshots (`production/qa/evidence/`) show the button in the three states
+  `design/ux/hud.md` specifies (lit / 50 % with tooltip / depressed with dimmed cost stamp), and the
+  Blocked tooltip text contains the literal rejection code (`NOT_ENOUGH_MANA` or `NO_LEGAL_TARGET`)
+  that `legal_commands()` reports for `use_hero_power`.
 
 **Non-functional**
 - [ ] AC-19 No hero value (health, power cost, blade stats, Husk stats, tax, curve bounds) is a
@@ -555,10 +600,12 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
 
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
-| Does the DSL support `branch` with a `has_weapon` condition, a `left_play` condition evaluated at step start, and `bind`/`$drawn` references? If not, Rot and Insight need alternative encodings (Insight fallback: "Draw a card. Your hero takes 2 damage") | Card Effects GDD | `/design-system card-effects` (concurrent) | Open — H-3 sketches marked provisional |
-| `refresh_hero_power(side)` primitive and `hero_power_refreshed` event are not in the match-rules API; needed before any "use your power twice" treasure | Match Rules GDD | `/design-system treasures` | Open — no such treasure in v1 content until added |
-| Where does the hero `unlock` key live: a new `unlock` field on `HeroDef` (mirrors `TreasureDef`, needs a card-database CR-3 edit) or a hero-id table inside Meta Progression? Recommendation: `HeroDef.unlock` for symmetry | Card Database + Meta Progression GDDs | `/design-system meta-progression` | Open — H-7 written assuming `HeroDef.unlock` |
-| Should Reward Draft read a per-hero `preferred_tags` list, or is set membership (`bundle_pool(hero_set)`) enough? H-5 tags are the proposal; adding a field needs CR-3 | Reward Draft GDD | `/design-system reward-draft` | Open — no field added here |
-| Boss archetype names in H-6 are placeholders; confirm or rename when the boss pool is designed | Boss AI / Content GDDs | `/design-system boss-ai` | Open |
+| Does the DSL express Whetstone's branch, Rot's "if it dies" and Insight's tax on the drawn card? | Card Effects GDD | — | **Resolved 2026-11-03**: card-effects C11 rows 8, 16, 25 are these three powers (`conditional`/`exists owner_weapon`; `is_dying`; `buff cost` on `deck_top` then `draw`). Content's open question "which Insight text ships" is thereby answered: the tax text; the "Deal 1 damage" row is gone |
+| `refresh_hero_power(side)` primitive and `hero_power_refreshed` event are not in the match-rules API; card-effects lists `hero_power_refresh` as v2 and has filed the primitive request with Match Rules | Match Rules GDD | before any "use your power twice" treasure | Open — no such treasure in v1 content (treasures.md agrees) |
+| Where does the hero `unlock` key live? | Card Database + Meta Progression GDDs | — | **Resolved 2026-11-03** by meta-progression M2.1: `HeroDef.unlock {key, condition}` or `null`, keys `unlock.hero_<name>`; conditions M10 match H-7's sketches. Card-database CR-3 still lists no `unlock` on `HeroDef` — that edit is pending on the card-database side |
+| Should Reward Draft read a per-hero `preferred_tags` list? | Reward Draft GDD | — | **Resolved 2026-11-03**: reward-draft reads H-5 theme tags directly as `plan_tags(hero)` (its F3); no new `HeroDef` field |
+| Boss archetype names in H-6 are placeholders; boss-ai.md's `archetype` key (aggro/control…) names AI profiles, not boss designs, so H-6 stays Content's brief | Content GDD | first `/balance-check` with all 16 bosses | Open — advisory only |
 | Hero names (Halvard, Mother Wythe, Archivist Ilse) and identity lines are designer placeholders | owner | before `/asset-spec system:heroes` | Open — change in `heroes.json` only |
-| `heroes_balance.json` as the home of F1–F5 constants (a sixth data file beyond DD-T01's list, read only by the validate command) | owner | `/design-system content` | Proposed here; needs a DD-T01 note |
+| `heroes_balance.json` as the home of F1–F5 constants | owner | — | **Resolved**: DD-T01 lists `heroes_balance.json` (added 2026-11-03) |
+| **"First run forces War"** (concept Onboarding curve) has no owner: run-structure R2 only checks `is_hero_unlocked`; meta-progression gives all launch heroes `unlock: null`. Options: Run Structure adds a first-run rule in R2, or Meta Progression keys `hero_decay` / `hero_knowledge` on `runs_played ≥ 1` (moot at MVP, which ships War only) | Run Structure or Meta Progression GDD (owner picks) | before Alpha-A | Open — flagged by `/design-review` 2026-11-03 |
+| **Content tags `war_iron_vanguard` `armour`**, which F2 counts as a plan card: War's starter scores 7 > `PLAN_MAX` 6 and the validate command would fail MVP-0. Resolution: Content drops the tag (a vanilla Taunt is not the plan — H-4), or the owner raises `PLAN_MAX` to 7 | Content GDD (or owner for the knob) | MVP-0 | Open — flagged by `/design-review` 2026-11-03 |

@@ -9,6 +9,8 @@
 > **Implements Pillar**: Pillar 2 (bosses are puzzles), Pillar 3 (lose fast, learn fast — telegraphed intent), Pillar 4 (readable, deterministic rules)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `ai-programmer`, `systems-designer`, `qa-lead` not consulted — Lean mode, single-agent run; review Formulas and Acceptance Criteria manually before production. Technical feasibility: engine domain **Scripting** — no engine reference for `scripting` under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (the system is pure GDScript logic with no engine surface beyond `RandomNumberGenerator`, already covered by RNG & Event Log).
 
+> **REVISED 2026-11-03** (`/design-review`, lean, independent reviewer — blocking items fixed in place): F1 worked example recomputed (2.45 / 1.87, was 2.31 / 2.2) and A11 updated; C1.3 now forbids reading `card_drawn` and other hidden-payload events (the log records the player's draws) and A4 tests it; C1.5 no longer waives the `.claude/rules/ai-code.md` 2 ms/frame rule — the planner runs off the main thread or time-sliced, A30 measures it; `op_values` keys realigned to Card Effects' real op names, `position_sensitive`/`aoe`/synergy matching derived from selectors and triggers (Card Effects defines no AI annotations), C7 handles `kind: choose_one`; `intent_banner_s` fixed at 0.3 s with a separate `plan_changed_s` 1.2 s (F9 said 1.2, Game Feel and Match UI said 0.3); A6/A7 made testable; C2 pseudocode emits the `ai_decision` A24 requires, counts plan steps and matches F6's armour term; F7 match bound corrected to 1,500; stale "planned/provisional" notes on card-effects.md, DD-T01 and `clone()` hooks resolved; C9 gains a rule-by-rule ai-code.md compliance list.
+
 ## Summary
 
 Boss AI is the opponent that pilots every boss deck: each boss turn it lists the legal moves,
@@ -62,16 +64,29 @@ are either random or trivial, and the gauntlet stops being a puzzle.
    commands (Acceptance Criteria A1–A3).
 3. **Hidden information is not read.** The evaluation never reads `player.hand[*].def_id`,
    either `deck` order, or `pending` Discover options of the player. It may read hand *counts*,
-   both boards, both heroes, weapons, graveyards, mana and the event log so far (which is what a
-   human opponent also sees). A test with a decoy player hand (A4) enforces this.
+   both boards, both heroes, weapons, graveyards and mana. From the event log it may read only
+   **public** events — `card_played`, `effect_resolved`, combat and death events — and never
+   `card_drawn`, `card_burned`, `discover_offered` or any payload field naming a card that is
+   still in the player's hand or deck (the log records hidden information for replay — RNG &
+   Event Log's Match UI row says the same; a human opponent does not see it). The one thing the
+   AI remembers across turns is `aoe_seen` (F5), derived from `card_played`. A test with a decoy
+   player hand that has also been *drawn* through the engine, so it is in the log (A4), enforces
+   this.
 4. Entry points, all synchronous: `forecast(engine) → Intent` (called by the driver when
    `PlayerTurn.Main` begins), `play_turn(engine)` (called when `BossTurn.Main` begins; returns
    when the engine leaves `BossTurn.Main`), `choose(engine, choice_request) → option_index`
    (called whenever `phase == Choice` and `pending_choice.side == BOSS`, including mid-`play_turn`).
 5. The whole boss turn is decided and executed inside `play_turn` — the events land in the log at
-   once. The Match UI then plays them back one action at a time (UI Requirements); the
-   `.claude/rules/ai-code.md` 2 ms/frame budget applies to that playback, not to the planner,
-   whose budget is C9.
+   once. The Match UI then plays them back one action at a time (UI Requirements).
+   **`.claude/rules/ai-code.md` budget — 2 ms per frame on the main thread.** The planner's own
+   budget is C9's counts, but it may not hold the main thread for more than 2 ms in any frame:
+   the driver runs `play_turn` and `forecast` **off the main thread** (a worker task the driver
+   polls once per frame) or time-sliced across frames. The mechanism is chosen by ADR
+   (`/create-architecture`); it is NOT SOURCEABLE here — no scripting or threading page exists
+   under `docs/engine-reference/godot/modules/`. Either mechanism is safe by construction:
+   `BossAI` and the engine touch no Node, the UI reads the log only after the call returns, and
+   budgets are counts, so the result is identical on and off the main thread. A30 measures it.
+   Playback is UI work and is budgeted by Match UI.
 
 #### C2. The action loop (`play_turn`)
 
@@ -81,10 +96,12 @@ play_turn(engine):
   emit ai_intent_committed(intent_from_plan(first_plan), kept = matches(forecast))
   while engine.phase == BossTurn.Main:
     cmds = engine.legal_commands()
-    if cmds == [end_turn] or actions >= budgets.max_actions_per_turn: submit(end_turn); break
+    if cmds == [end_turn] or actions >= budgets.max_actions_per_turn:
+        emit ai_decision(end_turn, [], mode, reason)   # reason: only_move | action_cap (A24, A27)
+        submit(end_turn); break
     plan = lethal_search(engine)                       # C3; null when none within budget
-    if plan: mode = LETHAL; execute_plan(plan); continue  # re-plans if any step is rejected
-    if band_rules.defensive and threat_estimate(engine) >= boss_health - rules.defensive_margin:
+    if plan: mode = LETHAL; actions += execute_plan(plan); continue  # one ai_decision per step; re-plans if a step is rejected
+    if band_rules.defensive and threat_estimate(engine) >= boss_health + boss_armor - rules.defensive_margin:
         mode = DEFENSIVE                               # F6; weights overridden per profile
     best, top3 = score_all(cmds, mode)                 # C4–C6
     emit ai_decision(best, top3, mode)                 # diagnostic event, C10
@@ -138,7 +155,7 @@ Each is a feature `f_i ∈ [−1, 1]` (normalised as defined in F1) with a profi
 | Over-extension | `f_over` | Penalises own board above the F5 cap once the player has shown AoE |
 | Healing | `f_heal` | Healing to the boss hero, counted only against missing health |
 | Hero power rule | `f_hp` | +1 when the action is the hero power and `rules.hero_power` allows it |
-| Passive synergy | `f_passive` | +1 when the played card carries one of the profile's `synergy_tags` |
+| Passive synergy | `f_passive` | +1 when the played card matches one of the profile's `synergy_tags` — a Card Database `tags` entry, a DD-M09 keyword, or a Card Effects trigger name such as `deathrattle` (C6 `synergy_match`) |
 
 Teaching mistakes for band 1 are not separate code: they are weight settings (`w_trade` low,
 `w_face` high, `rules.lethal_search = shallow`, `w_over = 0`), so the same planner reads as a
@@ -148,24 +165,38 @@ reckless brawler on floor 1 and a careful pilot on floor 8.
 
 `legal_commands()` already expands every (card × target × position) combination, so target choice
 emerges from scoring: "Fireball the 6/6, not the 1/1" is simply the candidate with the higher
-`f_threat`. The **op value table** (`op_values` in `ai_profiles.json`, keyed on Card Effects op
-type: `damage`, `damage_all`, `heal`, `buff`, `summon`, `draw`, `destroy`, `silence`, `freeze`,
-`discover`, `armor`, `return_to_hand`, `transform`, `set_stats`, `add_mana`, `equip_weapon`) is
-used in two places only: as the pre-filter rank when candidates exceed the eval budget (C4), and
-to value options that cannot be simulated (C7). It is a hint, never the decision. Summon
-**position** is the rightmost slot (`position = board.size`) unless the card's effect spec is
-flagged `position_sensitive` by Card Effects (adjacency effects), in which case every position is
-a separate candidate.
+`f_threat`. The **op value table** (`op_values` in `ai_profiles.json`, keyed on the Card Effects
+C5 op names — `damage`, `heal`, `buff`, `set_stats`, `give_keyword`, `silence`, `freeze`,
+`destroy`, `summon`, `transform`, `draw`, `discover`, `add_to_hand`, `copy_to_hand`,
+`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`; the structural ops `conditional`,
+`repeat` and `choose_one` are valued as the sum of their inner ops, `aura` and `modify_value` as
+`buff`) is used in two places only: as the pre-filter rank when candidates exceed the eval budget
+(C4), and to value options that cannot be simulated (C7). An op's value is multiplied by the
+number of targets its selector yields on the current board (`all_*` selectors, `n` picks), so a
+three-target `damage` outranks a one-target one without an AoE row of its own. It is a hint,
+never the decision. Three **derived annotations** are computed by Boss AI from the effect spec at
+load — Card Effects adds no AI-only fields: `position_sensitive` = any effect on the card uses an
+`adjacent`, `left_neighbour` or `right_neighbour` selector (Card Effects C3); `aoe` = any
+`damage`, `destroy`, `freeze`, `silence` or negative `buff`/`set_stats` op whose selector is
+`all_enemy_minions`, `all_minions`, `all_enemy_characters` or `all_characters` from the caster's
+side; `synergy_match(card, tags)` = `card.tags ∩ tags ≠ ∅` (Card Database `tags`) or any keyword
+or effect trigger name of the card is in `tags`. Summon **position** is the rightmost slot
+(`position = board.size`) unless the card is `position_sensitive`, in which case every position
+is a separate candidate.
 
 #### C7. Choice phase (`choose`)
 
-For a `ChoiceRequest` the AI scores each option as `op_value(option) × cost_fit + preference`,
-where `cost_fit = 1` if the option's cost ≤ the boss's `mana_max` next turn else 0.5, and
+For a `ChoiceRequest` of `kind: discover` the AI scores each option as `op_value(option) ×
+cost_fit + preference`, where `op_value(option)` is the card's C6 value (a vanilla body counts as
+`buff` value `(attack + health) / 4`), `cost_fit = 1` if the option's cost ≤ the boss's
+`mana_max` next turn else 0.5, and
 `preference` is the profile's `choice_preference` bonus for the option's tags (aggro: `charge`,
 `weapon`; control: `taunt`, `heal`, `damage_all`; tempo: lowest cost; passive-driven: its
-`synergy_tags`). Identical options (same `def_id`) are collapsed to the lowest index **before**
-tie-breaking, so duplicates consume no RNG. The decision is logged as an `ai_decision` with
-`kind = choice`.
+`synergy_tags`). For `kind: choose_one` (Card Effects C5: options are `{label_key, ops[]}` with
+no card and no cost) each option scores `Σ op_value(op) × targets_now(op)` with `cost_fit = 1`
+and `preference` looked up by the option's op names. Identical options (same `def_id`, or
+identical `ops[]`) are collapsed to the lowest index **before** tie-breaking, so duplicates
+consume no RNG. The decision is logged as an `ai_decision` with `kind = choice`.
 
 #### C8. Telegraphing — the intent is the plan
 
@@ -204,6 +235,14 @@ tie-breaking, so duplicates consume no RNG. The decision is logged as an `ai_dec
   {command, score, features{}}}` flagged `diagnostic: true`, same channel as `command_rejected`.
   Mode transitions (NORMAL → LETHAL/DEFENSIVE and back) are included in the payload so the
   `.claude/rules/ai-code.md` "log every transition" rule holds from the log alone.
+- **`.claude/rules/ai-code.md`, rule by rule** (stated so a skipped rule is visible rather than
+  silent): 2 ms/frame → C1.5 and A30; parameters tunable from data → F9 and A29; debuggable with
+  visualisation hooks → the debug overlay (Visual/Audio, UI Requirements) fed by
+  `ai_decision.features`; telegraph intentions → C8; utility over hard-coded if/else chains →
+  C4–C5 (the only branches are lethal-first and the mode switch); state-machine transitions
+  logged → this rule; group AI (formation, flanking, role assignment) → **not applicable**, one
+  opponent with no spatial movement; network input validation → **not applicable**,
+  single-player with no network.
 
 #### C10. Profiles, bands and validation
 
@@ -258,6 +297,7 @@ set it scores with). Both are observable in `ai_decision` payloads; neither is s
 | `Executing` | plan step diverged | second search not yet used | `Planning` (`ai_plan_aborted`) |
 | `Choosing` | `choose` accepted | phase returns to `BossTurn.Main` | `Planning` |
 | `Choosing` | `choose` accepted | phase is `Ended` | `Idle` |
+| `Choosing` | `choose` accepted | phase is `PlayerTurn.*` (the Choice was raised by a boss trigger during the player's turn; the driver called `choose` directly) | `Idle` |
 | `Planning` | `cmds == [end_turn]` or `end_turn` scores best | — | `Ending` |
 | `Ending` | engine phase ≠ `BossTurn.Main` | — | `Idle` |
 | any | engine phase `Ended` | — | `Idle` |
@@ -274,9 +314,9 @@ within the same turn.
 | System | Direction | Data in | Data out | Owner of the interface |
 |---|---|---|---|---|
 | **Match Rules** | upstream | `legal_commands()`, `MatchState.clone()`, `submit() → CommandResult`, typed rejection codes, `ChoiceRequest`, phase | Commands (`play_card`, `attack`, `use_hero_power`, `choose`, `end_turn`); never `concede` or `mulligan` | Match Rules (C2); the AI is "just another command issuer". **Provisional requirement**: `clone()` must carry the installed `HookRegistry` (boss passive, treasures) so the sandbox resolves effects as the live match would |
-| **Card Effects** | upstream | Effect specs read through Card Database for pre-filtering: op types (`op_values` keys), `targeting.mode`, `position_sensitive`, `aoe` tag on ops that hit a whole board, `synergy_tags` on cards and the boss passive | None | Card Effects owns the op vocabulary; this GDD owns the value table keyed on it. An op type with no `op_values` row defaults to 1.0 and logs `E_AI_OP_UNVALUED` at load |
+| **Card Effects** | upstream | Effect specs read through Card Database for pre-filtering: op names (Card Effects C5, the `op_values` keys), `targets.selector` and filters (C3), trigger names (C2), `ChoiceRequest.kind`. Boss AI derives `position_sensitive`, `aoe` and synergy matches from them (C6) — Card Effects adds no AI-only fields | None | Card Effects owns the op vocabulary; this GDD owns the value table keyed on it. An op type with no `op_values` row defaults to 1.0 and logs `E_AI_OP_UNVALUED` at load |
 | **Card Database** | upstream | `boss(id)` → `band`, `health`, `hero_power`, `passive`, `deck[]`, `ai_profile`; `card(id)` for cost/stats/effect spec | The `ai_profile` validator (CR-5 stage 7) and the `ai_profiles.json` loader (new data file, DD-T01 addition — Open Questions) | Card Database owns the record shape and load pipeline; Boss AI owns profile keys and the schema in F9 |
-| **RNG & Event Log** | upstream | Injected `ai_<floor>` stream; `fork(label)` | `ai_intent_shown`, `ai_intent_committed`, `ai_decision` (diagnostic), `ai_plan_aborted`, `ai_fault` via `log.append`; only the first is in the v1 catalogue — the others are proposed additions | RNG & Event Log owns the envelope; Boss AI owns these payloads and documents its draw order (C9) |
+| **RNG & Event Log** | upstream | Injected `ai_<floor>` stream; `fork(label)` | `ai_intent_shown`, `ai_intent_committed`, `ai_decision` (diagnostic), `ai_plan_aborted`, `ai_fault` via `log.append`; the catalogue holds `ai_intent_shown` and rule 12a names the three diagnostic types; `ai_intent_committed` and the `amount` field on `ai_intent_shown` are proposed additions (Open Questions) | RNG & Event Log owns the envelope; Boss AI owns these payloads and documents its draw order (C9) |
 | **Run Structure** | upstream | `MatchConfig.boss.ai_id` (= BossDef `ai_profile`), `floor`, `band` | None (match result flows from Match Rules) | Run Structure constructs the driver that calls `forecast`/`play_turn`/`choose` |
 | **Match UI** | downstream | — | The event stream: intent banner from `ai_intent_*`, action playback pacing from the command events, debug overlay from `ai_decision` | UI is display-only (`src/ui/**`); pacing values in UI Requirements are read from `ai_profiles.json.presentation` |
 | **Content** | downstream | — | Profile archetypes and `boss_overrides` schema; harness output for band tuning | Content authors each boss's `ai_profile` and override; Boss AI owns what the keys mean |
@@ -305,7 +345,7 @@ f_card   = clamp((Δcount_boss − Δcount_player) / 3, −1, 1)              co
 f_over   = −max(0, boss_board_after − overextend_cap) / BOARD_SIZE      cap from F5
 f_heal   = heal_to_boss_hero / max(1, missing_health_before)            capped at 1
 f_hp     = 1 if a is use_hero_power and hero_power_rule allows, −1 if it forbids, else 0
-f_passive= 1 if card(a).tags ∩ profile.synergy_tags ≠ ∅ else 0
+f_passive= 1 if synergy_match(card(a), profile.synergy_tags) else 0                  C6
 ```
 
 **Variables:**
@@ -325,12 +365,17 @@ f_passive= 1 if card(a).tags ∩ profile.synergy_tags ≠ ∅ else 0
 | BV_NORM, THREAT_NORM | float | 5–20 | data file (`rules`) | Normalisers so features stay in [−1, 1] for a typical 2–3 minion swing |
 
 **Output Range:** roughly −8 to +12 with default weights; `end_turn` on a full-mana turn scores
-≈ −w_mana. **Example:** aggro boss, 6 mana, player hero at 20 with a 2/3 Taunt; candidate "play
-4-cost 4/4": `f_board = 0.8, f_face = 0, f_trade = 0, f_mana = 0.67, f_card = 0, f_over = 0` →
-`1.5·0.8 + 1.5·0.67 = 2.2`. Candidate "attack Taunt with my 3/3 (kills it, survives)": `f_board =
-(0 − (−5))/10 = 0.5, f_trade = +1, f_threat = (2+1.2·… ≈ 3.4)/12 = 0.28` → `1.5·0.5 + 1.0·1 +
-3.0·0 + 2.0·0.28 = 2.31`. The trade is chosen first, then the 4/4 (mana still unspent), then
-`end_turn`.
+≈ −w_mana. **Example** (aggro profile: `w_board 1.5, w_face 3.0, w_trade 1.0, w_threat 2.0,
+w_mana 1.0, w_card 0.8`; 6 mana; player hero at 20 with a 2/3 Taunt; the boss has a 3/3 on board
+that can attack and a 4-cost vanilla 4/4 in hand). Candidate "play the 4/4": `f_board = (8 −
+0)/10 = 0.8`, `f_mana = 4/6 = 0.667`, `f_card = ((−1 hand + 1 board) − 0)/3 = 0`, all else 0 →
+`1.5·0.8 + 1.0·0.667 = 1.87`. Candidate "attack the Taunt with the 3/3" (the Taunt dies, the 3/3
+survives as a 3/1): `ΔBV_boss = (3+1) − (3+3) = −2`, `ΔBV_player = 0 − (2+3)·1.2 = −6` →
+`f_board = (−2 − (−6))/10 = 0.4`; `f_trade = +1`; `f_threat = (2 + 1.5)/12 = 0.292`; `f_card =
+(0 − (−1))/3 = 0.333`; `f_mana = 0` → `1.5·0.4 + 1.0·1 + 2.0·0.292 + 0.8·0.333 = 2.45`.
+`end_turn` scores `−6/6 · 1.0 = −1.0`. The trade is chosen first (2.45), then the 4/4 (1.87 — its
+features are unchanged by the trade), then `end_turn` (now `−2/6 = −0.33`, the best remaining
+move).
 
 ### F2. Board value and threat
 
@@ -383,7 +428,8 @@ player at 8 → `12 − 5 = 7 < 8` → pruned, no search; the planner trades ins
 ### F5. Over-extension cap
 
 `overextend_cap = aoe_seen ? overextend_cap_aoe : BOARD_SIZE`, where `aoe_seen` is true once the
-player has cast any card whose effect spec carries the `aoe` tag this match, **or** the profile
+player has played any card (`card_played`) whose effect spec is `aoe` by the C6 derivation this
+match, **or** the profile
 sets `assume_aoe` (band 3 overlay against the Knowledge hero). **Variables:** `overextend_cap_aoe`
 int 2–7, data file, default 4; `BOARD_SIZE` 7 (registry). **Example:** after the player Flamestrikes,
 the 5th boss minion scores `f_over = −1/7`; with `w_over = 1` that is a −0.14 nudge, enough to
@@ -411,7 +457,11 @@ board 4/4 + 3/2 Windfury, 6 mana next turn → `4 + 6 + 6 = 16`; boss at 18 → 
 (Match Rules budgets `submit` at ≤ 5 ms worst case, typically ≪ 0.1 ms for a 2-step action). At
 band 3 worst case `(8·250 + 4000)·0.01 ms ≈ 60 ms`; the 50 ms target (`planner_target_ms`, Tuning
 Knobs) is met by lowering `lethal_max_nodes` if A22 fails — the knob changes counts, never the
-clock. `TURN_CAP` and `max_actions_per_turn` together bound a match at 3,000 AI commands.
+clock. `TURN_CAP` (100 global turns, Match Rules C14 — 50 boss turns) and `max_actions_per_turn`
+together bound a match at 1,500 AI commands. `forecast` (C8) runs the same planner once per
+player turn under the same count budgets; A22 measures it together with `play_turn` (one forecast
+plus one real turn per round ≈ 2× the worst case above, which is why band 3's `lethal_max_nodes`
+is the first knob to lower).
 
 ### F8. Tie-break
 
@@ -424,15 +474,16 @@ deterministic given the state, which is what `restore()` (RNG & Event Log F5) re
 
 ```
 schema_version: 1
-op_values:      {<op type>: float 0–5}      damage 1.0, damage_all 2.5, destroy 2.0, heal 0.6, buff 0.8,
-                                            summon 1.0, draw 1.2, silence 1.2, freeze 0.7, discover 1.0,
-                                            armor 0.5, return_to_hand 1.0, transform 1.2, set_stats 1.0,
-                                            add_mana 1.5, equip_weapon 1.2
+op_values:      {<op name>: float 0–5}      damage 1.0, destroy 2.0, heal 0.6, buff 0.8, set_stats 1.0,
+                                            give_keyword 0.8, summon 1.0, draw 1.2, silence 1.2, freeze 0.7,
+                                            discover 1.0, add_to_hand 1.0, copy_to_hand 1.0, armor 0.5,
+                                            return_to_hand 1.0, transform 1.2, mana 1.5, equip 1.2,
+                                            retrigger 1.5      (Card Effects C5 names; × targets yielded, C6)
 keyword_values: {<keyword>: float 1.0–1.5}  F2 multipliers
 profiles:       {<key>: Profile}            default, aggro, control, tempo, passive_driven
 bands:          {"1"|"2"|"3": Profile overlay}
 boss_overrides: {<boss id>: Profile overlay with required "extends"}
-presentation:   {action_delay_s 0.6, max_turn_playback_s 10, intent_banner_s 1.2}
+presentation:   {action_delay_s 0.6, max_turn_playback_s 10, intent_banner_s 0.3, plan_changed_s 1.2}
 
 Profile = { extends?: key,
             weights:  {w_board, w_face, w_self, w_trade, w_threat, w_mana, w_card, w_over, w_heal, w_hp, w_passive},
@@ -445,7 +496,8 @@ Profile = { extends?: key,
             synergy_tags: [string] }
 ```
 
-Archetype deltas from `default` (F1 table holds the defaults): **aggro** `w_face 3.0, w_board
+Archetype deltas from `default` (F1's table holds the default weights; default `rules` are
+`hero_power spare_mana`, `lethal_search full`, `defensive false`, `assume_aoe false`): **aggro** `w_face 3.0, w_board
 1.5, trade_ratio 1.3, hero_power always, choice_preference {charge 0.5, weapon 0.4}`; **control**
 `w_face 0.5, w_threat 3.0, w_self 2.0, w_card 1.5, w_heal 1.5, w_board 2.5, trade_ratio 0.8,
 choice_preference {taunt 0.5, heal 0.4, damage_all 0.6}`; **tempo** `w_mana 1.5, w_board 2.5,
@@ -502,8 +554,11 @@ budget), `off`.
 - **If lethal requires a weapon equip then a hero attack**: `play_card(weapon)` is in the damage
   subset and the hero attack follows; the search depth bound covers both steps.
 - **If a Charge minion is lethal only at an exact position** (adjacency buff): positions are
-  enumerated only when `position_sensitive`; otherwise rightmost, so an adjacency lethal is found
-  only if the card is flagged — Content flags such cards (A17).
+  enumerated only when the card is `position_sensitive` (derived from its own `adjacent` /
+  `*_neighbour` selectors, C6); otherwise rightmost. A card whose adjacency effect lives on
+  *another* minion already in play (an "adjacent minions have +2 Attack" lord) is not flagged, so
+  a lethal that needs the new minion placed beside that lord is missed — accepted for v1 and
+  listed in Open Questions (A17).
 - **If lethal search exhausts its node budget**: returns null, `ai_decision.mode` records
   `lethal_search_exhausted`, normal scoring continues (band 1 will thereby "miss" lethals a band 3
   boss finds — intended).
@@ -542,13 +597,14 @@ Hard = the AI cannot take a turn without it; soft = degraded but playable. Bidir
 Match Rules lists Boss AI as a downstream dependent (its Dependencies table), RNG & Event Log
 lists it with the `ai_<floor>` stream and `ai_intent_shown`, Card Database lists the
 `ai_profile` validator hand-off, and the systems index lists Match UI and Content as depending
-on Boss AI. Card Effects' GDD is being authored concurrently; its row below is the contract it is
-expected to mirror (checked by `/consistency-check` once it lands).
+on Boss AI. Card Effects' GDD lists Boss AI as a downstream dependent (`legal_targets()`,
+`ChoiceRequest.options`, deterministic `resolve` on a clone) — mirrored; its row below was
+re-checked against `design/gdd/card-effects.md` on 2026-11-03.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
 | Match Rules | This depends on Match Rules | Hard | `legal_commands()`, `MatchState.clone()` (must carry hooks — provisional), `submit()`, rejection codes, `ChoiceRequest`, phase/`pending_choice`; `can_attack` (F3), `mana_max_by_turn` (F4), `TURN_CAP` for the harness. Match Rules' open question on boss mulligan is closed here: none in v1 |
-| Card Effects | This depends on Card Effects | Hard | Op type vocabulary for `op_values`; `targeting.mode`; `position_sensitive`, `aoe` and `synergy_tags` annotations on effect specs; the sandbox relies on effects resolving identically on a clone. **Provisional** until `design/gdd/card-effects.md` lands |
+| Card Effects | This depends on Card Effects | Hard | Op names (C5) for `op_values`; selectors and filters (C3) and trigger names (C2) for the C6 derivations; `ChoiceRequest.kind` (`discover` / `choose_one`); the sandbox relies on effects resolving identically on a clone (Card Effects guarantees it) |
 | Card Database | This depends on Card Database | Hard | `boss(id)` fields `band`, `health`, `hero_power`, `passive`, `deck`, `ai_profile`; `card(id)` for cost/stats/effect spec. Boss AI supplies the `ai_profile` validator (CR-5 stage 7) and the `ai_profiles.json` loader |
 | RNG & Event Log | This depends on RNG & Event Log | Hard | Injected `ai_<floor>` stream and `fork()`; `log.append` for `ai_intent_shown`, `ai_intent_committed`, `ai_decision`, `ai_plan_aborted`, `ai_fault` (four new types proposed for the v1 catalogue) |
 | Run Structure | Run Structure depends on this | Hard (for them) | Constructs `BossAI` from `MatchConfig.boss.ai_id`, `floor`, `band`; drives `forecast` / `play_turn` / `choose` at the phase transitions in States |
@@ -583,6 +639,7 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `planner_target_ms` | 50 | 20–200 | Allows larger budgets | Forces smaller budgets | F7 (measurement only; never a runtime switch) |
 | `presentation.action_delay_s` | 0.6 | 0.3–1.2 | Boss turns read slower; risk "long opponent turns" | Actions blur together | `max_turn_playback_s` |
 | `presentation.max_turn_playback_s` | 10 | 6–20 | Long turns play in full | Delay compresses on busy turns | `action_delay_s` |
+| `presentation.intent_banner_s` / `plan_changed_s` | 0.3 / 1.2 | 0.2–0.6 / 0.6–2.0 | Longer commit beat / longer "plan changed" label; the first boss action starts later | Beat unreadable / label missed | Match UI `boss_turn_gap` (reads `intent_banner_s`) |
 
 Knobs owned elsewhere that move this system's outcomes (not duplicated): `BOARD_SIZE`,
 `MAX_MANA`, `TURN_CAP` (Match Rules); boss health by band (DD-M02, read from the boss def);
@@ -598,7 +655,7 @@ Match Rules' table; rows here are the AI-specific additions, placeholder art in 
 |---|---|---|---|
 | `ai_intent_shown` (player turn start) | Intent banner over the boss portrait: icon per `intent_key`, `amount` as a number, `target_id` highlighted with a dim reticle; desaturated band colour (Torchlit Ledger: lit because the player must read it) | Soft "page turn" | Must |
 | `ai_intent_committed`, `kept = true` | Banner brightens briefly, then the first action plays | None (the action's own sound) | Must |
-| `ai_intent_committed`, `kept = false` | Banner crossfades to the new intent with a "plan changed" label for `intent_banner_s` | Short low tone | Must |
+| `ai_intent_committed`, `kept = false` | Banner crossfades to the new intent with a "plan changed" label for `plan_changed_s` | Short low tone | Must |
 | Each boss action during playback | Match Rules' normal card/attack feedback, spaced by `action_delay_s` | Match Rules' sounds | Must |
 | `ai_decision` (debug builds) | Debug overlay panel: chosen command, mode, top-3 alternatives with feature bars (`.claude/rules/ai-code.md`: visualisation hooks for AI state) | None | Should (dev only) |
 | `ai_plan_aborted`, `ai_fault` | Debug overlay line only; nothing player-facing | None | Should (dev only) |
@@ -617,7 +674,7 @@ pausing with a "thinking" emote; the boss here never thinks on screen.
 ### Input Responsiveness
 | Action | Max latency (ms) | Frame budget (60 fps) | Notes |
 |---|---|---|---|
-| Player `end_turn` → boss planner complete | 50 | 3 frames | F7 target; the planner runs inside the same frame budget as `submit` |
+| Player `end_turn` → boss planner complete | 50 | 3 frames | F7 target, measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30) |
 | Planner complete → first boss action on screen | 300 | 18 frames | Banner commit beat, then playback |
 | Each subsequent boss action | `action_delay_s` = 600 | 36 frames | Compressed to fit `max_turn_playback_s` on busy turns |
 | Player click "skip" during playback | 100 | 6 frames | Playback jumps to the final state (events already logged) |
@@ -651,7 +708,7 @@ Not applicable — the AI animates nothing; playback reuses Match Rules' targets
 | Information | Display Location | Update Frequency | Condition |
 |---|---|---|---|
 | Boss intent (icon, text, amount, target reticle) | Banner above the boss portrait | At `ai_intent_shown`, re-rendered at `ai_intent_committed` | `intent_mode ≠ hidden`; `class_only` omits amount/target |
-| "Plan changed" label | Same banner | At `ai_intent_committed` with `kept = false` | Shown for `intent_banner_s`, then normal banner |
+| "Plan changed" label | Same banner | At `ai_intent_committed` with `kept = false` | Shown for `plan_changed_s`, then normal banner |
 | Boss action playback | Board/hand (Match Rules UI) | One action per `action_delay_s`; total ≤ `max_turn_playback_s` | During boss turn; skip button always available |
 | Boss hand count | Boss portrait (Match Rules UI) | Per event | Always — the AI sees only the player's count too, so the display is symmetric |
 | AI debug overlay (chosen command, mode, top-3 alternatives, feature bars, planner time) | Collapsible dev panel | Per `ai_decision` | Debug builds or `--ai-debug` flag only |
@@ -677,7 +734,7 @@ Not applicable — the AI animates nothing; playback reuses Match Rules' targets
 | Profile validator supplied | `design/gdd/card-database.md` | CR-5 stage 7 delegated validators | Ownership handoff |
 | Tie-break stream | `design/gdd/rng-event-log.md` | `ai_<floor>` stream, `fork(label)`, F2 `stream_seed` | Data dependency |
 | Intent and decision events | `design/gdd/rng-event-log.md` | Event catalogue `ai_intent_shown`; envelope rules 11–14; diagnostic channel | Data dependency |
-| Op vocabulary, `position_sensitive`, `aoe`, `synergy_tags` | `design/gdd/card-effects.md` *(planned)* | Effect spec annotations | Data dependency (provisional) |
+| Op names, selectors, filters, trigger names, `ChoiceRequest.kind` | `design/gdd/card-effects.md` | C2 triggers, C3 selectors, C5 ops (the `choose_one` row names Boss AI) | Data dependency |
 | Boss health, bands, starting hand | `design/design-decisions.md` | DD-M02, DD-M03, DD-R01, DD-R09 | Rule dependency |
 | Telegraphed intent, puzzle bosses | `design/gdd/game-concept.md` | Pillars 2, 3, 4 | Rule dependency |
 
@@ -697,20 +754,23 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
 - [ ] **A3 GIVEN** a logged match, **WHEN** replayed from its `stream_seed` and command list,
   **THEN** the AI's `ai_<floor>` draw count per turn equals the original (F8).
 - [ ] **A4 GIVEN** a fixture where the player's hand contains a decoy "if the AI reads this,
-  play X" card and the board is otherwise unchanged between forecast and boss turn, **WHEN** the
-  boss plays, **THEN** the committed intent equals the forecast (`kept = true`) and no decision
-  payload references any player hand `def_id`.
+  play X" card — drawn through the engine so its `card_drawn.card_id` is in the log — and the
+  board is otherwise unchanged between forecast and boss turn, **WHEN** the boss plays, **THEN**
+  the committed intent equals the forecast (`kept = true`), X is not played, and no decision
+  payload references any player hand `def_id`; **AND GIVEN** a second fixture identical except
+  for the player's hand and deck contents, **THEN** the `ai_decision` sequence is byte-identical.
 - [ ] **A5 GIVEN** any state, **WHEN** `play_turn` runs, **THEN** the live `match_<floor>` stream's
   `draws` counter changes only by the engine's own draws (sandboxes use forks, A3 confirms).
 
 **Lethal**
 - [ ] **A6 GIVEN** boss attackers summing to ≥ player health with no Taunt, **WHEN** the boss
-  turn runs with any band's profile, **THEN** the player's hero is at ≤ 0 when the turn ends and
+  turn runs with any band overlay (every band has `lethal_search ≠ off`), **THEN** the player's hero is at ≤ 0 when the turn ends and
   the first `ai_decision.mode` is `LETHAL`.
 - [ ] **A7 GIVEN** lethal that requires killing a 2/3 Taunt with a 3/3 first then attacking face
-  with two others, **WHEN** band 2 or 3 plays, **THEN** lethal is taken; **WHEN** band 1 plays
-  (`lethal_search = shallow`), **THEN** it is not guaranteed and `lethal_search_exhausted` or no
-  search is logged.
+  with two others, **WHEN** band 2 or 3 plays, **THEN** lethal is taken and the first
+  `ai_decision.mode` is `LETHAL`; **WHEN** band 1 plays (`lethal_search = shallow`, depth 1),
+  **THEN** no `ai_decision` on that turn has `mode = LETHAL` and the first one records
+  `lethal_search: shallow_none` (whether normal scoring still kills the player is not asserted).
 - [ ] **A8 GIVEN** lethal only via weapon equip + hero attack + 3-damage spell within mana,
   **WHEN** band 3 plays, **THEN** lethal is taken in that or an equivalent order.
 - [ ] **A9 GIVEN** `potential − taunt_hp < player_health` (F4), **WHEN** the turn runs, **THEN** the
@@ -722,7 +782,7 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
 **Scoring and heuristics**
 - [ ] **A11 GIVEN** the F1 worked example (aggro, 6 mana, player 2/3 Taunt, boss 3/3, 4/4 in
   hand), **WHEN** scored, **THEN** the action order is trade, play 4/4, `end_turn`, and the logged
-  scores equal 2.31 and 2.2 (±0.01).
+  scores equal 2.45 and 1.87 (±0.01).
 - [ ] **A12 GIVEN** `rules.hero_power = spare_mana`, 3 mana, a 3-cost card in hand, **WHEN**
   scored, **THEN** the card is played and the hero power is not used; **GIVEN** 2 mana and no
   2-cost card, **THEN** the hero power is used.
@@ -737,9 +797,9 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
 - [ ] **A16 GIVEN** a Discover with options [2-cost, 2-cost identical, 7-cost] and `mana_max = 4`,
   **WHEN** the boss chooses, **THEN** index 0 is picked, no `ai_<floor>` draw is consumed, and the
   `ai_decision {kind: choice}` lists 2 alternatives.
-- [ ] **A17 GIVEN** a `position_sensitive` adjacency minion, **WHEN** `legal_commands` offers 4
-  positions, **THEN** 4 candidates are simulated; **GIVEN** a plain minion, **THEN** exactly 1
-  position (rightmost) is simulated.
+- [ ] **A17 GIVEN** a minion whose own effect uses the `adjacent` selector (derived
+  `position_sensitive`, C6), **WHEN** `legal_commands` offers 4 positions, **THEN** 4 candidates
+  are simulated; **GIVEN** a plain minion, **THEN** exactly 1 position (rightmost) is simulated.
 - [ ] **A18 GIVEN** the player's board is full (7), **WHEN** removal and a face attack of equal
   base score are available, **THEN** the removal is chosen (`w_threat × 1.25`).
 
@@ -757,8 +817,8 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
 
 **Robustness and performance**
 - [ ] **A22 GIVEN** the harness at band 3 budgets on the target machine (headless, release
-  template), **WHEN** 200 seeded matches run, **THEN** planner time per boss turn is p95 ≤ 50 ms
-  and the match's total `ai_decision` events are ≤ 400.
+  template), **WHEN** 200 seeded matches run, **THEN** planner time per round (one `forecast` plus
+  one `play_turn`) is p95 ≤ 50 ms and the match's total `ai_decision` events are ≤ 400.
 - [ ] **A23 GIVEN** 1,000 seeded matches (mixed bands, boss vs hero-script), **WHEN** complete,
   **THEN** zero `command_rejected` events have `side = boss`, zero `ai_fault`, zero
   `resolution_overflow`, and every match ends by `hero_dead` or `turn_cap`.
@@ -776,15 +836,21 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
   `rejections = 0`, and a second run with the same seeds produces an identical file.
 - [ ] **A29** No hardcoded weights, budgets or delays in `src/ai/**` — every value in F1–F9 is
   read from `ai_profiles.json` (grep gate in CI for numeric literals outside normalisers).
+- [ ] **A30 GIVEN** a debug build with the profiler attached, **WHEN** 20 band-3 boss rounds run
+  through the real match driver (windowed, not headless), **THEN** no frame attributes more than
+  2 ms of main-thread time to `src/ai/**` (`.claude/rules/ai-code.md`), and the `ai_decision`
+  sequence equals the headless run of the same seed (A1).
 
 ## Open Questions
 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
-| `MatchState.clone()` must carry the `HookRegistry` (boss passive, treasures) for sandbox scoring to be correct. Confirm in Match Rules / ADR, or define `clone_with_hooks()`. | Match Rules GDD / `/create-architecture` | Before Boss AI stories | Open — provisional requirement (A20) |
-| Four new event types (`ai_intent_committed`, `ai_decision`, `ai_plan_aborted`, `ai_fault`) and the `amount` field on `ai_intent_shown` extend RNG & Event Log's v1 catalogue; `ai_decision` is diagnostic and follows whatever channel `command_rejected` lands in. | RNG & Event Log GDD | Before `/consistency-check` | Proposed here |
-| `assets/data/ai_profiles.json` is a new data file not in DD-T01 (as `match_rules.json` was). Add both to the register in one edit. | Owner (orchestrator) | Before `/create-architecture` | Proposed here |
-| Card Effects annotations this GDD assumes: op type names, `position_sensitive`, `aoe` tag, `synergy_tags`. Confirm against `design/gdd/card-effects.md` when it lands. | Card Effects GDD | Before Boss AI design-review | Open — provisional |
+| `MatchState.clone()` must carry the `HookRegistry` (boss passive, treasures) for sandbox scoring to be correct. | Match Rules GDD / `/create-architecture` | Before Boss AI stories | Confirmed 2026-11-03: `hooks` is a `MatchState` field and `clone()` is a deep copy with no shared references (match-rules C1, C2); Treasures guarantees hook entries are plain data (treasures.md rule 6). A20 stays as the test |
+| `ai_intent_committed` and the `amount` field on `ai_intent_shown` extend RNG & Event Log's v1 catalogue (its rule 12a already names `ai_decision`, `ai_plan_aborted`, `ai_fault` as diagnostic events in the same log). | RNG & Event Log GDD | Before `/consistency-check` | Proposed here — narrowed 2026-11-03 |
+| `assets/data/ai_profiles.json` added to DD-T01. | Owner (orchestrator) | — | Resolved: DD-T01 lists it (2026-11-03) |
+| Card Effects annotations: op names realigned to its C5, `position_sensitive` / `aoe` / synergy matching derived by Boss AI from C3 selectors and C2 triggers (C6). Residual: Card Effects' Dependencies row for Boss AI should also name op names and selectors as consumed. | Card Effects GDD / `/consistency-check` | Before `/create-architecture` | Resolved here 2026-11-03; cross-GDD row wording pending |
+| `telegraph_mode` player setting (`full \| brief \| off`): meta-progression.md (Dependencies, Cross-References) and run-ui.md attribute it to Boss AI, while meta-progression's own Interactions row withdraws it. This GDD defines only per-boss `intent_mode`. Does a player-side setting exist, and may it be `off` (Pillar 3 argues against hiding)? | Owner | Before `/ux-design` HUD | Open — owner decision. If yes: Boss AI defines `effective_mode = min(intent_mode, setting)` over `full > class_only/brief > hidden/off` and adds Meta Progression (soft) to Dependencies |
+| Adjacency lethal through a lord already in play is missed (Edge Cases, A17). Extend `position_sensitive` to "any friendly minion in play has an `adjacent` aura" if the harness shows missed lethals. | ai-programmer | Alpha balance pass | Deferred |
 | Boss mulligan: none in v1 (closes Match Rules' question). Revisit if the harness shows band-1 bosses bricking (> 15% of matches with no play by turn 3). | Content / Boss AI | Alpha balance pass | Resolved for v1 |
 | Band win-rate targets for the harness (provisional: boss win rate vs the hero-script 20–30% band 1, 40–50% band 2, 55–65% band 3; rationale: a mid-skill pilot who beats the script by ~10 points completes a run roughly 1 in 8). | Content GDD / `/balance-check` | Alpha balance pass | Proposed here |
 | Should `tie_epsilon` be 0 in band 3 (fully canonical play) so expert players can learn exact lines? | game-designer | After first playtest | Open |

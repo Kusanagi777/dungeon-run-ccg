@@ -9,6 +9,7 @@
 > **Implements Pillar**: Pillar 4 (Readable, deterministic rules) primarily; Pillar 2 (Bosses are puzzles) and Pillar 3 (Lose fast, learn fast) secondarily
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Feasibility: no engine reference for `scripting` under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (this system is pure GDScript `RefCounted` logic with no engine surface, DD-T02). No ADRs exist yet; DD-T02/DD-T03 cite ADR-0001/ADR-0003 as planned.
 > **Design decisions honoured**: DD-M01–DD-M13, DD-T02–DD-T04 (`design/design-decisions.md`). Numbers refined only in Tuning Knobs; owner rows unchanged.
+> **REVISED 2026-11-03** (lean design-review, verdict NEEDS REVISION → revised, now In Review): (1) `MatchConfig` aligned to Run Structure R3 — the engine receives the memoised `rng_match` / `rng_ai` streams and `boss.health`, and never seeds (C3, Dependencies, AC-01, AC-42); (2) `resolution_overflow` and the log's `event_cap` are now **fault** results (`result: fault`, no winner) per Run Structure T9 and RNG & Event Log, not boss wins (C10, C14, States, Edge Cases, AC-30); (3) five primitives requested by Card Effects / Heroes added (`remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`) with their events (Interactions, C15); (4) hook clamps requested by Treasures R-4/R-5 added (`modify_heal`, `modify_starting_hand_size`, `modify_max_attacks`, new `MAX_ATTACKS_CAP`); (5) hero health unified on `damage_taken` (C1, C9, F2); hero Windfury via weapon **or** enchantment made explicit (C1, F3); `clone()` carries hooks (C2); (6) F8 `k = 0.8` case corrected to n = 9; F2 output range corrected; (7) AC-18, AC-19, AC-30, AC-39, AC-40 rewritten — they were unsatisfiable or non-deterministic as written; (8) event envelope now `{seq, turn, type, payload, cause_seq}` (C15); (9) Open Questions updated (boss mulligan closed by Boss AI; `match_rules.json` now in DD-T01; event-name reconciliation added).
 
 ## Summary
 
@@ -86,10 +87,12 @@ hardcoded.
 The engine is a `RulesEngine` that owns one `MatchState`. State is plain data; nothing in it
 references a Node (DD-T02). Every field below is observable by tests.
 
-- **MatchState**: `turn` (global counter, first turn = 1), `active_side`, `phase` (see States),
-  `players[PLAYER|BOSS]`, `pending_choice` (null or a `ChoiceRequest`), `result` (null until
-  Ended), `next_entity_id`, `hooks` (the HookRegistry installed by Treasures and the boss passive),
-  a reference to the event log and to the `match` RNG stream (DD-T03).
+- **MatchState**: `turn` (global counter, 0 during Setup and Mulligan, first turn = 1),
+  `active_side`, `phase` (see States), `players[PLAYER|BOSS]`, `pending_choice` (null or a
+  `ChoiceRequest`), `result` (null until Ended), `next_entity_id`, `hooks` (the HookRegistry
+  installed by Treasures and the boss passive), `floor`, and references to the match log and to
+  the `rng_match` stream handed over in `MatchConfig` (DD-T03; the engine never creates or seeds a
+  stream — RNG & Event Log rule 3).
 - **PlayerState**: `hero`, `mana_current`, `mana_max`, `deck` (ordered list, index 0 is the top),
   `hand` (≤ `HAND_SIZE`), `board` (≤ `BOARD_SIZE`, index 0 is leftmost), `weapon` (null or
   Weapon), `hero_power {def_id, used_this_turn}`, `fatigue_counter` (starts 0), `graveyard`,
@@ -100,9 +103,15 @@ references a Node (DD-T02). Every field below is observable by tests.
   `enchantments[]`, `damage_taken`, `keywords` (base set from the definition plus keywords granted
   by enchantments), `attacks_used` (this turn), `frozen`, `frozen_on_turn`, `silenced`. Minions
   add `def_id`, `summoning_sick`, `summoned_on_turn`. Heroes add `armor` and `base_attack = 0`.
+  **Heroes use the same representation as minions**: a hero's `base_health` is its starting
+  health and its current health is always the derived value below — there is no separate hero
+  `health` field to drift out of sync (C9 and F2 phrase hero damage in these terms).
 - **Derived values** (never stored): `max_health = base_health + Σ enchantment.health_delta`,
   `health = max_health − damage_taken`, `attack = max(0, base_attack + Σ attack_delta +
-  weapon.attack if hero)`, `max_attacks = 2 if Windfury else 1`, `attacks_remaining = max_attacks −
+  weapon.attack if hero)`, `has_windfury = Windfury ∈ keywords ∨ (hero ∧ weapon ≠ null ∧ Windfury
+  ∈ weapon.keywords)` (so a hero gains Windfury from its weapon **or** from an enchantment such as
+  "your hero has Windfury this turn"), `max_attacks = clamp(hooks.modify_max_attacks(character,
+  2 if has_windfury else 1), 0, MAX_ATTACKS_CAP)`, `attacks_remaining = max_attacks −
   attacks_used`.
 - **Enchantment**: `{source_entity_id | null, attack_delta, health_delta, keywords_added[],
   is_aura, expires (null | end_of_turn)}`. Auras are enchantments tagged `is_aura` and are
@@ -142,19 +151,30 @@ each command's row so the first failing reason is deterministic (tests assert th
 each valid position × each legal target, each attacker × each legal defender, hero power × each
 legal target, plus `end_turn`. Boss AI consumes this list; the UI may use it to pre-compute
 highlights. `MatchState.clone()` returns a deep copy with no shared references so Boss AI can
-look ahead without touching the live match.
+look ahead without touching the live match: the copy carries the installed `HookRegistry`
+entries (plain data, so treasures and the boss passive fire identically in the sandbox — Boss AI's
+provisional requirement A20), any `pending_choice` continuation, a **detached scratch log** that
+is discarded with the clone, and a copy of the `rng_match` stream state. Nothing a clone does
+appends to the live log or advances the live stream.
 
 #### C3. Match setup
 
-1. Run Structure supplies a `MatchConfig`: `{seed, floor, player: {hero_def_id, deck: def_id[],
-   hook_installers (treasures)}, boss: {boss_def_id, deck: def_id[], hook_installers (passive),
-   ai_id}}`. The engine seeds the `match` RNG stream from `seed` (DD-T03).
-2. Heroes are created. Player health = `STARTING_HEALTH_PLAYER` (30); boss health comes from the
-   boss definition, defaulting to DD-M02's band values (30 / 40 / 50). Armour 0, mana 0/0,
-   `fatigue_counter` 0.
-3. Each deck list is instantiated to `CardInstance`s in list order, then shuffled with the `match`
-   stream — player deck first, then boss deck (order matters for determinism). `deck_shuffled`
-   is emitted per side with the resulting instance order.
+1. Run Structure supplies a `MatchConfig` (shape owned by Run Structure R3; the fields this
+   engine reads are): `{floor, band, rng_match, rng_ai, log, player: {hero_def_id, deck: def_id[],
+   hook_installers (treasures, pick order)}, boss: {boss_def_id, deck: def_id[], health,
+   hook_installers (passive), ai_id}}`. `rng_match` and `rng_ai` are the memoised
+   `stream("match_<floor>")` / `stream("ai_<floor>")` objects from RNG & Event Log; **the engine
+   never seeds, reseeds or forks a stream of its own** (DD-T03; RNG & Event Log rule 3). `rng_ai`
+   is passed through to Boss AI untouched. There is no `seed` field — a match's randomness is
+   fully determined by the run seed and the floor.
+2. Heroes are created. Player health = the hero record's `health`, defaulting to
+   `STARTING_HEALTH_PLAYER` (30); boss health = `MatchConfig.boss.health`, which Run Structure
+   computes (its F3 `boss_health(floor)`: the boss definition's health, DD-M02 band defaults
+   30 / 40 / 50, plus an optional within-band bonus that is 0 in v1). The engine does **not**
+   read boss health from the boss definition itself. Armour 0, mana 0/0, `fatigue_counter` 0.
+3. Each deck list is instantiated to `CardInstance`s in list order, then shuffled with
+   `rng_match` — player deck first, then boss deck (order matters for determinism).
+   `deck_shuffled` is emitted per side with the resulting instance order.
 4. `on_match_start` hooks run (Treasures, boss passive) **before** any card is drawn, so a hook
    may alter starting health, armour, mana or hand size (hook list in Interactions).
 5. Starting hands: the player draws `STARTING_HAND_PLAYER` (3), then the boss draws
@@ -321,9 +341,12 @@ its first target died, the second attack simply needs a new legal target (see Ed
   Heroes are immune to Poisonous.
 - **Lifesteal**: after damage is dealt, the source's controller's hero is healed by the amount
   dealt (armour absorbed counts as dealt). Lifesteal on a weapon applies to hero attacks with it.
-- **Healing** (`apply_heal`): minions: `damage_taken = max(0, damage_taken − amount)`; heroes:
-  `health = min(max_health, health + amount)`. The amount actually restored is in the `healed`
-  event (a full-health target heals 0 and still emits). `modify_heal` hooks run first.
+- **Healing** (`apply_heal`): for heroes and minions alike, `restored = min(amount,
+  damage_taken)` and `damage_taken −= restored` (a hero's health therefore never exceeds its
+  `max_health`, C1). `modify_heal` hooks run first and the engine floors their result at 0 — a
+  hook can reduce a heal to nothing but never turn it into damage. The amount actually restored is
+  in the `healed` event (a full-health target heals 0 and still emits, which `on_heal` observers
+  see).
 - **Gain armour** (`apply_armor`): `armor += amount`, uncapped, emit `armor_gained`.
 - **Set/raise health** and stat buffs go through `apply_enchantment`; the engine never writes
   `base_*` after creation except via Silence (C13) or a `transform` operation that recreates the
@@ -368,8 +391,11 @@ run_action(initial_step):
 - **Summons during the loop** (Deathrattle "summon a 2/2") go through `summon_minion(side,
   def_id, position)`, which inserts at the dead minion's former index when it still fits, else at
   the rightmost slot; a full board makes the summon a no-op with a `summon_failed` event.
-- **Loop safety**: the loop aborts the match with reason `resolution_overflow` after
-  `RESOLUTION_STEP_CAP` steps (default 1000) — a content bug, surfaced loudly rather than hung.
+- **Loop safety**: the loop aborts the match after `RESOLUTION_STEP_CAP` steps (default 1000)
+  with `result: fault, reason: resolution_overflow` (C14) — a content bug, surfaced loudly rather
+  than hung. A fault is **not** a loss: Run Structure (T9) returns the run to `pre_match` on the
+  same floor. The log's own cap (`max_match_events`, RNG & Event Log) ends the match the same way
+  with reason `event_cap`.
 
 #### C11. Hand, draw, burn and fatigue
 
@@ -450,25 +476,42 @@ health lost to damage.
 - `TURN_CAP` (default 100 global turns): when the Start step would begin turn `TURN_CAP + 1`, the
   match ends with winner BOSS, reason `turn_cap`. This is a termination guarantee for AI-vs-AI
   simulation; fatigue makes it unreachable in normal play.
-- On end: `phase = Ended`, `result = {winner, reason, turns (global), turns_per_side, player
-  stats, boss stats, final hero health both sides, seed}` is emitted as `match_ended` and returned
-  to Run Structure. Every later command is rejected `MATCH_ENDED`.
+- **Faults** are a third outcome, distinct from win and loss: `resolution_overflow` (C10) and
+  `event_cap` (the match log hit `max_match_events` and forced the end — RNG & Event Log
+  `Faulted`). A fault has `winner = null`; Run Structure treats it as "floor not lost, return to
+  `pre_match`" (its T9) so a rules bug can never end a run (its R3). The Match UI shows a
+  "rules error" screen. A fault is never produced by legal play; it is a content or engine bug.
+- On end: `phase = Ended` and the `MatchResult` is emitted as `match_ended` and returned to Run
+  Structure: `{result: win | loss | fault (from the player's side), winner: PLAYER | BOSS | null,
+  reason: hero_dead | both_dead | concede | turn_cap | resolution_overflow | event_cap, floor,
+  turns (global), turns_per_side, player stats, boss stats, final hero health both sides}`. The
+  record carries no seed: the run seed and `floor` identify the match (DD-R09). Run Structure owns
+  any further fields. Every later command is rejected `MATCH_ENDED`.
 
 #### C15. Event vocabulary
 
-Every mutation emits exactly one event `{seq, type, payload}` (DD-T04); the UI renders from
-events only. The v1 event types, grouped: **lifecycle** `match_started`, `deck_shuffled`,
+Every mutation emits exactly one event (DD-T04); the UI renders from events only. The envelope is
+RNG & Event Log's: `{seq, turn, type, payload, cause_seq}` — `seq` and `turn` are stamped by the
+log, and the engine passes `cause_seq` = the `seq` of the event whose resolution produced this one
+(0 for the direct consequence of a command), so a Deathrattle's summon is attributable to the
+death that queued it. **Naming**: the names below are this GDD's; RNG & Event Log's catalogue
+spells four of them differently (`mulligan_completed`, `mana_changed`, `weapon_broken`,
+`healing_applied`) and Card Effects emits `discover_offered` where this GDD says
+`choice_requested`. One spelling must win before `/create-architecture` (Open Questions); the
+Match UI accepts both until then. The v1 event types, grouped: **lifecycle** `match_started`, `deck_shuffled`,
 `mulligan_offered`, `mulligan_resolved`, `turn_started`, `turn_reset`, `turn_ending`,
 `turn_ended`, `phase_changed`, `match_ended`; **resources** `crystal_gained`, `mana_refilled`,
 `mana_spent`, `mana_added`; **cards** `card_drawn`, `card_burned`, `fatigue_damage`,
 `card_played`, `spell_cast`, `card_to_graveyard`, `minion_summoned`, `summon_failed`,
-`weapon_equipped`, `weapon_destroyed`, `weapon_durability_changed`, `hero_power_used`;
-**combat** `attack_declared`, `attack_cancelled`, `attack_resolved`, `damage_dealt`,
-`divine_shield_popped`, `armor_lost`, `healed`, `armor_gained`; **status** `enchantment_applied`,
-`enchantment_removed`, `auras_recomputed`, `frozen`, `thawed`, `silenced`, `stealth_lost`,
+`weapon_equipped`, `weapon_destroyed`, `weapon_durability_changed`, `hero_power_used`,
+`hero_power_refreshed`, `card_added_to_deck`, `card_discarded`; **combat** `attack_declared`,
+`attack_cancelled`, `attack_resolved`, `damage_dealt`, `divine_shield_popped`, `armor_lost`,
+`healed`, `armor_gained`; **status** `enchantment_applied`, `enchantment_removed`,
+`keyword_removed`, `auras_recomputed`, `frozen`, `thawed`, `silenced`, `stealth_lost`,
 `minion_died`, `trigger_queued`, `trigger_resolved`, `choice_requested`, `choice_made`;
 **diagnostics** `command_rejected` (logged, not a mutation — flagged `diagnostic: true`),
-`resolution_overflow`. Payloads always carry the acting `entity_id`s and the resulting numbers
+`resolution_overflow` (the log appends its own `log_overflow` for the `event_cap` fault).
+Payloads always carry the acting `entity_id`s and the resulting numbers
 (e.g. `damage_dealt {source, target, requested, prevented, armor_absorbed, dealt, health_after}`)
 so the log alone explains the outcome.
 
@@ -492,7 +535,7 @@ handler calling `submit` from inside an event callback) is rejected rather than 
 | `BossTurn.End` | `end_turn` accepted | End step finished | No commands |
 | `Resolving` | Any accepted command or engine step begins | The C10 loop reaches stable | Any nested `submit` → `ENGINE_BUSY`; returns to the phase it came from |
 | `Choice` | Card Effects raises a `ChoiceRequest` (Discover) during resolution | `choose` with a valid index | Accepts `choose` from the side named in `pending_choice` and `concede`; everything else → `CHOICE_PENDING` |
-| `Ended` | `win_loss_check` finds a dead hero, `concede`, `turn_cap`, or `resolution_overflow` | Never (terminal) | Every command → `MATCH_ENDED`; `result` is populated |
+| `Ended` | `win_loss_check` finds a dead hero, `concede`, `turn_cap`, or a fault (`resolution_overflow`, `event_cap`) | Never (terminal) | Every command → `MATCH_ENDED`; `result` is populated |
 
 **Transition table** (explicit, per `.claude/rules/gameplay-code.md`):
 
@@ -517,7 +560,8 @@ handler calling `submit` from inside an event callback) is rejected rather than 
 | `BossTurn.Main` | `concede` (player) | — | `Ended` | `match_ended(reason=concede)` |
 | `BossTurn.End` | End step done | no hero ≤ 0 | `PlayerTurn.Start` | `turn_ended`, `active_side = PLAYER` |
 | `*Turn.Start` / `*Turn.End` | step done | a hero ≤ 0 | `Ended` | `match_ended` |
-| `Resolving` | step count > `RESOLUTION_STEP_CAP` | — | `Ended` | `resolution_overflow`, `match_ended(reason=resolution_overflow, winner=BOSS)` |
+| `Resolving` | step count > `RESOLUTION_STEP_CAP` | — | `Ended` | `resolution_overflow`, `match_ended(result=fault, reason=resolution_overflow, winner=null)` |
+| any non-`Ended` | the log reports `log_overflow` on an append | — | `Ended` | `match_ended(result=fault, reason=event_cap, winner=null)` — the one event the Faulted log still accepts |
 
 Any (state, command) pair not in the tables above is rejected with `WRONG_PHASE`, or
 `NOT_YOUR_TURN` when the phase is right but the issuer is not the active side.
@@ -553,8 +597,15 @@ enchantment)`, `remove_enchantment(target, id)`, `summon_minion(side, def_id, po
 `destroy(target)`, `silence(target)`, `freeze(target)`, `add_keyword(target, kw)`,
 `return_to_hand(target)`, `transform(target, def_id)`, `add_mana(side, n, temporary)`,
 `equip_weapon(side, def_id)`, `discover(side, options) → ChoiceRequest`, `add_card_to_hand(side,
-def_id)`, `set_stats(target, attack, health)`. Card Effects composes card text from these; it
-never writes a field directly.
+def_id)`, `set_stats(target, attack, health)`, and — added for Card Effects' v1 card texts and
+Heroes — `remove_keyword(target, kw)` (`keyword_removed`; removing Taunt/Stealth/Divine Shield
+takes effect at the next legality or damage evaluation), `add_card_to_deck(side, def_id,
+position: top | bottom | random)` (`card_added_to_deck`; `random` draws one `rng_match` index),
+`modify_durability(weapon, delta)` (`weapon_durability_changed`; a weapon at ≤ 0 breaks in the
+next death check), `refresh_hero_power(side)` (`hero_power_refreshed`; sets `used_this_turn =
+false`, no mana refund), `discard(side, hand_index | random)` (`card_discarded`; the card goes to
+the graveyard, no `on_draw`/burn semantics; `random` draws from `rng_match`). Card Effects
+composes card text from these; it never writes a field directly.
 
 **Trigger points the engine fires** (Card Effects decides who responds): `battlecry`, `on_play`,
 `on_summon`, `on_cast` / `after_cast`, `hero_power`, `turn_start(side)`, `turn_end(side)`,
@@ -572,15 +623,17 @@ order — treasures in pick order, then the boss passive — and may call primit
 | `on_turn_end` | `(state, side)` | C4 End step 3 | — |
 | `modify_cost` | `(card_instance, side, cost_so_far) → int` | Every F1 evaluation (display and payment) | New cost (engine floors at 0) |
 | `modify_damage` | `(source, target, amount) → int` | First stage of F2 | New amount (engine floors at 0) |
-| `modify_heal` | `(source, target, amount) → int` | Before `apply_heal` | New amount |
+| `modify_heal` | `(source, target, amount) → int` | Before `apply_heal` | New amount (engine floors at 0 — Treasures R-4) |
 | `on_card_played` | `(card_instance, side)` | C6 after the card's own Battlecry/cast | — |
 | `on_minion_summoned` | `(minion)` | After any `summon_minion` or play | — |
 | `on_hero_damaged` | `(side, amount_dealt, source)` | After F2 when the target is a hero | — |
 | `on_draw` | `(side, card_instance)` | After a successful draw (not a burn) | — |
-| `modify_starting_hand_size` | `(side, n) → int` | C3 step 5 | New count |
-| `modify_max_attacks` | `(character, n) → int` | Each `max_attacks` evaluation | New count (e.g. a "your hero has Windfury" treasure) |
+| `modify_starting_hand_size` | `(side, n) → int` | C3 step 5 | New count (engine clamps to `[0, HAND_SIZE]` — Treasures R-5; a hand can never start over the limit, so no card is burned by setup) |
+| `modify_max_attacks` | `(character, n) → int` | Each `max_attacks` evaluation | New count (engine clamps to `[0, MAX_ATTACKS_CAP]`, default 4 — Treasures R-5; e.g. Twin Grip `set 2`) |
 
-A hook that needs a rule not in this table is a GDD change here, not a workaround in Treasures.
+Hook chains **fold**: entry *n*'s output is entry *n + 1*'s input, and the engine clamps once
+after the whole chain (Treasures `hook_fold`). A hook that needs a rule not in this table is a GDD
+change here, not a workaround in Treasures.
 
 ## Formulas
 
@@ -630,8 +683,9 @@ if source.lifesteal and dealt > 0: apply_heal(source.controller.hero, dealt)
 | armor | int | 0–∞ | state | Hero armour before the hit |
 | dealt | int | 0–99 | calculated | What counts for Lifesteal, stats and `on_damage` |
 
-**Output Range:** `dealt` ∈ [0, requested]; `health_after` may be negative (a 10-damage hit on 3
-health records −7; death resolves at ≤ 0). **Example:** boss hero with 2 armour takes 5 from a
+**Output Range:** `dealt` ∈ [0, amount] — `amount` may exceed `requested` when a `modify_damage`
+hook raises it, so `dealt` is bounded by the post-hook amount, not the request; `health_after` may
+be negative (a 10-damage hit on 3 health records −7; death resolves at ≤ 0). **Example:** boss hero with 2 armour takes 5 from a
 Lifesteal weapon: `armor_absorbed = 2`, `to_health = 3`, `dealt = 5`, player hero heals 5.
 
 ### F3. Attack legality predicate
@@ -651,7 +705,8 @@ can_attack(A, D) =
   ∧ (taunters(D.controller) = ∅ ∨ D ∈ taunters(D.controller))    [MUST_ATTACK_TAUNT]
 where taunters(side) = { m ∈ side.board : m.taunt ∧ ¬m.stealth }
       attacks_remaining(A) = max_attacks(A) − A.attacks_used
-      max_attacks(A) = hooks.modify_max_attacks(A, 2 if A.windfury else 1)
+      max_attacks(A) = clamp(hooks.modify_max_attacks(A, 2 if has_windfury(A) else 1), 0, MAX_ATTACKS_CAP)
+      has_windfury(A) = Windfury ∈ A.keywords ∨ (A is hero ∧ A.weapon ≠ null ∧ Windfury ∈ A.weapon.keywords)
 ```
 
 **Variables:**
@@ -659,7 +714,7 @@ where taunters(side) = { m ∈ side.board : m.taunt ∧ ¬m.stealth }
 |----------|------|-------|--------|-------------|
 | A.attack | int | 0–99 | calculated | Derived attack (C1); hero = weapon + buffs |
 | attacks_used | int | 0–2 | state | Attacks this turn, reset at Start |
-| max_attacks | int | 1–2 | calculated | 2 with Windfury (minion keyword or hero's weapon), else 1 |
+| max_attacks | int | 0–`MAX_ATTACKS_CAP` (4) | calculated | 2 with Windfury (minion keyword, hero enchantment or hero's weapon), else 1; hooks may change it within the clamp |
 | taunters | set | 0–7 entries | calculated | Enemy Taunt minions without Stealth |
 
 **Output Range:** boolean. **Example:** a 3/2 Rush minion played this turn vs. an enemy board with
@@ -741,8 +796,8 @@ health:
 | n | int | 1–∞ | calculated | Turns for that side |
 
 **Output Range:** the design target is **6–10 turns per side (3–6 minutes)**. With H = 30:
-k = 0.6 → n = 10 (cum. 33 at turn 10); k = 0.8 → n = 8 (cum. 28.8 at turn 8, 36 at 9 → 9);
-k = 1.0 → n = 8 (cum. 36 at turn 8). Band-3 bosses at H = 50 with k = 0.8 → n = 11, which is
+k = 0.6 → n = 10 (cum. 27 at turn 9, 33 at turn 10); k = 0.8 → n = 9 (cum. 28.8 at turn 8 falls
+short, 36 at turn 9); k = 1.0 → n = 8 (cum. 28 at turn 7, 36 at turn 8). Band-3 bosses at H = 50 with k = 0.8 → n = 11, which is
 why band 3 should also raise the player's k (stronger drafted deck) rather than only H. The knobs
 that move n: `STARTING_HEALTH_PLAYER`, boss band health, `MAX_MANA` (lower cap flattens the sum),
 starting hand size (card advantage raises k), and Content's damage density (k itself).
@@ -751,8 +806,8 @@ starting hand size (card advantage raises k), and Content's damage density (k it
 
 `BOARD_SIZE = 7`, `HAND_SIZE = 10`, `STARTING_HAND_PLAYER = 3`, `STARTING_HAND_BOSS = 4`,
 `MAX_MANA = 10`, `HERO_POWER_COST = 2`, `MULLIGAN_ROUNDS = 1`, `TURN_CAP = 100`,
-`RESOLUTION_STEP_CAP = 1000`. Insert positions are `0..board.size` inclusive; hand indices are
-`0..hand.size − 1`.
+`RESOLUTION_STEP_CAP = 1000`, `MAX_ATTACKS_CAP = 4`. Insert positions are `0..board.size`
+inclusive; hand indices are `0..hand.size − 1`.
 
 ## Edge Cases
 
@@ -775,9 +830,14 @@ names the exact outcome; "the engine decides" is not an answer here.
 - **If a command arrives while the engine is Resolving** (re-entrant call from an event
   handler): rejected `ENGINE_BUSY`, no state change, `command_rejected` logged as diagnostic.
 - **If a command arrives after Ended**: rejected `MATCH_ENDED`.
-- **If a resolution loop exceeds `RESOLUTION_STEP_CAP`**: match ends, winner BOSS, reason
-  `resolution_overflow`; the UI shows a "rules error" screen and the run continues as a loss. This
-  is a content bug surfaced, not a design outcome.
+- **If a resolution loop exceeds `RESOLUTION_STEP_CAP`**: match ends with `result: fault`,
+  `winner: null`, reason `resolution_overflow`; the UI shows a "rules error" screen and Run
+  Structure returns the run to `pre_match` on the same floor (its T9 — the floor is **not** lost,
+  and because the same memoised streams are reused the fault reproduces, which is the point).
+  This is a content bug surfaced, not a design outcome.
+- **If the match log reaches `max_match_events` mid-resolution**: the log appends `log_overflow`
+  and accepts exactly one more event; the engine stops the loop and emits `match_ended{result:
+  fault, reason: event_cap}` as that event. No further mutation is attempted.
 
 **Board and summoning**
 
@@ -885,9 +945,10 @@ names the exact outcome; "the engine decides" is not an answer here.
 ## Dependencies
 
 Hard = the engine cannot run a match without it; soft = the engine runs with a null
-implementation. Bidirectionality: the systems index already lists every downstream row below as
-depending on Match Rules; the sibling GDDs are expected to mirror these rows (checked by
-`/consistency-check` once they land).
+implementation. Bidirectionality: every sibling GDD below names Match Rules in its own
+Dependencies section (verified 2026-11-03). The systems index lists Card Effects, Boss AI, Run
+Structure and Match UI as depending on Match Rules but **not** Heroes, Treasures or Content —
+their index rows should be corrected to match their GDDs.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
@@ -895,7 +956,7 @@ depending on Match Rules; the sibling GDDs are expected to mirror these rows (ch
 | RNG & Event Log | This depends on RNG & Event Log | Hard | `match` stream for every shuffle and random pick (DD-T03); `log.append` for every event in C15 (DD-T04); `seq` numbering is the log's. Tests inject a fixed seed through it. |
 | Card Effects | Card Effects depends on this | Hard (for them) | They implement the resolver behind the trigger points and call only the primitive API (Interactions). They never touch `MatchState` fields directly. Provisional: the resolver returns steps synchronously, or raises exactly one `ChoiceRequest` per Discover. |
 | Boss AI | Boss AI depends on this | Hard (for them) | Consumes `legal_commands()`, `MatchState.clone()`, `submit()`, `ChoiceRequest`; receives typed rejections. Provisional: AI never relies on state outside `MatchState`. |
-| Run Structure | Mutual | Hard | In: `MatchConfig` (C3). Out: `MatchResult` (C14). Run Structure owns save/resume **between** matches; an in-progress match is not saved in v1 (Open Questions). |
+| Run Structure | Mutual | Hard | In: `MatchConfig` (C3) with the memoised `rng_match` / `rng_ai` streams, the log and `boss.health` — Run Structure owns the record shape (its R3). Out: `MatchResult` (C14) with `result: win \| loss \| fault`; a fault returns the run to `pre_match` (its T9). Run Structure owns save/resume **between** matches; an in-progress match is not saved in v1 (Open Questions). |
 | Heroes | This depends on Heroes (data) | Hard | Player hero record: starting health (defaults to `STARTING_HEALTH_PLAYER`), hero power `def_id`, starter deck list. Heroes depends on this for the hero-power rule (2 mana, once per turn). |
 | Treasures | Treasures depends on this | Soft | Installs hooks via `hook_installers`; with none installed every hook is identity. The hook table in Interactions is the contract; boss passives use the same table. |
 | Match UI | Match UI depends on this | Soft (engine runs headless) | Sends player commands, renders the event stream, uses `command_rejected` codes for feedback and `legal_commands()` for highlights. Display-only. |
@@ -921,6 +982,7 @@ the defaults those rows set, with the safe ranges this GDD adds.
 | `HERO_POWER_COST` (DD-M13) | 2 | 1–3 | Hero power becomes a late-turn filler only; hero identity weaker | At 1 it is used every turn — Heroes must weaken power effects | Heroes GDD, F1 |
 | `MULLIGAN_ROUNDS` (DD-M05) | 1 | 0–1 | n/a (Hearthstone rules) | 0 disables the mulligan phase entirely (Mulligan → PlayerTurn.Start) | Match UI mulligan screen |
 | `MAX_ATTACKS_WINDFURY` | 2 | 2 | Only 2 is designed; a higher value is Mega-Windfury and out of v1 | — | F3 |
+| `MAX_ATTACKS_CAP` | 4 | 2–4 | Lets stacked `modify_max_attacks` hooks (Twin Grip on a Windfury weapon) grant more swings; above 4 the hero becomes a machine gun | At 2 a hook can never exceed Windfury — Twin Grip plus Windfury collapses to 2 | F3, Treasures `hook_fold` |
 | `TURN_CAP` | 100 | 40–200 | Safety net only; never reached in play | Below ~40 real stall matches could hit it unfairly | AI simulation harness |
 | `RESOLUTION_STEP_CAP` | 1000 | 200–5000 | Allows longer legitimate chains | Risk of aborting legitimate Deathrattle chains in wide boards | Card Effects |
 
@@ -947,7 +1009,7 @@ Anchor "Torchlit Ledger" applies: saturated colour only for state changes.
 | `auras_recomputed`, `enchantment_applied/removed` | Green (buff) or red (debuff) stat digits, settled before the next event plays | None | Should |
 | `summon_failed` | Brief "board full" ghost at the slot | Dull thump | Should |
 | `command_rejected` | Inline reason near the cursor, keyed by code (e.g. `MUST_ATTACK_TAUNT` → highlight the Taunts) | Soft deny | Must |
-| `match_ended` | Winner/loser banner; `both_dead` and `concede` carry their own copy | Win / lose stinger | Must |
+| `match_ended` | Winner/loser banner; `both_dead` and `concede` carry their own copy; `result: fault` shows the "rules error" screen with the reason, never a loss banner | Win / lose stinger; neutral error cue for a fault | Must |
 | `choice_requested` | Discover panel with the 3 options; everything else dimmed | Reveal cue | Must |
 
 📌 **Asset Spec** — Visual/Audio requirements are defined. After the art bible is approved, run
@@ -1066,8 +1128,10 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 
 **Setup and mulligan**
 
-- [ ] AC-01 **GIVEN** a `MatchConfig` with seed 42, **WHEN** `start` runs twice, **THEN** both
-  decks' instance orders and both starting hands are identical across the two runs.
+- [ ] AC-01 **GIVEN** two `MatchConfig`s whose `rng_match` is a fresh `stream("match_1")` from an
+  RNG service created with `run_seed = 42`, **WHEN** `start` runs on each, **THEN** both decks'
+  instance orders and both starting hands are identical across the two runs, and the engine made
+  no RNG call outside `rng_match` (the service's other streams report `draws = 0`).
 - [ ] AC-02 **GIVEN** setup complete, **WHEN** `mulligan_offered` is emitted, **THEN** the player
   hand has 3 cards, the boss hand has 4, both heroes have `mana 0/0`, player health 30, boss
   health equal to its definition.
@@ -1120,13 +1184,14 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 - [ ] AC-17 **GIVEN** an enemy Taunt minion and an enemy non-Taunt minion, **WHEN** attacking the
   non-Taunt, **THEN** `MUST_ATTACK_TAUNT`; **GIVEN** the Taunt minion also has Stealth, **THEN**
   attacking the non-Taunt is accepted and attacking the Stealth Taunt returns `TARGET_STEALTHED`.
-- [ ] AC-18 **GIVEN** a Windfury 1/1 and two enemy 1/1s, **WHEN** it attacks the first (which
-  dies) and then the second, **THEN** both attacks are accepted and a third returns
-  `CANNOT_ATTACK`.
+- [ ] AC-18 **GIVEN** a Windfury 2/5 and two enemy 1/1s, **WHEN** it attacks the first (which
+  dies; the attacker is at `damage_taken 1`) and then the second, **THEN** both attacks are
+  accepted, the attacker ends at `damage_taken 2`, and a third `attack` returns `CANNOT_ATTACK`.
 - [ ] AC-19 **GIVEN** a hero with a 2/2 weapon, **WHEN** the hero attacks an enemy 1/3 minion,
-  **THEN** the minion has `damage_taken 2`, the hero took 1, weapon durability is 1; after a second
-  attack the weapon is destroyed in the death check (`weapon_destroyed` after `attack`'s
-  `damage_dealt` events).
+  **THEN** the minion has `damage_taken 2`, the hero took 1, weapon durability is 1, and a second
+  `attack` the same turn returns `CANNOT_ATTACK`; **WHEN** the hero attacks again on its next own
+  turn, **THEN** the minion dies and the weapon is destroyed in the same death check
+  (`weapon_destroyed` after that attack's two `damage_dealt` events).
 - [ ] AC-20 **GIVEN** the hero is Frozen and holds a weapon, **WHEN** `attack` is sent, **THEN**
   `ATTACKER_FROZEN` and durability is unchanged.
 - [ ] AC-21 **GIVEN** an attacker whose `on_attack` trigger destroys the defender, **WHEN** the
@@ -1161,9 +1226,12 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 - [ ] AC-29 **GIVEN** 7 friendly minions where `board[3]` has "Deathrattle: summon a 2/2", **WHEN**
   it dies, **THEN** the token appears at index 3; **GIVEN** 6 others plus a second simultaneous
   summon, **THEN** the second summon emits `summon_failed {reason: board_full}`.
-- [ ] AC-30 **GIVEN** a test Deathrattle that summons a copy of itself, **WHEN** it dies with
-  `RESOLUTION_STEP_CAP = 50`, **THEN** the match ends with `reason == resolution_overflow`
-  within 50 steps.
+- [ ] AC-30 **GIVEN** two friendly test minions each with the fixture trigger "whenever a
+  friendly minion is healed, heal the other friendly minion for 1" (a full-health heal restores 0
+  and still emits `healed`, C9, so the pair ping-pongs forever), **WHEN** either is healed with
+  `RESOLUTION_STEP_CAP = 50`, **THEN** the match ends with `result == fault`, `winner == null`,
+  `reason == resolution_overflow` after exactly 50 steps, and `match_ended` is the last event.
+  (A self-copying Deathrattle is **not** a valid fixture here: it stops when the board fills.)
 
 **Hand, draw, fatigue**
 
@@ -1193,22 +1261,36 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
 
 **Interfaces and non-functional**
 
-- [ ] AC-39 **GIVEN** any state, **WHEN** every command in `legal_commands()` is submitted on a
-  `clone()`, **THEN** each is accepted, and no command outside the list is accepted (sampled).
-- [ ] AC-40 **GIVEN** a match with a 7-minion Deathrattle chain, **WHEN** `submit` is timed on the
-  CI runner, **THEN** it completes in under 5 ms; `legal_commands()` under 2 ms.
+- [ ] AC-39 **GIVEN** each of the 10 fixture states in `tests/fixtures/match_states/`, **WHEN**
+  every command in `legal_commands()` is submitted on a fresh `clone()`, **THEN** each is
+  accepted; **AND WHEN** 200 commands are generated from the fixture's stream by combining a random
+  command type with random `entity_id`s, indices and positions, **THEN** every one that is absent
+  from `legal_commands()` is rejected (the sample is seeded, so the test is deterministic).
+- [ ] AC-40 (*performance test*, `tests/performance/match_rules/`, not part of the blocking unit
+  suite — timing is not deterministic) **GIVEN** a match with a 7-minion Deathrattle chain, **WHEN**
+  `submit` is timed over 100 iterations, **THEN** the median is under 5 ms and `legal_commands()`
+  under 2 ms on the reference machine named in the Game Feel budget; a regression above 2× the
+  budget fails the performance job.
 - [ ] AC-41 **GIVEN** the engine source, **WHEN** grepped for the F9 constants, **THEN** every
   value comes from `match_rules.json` and none is a literal in `src/` (no hardcoded values).
 - [ ] AC-42 **GIVEN** a `MatchResult`, **WHEN** inspected after `match_ended`, **THEN** it carries
-  `winner, reason, turns, turns_per_side, stats.damage_dealt_by_card` for both sides and the
-  seed.
+  `result, winner, reason, floor, turns, turns_per_side, stats.damage_dealt_by_card` for both
+  sides; **GIVEN** a `resolution_overflow`, **THEN** `result == fault` and `winner == null`.
+- [ ] AC-43 **GIVEN** `MatchConfig.boss.health = 42` (Run Structure's F3 with a floor bonus),
+  **WHEN** `start` runs, **THEN** the boss hero's `max_health` is 42 regardless of the boss
+  definition's own `health` field.
+- [ ] AC-44 **GIVEN** a `modify_heal` hook returning −3 and a `modify_starting_hand_size` hook
+  returning 14, **WHEN** a 2-point heal and a match start resolve, **THEN** `healed {amount: 0}`
+  is emitted (never damage) and the starting hand is exactly `HAND_SIZE` with no `card_burned`.
 
 ## Open Questions
 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
-| Should the boss mulligan (Boss AI deciding via a heuristic) or keep its 4? v1 keeps; revisit if band-1 bosses brick too often. | Boss AI GDD | Before Boss AI design-review | Open |
-| `assets/data/match_rules.json` is a new data file not listed in DD-T01 — confirm and add it to the register. | Owner (orchestrator) | Before `/create-architecture` | Open — proposed here |
+| Should the boss mulligan (Boss AI deciding via a heuristic) or keep its 4? | Boss AI GDD | — | **Resolved** — Boss AI C11: no boss mulligan in v1; revisit if the harness shows > 15 % of band-1 matches with no play by turn 3 |
+| `assets/data/match_rules.json` is a new data file not listed in DD-T01. | Owner (orchestrator) | — | **Resolved** — DD-T01 lists `match_rules.json` (2026-11-03) |
+| Event-name reconciliation: this GDD's `mulligan_resolved` / `mana_refilled` / `weapon_destroyed` / `healed` / `choice_requested` vs RNG & Event Log's `mulligan_completed` / `mana_changed` / `weapon_broken` / `healing_applied` and Card Effects' `discover_offered`. One spelling must win; the loser's GDD changes. | Owner via `/consistency-check` | Before `/create-architecture` | Open |
+| DD-M11 says "deaths resolved after the action completes"; C10 checks deaths after **every step** inside the action (needed so a Battlecry kill is gone before `on_play` observers see the board). Same result for single-step actions; the DD row's wording should say "after each resolution step". | Owner (DD register) | Before `/create-architecture` | Open — proposed here |
 | Save/resume **mid-match**: DD-R08 saves after matches and drafts only; a crash mid-match loses the match. Acceptable for v1? If not, the event log is the replay source and the engine needs `restore(log)`. | Run Structure GDD | Vertical Slice | Open |
 | Queued triggers resolve even if their source left play (C10) — confirm this reading over Hearthstone's partial rules; it is simpler and is what the acceptance tests assert. | Owner | Before Card Effects design-review | Open — proposed here |
 | Should `command_rejected` be written to the same log (flagged diagnostic) or a separate channel? Affects RNG & Event Log's replay purity. | RNG & Event Log GDD | Before `/consistency-check` | Open |

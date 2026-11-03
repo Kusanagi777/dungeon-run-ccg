@@ -8,6 +8,7 @@
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 4 (Readable, deterministic rules) — indirectly Pillar 1 (every run builds a deck you couldn't have planned) by owning the draft pools
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Specialists (`systems-designer`, `gameplay-programmer`, `engine-programmer`) not spawned — Lean mode; the author performed the specialist pass inline. Review manually before production.
+> **REVISED 2026-11-03** (`/design-review`, lean, NEEDS REVISION → revised in place): (1) CR-1 gains the **config file** class for the nine per-system `*.json` files DD-T01 now lists, with a `config` envelope, `config(name)` query and owner validators — the previous text would have warned on every one of them and loaded none; (2) `TreasureDef.tags`, `HeroDef.unlock`, `BossDef.tags` and `BossDef.passive_text` added to CR-3 (requested by Treasures, Reward Draft, Heroes, Run Structure, Content; registry treasures already carry `tags`); (3) `data_version()` defined (CR-9) — read by Run Structure, Treasures, Meta Progression and Run UI but defined nowhere; (4) DD-T01 (`hero_powers.json`, `cards_boss.json`) and DD-H06 (10 MVP treasures) are accepted in the register — stale "proposed"/"8 treasures" text and two Open Questions closed; (5) all twelve dependent GDDs now exist — "(planned)" markers and the index-row note removed; (6) three Acceptance Criteria added, one tightened.
 
 ## Summary
 
@@ -22,9 +23,10 @@ thirteen systems each guessing at bad data mid-run.
 ## Overview
 
 The Card Database is the game's single reader of content data. At startup it loads every JSON
-definition file under `assets/data/` (DD-T01) — card sets, heroes, hero powers, bosses, treasures
-and bundles — validates the whole set as one unit, and freezes it into typed, read-only records
-that every other system queries by id, set, type, tag, cost or rarity. It also computes the draft
+file under `assets/data/` (DD-T01) — the definition files for card sets, heroes, hero powers,
+bosses, treasures and bundles, and the per-system config files — validates the whole set as one
+unit, and freezes it into typed, read-only records (and frozen config bodies) that every other
+system queries by id, set, type, tag, cost or rarity, or fetches by config name. It also computes the draft
 pools (the collectible cards and bundles for a hero, the treasure pool) that Reward Draft draws
 from. The player never touches it directly; they feel it as "every card does exactly what its text
 says and the same seed produces the same offers" (Pillar 4). It exists because thirteen systems
@@ -40,22 +42,47 @@ Specialist note: `systems-designer` / `gameplay-programmer` / `engine-programmer
 Lean mode. Design-level only; file I/O and class layout belong to an ADR.
 
 **CR-1 — Files and envelope.** Every file under `assets/data/` is UTF-8 JSON with snake_case keys
-(DD-T01) and the envelope `{ "schema_version": <int>, "records": [ ... ] }`. The loader discovers
-files by name; an unknown file in the folder is a warning, a missing required file is an error.
+(DD-T01). There are two file classes, both carrying `schema_version` (DD-T01):
 
-| File | Record type | Required at v1 | Notes |
-|------|-------------|----------------|-------|
-| `cards_<set>.json` | CardDef | `war`, `neutral`, `boss` (MVP); `decay`, `knowledge` (Alpha) | `<set>` is the set id; `fortune`, `order`, `shadow` load when present (DD-H02) |
-| `heroes.json` | HeroDef | yes | locked heroes are still loaded; Meta Progression decides availability |
-| `hero_powers.json` | HeroPowerDef | yes | shared by heroes and bosses so power ids can be validated (DD-M13) |
-| `bosses.json` | BossDef | yes | |
-| `treasures.json` | TreasureDef | yes | |
-| `bundles.json` | BundleDef | yes | |
+- **Definition files** — envelope `{ "schema_version": <int>, "records": [ ... ] }`; each record is
+  one typed row (CR-3) and enters the id namespace (CR-2).
+- **Config files** — envelope `{ "schema_version": <int>, "config": { ... } }`; one per owning
+  system, holding that system's tuning knobs. The body is **opaque** to the Card Database: it is
+  parsed once, frozen, and handed to the owner through `config(name)` (CR-6). Its shape and ranges
+  are validated by the owner's injected validator (CR-5 stage 7), exactly as `effects[]` is.
 
-Rationale: `hero_powers.json` and set `boss` are additions to the DD-T01 list. Powers need their
-own records because bosses and heroes reference them by id (the brief requires those ids to be
-validated); boss-only cards need a set that is never collectible (Pillar 2: boss decks are puzzles,
-not the player's pool). Both are flagged for DD-T01 in Open Questions.
+The loader discovers files by name from the DD-T01 list; a `.json` file not in that list is a
+warning (`W_UNKNOWN_FILE`, not loaded), a missing required file is an error. **No other code
+parses `assets/data/*.json`** (systems index: "nothing else parses JSON"; match-rules Dependencies:
+"never parses JSON itself") — a system that wants its knobs from disk gets them from `config()`.
+
+| File | Class / record type | Required at v1 | Owner of body | Notes |
+|------|---------------------|----------------|---------------|-------|
+| `cards_<set>.json` | definition · CardDef | `war`, `neutral`, `boss` (MVP); `decay`, `knowledge` (Alpha) | Content | `<set>` is the set id; `fortune`, `order`, `shadow` load when present (DD-H02); `cards_boss.json` is in DD-T01 |
+| `heroes.json` | definition · HeroDef | yes | Heroes | locked heroes are still loaded; Meta Progression decides availability |
+| `hero_powers.json` | definition · HeroPowerDef | yes | Heroes (Content may add boss rows) | shared by heroes and bosses so power ids can be validated (DD-M13); in DD-T01 |
+| `bosses.json` | definition · BossDef | yes | Content | |
+| `treasures.json` | definition · TreasureDef | yes | Treasures | |
+| `bundles.json` | definition · BundleDef | yes | Content | |
+| `match_rules.json` | config | yes | Match Rules | |
+| `card_effects.json` | config | yes | Card Effects | |
+| `ai_profiles.json` | config | yes | Boss AI | the `ai_profile` keys on BossDef are validated against it by Boss AI's validator |
+| `run_structure.json` | config | yes | Run Structure | |
+| `reward_draft.json` | config | yes | Reward Draft | |
+| `treasures_balance.json` | config | yes | Treasures | |
+| `heroes_balance.json` | config | yes | Heroes | read by the validate command and Heroes' checks |
+| `match_ui.json` | config | yes | Match UI | display constants; UI reads them through `config()`, never from disk |
+| `run_ui.json` | config | yes | Run UI | as above |
+
+`user://profile.json` (DD-T01) is Meta Progression's save file, not content data: it is not under
+`assets/data/` and this loader never touches it.
+
+Rationale: `hero_powers.json` and set `boss` exist because bosses and heroes reference powers by id
+(the brief requires those ids to be validated) and boss-only cards need a set that is never
+collectible (Pillar 2: boss decks are puzzles, not the player's pool). Both were accepted into
+DD-T01 on 2026-11-03. The config class exists because DD-T01 puts nine per-system knob files under
+`assets/data/` and the index allows one JSON parser: without it every one of those files would be
+`W_UNKNOWN_FILE` and no system could reach its knobs.
 
 **CR-2 — Identifiers.** One global id namespace across all record types. Pattern
 `^[a-z][a-z0-9_]{2,47}$`. The prefix encodes the type and, for cards, the set; a prefix/field
@@ -97,7 +124,10 @@ mismatch is an error (`E_SET_MISMATCH`).
 *HeroDef* — `id`, `name`, `set` (the hero's card set: one of the non-neutral, non-boss sets),
 `health` int (30, DD-M02; data-driven so a hero could differ later), `hero_power` string (a
 HeroPowerDef id), `starter_deck` string[] (exactly 15 card ids, DD-R03; duplicates allowed;
-no tokens; cards must be from the hero's set or `neutral`), `text` object (flavour line), `art`.
+no tokens; cards must be from the hero's set or `neutral`), `unlock` string or `null` (an unlock
+key validated by the Meta Progression validator, as on TreasureDef; `null` = available from the
+start; the three DD-H01 heroes are `null`, the DD-H02 heroes carry `unlock.hero_<set>` keys —
+Heroes H-7), `text` object (flavour line), `art`.
 
 *HeroPowerDef* — `id`, `name`, `cost` int (default 2, DD-M13, range 0–10), `effects` object[]
 (opaque, Card Effects), `text` object, `art`.
@@ -105,14 +135,19 @@ no tokens; cards must be from the hero's set or `neutral`), `text` object (flavo
 *BossDef* — `id`, `name`, `band` int 1–3 (DD-R01), `health` int (default per band from DD-M02:
 30/40/50; stored explicitly so a boss may deviate, warned when it does), `hero_power` string
 (HeroPowerDef id, or `null` for a boss with a passive only), `passive` object or `null` (opaque,
-Card Effects), `deck` string[] (≥ 1 card id, no tokens, any set including hero sets — Edge Cases),
-`ai_profile` string (opaque key, validated by the Boss AI validator), `intro_text` object
-(localizable), `art`.
+Card Effects), `passive_text` object (same shape as `text`, key `boss.<id>.passive`; required when
+`passive` is non-null, must be absent when it is `null` — Run UI shows it on the boss intro),
+`deck` string[] (≥ 1 card id, no tokens, any set including hero sets — Edge Cases), `ai_profile`
+string (opaque key, validated by the Boss AI validator), `tags` string[] (theme tags, `^[a-z_]+$`,
+may be `[]`; Run Structure's `no_adjacent_shared_theme` and Content's boss themes read them),
+`intro_text` object (localizable), `art`.
 
-*TreasureDef* — `id`, `name`, `rarity` enum (`common \| rare` only in v1, DD-H04), `effects`
-object[] (opaque, Treasures/Card Effects hook definitions), `unlock` string or `null` (an unlock
-condition key validated by the Meta Progression validator; `null` = available from the start),
-`text` object, `art`.
+*TreasureDef* — `id`, `name`, `rarity` enum (`common \| rare` only in v1, DD-H04), `tags`
+string[] (`^[a-z_]+$`, may be `[]` at the schema level; Treasures' stage-7 validator enforces its
+own rule of exactly one affinity tag plus plan/archetype tags — `E_TR_TAGS` — and Reward Draft
+weights offers by them), `effects` object[] (opaque, Treasures/Card Effects hook definitions),
+`unlock` string or `null` (an unlock condition key validated by the Meta Progression validator;
+`null` = available from the start), `text` object, `art`.
 
 *BundleDef* — `id`, `name`, `set` enum (a hero set or `neutral`; never `boss`), `theme` string
 (one tag; every card in the bundle must carry it), `cards` string[] (exactly 3 card ids, DD-R04;
@@ -134,20 +169,26 @@ later stages still run on the rest, so one report lists everything.
 1. **Discover** files per CR-1 (missing required file → `E_MISSING_FILE`).
 2. **Parse** each file (`E_PARSE` with file and, where the parser gives it, line/column).
 3. **Envelope**: `schema_version` must equal `schema_version_current` = 1 (`E_SCHEMA_VERSION`
-   naming file, found and expected; both older and newer fail — Edge Cases).
+   naming file, found and expected; both older and newer fail — Edge Cases); a definition file must
+   carry `records` as an array, a config file `config` as an object (`E_PARSE` otherwise).
 4. **Schema** per record: required fields, types, ranges, enums, unknown fields, id pattern.
+   Config bodies are not schema-checked here — they go to stage 7.
 5. **Uniqueness**: ids across all files (`E_DUP_ID` names the id and every file that defines it).
 6. **Cross-references**: hero `starter_deck`, `hero_power`; boss `deck`, `hero_power`; bundle
    `cards` and `theme`; counts (15, 3) and the no-token rule (`E_UNKNOWN_REF`, `E_COUNT`,
    `E_TOKEN_IN_LIST`, `E_TAG_MISMATCH`).
-7. **Delegated validators**, injected at composition time: Card Effects (`effects[]`, `passive`),
-   Boss AI (`ai_profile`), Meta Progression (`unlock`). Each returns its own errors, which are
-   merged with severity `E_DELEGATED` plus the owner's code. A validator that is not registered
-   is itself an error in release builds; unit tests inject stubs.
+7. **Delegated validators**, injected at composition time. Record validators: Card Effects
+   (`effects[]`, `passive`), Boss AI (`ai_profile`), Meta Progression (`unlock`), Treasures
+   (`rarity`, `tags`, effect count — its `E_TR_*` set). Config validators: one per config file in
+   CR-1, registered under the file name by the owning system; it receives the frozen `config`
+   body and returns its own errors. Each returns its own errors, which are merged with severity
+   `E_DELEGATED` plus the owner's code. A validator that is not registered — for a record field or
+   for a config file — is itself an error in release builds; unit tests inject stubs.
 8. **Budget warnings** (never block): pool sizes under the thresholds in Formulas (`W_POOL_SIZE`),
    a boss `health` differing from its band default (`W_BAND_HEALTH`), unknown file (`W_UNKNOWN_FILE`).
-9. **Freeze**: with zero errors the records become immutable and the state is `Ready`; otherwise
-   `Failed` with the report. There is no "load what passed" path.
+9. **Freeze**: with zero errors the records and config bodies become immutable, `data_version`
+   (CR-9) is computed, and the state is `Ready`; otherwise `Failed` with the report. There is no
+   "load what passed" path.
 
 Report entry shape: `{ severity: error|warning, code, file, record_id|null, field|null, message }`,
 sorted by file then record id. Rationale for loudness: a silent partial load would make a
@@ -167,6 +208,8 @@ with the seeded RNG (DD-T03), so order must not depend on authoring order (DD-R0
 | `treasure_pool()` | TreasureDef[] | all treasures; Reward Draft filters by Meta Progression's unlocked keys and the run's already-offered list |
 | `bosses_in_band(band)` | BossDef[] | DD-R02 pool per band |
 | `heroes()` | HeroDef[] | all, locked included |
+| `config(name)` | frozen Dictionary | the `config` body of the CR-1 config file `<name>.json` (e.g. `config("match_rules")`); unknown name → `null` and a logged error. Owners read it once at their own composition and keep a reference; the body is immutable (CR-7) |
+| `data_version()` | string | CR-9; stable across machines for the same files |
 | `report()` | ValidationReport | the last load's report (empty on a clean load) |
 
 **CR-7 — Immutability and instances.** Records are definitions, never game state. Match Rules
@@ -177,6 +220,16 @@ index, Card Database paragraph).
 **CR-8 — Failure is visible.** In a desktop build a `Failed` load shows a data-error screen (Run
 UI) listing the report and offers only Quit; in headless/CI the process prints the report and exits
 non-zero. There is no main menu over bad data.
+
+**CR-9 — `data_version`.** A fingerprint of the content the game is running on, computed at freeze
+(CR-5 step 9): the SHA-256 of the canonical serialisation (sorted keys, no whitespace, UTF-8) of
+every loaded file's parsed body, concatenated in CR-1 table order with the file name as a prefix,
+rendered as the first 16 hex characters. Properties the dependents rely on: the same files give
+the same string on every machine (Run Structure stores it in the run record and refuses to resume
+a run saved under a different version — R8; Meta Progression keeps `data_versions_seen[]` to
+drive retro-grants — M3.5; Treasures and Run UI display it); any edit to any file changes it;
+file order on disk, key order and whitespace do not. It is not authored and never appears in a
+data file — a manual "content version" string would be forgotten on the exact edit that matters.
 
 ### States and Transitions
 
@@ -193,9 +246,12 @@ there is a no-op returning `E_NOT_SUPPORTED`.
 
 ### Interactions with Other Systems
 
-Nothing flows *into* the Card Database at runtime except the three injected validators and the
-`load()`/`reload()` calls. Every other arrow points out. All downstream GDDs are undesigned, so
-each row is a **provisional contract** this GDD proposes and the dependent GDD confirms.
+Nothing flows *into* the Card Database at runtime except the injected validators (four record
+validators and one per config file) and the `load()`/`reload()` calls. Every other arrow points
+out. All twelve dependent GDDs are now written; each row below is the contract as those GDDs
+state it in their own Interactions/Dependencies sections, with open naming differences listed in
+Open Questions. Every system that owns a CR-1 config file additionally reads `config(<name>)`
+once at composition.
 
 | System | Data out (what they read) | Data in (what they give us) | Interface owner |
 |--------|---------------------------|-----------------------------|-----------------|
@@ -205,9 +261,9 @@ each row is a **provisional contract** this GDD proposes and the dependent GDD c
 | Heroes | `heroes()`, `hero()` with `starter_deck`, `hero_power`, `set` | starter-deck composition rules beyond CR-3 (e.g. curve) if any | Heroes owns which 15 cards; this GDD owns "exactly 15, no tokens, own set or neutral" |
 | Run Structure | `bosses_in_band(band)` for sequence generation; `hero()` at hero select | — | Run Structure owns draw-without-replacement (DD-R02) |
 | Reward Draft | `collectible_pool(hero_set)`, `bundle_pool(hero_set)`, `treasure_pool()`, `cards_by_tag()` | — | Reward Draft owns weighting and pity rules; this GDD owns pool membership and ordering (CR-6) |
-| Treasures | `treasure()` records and their `effects[]`; `unlock` key | treasure hook schema (via the Card Effects validator or its own) | Treasures owns hook semantics |
-| Meta Progression | `treasure().unlock`, `heroes()` for unlock state display | the unlock-key validator | Meta Progression owns unlock keys and which ids are locked |
-| Match UI / Run UI | `name`, `text.key` / `text.en`, `art`, `rarity`, `intro_text`, bundle `text`; the `report()` on `Failed` (data-error screen) | — | UI renders; it never reads JSON |
+| Treasures | `treasure()` records with `rarity`, `tags`, `effects[]`, `unlock`; `treasure_pool()`; `has(id)`; `data_version()` | its own stage-7 validator (`E_TR_*`, T7) alongside the Card Effects one | Treasures owns `rarity`/`tags` semantics and hook semantics; this GDD owns the field shapes |
+| Meta Progression | `treasure().unlock`, `hero().unlock`, `heroes()` for unlock state display; `has(id)`, `boss(id)` inside its validator; `data_version()` for retro-grants | the unlock-key validator (`validate_unlock_defs`) | Meta Progression owns unlock keys and which ids are locked; the string-vs-object shape of `unlock` is an open owner question (Open Questions) |
+| Match UI / Run UI | `name`, `text.key` / `text.en`, `art`, `rarity`, `intro_text`, `passive_text`, bundle `text`, treasure `tags` (synergy hint); `data_version()`; the `report()` on `Failed` (data-error screen); `config("match_ui")` / `config("run_ui")` | — | UI renders; it never reads JSON |
 | Content | authors every file in CR-1 against CR-3; reads `report()` from the headless validate command | the data itself | Content owns values; this GDD owns the schema and the checks |
 | RNG & Event Log | nothing — the database is deterministic data; it emits no events and uses no RNG | — | — |
 
@@ -285,8 +341,10 @@ The `min_treasure_pool` formula is defined as:
 
 **Output Range:** 9 under DD-R05, because offers never repeat within a run, so a fresh profile
 needs 9 distinct unlocked treasures to fill every draft. `n_unlocked_default < min_treasure_pool`
-raises `W_POOL_SIZE`. **At MVP (8 treasures, DD-H06) this warning fires** — see Open Questions.
-**Example:** 3 × 3 = 9; v1 with 20 treasures and ≥ 9 unlocked by default is clean.
+raises `W_POOL_SIZE`. MVP ships 10 treasures, all `unlock: null` (DD-H06, raised from 8 on
+2026-11-03 for exactly this reason; Treasures T8), so the warning does not fire on shipped data;
+Reward Draft's D8 `fewer` path covers a profile that somehow has fewer than 9 unlocked.
+**Example:** 3 × 3 = 9; MVP 10 ≥ 9 and v1 with 20 treasures and ≥ 9 unlocked by default are clean.
 
 ### Validation cost and load budget
 
@@ -353,7 +411,16 @@ Specialist note: `systems-designer` not spawned — Lean mode. Review manually b
 - **If a set file exists but `records` is empty**: `W_EMPTY_SET`; load succeeds unless a hero,
   bundle or boss references that set (then `E_UNKNOWN_REF` / `E_COUNT` fire as usual).
 - **If a hero's `set` has no `cards_<set>.json`**: `E_MISSING_FILE` naming the hero and the file.
-- **If an unexpected `.json` file sits in `assets/data/`**: `W_UNKNOWN_FILE`; it is not loaded.
+- **If an unexpected `.json` file sits in `assets/data/`** (not in the CR-1 / DD-T01 list):
+  `W_UNKNOWN_FILE`; it is not loaded. Adding a system's knob file means adding a DD-T01 row and a
+  CR-1 row, not teaching that system to parse JSON.
+- **If a config file is missing, or its envelope has `records` instead of `config`**:
+  `E_MISSING_FILE` / `E_PARSE`; load fails. An owner that wants "defaults when the file is absent"
+  ships a file with its defaults — Boss AI's built-in `default` profile copy is a test fixture, not
+  a runtime fallback.
+- **If a config file's owner has not registered a validator**: `E_DELEGATED` naming the file;
+  release load fails (same rule as record validators). The body is otherwise opaque, so an
+  unvalidated config would be the one silent-partial-data path left open.
 
 **Pools and lists**
 - **If a token card appears in a starter deck, bundle or boss deck**: `E_TOKEN_IN_LIST`; load fails.
@@ -370,6 +437,12 @@ Specialist note: `systems-designer` not spawned — Lean mode. Review manually b
 - **If a hero has `hero_power: null`**: `E_MISSING_FIELD` (heroes always have a power, DD-M13); a
   boss may be `null` only when `passive` is non-null, otherwise `E_SCHEMA`.
 - **If fewer than 9 treasures are unlocked by default** (Formulas): `W_POOL_SIZE`; load succeeds.
+- **If a boss has `passive: null` and a `passive_text`, or a `passive` and no `passive_text`**:
+  `E_UNKNOWN_FIELD` / `E_MISSING_FIELD`; load fails. The intro screen must never show passive text
+  for a boss that has none, nor a passive with no readable text (Pillar 3: telegraphed).
+- **If a treasure's `tags` fail Treasures' affinity rule** (zero or two affinity tags): this GDD
+  accepts the shape (`string[]`, `^[a-z_]+$`) and Treasures' validator raises `E_TR_TAGS` at stage
+  7 — one owner for the semantics, one report for the author.
 
 **Runtime** (query-before-`Ready` and release `reload()` are covered by the States table)
 - **If `reload()` is called in a debug build during a match**: a new snapshot is built; the running
@@ -392,18 +465,21 @@ without this system; **Soft** = reads display data only.
 | Heroes | depends on this | Hard | hero records, starter decks, hero set |
 | Run Structure | depends on this | Hard | `bosses_in_band()` for sequence generation; `hero()` at select |
 | Reward Draft | depends on this | Hard | `collectible_pool()`, `bundle_pool()`, `treasure_pool()`, `cards_by_tag()`; relies on id-sorted order for seeded draws |
-| Treasures | depends on this | Hard | treasure records and hook payloads |
-| Meta Progression | depends on this | Hard | `unlock` keys and hero ids; supplies the unlock-key validator |
+| Treasures | depends on this | Hard | treasure records (`rarity`, `tags`, `effects[]`, `unlock`), `treasure_pool()`, `data_version()`; supplies its stage-7 validator; `config("treasures_balance")` |
+| Meta Progression | depends on this | Hard | `unlock` keys on hero and treasure records, `data_version()`, `has(id)`; supplies the unlock-key validator |
 | Content | depends on this | Hard | the schema it authors against; the headless validate command |
-| Match UI | depends on this | Soft | `name`, `text`, `art`, `rarity` for rendering |
-| Run UI | depends on this | Soft | boss `intro_text`, bundle `text`, hero art; the data-error screen renders `report()` |
-| RNG & Event Log | none | — | no RNG, no events |
+| Match UI | depends on this | Soft | `name`, `text`, `art`, `rarity` for rendering; `config("match_ui")` |
+| Run UI | depends on this | Soft | boss `intro_text` / `passive_text`, bundle `text`, hero art, `data_version()`; the data-error screen renders `report()`; `config("run_ui")` |
+| RNG & Event Log | none | — | no RNG, no events; it keys entities by `card_id` strings from this database |
 
-**Bidirectional note (design-docs.md):** none of the dependent GDDs exist yet. Each one, when
-authored, must list "depends on Card Database" in its own Dependencies section. The systems index
-currently names Card Database as a dependency only for Match Rules, Card Effects, Heroes, Reward
-Draft and Content; **Boss AI, Run Structure, Treasures, Meta Progression, Match UI and Run UI rows
-should add it** — flagged for the index owner (`/map-systems`), not edited here.
+Every config-file owner in CR-1 (Match Rules, Card Effects, Boss AI, Run Structure, Reward Draft,
+Treasures, Heroes, Match UI, Run UI) is additionally a Hard dependent for `config(<name>)`.
+
+**Bidirectional note (design-docs.md):** all twelve dependent GDDs exist and each lists Card
+Database in its own Dependencies section (verified 2026-11-03: match-rules §Dependencies,
+card-effects, boss-ai, heroes, run-structure, reward-draft, treasures, meta-progression, content,
+match-ui, run-ui; rng-event-log names it only as the source of `card_id`, matching the "none" row
+above). The systems index names Card Database as a dependency on every one of those rows.
 
 ## Visual/Audio Requirements
 
@@ -446,26 +522,28 @@ epics; stories should cite that spec, not this GDD.
 
 ## Cross-References
 
-Target GDDs marked *(planned)* do not exist yet; the referenced element is the DD row the planned
-GDD will own. `/review-all-gdds` should re-check these once those GDDs are written.
+All target GDDs exist (2026-11-03). `/review-all-gdds` and `/consistency-check` re-check these
+rows when any of them changes.
 
 | This Document References | Target GDD | Specific Element Referenced | Nature |
 |--------------------------|-----------|-----------------------------|--------|
-| card `type` enum | `design/gdd/match-rules.md` *(planned)* | DD-M08 card types Minion/Spell/Weapon | Rule dependency |
-| `keywords` id list, `spell_damage` | `design/gdd/match-rules.md` *(planned)* | DD-M09 keyword set v1 | Rule dependency |
-| `cost` range 0–10 | `design/gdd/match-rules.md` *(planned)* | DD-M04 mana cap 10 | Rule dependency |
-| hero `health` 30, boss band health 30/40/50 | `design/gdd/match-rules.md` *(planned)* | DD-M02 starting health | Data dependency |
-| hero-power `cost` default 2 | `design/gdd/match-rules.md` *(planned)* | DD-M13 hero power | Data dependency |
-| `effects[]`, `passive` schema and validator | `design/gdd/card-effects.md` *(planned)* | effect object schema | Ownership handoff |
-| `ai_profile` validator | `design/gdd/boss-ai.md` *(planned)* | profile key set | Ownership handoff |
-| `starter_deck` exactly 15 | `design/gdd/heroes.md` *(planned)* | DD-R03 starter deck | Rule dependency |
-| boss `band` 1–3, `bosses_in_band()` | `design/gdd/run-structure.md` *(planned)* | DD-R01 bands, DD-R02 pool 6/6/4 | Data dependency |
-| bundle `cards` exactly 3, `theme` tag | `design/gdd/reward-draft.md` *(planned)* | DD-R04 bundle draft, DD-H05 theme weighting | Rule dependency |
-| `min_treasure_pool` = 9 | `design/gdd/reward-draft.md` *(planned)* | DD-R05 three treasure drafts, no duplicate offers | Rule dependency |
-| id-sorted query order | `design/gdd/rng-event-log.md` (in design) | DD-R09 seed reproducibility, DD-T03 named streams | Rule dependency |
-| treasure `rarity` common/rare, `unlock` key | `design/gdd/treasures.md`, `design/gdd/meta-progression.md` *(planned)* | DD-H04 treasure pool, unlock conditions | Ownership handoff |
-| data-error screen | `design/gdd/run-ui.md` *(planned)* | boot failure presentation (CR-8) | State trigger |
-| file list and envelope | `design/design-decisions.md` | DD-T01 (+ proposed `hero_powers.json`, set `boss`) | Data dependency |
+| card `type` enum | `design/gdd/match-rules.md` | DD-M08 card types Minion/Spell/Weapon | Rule dependency |
+| `keywords` id list, `spell_damage` | `design/gdd/match-rules.md` | DD-M09 keyword set v1 | Rule dependency |
+| `cost` range 0–10 | `design/gdd/match-rules.md` | DD-M04 mana cap 10 | Rule dependency |
+| hero `health` 30, boss band health 30/40/50 | `design/gdd/match-rules.md` | DD-M02 starting health | Data dependency |
+| hero-power `cost` default 2 | `design/gdd/match-rules.md` | DD-M13 hero power | Data dependency |
+| `effects[]`, `passive` schema and validator; no stored `targeting` field (derived by Card Effects C1) | `design/gdd/card-effects.md` | effect object schema, C10 validator | Ownership handoff |
+| `ai_profile` validator, `ai_profiles.json` config body | `design/gdd/boss-ai.md` | profile key set, F9 schema | Ownership handoff |
+| `starter_deck` exactly 15; `HeroDef.unlock` | `design/gdd/heroes.md` | DD-R03 starter deck; H-7 | Rule dependency |
+| boss `band` 1–3, `bosses_in_band()`, `BossDef.tags`, `data_version` | `design/gdd/run-structure.md` | DD-R01 bands, DD-R02 pool 6/6/4; `no_adjacent_shared_theme`; R8 resume check | Data dependency |
+| bundle `cards` exactly 3, `theme` tag; `TreasureDef.tags` | `design/gdd/reward-draft.md` | DD-R04 bundle draft, DD-H05 theme weighting; F2 affinity | Rule dependency |
+| `min_treasure_pool` = 9 | `design/gdd/reward-draft.md` | DD-R05 three treasure drafts, no duplicate offers; D8 `fewer` | Rule dependency |
+| id-sorted query order | `design/gdd/rng-event-log.md` | DD-R09 seed reproducibility, DD-T03 named streams | Rule dependency |
+| treasure `rarity` common/rare, `tags`, `unlock` key | `design/gdd/treasures.md`, `design/gdd/meta-progression.md` | DD-H04 treasure pool, T1/T7; unlock conditions, M2 | Ownership handoff |
+| `data_version` | `design/gdd/meta-progression.md` | `data_versions_seen[]`, retro-grants M3.5 | Data dependency |
+| data-error screen, `passive_text` | `design/gdd/run-ui.md` | boot failure presentation (CR-8); boss intro | State trigger |
+| `BossDef.tags`, `passive_text`, boss cards in `cards_boss.json` | `design/gdd/content.md` | boss themes, CN-6 file layout | Data dependency |
+| file list and envelope | `design/design-decisions.md` | DD-T01 (as amended 2026-11-03: `hero_powers.json`, `cards_boss.json`, nine config files) | Data dependency |
 
 ## Acceptance Criteria
 
@@ -476,7 +554,17 @@ under the test root, never the shipped data, except where "shipped data set" is 
 
 **Loading and failure (CR-1, CR-5, CR-8)**
 - [ ] **GIVEN** the shipped data set, **WHEN** the game boots, **THEN** state is `Ready`, `report()`
-  has zero errors, and every record count matches the Content manifest.
+  has zero errors, and the per-type record counts (cards per set, tokens, bosses, treasures,
+  bundles) equal the numbers in `design/gdd/content.md`'s content-volume table for the shipped
+  batch (MVP: 40 collectible, 4 tokens, 8 boss-only, 4 bosses, 10 treasures, 10 bundles).
+- [ ] **GIVEN** the shipped data set, **WHEN** loaded, **THEN** `config("match_rules")`,
+  `config("card_effects")`, `config("ai_profiles")`, `config("run_structure")`,
+  `config("reward_draft")`, `config("treasures_balance")`, `config("heroes_balance")`,
+  `config("match_ui")` and `config("run_ui")` each return a non-null frozen Dictionary, and
+  `config("no_such")` returns `null` with one logged error.
+- [ ] **GIVEN** a release-configured load where `match_rules.json` is present but Match Rules has
+  registered no config validator, **WHEN** loading, **THEN** `E_DELEGATED` names
+  `match_rules.json` and state is `Failed`.
 - [ ] **GIVEN** the shipped data set with one card id duplicated into a second set file, **WHEN**
   loading, **THEN** the report contains one `E_DUP_ID` naming the id and both file paths, state is
   `Failed`, and in a desktop build the data-error screen is shown instead of the main menu; in
@@ -508,7 +596,12 @@ under the test root, never the shipped data, except where "shipped data set" is 
   **WHEN** `collectible_pool("war")` is called, **THEN** it returns exactly the 6 non-token
   War+neutral cards, sorted by id ascending.
 - [ ] **GIVEN** the same records authored in two different file orders, **WHEN** both are loaded,
-  **THEN** every query returns identical sequences (same ids, same order).
+  **THEN** every query returns identical sequences (same ids, same order) and `data_version()`
+  returns the same 16-character string; **GIVEN** one card's `attack` then changed by 1, **WHEN**
+  reloaded, **THEN** `data_version()` differs.
+- [ ] **GIVEN** a treasure with `tags: ["war", "weapons"]` and a boss with `passive` set and
+  `passive_text` present, **WHEN** loading, **THEN** no schema error is raised; **GIVEN** the same
+  boss with `passive_text` removed, **THEN** `E_MISSING_FIELD` names the boss and `passive_text`.
 - [ ] **GIVEN** a fixture with 8 treasures all `unlock: null`, **WHEN** loading, **THEN**
   `W_POOL_SIZE` reports 8 < 9 and state is `Ready`.
 - [ ] **GIVEN** a fixture with 2 bundles for a hero set and 0 neutral bundles, **WHEN** loading,
@@ -538,8 +631,12 @@ under the test root, never the shipped data, except where "shipped data set" is 
 
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|------------|
-| DD-T01 lists five file kinds; this GDD adds `hero_powers.json` and set `boss` (`cards_boss.json`). Accept and update the register? | owner | before `/design-system match-rules` | Proposed here (CR-1); needs a DD-T01 edit + `/propagate-design-change` |
-| MVP ships 8 treasures (DD-H06) but DD-R05 needs 9 distinct unlocked treasures per run (Formulas). Raise MVP to 9, or let Reward Draft re-offer treasures that were offered but not taken? | owner + Reward Draft GDD | `/design-system reward-draft` | Open; loader warns (`W_POOL_SIZE`), does not block |
+| DD-T01 lists five file kinds; this GDD adds `hero_powers.json` and set `boss` (`cards_boss.json`). Accept and update the register? | owner | before `/design-system match-rules` | **Resolved 2026-11-03**: DD-T01 amended; CR-1 updated |
+| MVP ships 8 treasures (DD-H06) but DD-R05 needs 9 distinct unlocked treasures per run (Formulas). Raise MVP to 9, or let Reward Draft re-offer treasures that were offered but not taken? | owner + Reward Draft GDD | `/design-system reward-draft` | **Resolved 2026-11-03**: DD-H06 raised to 10; Reward Draft D8 `fewer` covers the short-pool case |
+| Config files (CR-1): the nine per-system knob files are loaded here and served by `config(name)`. Match UI's open question offered "the UI reads its own file" as an alternative; Boss AI's Interactions row says Boss AI "supplies the `ai_profiles.json` loader". Both GDDs should reword to `config("match_ui")` / `config("ai_profiles")` + an injected config validator. | Match UI GDD, Boss AI GDD (`/consistency-check`) | before `/create-architecture` | Resolved here per the index's single-parser rule; wording change needed in those two GDDs |
+| `unlock` shape: string key (this GDD, Heroes H-7, Treasures T1) or `{key, condition}` object on Hero/Treasure/Bundle records (Meta Progression M2.1)? Also whether `BundleDef` gets an `unlock` at all. | Jacob + Meta Progression GDD | before `/create-architecture` | **Open — owner decision.** CR-3 keeps the string form until decided; the Meta Progression validator receives whichever form is chosen |
+| Treasure tag field name: this GDD, Treasures and Reward Draft say `tags`; Run UI U8 says `synergy_tags[]`. | Run UI GDD | `/consistency-check` | `tags` is canonical (registry entries carry `tags`); Run UI to rename |
+| Match Rules Dependencies says it reads `targeting {mode, filter}` from the card record; Card Effects C1 derives it and this GDD stores no such field. | Match Rules GDD | `/consistency-check` | No field here; Match Rules row wording to change (already in card-effects Open Questions) |
 | Should the DD-M02 band-default boss health live in data (`bosses.json` per record, as here) or only in Match Rules config, with the record field optional? | Match Rules GDD | `/design-system match-rules` | Resolved here as "explicit per record, warned on deviation"; Match Rules may overturn |
 | Runtime schema migration vs offline script when `schema_version` changes | engine-programmer (ADR) | first schema bump | Resolved for v1: offline script in `tools/`, loader rejects old versions |
 | Does Discover need a per-effect card list, or is `collectible_pool(hero_set)` its universe? | Card Effects GDD | `/design-system card-effects` | Open; both are supported by CR-6 |

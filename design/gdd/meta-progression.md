@@ -9,6 +9,7 @@
 > **Implements Pillar**: Pillar 3 (lose fast, learn fast — the run log is where a loss becomes a lesson); Pillar 4 (readable, deterministic — seeds are kept and copyable); retention hooks "Curiosity" and "Investment" (game-concept.md)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No Agent tool in this session: `systems-designer` (Sections C/D/E) and `qa-lead` (Section H) not consulted — review manually before production.
 > **Engine claims**: Godot 4.7.2; `docs/engine-reference/godot/modules/` has no `core.md`, so file-system behaviour below is marked **NOT SOURCEABLE** unless cited to `breaking-changes.md`.
+> **REVISED 2026-11-03** (`/design-review`, lean, revise-now): (1) M10 locked-treasure table replaced by the four ids and keys `treasures.md` T8 actually locks (`treasure_grave_tithe`, `treasure_plague_bell`, `treasure_dogeared_grimoire`, `treasure_living_armory`); counts 16 unlocked / 4 locked; F1/F5/F6 examples and AC-19–21, AC-24 rewritten on those keys. (2) M2.1 key-format rule relaxed so Treasures' milestone keys (`hero_decay_first_win` …) are valid; `unlock.<kind>_<id>` stays the default for new content. (3) M1.3 API gains `unlocked_keys()` (Treasures `pool()` contract), `is_treasure_unlocked(id)` (Reward Draft `init_run` contract), `unlock_hint()` and `last_hero_id()` (Run UI contract); M3.7, Interactions, Dependencies and Cross-References updated — Treasures and Reward Draft GDDs exist and are no longer "planned". (4) M9 settings aligned to the consumers' keys: `anim_speed` (Match UI enum) replaces the invented `action_delay_ms`; `high_contrast_states` added; `telegraph_mode` kept for Run UI with its owner marked open (Boss AI defines no player-side mode). (5) Profile `Loading` order fixed: the M6 lock check runs **before** migration and retro-grant writes.
 
 ## Summary
 
@@ -95,22 +96,35 @@ save_profile() -> OK | E_IO | E_READONLY                       # atomic write, M
 save_active_run(dict) -> OK | E_IO     load_active_run() -> dict | null     clear_active_run()
 archive_run(dict) -> {ok: bool, unlocks_granted: [key]}         # M7 + M8 + M3
 is_hero_unlocked(hero_id) -> bool      is_unlocked(key) -> bool      unlocked_ids(kind) -> [id]
+unlocked_keys() -> Set[key]            # the set Treasures.pool(unlocked_keys, exclude_ids) takes (treasures.md T6)
+is_treasure_unlocked(treasure_id) -> bool   # = TreasureDef.unlock == null or key unlocked; Reward Draft init_run
 unlock_progress(key) -> {met: bool, progress: float, parts: [...]}  # F6, for the UI
-set_setting(key, value) -> OK | E_RANGE     get_settings() -> dict
-stats_for_hero(hero_id) -> HeroStats        run_log(offset, limit) -> [ArchivedRun]
+unlock_hint(key_or_id) -> {text_key, progress, target}   # Run UI's name for the same read model (F6 + condition text)
+set_setting(key, value) -> OK | E_RANGE     get_setting(key)     get_settings() -> dict
+stats_for_hero(hero_id) -> HeroStats        last_hero_id() -> hero_id | null   # argmax stats.heroes[*].last_played_at
+run_log(offset, limit) -> [ArchivedRun]     run_log_entry(run_id) -> ArchivedRun | null
 pending_notifications() -> [...]            ack_notification(key)
 validate_unlock_defs(defs[]) -> [error]     # the validator Card Database injects (CR-5 stage), M2.4
 reset_profile(confirm_token) -> OK
 ```
+
+   Name mapping for the names run-ui.md proposed in its Interactions row (this GDD's names are
+   authoritative): `profile_stats()` → `stats_for_hero(id)` per hero plus the global counters of
+   `get_stats()`; `list_runs(filter)` → `run_log(offset, limit)`; `get_run(run_id)` →
+   `run_log_entry(run_id)`; `unlock_hint(id)` accepts a hero/treasure id as well as a key.
 
 #### M2. Unlock definitions (data-driven)
 
 1. Any `HeroDef`, `TreasureDef` or `BundleDef` may carry `unlock: {key, condition}` or
    `unlock: null` (always available). This **amends card-database CR-3**, where `TreasureDef.unlock`
    is "string or null": the string becomes the `key` field of an object; and **answers heroes.md's
-   open question**: the hero key lives on `HeroDef.unlock`, symmetric with treasures. Keys are
-   `unlock.hero_<name>`, `unlock.treasure_<name>`, `unlock.bundle_<name>`; the suffix equals the
-   record's own id without its type prefix, and keys are unique across all three files.
+   open question**: the hero key lives on `HeroDef.unlock`, symmetric with treasures. A key is a
+   snake_case string (dots allowed), **unique across all three files** and carried by exactly one
+   record. Two naming styles are in use and both are valid: heroes use `unlock.hero_<id-suffix>`
+   (heroes.md H-7: `unlock.hero_fortune`), treasures use the milestone names treasures.md T8
+   assigns (`hero_decay_first_win`, `hero_decay_floor_5`, `hero_knowledge_first_win`,
+   `bosses_defeated_16`). New content defaults to `unlock.<kind>_<id-suffix>`; the validator
+   checks uniqueness and shape, never the style.
 2. **Condition grammar** (JSON; `n` ≥ 1 int; `hero` is a hero id, `"any"` (default) or
    `"each_launch"` = every hero whose own `unlock` is null):
 
@@ -164,7 +178,12 @@ condition := {"type": "always"}
    15); the queue is the durable form, the signal the live form.
 7. `is_hero_unlocked(id)` = `HeroDef.unlock == null or unlocks[key].unlocked`. Run Structure asks
    it at `new_run` only; a locked hero in `active_run` resumes (run-structure R8.4, confirmed).
-   Reward Draft and Treasures read `unlocked_ids("treasure")` to filter the treasure pool.
+   Treasure availability is read **once per run, at run start**: Reward Draft calls
+   `is_treasure_unlocked(id)` (or `unlocked_keys()`) inside `init_run` (reward-draft.md,
+   Run Structure R2 step 5) to build `draft_state.treasure_pool`; Treasures' `pool(unlocked_keys,
+   exclude_ids)` (treasures.md T6) takes the same set. Because keys are granted only at
+   `archive_run` or `load_profile` (M3.1), a grant can never change a run already in progress
+   (reward-draft Edge Cases "unlocked mid-run", confirmed).
 
 #### M4. Writing the file (atomic) and migrating it
 
@@ -276,29 +295,40 @@ condition := {"type": "always"}
 #### M9. Settings
 
 `settings = {volume_master, volume_music, volume_sfx: float 0..1 (1.0, 0.8, 1.0); fullscreen:
-bool (false); action_delay_ms: int 0..2000 (600) — the pause Match UI inserts between resolved
-events; telegraph_mode: "full" | "brief" | "off" ("full") — Boss AI intent display;
-keep_run_records: bool (true); language: "en"}`. Defaults live in `assets/data/profile.json`
-(a DD-T01 data file, **new**: `profile_defaults`), not in code. Settings are applied by their
-owning systems on change via `settings_changed{key, value}`; this system only stores them.
+bool (false); anim_speed: 1.0 | 1.5 | 2.0 | "instant" (1.0) — Match UI's animation speed
+(match-ui.md Core Rules 4, Tuning Knobs; Match UI owns the enum — run-ui.md's
+`instant|fast|normal` labels map onto it in the settings screen); high_contrast_states: bool
+(false) — Match UI's high-contrast state rendering; telegraph_mode: "full" | "brief" | "off"
+("full") — the intent-banner verbosity Run UI lists as a settings key (**owner open**: Boss AI's
+`intent_mode` is per-boss data in `ai_profiles.json`, not this setting; Match UI's intent banner
+is the likely consumer — Open Questions); keep_run_records: bool (true); language: "en"}`.
+Defaults live in `assets/data/profile.json` (a DD-T01 data file, **new**: `profile_defaults`;
+DD-T01's file list needs the row), not in code. An unknown value for an enum key is replaced by
+the default (M5.3). Settings are applied by their owning systems on change via
+`settings_changed{key, value}`; this system only stores them.
 
 #### M10. v1 unlock content
 
 - **Launch heroes** War, Decay, Knowledge: `unlock: null` (heroes H-2). **MVP** (DD-H06): every
   treasure `unlock: null`; this system runs with an empty unlock table and `is_hero_unlocked`
   is trivially true, so MVP needs only M1, M4, M5, M8 and M9.
-- **Vertical Slice / Alpha**: 6 of the ~20 treasures locked (14 default-unlocked ≥ 9,
-  card-database `min_treasure_pool`). Ids are **provisional** until `treasures.md` names them;
-  the milestones are the decision:
+- **Vertical Slice / Alpha**: 4 of the 20 treasures locked, 16 default-unlocked (≥ 9,
+  card-database `min_treasure_pool`; treasures.md T8 counts). The ids and keys are the ones
+  treasures.md T8 names (its R-14 asks this GDD to define them — **defined here**); the
+  conditions are this GDD's, expressed in the M2.2 grammar:
 
-| Key | Condition | Milestone it rewards |
-|---|---|---|
-| `unlock.treasure_trophy_rack` | `runs_won ≥ 1` | First victory with any hero |
-| `unlock.treasure_tally_stick` | `boss_defeated(any) ≥ 10` | Ten bosses down (≈ 3–4 runs for a new player, F2 of run-structure) |
-| `unlock.treasure_deep_lamp` | `floor_reached ≥ 5, hero: each_launch` | Reached band 2's second floor with War, Decay and Knowledge |
-| `unlock.treasure_banner_of_halvard` | `any_of[ runs_won(hero_war) ≥ 1, runs_won ≥ 3 ]` | Win with War, or just keep winning |
-| `unlock.treasure_lich_grimoire` | `treasure_picked(treasure_second_wind) ≥ 3` | Loyalty to one treasure across runs |
-| `unlock.treasure_gauntlet_crown` | `all_of[ runs_won(hero_war) ≥ 1, runs_won(hero_decay) ≥ 1, runs_won(hero_knowledge) ≥ 1 ]` | The concept's "done" line: every hero has beaten the gauntlet |
+| Treasure (treasures.md T8) | Key | Condition | Milestone it rewards |
+|---|---|---|---|
+| `treasure_grave_tithe` (#13, Rare, decay) | `hero_decay_first_win` | `runs_won ≥ 1, hero: hero_decay` | First victory with Decay |
+| `treasure_plague_bell` (#15, Common, decay) | `hero_decay_floor_5` | `floor_reached ≥ 5, hero: hero_decay` | Fought the floor-5 boss with Decay (F3: cleared four) |
+| `treasure_dogeared_grimoire` (#17, Rare, knowledge) | `hero_knowledge_first_win` | `runs_won ≥ 1, hero: hero_knowledge` | First victory with Knowledge |
+| `treasure_living_armory` (#18, Rare, universal) | `bosses_defeated_16` | `boss_defeated(any) ≥ 16` | Sixteen bosses down — the size of the boss pool (DD-R02), ≈ 2 full victories or 4–6 runs. Read as a cumulative count, not "every boss once": `all_of` fan-out is 8 (M2.2), so the 16-distinct form is inexpressible; Treasures to confirm the reading (Open Questions) |
+
+  Milestones from the earlier draft that no treasure currently rewards — first victory with any
+  hero, ten bosses down, floor 5 with every launch hero, a win with every launch hero (the
+  concept's "done" line) — remain the content brief for any further locks Treasures/Content add;
+  the grammar already expresses each (`hero: "each_launch"`, `all_of`). `unlock.hero_fortune`
+  below covers "first victory with any hero" for the Curiosity hook until then.
 
 - **Post-v1 heroes** (DD-H02, data only; conditions from heroes H-7 sketches, **confirmed**):
   `unlock.hero_fortune` = `runs_won ≥ 1`; `unlock.hero_order` = `runs_won(hero_war) ≥ 1`;
@@ -312,7 +342,7 @@ Three small machines: the profile session, each unlock key, and each notificatio
 | State | Entry Condition | Exit Condition | Behavior |
 |---|---|---|---|
 | **Profile: Unloaded** | App start | `load_profile()` called | No API answers; Run UI shows a loading frame (should be one frame) |
-| **Profile: Loading** | `load_profile()` | Load, backup fallback, migration, retro-grant and lock check complete | M5 → M4.4 → M3.1(b) → M6, in that order; a failure at any step routes to `Ready` (fresh), `ReadOnly` or `Blocked` |
+| **Profile: Loading** | `load_profile()` | Lock check, load, backup fallback, migration and retro-grant complete | **M6 (lock) → M5 → M4.4 → M3.1(b)**, in that order: the lock is taken (or `E_LOCKED` decided) before anything that writes, so a second instance never migrates, backs up or retro-grants a file another instance owns; under `ReadOnly` M4.4 migrates and M3.1(b) grants in memory only. A failure at any step routes to `Ready` (fresh) or `ReadOnly` |
 | **Profile: Ready** | Load status `OK`, `RECOVERED_BAK`, `FRESH`, `FRESH_AFTER_CORRUPT` | `reset_profile()` (→ Loading on a fresh file) or app exit | All mutators persist; heartbeat running; `RECOVERED_BAK` and `FRESH_AFTER_CORRUPT` show their one-time message first |
 | **Profile: ReadOnly** | `E_LOCKED` (M6) or `E_SCHEMA_NEWER` (M5.2) | "Retry" finds the lock stale (→ Loading) or app exit; `E_SCHEMA_NEWER` never exits | In-memory profile behaves normally; every write returns `E_READONLY`; banner persistent; `active_run` may be played but not saved |
 | **Write: Idle** | `Ready` | A mutator called | — |
@@ -338,12 +368,12 @@ active slot: on next load, `load_active_run()` returns a record whose `run_id` i
 | **Run Structure** | mutual | `RunRecord` dicts at S1–S5; `archive_run(record)`; `seed_source`, `abandon_reason`, `result`, `match_summaries`, `drafts` read from the record | `save_active_run` result codes; `load_active_run()` blob; `is_hero_unlocked(id)`; `abandon_counts_as_loss` read from `run_structure.json` | Run Structure owns the record schema (R1) and `validate()`; this GDD owns storage, archive shape (M8.1), stats and unlocks — **all R7/R9 contract points confirmed above** |
 | **Heroes** | upstream (data) | `HeroDef.unlock {key, condition}`; hero ids | `is_hero_unlocked`; `stats_for_hero` for hero select | Heroes owns which heroes exist and their identity; this GDD owns keys, grammar, evaluation (answers heroes OQ: `HeroDef.unlock`) |
 | **Card Database** | upstream | `heroes()`, `treasure_pool()`, `bundle_pool()` with `unlock` fields; `data_version`; `boss(id)`/`has(id)` for the validator | `validate_unlock_defs` (injected validator, CR-5 stage) | Card Database owns schemas and load; this GDD owns the `unlock` object shape (CR-3 amendment) and the validator's rules |
-| **Treasures** | downstream | treasure ids picked/offered (via the record's `drafts[]`) | `unlocked_ids("treasure")` for the pool filter; `treasures[id].picked` for display | **Contract — to be confirmed in treasures.md**: Treasures restates which ids ship locked |
-| **Reward Draft** | downstream | — | `unlocked_ids("treasure")`, `unlocked_ids("bundle")` at `offer()` time (never mid-run changes: unlocks are granted only at run end or load) | **Contract — to be confirmed in reward-draft.md**: the pool filter is applied before any seeded draw so a locked treasure never consumes a draw |
+| **Treasures** | downstream | treasure ids picked/offered (via the record's `drafts[]`); the four keys T8 names | `unlocked_keys()` for `pool(unlocked_keys, exclude_ids)` (T6); `treasures[id].picked` for display | **Confirmed against treasures.md** (T1 `unlock`, T6, T8, R-14): Treasures names the keys, this GDD defines their conditions (M10). Treasures' States table calls the grant event `unlock_earned`; this GDD's name `unlock_granted` (M3.6, also Run UI's) is authoritative — flagged for treasures.md |
+| **Reward Draft** | downstream | — | `is_treasure_unlocked(id)` / `unlocked_keys()` at `init_run` (run start), building `draft_state.treasure_pool` once; `unlocked_ids("bundle")` likewise when bundles lock | **Confirmed against reward-draft.md** (Interactions, Dependencies, AC-27): read at `init_run` only, before any seeded draw, so a locked treasure never consumes a draw and a mid-run grant is invisible to the running run |
 | **RNG & Event Log** | upstream (format) | Sealed run log inside the record (`to_json()`, rule 17), `log_schema_version` | Nothing at runtime; `user://runs/` files for the replay viewer and `/balance-check` | RNG & Event Log owns the log format; this GDD owns `log_schema_version` migration and the archive key `run_id` (rule 18 amendment) |
-| **Boss AI** | indirect | — | `settings.telegraph_mode` via `settings_changed` | Boss AI owns what each mode shows |
-| **Match UI** | indirect | — | `settings.action_delay_ms`, volumes | Match UI owns pacing |
-| **Run UI** | downstream | Commands: `set_setting`, `ack_notification`, `reset_profile`, "Clear run records", "Copy seed" | Read models: Continue card (`active_run` header fields), hero stats, run log pages, unlock progress, `pending_notifications`, load-status messages, ReadOnly banner | This GDD; UI is display-only (`src/ui/**`) |
+| **Boss AI** | none at v1 | — | — | boss-ai.md defines no player-side setting (`intent_mode` is per-boss data); row kept so the earlier `telegraph_mode` attribution is visibly withdrawn |
+| **Match UI** | indirect | — | `settings.anim_speed`, `high_contrast_states`, volumes via `settings_changed` (match-ui.md Interactions, Dependencies) | Match UI owns the enum and pacing; this GDD only stores the value |
+| **Run UI** | downstream | Commands: `set_setting`, `ack_notification`, `reset_profile`, "Clear run records", "Copy seed" | Read models: Continue card (`active_run` header fields), hero stats, `last_hero_id`, run log pages, `unlock_hint` / `unlock_progress`, `pending_notifications` + `unlock_granted`, load-status messages, ReadOnly banner | This GDD; UI is display-only (`src/ui/**`). run-ui.md's proposed names map per M1.3; its `anim_speed` labels `instant\|fast\|normal` are a display mapping over Match UI's enum (cross-GDD note for Run UI) |
 | **Content** | soft | Authors `unlock` objects in `treasures.json`/`heroes.json`/`bundles.json` | Validator errors at load | Content owns which items are locked and their milestones; this GDD owns the grammar |
 
 ## Formulas
@@ -378,9 +408,10 @@ where wins(S, "any") = S.runs_won;  wins(S, h) = S.heroes[h].runs_won;
 | launch heroes | set | 3 in v1 | calculated | Heroes whose own `unlock` is null |
 
 **Output Range:** boolean; monotone in S (every counter only grows, so a met condition stays
-met — the basis of M3.3). **Example:** `treasure_gauntlet_crown` with `S.heroes = {war: 2 wins,
-decay: 1, knowledge: 0}` → `all_of` = true ∧ true ∧ false = **false**; after one Knowledge win →
-**true**, granted with that run's `run_id`.
+met — the basis of M3.3). **Example:** `unlock.hero_shadow` = `any_of[ runs_won(hero_decay) ≥ 1,
+runs_won(hero_knowledge) ≥ 1 ]` with `S.heroes = {war: 2 wins, decay: 0, knowledge: 0}` →
+false ∨ false = **false**; after one Knowledge win → **true**, granted with that run's `run_id`
+(and `hero_knowledge_first_win` is granted in the same `archive_run`).
 
 ### F2. Statistics fold
 
@@ -455,7 +486,7 @@ profile_bytes      ≈ base_bytes + run_log_cap × archived_run_bytes + n_unlock
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | header_bytes | int | ~600 | constant (estimate) | ids, seeds, timestamps, result, boss_sequence (8 ids) |
-| deck_size, id_bytes | int | 36, ~28 | run-structure F4; constant | 36 ids × `"treasure_second_wind",` |
+| deck_size, id_bytes | int | 36, ~28 | run-structure F4; constant | 36 ids × `"war_whetstone_blade",` (the longest v1 id, `treasure_quartermasters_ledger`, is 33 bytes quoted) |
 | n_drafts, draft_bytes | int | 10, ~160 | DD-R04/R05; constant | 7 bundle + 3 treasure DraftRecords |
 | n_matches, summary_base | int | 8, ~180 | DD-R01; constant | one summary per floor |
 | archive_top_cards, entry_bytes | int | 10 (5–36), ~32 | data file; constant | truncated `damage_by_card` |
@@ -484,7 +515,7 @@ progress(c, S) = min(1, current(c, S) / c.n)         for leaf conditions (always
 **Variables:** `current` = the left-hand quantity of F1's comparison (for `each_launch`, the
 minimum across launch heroes); `c.n` as F1. **Output Range:** 0.0 – 1.0; `progress == 1 ⇔
 met` for leaves and `any_of`, and for `all_of` by construction (mean of 1s). **Example:**
-`tally_stick` with 7 bosses defeated → 0.7, shown as "7 / 10 bosses defeated".
+`bosses_defeated_16` with 8 bosses defeated → 0.5, shown as "8 / 16 bosses defeated".
 
 ### F7. Lock staleness
 
@@ -593,7 +624,8 @@ Run Structure, Heroes, Treasures, Card Database and RNG & Event Log (all below) 
 as depending on it (below). Run Structure, Heroes, Card Database and RNG & Event Log each already
 name Meta Progression in their Dependencies — consistent. This table adds **Reward Draft, Boss
 AI, Match UI** as dependents (settings and pool filter) — flagged for `/map-systems`, not edited
-here. Treasures and Reward Draft have no GDD yet; their rows are provisional.
+here. Treasures and Reward Draft are Designed (treasures.md, reward-draft.md); both name Meta
+Progression as a contract and their rows below are confirmed against those files.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
@@ -601,12 +633,12 @@ here. Treasures and Reward Draft have no GDD yet; their rows are provisional.
 | Card Database | This depends on Card Database | Hard | `unlock {key, condition}` on hero/treasure/bundle records (CR-3 amendment); `data_version` for retro-grants; `has(id)` for the validator; supplies `validate_unlock_defs` to it. |
 | Heroes | This depends on Heroes (data) | Soft | Hero ids for `stats.heroes{}`; `HeroDef.unlock` for Fortune/Order/Shadow (null at MVP → trivially unlocked). Answers heroes.md OQ: the key lives on `HeroDef.unlock`. |
 | RNG & Event Log | This depends on RNG & Event Log (format) | Soft | Sealed run log and `match_summary` shapes inside the record; `log_schema_version` migrated here; `user://runs/<run_id>.json` keyed by `run_id` (rule 18 amendment). Works without logs (unlocks and counts only). |
-| Treasures | Mutual | Soft | In: which treasure ids ship with `unlock` (Content authors; Treasures GDD restates). Out: `unlocked_ids("treasure")`, `stats.treasures{}` for display. **Contract — to be confirmed in treasures.md.** |
-| Reward Draft | Reward Draft depends on this | Soft (MVP: everything unlocked) | `unlocked_ids(kind)` read once per `offer()` before any seeded draw; locked ids never consume a draw. **Contract — to be confirmed in reward-draft.md.** |
+| Treasures | Mutual | Soft | In: the four locked ids and their keys (T8); Out: `unlocked_keys()` for `pool()`, `stats.treasures{}` for display. **Confirmed** against treasures.md T1/T6/T8/R-14 (conditions in M10). |
+| Reward Draft | Reward Draft depends on this | Soft (MVP: everything unlocked) | `is_treasure_unlocked(id)` / `unlocked_keys()` read once at `init_run`, before any seeded draw; locked ids never consume a draw. **Confirmed** against reward-draft.md Interactions / AC-27. |
+| Match UI | Match UI depends on this | Soft | `settings.anim_speed`, `high_contrast_states`, volumes (match-ui.md Interactions); session-local defaults until this system exists (MVP). |
 | Run UI | Run UI depends on this | Hard (for them) | Continue card, hero stats, Run Log screen, unlock progress and toasts, settings screen, load-status and ReadOnly messages; commands `set_setting`, `ack_notification`, `reset_profile`. |
-| Boss AI | Boss AI depends on this | Soft | `settings.telegraph_mode` via `settings_changed`; defaults to `full` without a profile. |
-| Match UI | Match UI depends on this | Soft | `settings.action_delay_ms`, volumes; defaults without a profile. |
-| Content | Content depends on this | Soft | The grammar and key format for authoring `unlock`; the 6 v1 milestones (M10) are the content brief. |
+| Boss AI | none at v1 | — | Withdrawn: boss-ai.md defines no player setting; `telegraph_mode`'s consumer is open (Open Questions). |
+| Content | Content depends on this | Soft | The grammar and key format for authoring `unlock`; the 4 v1 treasure keys (M10) and the unmapped milestones are the content brief. |
 
 ## Tuning Knobs
 
@@ -629,8 +661,8 @@ duplicated: `abandon_counts_as_loss`, `allow_custom_seed`, `floors_per_run` (Run
 | `max_condition_depth` / `max_condition_n` / fan-out | 3 / 999 / 8 | 2–5 / 1–9999 / 2–16 | More elaborate conditions; harder to display as one progress line | Simpler authoring surface |
 | `max_floor_clamp` | 12 | = top of run-structure `floors_per_run` range | Must track that range; a lower value re-clamps honest records | — |
 | `max_repairs_before_rebuild` | 25 | 5 – 100 | Tolerates more hand edits before a stats rebuild | Rebuilds sooner; a rebuild can only under-count (M7.5) |
-| Unlock thresholds (M10 table) | per key | `n` 1 – 999; first key should be met inside ~3 runs | Later unlocks; the "Curiosity" hook starves if nothing opens in the first session | Everything opens at once; locked treasures stop reading as milestones |
-| `profile_defaults` (M9) | volumes 1.0/0.8/1.0, delay 600 ms, telegraph `full` | per field in M9 | — | — |
+| Unlock thresholds (M10 table) | per key | `n` 1 – 999; first key should be met inside ~3 runs (today that is `unlock.hero_fortune` at the first victory; the four treasure keys all need a Decay/Knowledge result or 16 boss kills — see Open Questions) | Later unlocks; the "Curiosity" hook starves if nothing opens in the first session | Everything opens at once; locked treasures stop reading as milestones |
+| `profile_defaults` (M9) | volumes 1.0/0.8/1.0, `anim_speed` 1.0, `high_contrast_states` false, telegraph `full` | per field in M9 | — | — |
 
 ## Visual/Audio Requirements
 
@@ -653,7 +685,7 @@ Screens belong to Run UI (`/ux-design` specs); this table says what the profile 
 | Locked hero or treasure: condition text + progress "7 / 10" or bar (F6); `each_launch` lists per-hero ticks | Hero select; treasure codex / draft offer tooltip | On screen open | key Locked |
 | Run Log screen: newest first — date, hero, result (Victory / Defeat on floor n by <boss> / Abandoned), floors "n of F", deck size, treasures, top-`archive_top_cards` damage cards, seed hex with **Copy**, "custom seed" tag, `attempt > 1` marker, "details unavailable" for opaque schema rows; pagination `run_log(offset, limit)` | Run Log (from main menu) | On open, on page | Always; empty state "No runs yet" |
 | Victory / defeat summary additions: "New treasure unlocked: <name>" toasts drained from `pending_notifications` (one per key, acked when dismissed or after 4 s); unlock's condition shown as the toast subtitle | Run summary (run-structure UI row), main menu for `retro` grants | On summary open | queue non-empty |
-| Settings: volumes, fullscreen, action delay (ms slider 0–2000), telegraph mode, keep run records, "Clear run records", "Reset profile" (typed confirm) | Settings screen | On change (debounced write) | Always |
+| Settings: volumes, fullscreen, animation speed (`anim_speed`, Match UI enum), high-contrast states, telegraph mode, keep run records, "Clear run records", "Reset profile" (typed confirm) | Settings screen | On change (debounced write) | Always |
 | `save_failed` / `run_record_not_kept` toasts | Overlay | On event | Run Structure's `run_warning` path |
 
 > **📌 UX Flag — Meta Progression**: This system has UI requirements. In Pre-Production, run
@@ -681,9 +713,10 @@ Screens belong to Run UI (`/ux-design` specs); this table says what the profile 
 | Sealed run log never reopened; `unlock_granted` not on the run log (M3.6) | `design/gdd/rng-event-log.md` | Rule 15 | Rule dependency |
 | `replay_equivalence` requires same `data_version`; `user://runs/` files are the replay input | `design/gdd/rng-event-log.md` | F6 (registry formula) | Data dependency |
 | `match_summary.result`, `damage_by_card` used by F2 and M8.1 | `design/gdd/rng-event-log.md` | Rule 19, catalogue `match_summary` | Data dependency |
-| `telegraph_mode` setting | `design/gdd/boss-ai.md` | Intent display | Ownership handoff (Boss AI owns semantics) |
-| Pool filter by `unlocked_ids` before seeded draws | `design/gdd/reward-draft.md` *(planned)* | `offer()` | Rule dependency (contract) |
-| Which treasure ids ship locked (M10) | `design/gdd/treasures.md` *(planned)* | treasure pool table | Ownership handoff (contract) |
+| `anim_speed` enum and `high_contrast_states` stored in `settings` (M9) | `design/gdd/match-ui.md` | Core Rules 4, Tuning Knobs `anim_speed`, Interactions "Meta Progression" | Data dependency (Match UI owns semantics) |
+| `telegraph_mode` settings key; Run UI's proposed API names and settings list (M1.3, M9) | `design/gdd/run-ui.md` | Interactions "Meta Progression" row, Open Questions | Contract (resolved by the M1.3 mapping; `telegraph_mode` owner open) |
+| `is_treasure_unlocked(id)` at `init_run`; pool filter before seeded draws (M3.7) | `design/gdd/reward-draft.md` | `init_run`, Interactions "Meta Progression", AC-27 | Rule dependency (confirmed) |
+| The four locked treasure ids and their keys (M10); `pool(unlocked_keys, exclude_ids)` | `design/gdd/treasures.md` | T1 `unlock`, T6, T8 rows 13/15/17/18, R-14 | Ownership handoff (keys named there, conditions defined here) |
 
 ## Acceptance Criteria
 
@@ -760,21 +793,23 @@ with an injected `user://`-equivalent temp directory and synthetic `RunRecord` f
 
 **Unlocks (M2, M3, F1, F6)**
 
-- [ ] AC-19 **GIVEN** the six M10 treasure definitions and the three hero definitions, **WHEN**
-  `met` is evaluated against each of these synthetic stats — `{}` ; `{runs_won: 1}` ; `{bosses:
-  10 defeated across 4 ids}` ; `{heroes: war/decay/knowledge best_floor 5/5/4}` ; `{heroes:
-  war/decay/knowledge runs_won 1/1/1}` ; `{treasures.treasure_second_wind.picked: 3}` — **THEN**
-  the met sets are exactly: ∅ ; {trophy_rack, hero_fortune} ; {tally_stick} ; ∅ (deep_lamp needs
-  all three ≥ 5) ; {trophy_rack, banner_of_halvard, gauntlet_crown, hero_fortune, hero_order,
-  hero_shadow} ; {lich_grimoire}.
-- [ ] AC-20 **GIVEN** stats one win short of `tally_stick` (9 bosses), **WHEN** a defeat record whose
-  first match was a player win is archived, **THEN** `archive_run` returns
-  `unlocks_granted == ["unlock.treasure_tally_stick"]`, `unlocks[key] == {unlocked: true, at > 0,
+- [ ] AC-19 **GIVEN** the four M10 treasure definitions and the three hero definitions, **WHEN**
+  `met` is evaluated against each of these synthetic stats — `{}` ; `{runs_won: 1, heroes:
+  war runs_won 1}` ; `{runs_won: 1, heroes: decay runs_won 1}` ; `{heroes: decay best_floor 5,
+  knowledge best_floor 5}` ; `{bosses: 16 defeated across 8 ids}` ; `{bosses: 15 defeated across
+  16 ids}` ; `{runs_won: 3, heroes: war/decay/knowledge runs_won 1/1/1}` — **THEN** the met sets
+  are exactly: ∅ ; {hero_fortune, hero_order} ; {hero_decay_first_win, hero_fortune, hero_shadow} ;
+  {hero_decay_floor_5} ; {bosses_defeated_16} ; ∅ (cumulative count, not distinct ids) ;
+  {hero_decay_first_win, hero_knowledge_first_win, hero_fortune, hero_order, hero_shadow}.
+- [ ] AC-20 **GIVEN** stats one kill short of `bosses_defeated_16` (15 bosses), **WHEN** a defeat
+  record whose first match was a player win is archived, **THEN** `archive_run` returns
+  `unlocks_granted == ["bosses_defeated_16"]`, `unlocks[key] == {unlocked: true, at > 0,
   by_run_id: <that run_id>, retro: false}`, `pending_notifications` holds one entry for it, and
   `unlock_granted` was emitted once.
-- [ ] AC-21 **GIVEN** a custom-seed victory as the player's first win, **WHEN** archived, **THEN**
-  `unlock.treasure_trophy_rack` is granted (unlocks count custom seeds) and
-  `fastest_victory_s` stays `null` (bests do not).
+- [ ] AC-21 **GIVEN** a custom-seed Decay victory as the player's first win, **WHEN** archived,
+  **THEN** `hero_decay_first_win` and `unlock.hero_fortune` are granted (unlocks count custom
+  seeds), `is_treasure_unlocked("treasure_grave_tithe")` is `true`, `unlocked_keys()` contains
+  `hero_decay_first_win`, and `fastest_victory_s` stays `null` (bests do not).
 - [ ] AC-22 **GIVEN** a profile with `runs_won: 1` saved under `data_version "1.0"` and a data
   set `"1.1"` that newly defines `unlock.hero_fortune`, **WHEN** loading, **THEN** the key is
   granted with `retro: true, by_run_id: null`, a notification is queued, `"1.1"` is appended to
@@ -783,8 +818,9 @@ with an injected `user://`-equivalent temp directory and synthetic `RunRecord` f
   condition tightened), **WHEN** loading and evaluating, **THEN** it remains `unlocked: true`.
 - [ ] AC-24 **GIVEN** `heroes.json` with `hero_fortune.unlock` set and unmet, **WHEN**
   `is_hero_unlocked("hero_fortune")` and `is_hero_unlocked("hero_war")` are called, **THEN** they
-  return `false` and `true`; **AND** `unlock_progress("unlock.treasure_tally_stick")` with 7 bosses
-  defeated returns `{met: false, progress: 0.7}`.
+  return `false` and `true`; **AND** `unlock_progress("bosses_defeated_16")` with 8 bosses
+  defeated returns `{met: false, progress: 0.5}`, and `unlock_hint("treasure_living_armory")`
+  returns the same progress with `target == 16`.
 - [ ] AC-25 **GIVEN** a treasure whose condition references `boss_id: "boss_nope"`, **WHEN** Card
   Database loads with the injected validator, **THEN** load fails with `E_UNLOCK_UNKNOWN_ID`
   naming the key; **AND GIVEN** a condition nested 4 deep, **THEN** `E_UNLOCK_SHAPE`.
@@ -814,7 +850,11 @@ with an injected `user://`-equivalent temp directory and synthetic `RunRecord` f
 | CR-3 amendment: `TreasureDef.unlock` from "string or null" to `{key, condition} or null`, and the same field on `HeroDef` and `BundleDef`. Accept, or keep string keys in defs and move conditions to a separate `unlocks.json`? | Card Database GDD owner + Jacob | before `/create-architecture` | Proposed here (M2.1); `/consistency-check` to reconcile |
 | Rename atomicity of `.tmp → profile.json` on Windows/macOS/Linux under Godot 4.7 (`DirAccess.rename_absolute` or equivalent) — **NOT SOURCEABLE** from the pinned reference | `engine-programmer` via ADR | Technical Setup | Open; ADR must cite the 4.7 docs |
 | Is `max_save_ms` 50 achievable with a synchronous 2 MB pretty-printed write on the minimum spec, or do we need a background thread / compact JSON / a split `runs.json`? | `gameplay-programmer` | Vertical Slice (measure, AC-27) | Open; fallback is lowering `run_log_cap` |
-| The six locked-treasure ids are placeholders; Treasures/Content must map the six milestones onto real treasures (ideally ones whose effect echoes the milestone) | Treasures GDD + Content | `/design-system treasures` | Open — milestones decided, ids provisional |
+| ~~The six locked-treasure ids are placeholders~~ Resolved 2026-11-03: M10 now carries treasures.md T8's four ids and keys. Remaining: (a) does `bosses_defeated_16` mean 16 cumulative kills (this GDD's reading) or every one of the 16 bosses once (inexpressible at fan-out 8)? (b) no treasure rewards an any-hero milestone, so a War-only player sees no treasure unlock until 16 kills — should Treasures lock one more universal treasure on `runs_won ≥ 1`? | Treasures GDD + Content | `/review-all-gdds` | Open — (a) assumed cumulative; (b) content choice |
+| `telegraph_mode` is a settings key Run UI lists and this GDD stores, but no GDD owns its semantics: Boss AI's `intent_mode` is per-boss data, Match UI renders the intent banner. Assign to Match UI, or drop the key? | Match UI + Run UI GDDs | `/consistency-check` | Open — stored with default `full`, no consumer yet |
+| run-ui.md labels `anim_speed` as `instant\|fast\|normal`; match-ui.md (owner) defines `1.0 \| 1.5 \| 2.0 \| instant`. This GDD stores the owner's enum; Run UI should map labels | Run UI GDD | `/consistency-check` | Proposed here (M9) |
+| treasures.md States names the grant event `unlock_earned`; this GDD and run-ui.md use `unlock_granted` | Treasures GDD | `/consistency-check` | Proposed: rename in treasures.md |
+| `assets/data/profile.json` (defaults) and `user://profile.json` (the profile) share a basename; rename the data file `profile_defaults.json` and add it to DD-T01's list? | Jacob + design-decisions.md | before `/create-architecture` | Proposed |
 | Run-structure R6 does not set `result.floor_reached` on victory; this GDD derives it (F3). Should R6 set it instead? | Run Structure GDD | `/consistency-check` | Proposed: R6 sets `floor_reached = floors_per_run` |
 | rng-event-log rule 18 keys match logs by `run_seed_hex`; this GDD keys full run records by `run_id`. Align rule 18 to `run_id`? | RNG & Event Log GDD | `/consistency-check` | Proposed here (M8.2) |
 | Should the profile also keep a tiny `profile.index.json` (last run, hero, floor) so the main menu can render before parsing 2 MB? | Run UI `/ux-design` + `ui-programmer` | Pre-Production | Open; only if AC-1 load time is visible |

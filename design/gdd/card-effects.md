@@ -2,13 +2,14 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Designed
+> **Status**: In Review (revised after `/design-review` 2026-11-03; a re-review decides Approved)
 > **Author**: `/design-system` (game-designer role) for the owner. `systems-designer`, `creative-director`, `qa-lead` and `art-director` not consulted — Lean mode (no `Agent` tool available in this run). Review manually before production.
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 4 (Readable, deterministic rules) primarily; Pillar 1 (Every run builds a deck you couldn't have planned) and Pillar 2 (Bosses are puzzles) secondarily
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Feasibility: no engine reference for `scripting` under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (this system is pure GDScript `RefCounted` logic over plain data, DD-T02). No numbered ADRs exist; `docs/architecture/modifier-hook-chain.md` (reverse-documented prototype hook chain) was read as context only.
 > **Design decisions honoured**: DD-M09, DD-M11, DD-M13, DD-T01–DD-T04 (`design/design-decisions.md`); match-rules decisions C6, C10, C12, C13 and its primitive API; card-database CR-3/CR-5 stage 7; rng-event-log rules 7–12.
+> **REVISED 2026-11-03** (`/design-review`, lean mode at workflow `full`, option A "revise now"): (1) **C6.0 step unit** — one effect pass is one C10 step; ops are not separated by death checks; *dying* entities are excluded from selectors and readable only by reference (`is_dying` predicate, C3); F6 and Edge Cases restate the caps in those units. (2) **C11 rows 8, 16, 25** rewritten to the Heroes GDD's actual powers (Whetstone, Rot, Insight) with registry token ids `war_whetstone_blade` / `decay_husk`; rows 44–46 added (boss hero power, counter Deathrattle, Husk sweep). (3) **C9** defines event triggers on treasure/passive hosts without a hook binding as hero-slot observers (Treasures R-10). (4) Content/Treasures requests answered: `adjacent` gains `of:`; `tag` applies to board minions (R-3); `owner.turns_taken` ref (R-6); `condition` on value triggers (R-2); `scope.card` kind rule (R-13); `aura` on weapons; `buff cost` on deck cards; counters in the raise-time snapshot; `target` ref defined. (5) AC-43–46 added; AC-01/13/15/34 re-pointed; stale "(undesigned)" labels removed; Open Questions updated.
 
 ## Summary
 
@@ -120,7 +121,7 @@ this GDD owns its shape and validates it at load (C10).
 | `id` | no | string | Default `<host_id>.<index>`; must be unique within the host. Appears in every event this effect emits. |
 | `trigger` | yes | enum | One of C2. Must be legal for the host kind (C2 "Hosts" column). |
 | `scope` | per trigger | object | Narrows *which occurrences* of an observer or value trigger count (C2 "Scope keys"). Absent = the trigger's default scope. |
-| `condition` | no | expression | C4. Evaluated once, when the effect starts resolving (not when queued). False → the effect resolves as `fizzled: condition_false` with no ops run. |
+| `condition` | no | expression | C4. Evaluated once, when the effect starts resolving (not when queued). False → the effect resolves as `fizzled: condition_false` with no ops run. On a **value trigger** (C2) it is evaluated on every fold call, so "the first card you play each turn costs (1) less" reads `owner.cards_played_this_turn` at each F1 evaluation (Treasures R-2); a false condition leaves `context.value` unchanged. |
 | `targets` | no | selector | C3. Default target set for ops that need one; an op may override with its own `targets`. |
 | `ops` | yes | op[] | 1–`MAX_OPS_PER_EFFECT` (8) operations, C5, run in order. |
 | `once_per_turn` | no | bool | Default `false`. When true the effect resolves at most once per global `turn` per source entity (C6.7). |
@@ -185,7 +186,7 @@ Triggers fall into four classes, which decide *how* the resolver runs them:
 | `on_match_start` | event | — | `on_match_start` | — | treasure, passive | — |
 | `aura` | static | `recompute_auras()` | `recompute_auras()` (treasure auras are hosted on the owner's hero slot) | `zone: board\|hand` (default board) | minion, weapon, treasure, passive | — |
 | `passive_hand` | static | hand-scope self-aura on the card instance (F1 `card_enchantment_delta`) | — | — | minion, spell, weapon | `self` = the card in hand |
-| `modify_cost` | value | — | `modify_cost` | `card: filter` (side, type, `kind: hero_power`) | treasure, passive | `context.card`, `context.value` |
+| `modify_cost` | value | — | `modify_cost` | `card: filter` (side, type, cost, `has_trigger`, `kind`). `card` **without** `kind` matches card instances only; `kind: hero_power` matches the hero power only; `kind: any` both (Treasures R-13) | treasure, passive | `context.card`, `context.value` |
 | `modify_damage` | value | — | `modify_damage` | `source: filter`; `target: filter` | treasure, passive | `context.value`, `trigger_source`, `trigger_subject` |
 | `modify_heal` | value | — | `modify_heal` | `source`, `target` | treasure, passive | as above |
 | `modify_starting_hand_size` | value | — | `modify_starting_hand_size` | `side` | treasure, passive | `context.value` |
@@ -200,7 +201,11 @@ modify_max_attacks`) appears in the table above, so the DSL is a strict superset
 the Treasures GDD authors against **this** column, not a vocabulary of its own. `on_damage`
 splits into `on_damage_taken` / `on_damage_dealt` because the two are different card texts with
 different default scopes; both bind to the one engine point. A host using a trigger outside its
-"Hosts" column fails validation (`E_FX_TRIGGER`).
+"Hosts" column fails validation (`E_FX_TRIGGER`). An event trigger whose Hosts column admits
+treasure/passive but whose hook column is `—` (`on_play`, `on_summon`, `after_cast`, `on_attack`,
+`on_damage_dealt`, `on_heal`, `on_minion_died`, `on_hero_power`, `on_weapon_equipped`, and
+`on_damage_taken` with a non-hero `who`) is legal on those hosts and runs as a **hero-slot
+observer** (C9), not as a hook step.
 
 #### C3. Target selectors and the filter grammar
 
@@ -208,7 +213,10 @@ A selector is either a bare string (defaults) or `{ "selector": name, "filter": 
 "optional": bool }`. Selection is evaluated **when the op runs** (not when the effect was queued),
 against the live board, in **canonical order**: player board left to right, boss board left to
 right, player hero, boss hero, then weapons, then hand/deck positions. Random selectors draw from
-that ordered list (F5). "Friendly"/"enemy" are relative to the effect **owner**.
+that ordered list (F5). "Friendly"/"enemy" are relative to the effect **owner**. Selectors never
+yield a **dying** entity — one with `health ≤ 0` or `pending_destroy` that the death check after
+this pass will remove (C6.0); a dying entity is reachable only through an explicit reference
+(`self`, `target`, `trigger_subject`, `trigger_source`) and is what the `is_dying` predicate tests.
 
 | Selector | Yields | Notes |
 |---|---|---|
@@ -220,7 +228,7 @@ that ordered list (F5). "Friendly"/"enemy" are relative to the effect **owner**.
 | `all_friendly_minions` / `all_enemy_minions` / `all_minions` | minions in canonical order | Filter `not_self: true` excludes the source ("your *other* minions"). |
 | `all_friendly_characters` / `all_enemy_characters` / `all_characters` | minions then hero | |
 | `random_friendly_minion` / `random_enemy_minion` / `random_minion` / `random_enemy_character` / `random_friendly_character` / `random_character` | `n` distinct picks (default 1) | F5. Stealth does **not** protect against random selection (match-rules C12). Fewer candidates than `n` → all of them. |
-| `adjacent` / `left_neighbour` / `right_neighbour` | board neighbours of the source | Empty at the board edge; source must be a minion in play. |
+| `adjacent` / `left_neighbour` / `right_neighbour` | board neighbours of `of` — `self` (default), `target` (the `chosen` entity) or `trigger_subject` | `{"selector": "adjacent", "of": "target"}` is "a minion and the minions next to it" (the `chosen` op first, the `adjacent` op second). Empty at the board edge or when `of` is not a minion in play; `of: self` on a non-minion host is `E_FX_SELECTOR`. |
 | `hand` | the owner's hand card instances | With filter; `n` (random) or `all` (default all). |
 | `enemy_hand_random` | `n` random enemy hand cards | Reveals nothing beyond what the op logs. |
 | `deck_top` | top `n` cards of the owner's deck | Index 0 first; empty deck → empty. |
@@ -237,9 +245,10 @@ that ordered list (F5). "Friendly"/"enemy" are relative to the effect **owner**.
 | `has_keyword` / `lacks_keyword` | a DD-M09 keyword id (string or array) | characters, cards |
 | `has_trigger` | a C2 trigger name (e.g. `deathrattle`, `battlecry`) — true when the entity has a live (unsilenced) effect with that trigger | characters, cards |
 | `is_damaged`, `is_frozen`, `is_silenced`, `is_summoning_sick`, `has_divine_shield` | bool | characters |
+| `is_dying` | bool — `health ≤ 0` or `pending_destroy`, true only between a lethal op and the death check that follows the pass (C6.0); a popped Divine Shield leaves `health` unchanged, so it stays `false` | characters, via `test` on a reference (selectors never yield dying entities) |
 | `attack_le`, `attack_ge`, `health_le`, `health_ge`, `cost_le`, `cost_ge`, `cost_eq` | int or value expression | characters (`cost` = definition cost), cards |
 | `type` | `minion \| spell \| weapon` | cards, pools |
-| `set`, `tag`, `rarity` | Card Database enum values | cards, pools |
+| `set`, `tag`, `rarity` | Card Database enum values | cards, pools; `tag` and `set` also apply to minions on the board, reading the definition's `tags` / `set` ("your Husks", Treasures R-3) |
 | `token` | bool | pools (default `false` — tokens never appear in pools) |
 | `not_self` | bool | any (default `false`; `true` for "other") |
 
@@ -252,10 +261,18 @@ where the op needs a non-negative amount is clamped to 0 and logged in `values`.
 (closed set, `E_FX_REF_PATH` otherwise): `source.attack|health|max_health|damage_taken|cost`,
 `target.<same>`, `trigger_subject.<same>`, `trigger_source.<same>`, `owner.mana_current|mana_max|
 hand_size|deck_size|board_size|armor|hero_health|cards_played_this_turn|minions_died_this_turn|
-spells_cast_this_turn|weapon_attack|weapon_durability|fatigue_counter`, `opponent.<same>`,
-`context.amount` (damage/heal amount for `on_damage_*`/`on_heal`), `context.value` (value
-triggers), `counter.<key>` (C5 `add_counter`), `match.turn`. `source.*` reads live values while
-the source is in play and the raise-time snapshot afterwards (C6.5).
+spells_cast_this_turn|weapon_attack|weapon_durability|fatigue_counter|turns_taken`,
+`opponent.<same>`, `context.amount` (damage/heal amount for `on_damage_*`/`on_heal`),
+`context.value` (value triggers), `counter.<key>` (C5 `add_counter`), `match.turn`. `source.*`
+and `counter.*` read live values while the source is in play and the raise-time snapshot
+afterwards (C6.5), so a Deathrattle can count what its minion saw. `owner.turns_taken` is
+match-rules' `PlayerState.turns_taken` ("at the start of your 2nd turn" without depending on
+DD-M03's turn order; Treasures R-6). **`target`** is the entity the effect's `chosen` selector
+supplied (`E_FX_REF_PATH` under a trigger without `chosen`; the no-op case is `fizzled` /
+`no_target` before any ref is read); an op's own `targets` override does **not** rebind it, so
+"Destroy a friendly minion. Gain Mana Crystals this turn equal to its Cost" reads `target.cost`
+from a `mana` op aimed at `owner`. A per-target ref inside a multi-target op ("deal damage equal
+to each minion's Attack to it") is not in v1 (C11 v2 list).
 
 **Conditions** are boolean expressions: `{"cmp": [v, op, v]}` with `op ∈ {==, !=, <, <=, >, >=}`;
 `{"exists": selector}` (at least one match); `{"test": [entity_ref, filter]}` (apply a filter to
@@ -278,7 +295,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 |---|---|---|---|---|
 | `damage` | `amount` (value), `spell_damage: auto\|true\|false` (default `auto` = true iff the host is a `spell` card) | characters | `apply_damage(target, requested, source)`; `requested = amount + spell_damage(owner)` when scaling applies (F1) | No targets → no-op `no_target`; amount ≤ 0 → `apply_damage(…, 0)` still called (pops nothing, F2) |
 | `heal` | `amount` | characters | `apply_heal` | no-op `no_target`; full health heals 0 (engine logs) |
-| `buff` | `attack`, `health` (values, may be negative), `cost` (cards in hand only), `keywords[]`, `duration: permanent\|until_end_of_turn` | characters, weapons (attack only), hand cards (`cost` only) | `apply_enchantment(target, {attack_delta, health_delta, keywords_added, expires})` | no-op `no_target`; `health < 0` that leaves `health ≤ 0` kills in the next death check (F3) |
+| `buff` | `attack`, `health` (values, may be negative), `cost` (card instances only), `keywords[]`, `duration: permanent\|until_end_of_turn` | characters, weapons (attack only), card instances in hand **or deck** (`cost` only; the enchantment travels with the instance, so `buff cost` on `deck_top` followed by `draw` is "Draw a card. It costs (N) more/less", row 25) | `apply_enchantment(target, {attack_delta, health_delta, cost_delta, keywords_added, expires})` | no-op `no_target`; `health < 0` that leaves `health ≤ 0` kills in the next death check (F3) |
 | `set_stats` | `attack`, `health` (values; either may be absent) | minions | `set_stats(target, attack, health)` | no-op `no_target`. "Swap Attack and Health" is `set_stats` with `attack: {ref: target.health}, health: {ref: target.attack}` — both refs read before the write |
 | `give_keyword` | `keyword` (DD-M09 id, not `battlecry/deathrattle/discover/aura/silence/freeze`) | characters, weapons | `add_keyword` (an enchantment with `keywords_added`) | no-op; granting a keyword already held is a no-op `already_has` |
 | `remove_keyword` | `keyword` | characters | **none in match-rules v1** — provisional primitive `remove_keyword(target, kw)` requested (Open Questions) | Validator rejects (`E_FX_OP_UNAVAILABLE`) until the primitive exists → v2 list |
@@ -300,15 +317,25 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `weapon_durability` | `amount` (±) | weapons | **provisional** `modify_durability(weapon, delta)` requested | as `shuffle_into_deck` |
 | `hero_power_refresh` | — | — (side) | **provisional** `refresh_hero_power(side)` requested | as above |
 | `retrigger` | `trigger: deathrattle` (v1 allows only `deathrattle`) | minions, weapons | Queues the target's live effects with that trigger as if raised now (`trigger_queued{reason: retrigger}`) | no-op `no_target` or `no_such_trigger` |
-| `add_counter` / `set_counter` | `key`, `amount` / `value` | — (source-scoped) | Resolver-owned `EffectRuntime.counters[source_id][key]`; emits `counter_changed` | Never fails; counters die with the source |
+| `add_counter` / `set_counter` | `key`, `amount` / `value` | — (source-scoped) | Resolver-owned `EffectRuntime.counters[source_id][key]`; emits `counter_changed` | Never fails; counters live as long as the source's `entity_id` (a treasure/passive id never expires) and are copied into the raise-time snapshot (C6.5), so the source's own queued Deathrattle still reads them |
 | `conditional` | `if` (condition), `then: op[]`, `else: op[]` | per inner op | — | The branch not taken is logged as `skipped`; inner ops obey their own semantics |
 | `repeat` | `times` (value, 1–`MAX_REPEAT` 10), `ops: op[]` | per inner op | — | Each iteration re-evaluates selectors against the live board (so "deal 1 damage to a random enemy, 3 times" can hit three different or the same target) |
 | `choose_one` | `options: [{label_key, ops: op[]}]` (2–4) | per inner op | `discover(side, options)` with `kind: choose_one` → Choice phase; the picked option's ops run | Boss AI picks for the boss; a `chosen` inside an option is illegal (`E_FX_CHOSEN`) — Choose-One cards with targets declare the `chosen` at effect level and both options use it |
-| `aura` | `attack`, `health`, `cost`, `keywords[]` | per the effect's `targets` (static, C7) | `apply_enchantment(…, is_aura: true)` inside `recompute_auras()` | Only legal under trigger `aura` / `passive_hand` (`E_FX_OP`) |
+| `aura` | `attack`, `health`, `cost`, `keywords[]` | per the effect's `targets` (static, C7): characters, weapons (`attack` only — "your weapons have +1 Attack" on `owner_weapon`), hand cards (`cost` only), as for `buff` | `apply_enchantment(…, is_aura: true)` inside `recompute_auras()` | Only legal under trigger `aura` / `passive_hand` (`E_FX_OP`) |
 | `modify_value` | exactly one of `delta` (value), `set` (value), `mul` (int ≥ 0) | — | Returns `context.value` transformed; the engine clamps per its formula | Only legal under value triggers; any other op there is `E_FX_OP` |
 
 #### C6. Resolution
 
+0. **Step unit.** One effect pass (C6.4) is **one C10 step**; each primitive call inside it is
+   one *mutation* with one event. The engine's loop — death check, `recompute_auras()`, queue
+   pop — runs **after** the pass, never between ops. A minion killed by op 1 is therefore still
+   in play with `health ≤ 0` (or `pending_destroy`) while op 2 runs: it is **dying** — excluded
+   from every selector (C3), readable through `self`/`target`/`trigger_subject` refs and the
+   `is_dying` predicate, and removed by the death check that follows the pass. Deathrattles and
+   observers raised during the pass resolve after it, in queue order, each as its own step. A
+   hook-hosted effect is likewise one step (C9). This is match-rules C6 step 3 ("the minion's
+   Battlecry … as its own step") and C10's `execute(t)` read literally; `RESOLUTION_STEP_CAP`
+   counts passes, F6's static bound counts mutations per pass.
 1. **Binding.** At `RulesEngine.start`, the resolver registers itself as the engine's effect
    callback. For each card instance it indexes its host's effects by trigger; for each treasure and
    the boss passive it installs hooks through `hook_installers` (match-rules C3 step 1) in
@@ -349,7 +376,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    with no targets is a no-op and the next op still runs. Content that needs "only if the first
    part happened" writes a `conditional`.
 5. **Snapshot and liveness.** When an event trigger is queued the resolver stores
-   `{source_id, def_id, owner, attack, health, max_health, board_index, keywords}`. A queued
+   `{source_id, def_id, owner, attack, health, max_health, board_index, keywords, counters}`. A queued
    effect **always resolves** (match-rules C10) even if its source has since died, been
    transformed, bounced or silenced; `source.*` refs read live values while the source is still
    the same `entity_id` in play, else the snapshot. Exception, also match-rules': nothing is
@@ -376,11 +403,12 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    order, is easier to reason about in a log and is all Pillar 4 needs. Flagged in Open Questions
    for `/consistency-check`.
 10. **Bounds.** The resolver adds no cap of its own at runtime: match-rules' `RESOLUTION_STEP_CAP`
-    (1000 steps → `resolution_overflow`, boss wins) is the authority, and rng-event-log's
-    `max_match_events` (10,000) is the backstop. What this GDD adds is **static**: the validator
-    computes each effect's worst-case step bound (F6) and rejects content that could exceed
-    `EFFECT_STATIC_STEP_LIMIT` (250) in one pass, so an infinite loop can only come from a
-    *cycle* between cards (A summons B whose Deathrattle summons A), which the step cap catches.
+    (1000 steps = passes, C6.0 → `resolution_overflow`, boss wins) is the authority, and
+    rng-event-log's `max_match_events` (10,000) is the backstop. What this GDD adds is
+    **static**: the validator computes each effect's worst-case **mutation** bound (F6) and
+    rejects content that could exceed `EFFECT_STATIC_STEP_LIMIT` (250) in one pass, so no single
+    pass can flood the log, and an infinite loop can only come from a *cycle* between cards (A
+    summons B whose Deathrattle summons A), which the step cap catches.
 
 #### C7. Auras and hand passives
 
@@ -437,6 +465,19 @@ treasure as the cause (Pillar 2: passives bend rules visibly). Treasures own *wh
 their pool and their magnitudes (Treasures GDD); this GDD owns the fact that they are written in
 this DSL and resolve in this order.
 
+**Event triggers without a hook binding** (C2: hook column `—`, Hosts admits treasure/passive —
+`on_play`, `on_summon`, `after_cast`, `on_attack`, `on_damage_dealt`, `on_heal`,
+`on_minion_died`, `on_hero_power`, `on_weapon_equipped`, and `on_damage_taken` with a non-hero
+`who`) run as **observers hosted on the owner's hero slot**: queued like a card trigger when the
+engine fires the trigger point, in the candidate order's "hero power / hero enchantments"
+position for that side (C6.3), i.e. after the hook steps at that point and after that side's
+board and weapon observers. This is Treasures T2.5 / R-10, confirmed; Grave Tithe ("whenever a
+friendly minion dies, summon a Husk — once per turn") and boss passives such as "whenever the
+player plays a minion" or "whenever the boss's hero attacks" are this shape. A treasure or
+passive is always a **live source** while installed — never Silenced, never leaves play — and its
+source `entity_id` for `once_per_turn` marks (C6.7) and counters (C5) is the treasure or passive
+id.
+
 #### C10. Schema validation (Card Database CR-5 stage 7)
 
 The resolver ships `validate_effects(host_kind, host_id, effects[]) → report[]`, injected into the
@@ -447,7 +488,7 @@ is merged by Card Database with severity `E_DELEGATED` (its CR-5). Closed code s
 |---|---|
 | `E_FX_SCHEMA` | Missing/extra field, wrong type, `ops` empty or > `MAX_OPS_PER_EFFECT`, `id` duplicate within host |
 | `E_FX_TRIGGER` | Unknown trigger, or trigger not legal for this host kind (C2 Hosts), or unknown `scope` key |
-| `E_FX_SELECTOR` / `E_FX_FILTER` | Unknown selector / predicate; `self` on a treasure; `adjacent` on a non-minion host |
+| `E_FX_SELECTOR` / `E_FX_FILTER` | Unknown selector / predicate; `self` on a treasure; `adjacent` with `of: self` on a non-minion host; `of: target` under a trigger without `chosen` |
 | `E_FX_OP` | Unknown op; op illegal under this trigger class (`aura` outside static, non-`modify_value` under a value trigger); param out of range |
 | `E_FX_OP_TARGET` | Op applied to a selector that can never yield a legal kind (e.g. `freeze` on `hand`) |
 | `E_FX_OP_UNAVAILABLE` | Op whose primitive match-rules does not expose yet (C5 provisional rows) |
@@ -477,15 +518,15 @@ boss passives and treasures need (DD-H01 identities) in the DSL above. Ids are i
 | 5 | War minion | Whenever your hero attacks, gain 2 Armor. | `{"trigger":"on_attack","scope":{"attacker":"owner_hero"},"targets":"owner","ops":[{"op":"armor","amount":2}]}` |
 | 6 | War spell | Deal damage equal to your weapon's Attack to an enemy minion. | `{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"enemy"}},"ops":[{"op":"damage","amount":{"ref":"owner.weapon_attack"},"spell_damage":false}]}` |
 | 7 | War weapon | 2/2. Deathrattle: Deal 2 damage to the enemy hero. | `{"trigger":"deathrattle","targets":"enemy_hero","ops":[{"op":"damage","amount":2}]}` |
-| 8 | War hero power | Sharpen: Give your weapon +1 Attack this turn; if you have none, equip a 1/2 Blade. | `{"trigger":"hero_power","ops":[{"op":"conditional","if":{"exists":"owner_weapon"},"then":[{"op":"buff","targets":"owner_weapon","attack":1,"duration":"until_end_of_turn"}],"else":[{"op":"equip","card_id":"war_token_blade"}]}]}` |
-| 9 | Decay minion | Deathrattle: Summon two 1/1 Scarabs. | `{"trigger":"deathrattle","ops":[{"op":"summon","card_id":"decay_token_scarab","count":2,"position":"source_slot"}]}` |
+| 8 | War hero power (Heroes H-3) | Whetstone: Equip a 1/2 Whetstone Blade. If you already have a weapon, give it +1 Attack this turn instead. | `{"trigger":"hero_power","ops":[{"op":"conditional","if":{"exists":"owner_weapon"},"then":[{"op":"buff","targets":"owner_weapon","attack":1,"duration":"until_end_of_turn"}],"else":[{"op":"equip","card_id":"war_whetstone_blade"}]}]}` (Heroes' sketch vocabulary maps 1:1 — `branch` → `conditional`, `has_weapon` → `exists owner_weapon`, `enchant` → `buff`, `equip_weapon` → `equip`; no `targeting` field, C1 rule 1) |
+| 9 | Decay minion | Deathrattle: Summon two 1/1 Husks. | `{"trigger":"deathrattle","ops":[{"op":"summon","card_id":"decay_husk","count":2,"position":"source_slot"}]}` |
 | 10 | Decay minion | Battlecry: Destroy a friendly minion. Draw 2 cards. | `{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"destroy"},{"op":"draw","count":2}]}` (no friendly minion → Battlecry does not resolve, no draw) |
 | 11 | Decay minion | Whenever a friendly minion dies, gain +1/+1. | `{"trigger":"on_minion_died","scope":{"who":"friendly_minion"},"targets":"self","ops":[{"op":"buff","attack":1,"health":1}]}` |
 | 12 | Decay minion | Deathrattle: Deal damage equal to this minion's Attack to the enemy hero. | `{"trigger":"deathrattle","targets":"enemy_hero","ops":[{"op":"damage","amount":{"ref":"source.attack"}}]}` (snapshot, C6.5) |
 | 13 | Decay minion | Poisonous. Deathrattle: Add a random Decay card to your hand. | `{"trigger":"deathrattle","ops":[{"op":"add_to_hand","from":{"pool":"collectible","filter":{"set":"decay"}},"count":1}]}` |
 | 14 | Decay spell | Trigger a friendly minion's Deathrattle. | `{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly","has_trigger":"deathrattle"}},"ops":[{"op":"retrigger","trigger":"deathrattle"}]}` |
 | 15 | Decay spell | Give a minion +2/+2 and Taunt. If it has a Deathrattle, +4/+4 instead. | `{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":[{"op":"conditional","if":{"test":["target",{"has_trigger":"deathrattle"}]},"then":[{"op":"buff","attack":4,"health":4}],"else":[{"op":"buff","attack":2,"health":2}]},{"op":"give_keyword","keyword":"taunt"}]}` |
-| 16 | Decay hero power | Sacrifice: Destroy a friendly minion; summon a 2/2 Ghoul. | `{"trigger":"hero_power","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"destroy"},{"op":"summon","card_id":"decay_token_ghoul","position":"end"}]}` (unusable with no friendly minion — spell rule) |
+| 16 | Decay hero power (Heroes H-3) | Rot: Deal 1 damage to a minion. If it dies, summon a 1/1 Husk. | `{"trigger":"hero_power","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":[{"op":"damage","amount":1},{"op":"conditional","if":{"test":["target",{"is_dying":true}]},"then":[{"op":"summon","card_id":"decay_husk","position":"end"}]}]}` (Heroes' `left_play` is `is_dying`, read after the damage and before the pass's death check, C6.0 — so the Husk is summoned *before* the target's Deathrattle resolves; a popped Divine Shield leaves `health` unchanged → no Husk; unusable with both boards empty — spell rule) |
 | 17 | Knowledge minion | Spell Damage +1. | `keywords:["spell_damage"], spell_damage: 1, effects: []` |
 | 18 | Knowledge spell | Deal 3 damage. | `{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"any"}},"ops":[{"op":"damage","amount":3}]}` (scales by F1) |
 | 19 | Knowledge spell | Deal 2 damage to all enemies. | `{"trigger":"cast","targets":"all_enemy_characters","ops":[{"op":"damage","amount":2}]}` |
@@ -494,13 +535,13 @@ boss passives and treasures need (DD-H01 identities) in the DSL above. Ids are i
 | 22 | Knowledge minion | At the end of your turn, if you have 5 or more cards, deal 3 damage to a random enemy. | `{"trigger":"turn_end","scope":{"side":"owner"},"condition":{"cmp":[{"ref":"owner.hand_size"},">=",5]},"targets":{"selector":"random_enemy_character"},"ops":[{"op":"damage","amount":3,"spell_damage":false}]}` |
 | 23 | Knowledge spell | Freeze an enemy minion. If it was already Frozen, destroy it. | `{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"enemy"}},"ops":[{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"destroy"}],"else":[{"op":"freeze"}]}]}` |
 | 24 | Knowledge minion | Your spells cost (1) less. | `{"trigger":"aura","scope":{"zone":"hand"},"targets":{"selector":"hand","filter":{"type":"spell"}},"ops":[{"op":"aura","cost":-1}]}` |
-| 25 | Knowledge hero power | Insight: Deal 1 damage. | `{"trigger":"hero_power","targets":{"selector":"chosen","filter":{"kind":"any"}},"ops":[{"op":"damage","amount":1}]}` (host is not a spell → no Spell Damage) |
+| 25 | Knowledge hero power (Heroes H-3) | Insight: Draw a card. It costs (1) more this turn. | `{"trigger":"hero_power","ops":[{"op":"buff","targets":{"selector":"deck_top","n":1},"cost":1,"duration":"until_end_of_turn"},{"op":"draw","count":1}]}` (Heroes' `bind`/`$drawn` is not needed: the card about to be drawn *is* `deck_top`, and a cost enchantment travels with the instance into hand, C5; empty deck → `ops[0]: no_target`, then fatigue) |
 | 26 | Neutral minion | Your other minions have +1/+1. (aura lord) | `{"trigger":"aura","targets":{"selector":"all_friendly_minions","filter":{"not_self":true}},"ops":[{"op":"aura","attack":1,"health":1}]}` |
 | 27 | Neutral minion | Adjacent minions have +2 Attack. | `{"trigger":"aura","targets":"adjacent","ops":[{"op":"aura","attack":2}]}` |
 | 28 | Neutral minion | Taunt. Divine Shield. (taunt wall) | `keywords:["taunt","divine_shield"], effects: []` |
 | 29 | Neutral minion | Battlecry: Silence a minion. | `{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":[{"op":"silence"}]}` |
 | 30 | Neutral minion | Battlecry: Return a friendly minion to your hand. | `{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"return_to_hand"}]}` |
-| 31 | Neutral minion | Battlecry: Transform an enemy minion into a 1/1 Sheep. | `{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion","side":"enemy"}},"ops":[{"op":"transform","card_id":"neutral_token_sheep"}]}` |
+| 31 | Neutral minion | Battlecry: Transform an enemy minion into a 1/1 Sheep. | `{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion","side":"enemy"}},"ops":[{"op":"transform","card_id":"neutral_sheep"}]}` |
 | 32 | Neutral minion | Battlecry: Add a copy of a friendly minion to your hand. | `{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"copy_to_hand"}]}` |
 | 33 | Neutral spell | Choose One — Deal 2 damage to a character; or Restore 4 Health to it. | `{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"any"}},"ops":[{"op":"choose_one","options":[{"label_key":"opt.smite","ops":[{"op":"damage","amount":2}]},{"label_key":"opt.mend","ops":[{"op":"heal","amount":4}]}]}]}` |
 | 34 | Neutral minion | At the start of your turn, deal 1 damage to a random enemy minion, twice. | `{"trigger":"turn_start","scope":{"side":"owner"},"ops":[{"op":"repeat","times":2,"ops":[{"op":"damage","targets":"random_enemy_minion","amount":1}]}]}` |
@@ -513,12 +554,18 @@ boss passives and treasures need (DD-H01 identities) in the DSL above. Ids are i
 | 41 | Treasure | Whenever you draw a card, it costs (1) less. | `{"trigger":"on_draw","scope":{"side":"owner"},"targets":"trigger_subject","ops":[{"op":"buff","cost":-1}]}` |
 | 42 | Treasure | Your minions have Rush. | `{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","keywords":["rush"]}]}` |
 | 43 | Treasure | Your hero can attack twice each turn. | `{"trigger":"modify_max_attacks","scope":{"who":"owner_hero"},"ops":[{"op":"modify_value","set":2}]}` |
+| 44 | Boss hero power | Brand: Deal 1 damage. | `{"trigger":"hero_power","targets":{"selector":"chosen","filter":{"kind":"any"}},"ops":[{"op":"damage","amount":1}]}` (host is not a spell → no Spell Damage, F1) |
+| 45 | Neutral minion | Deathrattle: Deal 1 damage to the enemy hero for each minion that died while this was in play. | `{"trigger":"on_minion_died","scope":{"who":"any_minion"},"ops":[{"op":"add_counter","key":"seen","amount":1}]}`, `{"trigger":"deathrattle","targets":"enemy_hero","ops":[{"op":"damage","amount":{"ref":"counter.seen"}}]}` (the Deathrattle reads the counter from its raise-time snapshot, C6.5) |
+| 46 | Decay spell | Destroy all your Husks. Deal 1 damage to all enemies for each. | `{"trigger":"cast","ops":[{"op":"set_counter","key":"n","value":{"count":{"selector":"all_friendly_minions","filter":{"tag":"husk"}}}},{"op":"destroy","targets":{"selector":"all_friendly_minions","filter":{"tag":"husk"}}},{"op":"damage","targets":"all_enemy_characters","amount":{"ref":"counter.n"}}]}` (`tag` on board minions, C3; the spell's counter lives on the resolving card instance) |
 
 Coverage verdict: every archetype the brief names (weapon buffs, deathrattle summons,
 sacrifice-for-value, spell damage, draw engines, discover, taunt walls, aura lords, conditional
 battlecries, random pings, Choose One, transforms, boss passives, cost/damage/attack-count hooks)
-is expressible with v1 ops and primitives. Rows 1, 7 and 8 need only `attack` on weapons; a
-"+1 Durability" text needs the provisional `weapon_durability` op.
+is expressible with v1 ops and primitives. Rows 8, 16 and 25 are the three launch hero powers
+**as Heroes H-3 words them** (prose binding there; `hero_war/decay/knowledge.hero_power` in the
+registry), and each row names how Heroes' provisional sketch vocabulary maps onto v1 ops — no
+`branch`, `left_play`, `bind` or `enchant_card` primitives are added. Rows 1, 7 and 8 need only
+`attack` on weapons; a "+1 Durability" text needs the provisional `weapon_durability` op.
 
 **v2 — deliberately not expressible in v1** (each needs either a new match-rules primitive, a new
 keyword under DD-M09, or UI the MVP does not have; a card needing one is a GDD change here first):
@@ -530,6 +577,7 @@ keyword under DD-M09, or UI the MVP does not have; a card needing one is a GDD c
 | Quests / multi-turn progress with a hand display | Counters exist (C5) but the UI to show progress does not | Match UI work; a `quest` keyword |
 | "Your Battlecries trigger twice", "Deathrattles trigger twice" | A trigger-count modifier over other cards' effects | `modify_trigger_count` value trigger (v2 candidate) |
 | "Cast a copy of the last spell you cast", "repeat all spells cast this turn" | History queries beyond per-turn tallies | A spell-history ref set |
+| "Deal damage to each minion equal to its own Attack" (per-target value inside one multi-target op) | `target` is the `chosen` entity only (C4) | A `current` ref bound per iteration of a multi-target op |
 | Outcast / hand-position text, Echo, Twinspell, Magnetic | Hand position and card-return semantics not modelled | New keywords (DD-M09 change) |
 | Immune, Elusive/spell immunity, Reborn, Mega-Windfury | Deferred by match-rules Open Questions | DD-M09 change |
 | Adapt-style "Discover an enchantment" | Options must be cards in v1 | `discover` with non-card options |
@@ -678,7 +726,7 @@ on negative health buff:                  same as aura loss (no clamp): a 3/3 wi
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | attack_delta / health_delta | int | −10 to +10 | data file (card effect) | Per-enchantment change |
-| expires | enum | `null \| end_of_turn` | data file (`duration`) | Removed by match-rules C4 End step 5 of the **recipient's controller** (the engine's rule; see Edge Cases for the enemy-side consequence) |
+| expires | enum | `null \| end_of_turn` | data file (`duration`) | Removed by match-rules C4 End step 5 of the **recipient's controller** (the engine's rule; see Edge Cases for the enemy-side consequence). Recipients include card instances in hand or deck (`cost` enchantments, rows 25 and 41) — match-rules' step 5 wording "characters" is asked to confirm this (Open Questions) |
 | damage_taken | int | 0–∞ | state (match-rules) | Never written by this system |
 
 **Output Range:** as match-rules F6. **Example:** "+4/+4 until end of turn" on a 1/1 that then
@@ -743,7 +791,8 @@ picks B then C.
 
 ### F6. Static step bound and the caps
 
-The `effect_step_bound` formula is defined as:
+The `effect_step_bound` formula bounds the **mutations (primitive calls) in one pass** — the
+name is kept for the registry; the C10 step is the pass itself (C6.0). It is defined as:
 
 `effect_step_bound = 1 + Σ_{op ∈ ops} steps(op)` where
 `steps(op) = max_targets(op.targets) × (op is summon ? count : 1)` for leaf ops,
@@ -758,12 +807,13 @@ The `effect_step_bound` formula is defined as:
 | MAX_REPEAT | int | 2–20 | data file (default 10) | `times` ceiling |
 | MAX_SUMMON_COUNT | int | 1–7 | data file (default 7) | `count` ceiling (= `BOARD_SIZE`) |
 | EFFECT_STATIC_STEP_LIMIT | int | 50–1000 | data file (default 250) | Validator rejects an effect whose bound exceeds it (`E_FX_BUDGET`) |
-| RESOLUTION_STEP_CAP | int | 200–5000 | match-rules data file (1000) | Runtime authority; owned by match-rules |
-| max_match_events | int | 2,500–100,000 | rng-event-log (10,000 at defaults) | Log cap; ≈ 3 events per step worst case → 1000 steps ≈ 3,000 events, inside the cap |
+| RESOLUTION_STEP_CAP | int | 200–5000 | match-rules data file (1000) | Runtime authority, counted in **passes** (C6.0); owned by match-rules |
+| max_match_events | int | 2,500–100,000 | rng-event-log (10,000 at defaults) | Log cap; ≈ 1 event per mutation plus the step's own events. A typical pass is 1–3 mutations, so 1000 passes ≈ 2,000–4,000 events; only a chain of passes near the 250 limit trips this cap before the step cap (Edge Cases) |
 
-**Output Range:** a typical card is 1–3 steps; the worst legal single effect is 250. Four such
-effects chained still sit under the 1000-step cap, so a `resolution_overflow` in play means a
-**cycle** between cards, which is the content bug it is meant to surface. **Example:** row 34
+**Output Range:** a typical card is 1–3 mutations; the worst legal single pass is 250. The step
+cap and the log cap are in different units, and whichever trips first ends the match with its
+own reason (`resolution_overflow` / `log_overflow`); in practice only a **cycle** between cards
+reaches either, which is the content bug both are meant to surface. **Example:** row 34
 (`repeat 2 × random_enemy_minion damage`) → `1 + 2 × 1 = 3`; "deal 1 to all minions, 10 times"
 → `1 + 10 × 16 = 161`, legal; the same with `times: 20` fails validation (`321 > 250`).
 
@@ -787,16 +837,19 @@ already decides the case, the entry says so and adds only what this system contr
   hit Stealth). The log's `targets[]` shows it.
 - **If an op's selector resolves to an empty set at run time** (the only enemy minion died to the
   previous op): the op is `no_target`; later ops still run. "Deal 2 damage to a minion and 1 to
-  its neighbours" whose target had no neighbours deals the 2 and logs `adjacent: no_target`.
+  its neighbours" (`chosen`, then `adjacent` with `of: target`) whose target had no neighbours
+  deals the 2 and logs `adjacent: no_target`.
 - **If `random_*` asks for `n` and fewer candidates exist**: all candidates are picked, in `k`
   draws (F5); no draw is made for an empty list, so determinism does not depend on empty rolls.
 - **If `trigger_subject` has left play by the time a queued observer resolves** ("whenever a
   minion is summoned, give it +1/+1" and the summoned minion died to a Deathrattle first): the
   selector reads the snapshot for refs but the `buff` op finds no live target → `no_target`.
-- **If a `conditional` references a target that was destroyed by an earlier op in the same
-  effect** (`{"test": ["target", {…}]}` after `destroy`): `pending_destroy` minions are still in
-  play until the death check, so the test reads them as alive; `is_damaged`/stats read live
-  values. The log's `values` carries the evaluated condition.
+- **If a `conditional` references a target that was destroyed or killed by an earlier op in the
+  same effect** (`{"test": ["target", {…}]}` after `destroy` or lethal `damage`): the entity is
+  *dying* (C6.0) — still in play until the death check that follows the pass, so `target.*`
+  refs and the `is_dying`, `is_damaged` and stat predicates read its live values; no selector
+  yields it, so a later `all_enemy_minions` op skips it. This is how Rot (row 16) tells "it
+  died" from "it lived". The log's `values` carries the evaluated condition.
 
 **Summons, transforms and copies**
 
@@ -863,7 +916,8 @@ already decides the case, the entry says so and adds only what this system contr
   is dropped silently (no event — nothing mutated).
 - **If a `repeat` changes the board between iterations** ("deal 1 to a random enemy minion,
   3 times" and the first ping kills the only enemy minion): iteration 2 and 3 are `no_target`
-  no-ops; `effect_resolved.ops` lists three entries so the player sees two pings went nowhere.
+  no-ops (the dying minion is no longer selectable, C6.0); `effect_resolved.ops` lists three
+  entries so the player sees two pings went nowhere.
 - **If a hero power's effect would act while the hero is Frozen**: Freeze blocks attacks only
   (match-rules C13); the hero power is usable and resolves normally. A hero power that *equips* a
   weapon still equips; the hero still cannot swing it this turn.
@@ -904,7 +958,11 @@ already decides the case, the entry says so and adds only what this system contr
 - **If `mana` would exceed `MAX_MANA` or drop below 0**: the engine clamps (match-rules C5);
   `values.applied` shows the real delta.
 - **If `equip` runs while a weapon is held**: the old weapon is destroyed first and its Deathrattle
-  queues before anything else in this effect continues (match-rules C6).
+  queues before anything else in this effect continues (match-rules C6); it resolves after the
+  pass (C6.0).
+- **If `buff cost` on `deck_top` precedes `draw` and the deck is empty** (Insight, row 25):
+  `ops[0]: no_target`, then the draw deals fatigue; nothing is enchanted. With one card left,
+  that card is enchanted, drawn, and shows the tax in hand.
 
 **Hooks and passives**
 
@@ -917,6 +975,11 @@ already decides the case, the entry says so and adds only what this system contr
   player-card `on_heal` observer (hooks first).
 - **If a treasure effect uses `self`**: rejected at load (`E_FX_SELECTOR`); treasures are not
   entities on the board.
+- **If a treasure or boss passive uses an event trigger with no hook binding** (Grave Tithe's
+  `on_minion_died`, a boss "whenever the player plays a minion"): hero-slot observer (C9) —
+  queued when the trigger point fires, resolving in its side's "hero power / hero enchantments"
+  candidate position, after any hook step at that point. Grave Tithe's `once_per_turn` mark is
+  keyed on the treasure id, so two friendly deaths in one check summon one Husk.
 
 **Recursion and caps**
 
@@ -929,7 +992,9 @@ already decides the case, the entry says so and adds only what this system contr
 - **If a single effect's static bound exceeds `EFFECT_STATIC_STEP_LIMIT`**: `E_FX_BUDGET` at load
   — never reaches play.
 - **If the log would exceed `max_match_events` before the step cap**: rng-event-log's
-  `log_overflow` → `match_ended(fault)`; at defaults this cannot precede the step cap (F6).
+  `log_overflow` → `match_ended(fault)`; at defaults this precedes the step cap only when a
+  cycle chains passes near the 250-mutation limit (F6). Either ending names its reason; both
+  are the same content bug.
 
 **Content and validation**
 
@@ -961,7 +1026,7 @@ contract this GDD proposes and they confirm.
 | Match Rules | This depends on Match Rules (and it calls back into this) | Hard | Trigger points and hook points (C2), the primitive API (C5), `MatchState` read access, the Choice phase and `choose` resumption, `recompute_auras()`, `RESOLUTION_STEP_CAP`. This supplies `resolve()`, `legal_targets()`, `targeting_spec()`. Five primitives requested (Interactions). |
 | Card Database | This depends on Card Database | Hard | `effects[]`/`passive` payloads, `type`, `cost`, `spell_damage`; `has(id)`, `card(id)`, `collectible_pool()`, `cards_by_*` for pools (F4). This supplies the CR-5 stage 7 validator and the `E_FX_*` codes. No `targeting` field needed (C1 rule 1). |
 | RNG & Event Log | This depends on RNG & Event Log (through the engine) | Hard | `match_<floor>` stream for F4/F5 draws (direct, no forks in v1 — Open Questions); event envelope with `cause_seq`; `max_match_events` backstop. This owns `effect_resolved.values`, `discover_*`, `counter_changed`. |
-| Heroes | Heroes depends on this | Hard (for them) | Hero powers are `hero_power`-trigger effects in this DSL (DD-M13); War/Decay/Knowledge identities (DD-H01) rely on rows 1–25 of C11 being expressible. |
+| Heroes | Heroes depends on this | Hard (for them) | Hero powers are `hero_power`-trigger effects in this DSL (DD-M13); War/Decay/Knowledge identities (DD-H01) rely on rows 1–25 of C11 being expressible, and rows 8, 16 and 25 are the three powers as Heroes H-3 words them (Whetstone, Rot, Insight), using the registry tokens `war_whetstone_blade` and `decay_husk`. |
 | Treasures | Treasures depends on this | Hard (for them) | Treasures and boss passives are effects on hook-bound triggers (C2, C9); ordering "hooks first, pick order, passive last". Treasures owns the pool and magnitudes. |
 | Boss AI | Boss AI depends on this | Hard (for them) | `legal_targets()` for play enumeration; `ChoiceRequest.options` to answer Discover/Choose One; deterministic `resolve` on `clone()` for look-ahead. |
 | Match UI | Match UI depends on this | Soft (engine runs headless) | `effect_resolved` as the playback unit; `discover_offered` for the panel; `targeting_spec` for highlights; `fizzled`/`outcome` reasons for feedback copy. |
@@ -1124,10 +1189,11 @@ tooltip, treasure tray, scaled-damage hand display). Stories that reference UI s
 | Stream draw primitives and draw counts | `design/gdd/rng-event-log.md` | F4 `randi_range`, `shuffle`; rule 8 draw-order documentation | Data dependency |
 | Event envelope, `cause_seq`, catalogue rows for `effect_resolved`, `discover_*`, `minion_modified` | `design/gdd/rng-event-log.md` | Rules 11–14; D. catalogue | Ownership handoff |
 | `max_match_events` backstop | `design/gdd/rng-event-log.md` | F7 | Data dependency |
-| Hero power as a DSL effect, 2 mana once per turn | `design/gdd/heroes.md` (undesigned) | Hero power definitions | Ownership handoff |
-| Treasure and passive hooks authored in this DSL; hooks-first ordering | `design/gdd/treasures.md` (undesigned) | Hook definitions, pick order | Ownership handoff |
-| `legal_targets()`, `ChoiceRequest` answering | `design/gdd/boss-ai.md` (undesigned) | AI command loop | Ownership handoff |
-| Playback of `effect_resolved`, Discover panel | `design/gdd/match-ui.md` (undesigned) | Event rendering | Data dependency |
+| Hero power as a DSL effect, 2 mana once per turn; the three powers' prose | `design/gdd/heroes.md` | H-3 Whetstone / Rot / Insight; tokens `war_whetstone_blade`, `decay_husk` | Ownership handoff |
+| Treasure and passive hooks authored in this DSL; hooks-first ordering; hero-slot observers | `design/gdd/treasures.md` | T2.5, T8 pool, T9 sketches, R-2/R-3/R-6/R-10/R-13 | Ownership handoff |
+| `legal_targets()`, `ChoiceRequest` answering | `design/gdd/boss-ai.md` | AI command loop | Ownership handoff |
+| Playback of `effect_resolved`, Discover panel | `design/gdd/match-ui.md` | Event rendering | Data dependency |
+| Card texts written against C11 rows; the two redesigns; boss passives B1 | `design/gdd/content.md` | CN-2 card plan (`Row` column), CN-3 bosses | Data dependency |
 | Hero identities War / Decay / Knowledge driving the archetype table | `design/design-decisions.md` DD-H01 | Launch heroes | Rule dependency |
 | Card frame text slot size constraining `MAX_OPS_PER_EFFECT` | `design/art/art-bible.md` | §4 Card frame slot layout | Rule dependency |
 
@@ -1143,7 +1209,7 @@ refers to the C11 coverage table.
 **Schema and validation**
 
 - [ ] AC-01 **GIVEN** the full v1 fixture set, **WHEN** `validate_effects` runs on every host,
-  **THEN** it returns zero errors, and each C11 row 1–43 is present in the fixture and validates.
+  **THEN** it returns zero errors, and each C11 row 1–46 is present in the fixture and validates.
 - [ ] AC-02 **GIVEN** a card with two play effects each using `chosen`, **WHEN** validated,
   **THEN** `E_FX_CHOSEN` names the host and the second effect's id.
 - [ ] AC-03 **GIVEN** a boss `passive` with trigger `battlecry`, **WHEN** validated, **THEN**
@@ -1178,15 +1244,15 @@ refers to the C11 coverage table.
 - [ ] AC-12 **GIVEN** row 33 cast on an enemy 3/3, **WHEN** `choose(0)` (Smite), **THEN**
   `damage_dealt{amount: 2}` and no `healed`; **WHEN** `choose(1)` instead, **THEN** `healed` and no
   `damage_dealt`.
-- [ ] AC-13 **GIVEN** row 25 (hero power "Deal 1") and two Spell Damage +1 minions, **WHEN** used
+- [ ] AC-13 **GIVEN** row 44 (hero power "Deal 1") and two Spell Damage +1 minions, **WHEN** used
   on the enemy hero, **THEN** `damage_dealt.amount == 1`; **GIVEN** row 18 cast instead, **THEN**
   `amount == 5` and `effect_resolved.ops[0].values.requested == 5`.
 - [ ] AC-14 **GIVEN** row 19 ("Deal 2 to all enemies") with +1 Spell Damage and an enemy board of
   3 plus hero, **WHEN** cast, **THEN** four `damage_dealt{amount: 3}` in canonical order (board
   left to right, then hero).
 - [ ] AC-15 **GIVEN** row 8 (War hero power) with no weapon, **WHEN** used, **THEN**
-  `weapon_equipped` (1/2 Blade) and `ops[0].values.branch == "else"`; **WHEN** used next turn
-  with the Blade held, **THEN** `enchantment_applied{attack_delta: 1, expires: end_of_turn}` on
+  `weapon_equipped` (1/2 `war_whetstone_blade`) and `ops[0].values.branch == "else"`; **WHEN** used
+  next turn with the Blade held, **THEN** `enchantment_applied{attack_delta: 1, expires: end_of_turn}` on
   the weapon and no equip; at that End step the enchantment is removed.
 
 **Event triggers and ordering**
@@ -1252,7 +1318,7 @@ refers to the C11 coverage table.
   "minions cost 1 less" installed, **WHEN** the player reads a 3-cost minion's `effective_cost`,
   **THEN** 3 (fold: treasure first −1, passive +1); a 0-cost minion reads 0.
 - [ ] AC-34 **GIVEN** row 40 (treasure "spells deal 1 more"), **WHEN** row 18 is cast for 3 with 0
-  Spell Damage, **THEN** `damage_dealt.amount == 4`; **WHEN** row 25 (hero power) is used, **THEN**
+  Spell Damage, **THEN** `damage_dealt.amount == 4`; **WHEN** row 44 (hero power) is used, **THEN**
   1 (scope `type: spell`).
 - [ ] AC-35 **GIVEN** row 43 (treasure "hero attacks twice"), **WHEN** the hero with a weapon
   attacks twice, **THEN** both accepted and the third is `CANNOT_ATTACK`.
@@ -1282,6 +1348,28 @@ refers to the C11 coverage table.
   **WHEN** `resolve` is timed on the CI runner, **THEN** under 2 ms; `validate_effects` over the
   full v1 fixture under 50 ms.
 
+**Hero powers, hosts and counters (added by the 2026-11-03 review)**
+
+- [ ] AC-43 **GIVEN** row 16 (Rot) used on an enemy 2/1, **WHEN** resolved, **THEN** the log reads
+  `damage_dealt{amount: 1}`, `minion_summoned{decay_husk}` at the rightmost friendly slot,
+  `effect_resolved` (`ops[1].outcome == applied`), then `minion_died` for the target — the Husk
+  arrives before the target's Deathrattle resolves; **GIVEN** an enemy 2/3 instead, **THEN**
+  damage only, no `minion_summoned`, `ops[1].outcome == skipped`; **GIVEN** a 1/1 with Divine
+  Shield, **THEN** `divine_shield_popped`, no summon.
+- [ ] AC-44 **GIVEN** row 25 (Insight) with a 3-cost spell on top of the deck, **WHEN** used,
+  **THEN** `enchantment_applied{cost_delta: 1, expires: end_of_turn}` precedes `card_drawn`, that
+  card's `effective_cost` reads 4 until the owner's End step and 3 after it; **GIVEN** an empty
+  deck, **THEN** `ops[0].outcome == no_target` and one fatigue damage event, no enchantment.
+- [ ] AC-45 **GIVEN** a treasure "whenever a friendly minion dies, summon a 1/1 Husk — once per
+  turn" (`on_minion_died`, hero-slot observer, `once_per_turn`) and a friendly minion with
+  "whenever a friendly minion dies, gain +1/+1" (row 11), **WHEN** two friendly minions die in
+  one death check, **THEN** exactly one `minion_summoned{decay_husk}` with `source_id` equal to
+  the treasure id, its `trigger_resolved` **after** row 11's two, and no `E_FX_TRIGGER` at load.
+- [ ] AC-46 **GIVEN** row 45 after three minions (either side) died while it was in play, **WHEN**
+  it dies, **THEN** `damage_dealt{amount: 3}` on the enemy hero read from `counter.seen` in the
+  raise-time snapshot; **GIVEN** the same minion bounced to hand and replayed, **THEN** its
+  counter reads 0.
+
 ## Open Questions
 
 | Question | Owner | Deadline | Resolution |
@@ -1298,3 +1386,7 @@ refers to the C11 coverage table.
 | `retrigger` is limited to `deathrattle` in v1. Decay may want "trigger a Battlecry again" — allow `battlecry` with `chosen` re-targeting? | Heroes / Content | Alpha content pass | Deferred |
 | Generated card text from the DSL (so `text.en` cannot drift from the effect) vs authored text. v1 authors text by hand; `W_FX_KEYWORD_MISMATCH` is the only drift check. | Content / Match UI | Vertical Slice | Deferred |
 | Systems index says Card Effects has six dependents; five rows list it. Reconcile (Reward Draft or Run Structure?). | `/map-systems` | Next index update | Open |
+| Heroes H-3 sketches carry a `targeting` field (C1 rule 1 derives it from `chosen`) and assume a death check between Rot's two ops (C6.0: a pass is atomic; `left_play` is `is_dying`). Rows 8, 16, 25 give the v1 encodings; Heroes to correct its sketches per its own rule ("prose wins") and close its DSL open question. | Heroes GDD (`/propagate-design-change`) | Before `hero_powers.json` is authored | Answered here — Heroes to apply |
+| Treasures R-2 (condition on value triggers: C1), R-3 (`tag` on board minions: C3), R-6 (`owner.turns_taken`: C4), R-10 (hero-slot observers: C9), R-13 (`scope.card` without `kind`: C2) and the `aura`-on-`owner_weapon` legality (C5) are answered; Treasures to close them. R-1 (permanent `add_mana`) remains with Match Rules. | Treasures GDD | `/consistency-check` | Answered here — Treasures to apply |
+| `until_end_of_turn` enchantments on **card instances** in hand or deck (rows 25, 41): match-rules C4 End step 5 removes those "owned by S characters" — confirm the wording covers card instances held by S, or add them. | Match Rules GDD | Before the Knowledge hero stories | Open — proposed here |
+| Content's two redesigns: `war_cleave_through` ("a minion and the minions next to it") is now expressible with `adjacent` `of: target` (C3); Content may restore the original text or keep the sweep. `war_quartermaster` still waits on `modify_durability`. | Content GDD | Alpha content pass | Open — informational |

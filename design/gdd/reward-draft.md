@@ -2,8 +2,9 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: Designed
+> **Status**: In Review
 > **Author**: Jacob (owner) + `/design-system` (guided, lean)
+> **REVISED 2026-11-03** (`/design-review`, lean, first review — NEEDS REVISION, blockers fixed in place): (1) treasure `tags` semantics aligned to Treasures T1/T8 and the registry — *universal* is the `universal` affinity tag, not an empty list, `affine` also matches the hero's own affinity tag, `tags` is 1–4 long; (2) the two names for the offer list are now stated as a rule in D11 — `option_ids[]` on `Offer` / `draft_offered` (as Run UI U8 and the RNG & Event Log catalogue use it), `offered_ids[]` only as the `DraftRecord` field Run Structure persists; Run Structure R5.3's `→ offered_ids[]` is flagged; (3) the Meta Progression call is `unlocked_ids("treasure")` at `init_run` (was the non-existent `is_treasure_unlocked(id)`); plus: per-item (not per-slot) rarity weighting stated explicitly against Treasures T6, Treasures' `pool()` declared unused, `theme_labels` declared not emitted, T10 labelled a synthetic fixture, AC-9 pick policies named, a cooling-count arithmetic slip in Edge Cases, stale *(planned)* cross-references and the systems-index note, and five Open Questions rows. Status set to In Review pending re-review.
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned); Pillar 4 (offers reproduce from the seed)
@@ -99,7 +100,8 @@ draft_state = { "schema_version": 1, "treasure_pool": [ "<treasure_id>", ... ] }
 ```
 
 `treasure_pool` is the set of treasures unlocked **at run start** (`TreasureDef.unlock == null`,
-or the key reported met by Meta Progression — MVP: all `unlock == null`). Nothing else is stored:
+or `id ∈ MetaProgression.unlocked_ids("treasure")` read once inside `init_run` — MVP: every MVP
+treasure has `unlock: null`, Treasures T8). Nothing else is stored:
 exclusion history and pity history are **derived from `run_state.drafts[]`** (R1 `DraftRecord
 {floor, kind, offered_ids[], picked_id, card_ids_added[]}`) at every call. Rationale: a counter
 that can drift from the record is a resume bug waiting to happen, and the record already holds
@@ -147,7 +149,7 @@ cands = pool − seen                                             # DD-R05: no d
 ```
 
 Three slots, one draw each. Slot 1: if `universal_slot` is on and some candidate is universal
-(F2: `tags == []`), `weighted_pick` over the universal candidates, flag `universal_forced`; else
+(F2: `"universal" ∈ tags(t)`), `weighted_pick` over the universal candidates, flag `universal_forced`; else
 over all. Slots 2 and 3: `weighted_pick` over the remainder. Weights are F2. `option_ids` sorted
 ascending by id. Fewer than three candidates → D8.
 
@@ -192,7 +194,17 @@ starter got buried". v2 sink candidates (Open Questions): remove one card at a t
 | `draft_picked` | `floor, kind, picked_id, option_index, card_ids_added[]` | every accepted `pick` |
 
 `flags[]` ⊆ `{pity_forced, coverage_forced, universal_forced, universal_missing, reoffer, short}`
-(`universal_missing`: the universal slot was wanted but no universal candidate remained). The catalogue
+(`universal_missing`: the universal slot was wanted but no universal candidate remained).
+`len(option_ids)` is 3 normally and 1–2 only under D8 (an empty offer is never emitted — the run
+skips the step, D8 c); Run UI U8 builds `len(option_ids)` options with placeholders for `short`
+(its Dependencies row still says "exactly 3 ids" — stale, flagged). No `theme_labels[]` field is
+emitted: Run UI resolves `bundle(id).theme` / `text` and `treasure(id)` through Card Database
+from the ids, and the synergy hint reads the `Offer` read model's per-option numbers (UI
+Requirements), not a `synergy_tags` field. **Naming rule:** the list is `option_ids[]` on `Offer`
+and in `draft_offered` / `draft_picked.option_index` (Run UI U8, RNG & Event Log catalogue);
+`offered_ids[]` is the **`DraftRecord` field** in which Run Structure persists the same list after
+the pick (R1). Run Structure R5.3 writes `offer(...) → offered_ids[]` for the return value — read it
+as `Offer.option_ids` (**contract amendment**, Open Questions). The catalogue
 lists `treasure_granted` under Reward Draft; the mutation it marks is the run's append, so the
 owner is **Run Structure** (agreeing with its Open Question) — flag for `/consistency-check`.
 `run_warning` codes introduced: `bundle_pool_short`, `treasure_pool_short`,
@@ -232,18 +244,31 @@ no draft event.
 | **Treasures** | upstream (data) | `TreasureDef.rarity`, `TreasureDef.tags` (**contract**, below), `unlock` | the picked treasure id reaches Treasures only through `run_state.treasures[]` at the next `begin_match` (R5.6) | Treasures owns effects and the hook chain; this GDD owns offer weights and the no-duplicate rule |
 | **RNG & Event Log** | upstream | `stream("draft_<floor>")` with `weighted_pick`; the run log | `draft_offered`, `draft_picked`; exact draw counts (F4) | RNG & Event Log owns primitives and the envelope |
 | **Heroes** | upstream (data) | `HeroDef.set` → pool choice; H-5 theme tags = `plan_tags(hero)` (the F3 candidate set) | — | Heroes owns which tags exist per set; this GDD owns how they weight |
-| **Meta Progression** | upstream (at `init_run` only) | `is_treasure_unlocked(id) → bool` (**contract — to be confirmed in meta-progression.md**; MVP: `unlock == null`) | pick rates via archived logs | Meta owns unlock state; this GDD never reads it after run start |
+| **Meta Progression** | upstream (at `init_run` only) | `unlocked_ids("treasure") → id[]` (Meta Progression's Interactions row; read **once at `init_run`**, never at `offer()` — Meta's row says "at `offer()` time", an amendment flagged in Open Questions; MVP: everything unlocked) | pick rates via archived logs | Meta owns unlock state; this GDD never reads it after run start. `unlocked_ids("bundle")` is not read in v1 (no locked bundles, Meta Progression) |
 | **Run UI** | downstream | `draft_pick` command (through the run) | `Offer` read model: ids, `flags`, per-option synergy counts (UI Requirements) | UI is display-only (`src/ui/**`) |
 | **Content** | soft | bundle and treasure authoring against DD-H05/H04; F5/F6 pool-size floors | `run_warning{*_pool_short}` when content is thin | Content authors; this GDD degrades gracefully |
 
-**Treasures contract — to be confirmed in treasures.md.** Reward Draft needs, per treasure:
-`id`, `rarity ∈ {common, rare}` (DD-H04), `unlock` (Card Database CR-3), and **`tags: string[]`**
-(`^[a-z_]+$`, drawn from the H-5 theme-tag vocabulary; `[]` means *universal*). `tags` is not in
-Card Database CR-3's `TreasureDef` today — flagged for that GDD's Open Questions; until it exists
-every treasure is treated as universal and F2's affinity term is inert. Rules Treasures must
-honour: no treasure is offered twice in a run (held or offered-not-taken, DD-R05); the pool is
-snapshotted at run start; Content keeps `n_universal ≥ treasure_drafts_per_run` (3) so the
-universal slot is satisfiable in every draft, and `n_unlocked_default ≥ min_treasure_pool` (9).
+**Treasures contract — confirmed against treasures.md T1/T6/T8.** Reward Draft needs, per
+treasure: `id`, `rarity ∈ {common, rare}` (DD-H04), `unlock` (Card Database CR-3), and
+**`tags: string[]`** as Treasures T1 defines it: **exactly one affinity tag** from
+`war | decay | knowledge | universal` plus 0–3 plan tags (Heroes H-5) and/or archetype tags
+(`economy, tempo, value, defensive, wild`), so `len(tags) ∈ 1..4`. *Universal* means the affinity
+tag is `universal` — never an empty list (T8 has no empty `tags`; e.g. Iron Constitution is
+`[universal, defensive, armour]`). `tags` is defined by Treasures (T1) and requested of Card
+Database CR-3 as Treasures R-7; until the CR-3 edit lands the loader cannot validate it, and a
+record without `tags` is treated as `[universal]` (F2's affinity term inert for it). Treasures T6
+(restated 2026-11-03 against this GDD) agrees on the rest: the pool is snapshotted once at
+`init_run` (D3), the exclusion set is derived from `drafts[]` (D7), and weights are **per item**
+(F2: each common weighs 70, each rare 30 — not a per-slot 70/30 rarity roll), so the rare share of
+offered slots depends on the pool mix (≈ 26 % at T8's 11 C / 9 R before affinity, ≈ 22 % at
+60/40) and Treasures' F4 odds are approximations until re-fitted (Open Questions). T6 offers the
+membership predicate as `Treasures.pool(is_unlocked, exclude_ids)`; whether `init_run`/D7 call it
+or apply the same predicate over Card Database `treasure_pool()` directly is an architecture
+choice (`/create-architecture`) — the predicate, not the call site, is the contract. Rules
+Treasures must honour: no treasure is offered twice in a run (held or offered-not-taken, DD-R05);
+the pool is snapshotted at run start; Content keeps `n_universal ≥ treasure_drafts_per_run` (3) so
+the universal slot is satisfiable in every draft (T8: 10 universal at v1, 7 at MVP), and
+`n_unlocked_default ≥ min_treasure_pool` (9; T8: 16 / 10).
 
 ## Formulas
 
@@ -291,7 +316,13 @@ The `treasure_weight` formula is defined as:
 
 `treasure_weight(t) = round(RARITY_W[rarity(t)] × (100 + TREASURE_AFFINITY × affine(t)) / 100)`
 
-with `affine(t) = 1` if `tags(t) ∩ plan_tags(hero) ≠ ∅` else `0`; `universal(t) ⇔ tags(t) == []`.
+with `affine(t) = 1` if `tags(t) ∩ plan_tags(hero) ≠ ∅` else `0` (plan tags only, as Treasures T6
+states; the affinity tag `war | decay | knowledge` is display information here — every T8
+hero-affine treasure also carries one of its hero's plan tags, so nothing is lost);
+`universal(t) ⇔ "universal" ∈ tags(t)` (Treasures T1: exactly one affinity tag per treasure, so a
+universal treasure is tagged `universal`, never `[]`). A universal treasure can also be affine —
+Iron Constitution `[universal, defensive, armour]` is affine for War — so `universal` and `affine`
+are independent predicates, not a partition.
 
 **Variables:**
 | Variable | Type | Range | Source | Description |
@@ -299,12 +330,14 @@ with `affine(t) = 1` if `tags(t) ∩ plan_tags(hero) ≠ ∅` else `0`; `univers
 | RARITY_W | int | 1–100 each (default common 70, rare 30) | data file `treasure_rarity_weights` | Per-item weight by rarity (DD-H04 two tiers) |
 | TREASURE_AFFINITY | int (%) | 0–200 (default 50) | data file | Boost for a treasure tagged with one of the hero's plan tags |
 | plan_tags(hero) | string[] | 3–4 | Heroes H-5 (data) | The hero set's theme tags |
-| tags(t) | string[] | 0–4 | Treasures contract (`TreasureDef.tags`) | `[]` = universal |
+| tags(t) | string[] | 1–4 | Treasures T1 (`TreasureDef.tags`) | one affinity tag (`war \| decay \| knowledge \| universal`) + 0–3 plan/archetype tags; only the plan tags and `universal` are read here |
 
 **Output Range:** 30 (plain rare) · 45 (affine rare) · 70 (plain common) · 105 (affine common).
 With a 60/40 common/rare pool, rares are ≈ 22 % of offered slots (0.4 × 30 ÷ (0.6 × 70 + 0.4 × 30)).
-**Example (MVP pool of 10 for War: 7 universal — 4 common, 3 rare; 3 tagged `weapons` — 2 common,
-1 rare):** slot 1 over the 7 universal: total 370, P(rare) = 90/370 = 24 %. If slot 1 took a
+**Example (T10 — a *synthetic* fixture shaped like an MVP pool: 7 universal with no War plan tag
+— 4 common, 3 rare; 3 War-affine `weapons` — 2 common, 1 rare. The real T8 MVP pool is 5 C / 5 R
+with 7 universal of which 4 are rare and three carry War plan tags, so its numbers differ; the
+fixture exists to make the arithmetic checkable, Treasures owns the real mix):** slot 1 over the 7 universal: total 370, P(rare) = 90/370 = 24 %. If slot 1 took a
 plain common, slots 2–3 draw over 9 with total 2 × 105 + 3 × 70 + 45 + 3 × 30 = 555; P(an affine
 treasure in slot 2) = 255/555 = 46 %, so most offers show at least one on-plan treasure beside
 the guaranteed universal one.
@@ -373,7 +406,7 @@ DD-H05's 14 bundles therefore require `W ≤ 2` — the default. MVP (`F = 4`): 
 |----------|------|-------|--------|-------------|
 | N | int | 0–100 | `draft_state.treasure_pool` size | Unlocked treasures at run start |
 | K | int | 0–7 | `len(treasure_floors ∩ [1, F − 1])` | Treasure drafts in this run |
-| n_universal | int | 0–N | Treasures data | Treasures with `tags == []` |
+| n_universal | int | 0–N | Treasures T8 | Unlocked treasures whose affinity tag is `universal` (T8: 10 of 20 at v1, 7 of 10 at MVP) |
 
 **Output Range / Example (DD-H06 arithmetic):** `N = 10, K = 3` → 10, 7, 4 before drafts 1–3: all
 ≥ 3, one spare. `N = 8` (the concept's MVP line) → 8, 5, **2**: draft 3 is short and D8 offers
@@ -436,8 +469,8 @@ dilution, which is the design claim `/balance-check` tests.
   (10, 7, 4 — F6); with 8 it happens on draft 3 (2 left) → `treasure_short_policy = fewer` offers
   two with `short` + `run_warning{treasure_pool_short}`; `reoffer` refills from offered-not-held.
   Zero eligible → `[]` and the run proceeds to the bundle step. A held treasure is never offered.
-- **If every hero-set bundle is taken or cooling** (possible from floor 6 at v1: 8 hero bundles,
-  5 taken, 2 cooling): candidates are neutral-only; pity has no `D` candidate and does not fire
+- **If every hero-set bundle is taken or cooling** (possible from floor 5 at v1 with `W = 2`: 8
+  hero bundles, 4 taken on floors 1–4, up to 4 cooling from floors 3–4): candidates are neutral-only; pity has no `D` candidate and does not fire
   (no flag — pity never invents a bundle); coverage still works across neutral themes; no warning
   because this is expected late-run content pressure, visible in `flags` and `/balance-check`.
 - **If pity is due but no candidate carries `D`**: slot 1 is an ordinary weighted pick; `starve`
@@ -499,21 +532,22 @@ dilution, which is the design claim `/balance-check` tests.
 ## Dependencies
 
 Hard = Reward Draft cannot produce an offer without it; soft = degrades to a default.
-Bidirectional check against `design/gdd/systems-index.md`: the index lists Reward Draft as
-depending on Run Structure, Card Database, Treasures and RNG & Event Log (all below) and lists
-Run UI as depending on Reward Draft (below) — consistent. This table **adds** Heroes (data) and
-Meta Progression (unlock state at `init_run`) as upstream, and Content as a soft dependent —
-flagged for `/map-systems`, not edited here. Run Structure, Card Database, RNG & Event Log and
-Heroes each already name Reward Draft in their own Dependencies — consistent.
+Bidirectional check against `design/gdd/systems-index.md`: the index's system row lists Reward
+Draft as depending on Run Structure, Card Database, Treasures, Heroes, Meta Progression and RNG &
+Event Log (all below) and lists Run UI as depending on Reward Draft (below) — consistent; its
+design-order list (§ "Design order", item 4) still names only four of the six — flagged for
+`/map-systems`, not edited here. This table **adds** Content as a soft dependent. Run Structure,
+Card Database, RNG & Event Log, Heroes, Treasures, Meta Progression and Run UI each already name
+Reward Draft in their own Dependencies — consistent.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
 | Run Structure | Mutual | Hard | It invokes `init_run` (R2 — amendment), `offer` (R5.3, R8.2) and `pick` (T11/T12), passes `run_state` and `draft_<floor>`, persists `draft_state` opaquely, enforces the pick guards, and emits `treasure_granted` / `deck_grew`. We own offer content, weights, pity, the two draft events and `draft_state`'s schema. Amendments to its R5 contract: `init_run`, empty-offer skip, `draft_state` schema, `pick` signature. |
 | Card Database | This depends on Card Database | Hard | `bundle_pool(set)`, `treasure_pool()`, `bundle(id)`, `card(id)` (`cost`, `tags`, `token`), `hero(id).set`; id-sorted results (CR-6) are what make seeded draws reproducible; CR-5 stage 6 guarantees bundle integrity. **Requests**: `TreasureDef.tags` field; `reward_draft.json` in CR-1/DD-T01. |
 | RNG & Event Log | This depends on RNG & Event Log | Hard | `draft_<floor>` stream, `weighted_pick` (1 draw, integer weights, positive total guaranteed here); the run log for `draft_offered` / `draft_picked`; `restore()` semantics make D12 true. |
-| Treasures | This depends on Treasures (data) | Hard for treasure drafts | `rarity`, `tags`, `unlock` per treasure (**contract — to be confirmed in treasures.md**, Interactions); Treasures owns effects and applies picks at match start; we never call it. |
+| Treasures | This depends on Treasures (data) | Hard for treasure drafts | `rarity`, `tags` (T1 shape: one affinity tag + plan/archetype tags), `unlock` per treasure (contract confirmed against T6 as restated 2026-11-03: `init_run` snapshot, `drafts[]`-derived exclusion, per-item weights; `Treasures.pool(is_unlocked, exclude_ids)` is the predicate, call site is an architecture choice); Treasures owns effects and applies picks at match start; we never call it. |
 | Heroes | This depends on Heroes (data) | Soft | `HeroDef.set` selects the pools; H-5 theme tags are `plan_tags(hero)`. Without plan tags, pity and affinity are inert and offers are uniform-by-band. |
-| Meta Progression | This depends on Meta Progression | Soft | `is_treasure_unlocked(id)` at `init_run` only (**contract — to be confirmed in meta-progression.md**); MVP default `unlock == null ⇒ unlocked`. Downstream it reads pick rates from archived logs. |
+| Meta Progression | This depends on Meta Progression | Soft | `unlocked_ids("treasure")` read once at `init_run` (its Interactions row names the call; it says "at `offer()` time" — amendment to read at `init_run`, Open Questions); the filter runs before any seeded draw, as Meta requires; MVP default `unlock == null ⇒ unlocked`. Downstream it reads pick rates from archived logs. |
 | Run UI | Run UI depends on this | Soft (headless in tests) | Renders the `Offer` read model and issues `draft_pick`; UI Requirements. |
 | Content | Content depends on this | Soft | F5/F6 pool floors (`B ≥ 13` at v1 with `W = 2`; `N ≥ 9`, `n_universal ≥ 5`); theme tags per bundle; `run_warning{*_pool_short}` tells Content when it is thin. |
 
@@ -604,9 +638,9 @@ run-scope events (`src/ui/**` display-only); no weight, flag or pity state is ev
 | `snapshot()`/`restore()` by draw count | `design/gdd/rng-event-log.md` | B.10, F5 | Data dependency |
 | `draft_offered` / `draft_picked` rows; `treasure_granted` owner | `design/gdd/rng-event-log.md` | Core Rules D catalogue | Ownership handoff |
 | `plan_tags(hero)`, starter tags, 6/15 plan share | `design/gdd/heroes.md` | H-4, H-5, F2 | Data dependency |
-| `TreasureDef.tags`, universal treasures, no-duplicate rule, pool snapshot | `design/gdd/treasures.md` *(planned)* | Interactions contract | Ownership handoff (contract) |
-| `is_treasure_unlocked(id)` at `init_run` | `design/gdd/meta-progression.md` *(planned)* | unlock state | Data dependency (contract) |
-| Draft picker screen | `design/gdd/run-ui.md` *(planned)* / `design/ux/draft-picker.md` | UI Requirements | Data dependency |
+| `TreasureDef.tags` shape (one affinity tag + plan/archetype), the T8 pool (20 / 10 MVP, 10 universal), T6 pool predicate and per-item weights | `design/gdd/treasures.md` | T1, T6, T8 | Ownership handoff (contract confirmed both ways) |
+| `unlocked_ids("treasure")` at `init_run` | `design/gdd/meta-progression.md` | Interactions row "Reward Draft" | Data dependency (contract; timing amendment) |
+| `draft_offered{floor, kind, option_ids[], flags[]}`, 0–3 offers, no `theme_labels` | `design/gdd/run-ui.md` / `design/ux/draft-picker.md` *(planned)* | U8 contract, UI Requirements | Ownership handoff (contract) |
 
 ## Acceptance Criteria
 
@@ -630,7 +664,7 @@ returns the first candidate). Every test is a Logic story: automated unit tests 
 - [ ] AC-6 **GIVEN** bundle `b1` picked on floor 1, **WHEN** offers on floors 2–7 are generated for seeds 1..1000, **THEN** `b1` never appears.
 - [ ] AC-7 **GIVEN** `b2` offered but not taken on floor 1 and `reoffer_after_floors = 2`, **WHEN** offers are generated for seeds 1..1000, **THEN** `b2` appears on no floor-2 or floor-3 offer and on at least one floor-4 offer.
 - [ ] AC-8 **GIVEN** `t1` held and `t2`, `t3` offered on floor 1, **WHEN** treasure offers on floors 3 and 5 are generated for seeds 1..1000, **THEN** none contains `t1`, `t2` or `t3`.
-- [ ] AC-9 **GIVEN** P14 and `W = 2`, **WHEN** a run drafts a bundle on every floor 1–7 for seeds 1..1000 with any pick policy, **THEN** no bundle offer carries `short` or `reoffer`; **AND GIVEN** `W = 3`, **THEN** at least one seed carries `reoffer` by floor 7 (F5 bound).
+- [ ] AC-9 **GIVEN** P14 and `W = 2`, **WHEN** a run drafts a bundle on every floor 1–7 for seeds 1..1000 under each of three pick policies (always the id-first option, always the id-last option, uniform random from `draft_<floor>`), **THEN** no bundle offer carries `short` or `reoffer`; **AND GIVEN** `W = 3`, **THEN** at least one seed carries `reoffer` by floor 7 (F5 bound).
 - [ ] AC-10 **GIVEN** a treasure snapshot of 10 (T10), **WHEN** the three treasure drafts run, **THEN** none carries `short`; **GIVEN** a snapshot of 8 and `treasure_short_policy = fewer`, **THEN** the floor-5 offer has exactly 2 options, flag `short`, and one `run_warning{treasure_pool_short, floor: 5, needed: 3, available: 2}` is emitted.
 - [ ] AC-11 **GIVEN** the 8-treasure case and `treasure_short_policy = reoffer`, **WHEN** the floor-5 offer runs, **THEN** it has 3 options, flag `reoffer`, the refilled option was previously offered and not held, and no held treasure appears.
 - [ ] AC-12 **GIVEN** a 3-bundle pool and `floors_per_run = 8`, **WHEN** floors 1–4 are drafted, **THEN** floor 1 offers 3; floor 2 offers 2 with flags `[reoffer, short]` and a `run_warning{bundle_pool_short}`; floor 3 offers 1; floor 4 returns `[]`, and a stub run records `DraftRecord{picked_id: null}`, leaves `deck` unchanged and advances the floor.
@@ -667,7 +701,13 @@ returns the first candidate). Every test is a Logic story: automated unit tests 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
 | Run Structure amendments proposed here: `init_run` at R2 step 5; `pick(kind, id, offer, run_state)` signature; empty offer ⇒ step skipped with `DraftRecord{picked_id: null}`; `draft_state` schema (D3) replaces "pity counters + `offered_treasure_ids[]`"; `init_run` on resume when `draft_state` lacks `schema_version`. | Run Structure GDD | `/consistency-check` after this GDD | Proposed |
-| `TreasureDef.tags: string[]` is needed for F2 affinity and the universal slot but is absent from Card Database CR-3. Add to CR-3 and `treasures.json`? | Card Database GDD + Treasures GDD | `/design-system treasures` | Proposed; until then all treasures are universal |
+| `TreasureDef.tags: string[]` is needed for F2 affinity and the universal slot but is absent from Card Database CR-3. Add to CR-3 and `treasures.json`? | Card Database GDD | before `treasures.json` is authored | **Shape resolved** — Treasures T1 defines it (one affinity tag + 0–3 plan/archetype tags) and this GDD adopts that shape (REVISED 2026-11-03); the CR-3 edit itself is Treasures R-7, still open |
+| Rarity model: this GDD weights per item (F2), so the rare share of slots is ≈ 26 % at 11 C / 9 R, not the 30 % a per-slot roll gives; Treasures T6 (restated 2026-11-03) adopts per-item and calls its F4 odds approximations. Re-fit Treasures F4 `p_seen` and F1 band budgets from F2 at the first balance pass. | Treasures GDD | first balance pass | Agreed model; numbers to re-fit |
+| Call site for the T6 predicate: `init_run`/D7 call `Treasures.pool(is_unlocked, exclude_ids)` or apply the same predicate over Card Database `treasure_pool()` directly (one fewer dependency edge at run time). | `/create-architecture` | before Reward Draft stories | Open — contract is the predicate either way |
+| Offer-list naming: `Offer.option_ids[]` / `draft_offered.option_ids[]` (this GDD, Run UI U8, RNG catalogue) vs `DraftRecord.offered_ids[]` (Run Structure R1) — two names kept on purpose (D11 naming rule); Run Structure R5.3 writes `offer(...) → offered_ids[]` for the return value and should read `Offer{option_ids[], flags[]}`. | Run Structure GDD | `/consistency-check` | Proposed |
+| Meta Progression's Interactions row reads `unlocked_ids("treasure")` "at `offer()` time"; this GDD reads it once at `init_run` and snapshots (D3) so a resume cannot change the pool (AC-3, AC-27). Amend Meta's row to `init_run`. | Meta Progression GDD | `/consistency-check` | Proposed |
+| Run UI U8 (revised 2026-11-03) now builds `len(option_ids)` options (1–3) with placeholders, reads no `theme_labels` and no `synergy_tags` — matching D8/D11; its Dependencies row still says "exactly 3 ids and optional theme labels" and its own Open Questions row still asks the question. RNG & Event Log's catalogue `draft_offered` row lacks `flags[]` and `draft_picked` lacks `option_index`. | Run UI GDD, RNG & Event Log GDD | `/consistency-check` | Proposed: Run UI closes the stale row/OQ; catalogue rows gain the two fields |
+| Content CN-4: 6 neutral bundles reach 16 of 38 non-starter neutrals; Content recommends 12 neutral bundles (B = 20 per hero). Effect here: F5 allows `W ≤ 3` at B = 20; F7's "uniform picker ≈ 0.50" becomes 8/20 = 0.40, so AC-29's uniform-random `plan_share ≥ 0.45` would rest on affinity alone; the P14 fixture stays as is. Content also states pity wants ≥ 2 bundles per plan tag where this GDD's brief says ~3 (F7's `top_tag_share ≥ 0.30` assumes 3). | Owner (DD-H05) + Content GDD | before VS neutral-bundle batch | Open — this GDD keeps DD-H05's 14 until decided |
 | `assets/data/reward_draft.json` is a new DD-T01 file (knobs in Tuning Knobs). | owner | before `/create-architecture` | Needs a DD-T01 edit |
 | `treasure_granted` owner in the RNG & Event Log catalogue: Reward Draft (catalogue) vs Run Structure (its R5.4 and this GDD's D11). | RNG & Event Log GDD | `/consistency-check` | Proposed: Run Structure |
 | The brief's coherence target "top theme ≥ 45 % by floor 8" is unreachable from one tag with ~3 bundles per tag (F7); set as `plan_share ≥ 0.45` plus `top_tag_share ≥ 0.30`. Accept, or raise bundles-per-tag in Content? | owner | first balance pass | Reinterpreted here |

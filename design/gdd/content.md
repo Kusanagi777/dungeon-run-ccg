@@ -8,6 +8,7 @@
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned — bundles are plan-shaped); Pillar 2 (bosses are puzzles — every boss is a passive first); Pillar 4 (all content is data, loaded and validated, never special-cased)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Specialists `game-designer`, `economy-designer`, `systems-designer`, `qa-lead` not consulted — Lean mode (no agent spawned); review Formulas F3/F4 and the Acceptance Criteria manually before the first `/balance-check`. Engine feasibility: `Gameplay` → Scripting domain (data only, no engine surface); no `docs/engine-reference/godot/modules/scripting.md` exists, so feasibility was **not checked against the pinned engine** — nothing here touches the engine beyond JSON the Card Database already loads.
+> **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in session): CN-5 rewritten against the Treasures GDD's authoritative T8 table (10 universal / 4 War / 3 Decay / 3 Knowledge; MVP 10 = 7 universal + 2 War + 1 Knowledge; ids named per batch — the 5/5/5/5 split and "5 generic + 5 War" MVP were wrong); CN-6 MVP-0 no longer ships `heroes.json` with three heroes whose starter cards are Alpha records (CR-5 step 6 `E_UNKNOWN_REF` would fail the batch's own "loads clean" gate) — `hero_war` / `power_whetstone` only at MVP-0 per DD-H06, Decay and Knowledge HeroDefs and powers ship with their set batches; hero-power and token batching corrected so no record is orphaned at a batch close (`power_mend` → VS, `neutral_sheep` → Alpha-B; AC-16, `.claude/rules/data-files.md`); AC-20 rescoped to match; F3 Kingsblade budget arithmetic (14, not 13) and F5 op count (25, not 26) fixed; Rot Warden MVP recipe made explicit; the unnumbered AC is now AC-21; Open Questions gained the card-effects R-3 (`tag` filter on board minions) and R-10 (observer-hosted event triggers on passive hosts) dependencies, the `counter`-in-Deathrattle question and the AC-13 target basis.
 
 ## Summary
 
@@ -63,12 +64,12 @@ mode. Review manually before production.
 | Kind | v1 total | MVP | VS (cumulative) | Alpha (cumulative) | Owner of the schema |
 |---|---|---|---|---|---|
 | Collectible cards | 120 (war 25, decay 25, knowledge 25, neutral 45) | 40 (war 25 + neutral 15) | 60 (+20 neutral) | 120 (+decay 25, knowledge 25, neutral 10) | Card Database CR-3 |
-| Tokens (never in pools) | 7 | 4 | 4 | 7 | Card Database CR-3 `token` |
+| Tokens (never in pools) | 7 | 3 | 3 | 7 | Card Database CR-3 `token` |
 | Boss-only cards (`cards_boss.json`) | 32 (2 per boss) | 8 | 16 | 32 | Card Database CR-3, set `boss` |
 | Bosses | 16 (band 6 / 6 / 4, DD-R02) | 4 (2 / 1 / 1, DD-H06) | 8 (3 / 3 / 2 — one full run) | 16 | Card Database BossDef |
 | Bundles | 30 (8 per hero + 6 neutral, DD-H05) | 10 (8 war + 2 neutral) | 14 (+4 neutral) | 30 | Card Database BundleDef |
 | Treasures | 20 (Treasures GDD) | 10 (DD-H06) | 12 | 20 | Treasures GDD |
-| Hero powers | 3 hero + 4 boss | 3 hero + 1 boss (`power_mend`) | +`power_drain` | 7 | Heroes (hero) / this GDD (boss) |
+| Hero powers | 3 hero + 4 boss | 1 (`power_whetstone` — DD-H06 is War-only at MVP) | 3 (+`power_mend`, `power_drain` with their bosses) | 7 (+`power_rot` Alpha-A; +`power_insight`, `power_reinforce`, `power_brand` Alpha-B) | Heroes (hero) / this GDD (boss) |
 
 Batch definitions are in CN-6. Priorities follow the systems index: Content is MVP for the first
 40 cards, 4 bosses and 10 bundles and grows to Alpha scope.
@@ -247,8 +248,12 @@ Discover), `tricks` (Silence, swap, return, Freeze), `pings` (random and board d
 *Tokens (`token: true`, no rarity weight, never pooled).* `war_whetstone_blade` W 1 — 1/2
 (Heroes H-3; registry) · `decay_husk` M 1 — 1/1, tag `husk` (Heroes; registry) · `decay_skeleton`
 M 3 — 3/3 · `decay_ghoul` M 2 — 2/2 · `knowledge_ward` M 0 — 0/2 Taunt · `neutral_sheep` M 1 — 1/1
-(card-effects row 31) · `boss_rat` M 1 — 1/1, tag `rat`. MVP ships the first, the Sheep and
-`boss_rat` (plus `decay_husk` because `power_rot` and boss decks reference it).
+(card-effects row 31) · `boss_rat` M 1 — 1/1, tag `rat`. MVP ships three: `war_whetstone_blade`
+(MVP-0, with `power_whetstone`), `boss_rat` and `decay_husk` (MVP-1, with the Rat King and
+`boss_rot_zombie`; the Husk ships in a `cards_decay.json` holding only that record until Alpha-A —
+CR-1 loads a set file whenever it is present). The Sheep lands with `knowledge_transmute`
+(Alpha-B), the Skeleton and Ghoul with Decay (Alpha-A), the Ward with Knowledge (Alpha-B): a token
+is never in a batch before the first op that references it, or AC-16 fails at that batch's close.
 
 **Signature cards (3 per hero, Heroes H-5)**: War — Duelist's Edge, Pit Champion, Cleave Through
 (redesigned text). Decay — Husk Mother, Plague of Rot, Feast of Worms. Knowledge — Grand
@@ -310,7 +315,7 @@ Config/Data story expands them to ids drawn only from the boss's batch or earlie
 | `boss_torchbearer` | 1 face damage a turn: the player's health is a resource, Armour and Lifesteal pay. | 2× boss cards + 2× tempo neutrals + 2× ember_sprite, spark_fiend | Teaches the race; intent banner shows the damage counting down |
 | `boss_scrap_golem` | 5 Armour plus Reinforce: burst is wasted, sustained pressure wins. | 2× boss cards + 2× wall/big neutrals (gate_guardian, temple_guard, stone_sentinel, hill_giant …) | Teaches Armour as extra health |
 | `boss_bog_witch` | Killing its minions draws it cards: pick the order of kills; Silence stops nothing here, tempo does. | 2× boss cards + 2× deathrattle neutrals/decay (ember_sprite, powder_keg, carrion_crow, grave_rat, rot_beetle …) | Introduces Deathrattle as a boss plan; first `passive_driven` boss |
-| `boss_rot_warden` | Every death pings the player: sweepers hurt you, Silence and single big trades do not. | 2× boss cards + 2× decay deathrattle cards (grave_rat, carrion_crow, rot_beetle, shambling_heap, boneyard_brute …) + neutral filler; at MVP (no Decay file) uses gravekeeper, powder_keg-equivalents from MVP neutrals and 2× `boss_rot_zombie` ×3 | Band-2 knowledge spike (run-structure F7 floor 4); the AI tunnels on Deathrattle (`w_passive`) |
+| `boss_rot_warden` | Every death pings the player: sweepers hurt you, Silence and single big trades do not. | 2× boss cards + 2× decay deathrattle cards (grave_rat, carrion_crow, rot_beetle, shambling_heap, boneyard_brute …) + neutral filler; at MVP (no Decay set) the recipe is `boss_rot_zombie` ×3 + `boss_mass_rites` ×3 + 2× each of 12 MVP neutrals led by `neutral_gravekeeper` (the only MVP Deathrattle) and `neutral_shield_golem` (30); Decay cards replace neutrals in Alpha-A (Edge Cases) | Band-2 knowledge spike (run-structure F7 floor 4); the AI tunnels on Deathrattle (`w_passive`) |
 | `boss_blood_abbess` | Heals 5 a turn: only burst or a weapon clock wins (Heroes H-6 Healer row). | 2× boss cards + 2× lifesteal/heal neutrals + wall bodies | War strong, Decay weak by design |
 | `boss_iron_tollman` | Minions cost 1 more: spells, weapons and cheap drops are the answer. | 2× boss cards + tempo neutrals + rusty_dagger, miners_pick | Knowledge strong, War even; punishes greedy curves |
 | `boss_frost_hag` | One freeze a turn: go wide, or win with spells and Rush. | 2× boss cards + knowledge freeze spells (frost_lance, glacial_wind) + wall neutrals | AI freezes the highest-attack target (op value table) |
@@ -419,13 +424,24 @@ question, not a Content one: the recommended fix is 12 neutral bundles (two per 
 
 #### CN-5. Treasure plan (contract with the Treasures GDD)
 
-Content does not define treasures; it consumes the Treasures GDD's 20 ids and tags. Expected
-split: 5 generic (no hero affinity), 5 with War affinity (weapons / armour hooks, e.g. rows 43 and
-38 of card-effects C11), 5 Decay (deathrattle / husk), 5 Knowledge (spell damage / cost / draw,
-rows 39–41). MVP ships the 5 generic + 5 War (= 10, DD-H06, ≥ 9 unlocked by default so
-`min_treasure_pool` is met); VS adds 2 generic; Alpha the remaining 8 hero-affinity ones. Treasure
-`tags[]` reuse this GDD's theme tags so Reward Draft can weight a treasure toward the plan in the
-deck. Any treasure whose hook needs a provisional op is Alpha+ (Edge Cases).
+Content does not define treasures; it consumes the Treasures GDD's 20 ids and tags (T8 is the
+authority; the registry mirrors its `treasure_*` rows). Actual split: **10 universal, 4 War,
+3 Decay, 3 Knowledge**; 11 Common / 9 Rare; 16 `unlock: null`, 4 unlockable. Content owns only
+*which batch* each treasure ships in:
+
+| Batch | Treasures (cumulative count) | Note |
+|---|---|---|
+| MVP-1 | `treasure_hollow_crown`, `treasure_worn_signet`, `treasure_vanguards_banner`, `treasure_bottomless_satchel`, `treasure_iron_constitution`, `treasure_thornhide_cloak`, `treasure_stampede_horn` (universal) · `treasure_whetstone_wheel`, `treasure_twin_grip` (War) · `treasure_scholars_candle` (Knowledge affinity, a draw hook any hero can hold) (10) | T8's MVP column; all `unlock: null`, so 10 ≥ `min_treasure_pool` 9 and `n_universal` 7 ≥ Reward Draft's 5 |
+| VS | + `treasure_quartermasters_ledger`, `treasure_mending_charm` (universal) (12) | |
+| Alpha-A | + `treasure_grave_tithe`, `treasure_rotting_bargain`, `treasure_plague_bell` (Decay) · `treasure_sprinters_boots` (War) (16) | Grave Tithe summons `decay_husk`; Plague Bell waits on card-effects R-3 (`tag` on board minions, Open Questions) |
+| Alpha-B | + `treasure_focusing_prism`, `treasure_dogeared_grimoire` (Knowledge) · `treasure_captured_standard` (War) · `treasure_living_armory` (universal) (20) | |
+
+Treasure tags are two-part (affinity · plan). The plan half reuses this GDD's theme tags where a
+hook is plan-shaped (`weapons`, `aggro`, `armour`, `husk`, `deathrattle`, `sacrifice`, `spells`,
+`spell_damage`, `draw`, `value`, `tempo`) so Reward Draft can weight a treasure toward the plan in
+the deck; Treasures adds tags no card carries (`universal`, `war` / `decay` / `knowledge`,
+`economy`, `defensive`, `wild`). Any treasure whose hook needs a provisional op is Alpha+ (Edge
+Cases); T8 records that all 20 are v1-expressible.
 
 #### CN-6. Production pipeline
 
@@ -434,11 +450,11 @@ deck. Any treasure whose hook needs a provisional op is Alpha+ (Edge Cases).
 
 | Batch | Contents | Loads clean | `/balance-check` | `/content-audit` counts |
 |---|---|---|---|---|
-| MVP-0 (with the Card Database stories) | 7 tokens' MVP subset, 7 starter neutrals, 7 War starters, `hero_powers.json` (3 hero + `power_mend`), `heroes.json` | required | curve F2 on the starter (Heroes F1) | 14 cards |
-| MVP-1 | remaining 18 War + 8 neutral, 4 bosses + 8 boss cards, `ai_profiles.json` overrides, 10 bundles, 10 treasures (Treasures GDD) | required | F2, F3 (all 40), F4 (4 bosses via sim harness), F5 (MVP coverage) | 40 / 4 / 10 / 10 |
-| VS | +20 neutral, +4 bosses (`cellar_hermit`, `blood_abbess`, `iron_tollman`, `lich_archivist`) + 8 boss cards, +4 neutral bundles, +2 treasures | required | F2–F5; sim win rate per floor 1–8 | 60 / 8 / 14 / 12 |
-| Alpha-A | Decay 25 + 3 tokens, 8 Decay bundles, bosses `torchbearer`, `bog_witch`, `frost_hag`, `shadow_of_the_delve` + 8 boss cards, 4 treasures | required | F2–F5; sim for all three heroes | 85 / 12 / 22 / 16 |
-| Alpha-B | Knowledge 25 + `knowledge_ward`, 8 Knowledge bundles, +10 neutral, bosses `scrap_golem`, `pyre_sergeant`, `mirror_sage`, `dungeon_heart` + 8 boss cards, 4 treasures | required | full pass; AC-13 pick rates | 120 / 16 / 30 / 20 |
+| MVP-0 (with the Card Database stories) | `war_whetstone_blade` token, 7 starter neutrals, 7 War starters, `hero_powers.json` (`power_whetstone` only), `heroes.json` (`hero_war` only — DD-H06 is War-only at MVP, and a Decay or Knowledge HeroDef here would fail CR-5 step 6 with `E_UNKNOWN_REF` on starter cards that are Alpha records) | required | curve F2 on the starter (Heroes F1) | 14 cards |
+| MVP-1 | remaining 18 War + 8 neutral, tokens `boss_rat` and `decay_husk` (the latter in a one-record `cards_decay.json`), 4 bosses + 8 boss cards, `ai_profiles.json` overrides, 10 bundles, the 10 CN-5 MVP treasures | required | F2, F3 (all 40), F4 (4 bosses via sim harness), F5 (MVP coverage) | 40 / 4 / 10 / 10 |
+| VS | +20 neutral, +4 bosses (`cellar_hermit`, `blood_abbess`, `iron_tollman`, `lich_archivist`) + 8 boss cards + `power_mend`, `power_drain`, +4 neutral bundles, +2 treasures (CN-5) | required | F2–F5; sim win rate per floor 1–8 | 60 / 8 / 14 / 12 |
+| Alpha-A | Decay 25 + tokens `decay_skeleton`, `decay_ghoul` (the full `cards_decay.json`), `hero_decay` + `power_rot`, 8 Decay bundles, bosses `torchbearer`, `bog_witch`, `frost_hag`, `shadow_of_the_delve` + 8 boss cards, 4 treasures (CN-5) | required | F2–F5; sim for War and Decay | 85 / 12 / 22 / 16 |
+| Alpha-B | Knowledge 25 + tokens `knowledge_ward`, `neutral_sheep`, `hero_knowledge` + `power_insight`, `power_reinforce`, `power_brand`, 8 Knowledge bundles, +10 neutral, bosses `scrap_golem`, `pyre_sergeant`, `mirror_sage`, `dungeon_heart` + 8 boss cards, 4 treasures (CN-5) | required | full pass; sim for all three heroes; AC-18 pick rates | 120 / 16 / 30 / 20 |
 
 2. **File layout** (DD-T01, Card Database CR-1): `assets/data/cards_war.json`, `cards_decay.json`,
    `cards_knowledge.json`, `cards_neutral.json`, `cards_boss.json`, `heroes.json`,
@@ -569,7 +585,7 @@ weapons (attack × durability); `budget_s(cost) = 2 × cost` for spells.
 
 **Output Range:** 0–25 points; outside tolerance is `W_BUDGET` (listed by `/balance-check`, never
 auto-fixed). **Examples:** `war_shieldwall_veteran` 4: 3 + 4 + taunt 1 + armor 3 × 0.5 = 9.5 vs
-budget 9 ✓. `war_kingsblade` 6 (legendary): 4 × 2 + AoE 2 × 3 = 14 vs 13 ✓. `decay_culling` 2:
+budget 9 ✓. `war_kingsblade` 6 (legendary): 4 × 2 + AoE 2 × 3 = 14 vs `budget_w` 2 × 6 + 2 = 14 ✓. `decay_culling` 2:
 draw 5 − self-cost 3 = 2 vs 4 → −2 (Culling is a starter the hero power compensates; recorded as
 an accepted deviation, Edge Cases). `knowledge_meteor_bolt` 4: 6 × 1.5 = 9 vs 8 ✓. `neutral_war_mammoth`
 7: 14 + 1 = 15 vs 15 ✓.
@@ -613,7 +629,7 @@ provisional (`remove_keyword`, `shuffle_into_deck`, `discard`, `weapon_durabilit
 
 **Output Range:** required `op_coverage = 1.0` at Alpha (`E_COVERAGE` otherwise; at MVP and VS the
 unmet ops are listed as `W_COVERAGE`), `kw_coverage` true at Alpha, `bundle_coverage(hero set)
-≥ 0.90`. **Example:** Alpha plan — 26 of 26 v1 ops used; Stealth 2 ✓; hero sets 52 / 56 = 0.93 ✓
+≥ 0.90`. **Example:** Alpha plan — 25 of 25 v1 ops used (C5 lists 30 op rows; the 5 provisional ones and `modify_value` are excluded, `add_counter` and `set_counter` count separately); Stealth 2 ✓; hero sets 52 / 56 = 0.93 ✓
 (4 Discover-only cards, Edge Cases); neutral 16 / 38 = 0.42, reported (CN-4 finding).
 
 ### F6. Content volume vs time
@@ -821,8 +837,8 @@ harness; **Audit** = `/content-audit` or `/balance-check` report; **Play** = pla
 - [ ] **AC-17 (Data)** GIVEN a record deprecated after a story cited its id, WHEN the pool is loaded, THEN the id still resolves (`token: true`), appears in no list, and archived run records that name it still replay.
 - [ ] **AC-18 (Audit)** GIVEN ≥ `min_sample` archived runs after Alpha, WHEN pick rates per bundle are computed, THEN no bundle is outside `PICK_RATE_MIN`–`PICK_RATE_MAX`, or a composition change is scheduled in the next batch's story.
 - [ ] **AC-19 (Play)** GIVEN each of the 4 MVP bosses, WHEN a tester reads the intro passive and plays once, THEN they can name the puzzle (CN-3 B2 column) in one sentence after the match — the loss teaches (Pillar 3).
-- [ ] **AC-20 (Data)** GIVEN the MVP-0 batch, WHEN loaded, THEN the Card Database reaches `Ready` within `data_load_budget_ms` (200 ms) and the three starter decks validate (15 ids, own set or neutral, no tokens).
-- [ ] No gameplay number in this GDD is hardcoded in code: F1–F6 constants are read from `content_budgets.json` and `heroes_balance.json`.
+- [ ] **AC-20 (Data)** GIVEN the MVP-0 batch, WHEN loaded, THEN the Card Database reaches `Ready` within `data_load_budget_ms` (200 ms) and the War starter deck validates (15 ids, `war` or `neutral`, no tokens); GIVEN Alpha-A / Alpha-B closed, THEN the Decay / Knowledge starter decks validate the same way.
+- [ ] **AC-21 (Data)** GIVEN the shipped code, WHEN it is searched for the F1–F6 constants (`CURVE_*`, `BUDGET_TOL`, `PRESSURE_*`, `PASSIVE_CAP`, `KW_MIN`, `BUNDLE_COVERAGE_MIN`, `TEXT_MAX_CHARS`, `PICK_RATE_*`), THEN none appears as a literal outside `content_budgets.json` / `heroes_balance.json`: the validator and `/balance-check` read them from those files.
 
 ## Open Questions
 
@@ -837,3 +853,7 @@ harness; **Audit** = `/content-audit` or `/balance-check` report; **Play** = pla
 | Boss hero powers in `hero_powers.json` (`power_mend`, `power_brand`, `power_drain`, `power_reinforce`) — Heroes owns the file; confirm Content may add boss rows | Heroes | MVP-1 | Open — Card Database CR-1 says the file is shared |
 | `T_*` estimates (F6) are unmeasured; recalibrate after MVP-1 closes | Producer / `/estimate` | MVP-1 close | Open |
 | Intro lines (`intro_text`, ≤ 120 chars) for 16 bosses: authored in the boss story or by a `writer` pass? | Owner | VS | Open — boss stories carry a placeholder line naming the passive |
+| Card-effects R-3 (raised by Treasures): does the `tag` filter apply to **board minions**? C3 lists `tag` for cards and pools only, yet `boss_rat_matriarch` (MVP), `decay_husk_herder` and `decay_plague_of_rot` filter the board by `tag` | Card Effects | MVP-1 boss story | Open — if not by MVP-1, `boss_rat_matriarch` ships as "Your other minions have +1/+1" (row 26) and the Decay pair wait for the answer |
+| Card-effects R-10 (raised by Treasures): event triggers with no hook column (`on_minion_died`, `on_play`, `on_attack`) on a **passive** host — `boss_rot_warden` (MVP), `boss_bog_witch`, `boss_pyre_sergeant`, `boss_mirror_sage` rely on the Treasures T2.5 hero-slot-observer reading of C2/C6.2 | Card Effects | MVP-1 boss story | Open — Rot Warden's fallback is a `turn_end` passive "deal 1 damage to the enemy hero for each boss minion that died this turn" (`ref owner.minions_died_this_turn`), same puzzle, one step later |
+| `neutral_gravekeeper` reads `counter.deaths` inside its own Deathrattle; C5 says counters die with the source — confirm the deathrattle step (raise-time snapshot, C6.5) still reads them | Card Effects | MVP-1 | Open — fallback text "…per minion that died this turn" |
+| AC-13 compares the hero-script win rate to `target_win_rate_by_floor` (median-player targets); Boss AI's Open Questions propose script-relative band targets (boss wins 20–30 / 40–50 / 55–65 %). One basis must be picked before the first VS sim | Boss AI + `/balance-check` | VS close | Open — AC-13 reads the player targets until then |

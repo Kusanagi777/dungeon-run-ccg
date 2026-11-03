@@ -7,6 +7,7 @@
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned) · Pillar 4 (readable, deterministic rules)
+> **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in session): T6 pool contract restated against the now-designed reward-draft.md (pool snapshot at `init_run`, exclusions derived from `drafts[]`, per-item rarity weights — `draft_state.offered_treasure_ids` no longer exists); T8 affinity tally corrected (10 universal / 4 war / 3 decay / 3 knowledge); Dependencies paragraph updated — every partner GDD now exists and bidirectionality was re-verified; R-8 closed (`treasures_balance.json` is already in DD-T01); AC-13 split into deterministic pre/post-R-5 forms; AC-14's "reference machine" replaced by a ratio; AC-17 tied to R-13; Open Questions gained the cross-GDD conflicts the review found (universal-tag detection, `unlock` field shape, unlock-state interface name, `once_per_turn` key for hosts without an `entity_id`, Run UI `synergy_tags`, Content CN-5 split) and R-14 now records that meta-progression M2.1 already accepts this GDD's four keys while its M10 table and the registry's `unlock_keys_v1` still list six placeholders.
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `systems-designer` and `qa-lead` not consulted for Formulas / Acceptance Criteria — Lean mode, no Agent tool in this session; review manually before production. Technical feasibility: category `Gameplay`, rule-only → Scripting domain; no engine reference for `scripting` under `docs/engine-reference/godot/modules/`, so feasibility was **not** checked against the pinned engine (the design has no engine surface: plain `RefCounted` data, DD-T02). Prior art: `docs/architecture/modifier-hook-chain.md` (reverse-documented prototype, not an ADR).
 
 ## Summary
@@ -172,18 +173,31 @@ needs a `persist: true` flag on `add_counter` — an Open Question, not assumed.
    MVP (R5.1). There is no treasure removal, trade or upgrade in v1.
 4. **Same treasure twice is impossible; different treasures stack** per F3.
 
-#### T6. Pool query — the Reward Draft contract (to be confirmed in reward-draft.md)
+#### T6. Pool query — the Reward Draft contract (restated against reward-draft.md D3/D7/F2)
 
-- `Treasures.pool(unlocked_keys, exclude_ids) -> TreasureDef[]` = Card Database `treasure_pool()`
-  filtered to `unlock == null or unlock ∈ unlocked_keys` and `id ∉ exclude_ids`, in id-ascending
-  order (CR-6) so a seeded draw is reproducible (DD-R09).
-- `exclude_ids` = `treasures[]` ∪ `draft_state.offered_treasure_ids[]` (R1).
-- Reward Draft draws 3 distinct offers per treasure draft with per-slot rarity weights **Common 70
-  / Rare 30**, falling back to the other rarity when one is exhausted; it may weight by `tags`
-  towards the hero's affinity and the deck's plan tags. The weights and the pity rules are Reward
-  Draft's knobs; F1's budget and F4's odds assume 70/30.
+- **Membership predicate (this GDD owns it).** A treasure is *available* to a run when
+  `unlock == null` or its unlock is held by the profile (Meta Progression's unlock state — the
+  interface name differs across GDDs, see Open Questions), and it is neither held
+  (`run_state.treasures[]`) nor previously offered this run. `Treasures.pool(is_unlocked, exclude_ids)
+  -> TreasureDef[]` implements the predicate over Card Database `treasure_pool()` and returns
+  id-ascending order (CR-6) so a seeded draw is reproducible (DD-R09). It is a pure function.
+- **When it is evaluated (Reward Draft owns this).** Reward Draft snapshots the unlock-filtered pool
+  once, at `init_run` (reward-draft D3, `draft_state.treasure_pool`), and derives the exclusion set
+  per draft from the run record: `seen = treasures ∪ {t : d ∈ drafts, d.kind == treasure, t ∈
+  d.offered_ids}` (reward-draft D7). The `draft_state.offered_treasure_ids[]` list run-structure R1
+  sketched is **superseded** by that derivation — nothing in this GDD reads it.
+- **Weights.** Reward Draft draws 3 distinct offers per treasure draft with **per-item** weights
+  `treasure_weight(t) = RARITY_W[rarity] × (100 + TREASURE_AFFINITY × affine(t)) / 100`
+  (reward-draft F2; defaults `RARITY_W` common 70 / rare 30, registry `treasure_rarity_weights`),
+  a universal slot 1 when `universal_slot` is on, and the short-pool rules of its D8. `affine(t)`
+  reads this GDD's **plan** tags against the hero's H-5 tags; the **affinity** tag is for display
+  and for Reward Draft's universal slot (Open Questions: it currently tests `tags == []`). Weights,
+  pity and the universal slot are Reward Draft's knobs; F1's bands and F4's odds take 70/30 as the
+  per-item ratio and are therefore approximations of the per-slot share (reward-draft F2 puts rares
+  at ≈ 22–24 % of slots with this pool).
 - Minimum pool: `min_treasure_pool = 9` unlocked by default (Card Database Formulas); v1 ships 16
-  of 20 unlocked by default, MVP 10 of 10 (DD-H06).
+  of 20 unlocked by default, MVP 10 of 10 (DD-H06). Content keeps `n_universal ≥ 3` so the
+  universal slot is satisfiable (reward-draft contract) — T8 has 10.
 
 #### T7. Validation at data load (Card Database CR-5 stage 7)
 
@@ -235,10 +249,11 @@ defined by Meta Progression (contract).
 | 19 | `treasure_stampede_horn` | Stampede Horn | Rare | universal · wild, aggro | Your minions have Rush. | `aura` (`all_friendly_minions`) → hero-slot aura (card-effects row 42) | 4.0 | ✔ | null |
 | 20 | `treasure_captured_standard` | Captured Standard | Rare | war · aggro | Your minions have +1 Attack. | `aura` (`all_friendly_minions`); `attack +1` | 4.0 | — | null |
 
-Counts: 11 Common / 9 Rare; affinity 11 universal, 4 war, 3 decay, 2 knowledge; 16 unlocked by
+Counts: 11 Common / 9 Rare; affinity 10 universal, 4 war, 3 decay, 3 knowledge; 16 unlocked by
 default (≥ 9), 4 unlockable (DD-H04 "some unlockable"). Archetype coverage from the brief: economy
-(1–3), tempo (4–5), value (6–7), defensive (8–10), hero-affine War (11–12, 20), Decay (13–15),
-Knowledge (16–17), wild (18–19).
+(1–3), tempo (4–5), value (6–7), defensive (8–10), hero-affine War (5, 11–12, 20), Decay (13–15),
+Knowledge (6, 16–17), wild (18–19). Content CN-5 expected a 5/5/5/5 split; this table is the
+authority (CN-5 says Content consumes these ids) and the difference is noted in Open Questions.
 
 **Deviations from the brief, recorded.** *War "+1 Durability"*: card-effects lists
 `weapon_durability` as a provisional op (v2); Whetstone Wheel uses `+1 Attack` instead and the
@@ -341,8 +356,8 @@ reconciles.
 ## Formulas
 
 `systems-designer` not consulted — Lean mode. Review manually before production. All `Source =
-data file` variables live in `assets/data/treasures_balance.json` (a DD-T01 addition, Open
-Questions) and are listed in Tuning Knobs. F1 is a **design-time estimate** used to assign rarity
+data file` variables live in `assets/data/treasures_balance.json` (listed in DD-T01) and are
+listed in Tuning Knobs. F1 is a **design-time estimate** used to assign rarity
 and to seed `/balance-check`; it is never computed at runtime.
 
 ### F1. Treasure power (mana-equivalent per match)
@@ -544,8 +559,9 @@ machine). No allocation in the fold.
   v1 run can be affected.
 - **If an unlock is revoked mid-run** (profile reset while a run holding Grave Tithe is active):
   the run keeps it — `treasures[]` is the authority for Held and the unlock check gates offers
-  only (T6; mirrors run-structure R8.4 for heroes). Future `pool()` calls exclude it; the run log
-  shows it with a lock glyph afterwards (Run UI). Rationale: a run is a sealed contract; pulling a
+  only (T6; mirrors run-structure R8.4 for heroes). The current run's offers are also unchanged,
+  because Reward Draft snapshotted the pool at `init_run` (T6); the next run's `pool()` excludes
+  it, and the run log shows it with a lock glyph afterwards (Run UI). Rationale: a run is a sealed contract; pulling a
   treasure out of a live deck is an unexplained loss (anti-Pillar 3).
 - **If Meta Progression is absent** (MVP): `unlocked_keys = ∅` and every `unlock: null` treasure is
   available — the 10 MVP treasures are all `null` (T8).
@@ -588,9 +604,13 @@ The systems index lists Treasures as depending on Card Effects, Run Structure, C
 RNG & Event Log, and as depended on by Reward Draft, Meta Progression and Content. This table adds
 **Match Rules** (the hook points — the index folds it under Card Effects) and **Heroes** (tags and
 tokens) upstream, and **Boss AI, Match UI, Run UI** downstream; flagged for the index update.
-Bidirectionality checked: Card Database, Card Effects, Match Rules, Run Structure, RNG & Event Log,
-Heroes and Boss AI already name Treasures in their Dependencies; Reward Draft, Meta Progression,
-Match UI, Run UI and Content have no GDD yet — their rows are provisional.
+Bidirectionality re-checked 2026-11-03 — every partner GDD now exists: Card Database, Card
+Effects, Match Rules, Run Structure, RNG & Event Log, Heroes and Boss AI name Treasures in their
+Dependencies; Reward Draft lists Treasures upstream (data) and carries the T6 contract; Meta
+Progression lists Treasures as Mutual/Soft; Match UI and Run UI list Treasures as Soft (Run UI
+reads `TreasureDef` through Card Database only); Content lists Treasures as a soft concurrent
+dependency (CN-5). Match UI, Run UI and Card Effects still mark their rows "undesigned /
+provisional" — a wording update on their side, flagged for `/consistency-check`.
 
 | System | Direction | Hard/Soft | Nature of Dependency |
 |--------|-----------|-----------|---------------------|
@@ -750,8 +770,8 @@ Not shown anywhere: hook internals, `treasure_state`, F1 power numbers (debug ov
 | H-5 theme tags; tokens `decay_husk` 1/1, `war_whetstone_blade` 1/2; Whetstone weapon-slot states | `design/gdd/heroes.md` | H-5; token table; States | Data dependency |
 | `effect_resolved` with `source_id` and `cause_seq`; JSON-only run state | `design/gdd/rng-event-log.md` | Event catalogue; rule 14 | Data dependency |
 | `clone()` carries hook entries for look-ahead | `design/gdd/boss-ai.md` | Provisional note on hooks in clones | Rule dependency |
-| Offer weights 70/30, no duplicate offers, affinity weighting, `draft_state.offered_treasure_ids` | `design/gdd/reward-draft.md` *(planned)* | Pool query contract (T6) | Ownership handoff (contract) |
-| Unlock keys and the unlocked-key set; unlock-key validator | `design/gdd/meta-progression.md` *(planned)* | T1 `unlock`; T8 keys | Ownership handoff (contract) |
+| Pool snapshot at `init_run`, `seen` derived from `drafts[]`, per-item `treasure_weight`, universal slot, short-pool policy | `design/gdd/reward-draft.md` | D3, D7, D8, F2; Treasures contract paragraph | Ownership handoff (contract restated in T6) |
+| Unlock keys and the unlock state; unlock-key validator; the six provisional M10 ids | `design/gdd/meta-progression.md` | M2.1 (accepts this GDD's four key names), M10, Open Questions | Ownership handoff (contract — R-14) |
 | Pillar 1 ("treasures are run-defining rather than stat bumps"), Pillar 4 | `design/gdd/game-concept.md` | Game Pillars; Unique Hook | Rule dependency |
 | DD-R05, DD-H04, DD-H06, DD-M03, DD-M04, DD-T01, DD-T02 | `design/design-decisions.md` | Register rows | Rule dependency |
 | TD-009 (global, untyped modifier manager) retired by T2 | `docs/tech-debt-register.md` | TD-009 | Rule dependency |
@@ -780,14 +800,14 @@ retained screenshots in `production/qa/evidence/`.
 - [ ] AC-10 **GIVEN** any v1 pool subset, **WHEN** `collect_state` runs after `match_ended`, **THEN** it returns `{schema_version: 1, by_treasure: {}}`; **GIVEN** a saved `treasure_state` with `schema_version: 99`, **WHEN** resumed, **THEN** `run_warning{treasure_state_reset}` and the installers equal a stateless run's.
 - [ ] AC-11 **GIVEN** a run holding `treasure_grave_tithe` and an `unlocked_keys` set that no longer contains `hero_decay_first_win`, **WHEN** `begin_match`, **THEN** Grave Tithe is installed; **WHEN** `pool(unlocked_keys, [])` is queried, **THEN** it is absent.
 - [ ] AC-12 **GIVEN** the 20-record fixture, **WHEN** `pool(∅, ∅)`, **THEN** 16 ids in ascending order; `pool(all four keys, ∅)` → 20; `pool(∅, [treasure_worn_signet])` → 15 without it.
-- [ ] AC-13 **GIVEN** `[treasure_bottomless_satchel]` and a passive `modify_starting_hand_size delta +6`, **WHEN** starting hands are dealt, **THEN** the player's hand is 10 and no `card_burned` is emitted (after R-5; before R-5: hand 10, one `card_burned`, test asserts whichever the match-rules version implements and never a crash).
-- [ ] AC-14 Performance: **GIVEN** a registry with 12 entries, **WHEN** `modify_cost` is folded 10,000 times, **THEN** mean < 0.05 ms per fold; a full scripted match with 3 treasures completes within 2 ms of the same match with none (headless, reference machine).
+- [ ] AC-13 **GIVEN** `[treasure_bottomless_satchel]` and a passive `modify_starting_hand_size delta +6`, **WHEN** starting hands are dealt, **THEN** the player's hand is exactly 10 and the match reaches `Mulligan` without a fault; **AND** under the current match-rules hook table (no clamp, R-5 open) exactly one `card_burned{side: player}` is emitted during C3 step 5. When R-5 lands, this criterion is re-issued as "and no `card_burned` is emitted" — one assertion per match-rules version, never a test that accepts either.
+- [ ] AC-14 Performance (headless, gdUnit4, same machine for both arms): **GIVEN** a registry with 12 entries, **WHEN** `modify_cost` is folded 10,000 times, **THEN** the mean per fold is < 0.05 ms **and** the fold allocates nothing (Godot `Performance.OBJECT_COUNT` / `MEMORY_STATIC` unchanged across the loop); **GIVEN** the same scripted 9-turn match run with 3 treasures and with an empty registry, **THEN** the 3-treasure arm's wall time is ≤ 1.05 × the empty arm's over the median of 5 runs.
 
 **MVP treasures** (one each; all use the fixture seed)
 
 - [ ] AC-15 Hollow Crown: **WHEN** `match_started`, **THEN** `mana_changed{source_id: treasure_hollow_crown}` precedes the first `card_drawn`; player turn 1 reads 2/2, turn 8 reads 9/9, turn 9 and 10 read 10/10; the boss's turn 1 reads 1/1.
 - [ ] AC-16 Worn Signet: **THEN** the hero-power button shows 1; using it spends 1 mana; a second use the same turn is rejected `HERO_POWER_USED`; against `boss_test_taxman` it shows 2.
-- [ ] AC-17 Vanguard's Banner: **GIVEN** player turn 4 (4 mana) with a 3-cost minion and a 2-cost spell in hand, **THEN** both show −1 before any play; after playing the minion for 2, the spell shows 2 and is playable, ending at 0 mana; the hero-power cost is unaffected throughout.
+- [ ] AC-17 Vanguard's Banner: **GIVEN** player turn 4 (4 mana) with a 3-cost minion and a 2-cost spell in hand, **THEN** both show −1 before any play; after playing the minion for 2, the spell shows 2 and is playable, ending at 0 mana; the hero-power cost is unaffected throughout (asserts R-13's expected answer — if Card Effects rules that `scope.card` without `kind` also matches the hero power, Banner's sketch is amended to exclude it before this AC runs; the clause itself stands).
 - [ ] AC-18 Scholar's Candle: **THEN** exactly one extra `card_drawn` with `cause_seq` → `effect_resolved{source_id: treasure_scholars_candle}` occurs at the Start of player turns 2 and 4 (`match.turn` 3 and 7), before that turn's natural draw, and none on turns 1, 3, 5.
 - [ ] AC-19 Bottomless Satchel: **THEN** `mulligan_offered` lists 5 cards, a `keep_mask` of length 5 is accepted and length 3 is `INVALID_MASK`; the boss still draws 4.
 - [ ] AC-20 Iron Constitution: **THEN** `match_started` shows the player hero at 40/40 with one `enchantment_added{source_id: treasure_iron_constitution, health_delta: 10}`; after 15 damage the hero reads 25/40.
@@ -819,13 +839,18 @@ except where the row says a treasure waits on it.
 | **R-5** Add clamps `modify_starting_hand_size → [0, HAND_SIZE]` and `modify_max_attacks → [0, MAX_ATTACKS_CAP = 4]` to the hook table. | Match Rules | before Bottomless Satchel / Twin Grip stories | Open — both treasures work without it (burn / no cap), AC-13 accepts either |
 | **R-6** Add ref `owner.turns_taken` (and `opponent.turns_taken`) to the C4 closed set so Scholar's Candle does not depend on DD-M03's turn order. | Card Effects | Alpha | Open — v1 uses `match.turn ∈ {3, 7}` |
 | **R-7** Add `tags: string[]` to `TreasureDef` (CR-3); exactly one affinity tag. | Card Database | before `treasures.json` is authored | Open — contract assumed in T1 |
-| **R-8** Add `treasures_balance.json` to DD-T01's file list. | design-decisions.md | with R-7 | Open |
-| **R-9** Who emits `treasure_granted`: run-structure R5.4 says Run Structure; rng-event-log's catalogue attributes it to Reward Draft. This GDD assumes Run Structure. | Run Structure / RNG & Event Log | `/consistency-check` | Open |
-| **R-10** Confirm T2.5: event triggers legal on treasure hosts but without a hook column (`on_minion_died`, `on_attack`, …) run as observers hosted on the owner's hero slot, queued after hooks, in the "hero power / hero enchantments" candidate position. Grave Tithe depends on it. | Card Effects | before Decay content | Open — interpretation of C2/C6.2 |
+| **R-8** Add `treasures_balance.json` to DD-T01's file list. | design-decisions.md | with R-7 | **Resolved 2026-11-03** — DD-T01 already lists it |
+| **R-9** Who emits `treasure_granted`: run-structure R5.4 says Run Structure; rng-event-log's catalogue attributes it to Reward Draft. This GDD assumes Run Structure. | Run Structure / RNG & Event Log | `/consistency-check` | Open — reward-draft D9 also says the run emits it (2 of 3 GDDs); rng-event-log's catalogue row is the one to change |
+| **R-10** Confirm T2.5: event triggers legal on treasure hosts but without a hook column (`on_minion_died`, `on_attack`, …) run as observers hosted on the owner's hero slot, queued after hooks, in the "hero power / hero enchantments" candidate position. Grave Tithe depends on it. **Also**: card-effects C6.7 keys `once_per_turn` on `(effect_id, source entity_id, match.turn)`, and a treasure has no `entity_id` (T1) — confirm the key uses `host_id` for treasure/passive hosts. | Card Effects | before Decay content | Open — interpretation of C2/C6.2; `once_per_turn` key proposed as `host_id` |
 | **R-11** `Treasures.collect_state(hooks, match_result) → Dictionary` called after `match_ended`, before save S2; result stored in `treasure_state`. | Run Structure | `/consistency-check` | Open — contract proposed here (T4); no v1 treasure uses it |
 | **R-12** Cross-match counter treasures ("+1 Attack per boss beaten") need `add_counter … persist: true` writing through `collect_state`. | Card Effects + this GDD | v2 | Deferred |
 | **R-13** Does `scope.card` without `kind` match cards only (excluding the hero power)? Banner and Grimoire assume yes. | Card Effects | with R-2 | Open |
-| **R-14** Define the four unlock keys named in T8 (`hero_decay_first_win`, `hero_decay_floor_5`, `hero_knowledge_first_win`, `bosses_defeated_16`) and their conditions. | Meta Progression | `/design-system meta-progression` | Open — contract |
+| **R-14** Define the four unlock keys named in T8 (`hero_decay_first_win`, `hero_decay_floor_5`, `hero_knowledge_first_win`, `bosses_defeated_16`) and their conditions. | Meta Progression + owner | `/review-all-gdds` | Open — **conflict found 2026-11-03**: meta-progression M2.1 accepts these four key names as valid, but its M10 table and the registry's `unlock_keys_v1` still list six provisional placeholders (`trophy_rack`, `tally_stick`, `deep_lamp`, `banner_of_halvard`, `lich_grimoire`, `gauntlet_crown`) that name no treasure in this pool, and `lich_grimoire` keys off `treasure_second_wind`, which does not exist. Meta-progression's own M10 text says its ids are provisional until this GDD names them, and the registry `items` list is sourced here, so **meta-progression M10 and `unlock_keys_v1` change**, not T8. Owner decisions remaining: (a) lock 4 (this GDD) or 6 (M10) — both leave ≥ 9 unlocked; (b) which M10 milestone each locked treasure takes — this GDD's key names imply `runs_won(hero_decay) ≥ 1`, `floor_reached ≥ 5 (hero_decay)`, `runs_won(hero_knowledge) ≥ 1`, `boss_defeated(any) ≥ 16`, all expressible in M2's grammar |
+| **R-16** Universal-treasure detection: reward-draft D7/F2 treats `tags == []` as universal, but T1 requires exactly one affinity tag so a universal treasure is tagged `universal` and never `[]` — Reward Draft's universal slot would report `universal_missing` on every draft. Proposed: Reward Draft tests `"universal" ∈ tags` (validator-checked by `E_TR_TAGS`, more legible than absence). | Reward Draft | `/consistency-check` | Open — this GDD keeps the explicit tag |
+| **R-17** `unlock` field shape: T1 and card-database CR-3 say `string or null`; meta-progression M2.1 proposes `{key, condition} or null` (CR-3 amendment, its Open Questions). T8's `Unlock` column is the key either way; T7 validation is unaffected. | Card Database + Meta Progression + owner | before `/create-architecture` | Open — follows the CR-3 decision |
+| **R-18** Unlock-state interface name: this GDD passes a key set (`unlocked_keys`), reward-draft calls `is_treasure_unlocked(id) → bool` at `init_run`, meta-progression offers `unlocked_ids("treasure")`. One name is needed; T6 is written to accept any (`is_unlocked`). | Meta Progression (owner of the interface) | `/consistency-check` | Open — proposed: meta-progression's `unlocked_ids("treasure")`, with `is_unlocked(id)` = membership |
+| **R-19** Run UI U8 names the hint field `TreasureDef.synergy_tags[]`; this GDD, Reward Draft and Content all use `tags`. | Run UI | `/consistency-check` | Open — rename on Run UI's side |
+| **R-20** Content CN-5 expects a 5 generic / 5 War / 5 Decay / 5 Knowledge split and an MVP of "5 generic + 5 War"; T8 ships 10 / 4 / 3 / 3 and an MVP of 7 universal + 2 War + 1 Knowledge (Scholar's Candle, a draw effect any hero uses). CN-5 says Content consumes this GDD's ids, so CN-5's expectation updates — unless the owner wants more hero-affine treasures (Pillar 1 favours plan-dependent picks; the current pool is 50/50). | Content + owner | `/review-all-gdds` | Open |
 | **R-15** `summon` with `from: {pool, filter}` (random Legendary **on board** at match start) — v2 candidate; Living Armory uses the hand form. | Card Effects | v2 | Deferred |
 | Systems index: add Match Rules and Heroes to Treasures' "Depends On"; add Boss AI, Match UI, Run UI as dependents. | owner (`/map-systems` owns the file) | next index update | Open |
 | `aura` op targeting `owner_weapon` (Whetstone Wheel): C5 lists `buff` on weapons (attack only); confirm `aura` shares that legality. | Card Effects | with R-2 | Open — fallback: `on_weapon_equipped` observer with `buff attack +1 permanent` |
