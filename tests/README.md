@@ -143,3 +143,20 @@ twice (the first import on a clean machine may exit 139; the second must exit
 leaks get fixed rather than ignored), and uploads `reports/` plus the runner
 log as the `gdunit4-report` artifact. If you protect `main`, require the
 `Run GdUnit4 Tests` job.
+
+### Export is not run in CI (yet)
+
+The Windows export (`commands.build` in `project.yaml`: `godot --headless
+--path . --export-release 'Windows Desktop' build/windows/deckdelve.exe`) is
+**not** part of `tests.yml`. The workflow runs `bash tools/setup.sh` without
+`EXPORT_TEMPLATES=1`, so the runner has no export templates and the export
+would fail there. The preset (`export_presets.cfg`, versioned on purpose — the
+`.gitignore` un-ignores it; it holds no credentials) and the build command are
+verified locally on Godot 4.7.2 (2026-11-03): `--export-release` and
+`--export-pack` both exit 0; the first export after a fresh import once exited
+134 after writing a complete file, the same first-run flakiness as `--import`
+above, so a CI export job should run `--import` first and retry once. Adding an
+export job means running `EXPORT_TEMPLATES=1 bash tools/setup.sh` (about 1 GB
+download, 2 GB unpacked) and uploading `build/windows/` as an artifact.
+`run/main_scene` is still unset, so the exported `.exe` builds but cannot
+launch into a scene until the first UI story sets one.

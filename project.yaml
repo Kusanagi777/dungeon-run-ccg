@@ -55,9 +55,10 @@ naming:
   scenes: snake_case
 
 commands:
-  # build: no export_presets.cfg exists yet, so there is no preset name to
-  # write. Set it via /settings once a preset exists, e.g.
-  # "godot --headless --export-debug 'Windows Desktop'".
+  # build: the `Windows Desktop` preset in export_presets.cfg (versioned;
+  # x86_64, embedded pck, no code signing). Needs the 4.7.2 export templates:
+  # `EXPORT_TEMPLATES=1 bash tools/setup.sh`. Verified 2026-11-03 (exit 0,
+  # ~111 MB exe). Not run in CI yet — see tests/README.md.
   build: "godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe"
   test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode"
   run: "godot --path . --windowed --resolution 1280x720"

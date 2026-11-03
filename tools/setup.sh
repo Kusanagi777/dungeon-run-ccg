@@ -6,6 +6,13 @@
 #   - Godot 4.7.2 export templates (optional, EXPORT_TEMPLATES=1) for Windows builds
 #   - gdUnit4 into addons/gdUnit4 if it is missing
 #
+# EXPORT_TEMPLATES=1 is REQUIRED before `commands.build` in project.yaml
+# (`godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe`)
+# can run: the export reads the `Windows Desktop` preset from export_presets.cfg
+# and needs windows_release_x86_64.exe / windows_debug_x86_64.exe under
+# ~/.local/share/godot/export_templates/4.7.2.stable/ (~2 GB unpacked). Tests do
+# not need the templates, so CI leaves it unset; see tests/README.md.
+#
 # Safe to re-run. Designed for the cloud dev container and CI; on Windows install Godot by hand.
 
 set -euo pipefail

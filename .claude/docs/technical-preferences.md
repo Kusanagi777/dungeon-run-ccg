@@ -14,6 +14,7 @@
 - **Language**: GDScript
 - **Rendering**: Forward+ (2D, desktop target, not web — `renderer/rendering_method="forward_plus"` in `project.godot`)
 - **Physics**: Godot Physics 2D (2D project; physics is barely used — Jolt is the 3D default and does not apply)
+- **Build Command** (mirrors `commands.build` in `project.yaml`): `godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe` — the `Windows Desktop` preset in the versioned `export_presets.cfg` (x86_64, embedded pck, no code signing, product "Deckdelve", file version 0.1.0.0). Requires the 4.7.2 export templates (`EXPORT_TEMPLATES=1 bash tools/setup.sh`). `build/` is gitignored. Verified locally 2026-11-03; not run in CI yet (see `tests/README.md`).
 
 ## Input & Platform
 
