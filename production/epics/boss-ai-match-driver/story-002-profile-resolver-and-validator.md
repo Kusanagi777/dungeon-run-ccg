@@ -1,12 +1,12 @@
 # Story 002: ProfileResolver and the ai_profiles validator
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -63,14 +63,11 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/ai/profile_resolver.gd`
-- `src/ai/boss_ai.gd` (static validators only)
-- `tests/unit/boss_ai/boss_ai_profile_resolver_test.gd`
-- `tests/fixtures/boss_ai/profiles_stub.json`
+- `src/ai/profile_resolver.gd` (new)
+- `src/ai/boss_ai.gd` (new — schema constants and static validators only)
+- `src/core/boot.gd` (`_collect_validators`: `configs.ai_profiles` registered; TODO line renamed)
+- `tests/unit/boss_ai/boss_ai_profile_resolver_test.gd` (new, 46 tests)
+- `tests/fixtures/boss_ai/profiles_stub.json` (new)
 
 ---
 
@@ -88,7 +85,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boss_ai/boss_ai_profile_resolver_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 46 tests, passing
 
 ---
 
@@ -96,3 +93,21 @@ checks scope against it.*
 
 - Depends on: None inside this epic (`card-database` epic's `CardDatabase.config()` for the live path; tests use the stub)
 - Unlocks: `production/epics/boss-ai-match-driver/story-003-ai-profiles-mvp-data.md`, `production/epics/boss-ai-match-driver/story-004-scorer-features-and-board-value.md`, `production/epics/boss-ai-match-driver/story-013-match-driver-construction-and-command-gate.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 21:00:39 UTC, finished 21:14:43 UTC)
+**Criteria**: 4/4 passing (all in `tests/unit/boss_ai/boss_ai_profile_resolver_test.gd`) — AC-1 layering `::test_resolve_rot_warden_example_layers_default_archetype_band_and_override` (F9 example: `w_passive 2.5`, `w_self 1.5`, band budgets/`defensive`, `synergy_tags == ["deathrattle"]`), `::test_resolve_band_overlay_wins_over_archetype_and_keeps_its_other_keys`, `::test_resolve_override_wins_over_band_overlay`, `::test_resolve_nested_rule_dictionary_is_replaced_whole_not_merged`, `::test_resolve_synergy_tags_are_replaced_not_concatenated`, `::test_resolve_archetype_key_without_override_is_default_archetype_band`, `::test_resolve_never_writes_to_the_config_it_reads`; A25 `::test_validate_ai_profile_unknown_key_reports_profile_unknown`, `::test_resolve_unknown_profile_key_falls_back_to_default_and_band`, `::test_resolve_missing_ai_profile_field_falls_back_to_default_and_band`, `::test_resolve_override_with_unknown_extends_falls_back_to_default_and_band`, `::test_validate_ai_profile_without_the_ai_profiles_body_reports_instead_of_passing`; A26 `::test_validate_weight_above_range_reports_weight_range`, `::test_resolve_weight_above_range_is_clamped_to_its_max_not_zeroed` (9 → 5), `::test_validate_non_finite_or_non_number_weight_reports_weight_range`, `::test_resolve_non_finite_or_non_number_value_keeps_the_earlier_layer`; AC-4 `::test_validate_unknown_field_at_every_level_reports_unknown_field`, `::test_op_coverage_reports_each_unvalued_op_once_including_nested_ops`, `::test_op_coverage_values_aura_and_modify_value_as_buff`, `::test_validate_profiles_config_reads_cards_through_the_stage7_lookup`, `::test_validate_runtime_accepts_each_planner_mode`, `::test_validate_runtime_rejects_anything_else`, `::test_ai_profiles_is_a_required_manifest_config_so_absence_is_e_missing_file`, `::test_resolve_with_an_empty_config_supplies_no_built_in_defaults`; plus `::test_boot_registers_the_validator_as_the_ai_profiles_config_validator`. Deferred to later stories by their own text: A25's "A6 still holds" (story 007 fixture) and A26's "visible in `ai_decision.features`" (story 004 scorer).
+**Deviations** (all ADVISORY):
+- Closed code set mapping (the story lists four codes and no others): every numeric fault — missing where required, not a number, non-finite, fractional integer knob, out of range — is `E_AI_WEIGHT_RANGE`, also for budgets, `op_values`, `keyword_values`, `choice_preference`, `presentation` and the `runtime` timings, which are not weights; every other schema fault (unknown or underscore key, missing section or enum/bool field, wrong container type, enum value outside its set, `hidden` outside `boss_overrides`, `extends` outside `boss_overrides`) is `E_AI_UNKNOWN_FIELD`; an override's missing/unknown `extends` is `E_AI_PROFILE_UNKNOWN`. All rows are severity `error`, `E_AI_OP_UNVALUED` included (C10: CI fails on every `E_AI_*`).
+- Completeness checks added from A29 (no code defaults): `profiles.default` must set all 11 weights, all 12 rules and `intent_mode`; each band must set all three budgets; `presentation` and `runtime` must set every key. F9's Profile shows `extends?` on any profile — rejected outside `boss_overrides`, since the resolver formula never reads it there.
+- `runtime.slice_ms` / `replay_budget_ms` have no sourced range (F9, ADR-0006, Tuning Knobs give none): checked as positive finite numbers.
+- Resolver repair rule: only a finite out-of-range number is clamped (A26); a non-number, non-finite, fractional-integer, wrong-type or bad-enum value is skipped so the earlier layer (ultimately `default`) stands — C10's "falls back to `default`"; the GDD does not say what clamping NaN means.
+- `E_AI_OP_UNVALUED`: `validate_op_coverage(op_values, cards)` is the pure check; `validate_profiles_config(body, db)` feeds it from `db.cards_by_type(minion|spell|weapon)` only when `db` has that method. `CardDatabase` gains it in card-database story 006 (stage-7 lookups, story 004), so in the live load today the check sees no cards — tested through a fake lookup db. The "valued 1.0" half is scoring (story 004); no fallback literal was added under `src/ai/`.
+- Names: ADR-0002 calls the record validator `BossAI.validate_profile_key(key, profiles)`, the story `validate_ai_profile(host_kind, host_id, …)`; both exist — the 7b adapter over the pure key check, which takes the whole body (it needs `profiles` and `boss_overrides`). `validate_profiles_config(body, db = null)` is the 7a two-argument shape (the story wrote one argument).
+- `Boot`: only `configs.ai_profiles` is registered (the lane's one line); `ai_profile` is not, as stage 7b does not run yet — its TODO line now names `BossAI.validate_ai_profile`.
+- The unit suite reads its committed fixture with `JSON.parse_string` (precedent: `card_effects_dsl_spike_test.gd`); it is a test fixture, not `assets/data/`.
+**Test Evidence**: `tests/unit/boss_ai/boss_ai_profile_resolver_test.gd` (46 tests); full suite `commands.test` exit 0, 383 test cases, 0 failures, 0 orphans; no new SCRIPT ERROR; smoke exit 0. Seen failing: the whole suite against the missing classes (exit 105, `BossAI` / `ProfileResolver` not declared), then one mutation per run, each exit 100, restored: clamp → skip; `hidden` from any layer; override applied before the band; map sections replaced whole; validator `hidden` check off; no recursion into structural ops; no `default` completeness check; integral check off.
+**Run result**: N/A — two static `RefCounted` classes and one validator registration; nothing calls the resolver yet (MatchDriver is story 013) and the loader's stage 7 does not run, so nothing a player can see changes
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run; engine-specialist check NOT ASSESSED — no agent spawned)

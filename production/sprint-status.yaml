@@ -73,13 +73,13 @@ stories:
     name: "ProfileResolver and the ai_profiles validator"
     file: "production/epics/boss-ai-match-driver/story-002-profile-resolver-and-validator.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     wave: 1
     serialised: false
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-effects-003"
     name: "EffectValidator — schema, trigger, selector, op and reference checks"
     file: "production/epics/card-effects/story-003-validator-schema-codes.md"
