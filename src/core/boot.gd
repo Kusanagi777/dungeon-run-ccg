@@ -33,8 +33,14 @@ extends Node
 const OVERRIDE_KEYS: PackedStringArray = ["meta", "card_database"]
 
 ## False until [method boot] has run once (the QQ-04 test asserts it at suite
-## start); true from then on, whatever the load's outcome.
-var booted: bool = false
+## start); true from then on, whatever the load's outcome. Read-only: it is
+## derived from the stored result, and a write is logged and ignored.
+## Example: `if not Boot.booted: Boot.boot()`.
+var booted: bool = false:
+	get:
+		return _result != null
+	set(_value):
+		push_error("Boot.booted is read-only; set by boot()")
 
 var _services: Services = null
 var _result: BootResult = null
@@ -61,8 +67,9 @@ func _ready() -> void:
 ## 3. the settings bus — the Meta implementation's own `settings_bus`.
 ## A `Failed` load constructs nothing that reads data: `ok` is false, the
 ## report is in the result, and `Services.meta` holds only a `meta` override.
-## Override keys are [constant OVERRIDE_KEYS]; any other key is logged (an
-## error in debug builds) and not used. A second call re-runs nothing and
+## Override keys are [constant OVERRIDE_KEYS]; any other key, or a value of the
+## wrong type (`card_database` not a `CardDatabase`, `meta` not a `MetaApi`), is
+## logged (an error in debug builds) and not used. A second call re-runs nothing and
 ## returns the first call's result; overrides passed to it are logged and not
 ## used.
 ## [codeblock]
@@ -78,6 +85,7 @@ func boot(overrides: Dictionary = {}) -> BootResult:
 	var services: Services = Services.new()
 
 	# Step 2 — the Card Database (ADR-0002).
+	# Typed assignment is safe: _checked_overrides dropped wrong-type values.
 	var card_database: CardDatabase = given.get("card_database")
 	if card_database == null:
 		card_database = CardDatabase.new()
@@ -105,7 +113,6 @@ func boot(overrides: Dictionary = {}) -> BootResult:
 
 	_services = services
 	_result = BootResult.new(loaded, card_database.report(), _state_name(card_database.state()))
-	booted = true
 	return _result
 
 
@@ -146,21 +153,42 @@ func _validate_unlock_defs_mvp(_defs: Array) -> Array:
 
 
 ## The overrides with String keys, after logging any key not in
-## [constant OVERRIDE_KEYS] — an error in debug builds, a warning otherwise;
-## it is never used.
+## [constant OVERRIDE_KEYS] and any value that is not of its key's type — an
+## error in debug builds, a warning otherwise; neither is used. A `null` value
+## is the same as an absent key.
 func _checked_overrides(overrides: Dictionary) -> Dictionary:
 	var given: Dictionary = {}
 	for raw_key: Variant in overrides:
 		var key: String = String(raw_key)
+		var value: Variant = overrides[raw_key]
 		if not OVERRIDE_KEYS.has(key):
-			var message: String = "Boot.boot(): unknown override key \"%s\" (known: %s)" % [key, ", ".join(OVERRIDE_KEYS)]
-			if OS.is_debug_build():
-				push_error(message)
-			else:
-				push_warning(message)
+			_log_override_problem("Boot.boot(): unknown override key \"%s\" (known: %s)" % [key, ", ".join(OVERRIDE_KEYS)])
 			continue
-		given[key] = overrides[raw_key]
+		if value == null:
+			continue
+		if not _is_override_type(key, value):
+			_log_override_problem("Boot.boot(): override \"%s\" has the wrong type (%s); not used" % [key, type_string(typeof(value))])
+			continue
+		given[key] = value
 	return given
+
+
+## Whether `value` is the type override `key` takes.
+func _is_override_type(key: String, value: Variant) -> bool:
+	match key:
+		"card_database":
+			return value is CardDatabase
+		"meta":
+			return value is MetaApi
+	return false
+
+
+## An override problem is an error in debug builds, a warning otherwise.
+func _log_override_problem(message: String) -> void:
+	if OS.is_debug_build():
+		push_error(message)
+	else:
+		push_warning(message)
 
 
 func _state_name(state: CardDatabase.State) -> StringName:

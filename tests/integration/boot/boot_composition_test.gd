@@ -58,8 +58,22 @@ func _loaded_database() -> ConfigCardDatabase:
 	return db
 
 
+## Runs `call` and asserts it logged `message`: `boot()` reports an override
+## problem as a push_error in debug builds (the test runner) and a
+## push_warning in release.
+func _assert_override_logged(call: Callable, message: String) -> void:
+	if OS.is_debug_build():
+		await assert_error(call).is_push_error(message)
+	else:
+		await assert_error(call).is_push_warning(message)
+
+
 # --- AC 1: the one autoload, idle until boot() (QQ-04) -----------------------
 
+# Ordering assumption: this test reads the one shared `/root/Boot` autoload,
+# so it holds only while no suite in the run calls `Boot.boot()` on it (every
+# test here boots a `_fresh_boot()` instance instead). A test anywhere under
+# `tests/` that boots the autoload makes this fail when it runs first.
 func test_boot_autoload_is_not_booted_before_boot_call() -> void:
 	# Arrange -- the autoload instance the engine created at startup
 	var autoload: Node = get_tree().root.get_node_or_null(NodePath("Boot"))
@@ -97,6 +111,20 @@ func test_boot_script_extends_node() -> void:
 	# Assert
 	assert_bool(boot is Node).is_true()
 	assert_bool(boot.booted).is_false()
+
+
+func test_boot_booted_refuses_outside_writes() -> void:
+	# Arrange
+	var boot: BOOT_SCRIPT = _fresh_boot()
+
+	# Act / Assert -- a write before boot() is logged and does not stick
+	await assert_error(func() -> void: boot.booted = true).is_push_error("Boot.booted is read-only; set by boot()")
+	assert_bool(boot.booted).is_false()
+
+	# Act / Assert -- nor can a write after boot() clear it
+	boot.boot({"card_database": _loaded_database()})
+	await assert_error(func() -> void: boot.booted = false).is_push_error("Boot.booted is read-only; set by boot()")
+	assert_bool(boot.booted).is_true()
 
 
 # --- AC 2: boot() composes once and is idempotent ------------------------------
@@ -172,7 +200,70 @@ func test_boot_settings_bus_is_shared_with_meta() -> void:
 	assert_array(received).contains_exactly([&"gamma"])
 
 
+func test_boot_second_call_overrides_are_logged_and_not_used() -> void:
+	# Arrange
+	var boot: BOOT_SCRIPT = _fresh_boot()
+	var first_db: ConfigCardDatabase = _loaded_database()
+	var second_db: ConfigCardDatabase = ConfigCardDatabase.new(DataLoader.new(READY_FIXTURE))
+	var first: BootResult = boot.boot({"card_database": first_db})
+	var out: Dictionary = {}
+
+	# Act
+	await assert_error(func() -> void: out.result = boot.boot({"card_database": second_db})) \
+		.is_push_warning("Boot.boot(): already booted; overrides [\"card_database\"] not used")
+
+	# Assert -- the first call's result and bag; the second database never loaded
+	assert_object(out.result).is_same(first)
+	assert_object(boot.services().card_database).is_same(first_db)
+	assert_int(second_db.state()).is_equal(CardDatabase.State.UNLOADED)
+
+
 # --- AC 3: overrides and the Services bag ----------------------------------------
+
+func test_boot_unknown_override_key_is_logged_and_not_used() -> void:
+	# Arrange
+	var boot: BOOT_SCRIPT = _fresh_boot()
+	var db: ConfigCardDatabase = _loaded_database()
+	var out: Dictionary = {}
+
+	# Act
+	await _assert_override_logged(func() -> void: out.result = boot.boot({"bogus": 1, "card_database": db}),
+		"Boot.boot(): unknown override key \"bogus\" (known: meta, card_database)")
+
+	# Assert -- the known key is still used
+	assert_bool(out.result.ok).is_true()
+	assert_object(boot.services().card_database).is_same(db)
+
+
+func test_boot_wrong_type_meta_override_is_logged_and_not_used() -> void:
+	# Arrange -- a CardDatabase where a MetaApi belongs
+	var boot: BOOT_SCRIPT = _fresh_boot()
+	var db: ConfigCardDatabase = _loaded_database()
+	var out: Dictionary = {}
+
+	# Act -- no typed-assignment runtime error: the value is dropped first
+	await _assert_override_logged(func() -> void: out.result = boot.boot({"meta": db, "card_database": db}),
+		"Boot.boot(): override \"meta\" has the wrong type (Object); not used")
+
+	# Assert -- the MVP Meta line stands in
+	assert_bool(out.result.ok).is_true()
+	assert_object(boot.services().card_database).is_same(db)
+	assert_bool(boot.services().meta is MetaStub).is_true()
+
+
+func test_boot_wrong_type_card_database_override_is_logged_and_not_used() -> void:
+	# Arrange -- an int where a CardDatabase belongs
+	var boot: BOOT_SCRIPT = _fresh_boot()
+	var out: Dictionary = {}
+
+	# Act -- Boot falls back to its own CardDatabase over the shipped data
+	await _assert_override_logged(func() -> void: out.result = boot.boot({"card_database": 42}),
+		"Boot.boot(): override \"card_database\" has the wrong type (int); not used")
+
+	# Assert -- booted with a real CardDatabase, whatever the shipped data's outcome
+	assert_object(out.result).is_not_null()
+	assert_bool(boot.booted).is_true()
+	assert_bool(boot.services().card_database is CardDatabase).is_true()
 
 func test_boot_meta_override_is_placed_in_services() -> void:
 	# Arrange
@@ -252,8 +343,13 @@ func test_boot_data_load_within_budget_ms() -> void:
 	var started_usec: int = Time.get_ticks_usec()
 	var result: BootResult = boot.boot({"card_database": db})
 	var elapsed_ms: float = (Time.get_ticks_usec() - started_usec) / 1000.0
-	print("boot_composition_test: Boot.boot() data load %.2f ms (budget %d ms)" % [elapsed_ms, TestConstants.DATA_LOAD_BUDGET_MS])
 
-	# Assert -- advisory until the card-database performance test owns it
+	# Assert -- the load succeeds. The time is reported, never asserted: a
+	# wall-clock assertion is time-dependent (coding-standards.md, Determinism);
+	# the hard budget belongs to card-database story 009.
 	assert_bool(result.ok).is_true()
-	assert_float(elapsed_ms).is_less_equal(float(TestConstants.DATA_LOAD_BUDGET_MS))
+	var line: String = "boot_composition_test: Boot.boot() data load %.2f ms (budget %d ms)" % [elapsed_ms, TestConstants.DATA_LOAD_BUDGET_MS]
+	if elapsed_ms > float(TestConstants.DATA_LOAD_BUDGET_MS):
+		push_warning(line + " -- over budget (advisory)")
+	else:
+		print(line)
