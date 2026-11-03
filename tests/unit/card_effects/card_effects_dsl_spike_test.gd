@@ -150,7 +150,7 @@ func test_discover_with_zero_candidates_is_empty_pool_and_next_op_runs() -> void
 func test_row33_choose_zero_deals_two_and_no_heal() -> void:
 	# Arrange
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var target: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 3, 3, -1, [], VANILLA)
+	var target: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 3, 3, -1, [], VANILLA)
 	_engine.cast_spell(MatchFactory.SIDE_PLAYER, SPELL_CHOOSE_ONE, int(target.entity_id))
 	# Act
 	_engine.choose(0)
@@ -165,7 +165,7 @@ func test_row33_choose_zero_deals_two_and_no_heal() -> void:
 func test_row33_choose_one_heals_and_no_damage() -> void:
 	# Arrange
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var target: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 3, 3, -1, [], VANILLA)
+	var target: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 3, 3, -1, [], VANILLA)
 	_engine.cast_spell(MatchFactory.SIDE_PLAYER, SPELL_CHOOSE_ONE, int(target.entity_id))
 	# Act
 	_engine.choose(1)
@@ -210,8 +210,8 @@ func test_repeat_around_discover_produces_sequential_choices() -> void:
 func test_row16_rot_on_2_1_summons_husk_before_target_dies() -> void:
 	# Arrange
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], VANILLA_2_2)
-	var target: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 2, 1, -1, [], DEATHRATTLE_2_1)
+	_spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], VANILLA_2_2)
+	var target: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 2, 1, -1, [], DEATHRATTLE_2_1)
 	# Act
 	_engine.use_hero_power(MatchFactory.SIDE_PLAYER, POWER_ROT, int(target.entity_id))
 	# Assert — one pass (C6.0): no event between the ops, the death check after
@@ -227,7 +227,7 @@ func test_row16_rot_on_2_1_summons_husk_before_target_dies() -> void:
 func test_row16_rot_on_2_3_damages_only_and_summons_nothing() -> void:
 	# Arrange
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var target: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 2, 3, -1, [], VANILLA)
+	var target: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 2, 3, -1, [], VANILLA)
 	# Act
 	_engine.use_hero_power(MatchFactory.SIDE_PLAYER, POWER_ROT, int(target.entity_id))
 	# Assert
@@ -240,7 +240,7 @@ func test_row16_rot_on_2_3_damages_only_and_summons_nothing() -> void:
 func test_row16_rot_on_divine_shield_1_1_pops_shield_and_summons_nothing() -> void:
 	# Arrange
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var target: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, ["divine_shield"], DIVINE_SHIELD)
+	var target: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, ["divine_shield"], DIVINE_SHIELD)
 	# Act
 	_engine.use_hero_power(MatchFactory.SIDE_PLAYER, POWER_ROT, int(target.entity_id))
 	# Assert
@@ -255,11 +255,11 @@ func test_row16_rot_on_divine_shield_1_1_pops_shield_and_summons_nothing() -> vo
 func test_row45_deathrattle_deals_damage_equal_to_snapshot_counter() -> void:
 	# Arrange — three minions (either side) die while row 45 is in play
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var counter: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
+	var counter: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
 	var victims: Array = [
-		MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 1, 1, -1, [], VANILLA),
-		MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], VANILLA),
-		MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], VANILLA),
+		_spike_summon(_state, MatchFactory.SIDE_PLAYER, 1, 1, -1, [], VANILLA),
+		_spike_summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], VANILLA),
+		_spike_summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], VANILLA),
 	]
 	for victim: Dictionary in victims:
 		_engine.destroy(int(victim.entity_id))
@@ -284,8 +284,8 @@ func test_row45_counter_raised_before_death_but_resolved_after_is_not_in_snapsho
 	# own Deathrattle is raised (snapshot taken) with seen == 0, and the late
 	# add_counter then raises the live bucket to 1. C6.5 as written: snapshot wins.
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var counter: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
-	var killer: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], DEATHRATTLE_AOE)
+	var counter: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
+	var killer: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], DEATHRATTLE_AOE)
 	# Act
 	_engine.destroy(int(killer.entity_id))
 	_engine.settle()
@@ -300,13 +300,13 @@ func test_row45_counter_raised_before_death_but_resolved_after_is_not_in_snapsho
 func test_row45_new_instance_counter_starts_at_zero() -> void:
 	# Arrange — a death seen by the first instance must not leak to a new entity
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var first: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
-	var victim: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], VANILLA)
+	var first: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
+	var victim: Dictionary = _spike_summon(_state, MatchFactory.SIDE_BOSS, 1, 1, -1, [], VANILLA)
 	_engine.destroy(int(victim.entity_id))
 	_engine.settle()
 	_engine.destroy(int(first.entity_id))
 	_engine.settle()
-	var second: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
+	var second: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], COUNTER_MINION)
 	var damage_before: int = _log.count(&"damage_dealt")
 	# Act
 	_engine.destroy(int(second.entity_id))
@@ -321,10 +321,10 @@ func test_row45_new_instance_counter_starts_at_zero() -> void:
 func test_rows26_27_stacked_auras_give_ac26_stats() -> void:
 	# Arrange — friendly board [26, 26, vanilla 1/1, 27]
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var lord_a: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
-	var lord_b: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
-	var vanilla: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 1, 1, -1, [], VANILLA)
-	var adjacent: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], ADJACENT)
+	var lord_a: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
+	var lord_b: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
+	var vanilla: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 1, 1, -1, [], VANILLA)
+	var adjacent: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], ADJACENT)
 	# Act
 	_engine.settle()
 	# Assert — AC-26 numbers are the point of the test
@@ -338,10 +338,10 @@ func test_rows26_27_stacked_auras_give_ac26_stats() -> void:
 func test_row27_adjacency_follows_neighbour_change_and_recompute_is_idempotent() -> void:
 	# Arrange
 	_build(TestRngStream.seeded("match_1", SEED_AC_10))
-	var lord_a: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
-	var lord_b: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
-	var vanilla: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 1, 1, -1, [], VANILLA)
-	var adjacent: Dictionary = MatchFactory.summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], ADJACENT)
+	var lord_a: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
+	var lord_b: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], LORD)
+	var vanilla: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 1, 1, -1, [], VANILLA)
+	var adjacent: Dictionary = _spike_summon(_state, MatchFactory.SIDE_PLAYER, 2, 2, -1, [], ADJACENT)
 	_engine.settle()
 	# Act — the 1/1 dies: row 27's left neighbour becomes lord B
 	_engine.destroy(int(vanilla.entity_id))
@@ -359,7 +359,7 @@ func test_row27_adjacency_follows_neighbour_change_and_recompute_is_idempotent()
 func _build(rng: TestRngStream) -> void:
 	_rng = rng
 	_log = TestEventLog.new()
-	_state = MatchFactory.make_match_state({"turn": 1, "phase": MatchFactory.PHASE_MAIN})
+	_state = _spike_match_state({"turn": 1, "phase": MatchFactory.PHASE_MAIN})
 	var rules: Dictionary = {
 		"BOARD_SIZE": TestConstants.BOARD_SIZE,
 		"HAND_SIZE": TestConstants.HAND_SIZE,
@@ -409,3 +409,44 @@ func _parse(text: String) -> Variant:
 func _assert_stats(minion: Dictionary, attack: int, health: int) -> void:
 	assert_int(MatchFactory.attack_of(minion)).override_failure_message("attack of %s" % minion.def_id).is_equal(attack)
 	assert_int(MatchFactory.health_of(minion)).override_failure_message("health of %s" % minion.def_id).is_equal(health)
+
+
+# --- Spike-local Dictionary-state helpers -------------------------------------
+# The spike runs on a plain-Dictionary C1 state (its stub engine predates the
+# production `MatchState`, match-rules story 001). These two helpers keep it
+# independent of the production type; they mirror MatchFactory as of the spike.
+
+## A Dictionary C1 state at the end of setup (turn 0, Mulligan, both heroes).
+static func _spike_match_state(overrides: Dictionary = {}) -> Dictionary:
+	var state: Dictionary = {
+		"turn": 0,
+		"active_side": MatchFactory.SIDE_PLAYER,
+		"phase": MatchFactory.PHASE_MULLIGAN,
+		"players": {
+			MatchFactory.SIDE_PLAYER: MatchFactory.make_player_state(MatchFactory.SIDE_PLAYER),
+			MatchFactory.SIDE_BOSS: MatchFactory.make_player_state(MatchFactory.SIDE_BOSS),
+		},
+		"pending_choice": null,
+		"result": null,
+		"next_entity_id": MatchFactory.BOSS_HERO_ENTITY_ID + 1,
+		"hooks": [],
+		"floor": 1,
+		"band": 1,
+	}
+	state.merge(overrides, true)
+	return state
+
+
+## Put a minion on `side`'s board (-1 = rightmost); {} when the board is full.
+static func _spike_summon(state: Dictionary, side: String, attack: int, health: int, position: int = -1, keywords: Array = [], def_id: String = "") -> Dictionary:
+	var board: Array = state.players[side].board
+	if board.size() >= TestConstants.BOARD_SIZE:
+		return {}
+	var id: int = int(state.next_entity_id)
+	state.next_entity_id = id + 1
+	var minion: Dictionary = MatchFactory.make_minion(id, side, attack, health, keywords, def_id)
+	minion.summoned_on_turn = int(state.turn)
+	var index: int = board.size() if position < 0 else clampi(position, 0, board.size())
+	board.insert(index, minion)
+	state.players[side].stats.minions_summoned += 1
+	return minion
