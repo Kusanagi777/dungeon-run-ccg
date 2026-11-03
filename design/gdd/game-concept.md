@@ -113,7 +113,7 @@ boss that heals 5 a turn?") and the draft is how you answer it.
 ### Flow State Design
 
 - **Onboarding curve**: the first run forces the War hero (simplest plan: minions and weapons),
-  floor 1 bosses are vanilla minion decks, the first treasure pick is always offered on floor 2.
+  floor 1 bosses are vanilla minion decks, the first treasure pick is offered after the first win (floor 1, per DD-R05).
 - **Difficulty scaling**: boss bands (floors 1–3 easy, 4–6 mid, 7–8 hard) with rising health and
   stronger passives; the player's deck scales through drafts.
 - **Feedback clarity**: event log shows every effect; AI intents are telegraphed where possible;

@@ -12,7 +12,14 @@
 
 ## Summary
 
-[To be designed]
+Card Effects is the data language every card, hero power, boss passive and treasure is written
+in — a JSON effect of *trigger, condition, targets, operations* — and the resolver that runs those
+effects through Match Rules' primitives in one defined order, with every random pick drawn from the
+seeded match stream and every outcome written to the event log. For the player it is the card text
+kept exactly: Battlecries, Deathrattle chains, auras, Discover picks and boss passives that resolve
+visibly and predictably. It exists because ~120 cards, 16 bosses and 20 treasures must be authored
+as data rather than code, and because the game's promise of readable, deterministic rules
+(Pillar 4) depends on one engine resolving all of them the same way.
 
 > **Quick reference** — Layer: `Core` · Priority: `MVP` · Key deps: `Match Rules, Card Database, RNG & Event Log`
 
@@ -989,24 +996,305 @@ within an effect are independent (C6.4). Knobs owned elsewhere that move this sy
 
 ## Visual/Audio Requirements
 
-[To be designed]
+`art-director` not consulted — Lean mode (no `Agent` tool). Review manually before production.
+This system renders nothing (DD-T02). The primitive events (`damage_dealt`, `minion_summoned`,
+`enchantment_applied`…) already carry their feedback in match-rules' table; the rows below are the
+events **this** system adds, which the Match UI must present so the player can read effects as
+chains (Pillar 4). Art bible "Torchlit Ledger" applies: saturated colour only for state changes,
+and the *source* of an effect must be lit while its chain plays.
+
+| Event | Visual feedback | Audio feedback | Priority |
+|---|---|---|---|
+| `trigger_queued` → `trigger_resolved` | Source card gets a rim-light "armed" glow when queued; on resolve, a short pulse travels from source to each target before the primitive events play | Soft chime on queue; per-trigger-class cue on resolve (Deathrattle low tone, Battlecry bright) | Must |
+| `effect_resolved` (whole effect) | Chain bracket in the event feed: source name, trigger, one line per op with targets and numbers; feed groups a chain under its command | None (ops already sounded) | Must |
+| `effect_resolved.ops[i].outcome ≠ applied` | Ghost icon at the intended target zone with the reason (`no target`, `board full`, `burned`); feed line greyed | Dull "nothing" tick | Must |
+| `effect_resolved{fizzled: condition_false}` | Source card flashes grey once; feed line "condition not met" | Soft deny | Should |
+| `discover_offered` / `discover_picked` | Centre panel, 1–3 card options at full card size, rest of board dimmed; picked card flies to hand (or board for `then: summon`) | Reveal cue; card slap on pick | Must |
+| `choose_one` offer | Same panel with two to four labelled option plates instead of cards | Reveal cue | Must |
+| `auras_recomputed` (from this system's claims) | Buffed stats shown in the art bible's buff colour while an aura applies; an aura source shows a faint ring that reaches its targets | None | Must |
+| `counter_changed` | Small counter badge on the source card updates | Tick | Should |
+| Hook-hosted effect (`source_id` = treasure / passive) | The treasure icon (player side) or boss passive plate (boss side) lights and pulses toward the target; feed names the treasure | Treasure cue (distinct from cards) | Must |
+| Spell Damage applied (`values.requested > amount`) | Hand shows the scaled number on the card while hovering; feed shows "3 (+2 Spell Damage)" | None | Must |
+
+📌 **Asset Spec** — Visual/Audio requirements are defined. After the art bible is approved, run
+`/asset-spec system:card-effects` to produce per-asset visual descriptions, dimensions, and
+generation prompts from this section.
 
 ## Game Feel
 
-[To be designed]
+The resolver is instantaneous; feel is delivered by the Match UI pacing `effect_resolved` chains.
+These targets bind how the UI must play effects back so that chains read as *inevitable and
+countable*, and how fast the resolver must answer.
+
+### Feel Reference
+
+Hearthstone's Deathrattle cascade (e.g. a board of eggs popping one after another) — each link
+visibly caused by the previous one, nothing overlapping. We borrow the **one-link-at-a-time**
+cadence and the **source-lights-first** rule. From Slay the Spire we borrow the **numbers-you-can-
+check** feel: the card in hand already shows the scaled damage. Anti-reference: Hearthstone's
+"Yogg" turns and any auto-battler where ten effects resolve in a blur — if the player cannot
+narrate the chain afterwards, the pacing failed.
+
+### Input Responsiveness
+
+| Action | Max input-to-response latency (ms) | Frame budget (60 fps) | Notes |
+|---|---|---|---|
+| `resolve()` for one effect pass (engine only) | 2 | < 1 frame | Worst case a 16-target op with value expressions |
+| `legal_targets()` / `targeting_spec()` | 1 | < 1 frame | Called per hover by the UI and per card by Boss AI |
+| `validate_effects()` for all v1 content | 50 total | — (load time) | Inside card-database's 200 ms `data_load_budget_ms` |
+| Command accepted → source "armed" glow | 50 | 3 frames | Matches match-rules' first-visual-event budget |
+
+### Animation Feel Targets
+
+| Animation | Startup frames | Active frames | Recovery frames | Feel goal | Notes |
+|---|---|---|---|---|---|
+| Trigger pulse (source → target) | 4 | 6 | 2 | Causal, directional | Primitive events start after the pulse arrives |
+| Discover panel open | 6 | — | 6 | Deliberate pause | No timer; the game waits |
+| Chain link spacing | — | 8 | — | Countable | Minimum gap between consecutive ops of one effect |
+| Boss passive pulse | 6 | 6 | 6 | Ominous, legible | Slightly slower than card triggers so the player notices the passive |
+
+### Impact Moments
+
+| Impact type | Duration (ms) | Effect description | Configurable? |
+|---|---|---|---|
+| Chain climax | 120 | Brief hold on the last op of a chain with ≥ 3 ops before the board settles | Yes |
+| Board wipe | 200 | All-target damage ops land on the same frame, then one death group | Yes |
+| Treasure fires | 150 | Treasure icon flare + screen-edge glow in the hero's colour | Yes |
+| Hit-stop / shake | — | Inherited from match-rules' `damage_dealt` rules | — |
+
+### Weight and Responsiveness Profile
+
+- **Weight**: deliberate for chains, light for single ops. A Battlecry that pings one minion should
+  feel like a flick; a three-Deathrattle cascade should feel like dominoes.
+- **Player control**: total until the command; zero during resolution; restored only at
+  `discover_offered` / `choose_one`, where the game visibly waits.
+- **Snap quality**: crisp — each op is one visible beat with one number.
+- **Acceleration model**: instant start; the UI may compress gaps when a chain exceeds 8 ops, but
+  never below one beat per op, and never reorders.
+- **Failure texture**: fair. Every no-op is shown with its reason at the place it would have
+  happened; nothing "just didn't work".
+
+### Feel Acceptance Criteria
+
+- [ ] After a chain of ≥ 3 effects, playtesters can retell the order of events correctly in
+      ≥ 8 of 10 attempts without opening the feed.
+- [ ] No playtester describes a Deathrattle cascade as "a blur" or asks "what just happened?".
+- [ ] Playtesters correctly predict scaled spell damage from the hand display before casting in
+      ≥ 9 of 10 cases.
+- [ ] When a boss passive fires, playtesters name the passive as the cause unprompted.
 
 ## UI Requirements
 
-[To be designed]
+Everything below is derivable from `MatchState`, `EffectRuntime` and the event stream.
+
+| Information | Display location | Update frequency | Condition |
+|---|---|---|---|
+| Scaled damage for a hovered spell (F1) | On the card in hand, replacing the printed number | On hover; every event | Owner's Main; op with `scales` |
+| Legal targets for the dragged card (`targeting_spec`, `legal_targets`) | Target highlights + arrow | On drag start | During targeting |
+| Armed / queued effect sources | Rim glow on the source card | `trigger_queued` → `trigger_resolved` | Always |
+| Effect chain in the event feed (source, trigger, per-op line, outcomes) | Side feed, grouped under the command | `effect_resolved` | Always; replay source |
+| Discover / Choose One options | Centre panel | `discover_offered` | Choice phase, player side (boss side hidden by UI policy) |
+| Active aura attribution (which source buffs which minion) | Tooltip on a buffed stat | `auras_recomputed` | On hover |
+| Treasure / passive activity | Treasure tray (player) and passive plate (boss) | Hook-hosted `effect_resolved` | Always |
+| Counter values | Badge on the source card | `counter_changed` | Source has a counter |
+| Once-per-turn spent state | Dimmed trigger icon on the card | On mark set / Start step | Effect has `once_per_turn` |
+| Card text rendering of effects (`text.en` now; generated text later) | Card frame text slot | Static | Always |
+
+📌 **UX Flag — Card Effects**: This system has UI requirements. In Phase 4 (Pre-Production), run
+`/ux-design` to create a UX spec for each screen or HUD element this system contributes to
+**before** writing epics (Discover/Choose-One panel, effect chain feed grouping, aura attribution
+tooltip, treasure tray, scaled-damage hand display). Stories that reference UI should cite
+`design/ux/[screen].md`, not the GDD directly.
 
 ## Cross-References
 
-[To be designed]
+| This document references | Target GDD | Specific element referenced | Nature |
+|---|---|---|---|
+| Trigger points and hook table bound in C2 | `design/gdd/match-rules.md` | Interactions: trigger points; `HookRegistry` hook table | Rule dependency |
+| Primitive API used by every op (C5) | `design/gdd/match-rules.md` | Interactions: engine primitive API | Data dependency |
+| Queue semantics, death ordering, aura recompute, step cap (C6, F6) | `design/gdd/match-rules.md` | C10 resolution loop; `RESOLUTION_STEP_CAP`; DD-M11 | Rule dependency |
+| Play order Battlecry → hooks → `on_play` → `on_summon`; spell no-target rule; Battlecry fizzle | `design/gdd/match-rules.md` | C6 steps 1–3; decision 7 | Rule dependency |
+| Spell Damage total | `design/gdd/match-rules.md` | F7 `spell_damage(side)` | Data dependency |
+| `apply_damage` pipeline and `effective_cost` terms | `design/gdd/match-rules.md` | F2, F1 (`card_enchantment_delta`, `hand_aura_delta`, `hook_delta`) | Data dependency |
+| Silence clamp and enchantment expiry | `design/gdd/match-rules.md` | F6; C13; C4 End step 5 | Rule dependency |
+| Choice phase and `choose` command | `design/gdd/match-rules.md` | States: `Choice`; C2 `choose` | State trigger |
+| Keyword semantics and the display-only keyword rule | `design/gdd/match-rules.md` | C12 keyword table (DD-M09) | Rule dependency |
+| `effects[]` / `passive` opaque fields; CR-5 stage 7 validator; `has(id)`; pools | `design/gdd/card-database.md` | CR-3 CardDef/HeroPowerDef/BossDef/TreasureDef; CR-5; CR-6 `collectible_pool`, id-ascending order | Ownership handoff (validator) / Data dependency |
+| `collectible_pool_size` as the Discover universe | `design/gdd/card-database.md` | Formulas: Collectible pool size | Data dependency |
+| Stream draw primitives and draw counts | `design/gdd/rng-event-log.md` | F4 `randi_range`, `shuffle`; rule 8 draw-order documentation | Data dependency |
+| Event envelope, `cause_seq`, catalogue rows for `effect_resolved`, `discover_*`, `minion_modified` | `design/gdd/rng-event-log.md` | Rules 11–14; D. catalogue | Ownership handoff |
+| `max_match_events` backstop | `design/gdd/rng-event-log.md` | F7 | Data dependency |
+| Hero power as a DSL effect, 2 mana once per turn | `design/gdd/heroes.md` (undesigned) | Hero power definitions | Ownership handoff |
+| Treasure and passive hooks authored in this DSL; hooks-first ordering | `design/gdd/treasures.md` (undesigned) | Hook definitions, pick order | Ownership handoff |
+| `legal_targets()`, `ChoiceRequest` answering | `design/gdd/boss-ai.md` (undesigned) | AI command loop | Ownership handoff |
+| Playback of `effect_resolved`, Discover panel | `design/gdd/match-ui.md` (undesigned) | Event rendering | Data dependency |
+| Hero identities War / Decay / Knowledge driving the archetype table | `design/design-decisions.md` DD-H01 | Launch heroes | Rule dependency |
+| Card frame text slot size constraining `MAX_OPS_PER_EFFECT` | `design/art/art-bible.md` | §4 Card frame slot layout | Rule dependency |
 
 ## Acceptance Criteria
 
-[To be designed]
+`qa-lead` not consulted — Lean mode (no `Agent` tool). Review manually before production. Every
+criterion is a gdUnit4 unit test against the pure engine plus resolver
+(`tests/unit/card_effects/`) with an injected fixed seed and a fixture set
+`tests/fixtures/cards_effects_test.json` (one card per C11 row that the test names, plus vanilla
+minions from match-rules' fixture); no Node, no scene. Event assertions read the log; "row N"
+refers to the C11 coverage table.
+
+**Schema and validation**
+
+- [ ] AC-01 **GIVEN** the full v1 fixture set, **WHEN** `validate_effects` runs on every host,
+  **THEN** it returns zero errors, and each C11 row 1–43 is present in the fixture and validates.
+- [ ] AC-02 **GIVEN** a card with two play effects each using `chosen`, **WHEN** validated,
+  **THEN** `E_FX_CHOSEN` names the host and the second effect's id.
+- [ ] AC-03 **GIVEN** a boss `passive` with trigger `battlecry`, **WHEN** validated, **THEN**
+  `E_FX_TRIGGER`; **GIVEN** a treasure effect with `targets: self`, **THEN** `E_FX_SELECTOR`.
+- [ ] AC-04 **GIVEN** `summon` with `card_id: "nope"`, **WHEN** validated, **THEN** `E_FX_REF`;
+  **GIVEN** `{"ref": "owner.bananas"}`, **THEN** `E_FX_REF_PATH`.
+- [ ] AC-05 **GIVEN** "deal 1 damage to all minions, 20 times" (`repeat 20 × all_minions`),
+  **WHEN** validated with `EFFECT_STATIC_STEP_LIMIT = 250`, **THEN** `E_FX_BUDGET` with
+  `bound = 321`; with `times: 10` it passes (`161`).
+- [ ] AC-06 **GIVEN** an effect using `shuffle_into_deck`, **WHEN** validated, **THEN**
+  `E_FX_OP_UNAVAILABLE`.
+- [ ] AC-07 **GIVEN** row 18 (chosen, `kind: any`) and row 10 (chosen friendly minion, Battlecry),
+  **WHEN** `targeting_spec` is queried, **THEN** row 18 → `{mode: required, filter: {kind: any}}`
+  and `legal_targets` lists every non-Stealth enemy character plus all friendly characters; row 10
+  on an empty friendly board → empty list and the minion is still in `legal_commands()`.
+
+**Play triggers and targeting**
+
+- [ ] AC-08 **GIVEN** row 10 with no friendly minion, **WHEN** played, **THEN** mana is paid, the
+  minion is on board, no `effect_resolved` and no `card_drawn` is emitted.
+- [ ] AC-09 **GIVEN** row 10 with one friendly minion, **WHEN** played targeting it, **THEN** the
+  log order is `card_played`, `effect_resolved`-chain containing `minion_died` (after the death
+  check) and exactly two `card_drawn`, and `effect_resolved.ops` is `[destroy: applied, draw:
+  applied ×2]`.
+- [ ] AC-10 **GIVEN** row 20 and a War MVP pool of 40 cards with 9 spells, **WHEN** cast with seed
+  7, **THEN** `discover_offered.option_card_ids` has 3 distinct spell ids none of which is the
+  casting spell, the engine is in `Choice`, exactly 3 stream draws were consumed, and after
+  `choose(1)` that card is in hand and `discover_picked` precedes the next event.
+- [ ] AC-11 **GIVEN** a Discover whose filter matches 2 cards, **WHEN** cast, **THEN** 2 options
+  are offered; **GIVEN** a filter matching 0, **THEN** no `Choice` phase, op outcome
+  `empty_pool`, and the following op in the same effect still runs.
+- [ ] AC-12 **GIVEN** row 33 cast on an enemy 3/3, **WHEN** `choose(0)` (Smite), **THEN**
+  `damage_dealt{amount: 2}` and no `healed`; **WHEN** `choose(1)` instead, **THEN** `healed` and no
+  `damage_dealt`.
+- [ ] AC-13 **GIVEN** row 25 (hero power "Deal 1") and two Spell Damage +1 minions, **WHEN** used
+  on the enemy hero, **THEN** `damage_dealt.amount == 1`; **GIVEN** row 18 cast instead, **THEN**
+  `amount == 5` and `effect_resolved.ops[0].values.requested == 5`.
+- [ ] AC-14 **GIVEN** row 19 ("Deal 2 to all enemies") with +1 Spell Damage and an enemy board of
+  3 plus hero, **WHEN** cast, **THEN** four `damage_dealt{amount: 3}` in canonical order (board
+  left to right, then hero).
+- [ ] AC-15 **GIVEN** row 8 (War hero power) with no weapon, **WHEN** used, **THEN**
+  `weapon_equipped` (1/2 Blade) and `ops[0].values.branch == "else"`; **WHEN** used next turn
+  with the Blade held, **THEN** `enchantment_applied{attack_delta: 1, expires: end_of_turn}` on
+  the weapon and no equip; at that End step the enchantment is removed.
+
+**Event triggers and ordering**
+
+- [ ] AC-16 **GIVEN** a treasure "at the start of your turn gain 1 Armor" (hook) and row 34 on the
+  player's board, **WHEN** the player's Start step runs, **THEN** `armor_gained` precedes both
+  `damage_dealt` events, and each is its own step (`trigger_resolved` seq between them).
+- [ ] AC-17 **GIVEN** an observer with both `on_play` and `on_summon` ("+1/+1 to the played/summoned
+  minion") and row 9 dying, **WHEN** a minion is played from hand, **THEN** it receives +2/+2 (two
+  `enchantment_applied`); **WHEN** row 9's Scarabs are summoned, **THEN** each receives +1/+1 only.
+- [ ] AC-18 **GIVEN** a minion with `on_damage_taken: draw 1` at 1 health and a Deathrattle, **WHEN**
+  hit for 1, **THEN** `card_drawn` precedes its `trigger_resolved{deathrattle}` (match-rules
+  AC-28 restated through the DSL).
+- [ ] AC-19 **GIVEN** row 11 and two friendly minions dying in one death check, **WHEN** the loop
+  completes, **THEN** row 11 has +2/+2 (two queued triggers, two `effect_resolved`); **GIVEN** the
+  same effect with `once_per_turn: true`, **THEN** +1/+1 and exactly one `trigger_queued`.
+- [ ] AC-20 **GIVEN** row 12 (Deathrattle: damage = this minion's Attack) buffed to 5 Attack by an
+  aura lord that dies in the same step, **WHEN** both die, **THEN** the enemy hero takes 5 (the
+  raise-time snapshot), not the base Attack.
+- [ ] AC-21 **GIVEN** a minion Silenced while its Deathrattle is already queued (killed and
+  silenced in one effect: `destroy` then `silence` on a `pending_destroy` target), **WHEN** the
+  loop completes, **THEN** the Deathrattle still resolves; **GIVEN** Silence **before** death,
+  **THEN** no `trigger_queued` for it.
+- [ ] AC-22 **GIVEN** row 21 on board, **WHEN** the owner casts a spell, **THEN** `card_drawn`
+  appears after `spell_cast` and after the spell's own `effect_resolved`; **WHEN** the opponent
+  casts a spell, **THEN** no draw (scope `by: owner`).
+- [ ] AC-23 **GIVEN** row 22 with 4 cards in hand, **WHEN** the owner's End step runs, **THEN**
+  `effect_resolved{fizzled: condition_false}` and no damage; with 5 cards, **THEN** one
+  `damage_dealt{amount: 3}` on a random enemy character chosen with exactly one stream draw.
+- [ ] AC-24 **GIVEN** row 34 and a single enemy minion at 1 health, **WHEN** the Start step runs,
+  **THEN** `effect_resolved.ops` has two entries: the first `applied` (minion dies), the second
+  `no_target`; the hero is never hit.
+- [ ] AC-25 **GIVEN** row 37 (boss passive "whenever the player heals, deal 1 to their hero") and
+  a player minion "whenever you heal, gain +1/+1", **WHEN** the player heals, **THEN** the
+  passive's `damage_dealt` precedes the minion's `enchantment_applied` (hooks first).
+
+**Auras, buffs and transforms**
+
+- [ ] AC-26 **GIVEN** two copies of row 26 and one row 27 adjacent to a vanilla 1/1, **WHEN** auras
+  are recomputed, **THEN** the 1/1 reads 5/3 (`+2 +2 +0` attack from lords and adjacency = `+4`,
+  health `+2`) and each lord reads +1/+1 from the other only.
+- [ ] AC-27 **GIVEN** row 26 buffing a damaged 2/2 (now 3/1 after 2 damage), **WHEN** row 26 is
+  Silenced, **THEN** at the next recompute the 2/2 has `health ≤ 0` and dies in the following loop
+  pass, with `silenced` → `auras_recomputed` → `minion_died` in the log.
+- [ ] AC-28 **GIVEN** a "+4/+4 until end of turn" on a 1/1 that then takes 4 damage, **WHEN** the
+  owner's End step runs, **THEN** `enchantment_removed` then `minion_died` (F3).
+- [ ] AC-29 **GIVEN** row 24 on board and a 3-cost spell in hand, **WHEN** `effective_cost` is read,
+  **THEN** 2; with two copies of row 24 → 1; with a 1-cost spell and two copies → 0, never
+  negative.
+- [ ] AC-30 **GIVEN** row 31 cast on an enemy 5/5 with Taunt and a Deathrattle, **WHEN** resolved,
+  **THEN** the target is a new `entity_id` 1/1 Sheep with no keywords, no `battlecry` of the Sheep
+  fires, and when the Sheep later dies no Deathrattle fires.
+- [ ] AC-31 **GIVEN** row 32 targeting a friendly minion buffed +2/+2 and damaged 1, **WHEN**
+  resolved, **THEN** the card added to hand has the printed cost and, when played, printed stats
+  and full health.
+- [ ] AC-32 **GIVEN** row 42 (treasure "your minions have Rush") installed, **WHEN** a minion is
+  played and attacks an enemy minion the same turn, **THEN** accepted; **WHEN** it attacks the hero,
+  **THEN** `RUSH_CANNOT_HIT_HERO`; **WHEN** the treasure is absent, **THEN** `SUMMONING_SICK`.
+
+**Hooks and value triggers**
+
+- [ ] AC-33 **GIVEN** row 36 (passive "+1 cost to enemy minions") and row 39-style treasure
+  "minions cost 1 less" installed, **WHEN** the player reads a 3-cost minion's `effective_cost`,
+  **THEN** 3 (fold: treasure first −1, passive +1); a 0-cost minion reads 0.
+- [ ] AC-34 **GIVEN** row 40 (treasure "spells deal 1 more"), **WHEN** row 18 is cast for 3 with 0
+  Spell Damage, **THEN** `damage_dealt.amount == 4`; **WHEN** row 25 (hero power) is used, **THEN**
+  1 (scope `type: spell`).
+- [ ] AC-35 **GIVEN** row 43 (treasure "hero attacks twice"), **WHEN** the hero with a weapon
+  attacks twice, **THEN** both accepted and the third is `CANNOT_ATTACK`.
+- [ ] AC-36 **GIVEN** row 38 installed, **WHEN** `start` runs, **THEN** `armor_gained{10}` appears
+  before the first `card_drawn`, with `source_id` equal to the treasure id.
+
+**Determinism, bounds, interfaces**
+
+- [ ] AC-37 **GIVEN** any 100-command scripted match whose decks contain rows 9, 12, 13, 20, 22,
+  26 and 34, **WHEN** replayed with the same seed and commands, **THEN** the two event logs are
+  byte-identical, and the number of stream draws equals the sum of F4/F5 draw counts recomputed
+  from the log.
+- [ ] AC-38 **GIVEN** a Deathrattle "summon a copy of this and deal 1 to it" and
+  `RESOLUTION_STEP_CAP = 50`, **WHEN** it dies, **THEN** the match ends `resolution_overflow`
+  within 50 steps and fewer than `max_match_events` events were logged.
+- [ ] AC-39 **GIVEN** any `effect_resolved` in the fixture matches, **WHEN** inspected, **THEN** it
+  carries `effect_id, host_id, host_kind, source_id, owner, trigger, depth, fizzled, ops[]` with
+  one `ops` entry per op in the effect, and its `cause_seq` equals that of the command event or
+  the `trigger_resolved` that started it.
+- [ ] AC-40 **GIVEN** a `clone()` of a mid-match state with a queued trigger and a counter, **WHEN**
+  the same command is submitted on the clone and the original, **THEN** both produce identical
+  event sequences and the original's `EffectRuntime` is unchanged by the clone's resolution.
+- [ ] AC-41 **GIVEN** the resolver source, **WHEN** grepped for the Tuning Knobs constants and for
+  global RNG calls (`randi`, `randf`, `shuffle(`, `pick_random`), **THEN** every constant comes from
+  `card_effects.json` and no global RNG call exists under the rules tree.
+- [ ] AC-42 **GIVEN** a 16-target op (`all_characters` on full boards) with value expressions,
+  **WHEN** `resolve` is timed on the CI runner, **THEN** under 2 ms; `validate_effects` over the
+  full v1 fixture under 50 ms.
 
 ## Open Questions
 
-[To be designed]
+| Question | Owner | Deadline | Resolution |
+|---|---|---|---|
+| Five primitives this GDD needs are not in match-rules' primitive API: `remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`. Add them to match-rules Interactions (their ops stay `E_FX_OP_UNAVAILABLE` until then). | Match Rules GDD (owner) | Before `/create-architecture` | Open — proposed here |
+| `targeting_spec` is derived from the `chosen` selector rather than stored as a Card Database field; match-rules Dependencies says it reads `targeting {mode, filter}` from the card record. Confirm the derived reading and update that row's wording. | Owner / `/consistency-check` | Before match-rules design-review | Open — proposed here |
+| Event-name drift between siblings: match-rules `healed` / `weapon_destroyed` / `trigger_resolved` / `enchantment_applied` vs rng-event-log `healing_applied` / `weapon_broken` / `deathrattle_triggered` / `minion_modified`. This GDD uses match-rules' names and emits no `minion_modified` (the primitive's `enchantment_applied` already covers it). One catalogue must win. | RNG & Event Log GDD | Before `/consistency-check` | Open |
+| Random draws come **directly** from `match_<floor>` (C6.9); rng-event-log's Interactions row proposes `fork("effect_<id>")`. Confirm direct draws for v1 and amend that row. | RNG & Event Log GDD | Before `/consistency-check` | Open — proposed here |
+| `until_end_of_turn` on an enemy-controlled recipient expires at the recipient's controller's End step (match-rules C4 step 5), i.e. one turn later than Hearthstone. Intended, or should match-rules expire at the end of the turn in which the enchantment was applied? | Match Rules GDD | Before Card Effects design-review | Open |
+| Observer candidate order: match-rules C4 says active side first for turn triggers, C10/Interactions say player side first always. This GDD follows both as written (C6.3); match-rules should state one rule. | Match Rules GDD | Before match-rules design-review | Open |
+| `assets/data/card_effects.json` is a new data file not listed in DD-T01 — confirm and add it to the register (same ask as match-rules' `match_rules.json`). | Owner (orchestrator) | Before `/create-architecture` | Open — proposed here |
+| Boss Discover draws from the **player's** collectible pool (F4). Acceptable for Pillar 2, or do puzzle bosses need their own pool (`cards_by_set(boss)` included)? | Content / Treasures GDD | Alpha content pass | Open — defaulted here |
+| Cross-card cycle lint (A summons B summons A) is not a load-time check; proposed as a `/balance-check` pass over `summon`/`retrigger`/`transform` graphs. | Content / `/balance-check` | Before the first 40-card batch | Open — proposed here |
+| `retrigger` is limited to `deathrattle` in v1. Decay may want "trigger a Battlecry again" — allow `battlecry` with `chosen` re-targeting? | Heroes / Content | Alpha content pass | Deferred |
+| Generated card text from the DSL (so `text.en` cannot drift from the effect) vs authored text. v1 authors text by hand; `W_FX_KEYWORD_MISMATCH` is the only drift check. | Content / Match UI | Vertical Slice | Deferred |
+| Systems index says Card Effects has six dependents; five rows list it. Reconcile (Reward Draft or Run Structure?). | `/map-systems` | Next index update | Open |

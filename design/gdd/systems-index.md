@@ -70,9 +70,9 @@ Systems, one paragraph each (balanced density):
 | 2 | RNG & Event Log (inferred) | Core | MVP | Designed | design/gdd/rng-event-log.md | — |
 | 3 | Match Rules | Gameplay | MVP | Designed | design/gdd/match-rules.md | Card Database, RNG & Event Log |
 | 4 | Card Effects | Gameplay | MVP | Not Started | — | Match Rules, Card Database, RNG & Event Log |
-| 5 | Boss AI | Gameplay | MVP | Not Started | — | Match Rules, Card Effects, Card Database, RNG & Event Log |
-| 6 | Heroes | Gameplay | MVP | Not Started | — | Card Database, Card Effects |
-| 7 | Run Structure | Progression | MVP | Not Started | — | Match Rules, Heroes, Card Database, RNG & Event Log |
+| 5 | Boss AI | Gameplay | MVP | Designed | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log |
+| 6 | Heroes | Gameplay | MVP | Designed | design/gdd/heroes.md | Card Database, Card Effects |
+| 7 | Run Structure | Progression | MVP | Designed | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log |
 | 8 | Reward Draft | Economy | MVP | Not Started | — | Run Structure, Card Database, Treasures, RNG & Event Log |
 | 9 | Treasures | Gameplay | MVP | Not Started | — | Card Effects, Run Structure, Card Database, RNG & Event Log |
 | 10 | Meta Progression | Persistence | Vertical Slice | Not Started | — | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
@@ -196,7 +196,7 @@ None in v1 (hard-band modifiers and accessibility options are Full Vision).
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 13 |
-| Design docs started | 3 |
+| Design docs started | 6 |
 | Design docs reviewed | 0 |
 | Design docs approved | 0 |
 | MVP systems designed | 0/12 |
