@@ -30,6 +30,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   this ADR; its TD list agrees with `architecture.md` §Tech-debt retirement
   mapping (TD-008/TD-011 are ADR-0002's, TD-002/004 ADR-0007's, TD-007 ADR-0003's,
   TD-009 split across ADR-0004/0005/0008/0011).
+- **Erratum 2026-11-03 (engine validation, `docs/architecture/engine-validation-2026-11-03.md`)**: G2b's negative look-ahead does not run on the installed ripgrep 14.1.0 and would flag the `await plan_turn/score_all` lines ADR-0006 requires; replaced by the deny-list pattern in the gate table. Advisory: G2 `%[A-Z]` false-positives on `"%X" % v`; G1 misses `extends Button/Label/Resource`; `@abstract` refusal is parse-time, so Verification (1) is a parse-check test.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
@@ -186,7 +187,7 @@ and API Boundaries this ADR binds.
    |---|---|---|---|
    | G1 no Node in rules | `extends (Node|Control|Node2D|CanvasItem|Timer)` | `src/gameplay/**`, `src/ai/**` | 0 hits |
    | G2 no tree access in rules | `get_tree\(|get_node\(|\$[A-Za-z%]|%[A-Z]|queue_free|add_child` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
-   | G2b no coroutines in rules | `\bawait\b` | `src/gameplay/**`, `src/core/**` (minus `boot.gd`); under `src/ai/**` the one allowed form is `await <planner>.checkpoint()` (ADR-0006's time-slicing seam), so the pattern there is `\bawait\b(?!.*\.checkpoint\(\))` | 0 hits |
+   | G2b no coroutines in rules | `\bawait\b` | `src/gameplay/**`, `src/core/**` (minus `boot.gd`); under `src/ai/**` `await` is allowed only on the planner's own coroutines (`checkpoint()`, `plan_turn`, `score_all`, lethal search — ADR-0006's time-slicing seam), so the gate there is a look-around-free deny-list: `\bawait\b.*(get_tree|process_frame|physics_frame|create_timer|\.timeout|\.finished|tween|signal)` (ripgrep 14 rejects `(?!…)`; erratum 2026-11-03, engine validation) | 0 hits |
    | G3 no composition root in rules | `\bBoot\b|\bServices\b` | `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) | 0 hits |
    | G4 one autoload | `^[A-Za-z_]+=` lines under `[autoload]` in `project.godot` | — | exactly 1, named `Boot` |
    | G5 UI never mutates | `\.submit\(` outside `*_controller.gd`, `*_driver.gd`, `*_view.gd` input path; `MatchState|RunState` type names | `src/ui/**` | 0 hits of state types; `submit` only via the controller |

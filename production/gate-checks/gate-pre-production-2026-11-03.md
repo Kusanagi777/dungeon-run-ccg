@@ -33,7 +33,7 @@ Workflow standard · review lean · panel TD + PR · automation guided (owner's 
 ## Engine validation
 - [x] Post-cutoff APIs flagged with Knowledge Risk on every ADR; all ADRs stamp 4.7.2
 - [x] Engine audit shows no deprecated API usage
-- [ ] Engine-specialist consultation — `docs/architecture/engine-validation-2026-11-03.md` (godot-specialist, 2026-11-03): PENDING-FILL
+- [x] Engine-specialist consultation — `docs/architecture/engine-validation-2026-11-03.md` (godot-specialist, 2026-11-03): ADR-0010 APPROVE; ADR-0003 / 0004 addendum / 0009 / 0011 APPROVE WITH NOTES (ADR-0011's two NOT SOURCEABLE items now observed on 4.7.2); ADR-0006 and ADR-0001 G2b REVISE — both applied as dated errata the same day (coroutine task Callable built by `BossAI.plan_task`; G2b look-around-free deny-list). No deprecated APIs, no best-practice violations. Closes the NOT ASSESSED item of both review reports.
 
 ## UX status at the gate
 | Document | Latest `/ux-review` | Round |

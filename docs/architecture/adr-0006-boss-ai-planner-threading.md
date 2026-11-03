@@ -41,6 +41,7 @@ Review record for this authoring run (2026-11-03, `review_mode: lean`,
   now is. TD paragraph now matches the `architecture.md` mapping. Dependencies
   ADR-0001 and ADR-0008 were Accepted first (ADR-0008 before this one, per both
   ADRs' dependency rows — not the reverse).
+- **Erratum 2026-11-03 (engine validation, `docs/architecture/engine-validation-2026-11-03.md`)**: on 4.7.2 `plan_turn` is a coroutine (it awaits `checkpoint()`), so the task Callable must be `func() -> Variant: return await boss_ai.plan_turn(sandbox)`; it is built inside `src/ai/` by `BossAI.plan_task(sandbox) -> Callable` so `match_driver.gd` stays `await`-free. Verified in all three task shapes (worker, immediate, time-sliced). Verification adds a parse-check test for the call shape.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
@@ -237,8 +238,9 @@ main thread                                   worker (WorkerThreadPool)
 RulesEngine: PlayerTurn.End → BossTurn.Main
 MatchDriver.on_phase(BossTurn.Main):
    sandbox = engine.clone()            ──┐
-   task.start(func(): return            │ ownership of `sandbox` and the
-       boss_ai.plan_turn(sandbox))  ────┼──► boss_ai.plan_turn(sandbox):
+   task.start(boss_ai.plan_task(sandbox)) │ ownership of `sandbox` and the
+     = func() -> Variant:              ────┼──► boss_ai.plan_turn(sandbox):
+         return await boss_ai.plan_turn(sandbox)   (coroutine: it awaits checkpoint())
                                         │       loop of boss-ai C2 against `sandbox`
 MatchView._process → driver.tick():     │       (legal_commands, clone() sandboxes,
    if task.poll():  ◄── is_task_completed┘        submit on the clone, choose())
