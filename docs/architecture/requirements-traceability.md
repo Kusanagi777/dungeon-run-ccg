@@ -4,8 +4,8 @@ Engine: Godot 4.7.2 (GDScript; pinned 4.7 — `docs/engine-reference/godot/VERSI
 Source run: `/architecture-review` full, workflow `standard` — `docs/architecture/architecture-review-2026-11-03.md`
 
 ## Coverage Summary
-- Total requirements: 72 (71 from the architecture.md baseline, now registered; 1 new from `design/accessibility-requirements.md`)
-- Covered: 64 (89%) — every covering ADR is `Accepted`
+- Total requirements: 71 (70 from the architecture.md baseline, now registered — the baseline header says 71 but its table holds 70; 1 new from `design/accessibility-requirements.md`)
+- Covered: 63 (89%) — every covering ADR is `Accepted`
 - Partial: 7
 - Gaps: 1
 
