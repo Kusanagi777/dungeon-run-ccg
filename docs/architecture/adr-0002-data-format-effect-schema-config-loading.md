@@ -269,6 +269,7 @@ Validator Callables bound at composition (`Boot.boot()`), with their owners — 
 | heroes.md | H-1 heroes are `HeroDef` data; nothing hero-specific in code (TR-heroes-001) | HeroDef records and `hero_powers.json` effects go through the same loader and validator |
 | design-decisions.md | DD-T01 JSON under `assets/data/`, snake_case, `schema_version` (TR-design-decisions-002) | The format decision itself; manifest mirrors the DD-T01 list |
 | tech-debt-register.md | TD-008, TD-011, TD-004 (schema half) (TR-tech-debt-001) | Schema + cross-reference gate; mulligan counts from `config("match_rules")`; effect schema exists |
+| boss-ai.md | C10, F9 `ai_profiles.json` — resolved profile `default ⊕ archetype ⊕ band ⊕ boss_override`; validator at stage 7; `runtime{planner_mode, slice_ms, replay_budget_ms}` block (TR-boss-ai-005) | Served as `config("ai_profiles")` through the same manifest and envelope; the `ai_profiles` config validator is injected at stage 7 (Boss AI owns the schema, F9); the `runtime` block is owned by boss-ai F9 (added 2026-11-03) and consumed by ADR-0006's `PlannerTask` seam — no second data file |
 
 ## Performance Implications
 - **CPU**: one synchronous parse + ~900 O(1) checks at v1 (card-database Formulas); budget 200 ms, expected < 50 ms; queries O(1) via `index_of`; `config()` is a Dictionary lookup, called once per owner.

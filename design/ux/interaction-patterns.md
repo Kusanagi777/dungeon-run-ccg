@@ -115,7 +115,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Dropdown / Select | Input | **Replaced by Segmented Select** for 3–4 option settings; no dropdown in v1. | settings (anim_speed, text_scale, telegraph_mode) | Draft |
 | List Item | Layout / Input | Selectable or read-only row in a scrollable list. | run-log (archived runs), draft-picker deck drawer + compact card rows, hero-select deck drawer, run-summary damage list, data-error rows, event-feed drawer lines | Draft |
 | Grid Item | Layout / Input | **Not used** — all collections are single rows (hand fan, board row, 3-option rows) or vertical lists. | — | N/A |
-| Modal Dialog | Feedback / Layout | Blocking overlay with focus trap. | pause-menu, confirm, resume prompt, deck drawer (non-blocking variant), glossary (proposed) | Draft |
+| Modal Dialog | Feedback / Layout | Blocking overlay with focus trap. | pause-menu, confirm, resume prompt, glossary (proposed); the deck drawer is a Drawer, not a modal | Draft |
 | Confirmation Dialog | Feedback / Layout | Two-button consequence dialog, Cancel focused; typed-token variant for Reset profile. | Abandon, Concede, Clear run records, Reset profile, Start-over-saved-run | Draft |
 | Toast / Notification | Feedback | Queued top-right banner, ≥ 5 s, pausable, never modal. | toast (unlocks, run warnings, draft rejections) | Draft |
 | Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution, hero-select (locked-panel progress, curve strip), run-summary (status line full text, custom-seed pill, Disabled New Run reason, per-floor strip cells) | Draft |
@@ -155,7 +155,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 | Overlay Open / Close | Navigation | Dims the base to `table_dark`, stacks, restores focus. | pause-menu, confirm, resume prompt, deck drawer, feed drawer, mulligan, choice-overlay, match-end | Draft |
 | Focus Management | Navigation | Where focus starts, moves and returns, per screen; focus ring rules. | All screens | Draft |
 | Escape / Cancel | Navigation | One priority chain for Esc / RMB across match and run. | All screens | Draft |
-| Standard Shortcuts | Navigation | The keyboard table every screen inherits; all rebindable (Alpha). | All screens | Draft |
+| Standard Shortcuts | Navigation | The keyboard table every screen inherits; all rebindable except Esc/cancel (Alpha). | All screens | Draft |
 | Loading State | Feedback | Boot data load and scene swaps. | data-error (on failure), match handoff, run-start | Draft |
 | Empty State | Feedback | Empty run log, hidden tray, short offers, absent locked row. | run-log, hud, draft-picker, hero-select | Draft |
 | Error State | Feedback | data-error screen, warning toasts, rejections. | data-error, toast, targeting | Draft |
@@ -293,7 +293,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 ---
 
-#### Dropdown / Select → Segmented Select
+#### Dropdown / Select
 
 **Category**: Input
 **Status**: Draft
@@ -369,7 +369,7 @@ Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requ
 
 **Accessibility**: Every dialog has a title (`text_light` 16–20 px) that is its accessible name. Enter = Primary, Esc = Cancel, **except** Confirmation Dialog where Enter on first open is intercepted (see there). Under `reduce_motion`: no scale, fade at half duration. Dialog text scales with `text_scale`; the panel grows downward, never clips (min panel height from content).
 
-**Implementation Notes**: One `ModalLayer` (`CanvasLayer` 100) owning the dim `ColorRect` and a stack of panels; `Viewport.gui_disable_input` is not used — instead the base's root Control gets its mouse/focus recursively disabled (engine reference: "recursive Control disable" exists in 4.5+). Store `return_focus` on open. Match UI's underlying playback keeps running behind the pause menu (match-ui States `Menu`).
+**Implementation Notes**: One `ModalLayer` (`CanvasLayer` 60 — layer table in Overlay Open / Close) owning the dim `ColorRect` and a stack of panels; `Viewport.gui_disable_input` is not used — instead the base's root Control gets its mouse/focus recursively disabled (engine reference: "recursive Control disable" exists in 4.5+). Store `return_focus` on open. Match UI's underlying playback keeps running behind the pause menu (match-ui States `Menu`).
 
 ---
 
@@ -1007,7 +1007,7 @@ The run shell has **one base screen at a time plus overlays** (run-ui U1): base 
 
 Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade` (run); the base behind a modal is input-disabled recursively; the base behind a drawer keeps working.
 
-**Implementation Notes**: `ModalLayer` (`CanvasLayer` 60) and `DrawerLayer` (`CanvasLayer` 40) each hold one stack; opening a modal calls `base.propagate_call("set_process_input", [false])`-style recursive disable on the base and stores `return_focus`; a drawer only records `return_focus` when opened by key. The table above is the data for one `OverlayPolicy` resource per overlay (`modal`, `dims`, `esc_step`, `focus_on_open`).
+**Implementation Notes**: Layer table (one source of truth): `DrawerLayer` 40 · `ToastLayer` 50 · `ModalLayer` 60 · `InspectLayer` 80 · `TooltipLayer` 90 — inspect and tooltips always draw above modals so the reading path survives on Mulligan / Choice. `ModalLayer` (`CanvasLayer` 60) and `DrawerLayer` (`CanvasLayer` 40) each hold one stack; opening a modal calls `base.propagate_call("set_process_input", [false])`-style recursive disable on the base and stores `return_focus`; a drawer only records `return_focus` when opened by key. The table above is the data for one `OverlayPolicy` resource per overlay (`modal`, `dims`, `esc_step`, `focus_on_open`).
 
 ---
 
@@ -1223,7 +1223,7 @@ ease-in, no bounce** (match-ui Game Feel; run-ui Game Feel) — ease-in reads as
 | Victory portrait saturation | 400 | linear | The one colour ramp |
 | Boss action gap | 600 (compressed by F4, floor 150) | — | Paced, not eased |
 
-**Motion reduction overrides**: When `reduce_motion` is enabled (see accessibility-requirements.md), all slide and scale animations are replaced with fades at half duration; hit-stop, screen shake and lethal slow-down are removed; looping or pulsing indicators (skip hint, `lethal` banner pulse) are static; the **one** positional travel kept is the match's card-to-slot travel (match-ui owns it; un-squashed, because the slot it lands in is information) — run-shell slides, including fly-to-strip, become fades per the table row above, run-ui F2 and accessibility-requirements Visual "Reduce motion". `reduce_motion` is independent of `anim_speed`.
+**Motion reduction overrides**: When `reduce_motion` is enabled (see accessibility-requirements.md), all slide and scale animations are replaced with fades at half duration; hit-stop, screen shake and lethal slow-down are removed; looping or pulsing indicators (skip hint, `lethal` banner pulse) are static; the positional gameplay travel kept is match-ui's (card-to-slot, attack lunge, draw, death drop — match-ui Tuning Knobs `reduce_motion`, `d_base` unchanged; un-squashed, because the end position is information) — run-shell slides, including fly-to-strip, become fades per the table row above, run-ui F2 and accessibility-requirements Visual "Reduce motion". `reduce_motion` is independent of `anim_speed`.
 
 ---
 

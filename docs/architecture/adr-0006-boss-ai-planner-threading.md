@@ -463,6 +463,7 @@ the data owner prefers another home (ADR-0002 config loading), only the
 | match-ui.md | TR-match-ui-003 — U6: boss turn already in the log when the UI sees it; UI paces the burst | Replay lands the burst in the log from `tick()`; possibly across a few ticks (U6 "may already be") |
 | run-structure.md | TR-run-structure-005 — Run Structure owns the match driver that calls `forecast` / `play_turn` / `choose` | The driver protocol above is what ADR-0008's `MatchDriver` implements |
 | design-decisions.md | TR-design-decisions-001 — DD-T02 rules are `RefCounted`, no Node references | The property that makes off-thread execution safe by construction |
+| boss-ai.md | TR-boss-ai-005 — C10, F9: `ai_profiles.json` config, resolved profile, stage-7 validator; `runtime{planner_mode worker\|time_sliced\|immediate (default worker), slice_ms 2, replay_budget_ms 2}` | The `runtime` block this ADR proposed now has a data owner: boss-ai F9 (added 2026-11-03), loaded by ADR-0002's `config("ai_profiles")`; `planner_mode` selects `WorkerPoolPlannerTask` / `TimeSlicedPlannerTask` / `ImmediatePlannerTask`, `slice_ms` bounds the time-sliced step, `replay_budget_ms` bounds `MatchDriver.tick()` replay (ADR-0008) |
 
 ## TD Items Retired
 

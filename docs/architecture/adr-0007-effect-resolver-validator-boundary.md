@@ -406,6 +406,7 @@ static func derive_targeting_spec(effects: Array) -> Dictionary            # the
 | heroes.md H-3 | Hero powers are `hero_power`-trigger effects in the DSL | Same resolver path; no hero-specific code |
 | treasures.md T7 | `validate_effects("treasure", …)` runs first, then the `E_TR_*` validator | Validator order fixed by the injection map (ADR-0002); this ADR guarantees the first is pure |
 | boss-ai.md Interactions | `resolve` deterministic on a `clone()`; `legal_targets` for play enumeration | Decision 3 |
+| match-rules.md Input Responsiveness (TR-match-rules-008) | `submit()` ≤ 5 ms worst case (50-step chain); `legal_commands()` ≤ 2 ms (per hover and per AI node) | Engine side of the budget: one effect pass = one C10 step under `RESOLUTION_STEP_CAP`, static `step_bound` ≤ 250 per effect (F6), `targeting_spec` memoised per `def_id` so `legal_commands()` never re-derives it (Performance Implications); proven by the Match Rules performance tests (scripted 50-step chain; 7 v 7 board, 10-card hand) |
 
 ## TD Items Retired
 

@@ -555,6 +555,7 @@ signal match_view_finished(result: MatchResult)        # MatchView → RunShell,
 | boss-ai.md C1.4 (TR-boss-ai-002) | `forecast` at `PlayerTurn.Main`, `play_turn` at `BossTurn.Main`, `choose` whenever a boss choice is pending | Decision 3 schedule (via clone + replay, ADR-0006) |
 | boss-ai.md C1.5, C9 (TR-boss-ai-003) | ≤ 2 ms main-thread per frame; off-thread or time-sliced; budgets are counts | `PlannerTask` seam; `tick()` contract with `replay_budget_ms` |
 | systems-index.md Circular Dependencies (TR-systems-index-002) | Match UI ↔ Run UI: one-way scene hand-off; reverse edge a signal only | Decision 8 |
+| boss-ai.md C8, DD-X03 (TR-boss-ai-004) | Telegraph events `ai_intent_shown` / `ai_intent_committed` with `effective_mode = min(boss.intent_mode, settings.telegraph_mode)` | Plumbing only: Decision 3 appends `ai_intent_shown` on the main thread from `tick()`; Decision 7 forwards `settings.telegraph_mode` to `BossAI` via `on_setting_changed()`; the `min()` rule itself is `BossAI` logic (boss-ai C8.4), not an architecture decision |
 
 ## TD Items Retired
 
