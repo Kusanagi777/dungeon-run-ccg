@@ -255,11 +255,10 @@ the floors since the last good save (Edge Cases). Emit `run_saved{floor, phase}`
    `ai_<floor>` streams, restored at `draws = 0`, so the shuffles, opening hands and the boss's
    responses to identical boards are identical to the abandoned attempt. The player gains
    knowledge (they have seen the boss's first draws) but no new randomness. Alternative
-   rejected: forking `match_<floor>/attempt_<k>` per attempt, which would let a player quit until
-   an opening suits them — a re-roll is a bigger break of DD-R09 ("same seed reproduces offers")
-   than the information leak is of fairness, and the leak is visible in `match_attempts` for
-   anyone reading the log. True mid-match restore from the event log is an Open Question for
-   Vertical Slice.
+   rejected: forking `match_<floor>/attempt_<k>` per attempt lets a player quit until an opening
+   suits them — a re-roll breaks DD-R09 more than the information leak breaks fairness, and the
+   leak is visible in `match_attempts`. True mid-match restore from the event log is an Open
+   Question for Vertical Slice.
 4. A locked hero does not block resume: the unlock check gates `new_run` only (R2). If the hero
    or any id no longer exists, rule 1 applies.
 5. Treasure idempotency: `treasures[]` holds ids only; hooks are installed fresh at every match
@@ -542,10 +541,6 @@ floors 1, 2, 4, 7 of the above with targets `[0.90, 0.80, 0.65, 0.45]`.
 - **If a treasure floor is `≥ floors_per_run`**: it is ignored (no draft after the last floor);
   MVP's `[1, 3, 5]` therefore yields treasure drafts on floors 1 and 3 only, needing 6 distinct
   treasures (DD-H06's 10 is enough).
-- **If `treasure_floors` is empty**: every reward phase is a bundle draft; the run is legal.
-- **If the hero's `starter_deck` is not 15 cards or references unknown ids**: Card Database
-  refuses to load (`E_COUNT`/`E_UNKNOWN_REF`), so the game never reaches hero select; this GDD
-  adds no second check.
 - **If `no_adjacent_shared_theme` is on and `BossDef` has no `tags`**: every boss has `∅` tags,
   the pass is a no-op and no warning is emitted — the knob is inert until Card Database adds the
   field (Open Questions).
@@ -592,8 +587,7 @@ floors 1, 2, 4, 7 of the above with targets `[0.90, 0.80, 0.65, 0.45]`.
   `run_warning{hero_locked_at_resume}` is logged; the lock gates `new_run` only.
 - **If `new_run` is issued while an active run exists**: the UI must have confirmed; the old run
   ends `abandoned / player` (a loss) and is archived before the new one starts. Two active runs
-  never exist (DD-R08).
-- **If `resume` is issued while a run is active**: rejected `E_BAD_PHASE`; no state change.
+  never exist (DD-R08); `resume` while a run is active is `E_BAD_PHASE`.
 
 **Idempotency and double application**
 - **If a treasure would be applied twice** (resume after S3, or a replayed `draft_pick`):
@@ -601,17 +595,12 @@ floors 1, 2, 4, 7 of the above with targets `[0.90, 0.80, 0.65, 0.45]`.
   `treasures[]`, and a second `draft_pick` for the same `(floor, kind)` is `E_DRAFT_DONE`
   (R8.5). Test AC-17 pins it.
 - **If a `draft_pick` names an id that was not offered**: `E_NOT_OFFERED`; the offer stays open.
-- **If `match_ended` arrives twice for one match** (engine bug): the second is rejected
-  `E_BAD_PHASE` because the run has left `in_match`; a console error is raised.
 
 **Seeds and identity**
 - **If two runs share a `run_seed`** (random collision, or a deliberate replay): legal and
   expected; `run_id` includes `started_at` so records and archived log folders stay distinct.
   RNG & Event Log rule 18 keys match-log folders by `run_seed_hex` alone — flagged for that GDD
   (Open Questions) to add `started_at`.
-- **If the typed seed re-parses to a different value than displayed**: cannot happen — the
-  displayed form is the 16-hex form, which F1 parses back bit-for-bit; the UI shows the
-  normalised hex next to the field after entry so the player sees what will be used.
 - **If `allow_custom_seed` is off and a seed is passed anyway** (modded UI): ignored,
   `seed_source = random`, `run_warning{seed_ignored}`.
 
@@ -621,8 +610,6 @@ floors 1, 2, 4, 7 of the above with targets `[0.90, 0.80, 0.65, 0.45]`.
   `damage_by_card` is reduced to its top 20 entries plus an `other` bucket before saving and
   `run_warning{record_truncated}` is emitted; totals are computed before truncation. The run log
   itself is bounded by the RNG & Event Log caps and is not truncated here.
-- **If the system clock moves backwards**: `play_seconds` is monotonic-tick based and
-  unaffected; `ended_at < started_at` is stored as-is and Run UI clamps displayed duration at 0.
 - **If `floors_per_run` is changed in data while a run is saved**: the saved record carries its
   own `floors_per_run`, `band_split` and `treasure_floors` (R1) and finishes on the layout it
   started with; the new layout applies to the next `new_run`.

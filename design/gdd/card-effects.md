@@ -762,15 +762,230 @@ effects chained still sit under the 1000-step cap, so a `resolution_overflow` in
 
 ## Edge Cases
 
-[To be designed]
+`systems-designer` not consulted — Lean mode (no `Agent` tool). Review manually before
+production. Every entry names the exact outcome and the event the log shows; where match-rules
+already decides the case, the entry says so and adds only what this system contributes.
+
+**Targeting and selection**
+
+- **If a Battlecry's `chosen` has no legal target** (e.g. "Destroy a friendly minion" on an empty
+  board): the minion is played, mana is paid, and the whole effect never starts — no draw, no
+  `effect_resolved`, no `battlecry` event (match-rules C6, AC-13). Rationale: a body is still a
+  body; the ops are one promise, not two.
+- **If a spell's or hero power's `chosen` has no legal target**: `NO_LEGAL_TARGET`, not playable;
+  with `optional: true` it is playable with `target_id = null` and ops that need `target` are
+  no-ops `no_target`.
+- **If a targeted effect names an enemy Stealth minion**: `chosen` never offers it; `all_*`,
+  `adjacent` and `random_*` selectors include it (match-rules C12: random and area effects still
+  hit Stealth). The log's `targets[]` shows it.
+- **If an op's selector resolves to an empty set at run time** (the only enemy minion died to the
+  previous op): the op is `no_target`; later ops still run. "Deal 2 damage to a minion and 1 to
+  its neighbours" whose target had no neighbours deals the 2 and logs `adjacent: no_target`.
+- **If `random_*` asks for `n` and fewer candidates exist**: all candidates are picked, in `k`
+  draws (F5); no draw is made for an empty list, so determinism does not depend on empty rolls.
+- **If `trigger_subject` has left play by the time a queued observer resolves** ("whenever a
+  minion is summoned, give it +1/+1" and the summoned minion died to a Deathrattle first): the
+  selector reads the snapshot for refs but the `buff` op finds no live target → `no_target`.
+- **If a `conditional` references a target that was destroyed by an earlier op in the same
+  effect** (`{"test": ["target", {…}]}` after `destroy`): `pending_destroy` minions are still in
+  play until the death check, so the test reads them as alive; `is_damaged`/stats read live
+  values. The log's `values` carries the evaluated condition.
+
+**Summons, transforms and copies**
+
+- **If a Deathrattle summons onto a full board**: the engine's `summon_failed{board_full}` per
+  copy; the op records `board_full` and later ops continue (match-rules: deaths are removed
+  before Deathrattles run, so a 7-wide board where one dies does fit one summon).
+- **If `summon` with `count: 3` finds room for 1**: one `minion_summoned`, two `summon_failed`,
+  op outcome `partial` with `values.summoned = 1`.
+- **If a minion is transformed during resolution of its own Battlecry** ("Battlecry: transform
+  this into a random 5-cost minion; gain Taunt"): `transform` creates a new `entity_id`; the
+  remaining ops' `self` is the new entity, so Taunt lands on the new body; the new body's own
+  Battlecry does **not** fire (C5). Queued triggers of the old entity resolve from snapshot.
+- **If `transform` hits a minion with queued triggers** (its `on_damage_taken` was raised in the
+  same step): those triggers still resolve (match-rules C10: queued = earned) using the snapshot.
+- **If `copy_to_hand` copies a minion carrying temporary buffs, damage or Silence**: the copy is
+  the bare definition — no enchantments, full health, unsilenced. Rationale: instances are not
+  serialisable as cards (match-rules C1); "copy" means the card, not the body.
+- **If `return_to_hand` bounces a minion with `until_end_of_turn` buffs**: it becomes a fresh
+  card instance; the enchantments are gone; cost is the printed cost (hand auras then apply).
+- **If a summoned minion's `on_summon` observer is the minion itself** ("whenever a minion is
+  summoned" on a card that was just summoned): it does not observe its own entry — candidates are
+  collected after the summon but a source must have been in play *before* the raising event
+  (C6.5, match-rules "a minion that died in the same check observes nothing" mirrored).
+
+**Buffs, auras and Silence**
+
+- **If a buff is applied to a minion that dies later in the same resolution** ("give a minion
+  +2/+2, then deal 4 to it"): the enchantment applies, the damage kills, death check removes it;
+  the log shows `enchantment_applied`, `damage_dealt`, `minion_died` in that order.
+- **If an aura source is Silenced**: its claim becomes `Suppressed`; at the next
+  `recompute_auras()` recipients lose the stats; a recipient whose `health ≤ 0` after the loss dies
+  in the next pass of the loop (match-rules F6), **after** any Deathrattles already queued.
+- **If two aura lords buff each other and one dies**: the survivor loses +1/+1 at the next
+  recompute; if that drops it to ≤ 0 it dies in the following pass and the log shows two death
+  groups (match-rules Edge Cases, aura source dies).
+- **If an `until_end_of_turn` buff is given to an *enemy* minion during the owner's turn**: per
+  match-rules C4 End step 5 the enchantment is removed at the **recipient's controller's** End
+  step, so it lasts through the enemy's next turn. This GDD records the consequence rather than
+  overriding it and asks match-rules to confirm the intended reading (Open Questions): Hearthstone
+  expires at the end of the current turn.
+- **If a hand-cost aura would take a card below 0**: F1 clamps to 0; `effective_cost` never
+  refunds.
+- **If `give_keyword: taunt` targets a minion that already has Taunt**: outcome `already_has`, no
+  `enchantment_applied`.
+- **If a negative `buff` (`attack: −2`) takes attack below 0**: the enchantment is stored as is;
+  match-rules' derived `attack` floors at 0; a later `+1` makes it `max(0, base − 2 + 1)`.
+
+**Resolution order and the queue**
+
+- **If a treasure hook and a card trigger respond to the same point** (treasure "at the start of
+  your turn gain 1 Armor" and a minion "at the start of your turn deal 1 to a random enemy"): the
+  hook runs first as its own step, then the card trigger (match-rules C4 steps 4–5; C6.3 table).
+  Two treasures run in pick order; the boss passive after all treasures.
+- **If an `on_damage_taken` trigger and the Deathrattle of the same minion are raised by one hit**:
+  `on_damage_taken` is queued at the damage step, the Deathrattle at the death check, so the
+  `on_damage` effect resolves first (match-rules C10, AC-28).
+- **If a Battlecry summons a minion and an observer has both `on_play` and `on_summon`**: the
+  played minion raises `on_play` then `on_summon` (two queued triggers, C6.3 rows 3 and 5); the
+  summoned token raises only `on_summon`.
+- **If a source is Silenced while its trigger is already queued**: the queued instance resolves
+  (earned when raised); the source fires nothing afterwards (`Disarmed`).
+- **If `once_per_turn` is raised twice in one step** ("whenever a minion dies, draw a card —
+  once per turn" and two minions die together): one `trigger_queued`, one draw; the second raise
+  is dropped silently (no event — nothing mutated).
+- **If a `repeat` changes the board between iterations** ("deal 1 to a random enemy minion,
+  3 times" and the first ping kills the only enemy minion): iteration 2 and 3 are `no_target`
+  no-ops; `effect_resolved.ops` lists three entries so the player sees two pings went nowhere.
+- **If a hero power's effect would act while the hero is Frozen**: Freeze blocks attacks only
+  (match-rules C13); the hero power is usable and resolves normally. A hero power that *equips* a
+  weapon still equips; the hero still cannot swing it this turn.
+- **If the spell's own ops change Spell Damage mid-effect** ("summon a Spell Damage +1 minion,
+  then deal 2 damage"): F1 re-reads `spell_damage(owner)` per op, so the second op deals 3. Legible
+  because `spell_cast`'s payload shows the total at cast and `effect_resolved.values.requested`
+  shows what each op used.
+- **If a value expression yields a negative amount for `damage`/`heal`/`armor`/`draw`**: clamped
+  to 0 and logged (`values.clamped_from`); `apply_damage(…, 0)` pops no shield (match-rules C9).
+- **If a `counter.<key>` is read on a source that was never given one**: 0. Counters die with the
+  source's `entity_id`; a bounced-and-replayed minion starts at 0.
+
+**Choices**
+
+- **If `discover` finds fewer than `DISCOVER_COUNT` candidates**: 2 → offer 2, 1 → offer 1 (the
+  player still confirms), 0 → no Choice phase, op `empty_pool`, later ops run. Rationale: a forced
+  single option is still shown so the player sees what they got (Pillar 4).
+- **If `discover` with `pool: deck` runs on an empty deck**: `empty_pool`, no fatigue (nothing was
+  drawn).
+- **If the boss reaches a `discover` or `choose_one`**: `pending_choice.side = BOSS`; Boss AI
+  must `choose`; the player's commands are `CHOICE_PENDING` (match-rules Edge Cases). The option
+  list is emitted in `discover_offered` for the boss too; the UI may hide it (hidden information
+  policy belongs to Match UI).
+- **If the player concedes during a Choice**: the continuation is dropped; `match_ended(concede)`;
+  no `discover_picked`.
+- **If a Choose-One spell is cast with a `chosen` target and the target dies before `choose`
+  returns**: impossible — nothing resolves between `discover_offered` and `choose` (the engine is
+  paused in `Choice`); the target is live when the option runs.
+
+**Hand, deck and resources**
+
+- **If `draw` runs with an empty deck**: match-rules C11 fatigue per draw (1, 2, 3…); the op
+  outcome is `fatigue` per copy. "Draw 2" with one card left → one card, one fatigue (match-rules
+  AC-33).
+- **If `add_to_hand` / `discover` / `copy_to_hand` / `return_to_hand` hits a full hand**: the
+  engine burns the card (`card_burned`); op outcome `burned`. A Discover pick into a full hand is
+  still a pick — the player is shown the burn.
+- **If `mana` would exceed `MAX_MANA` or drop below 0**: the engine clamps (match-rules C5);
+  `values.applied` shows the real delta.
+- **If `equip` runs while a weapon is held**: the old weapon is destroyed first and its Deathrattle
+  queues before anything else in this effect continues (match-rules C6).
+
+**Hooks and passives**
+
+- **If a `modify_cost` treasure sets the hero power to 0**: still once per turn
+  (`HERO_POWER_USED`, match-rules Edge Cases).
+- **If two value hooks disagree** (treasure "spells cost 1 less", passive "spells cost 1 more"):
+  fold in installation order → net 0; the engine floors at 0 only at the end (F1).
+- **If a boss passive is an event trigger whose scope is the player's action** ("whenever the
+  player heals"): it resolves as a hook step immediately after the heal step, before any
+  player-card `on_heal` observer (hooks first).
+- **If a treasure effect uses `self`**: rejected at load (`E_FX_SELECTOR`); treasures are not
+  entities on the board.
+
+**Recursion and caps**
+
+- **If card A's Deathrattle summons B whose Deathrattle summons A, and both die to the same
+  "destroy all minions" effect each turn**: the loop is bounded by the board (each summon is one
+  step and the board empties between deaths) and by `RESOLUTION_STEP_CAP`; a genuinely unbounded
+  cycle ("Deathrattle: summon a copy of this and deal 1 to it") ends the match with
+  `resolution_overflow`, boss wins (match-rules AC-30). The validator cannot see cycles across
+  cards; `/balance-check` runs a cycle lint over `summon`/`retrigger` graphs (Open Questions).
+- **If a single effect's static bound exceeds `EFFECT_STATIC_STEP_LIMIT`**: `E_FX_BUDGET` at load
+  — never reaches play.
+- **If the log would exceed `max_match_events` before the step cap**: rng-event-log's
+  `log_overflow` → `match_ended(fault)`; at defaults this cannot precede the step cap (F6).
+
+**Content and validation**
+
+- **If a card lists `deathrattle` in `keywords[]` but has no `deathrattle` effect** (or vice
+  versa): `W_FX_KEYWORD_MISMATCH`; load succeeds; the card frame may show a keyword that does
+  nothing — Content fixes it.
+- **If `summon` names a non-token collectible card**: allowed (Hearthstone does it); the summoned
+  minion is a real instance of that card with its own effects (its Battlecry does not fire).
+- **If an effect uses an op whose primitive is provisional** (`shuffle_into_deck`, `discard`,
+  `weapon_durability`, `hero_power_refresh`, `remove_keyword`): `E_FX_OP_UNAVAILABLE`; the build
+  fails rather than shipping a card that silently does nothing.
+- **If a boss `passive` contains a play trigger** (`battlecry`): `E_FX_TRIGGER` — passives are
+  never played.
 
 ## Dependencies
 
-[To be designed]
+Hard = this system cannot resolve a single effect without it (or the dependent cannot function
+without this system); soft = works with a null implementation. **Bidirectional check**
+(`.claude/rules/design-docs.md`): `systems-index.md` lists Card Effects as depending on Match
+Rules, Card Database and RNG & Event Log — consistent with the rows below; it names Card Effects
+under *Depends On* for Boss AI, Heroes, Treasures, Match UI and Content (five rows; the index's
+bottleneck note says "six dependents" — flagged for `/map-systems`, not edited here). Match-rules'
+and card-database's Dependencies sections already list Card Effects as a dependent; rng-event-log
+does too. Heroes, Treasures, Boss AI, Match UI and Content are undesigned, so their rows are the
+contract this GDD proposes and they confirm.
+
+| System | Direction | Hard/Soft | Nature of dependency / interface |
+|---|---|---|---|
+| Match Rules | This depends on Match Rules (and it calls back into this) | Hard | Trigger points and hook points (C2), the primitive API (C5), `MatchState` read access, the Choice phase and `choose` resumption, `recompute_auras()`, `RESOLUTION_STEP_CAP`. This supplies `resolve()`, `legal_targets()`, `targeting_spec()`. Five primitives requested (Interactions). |
+| Card Database | This depends on Card Database | Hard | `effects[]`/`passive` payloads, `type`, `cost`, `spell_damage`; `has(id)`, `card(id)`, `collectible_pool()`, `cards_by_*` for pools (F4). This supplies the CR-5 stage 7 validator and the `E_FX_*` codes. No `targeting` field needed (C1 rule 1). |
+| RNG & Event Log | This depends on RNG & Event Log (through the engine) | Hard | `match_<floor>` stream for F4/F5 draws (direct, no forks in v1 — Open Questions); event envelope with `cause_seq`; `max_match_events` backstop. This owns `effect_resolved.values`, `discover_*`, `counter_changed`. |
+| Heroes | Heroes depends on this | Hard (for them) | Hero powers are `hero_power`-trigger effects in this DSL (DD-M13); War/Decay/Knowledge identities (DD-H01) rely on rows 1–25 of C11 being expressible. |
+| Treasures | Treasures depends on this | Hard (for them) | Treasures and boss passives are effects on hook-bound triggers (C2, C9); ordering "hooks first, pick order, passive last". Treasures owns the pool and magnitudes. |
+| Boss AI | Boss AI depends on this | Hard (for them) | `legal_targets()` for play enumeration; `ChoiceRequest.options` to answer Discover/Choose One; deterministic `resolve` on `clone()` for look-ahead. |
+| Match UI | Match UI depends on this | Soft (engine runs headless) | `effect_resolved` as the playback unit; `discover_offered` for the panel; `targeting_spec` for highlights; `fizzled`/`outcome` reasons for feedback copy. |
+| Content | Content depends on this | Hard (for them) | The schema and coverage table are what ~120 cards are authored against; anything in the v2 list is not authorable until this GDD changes. |
+| Run Structure | Indirect | Soft | `EffectRuntime` travels inside `MatchState`; no direct interface in v1. |
 
 ## Tuning Knobs
 
-[To be designed]
+`systems-designer` not consulted — Lean mode (knobs derived from the Formulas variable tables).
+All knobs live in `assets/data/card_effects.json` (`schema_version` per DD-T01; a new data file,
+flagged for DD-T01 in Open Questions) and are read once at `RulesEngine.start`. None of them is an
+owner row in `design/design-decisions.md`; all are designer defaults.
+
+| Parameter | Current value | Safe range | Effect of increase | Effect of decrease | Interacts with |
+|---|---|---|---|---|---|
+| `DISCOVER_COUNT` | 3 | 1–5 | More agency per Discover; Discover becomes the best draw effect; UI panel must fit 5 at 1280×720 | 1 = "add a random card" with a confirm click; weakens Knowledge's identity | F4, Match UI Discover panel, Content's Discover density |
+| `DISCOVER_EXCLUDE_HAND` | `false` | `true`/`false` | `true`: never offers a card already held — fewer "dead" offers in a 40-card MVP pool but one more hidden rule for the player to learn | `false`: Hearthstone-faithful; occasional duplicate offers | F4, pool size (`collectible_pool_size`) |
+| `MAX_OPS_PER_EFFECT` | 8 | 4–12 | Longer card texts possible; harder to read on a 150×210 frame (art bible slot layout) | Forces splitting into several effects; no gameplay change | C1, `EFFECT_STATIC_STEP_LIMIT` |
+| `MAX_REPEAT` | 10 | 2–20 | Bigger "N times" cards; step bounds grow linearly | Caps multi-hit designs | F6 |
+| `MAX_SUMMON_COUNT` | 7 | 1–7 | Must not exceed `BOARD_SIZE` (7); no effect above it | Caps token swarms (Decay) | `BOARD_SIZE` (match-rules) |
+| `EFFECT_STATIC_STEP_LIMIT` | 250 | 50–1000 | Allows denser single effects; at 1000 one effect could alone hit `RESOLUTION_STEP_CAP` | Rejects legitimate wide-board loops ("deal 1 to all, 10 times" is 161) | F6, `RESOLUTION_STEP_CAP` |
+| `SPELL_DAMAGE_DEFAULT` | `auto` | `auto`/`false` | n/a | `false`: every spell must opt in explicitly — safer for Content review, noisier JSON | F1, Content |
+| `HOOKS_BEFORE_TRIGGERS` | `true` | `true` only | — | `false` is not designed: match-rules' Start/play procedures hard-order hooks first | C6.3, C9 |
+
+Fixed by design, not knobs: aura recompute frequency is **every step** (match-rules C10 owns
+`recompute_auras()`; a lower frequency would let a minion survive a step it should not and is the
+exact ambiguity Pillar 4 forbids); random targeting includes Stealth (match-rules C12); ops
+within an effect are independent (C6.4). Knobs owned elsewhere that move this system's outcomes
+(do not duplicate): `RESOLUTION_STEP_CAP`, `MAX_MANA`, `HAND_SIZE`, `BOARD_SIZE` (match-rules);
+`max_match_events` / `log_memory_budget_bytes` (rng-event-log); `min_collectible_pool`
+(card-database); treasure magnitudes (Treasures); card numbers (Content).
 
 ## Visual/Audio Requirements
 
