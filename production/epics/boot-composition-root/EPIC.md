@@ -6,7 +6,21 @@
 > **Control Manifest**: Foundation Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 1 of 14 — plan E1 (Foundation), riskiest-first per ADR order 0001
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories boot-composition-root`
+> **Stories**: 7 (created 2026-11-03 by `/create-stories boot-composition-root`; see the Stories table below)
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | SettingsBus | Logic | Ready | ADR-0004, ADR-0011 |
+| 002 | MetaApi abstract seam | Logic | Ready | ADR-0004, ADR-0011, ADR-0001 |
+| 003 | MetaStub — the MVP MetaApi implementation | Logic | Ready | ADR-0011, ADR-0004 |
+| 004 | Boot — the one autoload and lazy composition root | Integration | Ready | ADR-0001, ADR-0011 |
+| 005 | Grep gates G1–G6 and the per-file parse check in CI | Integration | Ready | ADR-0001 |
+| 006 | main.tscn composition entry and the RunShell stub | UI | Ready | ADR-0001, ADR-0011, ADR-0010 |
+| 007 | Boot responsibilities list for the control manifest (gate condition 12) | Config/Data | Ready | ADR-0001 |
+
+Order: 001 → 002 → 003 → 004 → {005, 006} → 007. Cross-epic: 003 and 004 need the `card-database` epic's `CardDatabase` / `ValidationReport` and `profile_defaults.json`; until then their tests inject a `card_database` override. QL-STORY-READY skipped — Lean mode.
 
 ## Overview
 

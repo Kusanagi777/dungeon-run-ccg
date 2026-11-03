@@ -6,7 +6,23 @@
 > **Control Manifest**: Foundation Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 2 of 14 — plan E1 (Foundation), ADR-0003
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories rng-event-log`
+> **Stories**: 11 (see table below) — created 2026-11-03 by `/create-stories rng-event-log`
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | RngStream — engine golden pin and F4 draw primitives (gate condition 7) | Logic | Ready | ADR-0003 |
+| 002 | RngService — seed derivation (F1–F3) and memoised named streams | Logic | Ready | ADR-0003 |
+| 003 | Snapshot and restore by reseed-and-discard, command guard, hex snapshot form | Logic | Ready | ADR-0003 |
+| 004 | No-global-RNG lint (`tools/lint/no_global_rng.sh`) in CI | Logic | Ready | ADR-0003 |
+| 005 | EventLog core — envelope, append, subscribe, events_since, turn, sealing | Logic | Ready | ADR-0003 |
+| 006 | EventLog serialisation — to_json / from_json, payload coercion, diagnostic round-trip | Logic | Ready | ADR-0003 |
+| 007 | Overflow fault and the `rng_event_log` config knobs | Logic | Ready | ADR-0003 |
+| 008 | `reduce_to_summary()` — match_summary and damage_by_card (rule 19) | Logic | Ready | ADR-0003 |
+| 009 | Match log archive to `user://logs/` (needs ADR-0004 `AtomicFileWriter`) | Integration | Ready | ADR-0003 |
+| 010 | Determinism contract (F6 self-test) and performance budgets | Logic | Ready | ADR-0003 |
+| 011 | Replay equivalence across systems (needs Run Structure, Reward Draft, Match Rules) | Integration | Ready | ADR-0003 |
 
 ## Overview
 
