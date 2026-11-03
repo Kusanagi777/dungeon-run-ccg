@@ -212,12 +212,12 @@ stories:
     name: "main.tscn composition entry and the RunShell stub"
     file: "production/epics/boot-composition-root/story-006-main-scene-composition-entry.md"
     priority: nice-to-have
-    status: backlog
+    status: blocked
     owner: ""
     estimate_days: 0.5
     wave: 3
     serialised: false
-    blocker: "2026-11-03: main_menu (BootResult.ok) path needs CardDatabase.config()/heroes()/treasure_pool() — card-database story 006; real data load is Failed (only match_rules.json ships); tools/capture.sh lacks the documented [-- <args>] pass-through"
+    blocker: "2026-11-03: needs card-database 006 (CardDatabase.config()/heroes()/treasure_pool() for the main_menu path) + the full data set (only 3 of 26 files ship, so the real load is Failed) + tools/capture.sh [-- <args>] pass-through — see the story file's blocker note"
     note: "stretch; UI — retained screenshot"
     completed: ""
 
