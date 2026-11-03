@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 4, 2026-11-03)
 > **Author**: Jacob + ux-designer (`/ux-design run-summary`, automation `guided`, workflow `standard`, density `balanced`; owner pre-approved the run — no `AskUserQuestion` used, recommended options taken and listed in the session report; no Agent tool — `art-director` / `ui-programmer` / `narrative-director` not spawned)
 > **Last Updated**: 2026-11-03
 > **Journey Phase(s)**: Session-level loop close — "victory screen or death screen with a run summary" (game-concept Core Loop) and the Pillar 3 restart path A "defeat → New Run (same hero)" (run-ui F1, 1350 ms). Terminal run phases `victory` / `defeat` / `abandoned` (run-structure R6). `design/player-journey.md` does not exist — see §15.

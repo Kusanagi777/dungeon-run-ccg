@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 3, 2026-11-03)
 > **Author**: Jacob + ux-designer (`/ux-design draft-picker`, automation `guided`, workflow `standard`, density `balanced`; owner pre-approved the run — no `AskUserQuestion` used, recommended options taken and listed in the session report; no Agent tool — `art-director` / `ui-programmer` / `game-designer` not spawned)
 > **Last Updated**: 2026-11-03
 > **Journey Phase(s)**: Short-Term loop, "then a draft (30 seconds): a bundle that pushes the deck toward a plan, or a treasure that bends the rules" (game-concept Core Loop; `design/player-journey.md` does not exist — see §15). Reward phase `post_match_reward/treasure` then `post_match_reward/bundle` (run-structure R5).

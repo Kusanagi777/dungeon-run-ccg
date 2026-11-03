@@ -43,7 +43,7 @@
 
 *Derived from ADR-0008 and ADR-0009 Implementation Guidelines:*
 
-- `src/ui/match/match_controller.gd`, `src/ui/match/match_query.gd` per ADR-0008 Key Interfaces. `MatchQuery` reads through `RulesEngine.state_snapshot(entity_id)` / `phase()` / `pending_choice()` (match-rules story 001's value copies) and `CardDatabase` for `card_text`.
+- `src/ui/match/match_controller.gd` (UI) and `src/gameplay/match/match_query.gd` (rules-tier read model, per the ADR-0008 erratum 2026-11-03 — keeps ADR-0001 one-way; the driver builds it, the controller forwards it). `MatchQuery` reads through `RulesEngine.state_snapshot(entity_id)` / `phase()` / `pending_choice()` (match-rules story 001's value copies) and `CardDatabase` for `card_text`.
 - **Ownership flag**: boss-ai-match-driver story 013 states that `MatchDriver.query()` builds the `MatchQuery` once over the live engine, while ADR-0008 places `match_query.gd` under `src/ui/match/`. A rules-tier class constructing a UI-tier class conflicts with ADR-0001's tier direction. Resolve before `/dev-story`: either the driver returns a rules-side facade that `MatchController.query()` wraps into `MatchQuery`, or the class moves to `src/gameplay/run/`. Record the choice in this story; do not edit ADR-0008 without the owner.
 - L2 parity test runs the real engine: `tests/integration/match_ui/view_state_engine_parity_test.gd` subscribes a `MatchViewState` and snapshots `MatchQuery` after every `seq`.
 - L13 timing uses `Time.get_ticks_usec()` around the measured call; record the machine in the test output (min-spec TBD per `architecture.md` §Performance budgets).
@@ -60,7 +60,7 @@
 ## Files
 
 - `src/ui/match/match_controller.gd`
-- `src/ui/match/match_query.gd`
+- `src/gameplay/match/match_query.gd` (ADR-0008 erratum 2026-11-03)
 - `tests/integration/match_ui/match_controller_channels_test.gd`
 - `tests/integration/match_ui/view_state_engine_parity_test.gd`
 

@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 4, 2026-11-03)
 > **Author**: Jacob + ux-designer (`/ux-design hero-select`, automation `guided`, workflow `standard`, density `balanced`; owner pre-approved the run — no `AskUserQuestion` used, recommended options taken and listed in the session report; no Agent tool — `art-director` / `ui-programmer` / `game-designer` not spawned)
 > **Last Updated**: 2026-11-03
 > **Journey Phase(s)**: Session-level loop opening — "One full run: hero select, eight matches…" (game-concept Core Loop) and the Pillar 3 restart path B "defeat → Hero Select → Start" (run-ui F1). Run phase `hero_select` (run-structure States). `design/player-journey.md` does not exist — see §15.

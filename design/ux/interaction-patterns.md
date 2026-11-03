@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/interaction-pattern-library-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 4, 2026-11-03)
 > **Author**: Jacob + ux-designer (`/ux-design patterns`, automation `guided`, workflow `standard`, density `balanced`; no `ui-programmer` / `art-director` agent spawned — no Agent tool in this run)
 > **Last Updated**: 2026-11-03
 > **Version**: 0.1

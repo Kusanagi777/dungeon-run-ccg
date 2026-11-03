@@ -44,6 +44,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   clone. Dependency ADR-0001 Accepted first; ADR-0007 (ordering note) also
   Accepted first.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
+- **Erratum 2026-11-03 (match-ui story authoring)**: `MatchQuery` is a rules-tier read model — `class_name MatchQuery extends RefCounted` in `src/gameplay/match/match_query.gd`, Node-free, built by `MatchDriver.query()` over the live engine and returning value copies. `MatchController` (in `src/ui/match/`) only forwards it. This keeps ADR-0001's one-way dependency (rules never import `src/ui/**`); architecture.md's module table listing `MatchQuery` under Match UI is corrected to Match Rules / driver accordingly.
 - **Post-review fixes 2026-11-03** (`/architecture-review` report
   `architecture-review-2026-11-03.md`, verdict CONCERNS): §Performance
   Implications `replay_budget_ms` default corrected 4 → **2 ms** (matches

@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/hud-design-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 3, 2026-11-03)
 > **Author**: Jacob + ux-designer (`/ux-design hud`, automation `guided`, workflow `standard`, density `balanced`; owner pre-approved the run — no `AskUserQuestion` used, recommended options taken and listed in the session report; no Agent tool — `art-director` / `ui-programmer` not spawned)
 > **Last Updated**: 2026-11-03
 > **Game**: Deckdelve (working title) — the match screen HUD. The match *is* the HUD: a tabletop drawn from the event log, with no world behind it.

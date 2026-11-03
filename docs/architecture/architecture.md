@@ -181,7 +181,7 @@ Meta Progression is a Feature-layer system in the GDD index, but its **persisten
 | Reward Draft | Feature | `src/gameplay/draft/` | `RewardDraft`, `Offer`, `Pick` | gameplay-programmer | economy-designer |
 | Treasures | Feature | `src/gameplay/treasures/` | `Treasures`, `HookInstaller`, `TreasureValidator` | gameplay-programmer | systems-designer |
 | Meta Progression (rules) | Feature | `src/gameplay/meta/` | `UnlockEvaluator`, `StatsFold`, `MetaProgression` (facade over `ProfileStore`), `MetaStub` | gameplay-programmer | systems-designer |
-| Match UI | Presentation | `src/ui/match/` | `MatchView`, `MatchController`, `MatchQuery`, `MatchViewState`, `AnimationQueue`, `HandPresenter`, `BoardPresenter`, `HeroPresenter`, `FeedPresenter`, `OverlayPresenter`, `TargetingArrow`, `InputRouter`, `MatchDebugLoader` | ui-programmer | ux-designer |
+| Match UI | Presentation | `src/ui/match/` | `MatchView`, `MatchController` (forwards the rules-tier `MatchQuery` from `src/gameplay/match/`, ADR-0008 erratum), `MatchViewState`, `AnimationQueue`, `HandPresenter`, `BoardPresenter`, `HeroPresenter`, `FeedPresenter`, `OverlayPresenter`, `TargetingArrow`, `InputRouter`, `MatchDebugLoader` | ui-programmer | ux-designer |
 | Run UI | Presentation | `src/ui/run/`, `src/ui/shared/` | `RunShell`, `RunController`, `ShellState`, `Screen` (base), one script per U2 screen, `ToastLayer`, `RunDebugLoader` | ui-programmer | ux-designer |
 | Content | Feature (data) | `assets/data/*.json`, `tools/content/validate.gd` | — | systems-designer / game-designer (data), tools-programmer (validator) | economy-designer |
 

@@ -6,7 +6,38 @@
 > **Control Manifest**: Presentation Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 7 of 14 — plan E5, ADR-0009 / ADR-0008 / ADR-0001 / ADR-0010
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories match-ui`
+> **Stories**: 24 (see the table below) — created 2026-11-03 by `/create-stories match-ui`
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | MatchViewState — pure projection, hidden information and the unknown / diagnostic filters | Logic | Ready | ADR-0009, ADR-0003, ADR-0001 |
+| 002 | AnimStep and AnimationQueue — command groups, coalescing, F3 speed, skip-all and the idle invariant | Logic | Ready | ADR-0009 |
+| 003 | MatchController and MatchQuery — the three channels, flush-before-submit and engine parity | Integration | Ready | ADR-0008, ADR-0001, ADR-0009 |
+| 004 | MatchView skeleton, Presenter base, the --fixture loader, first capture and /perf-profile | UI | Ready | ADR-0009, ADR-0010, ADR-0008 |
+| 005 | Hero panels, mana bar, deck piles, top bar, hero power and End Turn | UI | Ready | ADR-0009, ADR-0001 |
+| 006 | Hand fan and hover preview — F1, F2 and the shared CardFrame | UI | Ready | ADR-0009 |
+| 007 | Board rows — minion tokens, summon, death group, gap-close and the offset_transform lunge | UI | Ready | ADR-0009 |
+| 008 | Drag to play, drag to attack and the targeting arrow | UI | Ready | ADR-0009, ADR-0001 |
+| 009 | Mulligan screen — keep / replace any subset, Confirm | UI | Ready | ADR-0009, ADR-0001 |
+| 010 | Boss-turn pacing — F4 gap and compression, boss-turn mode and control lock | Logic | Ready | ADR-0009, ADR-0008, ADR-0003 |
+| 011 | Match-end banner and the match_view_finished hand-off | UI | Ready | ADR-0008, ADR-0009, ADR-0011 |
+| 012 | First playable — one War match vs The Torchbearer, mouse-played, on the Windows export | Integration | Ready | ADR-0010, ADR-0009, ADR-0008 |
+| 013 | Choice overlay — Discover and Choose One | UI | Ready | ADR-0009 |
+| 014 | Event feed — ticker, drawer, command-root grouping and collapse | UI | Ready | ADR-0009, ADR-0001, ADR-0003 |
+| 015 | Boss intent banner and the boss-turn view — commit beat, skip hint, hand dim, --pause-at | UI | Ready | ADR-0009, ADR-0008 |
+| 016 | Rejection feedback — shake, reason tooltip, related-control flash | UI | Ready | ADR-0009, ADR-0001 |
+| 017 | InputRouter — click-to-select, keyboard targeting, shortcuts and the End Turn arm guard | Logic | Ready | ADR-0009 |
+| 018 | Keyboard focus cycling, the focus ring and inspect-on-focus | UI | Ready | ADR-0009 |
+| 019 | Pause menu, concede and the Esc chain | UI | Ready | ADR-0009, ADR-0011, ADR-0008 |
+| 020 | Live settings — text_scale variants, high-contrast states, gamma and letterboxing | UI | Ready | ADR-0009, ADR-0011, ADR-0010 |
+| 021 | Treasure tray — chips, 44x44 hit rects, tooltip on hover or focus, hook flare | UI | Ready | ADR-0009, ADR-0001 |
+| 022 | Debug loader completion — argument parsing, --anim-speed, --ai-debug overlay and the full fixture sweep | Integration | Ready | ADR-0009, ADR-0010 |
+| 023 | Impact moments and reduce motion — hit-stop, shake, lethal slow-down, feel timings | Visual/Feel | Ready | ADR-0009 |
+| 024 | Input latency table measured, and the Feel acceptance playtest | Integration | Ready | ADR-0009, ADR-0010 |
+
+First-playable slice: 001–012 (gate condition 5). Dependency order: 001 → 002 → 003 → 004 (carries `/perf-profile`, gate condition 10) → 005, 006, 007, 009, 010 → 008 (needs 005–007) → 011 → 012 · after the slice: 013, 014, 017 → 015 (needs 010), 016 (needs 008, 014), 018 (needs 006, 017) → 019 (needs 013, 017, 018) → 021 (needs 014, 018) → 020 (needs 015, 019, 021) → 022 (needs 014, 015) → 023 (needs 015, 016) → 024. Logic tests live under `tests/unit/match_ui/`, Integration under `tests/integration/match_ui/`; UI evidence under `production/qa/evidence/<story-slug>/` via `tools/capture.sh`. QL-STORY-READY skipped — Lean mode.
 
 ## Overview
 
