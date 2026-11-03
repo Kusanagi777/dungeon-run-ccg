@@ -66,11 +66,11 @@ stories:
     name: "MetaStub — the MVP MetaApi implementation"
     file: "production/epics/boot-composition-root/story-003-meta-stub.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "boot-composition-root-004"
     name: "Boot — the one autoload and lazy composition root"
     file: "production/epics/boot-composition-root/story-004-boot-composition-root.md"
