@@ -6,8 +6,9 @@
 - Engine: Godot 4.7.2 (GDScript; Forward+; 2D; `docs/engine-reference/godot/VERSION.md`)
 - Workflow: `standard` (layer map + critical ADR list required; the fuller sections are written because all 13 GDDs are rich and Approved) · docs.density `balanced` · review_mode `lean` · automation `guided`
 - GDDs Covered: card-database, rng-event-log, match-rules, card-effects, boss-ai, heroes, run-structure, reward-draft, treasures, meta-progression, match-ui, run-ui, content (13 of 13; `design/gdd/systems-index.md` v2026-11-03), plus `design/gdd/game-concept.md` and `design/design-decisions.md` (DD-T01..T05, DD-X01..X08)
-- ADRs Referenced: none exist yet. `docs/architecture/modifier-hook-chain.md` is unnumbered reverse-documented prior art (DD-X08) and is superseded by ADR-0005 below.
-- TR registry: `docs/architecture/tr-registry.yaml` is empty (`requirements: []`) — **every TR-ID in this document is provisional** until `/architecture-review` registers it.
+- ADRs Referenced: ADR-0001..ADR-0011 exist and are all `Accepted` (2026-11-03; `docs/architecture/adr-000[1-9]*.md`, `adr-001[01]*.md`). `docs/architecture/modifier-hook-chain.md` is unnumbered reverse-documented prior art (DD-X08), superseded by ADR-0005.
+- Architecture review: `/architecture-review` 2026-11-03 — verdict **CONCERNS**; report `docs/architecture/architecture-review-2026-11-03.md`, matrix `docs/architecture/requirements-traceability.md`.
+- TR registry: `docs/architecture/tr-registry.yaml` holds all 71 IDs (70 from the baseline below, made permanent without renames, plus `TR-accessibility-requirements-001`); the IDs in this document are no longer provisional.
 - TD-ARCHITECTURE: 2026-11-03 — skipped — Lean mode
 - LP-FEASIBILITY: 2026-11-03 — skipped — Lean mode
 - Authored in a headless run with no `AskUserQuestion` answerer: every gated choice took the recommended option and is listed under **Decisions taken** at the end. `godot-specialist` was not spawned: the three open engine facts (threading, atomic rename, renderer under Xvfb) are NOT SOURCEABLE from `docs/engine-reference/godot/` and a specialist answering from pre-4.3 training data is exactly what VERSION.md warns against — they are closed by the headless probes named in the ADR list, not by opinion.
@@ -39,9 +40,9 @@ Domains with no post-cutoff exposure in this project: Physics (unused), Navigati
 
 ## Technical Requirements Baseline
 
-Extracted from 13 GDDs | 71 requirements | 0 registered, 71 provisional (TR registry: empty). IDs run from `TR-<system>-001` per `bash .claude/scripts/registry.sh next-id tr <system>`; `/architecture-review` makes them permanent. The system slug is the GDD filename stem.
+Extracted from 13 GDDs | 70 requirements | 70 registered, 0 provisional (registered by `/architecture-review` 2026-11-03; the registry also holds `TR-accessibility-requirements-001` from `design/accessibility-requirements.md`, making 71 in total). IDs run from `TR-<system>-001` per `bash .claude/scripts/registry.sh next-id tr <system>`. The system slug is the GDD filename stem.
 
-| Req ID (provisional) | GDD | Requirement | Domain |
+| Req ID | GDD | Requirement | Domain |
 |---|---|---|---|
 | TR-card-database-001 | card-database CR-1 | The Card Database is the only parser of `assets/data/*.json`; definition files `{schema_version, records[]}` and config files `{schema_version, config{}}` served via `config(name)` | Core |
 | TR-card-database-002 | CR-3, CR-5 | Nine-stage load pipeline with delegated validators injected at composition (effects, ai_profile, unlock, treasure tags, one per config file); `Failed` load has no main menu (CR-8) | Core |
@@ -235,7 +236,7 @@ user://                     # profile.json, profile.bak, profile.json.tmp, profi
 
 | Module | Owns | Exposes | Consumes | Engine APIs (version, risk) |
 |---|---|---|---|---|
-| `CardDatabase` | The frozen definition snapshot, the frozen config bodies, `data_version`, the `ValidationReport`, state `Unloaded/Loading/Ready/Failed/Reloading` | CR-6 queries (`card`, `hero`, `hero_power`, `boss`, `treasure`, `bundle`, `has`, `cards_by_*`, `collectible_pool`, `bundle_pool`, `treasure_pool`, `bosses_in_band`, `heroes`, `config`, `data_version`, `report`), `load(validators)`, `reload()` (debug) | `assets/data/*.json`; injected validators from Card Effects, Boss AI, Meta, Treasures and every config owner | `FileAccess` (4.4 `bool` returns, sourced), `JSON.parse_string` (LOW), `HashingContext` SHA-256 for CR-9 (LOW, pre-cutoff) |
+| `CardDatabase` | The frozen definition snapshot, the frozen config bodies, `data_version`, the `ValidationReport`, state `Unloaded/Loading/Ready/Failed/Reloading` | CR-6 queries (`card`, `hero`, `hero_power`, `boss`, `treasure`, `bundle`, `has`, `cards_by_*`, `collectible_pool`, `bundle_pool`, `treasure_pool`, `bosses_in_band`, `heroes`, `config`, `data_version`, `report`), `load(validators)`, `reload()` (debug) | `assets/data/*.json`; injected validators from Card Effects, Boss AI, Meta, Treasures and every config owner | `FileAccess` (4.4 `bool` returns, sourced), `JSON.new().parse()` inside `DataLoader` (LOW; ADR-0002), `HashingContext` SHA-256 for CR-9 (LOW, pre-cutoff) |
 | `RngService` / `RngStream` | `run_seed`, `data_version`, memoised streams and their `draws` | `stream(name)`, `snapshot()`, `restore(snapshot)`; per stream `randi_range`, `randf`, `shuffle`, `weighted_pick`, `fork`, `draws` | nothing | `RandomNumberGenerator` (**NOT SOURCEABLE**; verified by helper self-test) |
 | `EventLog` | The append-only event array, `current_turn`, `Open/Faulted/Sealed`, `max_events`, subscribers | `append(type, payload, cause_seq) → seq`, `set_turn(n)`, `subscribe(cb)`, `events_since(seq)`, `snapshot()`, `to_json()`, `from_json()`, `reduce_to_summary()` | `log_memory_budget_bytes`, `keep_match_logs` from `config("rng_event_log")` | `FileAccess` for `user://logs/` writes (LOW); `Callable` subscribers (lambdas capture by value — `current-best-practices.md`) |
 | `ProfileStore` (+ `AtomicFileWriter`, `ProfileLock`, `ProfileMigrations`) | `user://profile.json` and companions, `write_seq`, `ReadOnly` state, the `settings{}` record | The M1.3 persistence API; `settings_changed{key, value}` through `SettingsBus` | `config("profile_defaults")`; `RunRecord` dicts from Run Structure (opaque) | `FileAccess.store_string → bool` (4.4, sourced), `DirAccess.rename_absolute` (**atomicity NOT SOURCEABLE**, ADR-0004 probe), `Time.get_unix_time_from_system` (LOW), `OS.get_process_id` for the lock (LOW) |
@@ -392,7 +393,8 @@ RunShell(boss_intro) ─intent begin_match─► RunController ─► RunMachine
    RunController ◄─ (driver) ─ RunShell swaps in MatchView (Run UI hidden, not freed)
                                MatchView.set_controller(MatchController.new(driver)); subscribe(events_since(0))
    ... match ...
-   RulesEngine → match_ended → RunMachine._on_match_ended (T6–T9: summary, save S2/S5, next status)
+   RulesEngine.match_ended → driver re-emits match_ended → RunMachine._on_match_ended (T6–T9: summary, save S2/S5, next status)
+     (only the driver connects RulesEngine.match_ended; RunMachine and the UI connect the driver's signal — ADR-0008)
    MatchView end banner → click or 4 s → match_view_finished(result) → RunShell reads the next run-scope
    event (run_floor_entered / draft_offered / run_ended) and shows the matching screen.
 ```
@@ -420,7 +422,7 @@ Serialisation ownership: Run Structure owns the `RunRecord` schema and `validate
                         unlock: MetaProgression.validate_unlock_defs, treasure: Treasures.validate_treasure_defs,
                         configs: {match_rules: …, card_effects: …, ai_profiles: …, run_structure: …,
                                   reward_draft: …, treasures_balance: …, heroes_balance: …, match_ui: …,
-                                  run_ui: …, profile_defaults: …, content_budgets: …}})
+                                  run_ui: …, profile_defaults: …, content_budgets: …, rng_event_log: …}})
         → Failed ⇒ RunShell opens data_error (CR-8); headless ⇒ print report, exit non-zero
 3.   ProfileStore.load_profile() → status (OK | RECOVERED_BAK | FRESH | FRESH_AFTER_CORRUPT | E_SCHEMA_NEWER | E_LOCKED)
        MVP: MetaStub instead (systems-index gate condition) — same MetaApi
@@ -674,7 +676,7 @@ signal screen_requested(id: StringName, read_model: Dictionary); signal match_re
 
 ---
 
-## Threading model (placeholder — resolved by ADR-0006)
+## Threading model (decided — ADR-0006 / ADR-0008)
 
 | Thread | Runs | Rule |
 |---|---|---|
