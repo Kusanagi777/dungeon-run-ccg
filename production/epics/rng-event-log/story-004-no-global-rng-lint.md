@@ -112,3 +112,5 @@ Rule 7 is the determinism contract's enforcement point (TD-007: one shared seque
 **Run result**: N/A — CI tooling; nothing a player can see changed.
 **Test Evidence**: `tests/integration/rng_event_log/rng_lint_test.gd` (9 tests)
 **Reviewed by**: self, no independent review (review_mode lean: QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode)
+
+> **Amendment (2026-11-03, rng-event-log 002 merge):** `tests/unit/rng_event_log/rng_service_test.gd` joins `TESTS_EXCLUDED` — it builds a raw seeded `RandomNumberGenerator` to compare the service against, the same reason `rng_stream_test.gd` is excluded.

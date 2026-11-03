@@ -38,6 +38,7 @@ ALLOW_LISTED=(
 TESTS_EXCLUDED=(
 	"tests/unit/rng_event_log/rng_engine_pins_test.gd"
 	"tests/unit/rng_event_log/rng_stream_test.gd"
+	"tests/unit/rng_event_log/rng_service_test.gd"  # compares the service against a raw seeded generator (added 2026-11-03)
 	"tests/integration/rng_event_log/rng_lint_test.gd"
 )
 

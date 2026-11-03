@@ -1,12 +1,12 @@
 # Story 005: EventLog core — envelope, append, subscribe, events_since, turn, sealing
 
 > **Epic**: RNG & Event Log
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -73,9 +73,9 @@ This is the single event channel every rules module writes and the UI reads (DD-
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/core/log/event_log.gd`
-- `tests/unit/rng_event_log/event_log_test.gd`
-- `tests/helpers/test_event_log.gd` (TODO(E1) note updated)
+- `src/core/log/event_log.gd` — created (envelope, `append`, `set_turn` / `current_turn`, `subscribe`, `events_since`, `size`, `snapshot`, sealing, `state()`, re-entrancy guard with an in-order delivery queue)
+- `tests/unit/rng_event_log/event_log_test.gd` — created (19 test functions)
+- `tests/helpers/test_event_log.gd` — TODO(E1) note replaced (production log exists; double kept for tiny-cap and scripted cases)
 
 ---
 
@@ -93,7 +93,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/rng_event_log/event_log_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — `tests/unit/rng_event_log/event_log_test.gd` (19 tests, passing)
 
 ---
 
@@ -101,3 +101,28 @@ checks scope against it.*
 
 - Depends on: None
 - Unlocks: `production/epics/rng-event-log/story-006-event-log-serialization-and-diagnostics.md`, `production/epics/rng-event-log/story-007-overflow-fault-and-config-knobs.md`, `production/epics/rng-event-log/story-008-match-summary-reduction.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Started / ended (UTC)**: 2026-11-03T21:04:33Z – 2026-11-03T21:10:30Z
+**Criteria**: 4/4 passing (all covered by unit tests; no deferred items)
+
+| Criterion | Covered by | Status |
+|-----------|------------|--------|
+| AC-1: seq 1..5, `events_since(3)` → 4, 5, subscribers once in order, envelope with `String` type, payload deep copy | `event_log_test.gd::test_five_appends_stamp_seq_one_to_five_and_events_since_three_returns_four_and_five`, `test_each_subscriber_receives_each_event_once_in_registration_and_seq_order`, `test_subscriber_is_called_after_the_event_is_stored`, `test_every_event_has_the_five_field_envelope_with_a_string_type`, `test_mutating_the_callers_payload_after_append_leaves_the_stored_event_unchanged` | COVERED |
+| AC-2: `cause_seq = 40` → `seq > 40`; `events_since` bounds | `test_event_appended_while_event_forty_resolves_has_cause_forty_and_a_later_seq`, `test_events_since_at_or_past_the_last_seq_is_empty_and_negative_returns_every_event`, `test_events_since_on_an_empty_log_is_empty` | COVERED |
+| AC-3: turn stamp, sealing by scope, sealed append `-1` / nothing stored / nobody notified / reported, `size()` + `snapshot()` | `test_turn_is_zero_before_set_turn_and_the_last_set_value_after`, `test_match_ended_seals_a_match_log`, `test_run_ended_seals_a_run_log`, `test_the_other_scopes_ending_event_does_not_seal`, `test_append_to_a_sealed_log_returns_minus_one_stores_nothing_and_notifies_no_one`, `test_size_and_snapshot_report_the_sealed_contents`, `test_snapshot_is_a_copy_the_caller_may_edit` | COVERED |
+| AC-4: re-entrant append asserted (debug), accepted with next `seq` and `_reentrant: true` | `test_reentrant_append_is_reported_takes_the_next_seq_and_is_tagged`, `test_reentrant_event_reaches_every_subscriber_after_the_outer_event`, `test_append_after_notification_finished_is_not_reentrant` | COVERED |
+
+**Deviations** (advisory, no ADR contradiction):
+- Additions beyond the ADR-0003 Key Interfaces: `current_turn()`, `state()` / `enum State {OPEN, FAULTED, SEALED}` (the GDD state table; Faulted is used by Story 007), `scope()`, `max_events()`.
+- Stored events are made read-only recursively (`make_read_only()` on the envelope, payload and nested containers), so subscribers and `events_since` share them without a copy and cannot corrupt the log; `snapshot()` returns a writable deep copy.
+- A re-entrant append queues its event; the outermost `append` delivers the queue, so every subscriber still sees every event once in `seq` order (the ADR names the tag, not the delivery order — this keeps rule 13's "in `seq` order" true for the nested case).
+- The release-path behaviour (warning, `-1`, tag) also runs in debug after the assert is reported (the assert aborts only the reporting helper, as in `RngStream._reject`); the debug test runner therefore checks the stored result as well as the assert.
+- `snapshot()` fills a `meta` key the root did not supply with `""` (`floor`: 0).
+**Test Evidence**: `tests/unit/rng_event_log/event_log_test.gd` — 19 tests; a delivery-queue + freeze mutation was seen failing (exit 100) before restore. Full suite 356/356 passed, exit 0; 3 new SCRIPT ERRORs are the intentional debug asserts (27 total, baseline 24). Smoke `godot --headless --quit-after 5` exit 0, no SCRIPT ERROR.
+**Run result**: N/A — the log has no scene, node or screen; nothing in this story is drawn or launched (the first consumer that renders is Match UI).
+**Engine check**: NOT ASSESSED — no `godot-gdscript-specialist` agent spawned in this lane; APIs used (`Dictionary.make_read_only`, `Array.slice`, `push_warning`, `assert`) are pre-4.4 and parse-checked on 4.7.2.
+**Reviewed by**: self, no independent review (`review_mode: lean` — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped; `/code-review` not run in this lane)

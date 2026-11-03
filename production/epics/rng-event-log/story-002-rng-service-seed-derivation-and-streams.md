@@ -1,12 +1,12 @@
 # Story 002: RngService — seed derivation (F1–F3) and memoised named streams
 
 > **Epic**: RNG & Event Log
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -71,11 +71,12 @@ The service is the object every rules module receives (DD-T03). This story gives
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/core/rng/rng_service.gd`
-- `src/core/rng/rng_stream.gd` (fork → `RngService.fork_seed`)
-- `tests/unit/rng_event_log/rng_service_test.gd`
-- `tests/helpers/test_rng_service.gd`, `tests/helpers/test_rng_stream.gd` (TODO(E1) swap)
-- `tests/unit/framework/test_helpers_test.gd` (pins moved out)
+- `src/core/rng/rng_service.gd` — created (`_init(run_seed, data_version)`, memoised `stream()`, `has_stream()`, `_make_stream()` seam; statics `run_seed_from_input`, `stream_seed_for`, `fork_seed`, `fnv1a64`, `mix64`, `ushr64`, `le_bytes8`, `to_hex_u64`, `parse_hex_u64`, `is_valid_stream_name`)
+- `src/core/rng/rng_stream.gd` — modified (fork seeds via `RngService.fork_seed`; `_make_child()` seam; the private F3 arithmetic and the FNV / SplitMix constants moved to `RngService`)
+- `tests/unit/rng_event_log/rng_service_test.gd` — created (19 test functions, incl. the F1/F2 pins moved from the helper self-test)
+- `tests/helpers/test_rng_service.gd` — `TestRngService extends RngService` (TODO(E1) swap)
+- `tests/helpers/test_rng_stream.gd` — `TestRngStream extends RngStream`; seeded mode is the production generator, scripted/constant kept as doubles (TODO(E1) swap)
+- `tests/unit/framework/test_helpers_test.gd` — F1/F2 pins moved out; 2 tests added (delegation, production types)
 
 ---
 
@@ -93,7 +94,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/rng_event_log/rng_service_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — `tests/unit/rng_event_log/rng_service_test.gd` (19 tests, passing)
 
 ---
 
@@ -101,3 +102,27 @@ checks scope against it.*
 
 - Depends on: `production/epics/rng-event-log/story-001-rng-stream-engine-pin-and-draw-primitives.md`
 - Unlocks: `production/epics/rng-event-log/story-003-snapshot-restore-and-command-guard.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Started / ended (UTC)**: 2026-11-03T21:21:38Z – 2026-11-03T21:29:00Z
+**Criteria**: 4/4 passing (all covered by unit tests; no deferred items)
+
+| Criterion | Covered by | Status |
+|-----------|------------|--------|
+| AC-1: two services seeded 42 → identical 100-value `randi_range(0, 65535)` sequences, `draws == 100` | `rng_service_test.gd::test_two_services_seeded_42_draw_identical_100_value_run_sequences`, `test_service_stream_is_seeded_by_f2_stream_seed`, `test_construction_takes_no_draw_and_keeps_seed_and_data_version` | COVERED |
+| AC-2: F2 example seeds for `run`, `match_1`, `match_2`, `draft_1`, `ai_1`; seed 0 → `8AE616A7F56EA560` | `test_stream_seed_matches_gdd_f2_examples`, `test_seed_zero_is_valid_and_matches_the_f2_example`, `test_fnv1a64_intermediate_matches_the_f2_example` | COVERED |
+| AC-3: F1 examples, hex with/without `0x`, entropy called exactly once for empty/whitespace and never otherwise, hex round trip incl. > 2^53 | `test_run_seed_from_input_matches_gdd_f1_examples`, `test_sixteen_hex_digits_with_or_without_0x_parse_to_the_same_bits`, `test_decimal_input_is_taken_mod_two_pow_64`, `test_a_twenty_digit_number_and_other_text_take_the_fnv_branch`, `test_empty_or_whitespace_input_calls_entropy_exactly_once`, `test_non_empty_input_never_calls_entropy`, `test_hex_round_trip_holds_for_the_f1_examples_and_above_two_pow_53`, `test_parse_hex_u64_rejects_anything_but_sixteen_hex_digits` | COVERED |
+| AC-4: memoised `stream("match_3")`, bad name pushes an error and is served, `fork("x")` memoised as `"<parent>/x"` seeded by F3 | `test_the_same_stream_name_returns_the_same_object_with_its_position_intact`, `test_a_name_outside_the_rule_3_pattern_is_reported_and_still_served`, `test_rule_3_names_in_the_v1_table_are_valid`, `test_fork_on_a_service_stream_is_the_memoised_child_seeded_by_f3`, `test_fork_seed_is_the_f3_formula` | COVERED |
+
+**Deviations**:
+- ADVISORY — helper swap by inheritance: `TestRngStream extends RngStream`, `TestRngService extends RngService` (ADR-0003 Migration Plan: "wrap or extend"). Seeded mode is now the production generator, draw primitives and fork rule; scripted/constant remain doubles overriding `randi32()`; `calls` records top-level calls only. Two construction seams were added to production for this — `RngService._make_stream()` and `RngStream._make_child()` (a scripted parent forks a scripted child). Existing callers are unchanged (`MatchFactory`, `RunFactory`, the card-effects spike, the match-rules data-model tests, the helper self-test). Behaviour change for doubles: bad ranges / weights / fork labels now assert in debug (production rule) instead of `push_error`; no existing test relied on the old form.
+- ADVISORY — `RngStream`'s public `FNV_OFFSET_BASIS` / `FNV_PRIME` / `MIX_MULT_A` / `MIX_MULT_B` moved to `RngService` (no caller referenced them on `RngStream`); `RngService` also gains `has_stream()`, `is_valid_stream_name()` and public `run_seed` / `data_version` fields (the helper's surface).
+- ADVISORY — `parse_hex_u64` rejects anything but exactly 16 hex digits with `push_error` and returns 0 (data fault, never an assert); the decimal F1 branch is computed by explicit wrapping digit accumulation (mod 2^64) rather than relying on `String.to_int()`'s unsourced overflow behaviour (observed to agree on 4.7.2).
+- Open (story 003): `stream("ai_1/x")` asked of the service directly is an F2 stream, not the F3 fork `stream("ai_1").fork("x")` of the same name; rule 3 allows the name. Snapshot/restore of fork streams should settle which one a name means.
+**Test Evidence**: `tests/unit/rng_event_log/rng_service_test.gd` — 19 tests; mutations (memoisation off, entropy called twice) seen failing (exit 100) before restore; a `String.to_int()` mutation of the decimal branch passed (equivalent on 4.7.2 — the test pins the behaviour either way). Full suite 418/418 passed, exit 0; 30 SCRIPT ERRORs, none new (baseline intentional negatives). Smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — the service has no scene, node or screen; nothing is drawn or launched (the seed field and its hex display are Run UI's).
+**Engine check**: NOT ASSESSED — no specialist agent in this lane; int64 wraparound is pinned by the F2 example tests on 4.7.2; subclass override with a covariant return type and `super()` calls observed to parse and run on 4.7.2.
+**Reviewed by**: self, no independent review (`review_mode: lean` — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped; `/code-review` not run in this lane)

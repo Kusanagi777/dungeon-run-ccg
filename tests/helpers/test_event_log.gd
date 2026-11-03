@@ -12,13 +12,21 @@
 ##     dropped and counted in `dropped`;
 ##   - rule 16 / Edge Cases: at `max_events` the log appends `log_overflow`,
 ##     forces `match_ended{result: fault, reason: event_cap}` and seals (the
-##     overflowing event itself is dropped). match-rules Edge Cases phrases the
-##     cap slightly differently (Open Question) — the production log settles it.
+##     overflowing event itself is dropped). This double keeps that shortcut so
+##     existing callers see a sealed log at once. The production rule is
+##     settled (ADR-0003 Decision 8, rng-event-log story 007,
+##     `EventLog.append`): `log_overflow`, then exactly one more append — Match
+##     Rules' own `match_ended(fault)` — then sealed; the production log never
+##     fabricates the `match_ended`. Use `EventLog.new(5, "match")` to test it.
 ## `type` is stored as a String (rule 14 serialises StringName as String), so
 ## `event.type == "card_drawn"` and `== &"card_drawn"` both hold.
 ##
-## TODO(E1 story): swap to the production event log once it exists; keep this
-## double for tests that need a tiny `max_events`.
+## The production log exists (`src/core/log/event_log.gd`, rng-event-log
+## story 005): a test that needs the real log constructs
+## `EventLog.new(max_events, EventLog.SCOPE_MATCH)` directly and reads it with
+## `events_since(0)` (every `EventLogAssertions` helper takes that Array). This
+## double stays for tests that need a tiny `max_events`, a scripted log, or the
+## public `events` / `turn` / `sealed` fields existing callers use.
 class_name TestEventLog
 extends RefCounted
 

@@ -34,14 +34,6 @@ extends RefCounted
 ## rng-event-log F4: largest `randi_range` span and `weighted_pick` total
 ## (modulo bias < 2^-16). A formula constant, not a tuning knob (GDD Tuning Knobs).
 const MAX_RANGE_SPAN: int = 65536
-## rng-event-log F2: FNV-1a 64 offset basis 0xCBF29CE484222325 as signed int64.
-const FNV_OFFSET_BASIS: int = -3750763034362895579
-## rng-event-log F2: FNV-1a 64 prime 0x00000100000001B3.
-const FNV_PRIME: int = 1099511628211
-## rng-event-log F2: SplitMix64 multiplier 0xBF58476D1CE4E5B9 as signed int64.
-const MIX_MULT_A: int = -4658895280553007687
-## rng-event-log F2: SplitMix64 multiplier 0x94D049BB133111EB as signed int64.
-const MIX_MULT_B: int = -7723592293110705685
 ## `randf()` divisor, 2^32 (F4).
 const _TWO_POW_32: float = 4294967296.0
 ## rng-event-log F3 variable table: a fork label is `[a-z0-9_]+`.
@@ -144,9 +136,9 @@ func weighted_pick(weights: Array) -> int:
 
 ## Rule 5 / F3: the child stream `"<name>/<label>"`. The first call with a
 ## label consumes one parent draw and seeds the child with
-## `fork_seed(parent_draw, name, label)`; later calls with the same label
-## return the same object and consume nothing. Child draws never touch the
-## parent's generator. `label` matches `[a-z0-9_]+` (F3): anything else — `""`,
+## `RngService.fork_seed(parent_draw, name, label)`; later calls with the same
+## label return the same object and consume nothing. Child draws never touch
+## the parent's generator. `label` matches `[a-z0-9_]+` (F3): anything else — `""`,
 ## `"a/b"` (whose name would collide with `fork("a").fork("b")` under a
 ## different seed), upper case, `-` — asserts (debug) or logs and returns
 ## `null` with no draw (release).
@@ -160,9 +152,16 @@ func fork(label: String) -> RngStream:
 	var child_name: String = "%s/%s" % [name, label]
 	if _forks.has(child_name):
 		return _forks[child_name]
-	var child: RngStream = RngStream.new(child_name, _fork_seed(randi32(), name, label))
+	var child: RngStream = _make_child(child_name, RngService.fork_seed(randi32(), name, label))
 	_forks[child_name] = child
 	return child
+
+
+## Builds the child [method fork] memoises, seeded with its F3 seed. The one
+## construction seam: a test double (`TestRngStream`) returns a child of its
+## own kind here (scripted parents give scripted children).
+func _make_child(child_name: String, child_seed: int) -> RngStream:
+	return RngStream.new(child_name, child_seed)
 
 
 ## Whether `w` is a whole number: an `int`, or a finite `float` with no
@@ -174,40 +173,6 @@ static func _is_whole_number(w: Variant) -> bool:
 		TYPE_FLOAT:
 			return is_finite(w) and w == floorf(w)
 	return false
-
-
-# --- F3 seed arithmetic --------------------------------------------------------
-# TODO(rng-event-log story-002): the public static derivation moves to
-# RngService (fork_seed, stream_seed_for); call it from fork() then. Signed
-# int64 arithmetic with `>>>` emulated, exactly as TestRngStream.
-
-## F3: `mix64(fnv1a64(le_bytes8(parent_draw) ++ utf8(parent_name + "/" + label)))`.
-static func _fork_seed(parent_draw: int, parent_name: String, label: String) -> int:
-	var bytes: PackedByteArray = PackedByteArray()
-	for i: int in range(8):
-		bytes.append((parent_draw >> (8 * i)) & 0xFF)
-	bytes.append_array(("%s/%s" % [parent_name, label]).to_utf8_buffer())
-	return _mix64(_fnv1a64(bytes))
-
-
-## FNV-1a 64 over `bytes`, int64 wraparound arithmetic (F2).
-static func _fnv1a64(bytes: PackedByteArray) -> int:
-	var h: int = FNV_OFFSET_BASIS
-	for b: int in bytes:
-		h = (h ^ b) * FNV_PRIME
-	return h
-
-
-## SplitMix64 finaliser (F2 `mix64`).
-static func _mix64(x: int) -> int:
-	var z: int = (x ^ _ushr64(x, 30)) * MIX_MULT_A
-	z = (z ^ _ushr64(z, 27)) * MIX_MULT_B
-	return z ^ _ushr64(z, 31)
-
-
-## Logical (unsigned) right shift of a signed int64 by `n` in 1..63.
-static func _ushr64(x: int, n: int) -> int:
-	return (x >> n) & ((1 << (64 - n)) - 1)
 
 
 ## Caller-bug report: asserts in debug builds (the assert aborts only this
