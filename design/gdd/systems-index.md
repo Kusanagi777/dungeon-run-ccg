@@ -82,7 +82,7 @@ Systems, one paragraph each (balanced density):
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
 immediately replay a run") can be tested without unlocks; it is still required for v1 (Alpha).
-Content is MVP for the first ~40 cards, 4 bosses and 10 treasures and grows to Alpha scope.
+Content is MVP for the first ~40 cards, 5 bosses (3/1/1) and 10 treasures and grows to Alpha scope.
 
 ---
 
@@ -106,7 +106,7 @@ and Run UI stories; boss intro lines are content, not a narrative system).
 
 | Tier | Definition | Target Milestone | Design Urgency |
 |------|------------|------------------|----------------|
-| **MVP** | Required for the core loop to function. Without these, you can't test "is this fun?" | First playable: 1 hero, 4 bosses, ~40 cards | Design FIRST |
+| **MVP** | Required for the core loop to function. Without these, you can't test "is this fun?" | First playable: 1 hero, 5 bosses, ~40 cards | Design FIRST |
 | **Vertical Slice** | Required for one complete, polished run. | Full 8-boss run with save/resume | Design SECOND |
 | **Alpha** | All features present in rough form. | 3 heroes, 16 bosses, 120 cards, meta progression | Design THIRD |
 | **Full Vision** | Polish, edge cases, nice-to-haves, content-complete. | 6 heroes, hard-band modifiers, custom art | Design as needed |
@@ -185,7 +185,7 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 | System | Risk Type | Risk Description | Mitigation |
 |--------|-----------|-----------------|------------|
 | Card Effects | Technical / Design | DSL may not express needed effects; ordering of triggers, auras and deathrattle chains | Design the DSL from a list of all 120 planned card texts; write ordering rules as Formulas; unit-test each operation and chain |
-| Boss AI | Technical | Priority scripts may misplay against drafted decks, making bosses trivial or random | Per-boss weights in data; an "intent" preview; AI-vs-AI simulation harness using the seeded RNG |
+| Boss AI | Technical | Utility scoring may misplay against drafted decks, making bosses trivial or random | Per-boss weights in data (utility scores); an "intent" preview; AI-vs-AI simulation harness using the seeded RNG |
 | Reward Draft | Design | Bundles collapse to "take the strongest" | Themed bundles with plan tags; pity rules; `/balance-check` on pick rates from the run log |
 | Content | Scope | 120 cards and 16 bosses is the largest cost | Data-only authoring; batches of 20 cards; MVP ships with 40 |
 
