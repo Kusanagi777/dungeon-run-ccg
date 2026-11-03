@@ -104,6 +104,22 @@ func _snapshot(hooks: HookRegistry) -> Dictionary:
 	return out
 
 
+## Every Dictionary or Array reachable from `value` (itself included) that is
+## not read-only, as path strings.
+func _writable_containers(value: Variant, path: String = "<root>", out: Array = []) -> Array:
+	if value is Dictionary:
+		if not (value as Dictionary).is_read_only():
+			out.append(path)
+		for key: Variant in value:
+			_writable_containers(value[key], "%s.%s" % [path, str(key)], out)
+	elif value is Array:
+		if not (value as Array).is_read_only():
+			out.append(path)
+		for i: int in (value as Array).size():
+			_writable_containers(value[i], "%s[%d]" % [path, i], out)
+	return out
+
+
 func _collect_objects(value: Variant, out: Array) -> Array:
 	if value is Object:
 		out.append(value)
@@ -323,11 +339,17 @@ func test_copy_is_by_value_with_evaluators_unset() -> void:
 
 	# Act
 	var copied: HookRegistry = hooks.copy()
-	copied.entries(&"modify_cost")[0].effect.ops[0]["value"] = 50
-	copied.entries(&"modify_cost")[0].effect["trigger"] = "mutated"
+	var copied_effect: Dictionary = copied.entries(&"modify_cost")[0].effect
 
-	# Assert — original untouched (duplicate(true))
+	# Assert — the copy owns its own containers (duplicate(true)), deep
+	# read-only like the original's, so a write through it changes neither
 	var original_effect: Dictionary = hooks.entries(&"modify_cost")[0].effect
+	assert_bool(is_same(copied_effect, original_effect)).is_false()
+	assert_bool(is_same(copied_effect.ops[0], original_effect.ops[0])).is_false()
+	assert_array(_writable_containers(copied.entries(&"modify_cost"))).is_empty()
+	assert_bool((copied_effect.ops[0] as Dictionary).set("value", 50)).is_false()
+	assert_bool(copied_effect.set("trigger", "mutated")).is_false()
+	assert_int(copied_effect.ops[0].value).is_equal(-1)
 	assert_int(original_effect.ops[0].value).is_equal(-1)
 	assert_str(original_effect.trigger).is_equal("modify_cost")
 	assert_int(copied.entry_count()).is_equal(hooks.entry_count())
@@ -358,6 +380,34 @@ func test_copy_of_an_entry_free_registry_after_set_evaluators_runs_nothing() -> 
 	# Assert
 	assert_int(copied.entry_count()).is_zero()
 	assert_int(copied.fold(&"modify_heal", &"player", 3, {})).is_equal(3)
+
+
+func test_entries_view_is_deep_read_only_and_a_nested_write_changes_nothing() -> void:
+	# Arrange — a value hook whose effect nests ops[0] {mode, value}, and a nested state blob
+	var hooks: HookRegistry = HookRegistry.new()
+	var installer: HookInstaller = _value_installer("t_minus", SIDE_PLAYER, &"modify_cost", [_op("delta", -1)])
+	installer.state = {"charges": {"left": 1}}
+	hooks.install(installer)
+	hooks.set_evaluators(_scripted_fold([]), _scripted_run([]))
+	var view: Array = hooks.entries(&"modify_cost")
+
+	# Act — a write at every nesting level, through the view
+	var wrote_op: bool = (view[0].effect.ops[0] as Dictionary).set("value", 99)
+	var wrote_effect: bool = (view[0].effect as Dictionary).set("trigger", "on_draw")
+	var wrote_entry: bool = (view[0] as Dictionary).set("side", &"boss")
+	var wrote_state: bool = (view[0].state.charges as Dictionary).set("left", 7)
+
+	# Assert — no write landed; the registry still folds -1 on the player side
+	assert_array(_writable_containers(view)).is_empty()
+	assert_array([wrote_op, wrote_effect, wrote_entry, wrote_state]).is_equal([false, false, false, false])
+	var entry: Dictionary = hooks.entries(&"modify_cost")[0]
+	assert_int(entry.effect.ops[0].value).is_equal(-1)
+	assert_str(entry.effect.trigger).is_equal("modify_cost")
+	assert_bool(entry.side == &"player").is_true()
+	assert_int(entry.state.charges.left).is_equal(1)
+	assert_int(hooks.fold(&"modify_cost", &"player", 4, {})).is_equal(3)
+	# The installer's own data stays writable: install copies before freezing
+	assert_bool((installer.effects[0].ops[0] as Dictionary).is_read_only()).is_false()
 
 
 # --- plain data, no back-references ------------------------------------------
