@@ -35,3 +35,35 @@ Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba
 Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — no specialist agents; main review re-checked all 32 ACs, the registry search, run-structure T21/`suspend`, Meta M1.3/M3.6/M9, reward-draft D8/D9/D11 + DD-X05, match-ui "Match end", boss-ai C8.4, heroes H-2/DD-X02, accessibility-requirements "Reading time"/Visual/Motor, interaction-patterns Toast/Focus Management/Pick One of N/Progress Strip, art bible §2/§4, ui-code.md rules 1–8)
+Blocking items: 0 | Recommended: 3
+Summary: Re-review after the first-review revisions, the cross-review fixes and the accessibility alignment. Every prior blocker is resolved and verified against the siblings: `draft_offered{floor, kind, option_ids[], flags[]}` with 1–3 offers and `allow_skip` (DD-X05), the real Meta API and the DD-X07 settings record edited by Run UI and read by Match UI / Boss AI (C-01), `match_view_finished` + 4 s auto-advance, S11b on `match_faulted`, the seven commands including `suspend()` wired as S23 (C-12), F3 at 5000–8000 ms with hover/focus pause, the 2 px / 3 px-offset focus ring, `1`/`2`/`3` + Tab reachability and three discrete `text_scale` steps. F1–F4 recompute exactly; all ten dependency GDDs exist; every registry value in the document agrees except `toast_visible_ms`, where the GDD is the owning source and the registry row is the stale side. Three non-blocking token/pointer corrections remain (below).
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Detailed Design U2 `pause` row / Cross-References: `E_PHASE` should read `E_BAD_PHASE` — run-structure.md line 80 states "the cross-review's `E_PHASE` is this GDD's `E_BAD_PHASE`" and uses `E_BAD_PHASE` everywhere else.
+- [RECOMMENDED] Detailed Design U7: "(Meta M7.1 — there is no `last_hero_id`)" is wrong — meta-progression.md M1.3 defines `last_hero_id() -> hero_id | null` as argmax `last_played_at`; U7 should call it (null → War) instead of recomputing the argmax; the Open Questions row "only the three M9 keys above remain open" is stale (all resolved).
+- [RECOMMENDED] Acceptance Criteria AC-26: "named in `project.yaml` platform notes" dangles — project.yaml has no such block; point at the target-hardware wording card-database's performance AC uses (mid-range desktop, SSD, release build; `.claude/docs/technical-preferences.md` Platform Notes) and record the actual machine in the evidence note until `project.yaml performance:` names one. The 100 ms / 50 ms / zero-allocation thresholds are already measurable.
+- [REGISTRY] `toast_visible_ms` (entities.yaml ~line 1256): expression `clamp(2000 + 30*chars, 2000, 6000)` and `output_range [2000, 6000]` are stale against the owning GDD's F3 (`clamp(5000 + 30*chars, 5000, 8000)`, 5000–8000); set `revised: 2026-11-03`.
+- [CROSS-DOC] accessibility-requirements.md rows 207 and 290 still describe the toast as 2–6 s and row 365 keeps the raise-to-5000 request open; row 99 lists the pre-DD-X07 `anim_speed` enum. meta-progression.md line 380 (Run UI row) still lists `unlock_hint`. match-ui.md line 438 says Run UI hands over "current settings values" — both read Meta's record per DD-X07. None is a Run UI defect.
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/reward-draft.md 46e985b9b2915a99fd6a9d039ba420634cb0489b
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/card-database.md 137ebdb8bac44a389c04a3ce06453157c07d0a14
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
+Reviewed-Content-Hash: design/accessibility-requirements.md 96c731ff0757d53872c56769c5893286d5c351dd
+Reviewed-Content-Hash: design/ux/interaction-patterns.md 0a5713271e352b17d993667908c55de8d2b3670e

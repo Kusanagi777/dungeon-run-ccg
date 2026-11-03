@@ -36,3 +36,36 @@ Reviewed-Content-Hash: design/gdd/card-database.md c5903c4c808a0d2b1cf124242ba10
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — no specialist agents; main review performed all checks)
+Blocking items: 0 | Recommended: 7
+Summary: Re-review after the first-review revisions and the cross-review fixes. All three prior blockers hold (Reward Draft `init_run` / `Offer{option_ids[], flags[]}` / `pick` / `draft_state` schema / empty-offer skip; Treasures `collect_state` before S2; phase-dependent abandon accounting with `floor_reached` on every result). C-11 (no first-run hero, DD-X02; Heroes row and both Open Questions closed), C-12 (`suspend` in Core Rules, T21, R8.7, Interactions seven commands, Dependencies, Edge Cases, AC-36 — matches run-ui S23/L107 and the cross-review decision 6), C-17 (Boss AI rows: Run Structure owns the match driver — matches boss-ai L342/L634 and match-ui L93), C-30 (Open Questions on `MatchConfig.seed`, catalogue owner / `defeat`, `BossDef.tags`, rule 18, treasures T6 marked resolved) and DD-X05 (`offered_ids` only in the persisted DraftRecord, lines 106/214/226/940) are all verified in place and against the partner GDDs. Formulas re-checked (F6 `p_reach(8)` = 0.0835, `expected_floors_cleared` = 3.268; AC-11/33/34 arithmetic). What remains is housekeeping text that the document's own Open Questions table already supersedes, plus two small implementability clarifications — none blocks a programmer.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Detailed Design R3: "Match Rules C3 names a `seed` field … Match Rules settles it" is stale — match-rules C3/Dependencies now take the memoised `rng_match` / `rng_ai` handles and never seed (its REVISED note, L169–170); the Open Questions row already says so. Delete the paragraph.
+- [RECOMMENDED] Detailed Design R5.2 / Formulas F2 / Edge Cases / Tuning Knobs: stale markers — "(contract — to be confirmed in reward-draft.md)" (confirmed, D2/F4), "`BossDef.tags[]` not in Card Database CR-3 today" (CR-3 L145 has it; knob inert until Content tags bosses), "rule 18 keys match-log folders by `run_seed_hex` alone — flagged" (rng rule 18 now keys by `run_id`), Dependencies "the index omits Meta Progression" (systems-index row 7 lists it). Each contradicts this GDD's own Open Questions resolution.
+- [RECOMMENDED] Detailed Design R8.7: "Nothing is lost because every state `suspend` is legal in was saved on entry" is over-strong after an `E_IO` save failure (Edge Cases: run continues in memory) — state that `suspend` after `save_failed` replays the floors since the last good save, or retries the save once before dropping the run.
+- [RECOMMENDED] Detailed Design R2.1 / T2: with `suspend` the common New-Run path is "saved run, no in-memory run"; say that `new_run` loads and validates the slot first, applies R6's phase-dependent `floors_cleared` to the loaded status, and that a record failing validation ends as a system abandon (R8.1), not a loss.
+- [RECOMMENDED] Acceptance Criteria AC-30: 5 ms / 20 ms wall-clock thresholds are machine-dependent — mark ADVISORY or name the reference machine / CI runner.
+- [RECOMMENDED] Interactions Boss AI: this GDD writes `BossAI(ai_id, rng_ai, config("ai_profiles"))`; boss-ai C1.1 writes `(boss_def, resolved_profile, band, ai_stream, op_values)`. Same owner (C-17), different constructor sketch — architecture/ADR settles it. CROSS-GDD (informational).
+- [RECOMMENDED] Rejection codes: run-ui.md L107/L679 cites `E_PHASE` as a Run Structure code; this GDD's code is `E_BAD_PHASE` (noted at L80). CROSS-GDD (run-ui.md).
+- [REGISTRY] No value conflicts: 114 lines matched the registry names; every stated value agrees (hero_war 30 / 15; boss_starting_health_by_band 30/40/50; starter_deck_size 15; bundle_card_count 3; min_treasure_pool 9; floors_per_run 8/4; band_split 3/3/2; treasure_floors 1,3,5; target_win_rate_by_floor; deck_size_by_floor [15,36]; turns_to_lethal [6,12]; run_record_schema_version 1; restart_budget_ms 5000; boss_sequence.output_range now [3,12] — prior correction applied). Still open for the registry owner (C-29): `referenced_by: design/gdd/run-structure.md` remains on the 16 `boss_*` entries, `hero_decay`, `hero_knowledge`, `stream_seed`, `max_match_events`, `profile_schema_version`, `progress_strip_geometry`, `stats_fold`, `offers_per_draft`, `boss_pressure` — the document names none of them. `boss_health.output_range [30, 60]` is narrower than the GDD's variable ranges imply (BossDef.health 20–60 + bonus 0–5 → 20–70); widen or note "defaults".
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/reward-draft.md 46e985b9b2915a99fd6a9d039ba420634cb0489b
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/heroes.md dea1ee1e0afbc53aeace944eac7960f020fc5bbd
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 43f509f1edb37d0cc3087908330f94dcc24185cb
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/card-database.md cd631beb882ec0fa4adb3b048671d05628993c49
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

@@ -38,3 +38,40 @@ Reviewed-Content-Hash: design/gdd/match-ui.md 6645f862cbd413853a0afdec2f3ccf775e
 Reviewed-Content-Hash: design/gdd/run-ui.md 8d242eaafec4a3b0db63f3db3c65cd4771d3d120
 Reviewed-Content-Hash: design/gdd/meta-progression.md bdfd4ad9111612ebe5d33596746caadfa5dc873f
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — single-session review; no `systems-designer` / `qa-lead` pass)
+Blocking items: 3 | Recommended: 5
+Summary: Re-review after the first revision and the cross-review fixes. All six prior blockers and cross-review C-09 / C-05 are verified applied, and the siblings now cite this GDD correctly (match-rules F4 names and rule 12a, run-ui envelope, boss-ai fork draws). Formulas, edge cases, dependency graph (10/10 on disk) and registry values are clean; every acceptance criterion is executable. What remained was catalogue drift against owner tables that moved after the last pass: `run_ended.abandon_reason` carried an invented `player/system` enum against run-structure R6's `player | data_version_mismatch | save_corrupt`; `match_ended` used `winner_side` and a truncated `reason` enum against match-rules C14; the `ai_intent_*` rows omitted `effective_mode`, which DD-X03 and boss-ai C8.4 require. All were resolvable from the owner GDDs and DD rows, so option [A] Revise now was taken; the GDD was revised in place and should be marked In Review pending re-review.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] Detailed Design §D catalogue `run_ended`: `abandon_reason (player/system)` contradicts run-structure R6 / meta-progression M7 enum — fixed: owner enum, `floor_reached`, `ended_by` added
+- [BLOCKING] Detailed Design §D catalogue `match_ended`: `winner_side` and partial `reason` enum vs match-rules C14 `MatchResult` (`winner`, `event_cap`, `turn_cap`) — fixed: row mirrors C14
+- [BLOCKING] Detailed Design §D catalogue `ai_intent_shown` / `ai_intent_committed`: `effective_mode` missing (DD-X03, boss-ai C8.4) — fixed
+- [RECOMMENDED] Detailed Design §D catalogue `discover_offered` / `discover_picked`: lagged card-effects' payload (`effect_id`, `kind`, label keys, `picked_index`) — fixed
+- [RECOMMENDED] Detailed Design §D catalogue / Interactions: owner-added types `deck_grew`, `run_warning` (run-structure R10), `counter_changed` (card-effects), `hook_install_skipped` (treasures) absent from the cross-system index — rows added
+- [RECOMMENDED] Detailed Design rule 13: how the log learns `turn` was unstated although match-rules C15 says the log stamps it — `set_turn(n)` added
+- [RECOMMENDED] Edge Cases `max_match_events`: "force `match_ended`" left the emitter ambiguous; match-rules Edge Cases says the engine emits it — wording aligned
+- [RECOMMENDED] Open Questions 7: siblings now cite rule 12a — closed
+- [CROSS-GDD] card-effects Open Questions (fork("effect_<id>") row) still "Open — proposed here" although this GDD's Interactions row was amended on the first revision — card-effects to close
+- [CROSS-GDD] run-structure R10 `run_warning` records no mutation; per rule 12a it should carry `diagnostic: true` — Run Structure to confirm or state an exception
+- [CROSS-GDD] systems-index Recommended Design Order row 2 scores RNG & Event Log `S`; two reviews score it `L` (7 formulas, 10 dependents, one ADR) — index to update
+- [CROSS-GDD] DD-T04 still reads `{seq, type, payload}`; this GDD extends it to `{seq, turn, type, payload, cause_seq}` and run-ui / match-ui / match-rules adopted the five-field form — register row wording to update via owner
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/card-effects.md 90b8b6e139e107e5a588cd760da49b3946a404bc
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/reward-draft.md 46e985b9b2915a99fd6a9d039ba420634cb0489b
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

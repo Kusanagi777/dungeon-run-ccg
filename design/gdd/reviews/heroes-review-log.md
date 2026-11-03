@@ -39,3 +39,36 @@ Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — single-session analysis; `qa-lead`, `systems-designer`, `creative-director` not spawned)
+Blocking items: 2 | Recommended: 1
+Summary: Re-review after the first-review revisions and the cross-review fixes. C-03 (`PLAN_MAX` 7 in F2, Tuning Knobs, AC-3, H-4, OQ; Content keeps the `armour` tag), C-11 / DD-X02 (H-2, Interactions, Dependencies, OQ; run-structure, run-ui and game-concept agree) and C-30 (OQ rows on `refresh_hero_power` and `HeroDef.unlock` closed; both exist in match-rules / card-database) are all applied and verified against the sibling GDDs. All 8 sections present (6/6 required at `standard`); the whole-document registry search (74 lines) found no conflict; all ten dependency GDDs exist and the four previously one-sided dependents (Reward Draft, Run UI, Match UI, Treasures) now list Heroes. Two Acceptance Criteria asserted wrong or unsatisfiable results — AC-10 (Husk index after the dead minion's slot closes) and AC-16 (three heroes selectable on a fresh profile, contradicting AC-1's MVP-0 War-only batch) — both fixed in place from match-rules C10 and AC-1; no rule, formula or value changed. Document is In Review; a re-review decides Approved.
+Prior verdict resolved: Yes — all 8 prior blockers closed (the open cross-GDD one, War 7 > `PLAN_MAX` 6, via cross-review C-03 option B)
+Findings:
+- [BLOCKING] Acceptance Criteria AC-10: asserted the Husk "at board index 1 (the dead minion's slot has closed up)" — with a single friendly 1/1 the Husk is summoned at index 1 during the pass and sits at index 0 after `minion_died` (match-rules C10 dense board) — FIXED
+- [BLOCKING] Acceptance Criteria AC-16: "exactly the three launch heroes are selectable" fails at MVP-0 and Alpha-A under AC-1's batch scoping (DD-H06, Content CN-6) — FIXED (heroes present in the batch's `heroes.json`; locked state via a fixture hero)
+- [RECOMMENDED] Edge Cases: `W_HERO_HEALTH` is named as a Content validator warning but appears in neither content.md's validator code list nor card-database.md — cross-GDD (Content adds the code, or Heroes drops the warning)
+- [NICE-TO-HAVE] Player Fantasy: "a Spell Damage minion turns a 2-damage bolt into a 4" — one +1 minion makes it 3; "about a third of each starter is plan-shaped" is now 4–7 of 15 (27–47 %) after C-03
+- [NICE-TO-HAVE] Detailed Design H-4: "Gain 2 Armour" vs Content's "Gain 2 Armor" — spelling only, Content's text is the shipped string
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/card-effects.md 90b8b6e139e107e5a588cd760da49b3946a404bc
+Reviewed-Content-Hash: design/gdd/content.md 9a4fabbfd9e515a5dd437ed7babbe949119da8ee
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/card-database.md cd631beb882ec0fa4adb3b048671d05628993c49
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/reward-draft.md 46e985b9b2915a99fd6a9d039ba420634cb0489b
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b

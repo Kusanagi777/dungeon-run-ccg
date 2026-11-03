@@ -38,3 +38,35 @@ Reviewed-Content-Hash: design/gdd/run-ui.md 40f3ae586d40370209dff143eadf78ad9a6a
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: .claude/rules/ai-code.md 2c50b3bc673906ae6914b35ef0ad4d4a91f38d24
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean — single-session; independent re-reviewer, not the author)
+Blocking items: 0 | Recommended: 6
+Summary: Re-review after the first-review revisions and the cross-review fixes. All seven prior blocking items hold (F1 arithmetic re-derived to 2.45 / 1.87; hidden-information rule and A4; 2 ms/frame rule honoured via off-main-thread planner and A30; op vocabulary matches Card Effects C5; `intent_banner_s` 0.3 / `plan_changed_s` 1.2; A6/A7 testable; C2 emits `ai_decision` on every path). C-01, C-14, C-15, C-30, D-04 and D-07 are each applied as the cross-review specified and agree with DD-X03/DD-X07, rng-event-log rule 5 / 12a / §D, card-database CR-1 `config("ai_profiles")`, content B2 and AC-13. `.claude/rules/ai-code.md` is addressed rule by rule in C9 with the two inapplicable rules named. No registry value conflicts; all nine dependency GDDs exist and list Boss AI back. Remaining findings are precision nits that an implementer resolves from the cited owner GDD; none needs a design decision.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Detailed Design C8.1: forecast mana written as `mana_max + 1` — at `MAX_MANA` that is 11; write `mana_max_by_turn(t_side + 1)` (match-rules F4, which also now carries `crystal_bonus`).
+- [RECOMMENDED] Detailed Design C3: the lethal-search sandbox names no stream; state that its nodes draw from the same `fork("sim_<turn>")` as C4 (A5's draw count already implies it).
+- [RECOMMENDED] Edge Cases "ai_profiles.json is absent": says an embedded `default` copy is used at runtime; card-database L424–427 says load fails (`E_MISSING_FILE`) and the embedded copy is a test fixture only. Align to Card Database, the load-pipeline owner.
+- [RECOMMENDED] Detailed Design C1.1 vs run-structure L428: constructor `(boss_def, resolved_profile, band, ai_stream, op_values)` here, `BossAI(ai_id, rng_ai, config("ai_profiles"))` there — say the ADR pins the signature and that Boss AI resolves the profile (C10) whichever form is chosen.
+- [RECOMMENDED] Acceptance Criteria A8 / A16 / A7: "that or an equivalent order" → assert `player.hero.health ≤ 0` at turn end and first `ai_decision.mode = LETHAL`; state that `alternatives[]` includes the chosen candidate (A16's "2 alternatives" and the identical-options edge case both assume it); define `lethal_search: shallow_none` beside `lethal_search_exhausted` in C9's payload.
+- [RECOMMENDED] Cross-GDD (rng-event-log §D L166): `ai_intent_shown` / `ai_intent_committed` payload rows lack `effective_mode`, which C8 and match-ui L182 both carry — catalogue addition, not a Boss AI change. Card-effects Dependencies row for Boss AI (L1053) still omits op names/selectors as consumed (low).
+- [ADVISORY] Player Fantasy section absent — advisory at `standard`; the Overview's second paragraph carries the intent.
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/card-effects.md 90b8b6e139e107e5a588cd760da49b3946a404bc
+Reviewed-Content-Hash: design/gdd/card-database.md cd631beb882ec0fa4adb3b048671d05628993c49
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 43f509f1edb37d0cc3087908330f94dcc24185cb
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/content.md 9a4fabbfd9e515a5dd437ed7babbe949119da8ee
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: .claude/rules/ai-code.md 2c50b3bc673906ae6914b35ef0ad4d4a91f38d24

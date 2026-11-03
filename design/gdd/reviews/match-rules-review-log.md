@@ -37,3 +37,33 @@ Reviewed-Content-Hash: design/gdd/heroes.md 50129f93679a9dfa2153049499b8c646a476
 Reviewed-Content-Hash: design/gdd/content.md 3e5e568fada0126b6e7f2685c4afe86211dca3e6
 Reviewed-Content-Hash: design/gdd/match-ui.md 6645f862cbd413853a0afdec2f3ccf775e811547
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: full
+Scope signal: XL
+Specialists: none (lean mode — no specialist agents; single-session adversarial re-review)
+Blocking items: 0 | Recommended: 6
+Summary: Re-review after the first-review revisions and the cross-review fixes. All seven prior blocking items are resolved in the document and every cross-review item routed here (C-02 `crystal_bonus` in C1/C4/C5/F4/AC-06; C-04 derived `targeting_spec`; C-05 RNG stream-handle API; C-07/DD-X04 event spellings; C-16 a/b/c in C4; C-18 `MAX_ATTACKS_CAP` rationale; C-30 OQ housekeeping) is present and verified against Treasures (AC-15, F3, R-1/R-4/R-5), Card Effects (C1 rule 1, rows 25/41, OQs), RNG & Event Log (F4, rule 12a, catalogue) and Run Structure (R3, T9, F3). 8/8 sections at `full`; the 61-line registry search found no value conflict. The remaining findings are wording and housekeeping, plus one design question (defending hero with a weapon deals its attack back, C8 step 4) that is unambiguous as written and needs only an owner confirmation.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Detailed Design C8 step 4: a defending hero holding a weapon deals `D.attack` back with no durability loss (unlike Hearthstone, where a defending hero deals 0) — implementable as written; owner to confirm intended or set defending-hero attack to 0
+- [RECOMMENDED] Dependencies intro: "the systems index lists … but not Heroes, Treasures or Content" is now false (index rows 6, 9, 13 list Match Rules) — delete the sentence
+- [RECOMMENDED] States transition table: the `turn > TURN_CAP` row names only `PlayerTurn.Start`; an odd `TURN_CAP` (safe range 40–200) ends on a `BossTurn.Start` — make it `*Turn.Start`
+- [RECOMMENDED] Acceptance Criteria AC-02: "boss health equal to its definition" should read "equal to `MatchConfig.boss.health`" (C3 step 2, AC-43)
+- [RECOMMENDED] Formulas F3: `attacks_used` range "0–2" should be `0–MAX_ATTACKS_CAP`; Dependencies RNG row and C12 Discover row still say "`match` stream" (now `match_<floor>`)
+- [RECOMMENDED] Open Questions: "queued triggers resolve after the source left play" is adopted by Card Effects (its Edge Cases) and "mid-match save" is answered by Run Structure R8 ("resume after a quit mid-match = restart that match", T10/T15) — both rows can close
+- [REGISTRY] `mana_max_by_turn` expression `min(t_side, MAX_MANA)` and its variables lag F4 (`min(t_side + crystal_bonus, MAX_MANA)`, new variable `crystal_bonus`); `max_match_events.referenced_by` lacks `design/gdd/match-rules.md` (cited in C10, C14, Edge Cases) — orchestrator
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/gdd/card-effects.md 90b8b6e139e107e5a588cd760da49b3946a404bc
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/heroes.md fa507b995b6fbf9b96f9946f66f76dab615a8033
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

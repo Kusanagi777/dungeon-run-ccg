@@ -10,6 +10,7 @@
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Specialists (`systems-designer`, `gameplay-programmer`, `engine-programmer`) not spawned — Lean mode; the author performed the specialist pass inline. Review manually before production.
 > **REVISED 2026-11-03** (`/design-review`, lean, NEEDS REVISION → revised in place): (1) CR-1 gains the **config file** class for the nine per-system `*.json` files DD-T01 now lists, with a `config` envelope, `config(name)` query and owner validators — the previous text would have warned on every one of them and loaded none; (2) `TreasureDef.tags`, `HeroDef.unlock`, `BossDef.tags` and `BossDef.passive_text` added to CR-3 (requested by Treasures, Reward Draft, Heroes, Run Structure, Content; registry treasures already carry `tags`); (3) `data_version()` defined (CR-9) — read by Run Structure, Treasures, Meta Progression and Run UI but defined nowhere; (4) DD-T01 (`hero_powers.json`, `cards_boss.json`) and DD-H06 (10 MVP treasures) are accepted in the register — stale "proposed"/"8 treasures" text and two Open Questions closed; (5) all twelve dependent GDDs now exist — "(planned)" markers and the index-row note removed; (6) three Acceptance Criteria added, one tightened.
 > **REVISED 2026-11-03 (cross-review)**: C-06 (`unlock: {key, condition}` or `null` on HeroDef, TreasureDef and BundleDef — DD-X01; Open Question closed), C-21 (`profile_defaults.json` added to the CR-1 config-file list, owner Meta Progression, served by `config("profile_defaults")`; config count nine → ten), C-04 (`targeting` Open Question closed — Match Rules reworded), C-30 housekeeping (Open Questions on Run UI `tags` rename and Match UI / Boss AI `config()` wording closed).
+> **REVISED 2026-11-03 (re-review)** (`/design-review`, lean, NEEDS REVISION → revised in place): (1) the loader's own tuning knobs (`min_collectible_pool`, `min_bundle_pool`, `max_records`, `data_load_budget_ms`, `data_memory_budget_mb`) were sourced to "data file" but no CR-1 / DD-T01 file held them and the single-parser rule left nowhere else — `card_database.json` added as this system's own config file (DD-T01 row pending); `schema_version_current` declared the loader's one deliberate code constant (it cannot be read from a file whose envelope it validates) and the "no hardcoded values" AC rewritten to match; (2) the shipped-data AC restated Content CN-1's MVP counts wrongly (4 tokens / 8 boss-only / 4 bosses; CN-1 says 3 / 10 / 5 with the D-06 spare boss) — aligned; (3) stale DD-H05 numbers in Formulas (neutral bundles 6 → 12, v1 bundle pool 14 → 20), the MVP collectible split (18 + 22 → 25 + 15, CN-1) and the validation-cost example refreshed from CN-1; `min_bundle_pool` now points at Reward Draft's `bundle_pool_min`; (4) Dependencies intro said "three injected validators" — now four record validators plus the config validators.
 
 ## Summary
 
@@ -75,6 +76,7 @@ parses `assets/data/*.json`** (systems index: "nothing else parses JSON"; match-
 | `match_ui.json` | config | yes | Match UI | display constants; UI reads them through `config()`, never from disk |
 | `run_ui.json` | config | yes | Run UI | as above |
 | `profile_defaults.json` | config | yes | Meta Progression | default player settings (meta-progression M9); served by `config("profile_defaults")`; added 2026-11-03 (cross-review C-21) |
+| `card_database.json` | config | yes | Card Database (this GDD) | the loader's own knobs — `min_collectible_pool`, `min_bundle_pool`, `max_records`, `data_load_budget_ms`, `data_memory_budget_mb` (Formulas); the one config body this system schema-checks itself at stage 4 (no external owner to inject a validator); exposed as `config("card_database")` for tests. Added 2026-11-03 (re-review) — **DD-T01 row pending** (Open Questions) |
 
 `user://profile.json` (DD-T01) is Meta Progression's save file, not content data: it is not under
 `assets/data/` and this loader never touches it. It is distinct from `profile_defaults.json`
@@ -84,8 +86,10 @@ Rationale: `hero_powers.json` and set `boss` exist because bosses and heroes ref
 (the brief requires those ids to be validated) and boss-only cards need a set that is never
 collectible (Pillar 2: boss decks are puzzles, not the player's pool). Both were accepted into
 DD-T01 on 2026-11-03. The config class exists because DD-T01 puts ten per-system knob files under
-`assets/data/` and the index allows one JSON parser: without it every one of those files would be
-`W_UNKNOWN_FILE` and no system could reach its knobs.
+`assets/data/` (eleven with this system's own `card_database.json`) and the index allows one JSON
+parser: without it every one of those files would be `W_UNKNOWN_FILE` and no system could reach
+its knobs. The Card Database follows its own rule: its thresholds and budgets are a config file
+like everyone else's, not literals in the loader.
 
 **CR-2 — Identifiers.** One global id namespace across all record types. Pattern
 `^[a-z][a-z0-9_]{2,47}$`. The prefix encodes the type and, for cards, the set; a prefix/field
@@ -178,6 +182,10 @@ later stages still run on the rest, so one report lists everything.
 3. **Envelope**: `schema_version` must equal `schema_version_current` = 1 (`E_SCHEMA_VERSION`
    naming file, found and expected; both older and newer fail — Edge Cases); a definition file must
    carry `records` as an array, a config file `config` as an object (`E_PARSE` otherwise).
+   `schema_version_current` is a **code constant** by design — it is the loader's understanding of
+   the format and cannot come from a file whose envelope it is validating; it is the one literal the
+   "no hardcoded values" criterion exempts, and it is bumped together with the offline migration
+   script (Edge Cases).
 4. **Schema** per record: required fields, types, ranges, enums, unknown fields, id pattern.
    Config bodies are not schema-checked here — they go to stage 7.
 5. **Uniqueness**: ids across all files (`E_DUP_ID` names the id and every file that defines it).
@@ -188,7 +196,9 @@ later stages still run on the rest, so one report lists everything.
    (`effects[]`, `passive`), Boss AI (`ai_profile`), Meta Progression (`unlock`), Treasures
    (`rarity`, `tags`, effect count — its `E_TR_*` set). Config validators: one per config file in
    CR-1, registered under the file name by the owning system; it receives the frozen `config`
-   body and returns its own errors. Each returns its own errors, which are merged with severity
+   body and returns its own errors. `card_database.json` is the exception: it is this system's
+   own, so its body (five integer knobs within the ranges in Formulas) is schema-checked at stage
+   4 and needs no injection. Each returns its own errors, which are merged with severity
    `E_DELEGATED` plus the owner's code. A validator that is not registered — for a record field or
    for a config file — is itself an error in release builds; unit tests inject stubs.
 8. **Budget warnings** (never block): pool sizes under the thresholds in Formulas (`W_POOL_SIZE`),
@@ -309,12 +319,13 @@ The `collectible_pool_size` formula is defined as:
 |----------|------|-------|--------|-------------|
 | n_nontoken(hero_set) | int | 0–200 | data file | cards in the hero's set with `token == false`; ~25 at v1 (DD-H03) |
 | n_nontoken(neutral) | int | 0–200 | data file | neutral non-token cards; ~45 at v1 (DD-H03) |
-| min_collectible_pool | int | 10–100 | data file (tuning knob, default 30) | below this a `W_POOL_SIZE` warning is raised |
+| min_collectible_pool | int | 10–100 | `card_database.json` (tuning knob, default 30) | below this a `W_POOL_SIZE` warning is raised |
 
-**Output Range:** 0 to 400; ~70 at v1 per hero, ~40 at MVP (DD-H06: War + neutral subset). The
-pool is the universe for Discover-style effects and `/balance-check`; bundles are authored, not
-sampled from it, so a small pool degrades variety rather than breaking a draft.
-**Example:** War at v1: 25 + 45 = 70 ≥ 30, no warning. MVP: 18 + 22 = 40, no warning.
+**Output Range:** 0 to 400; ~70 at v1 per hero, 40 at MVP (DD-H06: War + neutral subset; Content
+CN-1: war 25 + neutral 15). The pool is the universe for Discover-style effects and
+`/balance-check`; bundles are authored, not sampled from it, so a small pool degrades variety
+rather than breaking a draft.
+**Example:** War at v1: 25 + 45 = 70 ≥ 30, no warning. MVP: 25 + 15 = 40, no warning.
 
 ### Bundle pool size
 
@@ -325,13 +336,13 @@ The `bundle_pool_size` formula is defined as:
 **Variables:**
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
-| n_bundles(hero_set) | int | 0–50 | data file | ~8 per hero at v1 (DD-H05) |
-| n_bundles(neutral) | int | 0–50 | data file | ~6 at v1 (DD-H05) |
-| min_bundle_pool | int | 3–30 | data file (tuning knob, default 10) | warning threshold; 3 is the hard floor for one draft (DD-R04) and is an error below it |
+| n_bundles(hero_set) | int | 0–50 | data file | 8 per hero at v1 (DD-H05) |
+| n_bundles(neutral) | int | 0–50 | data file | 12 at v1 (DD-H05, raised from 6 on 2026-11-03); 2 at MVP (Content CN-1) |
+| min_bundle_pool | int | 3–30 | `card_database.json` (tuning knob, default 10) | warning threshold; 3 is the hard floor for one draft (DD-R04) and is an error below it. The real requirement is Reward Draft's registered `bundle_pool_min` (pity-dependent: 9 at MVP, 13 at v1) — Content sets this knob to at least that value for the batch it ships |
 
-**Output Range:** 0 to 100; 14 at v1, 10 at MVP (DD-H06). Below 3, Reward Draft cannot fill one
-offer, so that case is `E_COUNT`, not a warning.
-**Example:** War v1: 8 + 6 = 14 ≥ 10, clean.
+**Output Range:** 0 to 100; 20 at v1 (8 + 12), 10 at MVP (8 + 2, DD-H06 / CN-1). Below 3, Reward
+Draft cannot fill one offer, so that case is `E_COUNT`, not a warning.
+**Example:** War v1: 8 + 12 = 20 ≥ 13, clean. MVP: 8 + 2 = 10 ≥ 9, clean.
 
 ### Minimum treasure pool
 

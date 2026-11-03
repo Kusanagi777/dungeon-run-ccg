@@ -9,6 +9,7 @@
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned — the hero is the seed of that deck); Pillar 4 (hero powers are DSL effects, logged like any spell)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No engine reference for the `Scripting` domain under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (rule-only system, no engine surface). No `Agent` tool in this session: `systems-designer` (Formulas) and `qa-lead` (Acceptance Criteria) not consulted — Lean mode would have spawned both; review those two sections manually before production.
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place): H-3 DSL sketches rewritten in card-effects v1 vocabulary (Whetstone, Rot, Insight — card-effects C11 rows 8, 16, 25 were rewritten to these powers the same day: `is_dying` for Rot, `buff cost` on `deck_top` then `draw` for Insight) and Rot's resolution order corrected to card-effects C6.0 / match-rules C10 (one effect = one step; death check after it — the Husk arrives before the Deathrattle, and a full board is not freed mid-effect). H-4 `war_quartermaster` and H-5 `war_cleave_through` texts updated to Content's v1 redesigns. F2 example and H-4 plan-card counts corrected (Decay scores 5, not 6). AC-4 fixture corrected (3 weapons, not 1). Rejection codes aligned with their owners (`NOT_ENOUGH_MANA`, `E_HERO_LOCKED`). AC-1 scoped by content batch (DD-H06: War only at MVP). AC-9/10/11/18 rewritten. Open Questions 1, 3, 4, 7 resolved from sibling GDDs; two new rows added (first-run-forces-War ownership; Content's `armour` tag on `war_iron_vanguard`).
+> **REVISED 2026-11-03 (re-review)**: `/design-review` lean re-review after the cross-review fixes — C-03, C-11 / DD-X02 and C-30 verified applied; two Acceptance Criteria corrected in place: AC-10 asserted the Husk at board index 1 after the dead minion's slot closed (match-rules C10's dense board puts it at index 0), and AC-16 required all three launch heroes selectable on a fresh profile, which contradicts AC-1's batch scoping (War only at MVP-0, DD-H06). No rule, formula or value changed.
 > **REVISED 2026-11-03 (cross-review)**: C-03 option B (`PLAN_MAX` 6 → 7 in F2 and Tuning Knobs; F2 output War 7; AC-3; H-4 note; OQ resolved — Content keeps the `armour` tag), C-11 / DD-X02 (no forced first hero: H-2, Interactions and Dependencies rows for Run Structure, OQ resolved), C-30 housekeeping (OQ rows on `refresh_hero_power` — now in the match-rules API — and `HeroDef.unlock` in CR-3 marked resolved; Edge Cases and H-7 wording aligned).
 
 ## Summary
@@ -561,7 +562,9 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
   and no `minion_summoned`.
 - [ ] AC-10 **GIVEN** Decay and a friendly 1/1 with "Deathrattle: draw a card", **WHEN** Rot
   targets it, **THEN** `minion_summoned(decay_husk)` precedes `minion_died`, which precedes the
-  rattle's `card_drawn`; the Husk is at board index 1 (the dead minion's slot has closed up).
+  rattle's `card_drawn`; the Husk is summoned at index 1 (the dying 1/1 still holds index 0 during
+  the pass) and sits at board index 0 once `minion_died` has closed that slot (match-rules C10:
+  the board is dense — `position == board.size` is the rightmost slot).
 - [ ] AC-11 **GIVEN** Decay with 7 friendly minions and an enemy 1/1, **WHEN** Rot kills it,
   **THEN** `summon_failed{board_full}` is emitted and the player board stays at 7; **GIVEN** Decay
   with 7 friendly minions and Rot targeting one of its own 1/1s, **THEN** `summon_failed{board_full}`
@@ -579,8 +582,10 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
   `HERO_POWER_USED`.
 
 **Selection, unlocks, UI**
-- [ ] AC-16 **GIVEN** a fresh profile, **WHEN** hero select opens, **THEN** exactly the three launch
-  heroes are selectable and any hero with a non-null `unlock` whose key is unmet shows as Locked;
+- [ ] AC-16 **GIVEN** a fresh profile, **WHEN** hero select opens, **THEN** exactly the launch
+  heroes present in that content batch's `heroes.json` are selectable (AC-1: `hero_war` only at
+  MVP-0, all three from Alpha-B) and a fixture hero with a non-null `unlock` whose key is unmet
+  shows as Locked;
   `new_run` with that id is rejected `E_HERO_LOCKED` (run-structure AC-23 covers the engine side;
   this AC covers the hero-select state).
 - [ ] AC-17 **GIVEN** each launch hero on hero select, **WHEN** a screenshot is taken

@@ -37,3 +37,36 @@ Reviewed-Content-Hash: design/gdd/content.md 3e5e568fada0126b6e7f2685c4afe86211d
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — main review only; `game-designer`, `systems-designer`, `economy-designer`, `qa-lead`, `creative-director` not consulted)
+Blocking items: 0 | Recommended: 4
+Summary: Re-review after the first-review revisions and the cross-review fixes. All four prior blockers are closed and verified against the siblings and the registry: M10 carries exactly treasures.md T8's four locked ids and keys (rarities and registry `unlock` attributes match), M2.1 accepts both key styles, M1.3 exposes `unlocked_keys()` / `is_treasure_unlocked(id)` read at `init_run` (reward-draft D3/Interactions and treasures T6 now cite them), M9 is the DD-X07 key set with the `instant|fast|normal` labels, `action_delay_ms` → Match UI F4 and `telegraph_mode` → Boss AI C8.4 `effective_mode` (DD-X03), and the Loading row runs the M6 lock before migration and retro-grant writes. Cross-review items C-01, C-10, C-19, C-20, C-21 and C-30 are applied in this GDD and landed in the partner files (design-decisions DD-T01 and card-database CR-1 list `profile_defaults.json`; treasures States says `unlock_granted`; boss-ai, match-ui, run-ui and systems-index carry the DD-X03/DD-X07 consumers). Formulas F1–F7 check out at boundary values; AC-1–30 are concrete. What remains is wording that lags the resolutions the document's own Open Questions table records.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Detailed Design M7.3 / Dependencies (Run Structure row) / Cross-References: still say run-structure R6 "leaves `floor_reached` unset on victory — amendment proposed"; R6 now sets it (run-structure L259) and the Open Questions row says so — reword to "R6 sets it; F3 is the fallback for older records"
+- [RECOMMENDED] Detailed Design M2.1 / Interactions (RNG row) / Cross-References: "amends card-database CR-3" and "rule 18 amendment (proposed)" markers are stale — CR-3 carries the `{key, condition}` object (DD-X01) and rng rule 18 keys by `run_id`; mark both adopted
+- [RECOMMENDED] UI Requirements (toast row): restates Run UI's toast duration as "run-ui F3 2–6 s"; run-ui F3 is now `clamp(5000 + 30·chars, 5000, 8000)` ms (accessibility floor) and the registry `toast_visible_ms` row [2000, 6000] awaits the registry owner — drop the number and cite F3 only
+- [RECOMMENDED] Detailed Design M3.1(b): when a new `data_version` is seen at load but no key is granted, say whether the `data_versions_seen[]` append persists at load or on the next mutator's write (AC-1 forbids a load-time write for `FRESH`; AC-22 covers only the granted case)
+- [NICE-TO-HAVE] AC-27 "minimum spec" is still defined nowhere in design/ (game-concept Technical Considerations names none) — owner to name the target machine or the budget test is not reproducible
+- [NICE-TO-HAVE] Dependencies intro says Reward Draft / Boss AI / Match UI are "flagged for /map-systems"; systems-index rows 5, 8, 11 already list Meta Progression
+- [NICE-TO-HAVE] cross-GDD: run-ui.md L105/L187 still say "there is no `get_run` / `last_hero_id`" while M1.3 offers `run_log_entry(run_id)` and `last_hero_id()`; registry `unlock_keys_v1` note says hero keys are owned by heroes.md while heroes H-7 defers key and condition to Meta M2.1
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/reward-draft.md 46e985b9b2915a99fd6a9d039ba420634cb0489b
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/card-database.md cd631beb882ec0fa4adb3b048671d05628993c49
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/content.md 9a4fabbfd9e515a5dd437ed7babbe949119da8ee
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

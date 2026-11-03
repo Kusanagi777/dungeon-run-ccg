@@ -11,6 +11,7 @@
 > **Decisions cited**: DD-T03, DD-T04, DD-R09, DD-R08, DD-T01, DD-T02, DD-M06, DD-M07, DD-M11, DD-M12, DD-M13, DD-R01, DD-R02, DD-R04, DD-R05, DD-R06
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): F4 `weighted_pick` total bounded to the `randi_range` span (was 2^31−1 against a 65,536 span); rule 12a admits flagged diagnostic events (`command_rejected`, `ai_decision`) on the same log — answers match-rules' open question; rule 18 archives keyed by `run_id` (run-structure / meta-progression); rule 19 and AC-14 read Match Rules' actual `damage_dealt` fields (`source`, `dealt`); catalogue §D realigned to the owner GDDs' published names (`mulligan_resolved`, `weapon_destroyed`, `healed`, `enchantment_applied`, `trigger_resolved`; `treasure_granted` owner → Run Structure; Boss AI's four added types and `amount`); Card Effects draws directly (no per-effect fork); floor-retry edge case follows run-structure R8.3 (same streams at `draws = 0`, no `retry_<n>` fork); stale "not yet authored" dependency text removed; Tuning Knobs section added; AC-1/AC-3 made executable; Open Questions 2–3 closed.
 > **REVISED 2026-11-03 (cross-review)**: C-09 — catalogue `draft_offered` / `draft_picked` rows carry `flags[]` and `option_index` (DD-X05, reward-draft D11); `run_ended.result` is `victory/defeat/abandoned` with `abandon_reason` (run-structure R6); Interactions table lists `treasure_granted` under Run Structure, matching the catalogue. C-05 — Open Question 8 closed (Match Rules adopts the F4 stream API and stream handles). Verified already in place: `ai_intent_committed` and `amount` on `ai_intent_shown` (V-43), `treasure_granted` owner = Run Structure (V-19), rule 18 keyed by `run_id` (V-21).
+> **REVISED 2026-11-03 (re-review, `/design-review` lean)**: catalogue §D re-mirrored to the owner tables once more — `run_ended.abandon_reason` enum is Run Structure's (`player | data_version_mismatch | save_corrupt`, not `player/system`) and the row carries `floor_reached`, `ended_by`; `match_ended` row is the C14 `MatchResult` (`winner`, not `winner_side`; full `reason` enum incl. `event_cap`); `ai_intent_*` rows carry `effective_mode` (DD-X03, boss-ai C8.4); `discover_offered` / `discover_picked` carry Card Effects' `effect_id`, `kind`, label-key and `picked_index` fields; rows added for `deck_grew`, `run_warning` (Run Structure R10), `counter_changed` (Card Effects), `hook_install_skipped` (Treasures). Rule 13 states how `turn` is stamped (`set_turn(n)` by Match Rules); the `max_match_events` edge case names Match Rules as the emitter of the forced `match_ended`. Open Question 7 closed.
 
 ## Summary
 
@@ -115,7 +116,9 @@ boss AI is untestable.
     are deterministic). Rationale: one log is the bug report (Pillar 4); a filter is a UI concern.
     Match UI hides `diagnostic` events from the feed unless a debug flag is set.
 13. The log is append-only: `append(type, payload, cause_seq)` is the only writer; no edit, no
-    remove. `subscribe(callback)` delivers each event once, in `seq` order, after it is appended;
+    remove. The log stamps `seq` and `turn` (match-rules C15): `turn` is the log's `current_turn`,
+    which Match Rules sets through `set_turn(n)` immediately before appending `turn_started`; it
+    is 0 before the first call and on run-scope logs. `subscribe(callback)` delivers each event once, in `seq` order, after it is appended;
     `events_since(seq)` returns every event with a greater `seq`; `snapshot()` returns the metadata
     block plus the full array.
 14. Payload values are JSON-representable only: `int`, `float`, `bool`, `String`, `StringName`
@@ -162,10 +165,12 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `minion_died` | Match Rules | `instance_id, card_id, side, board_index` (order per DD-M11) |
 | `trigger_resolved` | Match Rules | `instance_id, card_id, effect_id, trigger` (covers Deathrattle; the former `deathrattle_triggered`) |
 | `effect_resolved` | Card Effects | `effect_id, host_id, host_kind, source_id, owner, trigger, depth, fizzled, ops[]` — extension point; card-effects owns the shape |
-| `discover_offered` / `discover_picked` | Card Effects | `side, source_id, option_card_ids[]` / `side, picked_card_id` (Match Rules' `choice_requested` / `choice_made` wrap the pause/resume) |
-| `ai_intent_shown` / `ai_intent_committed` | Boss AI | `boss_id, intent_key, target_id, amount` / `intent_key, target_id, amount, kept` |
+| `discover_offered` / `discover_picked` | Card Effects | `side, source_id, effect_id, kind (discover/choose_one), option_card_ids[] | option_label_keys[]` / `side, picked_index, picked_card_id | picked_label_key` (card-effects Interactions payload block; Match Rules' `choice_requested` / `choice_made` wrap the pause/resume, all under one `cause_seq` — DD-X04) |
+| `counter_changed` | Card Effects | `source_id, key, value` (card-effects C6.5 per-source counters; Match UI badges) |
+| `hook_install_skipped` | Treasures | `host_id, reason (duplicate)` (treasures T3; emitted through the resolver at `begin_match`) |
+| `ai_intent_shown` / `ai_intent_committed` | Boss AI | `boss_id, intent_key, target_id, amount, effective_mode` / `intent_key, target_id, amount, kept, effective_mode` (boss-ai C8.4; `effective_mode = min(boss.intent_mode, settings.telegraph_mode)`, DD-X03 — Match UI renders exactly what is emitted) |
 | `ai_decision` / `ai_plan_aborted` / `ai_fault` | Boss AI | per boss-ai C10; all `diagnostic: true` (rule 12a) |
-| `match_ended` | Match Rules | `result (win/loss/fault), winner_side, turns, reason` (DD-M12) |
+| `match_ended` | Match Rules | the C14 `MatchResult`: `result (win/loss/fault, from the player's side), winner (PLAYER/BOSS/null), reason (hero_dead/both_dead/concede/turn_cap/resolution_overflow/event_cap), floor, turns, turns_per_side, player stats, boss stats, final hero health both sides` (match-rules C14; DD-M12) |
 | `log_overflow` | this system | `cap, seq` |
 | `run_started` | Run Structure | `run_seed_hex, hero_id, data_version, log_schema_version, boss_ids[]` |
 | `run_floor_entered` | Run Structure | `floor, band, boss_id` |
@@ -174,7 +179,9 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `treasure_granted` | Run Structure | `floor, treasure_id` (the append is Run Structure's mutation, R5.4; offered by Reward Draft, applied by Treasures) |
 | `match_faulted` / `run_resumed` | Run Structure | `floor, attempt` / `floor, phase, attempt` |
 | `run_saved` | Run Structure | `floor, phase` (DD-R08) |
-| `run_ended` | Run Structure | `result (victory/defeat/abandoned), abandon_reason (player/system) when abandoned, floors_cleared, total_turns, run_seed_hex` (run-structure R6, meta-progression F2) |
+| `run_ended` | Run Structure | `result (victory/defeat/abandoned), abandon_reason (player | data_version_mismatch | save_corrupt; null unless abandoned — only `player` counts as a loss, R6), floor_reached, ended_by, floors_cleared, total_turns, run_seed_hex` (run-structure R6 result record; meta-progression M7, F2) |
+| `deck_grew` | Run Structure | `floor, card_ids_added[], deck_size` (R10; the append is Run Structure's mutation after a bundle `draft_picked`) |
+| `run_warning` | Run Structure | `code, detail{}` (R10; codes raised by Reward Draft D8 and Treasures); records no mutation, so rule 12a applies (`diagnostic: true`) |
 
 Extension rule: an owner GDD adds new types in its own catalogue table; names are `snake_case`
 past tense (`project.yaml` naming: signals past tense) and payloads obey rule 14. Card Effects
@@ -222,11 +229,11 @@ positions from the snapshot rather than reopening a sealed log.
 | System | Data in (to this system) | Data out (from this system) | Interface owner |
 |---|---|---|---|
 | Match Rules | `append` for every match mutation; `instance_id` assignment | `stream("match_<floor>")`; `seq` values for `cause_seq` chaining | This GDD owns envelope and API; Match Rules owns its payload fields |
-| Card Effects | `effect_resolved`, Discover events; nested emissions (`trigger_resolved`, `enchantment_*` are Match Rules primitives it causes) | The engine's `match_<floor>` stream, drawn **directly** in resolution order (card-effects C6.9 — no per-effect fork in v1); `cause_seq` of the triggering event | Card Effects owns the `effect_resolved` shape |
+| Card Effects | `effect_resolved`, `discover_offered` / `discover_picked`, `counter_changed`; nested emissions (`trigger_resolved`, `enchantment_*` are Match Rules primitives it causes) | The engine's `match_<floor>` stream, drawn **directly** in resolution order (card-effects C6.9 — no per-effect fork in v1); `cause_seq` of the triggering event | Card Effects owns the `effect_resolved` shape |
 | Boss AI | `ai_intent_shown`, `ai_intent_committed` (intent) and `ai_decision`, `ai_plan_aborted`, `ai_fault` (diagnostic, rule 12a) — AI reads state, it does not mutate it | `stream("ai_<floor>")` for tie-breaks; `fork("sim_<turn>")` / `fork("forecast_<turn>")` for sandboxes; the AI must be a pure function of (state, stream) | Boss AI documents its draw order (C9) |
-| Run Structure | `run_started`, `run_floor_entered`, `run_saved`, `treasure_granted` (R5.4), `match_faulted`, `run_resumed`, `run_ended`; `run_seed` at creation; `restore(snapshot)` on resume | `stream("run")`; `snapshot()` for save files (DD-R08); the run log instance | Run Structure owns run phase order |
+| Run Structure | `run_started`, `run_floor_entered`, `run_saved`, `treasure_granted` (R5.4), `deck_grew`, `run_warning`, `match_faulted`, `run_resumed`, `run_ended` (R10 catalogue); `run_seed` at creation; `restore(snapshot)` on resume | `stream("run")`; `snapshot()` for save files (DD-R08); the run log instance | Run Structure owns run phase order |
 | Reward Draft | `draft_offered`, `draft_picked` (`Offer{option_ids[], flags[]}`, DD-X05) | `stream("draft_<floor>")` for offers and pity rolls | Reward Draft owns offer payloads |
-| Treasures | Hooks emit `effect_resolved` with `source_id` = treasure | `cause_seq` so a treasure-caused mutation is attributable | Treasures owns hook naming |
+| Treasures | Hooks emit `effect_resolved` with `source_id` = treasure; `hook_install_skipped` at `begin_match` | `cause_seq` so a treasure-caused mutation is attributable | Treasures owns hook naming and its two event types |
 | Match UI | `subscribe(callback)`; `events_since(seq)` after a scene reload | Every match event in `seq` order; UI must not render boss `card_drawn.card_id` while the card is in hand (hidden information is logged for replay, not display) | UI is display-only (`src/ui/**`) |
 | Run UI | `events_since` on the run log; `match_summary.damage_by_card` | Run summary data; `run_seed_hex` for display and copy | Run UI |
 | Meta Progression | Sealed run log (`to_json()`) at `run_ended` | Nothing — it stores and aggregates, never reopens a log | Meta Progression owns profile schema and `log_schema_version` migration |
@@ -413,8 +420,10 @@ match. **Example:** defaults → `floor(2,000,000 / 200) = 10,000`.
 - **If a subscriber callback calls `append`**: assert in debug; in release the append is accepted
   and tagged `payload._reentrant: true`. Rules code never subscribes, so this only ever marks a
   display-layer bug.
-- **If the match log reaches `max_match_events`**: append `log_overflow{cap, seq}`, then force
-  `match_ended{result: fault, reason: "event_cap"}`; the log goes `Faulted → Sealed` and is
+- **If the match log reaches `max_match_events`**: the log appends `log_overflow{cap, seq}` and
+  accepts exactly one more event; Match Rules stops its resolution loop and emits
+  `match_ended{result: fault, winner: null, reason: event_cap}` as that event (match-rules Edge
+  Cases) — the log never fabricates a Match Rules event; the log goes `Faulted → Sealed` and is
   written to `user://logs/faults/<run_id>_floor_<n>_attempt_<k>.json` regardless of
   `keep_match_logs`. This system does **not** end the run; Run Structure emits `match_faulted`,
   returns to `pre_match` and the floor is not lost (run-structure R5). Rationale: the first line
@@ -583,7 +592,7 @@ Each criterion is a gdUnit4 test unless marked *manual*; all run headless with l
 | 1. Does Godot 4.7.2 `RandomNumberGenerator` expose settable `seed`/`state` as assumed, and does GDScript `int` wrap on overflow for F2's multiplications? NOT SOURCEABLE from `docs/engine-reference/godot/`. | engine-programmer | `/create-architecture` | Open — verify with a 5-line headless script; record in the RNG ADR |
 | 2. After `match_ended{result: fault}`, does Run Structure replay the floor via the retry fork or count it as a win? | game-designer (Run Structure GDD) | Run Structure GDD | **Resolved 2026-11-03** — run-structure R5/R8.3: `match_faulted`, back to `pre_match`, same streams at `draws = 0`, no loss; this GDD's Edge Cases updated |
 | 3. What trigger depth / per-action event limit does Card Effects enforce, so `log_overflow` is a second line of defence? | systems-designer (Card Effects GDD) | Card Effects GDD | **Resolved 2026-11-03** — match-rules `RESOLUTION_STEP_CAP` 1,000 (`resolution_overflow`) + card-effects `EFFECT_STATIC_STEP_LIMIT` 250; `max_match_events` is the backstop |
-| 7. `diagnostic` events on the same log (rule 12a) answers match-rules' open question; match-rules, boss-ai and match-ui should cite rule 12a and drop their "whatever channel" wording. | `/consistency-check` | Before `/create-architecture` | Decided here |
+| 7. `diagnostic` events on the same log (rule 12a) answers match-rules' open question; match-rules, boss-ai and match-ui should cite rule 12a and drop their "whatever channel" wording. | `/consistency-check` | Before `/create-architecture` | **Resolved 2026-11-03 — re-review**: match-rules C15 and its OQ, boss-ai C9/Interactions/Cross-References cite rule 12a; match-ui U3 labels `command_rejected` diagnostic |
 | 8. Match Rules' Interactions row names the stream API as `shuffle(list)`, `pick(list)`, `range(n)` and C3 names a `MatchConfig.seed`; F4's API is `randi_range`, `shuffle`, `weighted_pick`, `fork`, and Run Structure passes streams (its R3). Match Rules should adopt F4 names and the stream handles. | Match Rules GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-05**: match-rules Interactions / Cross-References adopt the injected `match_<floor>` stream handle from `MatchConfig` and the F4 names (`randi_range`, `shuffle`, `weighted_pick`; no forks in v1); `MatchConfig.seed` is gone (match-rules Dependencies passes `rng_match` / `rng_ai`) |
 | 4. Should bug-report JSON redact boss hand contents (`card_drawn.card_id`, `side = boss`) when shared mid-run? | game-designer | Match UI GDD | Open — default: no redaction |
 | 5. Should `keep_match_logs` default to true in release for the first public build to gather balance data? | owner | Alpha sprint plan | Open |

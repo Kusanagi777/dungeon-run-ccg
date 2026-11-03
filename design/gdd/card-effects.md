@@ -313,7 +313,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `return_to_hand` | — | minions | `return_to_hand` (becomes a fresh card instance of its `def_id`; full hand → burned by the engine) | no-op `no_target` |
 | `shuffle_into_deck` | `card_id` or `targets` (hand cards / minions), `count`, `position: random\|top\|bottom` | hand cards, minions, or none | `add_card_to_deck(side, def_id, position)` (match-rules Interactions, added 2026-11-03; emits `card_added_to_deck`; `random` draws one `match_<floor>` index — counted in F5) | A targeted instance that left play is skipped (`no_target`); `card_id` form never fails |
 | `discard` | `count`, `random: true` (v1 only random), `side` | — | `discard(side, random)` × count (match-rules Interactions, added 2026-11-03; emits `card_discarded`; each random pick draws from `match_<floor>`, F5) | Empty hand → no-op `no_target` |
-| `mana` | `amount` (±), `duration: this_turn\|permanent` | — (side) | `add_mana(side, n, temporary)` with `temporary = (duration == this_turn)`; clamps to `MAX_MANA` and ≥ 0 (match-rules C5). `permanent` under `on_match_start` (treasure/passive hosts) raises that side's `crystal_bonus`, which match-rules C4 step 2 / F4 read every Start step (Hollow Crown, Treasures R-1, cross-review C-02); `this_turn` is not used by v1 content | Never fails; clamped delta logged |
+| `mana` | `amount` (±), `duration: this_turn\|permanent` | — (side) | `add_mana(side, n, temporary)` with `temporary = (duration == this_turn)`; clamps to `MAX_MANA` and ≥ 0 (match-rules C5). `permanent` under `on_match_start` (treasure/passive hosts) raises that side's `crystal_bonus`, which match-rules C4 step 2 / F4 read every Start step (Hollow Crown, Treasures R-1, cross-review C-02); `this_turn` (`temporary=true`) is used by Content's `decay_soul_tithe` ("Gain Mana Crystals this turn equal to its Cost", the C4 `target.cost` example) — match-rules C5 still says v1 content does not use it and should state the temporary case (Open Questions) | Never fails; clamped delta logged |
 | `armor` | `amount` | — (side) | `apply_armor` | Never fails |
 | `equip` | `card_id` (a weapon def) | — (side) | `equip_weapon(side, def_id)` (old weapon destroyed first, match-rules C6) | Never fails |
 | `weapon_durability` | `amount` (±) | weapons | `modify_durability(weapon, delta)` (match-rules Interactions, added 2026-11-03; emits `weapon_durability_changed`; a weapon at ≤ 0 breaks in the next death check) | no-op `no_target` (no weapon equipped) |
@@ -348,13 +348,16 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    `passive_hand`), is not `silenced`, and whose `once_per_turn` mark is clear. Each kept effect is
    **queued** (event triggers) or **run now** (play triggers). Deathrattles are queued by the
    engine's death check in DD-M11 order; this step only supplies the effects.
-3. **Resolution order table** — the single table a player or tester needs (hooks before card
-   triggers at the same point is the rule throughout; each numbered item is its own step with
-   the full C10 loop after it):
+3. **Resolution order table** — the single table a player or tester needs. Hooks run before
+   card triggers at the same point wherever match-rules places them so (match start, Start step,
+   play, damage, heal, draw); the **End step is the one exception** — match-rules C4 End steps
+   2–3 fire card `turn_end` triggers first, then `on_turn_end` hooks — and this table, not the
+   shorthand "hooks first", is what a test asserts. Each numbered item is its own step with the
+   full C10 loop after it:
 
    | Engine point | Order |
    |---|---|
-   | Minion / weapon played | 1 host `battlecry` → 2 hooks `on_card_played` (treasures, then passive) → 3 observers `on_play` → 4 hook `on_minion_summoned` → 5 observers `on_summon` (`on_weapon_equipped` for weapons) |
+   | Minion / weapon played | 1 host `battlecry` → 2 hooks `on_card_played` (treasures, then passive) → 3 observers `on_card_played` (minion/weapon scope, as in the spell row) → 4 observers `on_play` → 5 hook `on_minion_summoned` → 6 observers `on_summon` (`on_weapon_equipped` for weapons) |
    | Spell cast | 1 host `cast` → 2 hooks `on_card_played` → 3 observers `on_card_played` (spell scope) → 4 observers `after_cast` → card to graveyard |
    | Hero power used | 1 host `hero_power` → 2 observers `on_hero_power` |
    | Minion summoned by an effect | 1 hook `on_minion_summoned` → 2 observers `on_summon` (no `battlecry`, no `on_play`) |
@@ -448,7 +451,9 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    distinct events mark the pause (DD-X04): Match Rules emits `choice_requested` when the engine
    enters `Choice` (its C15 spelling), and this GDD emits `discover_offered` carrying the options
    (`option_card_ids[]` / `option_label_keys[]`); on resume, `choice_made` (Match Rules) and
-   `discover_picked` (this GDD) pair the same way. Match UI opens the panel on `discover_offered`.
+   `discover_picked` (this GDD) pair the same way. Match UI opens its Choice overlay once both of
+   the pair are projected, whichever the engine emits second (match-ui U3); the options ride on
+   `discover_offered`.
 2. On `choose(i)`, the resolver applies the option (`then`), then continues the same effect from
    `op_index + 1`, then the C10 loop runs as usual. The rest of the queue waited; nothing resolves
    out of order.
@@ -468,7 +473,9 @@ Treasures and passives are ordinary effect objects whose host is a treasure/pass
 is binding (C2 hook column) and ordering (hooks first). A hook-hosted **event** trigger runs its
 effect **synchronously as its own step at the hook point**, not queued (match-rules runs hooks as
 steps inside the Start/End/play procedures), which is exactly what makes "hooks before card
-triggers at the same point" true. A hook-hosted **value** trigger is a fold: installation order,
+triggers at the same point" true at the Start step and the play points — the End step is the
+exception, where match-rules fires card `turn_end` triggers before `on_turn_end` hooks (C6.3).
+A hook-hosted **value** trigger is a fold: installation order,
 each sees the previous one's output, engine clamps afterwards (F1: floor 0; F2: floor 0). The
 `source_id` in every event they emit is the treasure or passive id, so the event feed can name the
 treasure as the cause (Pillar 2: passives bend rules visibly). Treasures own *which* hooks exist in
@@ -657,7 +664,8 @@ effect_resolved {
   trigger, depth,                       # depth = length of the cause_seq chain to the command
   fizzled: null | condition_false,
   ops: [ { op, targets: [entity_id], values: { amount, requested, count, card_id, … },
-           outcome: applied | no_target | board_full | burned | empty_pool | skipped | already_has } ]
+           outcome: applied | partial | no_target | board_full | burned | fatigue | empty_pool
+                  | skipped | already_has | no_such_trigger } ]   # closed set; C5 and Edge Cases use no other
 }
 ```
 
@@ -1004,8 +1012,8 @@ already decides the case, the entry says so and adds only what this system contr
 **Recursion and caps**
 
 - **If card A's Deathrattle summons B whose Deathrattle summons A, and both die to the same
-  "destroy all minions" effect each turn**: the loop is bounded by the board (each summon is one
-  step and the board empties between deaths) and by `RESOLUTION_STEP_CAP`; a genuinely unbounded
+  "destroy all minions" effect each turn**: the loop is bounded by the board (each Deathrattle
+  pass is one step and the board empties between deaths) and by `RESOLUTION_STEP_CAP`; a genuinely unbounded
   cycle ("Deathrattle: summon a copy of this and deal 1 to it") ends the match with
   `resolution_overflow`, boss wins (match-rules AC-30). The validator cannot see cycles across
   cards; `/balance-check` runs a cycle lint over `summon`/`retrigger` graphs (Open Questions).
@@ -1071,7 +1079,7 @@ owner row in `design/design-decisions.md`; all are designer defaults.
 | `MAX_SUMMON_COUNT` | 7 | 1–7 | Must not exceed `BOARD_SIZE` (7); no effect above it | Caps token swarms (Decay) | `BOARD_SIZE` (match-rules) |
 | `EFFECT_STATIC_STEP_LIMIT` | 250 | 50–1000 | Allows denser single effects; at 1000 one effect could alone hit `RESOLUTION_STEP_CAP` | Rejects legitimate wide-board loops ("deal 1 to all, 10 times" is 161) | F6, `RESOLUTION_STEP_CAP` |
 | `SPELL_DAMAGE_DEFAULT` | `auto` | `auto`/`false` | n/a | `false`: every spell must opt in explicitly — safer for Content review, noisier JSON | F1, Content |
-| `HOOKS_BEFORE_TRIGGERS` | `true` | `true` only | — | `false` is not designed: match-rules' Start/play procedures hard-order hooks first | C6.3, C9 |
+| `HOOKS_BEFORE_TRIGGERS` | `true` | `true` only | — | `false` is not designed: match-rules' Start/play procedures hard-order hooks first, and its End step hard-orders card `turn_end` triggers before `on_turn_end` hooks (C6.3) — the order is match-rules C4's, not this knob's, which exists only so the resolver asserts it | C6.3, C9 |
 
 Fixed by design, not knobs: aura recompute frequency is **every step** (match-rules C10 owns
 `recompute_auras()`; a lower frequency would let a minion survive a step it should not and is the
@@ -1256,8 +1264,9 @@ refers to the C11 coverage table.
 - [ ] AC-08 **GIVEN** row 10 with no friendly minion, **WHEN** played, **THEN** mana is paid, the
   minion is on board, no `effect_resolved` and no `card_drawn` is emitted.
 - [ ] AC-09 **GIVEN** row 10 with one friendly minion, **WHEN** played targeting it, **THEN** the
-  log order is `card_played`, `effect_resolved`-chain containing `minion_died` (after the death
-  check) and exactly two `card_drawn`, and `effect_resolved.ops` is `[destroy: applied, draw:
+  log order is `card_played`, `minion_summoned`, exactly two `card_drawn`, `effect_resolved`,
+  then `minion_died` (the death check runs after the pass, C6.0 — the sacrificed minion is
+  *dying* while the draws happen), and `effect_resolved.ops` is `[destroy: applied, draw:
   applied ×2]`.
 - [ ] AC-10 **GIVEN** row 20 and a War MVP pool of 40 cards with 9 spells, **WHEN** cast with seed
   7, **THEN** `discover_offered.option_card_ids` has 3 distinct spell ids none of which is the
@@ -1284,10 +1293,13 @@ refers to the C11 coverage table.
 
 - [ ] AC-16 **GIVEN** a treasure "at the start of your turn gain 1 Armor" (hook) and row 34 on the
   player's board, **WHEN** the player's Start step runs, **THEN** `armor_gained` precedes both
-  `damage_dealt` events, and each is its own step (`trigger_resolved` seq between them).
+  `damage_dealt` events; exactly one `trigger_resolved{trigger: turn_start}` sits between
+  `armor_gained` and the first `damage_dealt` (the hook step, then row 34's queued pass), and
+  **no** `trigger_resolved` sits between the two `damage_dealt` (both pings are mutations of one
+  pass, C6.0); the step counter rose by 2.
 - [ ] AC-17 **GIVEN** an observer with both `on_play` and `on_summon` ("+1/+1 to the played/summoned
   minion") and row 9 dying, **WHEN** a minion is played from hand, **THEN** it receives +2/+2 (two
-  `enchantment_applied`); **WHEN** row 9's Scarabs are summoned, **THEN** each receives +1/+1 only.
+  `enchantment_applied`); **WHEN** row 9's Husks are summoned, **THEN** each receives +1/+1 only.
 - [ ] AC-18 **GIVEN** a minion with `on_damage_taken: draw 1` at 1 health and a Deathrattle, **WHEN**
   hit for 1, **THEN** `card_drawn` precedes its `trigger_resolved{deathrattle}` (match-rules
   AC-28 restated through the DSL).
@@ -1352,8 +1364,9 @@ refers to the C11 coverage table.
 
 **Determinism, bounds, interfaces**
 
-- [ ] AC-37 **GIVEN** any 100-command scripted match whose decks contain rows 9, 12, 13, 20, 22,
-  26 and 34, **WHEN** replayed with the same seed and commands, **THEN** the two event logs are
+- [ ] AC-37 **GIVEN** the 100-command scripted match `tests/fixtures/replay_card_effects_100.json`
+  (decks containing rows 9, 12, 13, 20, 22, 26 and 34; seed and command list in the file),
+  **WHEN** replayed with the same seed and commands, **THEN** the two event logs are
   byte-identical, and the number of stream draws equals the sum of F4/F5 draw counts recomputed
   from the log.
 - [ ] AC-38 **GIVEN** a Deathrattle "summon a copy of this and deal 1 to it" and
