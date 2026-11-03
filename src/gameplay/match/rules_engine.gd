@@ -121,9 +121,12 @@ const PRIMITIVES: Array[StringName] = [
 	&"discover", &"add_card_to_hand", &"set_stats", &"remove_keyword",
 	&"add_card_to_deck", &"modify_durability", &"refresh_hero_power", &"discard",
 ]
-## The `source` of fatigue damage (C11, F2): a sentinel with no keywords, no
-## controller and no `damage_dealt_by_card` attribution.
-const SOURCE_FATIGUE: String = "fatigue"
+## Fatigue damage has **no source** (F5, DD-X14): [method draw] passes `null`
+## to [method apply_damage], so a source-filtered `modify_damage` hook never
+## matches it while target-side reductions still apply; `damage_dealt.source`
+## is `null` and `fatigue_damage` names the cause. Kept as the documented
+## value of that `source`.
+const SOURCE_FATIGUE: Variant = null
 ## `enchantment_removed.reason` for [method remove_enchantment] (the End-step
 ## expiry uses `MatchRecords.EXPIRES_END_OF_TURN`).
 const REMOVE_REASON_EFFECT: String = "effect"
@@ -181,6 +184,9 @@ var _heal_ctx: Dictionary = {"source": null, "target": 0}
 ## True from `resolver.bind` in [method start] until `resolver.unbind()`
 ## (at `Ended`, or [method end_match]) — unbind runs exactly once.
 var _bound: bool = false
+## True once [method end_match] tore a live (not Ended) match down: every
+## later `submit` is `MATCH_ENDED`, unlogged (code review 2026-11-03).
+var _torn_down: bool = false
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -316,8 +322,8 @@ func start(config: Dictionary) -> void:
 	for side: String in MatchRecords.SIDES:
 		_state.hooks.run_triggers(&"on_match_start", StringName(side), {})
 	# C3 step 5: starting hands, fold then clamp once
-	draw(MatchRecords.SIDE_PLAYER, _starting_hand_size(MatchRecords.SIDE_PLAYER, rule("starting_hand_player")))
-	draw(MatchRecords.SIDE_BOSS, _starting_hand_size(MatchRecords.SIDE_BOSS, rule("starting_hand_boss")))
+	_draw(MatchRecords.SIDE_PLAYER, _starting_hand_size(MatchRecords.SIDE_PLAYER, rule("starting_hand_player")), false)
+	_draw(MatchRecords.SIDE_BOSS, _starting_hand_size(MatchRecords.SIDE_BOSS, rule("starting_hand_boss")), false)
 	# C3 step 6
 	_state.phase = MatchState.PHASE_MULLIGAN
 	emit(&"mulligan_offered", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(_state.players[MatchRecords.SIDE_PLAYER].hand)})
@@ -344,6 +350,8 @@ func start(config: Dictionary) -> void:
 ## if not r.accepted: show(r.rejection.code)
 ## [/codeblock]
 func submit(command: Dictionary) -> Dictionary:
+	if _torn_down:
+		return MatchRecords.command_result(false, R_MATCH_ENDED, "torn down by end_match", 0, 0)
 	if _resolving:
 		return _reject(command, R_ENGINE_BUSY, "nested submit while resolving")
 	if _state.phase == MatchState.PHASE_ENDED:
@@ -475,10 +483,19 @@ func rng_match() -> RefCounted:
 ##   hand_size}`, the `on_draw` hooks run, then trigger point `on_draw` is
 ##   raised (its triggers join queue Q).
 ## A 0-card deck at setup takes fatigue like any other draw (Edge Cases).
+## Fatigue damage has no source (DD-X14). Starting-hand and mulligan draws
+## (C3 steps 5 and 7) fire neither the `on_draw` hooks nor the `on_draw`
+## trigger point (DD-X13): `on_draw` is for draws during play only.
 ## [codeblock]
 ## engine.draw("player", 2)
 ## [/codeblock]
 func draw(side: String, n: int) -> void:
+	_draw(side, n, true)
+
+
+## [method draw] with [param fire_on_draw] false for the setup and mulligan
+## draws (DD-X13).
+func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 	var player: Dictionary = _state.players[side]
 	for _i: int in n:
 		if _halted():
@@ -504,6 +521,8 @@ func draw(side: String, n: int) -> void:
 		emit(&"card_drawn", {"side": side, "instance_id": instance_id, "card_id": def_id, "hand_size": player.hand.size()})
 		if _halted():
 			return
+		if not fire_on_draw:
+			continue
 		_state.hooks.run_triggers(&"on_draw", StringName(side), {"instance_id": instance_id, "card_id": def_id})
 		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id})
 
@@ -532,11 +551,11 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 ## Primitive (F2, C9): [param requested] damage to the character
 ## [param target_id] from [param source] — an entity id (a minion, a hero, the
 ## weapon a hero attacks with — its keywords then count for the attack — or a
-## card instance) or [constant SOURCE_FATIGUE] — evaluated in one step:
+## card instance) or `null` (fatigue, DD-X14) — evaluated in one step:
 ## 1. `amount = maxi(0, hooks.fold(&"modify_damage", source_side, requested,
 ##    {source, target}))` — the engine's one clamp, after the whole fold
-##    (ADR-0005 rule 4). `source_side` is the source's side; fatigue, which
-##    has none, folds with the target's side.
+##    (ADR-0005 rule 4). `source_side` is the source's side; a null source
+##    (fatigue) folds with the target's side.
 ## 2. Divine Shield and `amount > 0`: `prevented = amount`, `amount = 0`, the
 ##    shield keyword is removed, `divine_shield_popped {entity_id, prevented}`.
 ## 3. Armour absorbs first (heroes only): `armor_lost {side, entity_id,
@@ -591,8 +610,16 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 		"source": source, "target": target_id, "requested": requested, "prevented": prevented,
 		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
 	})
-	if dealt <= 0 or _halted():
-		return dealt
+	if dealt > 0 and not _halted():
+		_after_damage_dealt(target, source, source_side, dealt)
+	return dealt
+
+
+## F2 step 5, once `dealt > 0`: stats, Poisonous, Lifesteal, the
+## `on_hero_damaged` hooks and trigger point `on_damage` (in that order).
+func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int) -> void:
+	var target_id: int = int(target.entity_id)
+	var target_side: String = str(target.controller)
 	_record_damage_stats(target_side, source, source_side, dealt)
 	if target.kind == MatchRecords.KIND_MINION and _source_has(source, MatchRecords.KEYWORD_POISONOUS):
 		target["pending_destroy"] = true
@@ -602,7 +629,6 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 	if target.kind == MatchRecords.KIND_HERO:
 		_state.hooks.run_triggers(&"on_hero_damaged", StringName(target_side), {"amount_dealt": dealt, "source": source})
 	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source})
-	return dealt
 
 
 ## Primitive (C9): heals the character [param target_id] from
@@ -806,12 +832,14 @@ func add_keyword(target_id: int, keyword: String) -> void:
 	apply_enchantment(target_id, {"keywords_added": [keyword]})
 
 
-## Primitive (card-effects `return_to_hand`): the minion [param target_id]
-## leaves the board (no death, no Deathrattle) and its controller gets a
-## fresh card instance of its `def_id` — `card_added_to_hand {side,
-## instance_id, card_id, hand_size, returned_entity_id}`, or on a full hand
-## `card_burned {…, returned_entity_id}` with the card in the graveyard.
-## Returns the new instance id, or [constant NO_ENTITY].
+## Primitive (card-effects `return_to_hand`, C15 `minion_returned`): the
+## minion [param target_id] leaves the board (no death, no Deathrattle) and
+## its controller gets a fresh card instance of its `def_id` in hand — or, on
+## a full hand, in the graveyard. One event either way: `minion_returned
+## {side, entity_id, card_id, instance_id, burned}` (`burned: true` on a full
+## hand; never `card_added_to_hand` or `card_burned`, so add-to-hand
+## observers do not fire on a bounce). Returns the new instance id, or
+## [constant NO_ENTITY].
 ## [codeblock]
 ## var card_id: int = engine.return_to_hand(minion_id)
 ## [/codeblock]
@@ -822,9 +850,22 @@ func return_to_hand(target_id: int) -> int:
 	if minion.is_empty():
 		return NO_ENTITY
 	var side: String = str(minion.controller)
-	var board: Array = _state.players[side].board
+	var player: Dictionary = _state.players[side]
+	var board: Array = player.board
 	board.remove_at(board.find(minion))
-	return _add_to_hand(side, str(minion.def_id), target_id)
+	var def_id: String = str(minion.def_id)
+	var card: Dictionary = MatchRecords.card_instance(_take_entity_id(), def_id, "hand")
+	var burned: bool = player.hand.size() >= rule("hand_size")
+	if burned:
+		card.zone = "graveyard"
+		player.graveyard.append(card)
+	else:
+		player.hand.append(card)
+	emit(&"minion_returned", {
+		"side": side, "entity_id": target_id, "card_id": def_id,
+		"instance_id": int(card.instance_id), "burned": burned,
+	})
+	return int(card.instance_id)
 
 
 ## Primitive (card-effects `transform`): replaces the minion [param target_id]
@@ -832,8 +873,9 @@ func return_to_hand(target_id: int) -> int:
 ## `entity_id`, base stats and keywords from the definition and no
 ## enchantments or damage. Summoning sickness, `summoned_on_turn` and
 ## `attacks_used` carry over (no sickness reset). Emits `minion_transformed
-## {side, old_entity_id, entity_id, card_id, position}`. Returns the new id,
-## or [constant NO_ENTITY].
+## {side, entity_id, from_card_id, to_card_id}` (the C15 row; `entity_id` is
+## the new minion's) plus `old_entity_id` and `position`, so the log ties the
+## two ids together. Returns the new id, or [constant NO_ENTITY].
 ## [codeblock]
 ## var sheep_id: int = engine.transform(target_id, "neutral_sheep")
 ## [/codeblock]
@@ -855,8 +897,8 @@ func transform(target_id: int, def_id: String) -> int:
 	minion.attacks_used = old.attacks_used
 	board[index] = minion
 	emit(&"minion_transformed", {
-		"side": side, "old_entity_id": target_id, "entity_id": int(minion.entity_id),
-		"card_id": def_id, "position": index,
+		"side": side, "entity_id": int(minion.entity_id), "from_card_id": str(old.def_id),
+		"to_card_id": def_id, "old_entity_id": target_id, "position": index,
 	})
 	return int(minion.entity_id)
 
@@ -918,7 +960,7 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 func add_card_to_hand(side: String, def_id: String) -> int:
 	if _halted():
 		return NO_ENTITY
-	return _add_to_hand(side, def_id, NO_ENTITY)
+	return _add_to_hand(side, def_id)
 
 
 ## Primitive (C9 "Set/raise health"): sets the minion [param target_id]'s
@@ -1154,7 +1196,8 @@ static func _config_error(code: StringName, key: String, message: String) -> Dic
 ## same log, outside the current call's event range (rule 12a). After
 ## `match_ended` the log is sealed (rule 15), so a `MATCH_ENDED` rejection is
 ## not logged and its range is `[0, 0]`. A diagnostic the log refuses on a
-## live match is its overflow: `fault(event_cap)`, as in [method emit].
+## live match is its overflow: `fault(event_cap)`, as in [method emit], and
+## the rejection's range is `[0, 0]` (nothing of it was logged).
 func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
 	assert(REJECTION_CODES.has(code), "rejection code '%s' is outside the closed C2 set" % code)
 	if _state.result != null:
@@ -1167,8 +1210,10 @@ func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
 		"detail": detail,
 		"diagnostic": true,
 	}, 0)
-	if seq < 0 and not _halted():
-		fault(MatchRecords.REASON_EVENT_CAP)
+	if seq < 0:
+		if not _halted():
+			fault(MatchRecords.REASON_EVENT_CAP)
+		seq = 0
 	return MatchRecords.command_result(false, code, detail, seq, seq)
 
 
@@ -1234,7 +1279,7 @@ func _do_mulligan(keep_mask: Array) -> void:
 	var stream: Variant = _state.rng_match
 	stream.shuffle(player.deck)
 	emit(&"deck_shuffled", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(player.deck)})
-	draw(MatchRecords.SIDE_PLAYER, replaced.size())
+	_draw(MatchRecords.SIDE_PLAYER, replaced.size(), false)
 	if _halted():
 		return
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
@@ -1462,12 +1507,14 @@ func fault(reason: String, steps: int = 0) -> void:
 ## registry's evaluators, breaking the engine↔resolver `RefCounted` cycle
 ## (ADR-0007). Idempotent: the engine already unbinds when the match ends, so
 ## on an ended match this does nothing; on a live one (an abandoned attempt,
-## a teardown test) it unbinds without ending the match, and the engine must
-## not be driven afterwards.
+## a teardown test) it unbinds without ending the match, and every later
+## `submit` is rejected `MATCH_ENDED` (unlogged, range `[0, 0]`).
 ## [codeblock]
 ## if engine.phase() == MatchState.PHASE_ENDED: engine.end_match()
 ## [/codeblock]
 func end_match() -> void:
+	if _bound and not _halted():
+		_torn_down = true
 	_unbind()
 
 
@@ -1476,6 +1523,12 @@ func end_match() -> void:
 ## fault), stores it as `state.result`, emits it as `match_ended` (the log
 ## seals on it — its last event), unbinds the resolver, then emits the
 ## test-only [signal match_ended]. A no-op once Ended.
+## When the log refuses that `match_ended` — it was the append that hit
+## `max_match_events` — the match is an `event_cap` fault instead (code review
+## 2026-11-03): the result is rebuilt as `fault` / `event_cap` / `winner =
+## null`, and a log that answered with `log_overflow` (Faulted, ADR-0003
+## Decision 8) takes it as its one last event. A log that sealed itself on
+## overflow (`TestEventLog`) already holds its own `match_ended(fault)`.
 func _end_match(winner: Variant, reason: String) -> void:
 	if _halted():
 		return
@@ -1485,9 +1538,21 @@ func _end_match(winner: Variant, reason: String) -> void:
 		final_health[side] = health(_state.players[side].hero)
 	var outcome: Dictionary = MatchRecords.final_result(_state, winner, reason, final_health)
 	_state.result = outcome
-	emit(&"match_ended", outcome)
+	if emit(&"match_ended", outcome) < 0:
+		outcome = MatchRecords.final_result(_state, null, MatchRecords.REASON_EVENT_CAP, final_health)
+		_state.result = outcome
+		if _log_faulted():
+			emit(&"match_ended", outcome)
 	_unbind()
 	match_ended.emit(result())
+
+
+## True when the match log is the production `EventLog` in its Faulted state
+## (it appended `log_overflow` and accepts exactly one more event). Read from
+## `log.state()`, never inferred from a refused append: `-1` also means sealed.
+func _log_faulted() -> bool:
+	var log: Variant = _state.log
+	return log is EventLog and (log as EventLog).state() == EventLog.State.FAULTED
 
 
 ## `resolver.unbind()` exactly once per bind.
@@ -1636,11 +1701,20 @@ func _owner_of(entity_id: int) -> String:
 ## or `{}` with a warning when there is no database or no such card — the
 ## primitive that asked is then a no-op (a content bug, not a crash).
 func _card_def(def_id: String) -> Dictionary:
-	var def: Variant = _db.card(def_id) if _db != null else null
-	if def is Dictionary:
-		return def
-	push_warning("RulesEngine: no card definition '%s'" % def_id)
-	return {}
+	var def: Dictionary = _lookup_def(def_id)
+	if def.is_empty():
+		push_warning("RulesEngine: no card definition '%s'" % def_id)
+	return def
+
+
+## [param def_id]'s definition, `{}` when there is no database or no such id.
+## Asks `has()` before `card()`: `CardDatabase.card()` asserts on an unknown id
+## in debug builds (card-database story 006).
+func _lookup_def(def_id: String) -> Dictionary:
+	if _db == null or not _db.has(def_id):
+		return {}
+	var def: Variant = _db.card(def_id)
+	return def if def is Dictionary else {}
 
 
 ## A new minion of [param def_id] for [param side] from its definition
@@ -1699,20 +1773,15 @@ func _source_has(source: Variant, keyword: String) -> bool:
 		return false
 	if record.has("keywords"):
 		return _has_keyword(record, keyword)
-	var def: Variant = _db.card(str(record.def_id)) if _db != null else null
-	return def is Dictionary and (def as Dictionary).get("keywords", []).has(keyword)
+	return _lookup_def(str(record.def_id)).get("keywords", []).has(keyword)
 
 
 ## A fresh card instance of [param def_id] into [param side]'s hand, or the
 ## graveyard on a full hand; one `card_added_to_hand` or `card_burned`.
-## [param returned_from] is the minion `return_to_hand` bounced
-## ([constant NO_ENTITY] for `add_card_to_hand`).
-func _add_to_hand(side: String, def_id: String, returned_from: int) -> int:
+func _add_to_hand(side: String, def_id: String) -> int:
 	var player: Dictionary = _state.players[side]
 	var card: Dictionary = MatchRecords.card_instance(_take_entity_id(), def_id, "hand")
 	var payload: Dictionary = {"side": side, "instance_id": int(card.instance_id), "card_id": def_id}
-	if returned_from != NO_ENTITY:
-		payload["returned_entity_id"] = returned_from
 	if player.hand.size() >= rule("hand_size"):
 		card.zone = "graveyard"
 		player.graveyard.append(card)
