@@ -36,34 +36,583 @@
 #   the dash at column 0, as in the examples (or 2, the same for every entry);
 #   its fields sit two columns past the dash. Quote a value that holds ": ". A
 #   line in any other shape is reported as unsupported layout, with its number.
-
-version: 1
-last_updated: ""
-
-requirements: []
-
-# --- EXAMPLE ENTRIES (remove when first real entries are added) ---
 #
-# - id: TR-combat-001
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Player takes damage from enemies based on attack power minus defence"
-#   created: 2026-03-10
-#   revised: ""
-#   status: active
-#
-# - id: TR-combat-002
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Combo window timing is 0.4 seconds between hits"
-#   created: 2026-03-10
-#   revised: "2026-04-01"
-#   status: active
-#
-# - id: TR-combat-003
-#   system: combat
-#   gdd: design/gdd/combat-system.md
-#   requirement: "Old damage formula using raw stats"
-#   created: 2026-03-10
-#   revised: ""
-#   status: "superseded-by: TR-combat-001"
+# POPULATED 2026-11-03 by /architecture-review (full, workflow standard): the 71
+# provisional rows of docs/architecture/architecture.md §Technical Requirements
+# Baseline are registered under the IDs the ADRs already cite (no renames), plus
+# one requirement extracted from design/accessibility-requirements.md. Non-GDD
+# sources (game-concept, design-decisions, systems-index, tech-debt,
+# accessibility-requirements) keep the slug the baseline gave them; `gdd` holds
+# the source file.
+
+version: 2
+last_updated: "2026-11-03"
+
+requirements:
+- id: TR-card-database-001
+  system: card-database
+  gdd: design/gdd/card-database.md
+  requirement: "CR-1: the Card Database is the only parser of assets/data/*.json; definition files {schema_version, records[]} and config files {schema_version, config{}} served via config(name)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-database-002
+  system: card-database
+  gdd: design/gdd/card-database.md
+  requirement: "CR-3, CR-5: nine-stage load pipeline with delegated validators injected at composition (effects, ai_profile, unlock, treasure tags, one per config file); a Failed load has no main menu (CR-8)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-database-003
+  system: card-database
+  gdd: design/gdd/card-database.md
+  requirement: "CR-6: queries are pure reads on a frozen snapshot, results id-ascending (seeded draws depend on it)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-database-004
+  system: card-database
+  gdd: design/gdd/card-database.md
+  requirement: "CR-9: data_version = first 16 hex of SHA-256 over the canonical serialisation of every file, stable across machines"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-database-005
+  system: card-database
+  gdd: design/gdd/card-database.md
+  requirement: "Formulas: Unloaded to Ready within data_load_budget_ms (200), snapshot within data_memory_budget_mb (4), synchronous at boot"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-rng-event-log-001
+  system: rng-event-log
+  gdd: design/gdd/rng-event-log.md
+  requirement: "Rules 1-6: one RngService(run_seed, data_version); memoised named streams run, match_<f>, draft_<f>, ai_<f>; fork(label); draw API randi_range, randf, shuffle, weighted_pick"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-rng-event-log-002
+  system: rng-event-log
+  gdd: design/gdd/rng-event-log.md
+  requirement: "Rule 7: no code under the rules tree calls global RNG; randomness is an injected parameter"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-rng-event-log-003
+  system: rng-event-log
+  gdd: design/gdd/rng-event-log.md
+  requirement: "Rules 9-10: replay equivalence per command sequence; snapshot() / restore() rebuild streams from draws counts"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-rng-event-log-004
+  system: rng-event-log
+  gdd: design/gdd/rng-event-log.md
+  requirement: "Rules 11-15: append-only log {seq, turn, type, payload, cause_seq}, one event per mutation, JSON-only payloads, sealed on match_ended / run_ended, subscribe / events_since"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-rng-event-log-005
+  system: rng-event-log
+  gdd: design/gdd/rng-event-log.md
+  requirement: "Rule 12a: diagnostic events (command_rejected, ai_decision, ...) go on the same log with payload.diagnostic = true"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-rng-event-log-006
+  system: rng-event-log
+  gdd: design/gdd/rng-event-log.md
+  requirement: "F7, rule 18: max_match_events = log_memory_budget_bytes / avg_event_bytes (10,000 at 2 MB); overflow is a fault; raw match logs to user://logs/<run_id>/floor_<n>_attempt_<k>.json when keep_match_logs"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-001
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "C1: RulesEngine owns one MatchState; plain data, no Node references; derived values never stored"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-002
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "C2: submit(command) -> CommandResult, legal_commands(); illegal moves are data (closed rejection code set); synchronous; re-entrant submit -> ENGINE_BUSY"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-003
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "C2, C3: MatchState.clone() deep copy carrying the HookRegistry, a detached scratch log and a copied rng_match state; the engine never seeds a stream"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-004
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "C3: MatchConfig {floor, band, rng_match, rng_ai, log, player{hero_def_id, deck, hook_installers}, boss{boss_def_id, deck, health, hook_installers, ai_id}} is the only input"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-005
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "Interactions: the primitive API (draw, apply_damage, ... discard) is the only way match state mutates; each call emits one event"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-006
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "Interactions, C10: 15 trigger points fired by the engine; 12 hook points with fold-then-clamp semantics; C10 resolution loop with RESOLUTION_STEP_CAP"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-007
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "C14, C15: MatchResult {result win/loss/fault, winner, reason, floor, turns, turns_per_side, stats, final health}; C15 is the authoritative event vocabulary (DD-X04)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-rules-008
+  system: match-rules
+  gdd: design/gdd/match-rules.md
+  requirement: "Input Responsiveness: submit() within 5 ms worst case, legal_commands() within 2 ms"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-effects-001
+  system: card-effects
+  gdd: design/gdd/card-effects.md
+  requirement: "C1: effect objects are plain JSON (trigger, scope, condition, targets, ops[], once_per_turn); targeting_spec(def_id) is derived from the one chosen play selector, never stored"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-effects-002
+  system: card-effects
+  gdd: design/gdd/card-effects.md
+  requirement: "C5, C6: the resolver composes card text from engine primitives only; one effect pass = one C10 step; binding at RulesEngine.start"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-effects-003
+  system: card-effects
+  gdd: design/gdd/card-effects.md
+  requirement: "C8, C6: Discover / Choose One raise exactly one ChoiceRequest, pausing resolution with a continuation resumed by choose"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-effects-004
+  system: card-effects
+  gdd: design/gdd/card-effects.md
+  requirement: "C9: treasure and passive effects bind to hook points (trigger hooks as synchronous steps; value hooks as folds) or run as hero-slot observers"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-effects-005
+  system: card-effects
+  gdd: design/gdd/card-effects.md
+  requirement: "C10: validate_effects(host_kind, host_id, effects[]) -> report[] with the closed E_FX_* set, injected into Card Database stage 7"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-card-effects-006
+  system: card-effects
+  gdd: design/gdd/card-effects.md
+  requirement: "F6: static step bound per effect within EFFECT_STATIC_STEP_LIMIT (250); MAX_OPS_PER_EFFECT 8"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-boss-ai-001
+  system: boss-ai
+  gdd: design/gdd/boss-ai.md
+  requirement: "C1: BossAI is a RefCounted pure function of (observable state, profile, stream position); reads only legal_commands() and clone(); never reads hidden information"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-boss-ai-002
+  system: boss-ai
+  gdd: design/gdd/boss-ai.md
+  requirement: "C1.4: entry points forecast(engine) -> Intent, play_turn(engine), choose(engine, request) -> int, all synchronous"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-boss-ai-003
+  system: boss-ai
+  gdd: design/gdd/boss-ai.md
+  requirement: "C1.5, C9, F7: at most 2 ms main-thread time per frame; planner off-thread or time-sliced (mechanism by ADR); budgets are counts, 50 ms per turn is the p95 acceptance target"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-boss-ai-004
+  system: boss-ai
+  gdd: design/gdd/boss-ai.md
+  requirement: "C8, DD-X03: telegraph events ai_intent_shown / ai_intent_committed with effective_mode = min(boss.intent_mode, settings.telegraph_mode)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-boss-ai-005
+  system: boss-ai
+  gdd: design/gdd/boss-ai.md
+  requirement: "C10, F9: ai_profiles.json config with resolved profile default + archetype + band + boss_override; validator injected at stage 7"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-boss-ai-006
+  system: boss-ai
+  gdd: design/gdd/boss-ai.md
+  requirement: "C11: headless simulation harness tests/integration/boss_ai/sim_harness.gd writing production/qa/sim/<boss_id>_<date>.json"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-heroes-001
+  system: heroes
+  gdd: design/gdd/heroes.md
+  requirement: "H-1, H-3: heroes are HeroDef data; hero powers are hero_power-trigger effects (DD-M13); nothing hero-specific in code"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-structure-001
+  system: run-structure
+  gdd: design/gdd/run-structure.md
+  requirement: "R1: RunState record schema (JSON-only) with validate() invariants; draft_state and treasure_state opaque blobs"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-structure-002
+  system: run-structure
+  gdd: design/gdd/run-structure.md
+  requirement: "R2, R3, R4: new_run, begin_match building MatchConfig, MatchResult handling including fault -> pre_match"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-structure-003
+  system: run-structure
+  gdd: design/gdd/run-structure.md
+  requirement: "States, T1-T21: explicit transition table over status; seven commands (new_run, begin_match, draft_pick, abandon, resume, suspend, return_to_menu); E_BAD_PHASE elsewhere"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-structure-004
+  system: run-structure
+  gdd: design/gdd/run-structure.md
+  requirement: "R7, R8: save points S1-S5 through Meta's persistence API; in_match never saved; resume restores the RNG snapshot and reopens the run log; resume after a mid-match quit = restart with the same streams"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-structure-005
+  system: run-structure
+  gdd: design/gdd/run-structure.md
+  requirement: "Interactions (Boss AI): Run Structure owns the match driver that constructs RulesEngine and BossAI at begin_match and calls forecast / play_turn / choose at phase transitions; the driver is rules-side code wrapped by Match UI's MatchController"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-reward-draft-001
+  system: reward-draft
+  gdd: design/gdd/reward-draft.md
+  requirement: "D1: init_run(run_state) -> draft_state, offer(kind, run_state, stream) -> Offer{option_ids[], flags[]}, pick(kind, id, offer, run_state) -> Pick; offer is a pure function of (run_state, stream position) and mutates nothing"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-reward-draft-002
+  system: reward-draft
+  gdd: design/gdd/reward-draft.md
+  requirement: "D3, D7: exclusion and pity derived from run_state.drafts[]; unlock-filtered treasure pool snapshotted once at init_run"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-treasures-001
+  system: treasures
+  gdd: design/gdd/treasures.md
+  requirement: "T2: HookRegistry per match on MatchState.hooks: ordered HookEntry {host_kind, host_id, side, effect_id, effect} per hook point; installation order only; owner-scoped by side; no autoload, no back-reference"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-treasures-002
+  system: treasures
+  gdd: design/gdd/treasures.md
+  requirement: "T3: installers_for(treasure_ids) -> HookInstaller[] pure and idempotent; duplicate host skipped with hook_install_skipped"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-treasures-003
+  system: treasures
+  gdd: design/gdd/treasures.md
+  requirement: "T4, T6: collect_state(hooks, match_result) -> Dictionary after match_ended; pool(unlocked_keys, exclude_ids) membership predicate, id-ascending"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-treasures-004
+  system: treasures
+  gdd: design/gdd/treasures.md
+  requirement: "F5: 12-entry fold under 0.05 ms; three installed treasures add under 2 ms per match; no allocation in the fold"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-meta-progression-001
+  system: meta-progression
+  gdd: design/gdd/meta-progression.md
+  requirement: "M1: one user://profile.json with the M1.2 shape and the M1.3 persistence API (save_active_run, load_active_run, clear_active_run, archive_run, is_hero_unlocked, unlocked_keys, settings, run log pages, notifications)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-meta-progression-002
+  system: meta-progression
+  gdd: design/gdd/meta-progression.md
+  requirement: "M4: atomic write .tmp -> flush -> rename old to .bak -> rename .tmp to profile.json; E_IO leaves the previous files intact; migrations migrate_v{k}_to_v{k+1} as pure functions"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-meta-progression-003
+  system: meta-progression
+  gdd: design/gdd/meta-progression.md
+  requirement: "M5: load order profile.json -> .bak -> fresh; corrupt copies kept; newer schema -> ReadOnly; tamper tolerance with clamping and profile_repaired logging"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-meta-progression-004
+  system: meta-progression
+  gdd: design/gdd/meta-progression.md
+  requirement: "M6: profile.lock heartbeat; a second instance loads ReadOnly, mutators return E_READONLY"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-meta-progression-005
+  system: meta-progression
+  gdd: design/gdd/meta-progression.md
+  requirement: "M9, DD-X07: settings record owned here, defaults from config(profile_defaults), applied via settings_changed{key, value}; the MVP ships an in-memory stub (systems-index Circular Dependencies)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-meta-progression-006
+  system: meta-progression
+  gdd: design/gdd/meta-progression.md
+  requirement: "F5, M4.3: profile within max_profile_bytes (2 MB); synchronous save within max_save_ms (50) at run_log_cap"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-ui-001
+  system: match-ui
+  gdd: design/gdd/match-ui.md
+  requirement: "U1, U2: MatchView scene + MatchController (injected) + MatchQuery + MatchViewState + AnimationQueue + presenters + InputRouter; three channels only: commands in, events out, queries out"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-ui-002
+  system: match-ui
+  gdd: design/gdd/match-ui.md
+  requirement: "U3, U4: the presentation model is a projection of events; AnimStep FIFO grouped by command root (cause_seq = 0), coalescing, speed divisor, skip-all within 100 ms, idle invariant (presenters == view-state)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-ui-003
+  system: match-ui
+  gdd: design/gdd/match-ui.md
+  requirement: "U6: the boss turn is already in the log when the UI sees it; the UI paces the burst, compressing to max_turn_playback_s"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-ui-004
+  system: match-ui
+  gdd: design/gdd/match-ui.md
+  requirement: "U11: debug entry points --fixture=<name>, --pose, --pause-at, --anim-speed, --ai-debug via OS.get_cmdline_user_args(); fixtures tests/fixtures/match_ui/<name>.json run the real engine; MatchDebugLoader absent from release exports"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-ui-005
+  system: match-ui
+  gdd: design/gdd/match-ui.md
+  requirement: "Input Responsiveness latency table: pickup 16 ms, drag 16 ms, release to first event 50 ms, rejection 50 ms, skip 100 ms, End Turn to intent 300 ms, hover 100 ms"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-match-ui-006
+  system: match-ui
+  gdd: design/gdd/match-ui.md
+  requirement: "Interactions (Run UI): hand-off - Run UI swaps MatchView in at begin_match with MatchConfig + MatchController; Match UI emits match_view_finished(result) after the end banner"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-ui-001
+  system: run-ui
+  gdd: design/gdd/run-ui.md
+  requirement: "U1: RunShell root scene with screen stack and ShellState; RunController is the only object talking to Run Structure, Reward Draft and Meta; screens get read models and send intent(name, args); every visible mutation renders from an event"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-ui-002
+  system: run-ui
+  gdd: design/gdd/run-ui.md
+  requirement: "U2: screen inventory with the complete intent -> command map; data_error screen over a Failed load"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-ui-003
+  system: run-ui
+  gdd: design/gdd/run-ui.md
+  requirement: "U3: mouse primary, keyboard complete; focus ring separate from hover (4.6 dual focus); gamepad maps to the focus graph"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-ui-004
+  system: run-ui
+  gdd: design/gdd/run-ui.md
+  requirement: "U10: --run-ui-screen=<id> --run-ui-fixture=<name> loads tests/fixtures/run_ui/<name>.json into an in-memory Meta stub"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-run-ui-005
+  system: run-ui
+  gdd: design/gdd/run-ui.md
+  requirement: "F1: restart within restart_budget_ms (5000); new_run within 200 ms, intro_ready within 300 ms, select_ready within 300 ms"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-content-001
+  system: content
+  gdd: design/gdd/content.md
+  requirement: "CN-6: every batch loads with zero errors through a headless validate command (tools/content/validate.gd) that prints the report and exits non-zero; content_budgets.json is tooling-only"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-content-002
+  system: content
+  gdd: design/gdd/content.md
+  requirement: "CN-6.4: archived run logs and sim outputs are the inputs of /balance-check"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-game-concept-001
+  system: game-concept
+  gdd: design/gdd/game-concept.md
+  requirement: "Technical Considerations: headless test and screenshot evidence on Linux CI (Xvfb); Forward+ may need the Compatibility renderer for capture"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-design-decisions-001
+  system: design-decisions
+  gdd: design/design-decisions.md
+  requirement: "DD-T02: match and run rules are RefCounted GDScript with no Node references; the UI subscribes to events and issues commands"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-design-decisions-002
+  system: design-decisions
+  gdd: design/design-decisions.md
+  requirement: "DD-T01: all definitions are JSON under assets/data/ with snake_case keys and schema_version; the profile is user://profile.json"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-design-decisions-003
+  system: design-decisions
+  gdd: design/design-decisions.md
+  requirement: "DD-T05: 1280x720 logical, canvas_items stretch, mouse primary, keyboard shortcuts"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-systems-index-001
+  system: systems-index
+  gdd: design/gdd/systems-index.md
+  requirement: "Circular Dependencies: Run Structure <-> Meta - Meta exposes M1.3, Run Structure owns R1; the MVP ships a Meta stub"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-systems-index-002
+  system: systems-index
+  gdd: design/gdd/systems-index.md
+  requirement: "Circular Dependencies: Match UI <-> Run UI - one-way scene hand-off; the reverse edge is a signal only"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-systems-index-003
+  system: systems-index
+  gdd: design/gdd/systems-index.md
+  requirement: "Circular Dependencies: Treasures <-> Reward Draft - Treasures owns definitions and the chain; Reward Draft reads the pool and the run writes treasure_granted"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-tech-debt-001
+  system: tech-debt
+  gdd: docs/tech-debt-register.md
+  requirement: "TD-001..012: the production tree rules out each prototype root cause (architecture.md tech-debt retirement mapping)"
+  created: 2026-11-03
+  revised: ""
+  status: active
+
+- id: TR-accessibility-requirements-001
+  system: accessibility-requirements
+  gdd: design/accessibility-requirements.md
+  requirement: "Motor (Standard tier, Alpha): full input remapping for every action except cancel/Esc; bindings persist across restarts; storage undecided (bindings map in meta M9 vs InputMap serialised to user://bindings.cfg by Run UI)"
+  created: 2026-11-03
+  revised: ""
+  status: active
