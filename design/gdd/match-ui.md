@@ -7,6 +7,7 @@
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): (1) F1 hand arc inverted — with a bottom-centre pivot, `HAND_BASE_Y` 716 and a 24-px downward dip the outer cards sat at y 740 and their rotated attack stamps were off the 720-px viewport, so O1 was unsatisfiable; `HAND_BASE_Y` is now 696, the centre card rises `ARC_H`, the hand zone is 240, 462, 800, 258 and F2's preview top is y 381; (2) the match-end hand-off is confirmed as Run UI's sibling contract (`match_view_finished(result)` → Run UI, which run-ui.md names) — run-structure.md never names this system, so its row is now indirect (`MatchConfig`, the match driver); (3) treasure tray added (F6 zone, inventory row, `treasure_tray` fixture, `healed{amount: 0}` suppressed) — treasures.md is Designed and places the tray on the match screen; stale "undesigned" / "in progress" wording removed; (4) C15 events this GDD does not draw (`turn_reset`, `card_to_graveyard`) are a declared silent set, not `feed.unknown` lines; (5) `reduce_motion` setting defined (`ui-code.md` rule 4) — shake, hit-stop and lethal slow-down drop; (6) `match_ui.json` is already in DD-T01 and loads through Card Database `config("match_ui")`; (7) U12 cross-reference F7 → F6; Open Questions updated with the cross-GDD items the review found (`intent_banner_s` 1.2 vs 0.3, run-ui's `anim_speed` labels and action-delay slider, `telegraph_mode`, `ui-code.md` gamepad / text-scale deferrals).
+> **REVISED 2026-11-03 (cross-review)**: C-01 (`anim_speed` is the DD-X07 label set `instant | fast | normal` with a `SPEED_DIV` table in F3; F4 consumes Meta's `action_delay_ms`; `reduce_motion` and `text_scale` are read from Meta; telegraph rendering follows Boss AI's `effective_mode`, DD-X03), C-07 (the four losing event aliases deleted, the five 2026-11-03 primitive events placed in U3 — DD-X04), S-04 (`fault` end banner copy "floor replayed, not lost", no defeat sting), C-30 housekeeping (`intent_banner_s` OQ, Cross-References status words). Accessibility / pattern-library resolutions (`design/accessibility-requirements.md`, `design/ux/interaction-patterns.md` Open Questions) folded into U5, States, F6, U11, Tuning Knobs and AC: click-to-select mouse path, `end_turn_arm_ms` 300 ms, `Esc` never cancels Mulligan/Choice, `Tab` focus cycling in `Idle` with a 2 px focus ring, 44x44 treasure-chip hit area, hero power `Blocked` reason on focus.
 > **Implements Pillar**: Pillar 4 (readable, deterministic rules — the UI is a projection of the event log); Pillar 3 (lose fast, learn fast — every loss is legible on screen); Sensation aesthetic (crisp card feedback)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No `Agent` tool in this run: `game-designer`, `ux-designer`, `ui-programmer`, `art-director`, `systems-designer` and `qa-lead` not consulted — Lean mode. Review manually before production.
 > **Scope boundary**: this GDD defines the Match UI as a *system* — what it must do, its architecture and its contracts with the rules engine. Per-screen UX specs (pixel layout, copy, focus order) are produced later by `/ux-design` into `design/ux/` and cite this document.
@@ -135,44 +136,50 @@ temporary}`, `deck_count`, `fatigue_next`, `hand[]` (ids and costs; boss hand = 
 5. **Turn ownership**: `phase_changed` / `turn_started` drive `phase` and `active_side`; the
    player's controls are enabled only when `phase == PlayerTurn.Main` **and** the queue is idle.
 
-Event → projection → step table. Names are match-rules C15's (authoritative — rng-event-log §D
-was realigned to it on 2026-11-03); the slash-separated second names are legacy aliases that rule
-4 tolerates until `/consistency-check` confirms the realignment, after which they are deleted.
+Event → projection → step table. Names are match-rules C15's (authoritative, DD-X04 —
+rng-event-log §D mirrors it). The legacy aliases this table once tolerated (`mulligan_completed`,
+`mana_changed`, `weapon_broken`, `healing_applied`) were deleted on 2026-11-03 (cross-review C-07);
+a legacy name now falls to rule 4 like any unknown type.
 **Silent set**: C15 events this system does not draw — `turn_reset` and `card_to_graveyard` in v1
 — are listed in the data file as `silent_types[]`: no view-state change, no step, **no feed line**.
 Rule 4's `feed.unknown` line is only for a type in neither this table nor the silent set. The
-events of the five primitives match-rules added on 2026-11-03 (`remove_keyword`,
-`add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`) join this table or the
-silent set once `/consistency-check` confirms their names (Open Questions):
+events of the five primitives match-rules added on 2026-11-03 (`remove_keyword` →
+`keyword_removed`, `add_card_to_deck` → `card_added_to_deck`, `modify_durability` →
+`weapon_durability_changed`, `refresh_hero_power` → `hero_power_refreshed`, `discard` →
+`card_discarded`) are all in the table:
 
 | Event | View-state change | Animation step (base duration, F3) |
 |---|---|---|
 | `match_started`, `deck_shuffled` | Deck counts, hero ids | none |
 | `mulligan_offered` | `pending_mulligan = ids` | open Mulligan screen (0.2 s) |
-| `mulligan_resolved` / `mulligan_completed` | Hand replaced | replaced cards flip (0.3 s) |
+| `mulligan_resolved` | Hand replaced | replaced cards flip (0.3 s) |
 | `turn_started`, `phase_changed`, `turn_ending`, `turn_ended` | `phase`, `active_side`, `turn` | turn banner (0.4 s, boss turn only) |
 | `turn_reset`, `card_to_graveyard` (silent set) | none | none; no feed line |
-| `crystal_gained`, `mana_refilled` / `mana_changed`, `mana_spent`, `mana_added` | `mana` | none |
+| `crystal_gained`, `mana_refilled`, `mana_spent`, `mana_added` | `mana` | none |
 | `card_drawn` | Hand += id (player) or count (boss); `deck_count` | draw slide deck → hand (0.2 s) |
+| `card_added_to_deck` | `deck_count` | deck count tick (0.15 s) |
 | `card_burned` | `deck_count` | burn flash over deck (0.4 s) |
 | `fatigue_damage` | `fatigue_next` | "Fatigue N" label on hero (0.4 s); the following `damage_dealt` pops as usual |
 | `card_played`, `spell_cast` | Hand −= id; (spell) nothing else | card travels to slot / centre (0.25 s) |
+| `card_discarded` | Hand −= id (player) or count (boss) | card flies to the graveyard (0.25 s) |
 | `minion_summoned` | Board insert at `board_index` | token grows in (0.2 s); row re-spaces |
 | `summon_failed` | none | "board full" ghost (0.3 s) |
-| `weapon_equipped`, `weapon_durability_changed`, `weapon_destroyed` / `weapon_broken` | `weapon` | slot update (0.2 s) / shatter (0.3 s) |
+| `weapon_equipped`, `weapon_durability_changed`, `weapon_destroyed` | `weapon` | slot update (0.2 s) / shatter (0.3 s) |
 | `hero_power_used` | `power_state = Used` | button press (0.15 s) |
+| `hero_power_refreshed` | `power_state = Ready` (or `Blocked` per `hero_power_state()`) | power button re-lights (0.15 s) |
 | `attack_declared` + `attack_resolved` | none / `attacks_used` | lunge (0.35 s); damage steps of this cause land on its active frame |
 | `attack_cancelled` | none | attacker returns (0.15 s) |
 | `damage_dealt` | `health` / `armor` | number pop `−dealt` (0.4 s), hit-stop per Game Feel; `dealt = 0` with `prevented > 0` → no pop |
 | `divine_shield_popped` | flag off | shield burst (0.25 s), no number; precedes the damage step |
-| `healed` / `healing_applied`, `armor_gained`, `armor_lost` | `health` / `armor` | number pop `+n` (0.4 s); `healed{amount: 0}` (treasures Edge Cases: Mending Charm on a full hero) → no pop, feed line only |
+| `healed`, `armor_gained`, `armor_lost` | `health` / `armor` | number pop `+n` (0.4 s); `healed{amount: 0}` (treasures Edge Cases: Mending Charm on a full hero) → no pop, feed line only |
 | `enchantment_applied/removed`, `auras_recomputed`, `minion_modified`, `silenced`, `frozen`, `thawed`, `stealth_lost` | Stats, keywords, flags | stat digit recolour (0.15 s) or badge add/remove (0.15 s) |
+| `keyword_removed` | `keywords` −= keyword | badge drop (0.15 s) |
 | `minion_died` (group by `cause_seq`) | Board remove all in group, then re-space | death group (0.3 s) then gap-close (0.2 s) |
 | `trigger_queued` / `trigger_resolved` | `armed_sources` | rim glow on/off (0.15 s) |
 | `effect_resolved` | none (ops already applied by their own events) | feed group line; `fizzled` → "fizzle" wisp on source (0.2 s) |
 | `discover_offered` (Card Effects: `kind`, options) + `choice_requested` (Match Rules: the phase) | `pending_choice` is filled from `discover_offered` (player side only); the overlay step is emitted when the **second** of the pair is projected, whichever order the engine emits them | open Choice overlay (0.2 s) |
 | `choice_made` / `discover_picked` | `pending_choice = null` | overlay close (0.15 s) |
-| `ai_intent_shown`, `ai_intent_committed` | `intent` | banner show (0.3 s) / commit beat `intent_banner_s` / "plan changed" crossfade |
+| `ai_intent_shown`, `ai_intent_committed` | `intent` (incl. the event's `effective_mode`) | banner show (0.3 s) rendered at the `effective_mode` Boss AI emitted (`full` / `class_only` ≡ `brief` / `hidden` ≡ `off`, DD-X03 — this GDD never re-applies `telegraph_mode` itself) / commit beat `intent_banner_s` / "plan changed" crossfade |
 | `command_rejected` (diagnostic) | none | shake + reason tooltip 1.5 s (U5) |
 | `match_ended` | `result` | end banner (0.6 s) after the queue drains, then hand-off (U9) |
 | `log_overflow`, `resolution_overflow` | `result` fault | end banner with fault copy |
@@ -190,9 +197,10 @@ silent set once `/consistency-check` confirms their names (Open Questions):
    distinct targets from one source (an AoE), they play as one simultaneous pop step. Consecutive
    `minion_died` of one cause are always one step (U3.3). Nothing else coalesces — Pillar 4 wants
    effects countable (match-rules Feel Reference anti-reference).
-4. **Speed**: `anim_speed ∈ {1.0, 1.5, 2.0}` divides every base duration (F3); `instant` skips
-   everything always. It is a settings value (Tuning Knobs) that persists via Meta Progression's
-   settings once that exists; until then it is session-local.
+4. **Speed**: `anim_speed ∈ {normal, fast}` selects a divisor (`normal` 1.0, `fast` 2.0) applied
+   to every base duration (F3); `instant` skips everything always. It is a settings value
+   (Tuning Knobs; the DD-X07 label set) that persists via Meta Progression's settings record once
+   that exists; until then it is session-local.
 5. **Skip-all**: left click anywhere outside an interactive control, Space, or Enter while the
    queue is busy flushes it: every remaining step's `apply_final` runs in order within one frame,
    hit-stop and slow-down are cancelled, SFX for skipped steps are dropped, and the display equals
@@ -214,28 +222,64 @@ silent set once `/consistency-check` confirms their names (Open Questions):
   card or spell the arrow (U7) appears from the card with every legal target outlined
   `state_target`. Release over a legal slot/target → `submit(play_card)`. Release anywhere else →
   the card tweens back (0.15 s), no command, no event. Right-click or Esc during a drag cancels.
+- **Click to select (mouse alternative to drag — accessibility-requirements Motor,
+  interaction-patterns "Click-to-Select / Keyboard Targeting").** A press-and-release that moves
+  less than `CLICK_DRAG_PX` (8 px) on a playable card, a legal attacker or a `Ready` hero power
+  enters `KeyTargeting` with `entered_by = pointer`: the source lifts, legal positions or targets
+  light exactly as in a drag, and the arrow (U7) points at the current target (first legal, or
+  the one nearest the cursor). Hovering a lit target moves the ring; LMB on a lit target or slot
+  (or `Enter`) confirms and calls `submit`; `Esc`, RMB, a click on empty table or a click on a
+  different legal source (which re-selects it) cancels with no command. A single click never
+  plays a card: an untargeted play (one legal position, untargeted spell) still needs the second
+  click or `Enter`, so a mis-click costs nothing. Click and drag coexist on the same card without
+  a setting — the 8 px threshold tells them apart.
 - **Attack.** Press on a friendly token with `can_attack` true (via `legal_commands()`) starts the
   arrow; legal defenders outline; Stealth enemies are **not** outlined and not droppable
   (match-rules `TARGET_STEALTHED`); if a Taunt exists only Taunts outline. Release on a legal
   defender → `submit(attack)`.
 - **Hero power.** Click the button when `Ready`; targeted powers start the arrow. `Blocked`
-  shows the reason on hover; `Used` is dimmed.
+  shows the reason (`reason_code` from `hero_power_state()`) in a tooltip on hover **or keyboard
+  focus** — never hover-only (art bible §7, `ui-code.md`); `Used` is dimmed. Focus also shows the
+  power's name, cost and text.
 - **End Turn.** Enabled only in `PlayerTurn.Main` with the queue idle; outline `state_actionable`
   when the player has no legal play other than `end_turn` or no mana left (art bible UI palette).
   Pressing it during `Resolving`, `Choice` or the boss turn does nothing (control disabled); it
-  never reaches `submit`.
+  never reaches `submit`. **Arm guard**: End Turn by key (`Space`/`Enter`, below) is armed only
+  once the queue has been idle for `end_turn_arm_ms` (300 ms, data file) — a skip press that lands
+  on the frame the boss turn drains is swallowed instead of ending the turn. A mouse click on the
+  button is never gated (accessibility-requirements Motor "Accidental-activation guard").
 - **Rejection handling.** If `submit` returns `accepted = false` anyway (a race the disable
   missed), the UI shakes the originating control (0.2 s) and shows a tooltip at the cursor keyed
   `reject.<code>` for `REJECTION_TOOLTIP_S` = 1.5 s. `MUST_ATTACK_TAUNT` additionally flashes the
   Taunts; `NOT_ENOUGH_MANA` flashes the mana bar. The display is **not** changed by a rejection —
   nothing happened, so nothing is shown as happened.
-- **Keyboard (v1, mouse-equivalent, not a second mode):** `Space`/`Enter` = End Turn when enabled,
-  else skip-all; `Esc` = cancel drag/arrow → close overlay → open the pause menu (concede +
-  settings), in that priority; `1`–`9`,`0` = pick hand card 1–10 into **keyboard targeting**:
-  `Tab`/`Shift+Tab` cycle legal positions or targets (the arrow follows), `Enter` confirms, `Esc`
-  cancels; `H` = hero power; `L` = toggle the feed panel; `A` then a number = pick attacker by
-  board index and cycle defenders with `Tab`. Every action reachable by mouse is reachable here
-  (`ui-code.md`, technical-preferences "no hover-only information").
+- **Keyboard (v1, mouse-equivalent, not a second mode):** `Space`/`Enter` = End Turn when enabled
+  **and armed** (`end_turn_arm_ms`) and no card, token or hero power holds keyboard focus, else
+  skip-all while the queue is busy; `Enter` on a focused playable card, legal attacker or `Ready`
+  hero power enters keyboard targeting instead (below). `Esc` = one priority chain, first match
+  wins: (1) cancel a drag, click-to-select or keyboard-targeting session; (2) close the feed
+  drawer; (3) close the top-most overlay **that has a cancel** (pause menu → Resume, concede
+  confirm → Cancel); (4) otherwise open the pause menu (concede + settings). **`Esc` never cancels
+  or closes the Mulligan screen, the Choice overlay or the end banner** — they have no cancel (U8,
+  U9; a Choice has no legal "back"), so as a cancel it is a no-op there and the chain falls
+  through to (4), which keeps concede two presses away. `1`–`9`,`0` = pick hand card 1–10 into
+  **keyboard targeting**: `Tab`/`Shift+Tab` cycle legal positions or targets (the arrow follows),
+  `Enter` confirms, `Esc` cancels; `H` = hero power; `L` = toggle the feed panel; `A` then a
+  number = pick attacker by board index and cycle defenders with `Tab`. Every action reachable by
+  mouse is reachable here (`ui-code.md`, technical-preferences "no hover-only information").
+- **Keyboard inspect (focus cycling in `Idle`).** Outside a targeting session `Tab`/`Shift+Tab`
+  move keyboard focus over hand (left → right) → player board row (left → right) → player hero
+  portrait → hero power → End Turn, then on through the treasure chips, feed toggle, menu button,
+  boss intent banner, boss row and boss portrait and wrap (the full stop list is owned by
+  `design/ux/interaction-patterns.md` Focus Management and `design/ux/hud.md`'s Focus Order
+  table). The focused element draws a **2 px `state_actionable` focus ring** offset 3 px from its
+  bounds, above everything on that element, at every `anim_speed` including `instant`; it is
+  distinct from the hugging "actionable" outline by the 3 px gap. Focus opens the same information
+  hover does — the 1.5x preview (F2) for cards and tokens, the tooltip for the hero power,
+  portraits and treasure chips — so no information is hover-only. On entering `Idle` focus goes to
+  End Turn when nothing is lit, else the left-most playable card; if the focused card leaves the
+  hand, focus moves to the card now at that index, else End Turn. Hover never moves focus; a click
+  does.
 - **Gamepad**: post-v1 (technical-preferences: partial). The keyboard targeting mode above is the
   path a gamepad will map onto; nothing in v1 may make that mapping impossible.
 
@@ -249,8 +293,9 @@ The Match UI therefore **paces a burst it already holds**:
 2. `ai_intent_committed` plays the commit beat (`intent_banner_s`, boss-ai knob) before the first
    action group; `kept = false` shows the "plan changed" label instead.
 3. Command groups (U4.2) play in order with a **gap** between them derived from
-   `ai_action_delay_s` = 0.6 s and compressed so the whole turn fits `max_turn_playback_s` (F4,
-   F5). Within a group, steps play at normal speed.
+   `ai_action_delay_s` — the player's `action_delay_ms / 1000` when Meta's setting is present
+   (DD-X07), else Boss AI's `presentation.action_delay_s` 0.6 s — and compressed so the whole turn
+   fits `max_turn_playback_s` (F4, F5). Within a group, steps play at normal speed.
 4. Skip-all (U4.5) applies at any time; a skipped boss turn still shows the intent banner's final
    state and the turn banner, because those are view-state, not animation.
 5. `turn_started{side: player}` unlocks controls once the queue drains.
@@ -284,8 +329,13 @@ Salvage reference: `mulligan_screen.gd` (toggle-and-confirm flow kept; the proto
   No cancel: a Choice has no legal "back" (match-rules States), only concede. Salvage reference:
   `discover_selection.gd` (select-then-confirm kept).
 - **Match end**: when `match_ended` is projected the UI finishes draining, plays the end banner
-  (victory / defeat / `both_dead` / `concede` / fault copy keyed `end.<reason>`), waits for a click
-  or `MATCH_END_AUTO_S` = 4 s, then emits `match_view_finished(result)` — the one Continue intent
+  (victory / defeat / `both_dead` / `concede` / `fault` copy keyed `end.<reason>`), waits for a click
+  or `MATCH_END_AUTO_S` = 4 s, then emits `match_view_finished(result)`. The **`fault` variant**
+  (`match_ended{result: fault}` after `log_overflow` / `resolution_overflow`; cross-review S-04)
+  is not a defeat and must not read as one: `end.fault` copy says "Rules fault — this floor is
+  replayed, not lost" (Pillar 4), no `sfx.ui.defeat` stinger fires, no portrait saturates, and the
+  banner still auto-advances so Run Structure's `match_faulted` → `pre_match` replay of the same
+  boss (Run UI's boss intro, "Attempt 2") follows without the player believing they lost — the one Continue intent
   run-ui.md's `match` screen names (its Interactions "Match UI" row; contract confirmed here). Run
   UI swapped this scene in at `begin_match` and takes control back on that signal; Run Structure
   has already consumed `match_ended` through the engine. The Match UI never navigates and does
@@ -322,15 +372,15 @@ godot --path . --windowed --resolution 1280x720 --write-movie production/qa/evid
 | Argument | Meaning |
 |---|---|
 | `--fixture=<name>` | `MatchDebugLoader` loads `tests/fixtures/match_ui/<name>.json`: a `MatchConfig` (hero, boss, seed) plus a scripted command list; it runs the real engine headless through those commands, then the view projects `events_since(0)` with animations instant. **Fixtures use the real engine** — no hand-built view-states — so a screenshot can never show a state the rules cannot reach. |
-| `--pose=<pose>` | A view-only pose applied after loading: `drag:<instance_id>` (card lifted, arrow to screen centre, legal targets lit), `hover:<instance_id>` (1.5x preview), `reject:<code>` (shake + tooltip frozen), `menu:concede` / `menu:settings`, `feed:open`, `choice:open` (requires a fixture that ends in `Choice`), `end:<reason>` |
+| `--pose=<pose>` | A view-only pose applied after loading: `drag:<instance_id>` (card lifted, arrow to screen centre, legal targets lit), `hover:<instance_id>` (1.5x preview), `reject:<code>` (shake + tooltip frozen), `menu:concede` / `menu:settings`, `feed:open`, `choice:open` (requires a fixture that ends in `Choice`), `end:<reason>`, `focus:<element>` (keyboard focus on a hand index, token instance id, `hero_power`, `end_turn` or `treasure:<n>` — ring + the focus-opened preview/tooltip), `select:<instance_id>` (click-to-select session, arrow on the first legal target) |
 | `--pause-at=<seq>` | Stop playback with the queue holding every step after `seq` — for mid-animation and boss-turn captures |
-| `--anim-speed=instant\|1\|1.5\|2` | Overrides the setting for this launch |
+| `--anim-speed=instant\|fast\|normal` | Overrides the `anim_speed` setting for this launch (DD-X07 labels) |
 
 Required fixtures (one JSON each): `mulligan`, `turn1_player`, `midgame_full_board` (7 v 7),
 `hand_10`, `targeting_taunt`, `targeting_stealth`, `choice_discover`, `choice_choose_one`,
 `boss_intent_full`, `boss_intent_plan_changed`, `boss_turn_playback`, `fatigue_and_burn`,
 `treasure_tray` (two held treasures, one hook firing), `divine_shield_hit`, `simultaneous_deaths`, `match_end_victory`, `match_end_defeat`,
-`match_end_both_dead`, `match_end_concede`. A story that adds a screen adds its fixture in the same
+`match_end_both_dead`, `match_end_concede`, `match_end_fault` (a scripted `resolution_overflow`). A story that adds a screen adds its fixture in the same
 story; `/qa-plan` lists them.
 
 #### U12. What this GDD does not decide
@@ -351,20 +401,21 @@ below except `Ended`.
 | State | Entry condition | Exit condition | Behaviour |
 |---|---|---|---|
 | `Loading` | Scene ready; `MatchController` injected | `events_since(0)` projected and queue drained | Blank table; no input; fixtures (U11) finish here with animations instant |
-| `Mulligan` | `mulligan_offered` projected | `mulligan` accepted | Mulligan screen; pause menu reachable |
-| `Idle` | `phase == PlayerTurn.Main`, queue idle, no overlay | Any input intent, or an event arriving | Full controls; hover previews; End Turn enabled |
-| `Dragging` | Press on a playable card or legal attacker / hero power | Release, right-click, Esc | Arrow or lifted card; legal drops lit; End Turn disabled |
-| `KeyTargeting` | Number key / `A` + number | Enter (submit), Esc | Same visuals as `Dragging`, cursor-free; `Tab` cycles |
+| `Mulligan` | `mulligan_offered` projected | `mulligan` accepted | Mulligan screen; no cancel — `Esc` opens the pause menu (U5), never closes the screen |
+| `Idle` | `phase == PlayerTurn.Main`, queue idle, no overlay | Any input intent, or an event arriving | Full controls; hover previews; `Tab` focus cycling with the 2 px focus ring (U5); End Turn enabled, armed after `end_turn_arm_ms` |
+| `Dragging` | Press-and-move (> `CLICK_DRAG_PX`) on a playable card or legal attacker / hero power | Release, right-click, Esc | Arrow or lifted card; legal drops lit; End Turn disabled |
+| `KeyTargeting` | Number key / `A` + number / `H`; a click (< `CLICK_DRAG_PX`) on a playable card, legal attacker or `Ready` hero power; `Enter` on such a focused source | Enter or LMB on a lit target/slot (submit); Esc, RMB, click on empty table | Same visuals as `Dragging`, cursor-free or pointer-entered (`entered_by`); `Tab` or hover over a lit target cycles |
 | `Playback` | Queue non-empty | Queue drained | Controls locked except skip, pause menu, feed; `playing = true` |
 | `BossTurn` | `turn_started{side: boss}` | `turn_started{side: player}` and queue drained | Intent banner commit beat; paced groups (U6); skip |
-| `ChoiceOpen` | `choice_requested{side: player}` | `choose` accepted or concede | Overlay; table dimmed; no cancel |
+| `ChoiceOpen` | `choice_requested{side: player}` | `choose` accepted or concede | Overlay; table dimmed; no cancel — `Esc` is a no-op as a cancel and opens the pause menu instead (U5) |
 | `Menu` | `Esc` with nothing open, or top-bar button | `Esc`, Resume, or a confirmed concede | Concede confirm + settings; underlying playback keeps running |
 | `Ended` | `match_ended` projected and queue drained | `match_view_finished` emitted | End banner; click or `MATCH_END_AUTO_S`; no commands |
 
 Transitions (explicit): `Loading → Mulligan` (fixture/new match with `mulligan_offered`) or
 `Loading → Idle` (resume/fixture past mulligan); `Mulligan → Playback → Idle`; `Idle → Dragging`
 (press), `Dragging → Idle` (cancel, no command) or `Dragging → Playback` (accepted command);
-`Idle → KeyTargeting → Idle | Playback` likewise; `Idle → Playback` on any event burst (e.g. a
+`Idle → KeyTargeting → Idle | Playback` likewise (entered by number key, `A` + number, `H`, a
+click on a legal source, or `Enter` on a focused source); `Idle → Playback` on any event burst (e.g. a
 start-of-turn trigger); `Playback → Idle` on drain when `phase == PlayerTurn.Main`; `Playback →
 BossTurn` on `turn_started{boss}`; `BossTurn → Playback → Idle` on `turn_started{player}`; any
 state except `Ended` `→ ChoiceOpen` on a player `choice_requested`, `ChoiceOpen → Playback` on

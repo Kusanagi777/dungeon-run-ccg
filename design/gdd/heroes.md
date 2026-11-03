@@ -9,6 +9,7 @@
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned — the hero is the seed of that deck); Pillar 4 (hero powers are DSL effects, logged like any spell)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No engine reference for the `Scripting` domain under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (rule-only system, no engine surface). No `Agent` tool in this session: `systems-designer` (Formulas) and `qa-lead` (Acceptance Criteria) not consulted — Lean mode would have spawned both; review those two sections manually before production.
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place): H-3 DSL sketches rewritten in card-effects v1 vocabulary (Whetstone, Rot, Insight — card-effects C11 rows 8, 16, 25 were rewritten to these powers the same day: `is_dying` for Rot, `buff cost` on `deck_top` then `draw` for Insight) and Rot's resolution order corrected to card-effects C6.0 / match-rules C10 (one effect = one step; death check after it — the Husk arrives before the Deathrattle, and a full board is not freed mid-effect). H-4 `war_quartermaster` and H-5 `war_cleave_through` texts updated to Content's v1 redesigns. F2 example and H-4 plan-card counts corrected (Decay scores 5, not 6). AC-4 fixture corrected (3 weapons, not 1). Rejection codes aligned with their owners (`NOT_ENOUGH_MANA`, `E_HERO_LOCKED`). AC-1 scoped by content batch (DD-H06: War only at MVP). AC-9/10/11/18 rewritten. Open Questions 1, 3, 4, 7 resolved from sibling GDDs; two new rows added (first-run-forces-War ownership; Content's `armour` tag on `war_iron_vanguard`).
+> **REVISED 2026-11-03 (cross-review)**: C-03 option B (`PLAN_MAX` 6 → 7 in F2 and Tuning Knobs; F2 output War 7; AC-3; H-4 note; OQ resolved — Content keeps the `armour` tag), C-11 / DD-X02 (no forced first hero: H-2, Interactions and Dependencies rows for Run Structure, OQ resolved), C-30 housekeeping (OQ rows on `refresh_hero_power` — now in the match-rules API — and `HeroDef.unlock` in CR-3 marked resolved; Edge Cases and H-7 wording aligned).
 
 ## Summary
 
@@ -77,10 +78,8 @@ deck list through `MatchConfig`. Nothing about a hero is hardcoded: adding a her
 plus a card set file.
 
 **H-2 — Launch heroes (DD-H01).** All three are `unlock: null` (available from the first launch).
-The concept's onboarding note ("the first run forces War") is **not yet owned by any GDD**:
-run-structure R2 guards only `is_hero_unlocked`, and meta-progression gives Decay and Knowledge
-`unlock: null`. Either Run Structure adds a first-run rule or Meta Progression keys the two on
-`runs_played ≥ 1` — Open Questions; this GDD does not restate it.
+No hero is forced on any run (DD-X02): all three launch heroes are `unlock: null` and Run UI
+pre-selects War on a fresh profile (run-ui U7).
 
 | Hero id | Name | Identity line (`text.en`) | Set | Health | Hero power | Colour (art bible §4) |
 |---|---|---|---|---|---|---|
@@ -180,8 +179,9 @@ Shared neutral cards: `neutral_torch_imp` 1 — 1/2 · `neutral_tunnel_rat` 1 �
 
 Each starter: 15 cards, total cost 37, average 2.47; plan cards (★) War 6, Decay 5, Knowledge 6
 (F1, F2 — F2 counts *cards*, not tags). `war_iron_vanguard` and `decay_grave_warden` are the
-deliberate non-plan Taunts and carry **no** theme tag in Content's records; a theme tag on either
-pushes its starter over `PLAN_MAX` (Open Questions: Content tags Iron Vanguard `armour`). Each
+deliberate non-plan Taunts: `decay_grave_warden` carries **no** theme tag in Content's records;
+`war_iron_vanguard` carries Content's `armour` tag (it sits in `bundle_war_armour_1`), so F2
+scores War 7 — within `PLAN_MAX` 7 (cross-review C-03, option B). Each
 starter contains exactly one card that interacts with the hero power's output (Quartermaster with
 the Whetstone Blade; Culling with a Husk; Candle Acolyte with Frost Lance) so the power is taught
 by turn 3. `war_quartermaster` was "Give your weapon +1 Durability" until Content's v1 redesign
@@ -210,7 +210,8 @@ mix (every hero should have at least one bad band-1 matchup and no unwinnable on
 | **Control** (removal, board clears) | Strong — weapons are not minions | Strong — Deathrattles profit from clears | Even — card advantage keeps pace |
 
 **H-7 — Unlock heroes (DD-H02), data only, out of v1 scope.** Each ships as a `HeroDef` with a
-non-null `unlock` key owned by Meta Progression (field location: Open Questions). None has a set
+non-null `unlock {key, condition}` object (DD-X01; card-database CR-3) whose key and condition
+Meta Progression owns (M2.1). None has a set
 file at v1, so the records are added together with their set files (`E_MISSING_FILE`). Power
 sketches are intent only, **not** valid DSL yet.
 
@@ -245,7 +246,7 @@ sketches are intent only, **not** valid DSL yet.
 | **Card Database** | upstream | In: `HeroDef`, `HeroPowerDef`, card records for starter decks; `heroes()`, `hero(id)`, `hero_power(id)`; load-time validation (15 cards, own set/neutral, no tokens, power id exists) | Card Database owns the shape and the checks; this GDD owns the values |
 | **Card Effects** | upstream | In: the v1 DSL that expresses H-3 (`conditional` + `exists: owner_weapon`, `buff` on `owner_weapon` and on `deck_top` cards, `equip`, `damage`, `test: [target, {is_dying: true}]`, `summon`, `draw`). Out: three `hero_powers.json` records = C11 rows 8, 16, 25 (their AC-13/15/43 are the DSL acceptance cases) | Card Effects owns the DSL; this GDD owns the prose and the token ids |
 | **Match Rules** | upstream (rule), downstream (data) | In: C7 power rule, C1 `hero_power {def_id, used_this_turn}`, Start-step reset, F1 cost floor. Out: hero `health`, `hero_power` id, deck list via `MatchConfig` | Match Rules owns the rule; Heroes supplies the record (match-rules Dependencies row) |
-| **Run Structure** | downstream | Out: `hero_id`, starter deck as the run's initial deck (grows per DD-R06); `E_HERO_LOCKED` rejection via Meta Progression's `is_hero_unlocked`. "First run forces War" is unowned (Open Questions) | Run Structure |
+| **Run Structure** | downstream | Out: `hero_id`, starter deck as the run's initial deck (grows per DD-R06); `E_HERO_LOCKED` rejection via Meta Progression's `is_hero_unlocked`; no first-run hero rule (DD-X02) | Run Structure |
 | **Reward Draft** | downstream | Out: `hero.set` selects `collectible_pool` / `bundle_pool`; theme tags in H-5 are the bundle themes it weights | Reward Draft owns weighting; this GDD owns which tags exist per set |
 | **Content** | downstream | Out: the starter lists (H-4), set composition targets (H-5, F4), signature cards, tokens `war_whetstone_blade` / `decay_husk` | Content authors the files; this GDD is the brief |
 | **Meta Progression** | downstream | Out: hero ids for per-hero stats; unlock keys for Fortune/Order/Shadow. In: unlock state at hero select | Meta Progression owns keys and conditions |
@@ -290,12 +291,13 @@ matches at H = 30).
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | PLAN_TAGS(hero) | string[] | 3–4 tags | data file (H-5 theme tags) | The hero set's theme tags |
-| PLAN_MIN / PLAN_MAX | int | 4 / 6 | data file | Share of the 15 that "shows the plan" |
+| PLAN_MIN / PLAN_MAX | int | 4 / 7 | data file | Share of the 15 that "shows the plan" |
 
-**Output Range:** 0–15; launch starters score War 6, Decay 5, Knowledge 6 (a card with two plan
-tags counts once). **Example:** Decay: Grave Rat, Carrion Crow, Culling, Husk Tender, Shambling
+**Output Range:** 0–15; launch starters score War 7, Decay 5, Knowledge 6 (a card with two plan
+tags counts once; War's seventh is `war_iron_vanguard`, which carries Content's `armour` tag —
+H-4). **Example:** Decay: Grave Rat, Carrion Crow, Culling, Husk Tender, Shambling
 Heap → 5 → ok; Grave Warden (Taunt, no tag) does not count. Rationale (Pillar 1):
-below 4 the hero has no identity on turn 1; above 6 the starter *is* the plan and the draft only
+below 4 the hero has no identity on turn 1; above 7 the starter *is* the plan and the draft only
 adds copies.
 
 ### F3. Hero power value per use
@@ -356,9 +358,8 @@ cases (no legal target, Frozen hero, cost 0); they are restated only where this 
   cost alone.
 - **If an effect refreshes the hero power** (a treasure "your hero power can be used twice"):
   implemented as a `refresh_hero_power(side)` primitive that sets `used_this_turn = false` and
-  emits `hero_power_refreshed`; each refresh grants exactly one more use. The primitive is **not**
-  in the match-rules API today — filed in Open Questions as a Match Rules GDD change; until then
-  no such treasure exists.
+  emits `hero_power_refreshed`; each refresh grants exactly one more use. The primitive is in the
+  match-rules API (Interactions, added 2026-11-03); no v1 treasure uses it (treasures.md agrees).
 - **If the hero's `health` in data is not 30**: loaded as written (CR-3 says data-driven); the
   Content validator warns `W_HERO_HEALTH` so an accidental deviation is visible. Launch heroes
   are 30 (`player_starting_health`).
@@ -427,11 +428,11 @@ dependents, and this table adds **Reward Draft, Run UI, Match UI, Treasures** �
 | Card Database | This depends on Card Database | Hard | `HeroDef` / `HeroPowerDef` records and starter-deck validation (CR-3, CR-5 stage 6); queries `heroes()`, `hero()`, `hero_power()` |
 | Card Effects | This depends on Card Effects | Hard | The DSL that expresses H-3; ops listed in Interactions; validator for `hero_powers.json` (CR-5 stage 7). Validated against card-effects.md (Designed, revised) 2026-11-03: all three powers are C11 rows 8, 16, 25 |
 | Match Rules | Mutual | Hard | They own the power rule (C7) and read our record (C3); we own the power content and the 30 health value's source row (DD-M02) |
-| Run Structure | Run Structure depends on this | Hard | hero select → `MatchConfig`; starter deck copied verbatim as the run's initial deck (R2); `E_HERO_LOCKED`; "first run forces War" not yet placed (Open Questions) |
+| Run Structure | Run Structure depends on this | Hard | hero select → `MatchConfig`; starter deck copied verbatim as the run's initial deck (R2); `E_HERO_LOCKED`; no first-run hero rule (DD-X02) |
 | Reward Draft | Reward Draft depends on this | Hard | `hero.set` picks the pools; H-5 theme tags are the bundle themes |
 | Content | Content depends on this | Hard | H-4 lists, H-5 targets, F1–F5 checks in the validate command |
 | Meta Progression | Meta Progression depends on this | Soft | hero ids for stats; unlock keys for H-7 (absent at MVP — all heroes available) |
-| Treasures | Treasures depends on this | Soft | cost hooks and (future) `refresh_hero_power` act on the power; heroes read nothing from treasures |
+| Treasures | Treasures depends on this | Soft | cost hooks and `refresh_hero_power` (match-rules primitive; unused by v1 treasures) act on the power; heroes read nothing from treasures |
 | Run UI / Match UI | UI depends on this | Soft | display fields (name, text, colour, power text/cost/state) |
 | Boss AI | none | — | advisory matchup table only |
 
@@ -445,7 +446,7 @@ Derived from the Formulas tables (`systems-designer` not consulted — Lean mode
 |-----------|--------------|------------|-------------------|-------------------|
 | `AVG_MIN`–`AVG_MAX` (F1) | 2.4–2.8 | 2.2–3.2 | Slower starters; turn 1–2 passes; band-1 bosses feel harder | Starters flood early then top-deck 1-drops at turn 6 |
 | `STARTER_MAX_COST` (F1) | 5 | 4–6 | A 6-drop in the starter is a dead card until turn 6 of a 6–10 turn match | At 4 every late turn is two cheap plays; Pillar 1 weaker (drafts must supply all top end) |
-| `PLAN_MIN`–`PLAN_MAX` (F2) | 4–6 | 3–8 | Hero identity louder; draft matters less (anti-Pillar 1) | Heroes feel samey until floor 3 |
+| `PLAN_MIN`–`PLAN_MAX` (F2) | 4–7 | 3–8 | Hero identity louder; draft matters less (anti-Pillar 1) | Heroes feel samey until floor 3 |
 | Whetstone Blade stats | 1/2 | 1–2 Attack / 1–3 Durability | 2/2 makes equip mode 4 points — above band; weapon bundles redundant | 1/1 makes equip mode 1 point; power feels like a tax |
 | Rot damage | 1 | 1 | 2 damage kills most 2-drops: p_kill → 0.8, value 2.6, above band | — |
 | Insight tax | +1 cost this turn | 0–2 | +2 makes the drawn card unplayable most turns; power becomes end-of-turn only | 0 is Life Tap without the life cost: value 2.0, strongest power (watch win rates) |
@@ -537,7 +538,8 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
 - [ ] AC-2 **GIVEN** each launch starter, **WHEN** F1 is evaluated, **THEN** avg cost ∈ [2.4, 2.8],
   max cost ≤ 5 and per-cost counts fall inside `BUCKET[k]`; **AND** a test fixture with a 6-cost
   card substituted fails with `E_STARTER_CURVE`.
-- [ ] AC-3 **GIVEN** each launch starter, **WHEN** F2 is evaluated, **THEN** plan_cards ∈ [4, 6].
+- [ ] AC-3 **GIVEN** each launch starter, **WHEN** F2 is evaluated, **THEN** plan_cards ∈ [4, 7]
+  (War 7 with Content's `armour` tag on `war_iron_vanguard`, Decay 5, Knowledge 6).
 - [ ] AC-4 **GIVEN** `cards_war.json`, **WHEN** F4 is evaluated, **THEN** weapon share is 0.24 ± 0.08
   and `cards_knowledge.json` / `cards_decay.json` contain 0 weapons; **GIVEN** a Knowledge fixture
   with 1 weapon of 25 (0.04, inside ± 0.08), **THEN** no warning; **GIVEN** 3 weapons of 25 (0.12),
@@ -601,11 +603,11 @@ F1–F5; AC-7–16 cover H-3 and Edge Cases; AC-17–19 cover H-7 and UI.
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
 | Does the DSL express Whetstone's branch, Rot's "if it dies" and Insight's tax on the drawn card? | Card Effects GDD | — | **Resolved 2026-11-03**: card-effects C11 rows 8, 16, 25 are these three powers (`conditional`/`exists owner_weapon`; `is_dying`; `buff cost` on `deck_top` then `draw`). Content's open question "which Insight text ships" is thereby answered: the tax text; the "Deal 1 damage" row is gone |
-| `refresh_hero_power(side)` primitive and `hero_power_refreshed` event are not in the match-rules API; card-effects lists `hero_power_refresh` as v2 and has filed the primitive request with Match Rules | Match Rules GDD | before any "use your power twice" treasure | Open — no such treasure in v1 content (treasures.md agrees) |
-| Where does the hero `unlock` key live? | Card Database + Meta Progression GDDs | — | **Resolved 2026-11-03** by meta-progression M2.1: `HeroDef.unlock {key, condition}` or `null`, keys `unlock.hero_<name>`; conditions M10 match H-7's sketches. Card-database CR-3 still lists no `unlock` on `HeroDef` — that edit is pending on the card-database side |
+| `refresh_hero_power(side)` primitive and `hero_power_refreshed` event are not in the match-rules API; card-effects lists `hero_power_refresh` as v2 and has filed the primitive request with Match Rules | Match Rules GDD | before any "use your power twice" treasure | **Resolved 2026-11-03 — cross-review C-30**: `refresh_hero_power(side)` / `hero_power_refreshed` are in the match-rules primitive API (Interactions, added 2026-11-03 for Card Effects); no v1 treasure uses it (treasures.md agrees) |
+| Where does the hero `unlock` key live? | Card Database + Meta Progression GDDs | — | **Resolved 2026-11-03** by meta-progression M2.1: `HeroDef.unlock {key, condition}` or `null`, keys `unlock.hero_<name>`; conditions M10 match H-7's sketches. **Resolved 2026-11-03 — cross-review C-30**: card-database CR-3 now carries `HeroDef.unlock`; its shape becomes the `{key, condition}` object under DD-X01 (cross-review C-06, card-database side) |
 | Should Reward Draft read a per-hero `preferred_tags` list? | Reward Draft GDD | — | **Resolved 2026-11-03**: reward-draft reads H-5 theme tags directly as `plan_tags(hero)` (its F3); no new `HeroDef` field |
 | Boss archetype names in H-6 are placeholders; boss-ai.md's `archetype` key (aggro/control…) names AI profiles, not boss designs, so H-6 stays Content's brief | Content GDD | first `/balance-check` with all 16 bosses | Open — advisory only |
 | Hero names (Halvard, Mother Wythe, Archivist Ilse) and identity lines are designer placeholders | owner | before `/asset-spec system:heroes` | Open — change in `heroes.json` only |
 | `heroes_balance.json` as the home of F1–F5 constants | owner | — | **Resolved**: DD-T01 lists `heroes_balance.json` (added 2026-11-03) |
-| **"First run forces War"** (concept Onboarding curve) has no owner: run-structure R2 only checks `is_hero_unlocked`; meta-progression gives all launch heroes `unlock: null`. Options: Run Structure adds a first-run rule in R2, or Meta Progression keys `hero_decay` / `hero_knowledge` on `runs_played ≥ 1` (moot at MVP, which ships War only) | Run Structure or Meta Progression GDD (owner picks) | before Alpha-A | Open — flagged by `/design-review` 2026-11-03 |
-| **Content tags `war_iron_vanguard` `armour`**, which F2 counts as a plan card: War's starter scores 7 > `PLAN_MAX` 6 and the validate command would fail MVP-0. Resolution: Content drops the tag (a vanilla Taunt is not the plan — H-4), or the owner raises `PLAN_MAX` to 7 | Content GDD (or owner for the knob) | MVP-0 | Open — flagged by `/design-review` 2026-11-03 |
+| **"First run forces War"** (concept Onboarding curve) has no owner: run-structure R2 only checks `is_hero_unlocked`; meta-progression gives all launch heroes `unlock: null`. Options: Run Structure adds a first-run rule in R2, or Meta Progression keys `hero_decay` / `hero_knowledge` on `runs_played ≥ 1` (moot at MVP, which ships War only) | Run Structure or Meta Progression GDD (owner picks) | before Alpha-A | **Resolved 2026-11-03 — cross-review C-11 / DD-X02** (pre-select, Run UI): no hero is forced; Run UI pre-selects War on a fresh profile (run-ui U7); the concept line is withdrawn |
+| **Content tags `war_iron_vanguard` `armour`**, which F2 counts as a plan card: War's starter scores 7 > `PLAN_MAX` 6 and the validate command would fail MVP-0. Resolution: Content drops the tag (a vanilla Taunt is not the plan — H-4), or the owner raises `PLAN_MAX` to 7 | Content GDD (or owner for the knob) | MVP-0 | **Resolved 2026-11-03 — PLAN_MAX 7 (cross-review C-03, option B)**; Content keeps the tag so `bundle_war_armour_1` stays valid (CR-5 `E_TAG_MISMATCH`). Option A (drop the tag and swap the bundle card) remains this GDD's design preference if Content revisits |

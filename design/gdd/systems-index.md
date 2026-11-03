@@ -70,7 +70,7 @@ Systems, one paragraph each (balanced density):
 | 2 | RNG & Event Log (inferred) | Core | MVP | In Review | design/gdd/rng-event-log.md | — |
 | 3 | Match Rules | Gameplay | MVP | In Review | design/gdd/match-rules.md | Card Database, RNG & Event Log |
 | 4 | Card Effects | Gameplay | MVP | In Review | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
-| 5 | Boss AI | Gameplay | MVP | In Review | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log |
+| 5 | Boss AI | Gameplay | MVP | In Review | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression |
 | 6 | Heroes | Gameplay | MVP | In Review | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
 | 7 | Run Structure | Progression | MVP | In Review | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
 | 8 | Reward Draft | Economy | MVP | In Review | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
@@ -117,34 +117,34 @@ and Run UI stories; boss intro lines are content, not a narrative system).
 
 ### Foundation Layer (no dependencies)
 
-1. Card Database — every other system reads definitions from it; it is the only JSON parser.
+1. Card Database — every other system reads definitions from it; it is the only JSON parser (and serves per-system config files, CR-1).
 2. RNG & Event Log — determinism and replay underpin testing (Pillar 4) and the UI's event feed.
 
 ### Core Layer (depends on foundation)
 
 1. Match Rules — depends on: Card Database, RNG & Event Log
 2. Card Effects — depends on: Match Rules, Card Database, RNG & Event Log
-3. Boss AI — depends on: Match Rules, Card Effects
+3. Boss AI — depends on: Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression (telegraph setting, DD-X03)
 
 ### Feature Layer (depends on core)
 
-1. Heroes — depends on: Card Database, Card Effects
-2. Run Structure — depends on: Match Rules, Heroes, RNG & Event Log
-3. Treasures — depends on: Card Effects, Run Structure
-4. Reward Draft — depends on: Run Structure, Card Database, Treasures, RNG & Event Log
-5. Meta Progression — depends on: Run Structure, Heroes, Treasures
-6. Content — depends on: Card Database, Card Effects, Heroes, Treasures, Boss AI
+1. Heroes — depends on: Card Database, Card Effects, Match Rules
+2. Run Structure — depends on: Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression
+3. Treasures — depends on: Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes
+4. Reward Draft — depends on: Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log
+5. Meta Progression — depends on: Run Structure, Heroes, Treasures, Card Database, RNG & Event Log
+6. Content — depends on: Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules
 
 ### Presentation Layer (depends on features)
 
-1. Match UI — depends on: Match Rules, Card Effects, Boss AI
-2. Run UI — depends on: Run Structure, Reward Draft, Meta Progression
+1. Match UI — depends on: Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression
+2. Run UI — depends on: Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content
 
 ### Polish Layer
 
-None in v1 (hard-band modifiers and accessibility options are Full Vision).
+None in v1 (hard-band modifiers and accessibility options beyond the Standard tier are Full Vision).
 
-**Bottlenecks**: Match Rules (nine dependents) and Card Effects (nine dependents). Both get the
+**Bottlenecks**: Match Rules (seven dependents in the table: Card Effects, Boss AI, Heroes, Run Structure, Treasures, Match UI, Content) and Card Effects (five: Boss AI, Heroes, Treasures, Match UI, Content). Both get the
 `full` section set via `system_overrides` and are designed first after the foundation.
 **Leaf nodes**: Match UI, Run UI, Meta Progression, Content.
 
@@ -199,8 +199,8 @@ None in v1 (hard-band modifiers and accessibility options are Full Vision).
 | Design docs started | 13 |
 | Design docs reviewed | 13 (all NEEDS REVISION, revised in place, In Review) |
 | Design docs approved | 0 |
-| MVP systems designed | 0/12 |
-| Vertical Slice systems designed | 0/1 |
+| MVP systems designed | 12/12 (In Review) |
+| Vertical Slice systems designed | 1/1 (In Review) |
 
 ---
 

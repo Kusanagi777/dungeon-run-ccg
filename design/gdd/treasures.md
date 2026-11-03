@@ -8,6 +8,7 @@
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned) · Pillar 4 (readable, deterministic rules)
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in session): T6 pool contract restated against the now-designed reward-draft.md (pool snapshot at `init_run`, exclusions derived from `drafts[]`, per-item rarity weights — `draft_state.offered_treasure_ids` no longer exists); T8 affinity tally corrected (10 universal / 4 war / 3 decay / 3 knowledge); Dependencies paragraph updated — every partner GDD now exists and bidirectionality was re-verified; R-8 closed (`treasures_balance.json` is already in DD-T01); AC-13 split into deterministic pre/post-R-5 forms; AC-14's "reference machine" replaced by a ratio; AC-17 tied to R-13; Open Questions gained the cross-GDD conflicts the review found (universal-tag detection, `unlock` field shape, unlock-state interface name, `once_per_turn` key for hosts without an `entity_id`, Run UI `synergy_tags`, Content CN-5 split) and R-14 now records that meta-progression M2.1 already accepts this GDD's four keys while its M10 table and the registry's `unlock_keys_v1` still list six placeholders.
+> **REVISED 2026-11-03 (cross-review)**: C-06 (T1 `unlock` is the `{key, condition}` object, DD-X01; R-17 resolved) · C-02 (Hollow Crown rides match-rules' new `crystal_bonus`: T8 row 1, T9 sketch, Edge Cases, AC-9, AC-15 reworded to `mana_added` / `crystal_gained`; R-1 resolved) · C-19 (States: `unlock_granted`, meta M3.6) · C-26 ("contract — to be confirmed" markers removed from Interactions, Dependencies, F4; `unlocked_keys()` read once at `init_run`; `w_rarity` per item; F2 clamp markers and `MAX_ATTACKS_CAP = 4`; R-2, R-3, R-4, R-5, R-6, R-7, R-9, R-10, R-11, R-13, R-14, R-16, R-19, R-20 and the `aura`-on-weapon row closed against card-effects / match-rules / card-database / rng / run-structure / meta / reward-draft / run-ui / content; AC-13 re-issued in its post-R-5 form, AC-17's R-13 clause settled) · C-30 (States "Passed" row cites `drafts[]`; systems-index row closed per V-29). D-01 and D-03 assign no change to this GDD (D-03 is a Content/Meta choice still open with the owner).
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `systems-designer` and `qa-lead` not consulted for Formulas / Acceptance Criteria — Lean mode, no Agent tool in this session; review manually before production. Technical feasibility: category `Gameplay`, rule-only → Scripting domain; no engine reference for `scripting` under `docs/engine-reference/godot/modules/`, so feasibility was **not** checked against the pinned engine (the design has no engine surface: plain `RefCounted` data, DD-T02). Prior art: `docs/architecture/modifier-hook-chain.md` (reverse-documented prototype, not an ADR).
 
 ## Summary
@@ -21,7 +22,7 @@ semantics that retire the prototype's global modifier manager (TD-009), the 20-t
 with its rarity power budget, and the pool/unlock contracts Reward Draft and Meta Progression
 build on.
 
-> **Quick reference** — Layer: `Feature` · Priority: `MVP` · Key deps: `Card Effects, Match Rules, Run Structure, Card Database, RNG & Event Log, Heroes; Reward Draft (contract), Meta Progression (contract)`
+> **Quick reference** — Layer: `Feature` · Priority: `MVP` · Key deps: `Card Effects, Match Rules, Run Structure, Card Database, RNG & Event Log, Heroes; Reward Draft, Meta Progression`
 
 ## Overview
 
@@ -75,18 +76,18 @@ card-effects Core Rules; "R1" / "R5" / "R8" are run-structure Core Rules.
 #### T1. Data model — `TreasureDef`
 
 One record per treasure in `assets/data/treasures.json` (DD-T01), loaded and shape-validated by
-Card Database (CR-3) and effect-validated by Card Effects (C10). Card Database's current row is
-`id, name, rarity, effects, unlock, text, art`; this GDD **adds `tags`** (a CR-3 edit, requested
-in Open Questions).
+Card Database (CR-3) and effect-validated by Card Effects (C10). Card Database's row is
+`id, name, rarity, tags, effects, unlock, text, art`; `tags` was this GDD's request and CR-3 now
+carries it (R-7, resolved 2026-11-03).
 
 | Field | Type | Owner of semantics | Rule |
 |---|---|---|---|
 | `id` | string | Card Database | `treasure_<name>`, unique across all definition files |
 | `name` | string | Content | Display name; ≤ 24 characters so the tray chip fits |
-| `rarity` | enum `common \| rare` | **this GDD** | Sets the power band (F1) and the offer weight (Reward Draft, 70/30 — contract) |
+| `rarity` | enum `common \| rare` | **this GDD** | Sets the power band (F1) and the per-item offer weight (reward-draft F2, `RARITY_W` 70/30) |
 | `tags` | string[] | **this GDD** | Exactly one **affinity** tag from `war \| decay \| knowledge \| universal`, plus 0–3 **plan** tags from the Heroes H-5 theme set (`weapons, aggro, armour, deathrattle, sacrifice, husk, spells, spell_damage, draw`) and/or **archetype** tags (`economy, tempo, value, defensive, wild`). Affinity weights offers towards the run's hero; it never gates an offer |
 | `effects` | object[] | Card Effects (shape), this GDD (content) | 1–3 effect objects (C1), each using a trigger whose C2 "Hosts" column includes `treasure`. Opaque to Card Database |
-| `unlock` | string or `null` | Meta Progression | Unlock-condition key; `null` = available from the first run. This GDD names keys; Meta Progression defines and validates them (contract) |
+| `unlock` | `{key, condition}` or `null` (DD-X01) | Meta Progression | T8's Unlock column is the `key`; the `condition` object follows meta-progression M2.2; `null` = available from the first run. This GDD names keys; Meta Progression defines their conditions (M10) and validates them (M2.4) |
 | `text` | object | Content | Localizable one-line rules text shown on the offer card and tray tooltip; must match `effects` (reviewed, not validated) |
 | `art` | string | Content | Icon path; placeholder shape + initial in v1 |
 
@@ -124,8 +125,8 @@ or copied, and never enters hand, deck or board. `self` is illegal in its effect
    `on_minion_died`, `on_hero_power`, `on_weapon_equipped`). These run as **observers hosted on
    the owner's hero slot**: queued like a card trigger, in the candidate order's "hero power / hero
    enchantments" position for that side (match-rules C4 step 5, C10), after the hook steps.
-   *Interpretation of card-effects C2/C6.2 — flagged for `/consistency-check`.* Only Grave Tithe
-   (T8) uses one in v1.
+   Confirmed by card-effects C9 (R-10, resolved 2026-11-03); a treasure host's `once_per_turn`
+   mark is keyed on the treasure id (card-effects Edge Cases). Only Grave Tithe (T8) uses one in v1.
 
 #### T3. Installation and lifecycle
 
@@ -153,7 +154,7 @@ or copied, and never enters hand, deck or board. `self` is illegal in its effect
 | Tier | Where | Reset | Written by | v1 use |
 |---|---|---|---|---|
 | **Match state** | `EffectRuntime.counters[treasure_id]` and `once_marks` (card-effects C6.7–8) | New match | DSL ops (`add_counter`, `once_per_turn`) | `once_per_turn` on Grave Tithe |
-| **Run state** | `RunState.treasure_state` (R1): `{schema_version: 1, by_treasure: {treasure_id: {…}}}` | New run | `Treasures.collect_state(hooks, match_result) -> Dictionary`, called by the run after `match_ended` and before save S2 (**contract — to be confirmed in run-structure.md**) | **None** — no v1 treasure persists state |
+| **Run state** | `RunState.treasure_state` (R1): `{schema_version: 1, by_treasure: {treasure_id: {…}}}` | New run | `Treasures.collect_state(hooks, match_result) -> Dictionary`, called by the run after `match_ended` and before save S2 (run-structure R4, confirmed — R-11) | **None** — no v1 treasure persists state |
 
 Rules: `treasure_state` is read only at `installers_for` and written only at match end, so a
 quit-and-restart (R8.3) reverts to the match-start snapshot with no special code, and resume after
@@ -165,7 +166,7 @@ needs a `persist: true` flag on `add_counter` — an Open Question, not assumed.
 
 1. Run Structure appends the picked id to `treasures[]` and emits `treasure_granted` (R5.4).
    Treasures never mutates `RunState`.
-2. **No duplicates.** Reward Draft never offers a held or previously offered id (DD-R05, contract).
+2. **No duplicates.** Reward Draft never offers a held or previously offered id (DD-R05; reward-draft D7).
    If `installers_for` nevertheless receives a repeated id (hand-edited save), it keeps the first
    occurrence, drops the rest and emits `run_warning{code: duplicate_treasure, treasure_id}`; the
    registry's own duplicate skip (T3.4) is the second guard.
@@ -176,8 +177,8 @@ needs a `persist: true` flag on `add_counter` — an Open Question, not assumed.
 #### T6. Pool query — the Reward Draft contract (restated against reward-draft.md D3/D7/F2)
 
 - **Membership predicate (this GDD owns it).** A treasure is *available* to a run when
-  `unlock == null` or its unlock is held by the profile (Meta Progression's unlock state — the
-  interface name differs across GDDs, see Open Questions), and it is neither held
+  `unlock == null` or `unlock.key ∈ MetaProgression.unlocked_keys()` (meta-progression M1.3;
+  `is_treasure_unlocked(id)` is its membership helper — R-18 resolved), and it is neither held
   (`run_state.treasures[]`) nor previously offered this run. `Treasures.pool(is_unlocked, exclude_ids)
   -> TreasureDef[]` implements the predicate over Card Database `treasure_pool()` and returns
   id-ascending order (CR-6) so a seeded draw is reproducible (DD-R09). It is a pure function.
@@ -191,13 +192,13 @@ needs a `persist: true` flag on `add_counter` — an Open Question, not assumed.
   (reward-draft F2; defaults `RARITY_W` common 70 / rare 30, registry `treasure_rarity_weights`),
   a universal slot 1 when `universal_slot` is on, and the short-pool rules of its D8. `affine(t)`
   reads this GDD's **plan** tags against the hero's H-5 tags; the **affinity** tag is for display
-  and for Reward Draft's universal slot (Open Questions: it currently tests `tags == []`). Weights,
+  and for Reward Draft's universal slot (reward-draft F2 tests `"universal" ∈ tags` — R-16 resolved). Weights,
   pity and the universal slot are Reward Draft's knobs; F1's bands and F4's odds take 70/30 as the
   per-item ratio and are therefore approximations of the per-slot share (reward-draft F2 puts rares
   at ≈ 22–24 % of slots with this pool).
 - Minimum pool: `min_treasure_pool = 9` unlocked by default (Card Database Formulas); v1 ships 16
   of 20 unlocked by default, MVP 10 of 10 (DD-H06). Content keeps `n_universal ≥ 3` so the
-  universal slot is satisfiable (reward-draft contract) — T8 has 10.
+  universal slot is satisfiable (reward-draft's universal-slot floor) — T8 has 10.
 
 #### T7. Validation at data load (Card Database CR-5 stage 7)
 
@@ -214,24 +215,24 @@ including an effect whose trigger has no treasure binding (`E_FX_TRIGGER`) and `
 | `W_TR_POWER` | F1 power outside the rarity's band (warning; an observation for `/balance-check`, never a block) |
 | `W_TR_TEXT` | `text` missing a locale the project ships (warning) |
 
-Unlock keys are validated by Meta Progression's validator (contract); an unknown key is its error,
+Unlock keys are validated by Meta Progression's validator (M2.4); an unknown key is its error,
 surfaced by Card Database's data-error screen like any other (CR-8).
 
 #### T8. The v1 pool (20 treasures, 10 MVP)
 
 Every entry is expressible in the card-effects v1 DSL and the 12 hook points; where an entry leans
-on an interpretation or needs a primitive, the "Hook" column says so and Open Questions carries the
-request. Power is F1's estimate in mana-equivalent per match; bands: Common 1.5–3.5, Rare 3.5–6.5
+on an interpretation or needed a primitive, the "Hook" column says so and Open Questions records the
+request and its 2026-11-03 resolution. Power is F1's estimate in mana-equivalent per match; bands: Common 1.5–3.5, Rare 3.5–6.5
 (a value on the boundary takes the lower rarity). MVP treasures all have `unlock: null` so the
 MVP pool is 10/10 unlocked (DD-H06 ≥ `min_treasure_pool` 9). Unlock keys are named here and
-defined by Meta Progression (contract).
+their conditions defined by Meta Progression (M10; the record's field is `unlock: {key, condition}`, DD-X01).
 
 | # | id | Name | Rarity | Tags (affinity · plan/archetype) | Text | Hook (DSL trigger → binding) | Power | MVP | Unlock |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | `treasure_hollow_crown` | Hollow Crown | Rare | universal · economy | Start each match with an extra Mana Crystal. | `on_match_start` → `on_match_start`; op `mana` permanent (R-1) | 5.4 | ✔ | null |
+| 1 | `treasure_hollow_crown` | Hollow Crown | Rare | universal · economy | Start each match with an extra Mana Crystal. | `on_match_start` → `on_match_start`; op `mana` permanent → `add_mana(owner, 1, temporary=false)` raises `PlayerState.crystal_bonus` to 1 (match-rules C5, C4 Start step 2, F4; R-1 resolved) | 5.4 | ✔ | null |
 | 2 | `treasure_worn_signet` | Worn Signet | Common | universal · economy | Your hero power costs (1). | `modify_cost` (hero_power) → `modify_cost`; `set 1` | 2.8 | ✔ | null |
 | 3 | `treasure_quartermasters_ledger` | Quartermaster's Ledger | Common | universal · economy | Your cards that cost (5) or more cost (1) less. | `modify_cost` (`cost_ge 5`) → `modify_cost`; `delta −1` | 2.1 | — | null |
-| 4 | `treasure_vanguards_banner` | Vanguard's Banner | Rare | universal · tempo | The first card you play each turn costs (1) less. | `modify_cost` + `condition cards_played_this_turn == 0` (R-2) | 5.0 | ✔ | null |
+| 4 | `treasure_vanguards_banner` | Vanguard's Banner | Rare | universal · tempo | The first card you play each turn costs (1) less. | `modify_cost` + `condition cards_played_this_turn == 0` (R-2, resolved: card-effects C1 evaluates it per fold call) | 5.0 | ✔ | null |
 | 5 | `treasure_sprinters_boots` | Sprinter's Boots | Common | war · aggro, tempo | Your minions that cost (3) or less have Rush. | `aura` (board, `cost_le 3`) → hero-slot aura | 2.5 | — | null |
 | 6 | `treasure_scholars_candle` | Scholar's Candle | Common | knowledge · draw, value | At the start of your 2nd and 4th turns, draw a card. | `turn_start` (owner) + `condition match.turn ∈ {3, 7}` → `on_turn_start` | 3.0 | ✔ | null |
 | 7 | `treasure_bottomless_satchel` | Bottomless Satchel | Rare | universal · value | Your opening hand has 2 extra cards. | `modify_starting_hand_size` → same; `delta +2` | 3.9 | ✔ | null |
@@ -242,7 +243,7 @@ defined by Meta Progression (contract).
 | 12 | `treasure_twin_grip` | Twin Grip | Rare | war · weapons, aggro | Your hero can attack twice each turn. | `modify_max_attacks` (`owner_hero`) → same; `set 2` | 4.5 | ✔ | null |
 | 13 | `treasure_grave_tithe` | Grave Tithe | Rare | decay · husk, deathrattle | Whenever a friendly minion dies, summon a 1/1 Husk. *(Once per turn.)* | `on_minion_died` (friendly), `once_per_turn` → hero-slot observer (T2.5); summons `decay_husk` | 5.0 | — | `hero_decay_first_win` |
 | 14 | `treasure_rotting_bargain` | Rotting Bargain | Common | decay · deathrattle | Your Deathrattle minions cost (1) less. | `modify_cost` (`type minion, has_trigger deathrattle`) → `modify_cost` | 2.8 | — | null |
-| 15 | `treasure_plague_bell` | Plague Bell | Common | decay · husk, sacrifice | Your Husks have +1 Attack. | `aura` (`tag: husk`) on board (R-3) | 3.0 | — | `hero_decay_floor_5` |
+| 15 | `treasure_plague_bell` | Plague Bell | Common | decay · husk, sacrifice | Your Husks have +1 Attack. | `aura` (`tag: husk`) on board (R-3, resolved: card-effects C3 reads `tag` on board minions) | 3.0 | — | `hero_decay_floor_5` |
 | 16 | `treasure_focusing_prism` | Focusing Prism | Common | knowledge · spell_damage, spells | Your spells deal 1 more damage. | `modify_damage` (`source: friendly spell`) → `modify_damage`; `delta +1` | 2.6 | — | null |
 | 17 | `treasure_dogeared_grimoire` | Dog-eared Grimoire | Rare | knowledge · spells | Your spells cost (1) less. | `modify_cost` (`type spell`) → `modify_cost`; `delta −1` | 4.2 | — | `hero_knowledge_first_win` |
 | 18 | `treasure_living_armory` | Living Armory | Rare | universal · wild | Start each match with a random Legendary minion in your hand. | `on_match_start`; op `add_to_hand from {pool collectible, rarity legendary, type minion}` | 4.0 | — | `bosses_defeated_16` |
@@ -253,7 +254,7 @@ Counts: 11 Common / 9 Rare; affinity 10 universal, 4 war, 3 decay, 3 knowledge; 
 default (≥ 9), 4 unlockable (DD-H04 "some unlockable"). Archetype coverage from the brief: economy
 (1–3), tempo (4–5), value (6–7), defensive (8–10), hero-affine War (5, 11–12, 20), Decay (13–15),
 Knowledge (6, 16–17), wild (18–19). Content CN-5 expected a 5/5/5/5 split; this table is the
-authority (CN-5 says Content consumes these ids) and the difference is noted in Open Questions.
+authority (CN-5 says Content consumes these ids) and CN-5 now records this split (R-20, resolved).
 
 **Deviations from the brief, recorded.** *War "+1 Durability"*: card-effects lists
 `weapon_durability` as a provisional op (v2); Whetstone Wheel uses `+1 Attack` instead and the
@@ -267,17 +268,17 @@ health"*: kept, as the one pure stat treasure, at Common.
 #### T9. DSL sketches
 
 One effect per treasure (C1 shape; `id` defaults to `<treasure_id>.0`). Ops and scope keys are
-from C2–C5 verbatim; `R-n` marks a request listed in Open Questions.
+from C2–C5 verbatim; `R-n` marks a request listed in Open Questions (all resolved 2026-11-03).
 
 ```json
 {"id":"treasure_hollow_crown","effects":[{"trigger":"on_match_start","targets":"owner",
-  "ops":[{"op":"mana","amount":1,"duration":"permanent"}]}]}                                   // R-1
+  "ops":[{"op":"mana","amount":1,"duration":"permanent"}]}]}   // R-1: add_mana(PLAYER, 1, temporary=false) → crystal_bonus 1 (match-rules C5, F4)
 {"id":"treasure_worn_signet","effects":[{"trigger":"modify_cost","scope":{"card":{"side":"friendly","kind":"hero_power"}},
   "ops":[{"op":"modify_value","set":1}]}]}
 {"id":"treasure_quartermasters_ledger","effects":[{"trigger":"modify_cost","scope":{"card":{"side":"friendly","cost_ge":5}},
   "ops":[{"op":"modify_value","delta":-1}]}]}
 {"id":"treasure_vanguards_banner","effects":[{"trigger":"modify_cost","scope":{"card":{"side":"friendly"}},
-  "condition":{"cmp":[{"ref":"owner.cards_played_this_turn"},"==",0]},"ops":[{"op":"modify_value","delta":-1}]}]}  // R-2
+  "condition":{"cmp":[{"ref":"owner.cards_played_this_turn"},"==",0]},"ops":[{"op":"modify_value","delta":-1}]}]}  // R-2: condition per fold call (card-effects C1)
 {"id":"treasure_sprinters_boots","effects":[{"trigger":"aura","scope":{"zone":"board"},
   "targets":{"selector":"all_friendly_minions","filter":{"cost_le":3}},"ops":[{"op":"aura","keywords":["rush"]}]}]}
 {"id":"treasure_scholars_candle","effects":[{"trigger":"turn_start","scope":{"side":"owner"},
@@ -299,7 +300,7 @@ from C2–C5 verbatim; `R-n` marks a request listed in Open Questions.
 {"id":"treasure_rotting_bargain","effects":[{"trigger":"modify_cost",
   "scope":{"card":{"side":"friendly","type":"minion","has_trigger":"deathrattle"}},"ops":[{"op":"modify_value","delta":-1}]}]}
 {"id":"treasure_plague_bell","effects":[{"trigger":"aura","targets":{"selector":"all_friendly_minions","filter":{"tag":"husk"}},
-  "ops":[{"op":"aura","attack":1}]}]}                                                              // R-3
+  "ops":[{"op":"aura","attack":1}]}]}                                                              // R-3: tag on board minions (card-effects C3)
 {"id":"treasure_focusing_prism","effects":[{"trigger":"modify_damage","scope":{"source":{"side":"friendly","type":"spell"}},
   "ops":[{"op":"modify_value","delta":1}]}]}
 {"id":"treasure_dogeared_grimoire","effects":[{"trigger":"modify_cost","scope":{"card":{"side":"friendly","type":"spell"}},
@@ -320,7 +321,7 @@ state. Both are tables of data, not objects with behaviour.
 
 | State | Scope | Entry Condition | Exit Condition | Behavior |
 |---|---|---|---|---|
-| **Locked** | profile | `unlock != null` and key not in the profile's unlocked set | Meta Progression grants the key (`unlock_earned`) | Excluded from `pool()`; shown greyed in the run log's treasure list (Run UI, contract) |
+| **Locked** | profile | `unlock != null` and key not in the profile's unlocked set | Meta Progression grants the key (`unlock_granted`, meta-progression M3.6) | Excluded from `pool()`; shown greyed in the run log's treasure list (Run UI) |
 | **Available** | profile + run | `unlock == null`, or key unlocked; id not held or offered this run | Drawn as an offer, or the run ends | Eligible for `pool()`; nothing happens |
 | **Offered** | run | Reward Draft draws it (`draft_offered`) | `draft_pick` picks it → Held; picks another → **Passed** | Displayed on the draft screen with name, rarity, text, tags |
 | **Passed** | run | Offered and not picked | Run ends | In `draft_state.offered_treasure_ids`; never offered again this run (DD-R05) |

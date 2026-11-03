@@ -85,7 +85,7 @@ boss that heals 5 a turn?") and the draft is how you answer it.
 2. **Data-driven card effects**: every card is JSON (cost, stats, keywords, effects as
    trigger + target + operation), resolved by one rules engine with a visible event log.
 3. **Boss gauntlet**: eight bosses drawn from a pool of ~16 in three difficulty bands, each with a
-   hero power or passive, a hand-tuned deck and an AI priority script.
+   hero power or passive, a hand-tuned deck and a utility-scored AI with telegraphed intents.
 4. **Reward draft**: after each win choose one of three themed card bundles (3 cards each) or, on
    designated floors, one of three passive treasures.
 5. **Meta progression**: wins and losses record to a profile; unlock new heroes, treasures and
@@ -239,7 +239,7 @@ culture" (instant restarts).
 ### Technical Risks
 - Effect DSL expressiveness: some Hearthstone-style effects (auras, conditional triggers,
   "whenever" chains) need careful ordering rules; risk of a half-general DSL plus special cases.
-- Boss AI quality against arbitrary decks; a priority-script AI may play some boss decks badly.
+- Boss AI quality against arbitrary decks; a utility-scored AI may still misplay drafted decks; mitigated by the AI-vs-AI harness.
 - Headless screenshot evidence under Xvfb with Forward+ may need the Compatibility renderer.
 
 ### Market Risks
@@ -252,10 +252,9 @@ culture" (instant restarts).
 - The salvage from the old prototype is presentation only; the rules engine is a full rewrite.
 
 ### Open Questions
-- Treasure cadence: offered on fixed floors (2, 4, 6) or alternating with bundles? Resolve in the
-  reward-draft GDD with a paper test.
-- Boss count per band and reuse across runs: resolve in run-structure GDD.
-- Mulligan: Hearthstone rules (3 cards, replace any) assumed; confirm in match-rules GDD.
+- Treasure cadence: resolved — DD-R05 (after wins on floors 1, 3, 5), see reward-draft.md.
+- Boss count per band: resolved — DD-R02 (6/6/4); reuse rules in run-structure.md.
+- Mulligan: resolved — DD-M05 (3 cards, replace any subset once), match-rules.md.
 
 ---
 
@@ -269,7 +268,7 @@ produces runs that players want to immediately replay."
 2. Data-driven cards with an effect DSL; ~40 cards (War set + neutral)
 3. Boss AI and 4 bosses across two bands
 4. Run structure: hero select (War only), 4-boss gauntlet, death/victory screens
-5. Reward draft: bundles and 8 treasures
+5. Reward draft: bundles and 10 treasures (DD-H06)
 6. Match and run UI sufficient to play with a mouse
 
 **Explicitly NOT in MVP** (defer to later):
@@ -281,7 +280,7 @@ produces runs that players want to immediately replay."
 
 | Tier | Content | Features | Timeline |
 | ---- | ---- | ---- | ---- |
-| **MVP** | 1 hero, 4 bosses, ~40 cards, 8 treasures | Core loop only | 6–8 weeks |
+| **MVP** | 1 hero, 4 bosses, ~40 cards, 10 treasures (DD-H06) | Core loop only | 6–8 weeks |
 | **Vertical Slice** | 1 hero, full 8-boss run, ~60 cards, 12 treasures | Core + full run + save/resume | +3–4 weeks |
 | **Alpha** | 3 heroes, 16 bosses, ~120 cards, 20 treasures | All features incl. meta progression, placeholder art | +6–8 weeks |
 | **Full Vision** | 6 heroes, 24+ bosses, 200 cards | Custom art/audio, hard band modifiers | open |

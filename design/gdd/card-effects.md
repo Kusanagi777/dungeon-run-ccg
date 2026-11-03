@@ -10,6 +10,7 @@
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Feasibility: no engine reference for `scripting` under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (this system is pure GDScript `RefCounted` logic over plain data, DD-T02). No numbered ADRs exist; `docs/architecture/modifier-hook-chain.md` (reverse-documented prototype hook chain) was read as context only.
 > **Design decisions honoured**: DD-M09, DD-M11, DD-M13, DD-T01–DD-T04 (`design/design-decisions.md`); match-rules decisions C6, C10, C12, C13 and its primitive API; card-database CR-3/CR-5 stage 7; rng-event-log rules 7–12.
 > **REVISED 2026-11-03** (`/design-review`, lean mode at workflow `full`, option A "revise now"): (1) **C6.0 step unit** — one effect pass is one C10 step; ops are not separated by death checks; *dying* entities are excluded from selectors and readable only by reference (`is_dying` predicate, C3); F6 and Edge Cases restate the caps in those units. (2) **C11 rows 8, 16, 25** rewritten to the Heroes GDD's actual powers (Whetstone, Rot, Insight) with registry token ids `war_whetstone_blade` / `decay_husk`; rows 44–46 added (boss hero power, counter Deathrattle, Husk sweep). (3) **C9** defines event triggers on treasure/passive hosts without a hook binding as hero-slot observers (Treasures R-10). (4) Content/Treasures requests answered: `adjacent` gains `of:`; `tag` applies to board minions (R-3); `owner.turns_taken` ref (R-6); `condition` on value triggers (R-2); `scope.card` kind rule (R-13); `aura` on weapons; `buff cost` on deck cards; counters in the raise-time snapshot; `target` ref defined. (5) AC-43–46 added; AC-01/13/15/34 re-pointed; stale "(undesigned)" labels removed; Open Questions updated.
+> **REVISED 2026-11-03 (cross-review)**: C-02 (`mana` op row: permanent `add_mana` at `on_match_start` raises `crystal_bonus`), C-04 (`targeting_spec` derived, confirmed by Match Rules), C-07 / DD-X04 (`discover_offered` ≠ `choice_requested`, pairing stated in C8 and Interactions), C-16 (a/b/c answered by Match Rules C4: card-instance expiry, recipient-controller expiry, player-side-first observer order — C6.3, F3, Edge Cases aligned), C-22 (five primitives landed in Match Rules: C5 rows, C10, C11, Edge Cases, AC-06, Interactions, Dependencies, Tuning Knobs de-provisionalised), C-25 (dependents count: five), V-35 housekeeping (Treasures rows closed via C-26). Open Questions rows closed accordingly.
 
 ## Summary
 
@@ -133,9 +134,10 @@ Rules of the shape:
    that selector, with its `filter`, **is the card's targeting spec**. The validator derives
    `targeting_spec(def_id) = {mode, filter}` from it — `mode = required` when the `chosen`
    selector has no `optional: true`, `optional` when it does, `none` when there is no `chosen` —
-   and exposes it to Match Rules (C6 validation reads `targeting.mode`). Card Database stores no
-   `targeting` field (CR-3 rejects unknown fields); this derivation is the decision that keeps
-   one source of truth. `chosen` is illegal on any non-play trigger (`E_FX_CHOSEN`).
+   and exposes it to Match Rules (C6 validation calls `targeting_spec(def_id)` and reads its
+   `mode`). Card Database stores no `targeting` field (CR-3 rejects unknown fields); this
+   derivation is the decision that keeps one source of truth (confirmed by Match Rules'
+   Dependencies row, cross-review C-04: targeting is derived here, never stored). `chosen` is illegal on any non-play trigger (`E_FX_CHOSEN`).
 2. **Keywords are not effects.** `taunt`, `charge`, `rush`, `divine_shield`, `windfury`,
    `stealth`, `lifesteal`, `poisonous` and `spell_damage` (with its `spell_damage` int) live in
    `keywords[]` and are interpreted by Match Rules (C12). `battlecry`, `deathrattle`, `discover`,
@@ -298,7 +300,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `buff` | `attack`, `health` (values, may be negative), `cost` (card instances only), `keywords[]`, `duration: permanent\|until_end_of_turn` | characters, weapons (attack only), card instances in hand **or deck** (`cost` only; the enchantment travels with the instance, so `buff cost` on `deck_top` followed by `draw` is "Draw a card. It costs (N) more/less", row 25) | `apply_enchantment(target, {attack_delta, health_delta, cost_delta, keywords_added, expires})` | no-op `no_target`; `health < 0` that leaves `health ≤ 0` kills in the next death check (F3) |
 | `set_stats` | `attack`, `health` (values; either may be absent) | minions | `set_stats(target, attack, health)` | no-op `no_target`. "Swap Attack and Health" is `set_stats` with `attack: {ref: target.health}, health: {ref: target.attack}` — both refs read before the write |
 | `give_keyword` | `keyword` (DD-M09 id, not `battlecry/deathrattle/discover/aura/silence/freeze`) | characters, weapons | `add_keyword` (an enchantment with `keywords_added`) | no-op; granting a keyword already held is a no-op `already_has` |
-| `remove_keyword` | `keyword` | characters | **none in match-rules v1** — provisional primitive `remove_keyword(target, kw)` requested (Open Questions) | Validator rejects (`E_FX_OP_UNAVAILABLE`) until the primitive exists → v2 list |
+| `remove_keyword` | `keyword` | characters | `remove_keyword(target, kw)` (match-rules Interactions, added 2026-11-03; emits `keyword_removed`; removing Taunt/Stealth/Divine Shield takes effect at the next legality or damage evaluation) | no-op `no_target`; removing a keyword the target does not hold is a no-op `skipped` |
 | `silence` | — | minions | `silence` | no-op `no_target` |
 | `freeze` | — | characters | `freeze` | no-op; re-freezing re-stamps (match-rules C13) |
 | `destroy` | — | minions, weapons | `destroy` (sets `pending_destroy`; dies in the next death check, so Deathrattles fire) | no-op `no_target` |
@@ -309,13 +311,13 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `add_to_hand` | `card_id` **or** `from: {pool, filter}` (random, F4 pick of 1), `count`, `side` | — | `add_card_to_hand(side, def_id)` × count | Full hand → engine burns (`card_burned`), op outcome `burned` |
 | `copy_to_hand` | `count`, `side` | characters (minions), hand/deck cards | `add_card_to_hand(side, target.def_id)` — a copy is the **definition**, never the instance: enchantments, damage and temporary buffs are not copied | no-op `no_target` |
 | `return_to_hand` | — | minions | `return_to_hand` (becomes a fresh card instance of its `def_id`; full hand → burned by the engine) | no-op `no_target` |
-| `shuffle_into_deck` | `card_id` or `targets` (hand cards / minions), `count`, `position: random\|top\|bottom` | hand cards, minions, or none | **provisional** primitive `add_card_to_deck(side, def_id, position)` requested from match-rules | Validator accepts; flagged `E_FX_OP_UNAVAILABLE` until the primitive lands → v1 content must not use it |
-| `discard` | `count`, `random: true` (v1 only random), `side` | — | **provisional** `discard(side, instance)` requested | as above |
-| `mana` | `amount` (±), `duration: this_turn\|permanent` | — (side) | `add_mana(side, n, temporary)`; clamps to `MAX_MANA` and ≥ 0 (match-rules C5) | Never fails; clamped delta logged |
+| `shuffle_into_deck` | `card_id` or `targets` (hand cards / minions), `count`, `position: random\|top\|bottom` | hand cards, minions, or none | `add_card_to_deck(side, def_id, position)` (match-rules Interactions, added 2026-11-03; emits `card_added_to_deck`; `random` draws one `match_<floor>` index — counted in F5) | A targeted instance that left play is skipped (`no_target`); `card_id` form never fails |
+| `discard` | `count`, `random: true` (v1 only random), `side` | — | `discard(side, random)` × count (match-rules Interactions, added 2026-11-03; emits `card_discarded`; each random pick draws from `match_<floor>`, F5) | Empty hand → no-op `no_target` |
+| `mana` | `amount` (±), `duration: this_turn\|permanent` | — (side) | `add_mana(side, n, temporary)` with `temporary = (duration == this_turn)`; clamps to `MAX_MANA` and ≥ 0 (match-rules C5). `permanent` under `on_match_start` (treasure/passive hosts) raises that side's `crystal_bonus`, which match-rules C4 step 2 / F4 read every Start step (Hollow Crown, Treasures R-1, cross-review C-02); `this_turn` is not used by v1 content | Never fails; clamped delta logged |
 | `armor` | `amount` | — (side) | `apply_armor` | Never fails |
 | `equip` | `card_id` (a weapon def) | — (side) | `equip_weapon(side, def_id)` (old weapon destroyed first, match-rules C6) | Never fails |
-| `weapon_durability` | `amount` (±) | weapons | **provisional** `modify_durability(weapon, delta)` requested | as `shuffle_into_deck` |
-| `hero_power_refresh` | — | — (side) | **provisional** `refresh_hero_power(side)` requested | as above |
+| `weapon_durability` | `amount` (±) | weapons | `modify_durability(weapon, delta)` (match-rules Interactions, added 2026-11-03; emits `weapon_durability_changed`; a weapon at ≤ 0 breaks in the next death check) | no-op `no_target` (no weapon equipped) |
+| `hero_power_refresh` | — | — (side) | `refresh_hero_power(side)` (match-rules Interactions, added 2026-11-03; emits `hero_power_refreshed`; sets `used_this_turn = false`, no mana refund) | Never fails; refreshing a power not yet used this turn is a no-op `skipped` |
 | `retrigger` | `trigger: deathrattle` (v1 allows only `deathrattle`) | minions, weapons | Queues the target's live effects with that trigger as if raised now (`trigger_queued{reason: retrigger}`) | no-op `no_target` or `no_such_trigger` |
 | `add_counter` / `set_counter` | `key`, `amount` / `value` | — (source-scoped) | Resolver-owned `EffectRuntime.counters[source_id][key]`; emits `counter_changed` | Never fails; counters live as long as the source's `entity_id` (a treasure/passive id never expires) and are copied into the raise-time snapshot (C6.5), so the source's own queued Deathrattle still reads them |
 | `conditional` | `if` (condition), `then: op[]`, `else: op[]` | per inner op | — | The branch not taken is logged as `skipped`; inner ops obey their own semantics |
@@ -365,11 +367,13 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    | Draw | hook `on_draw` → observers `on_draw` (never on a burn, match-rules C11) |
    | Match start | hooks `on_match_start` only |
 
-   **Observer candidate order**: for `turn_start`/`turn_end`, the active side's board left to
-   right, its weapon, its hero power/hero enchantments, then the opponent's in the same order
-   (match-rules C4); for every other trigger point, player side first in that same per-side
-   order (match-rules C10). Within one entity, `effects[]` index order, definition effects before
-   enchantment-granted ones. Among hooks: installation order.
+   **Observer candidate order**: one order for every trigger point, **including**
+   `turn_start`/`turn_end` — player board left to right, player weapon, player hero power/hero
+   enchantments, then the boss side in the same per-side order, regardless of whose turn it is
+   (match-rules C4 step 5 and C10, unified by cross-review C-16c on 2026-11-03; an "at the start
+   of your opponent's turn" effect on the boss side is simply a boss-side candidate). Within one
+   entity, `effects[]` index order, definition effects before enchantment-granted ones. Among
+   hooks: installation order.
 4. **One effect, one pass.** Resolving an effect: evaluate `condition` → for each op in order:
    resolve its selector against the live board, run the primitive per target in canonical order,
    record `{op, targets, values, outcome}` → emit `effect_resolved`. Ops are independent: an op
@@ -389,7 +393,9 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    engine emits when it pops the trigger (which itself has `cause_seq` of the raising event, e.g.
    `minion_died`). The resolver emits exactly one `effect_resolved` per effect pass (payload in
    Interactions) with the same `cause_seq`, after the ops. `discover` additionally emits
-   `discover_offered` when the `ChoiceRequest` is raised and `discover_picked` when resumed.
+   `discover_offered` when the `ChoiceRequest` is raised and `discover_picked` when resumed;
+   these are this GDD's events and are distinct from Match Rules' `choice_requested` /
+   `choice_made` phase events (DD-X04, C8.1).
 7. **`once_per_turn`** is keyed `(effect_id, source entity_id, match.turn)`; the mark is set when
    the effect is queued or run, so two raises in one step produce one resolution. Marks live in
    `EffectRuntime` and need no reset (the turn counter moves on).
@@ -438,7 +444,11 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 1. `discover` builds its option list (F4), then calls `discover(side, options)`; the engine enters
    `Choice` with `pending_choice.side = owner` (Boss AI answers for the boss, match-rules C2) and
    the resolver stores a **continuation**: `{effect_id, source snapshot, op_index, options,
-   remaining ops}` in `EffectRuntime.pending_choice`. No RNG is drawn while waiting.
+   remaining ops}` in `EffectRuntime.pending_choice`. No RNG is drawn while waiting. Two
+   distinct events mark the pause (DD-X04): Match Rules emits `choice_requested` when the engine
+   enters `Choice` (its C15 spelling), and this GDD emits `discover_offered` carrying the options
+   (`option_card_ids[]` / `option_label_keys[]`); on resume, `choice_made` (Match Rules) and
+   `discover_picked` (this GDD) pair the same way. Match UI opens the panel on `discover_offered`.
 2. On `choose(i)`, the resolver applies the option (`then`), then continues the same effect from
    `op_index + 1`, then the C10 loop runs as usual. The rest of the queue waited; nothing resolves
    out of order.
@@ -491,7 +501,7 @@ is merged by Card Database with severity `E_DELEGATED` (its CR-5). Closed code s
 | `E_FX_SELECTOR` / `E_FX_FILTER` | Unknown selector / predicate; `self` on a treasure; `adjacent` with `of: self` on a non-minion host; `of: target` under a trigger without `chosen` |
 | `E_FX_OP` | Unknown op; op illegal under this trigger class (`aura` outside static, non-`modify_value` under a value trigger); param out of range |
 | `E_FX_OP_TARGET` | Op applied to a selector that can never yield a legal kind (e.g. `freeze` on `hand`) |
-| `E_FX_OP_UNAVAILABLE` | Op whose primitive match-rules does not expose yet (C5 provisional rows) |
+| `E_FX_OP_UNAVAILABLE` | Op whose primitive match-rules does not expose. **No v1 op raises it** since the five primitives landed in match-rules Interactions on 2026-11-03 (cross-review C-22); the code stays in the closed set for future ops added here before their primitive exists |
 | `E_FX_REF` | `card_id` in `summon`/`transform`/`equip`/`add_to_hand`/`discover.list` not found via `has(id)`; `summon`/`transform` of a non-minion; `equip` of a non-weapon |
 | `E_FX_REF_PATH` | Unknown `ref` path or a context ref not available under this trigger (C2 last column) |
 | `E_FX_CHOSEN` | More than one `chosen` play effect per host; `chosen` on a non-play trigger or inside `choose_one` options |
@@ -565,7 +575,8 @@ is expressible with v1 ops and primitives. Rows 8, 16 and 25 are the three launc
 **as Heroes H-3 words them** (prose binding there; `hero_war/decay/knowledge.hero_power` in the
 registry), and each row names how Heroes' provisional sketch vocabulary maps onto v1 ops — no
 `branch`, `left_play`, `bind` or `enchant_card` primitives are added. Rows 1, 7 and 8 need only
-`attack` on weapons; a "+1 Durability" text needs the provisional `weapon_durability` op.
+`attack` on weapons; a "+1 Durability" text uses the `weapon_durability` op (primitive
+`modify_durability`, in match-rules since 2026-11-03).
 
 **v2 — deliberately not expressible in v1** (each needs either a new match-rules primitive, a new
 keyword under DD-M09, or UI the MVP does not have; a card needing one is a GDD change here first):
@@ -653,13 +664,22 @@ effect_resolved {
 `operation` in the catalogue row is the first op's name (kept for grep compatibility); the full
 list is `ops[]`. `discover_offered {side, source_id, effect_id, kind: discover|choose_one,
 option_card_ids[] | option_label_keys[]}` and `discover_picked {side, picked_index,
-picked_card_id | picked_label_key}` are as catalogued. `counter_changed {source_id, key, value}`
-is new and owned here.
+picked_card_id | picked_label_key}` are as catalogued. **Pairing (DD-X04)**: `discover_offered`
+and `discover_picked` are Card Effects' events; `choice_requested` and `choice_made` are Match
+Rules' phase events (its C15 spelling is authoritative for match events). They are four distinct
+events, not aliases: on every Discover / Choose One the log shows `choice_requested` (engine
+enters `Choice`) then `discover_offered` (options), and on resume `choice_made` then
+`discover_picked`, all under one `cause_seq`. `counter_changed {source_id, key, value}` is new
+and owned here. Event names elsewhere in this GDD use Match Rules' spellings (`healed`,
+`weapon_destroyed`, `trigger_resolved`, `enchantment_applied`); RNG & Event Log's catalogue
+mirrors them.
 
-**Primitive requests to Match Rules** (provisional; the ops stay validator-blocked until the
-match-rules GDD adds them to its primitive API): `remove_keyword(target, kw)`,
-`add_card_to_deck(side, def_id, position)`, `modify_durability(weapon, delta)`,
-`refresh_hero_power(side)`, `discard(side, instance_id)`. Listed in Open Questions.
+**Primitives added to Match Rules' API on 2026-11-03 for this GDD**: `remove_keyword(target,
+kw)`, `add_card_to_deck(side, def_id, position)`, `modify_durability(weapon, delta)`,
+`refresh_hero_power(side)`, `discard(side, hand_index | random)` (match-rules Interactions,
+with their events `keyword_removed`, `card_added_to_deck`, `weapon_durability_changed`,
+`hero_power_refreshed`, `card_discarded`). Their ops (`remove_keyword`, `shuffle_into_deck`,
+`weapon_durability`, `hero_power_refresh`, `discard`) are no longer validator-blocked.
 
 ## Formulas
 
@@ -726,7 +746,7 @@ on negative health buff:                  same as aura loss (no clamp): a 3/3 wi
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | attack_delta / health_delta | int | −10 to +10 | data file (card effect) | Per-enchantment change |
-| expires | enum | `null \| end_of_turn` | data file (`duration`) | Removed by match-rules C4 End step 5 of the **recipient's controller** (the engine's rule; see Edge Cases for the enemy-side consequence). Recipients include card instances in hand or deck (`cost` enchantments, rows 25 and 41) — match-rules' step 5 wording "characters" is asked to confirm this (Open Questions) |
+| expires | enum | `null \| end_of_turn` | data file (`duration`) | Removed by match-rules C4 End step 5 of the **recipient's controller** (the engine's rule, confirmed intended — cross-review C-16b; see Edge Cases for the enemy-side consequence). Recipients include card instances in hand or deck (`cost` enchantments, rows 25 and 41): match-rules step 5 names "every entity owned by S, including card instances in S's hand and deck" (cross-review C-16a) |
 | damage_taken | int | 0–∞ | state (match-rules) | Never written by this system |
 
 **Output Range:** as match-rules F6. **Example:** "+4/+4 until end of turn" on a 1/1 that then
@@ -887,9 +907,9 @@ already decides the case, the entry says so and adds only what this system contr
   groups (match-rules Edge Cases, aura source dies).
 - **If an `until_end_of_turn` buff is given to an *enemy* minion during the owner's turn**: per
   match-rules C4 End step 5 the enchantment is removed at the **recipient's controller's** End
-  step, so it lasts through the enemy's next turn. This GDD records the consequence rather than
-  overriding it and asks match-rules to confirm the intended reading (Open Questions): Hearthstone
-  expires at the end of the current turn.
+  step, so it lasts through the enemy's next turn. Match Rules confirmed this as intended
+  (cross-review C-16b, 2026-11-03): one turn later than Hearthstone, and the log shows the
+  `enchantment_removed` under the boss's `turn_ending`.
 - **If a hand-cost aura would take a card below 0**: F1 clamps to 0; `effective_cost` never
   refunds.
 - **If `give_keyword: taunt` targets a minion that already has Taunt**: outcome `already_has`, no
@@ -1003,9 +1023,11 @@ already decides the case, the entry says so and adds only what this system contr
   nothing — Content fixes it.
 - **If `summon` names a non-token collectible card**: allowed (Hearthstone does it); the summoned
   minion is a real instance of that card with its own effects (its Battlecry does not fire).
-- **If an effect uses an op whose primitive is provisional** (`shuffle_into_deck`, `discard`,
-  `weapon_durability`, `hero_power_refresh`, `remove_keyword`): `E_FX_OP_UNAVAILABLE`; the build
-  fails rather than shipping a card that silently does nothing.
+- **If a future op is added here before match-rules exposes its primitive**:
+  `E_FX_OP_UNAVAILABLE`; the build fails rather than shipping a card that silently does nothing.
+  No v1 op is in this state: `shuffle_into_deck`, `discard`, `weapon_durability`,
+  `hero_power_refresh` and `remove_keyword` have had their primitives since 2026-11-03
+  (match-rules Interactions; cross-review C-22).
 - **If a boss `passive` contains a play trigger** (`battlecry`): `E_FX_TRIGGER` — passives are
   never played.
 
@@ -1015,15 +1037,15 @@ Hard = this system cannot resolve a single effect without it (or the dependent c
 without this system); soft = works with a null implementation. **Bidirectional check**
 (`.claude/rules/design-docs.md`): `systems-index.md` lists Card Effects as depending on Match
 Rules, Card Database and RNG & Event Log — consistent with the rows below; it names Card Effects
-under *Depends On* for Boss AI, Heroes, Treasures, Match UI and Content (five rows; the index's
-bottleneck note says "six dependents" — flagged for `/map-systems`, not edited here). Match-rules'
-and card-database's Dependencies sections already list Card Effects as a dependent; rng-event-log
-does too. Heroes, Treasures, Boss AI, Match UI and Content are undesigned, so their rows are the
-contract this GDD proposes and they confirm.
+under *Depends On* for Boss AI, Heroes, Treasures, Match UI and Content — **five dependents**,
+the count the index's bottleneck note adopts (cross-review C-25; Run Structure is indirect and is
+not counted). Match-rules' and card-database's Dependencies sections already list Card Effects as
+a dependent; rng-event-log does too. Heroes, Treasures, Boss AI, Match UI and Content are
+Designed (2026-11-03) and each confirms its row below.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
 |---|---|---|---|
-| Match Rules | This depends on Match Rules (and it calls back into this) | Hard | Trigger points and hook points (C2), the primitive API (C5), `MatchState` read access, the Choice phase and `choose` resumption, `recompute_auras()`, `RESOLUTION_STEP_CAP`. This supplies `resolve()`, `legal_targets()`, `targeting_spec()`. Five primitives requested (Interactions). |
+| Match Rules | This depends on Match Rules (and it calls back into this) | Hard | Trigger points and hook points (C2), the primitive API (C5), `MatchState` read access, the Choice phase and `choose` resumption, `recompute_auras()`, `RESOLUTION_STEP_CAP`. This supplies `resolve()`, `legal_targets()`, `targeting_spec()` (Match Rules calls `targeting_spec(def_id)` during C6 validation — derived here, not a stored field, cross-review C-04). The five primitives this GDD asked for are in match-rules' API since 2026-11-03 (Interactions). |
 | Card Database | This depends on Card Database | Hard | `effects[]`/`passive` payloads, `type`, `cost`, `spell_damage`; `has(id)`, `card(id)`, `collectible_pool()`, `cards_by_*` for pools (F4). This supplies the CR-5 stage 7 validator and the `E_FX_*` codes. No `targeting` field needed (C1 rule 1). |
 | RNG & Event Log | This depends on RNG & Event Log (through the engine) | Hard | `match_<floor>` stream for F4/F5 draws (direct, no forks in v1 — Open Questions); event envelope with `cause_seq`; `max_match_events` backstop. This owns `effect_resolved.values`, `discover_*`, `counter_changed`. |
 | Heroes | Heroes depends on this | Hard (for them) | Hero powers are `hero_power`-trigger effects in this DSL (DD-M13); War/Decay/Knowledge identities (DD-H01) rely on rows 1–25 of C11 being expressible, and rows 8, 16 and 25 are the three powers as Heroes H-3 words them (Whetstone, Rot, Insight), using the registry tokens `war_whetstone_blade` and `decay_husk`. |
@@ -1036,8 +1058,8 @@ contract this GDD proposes and they confirm.
 ## Tuning Knobs
 
 `systems-designer` not consulted — Lean mode (knobs derived from the Formulas variable tables).
-All knobs live in `assets/data/card_effects.json` (`schema_version` per DD-T01; a new data file,
-flagged for DD-T01 in Open Questions) and are read once at `RulesEngine.start`. None of them is an
+All knobs live in `assets/data/card_effects.json` (`schema_version` per DD-T01, which lists the
+file) and are read once at `RulesEngine.start`. None of them is an
 owner row in `design/design-decisions.md`; all are designer defaults.
 
 | Parameter | Current value | Safe range | Effect of increase | Effect of decrease | Interacts with |
@@ -1219,8 +1241,11 @@ refers to the C11 coverage table.
 - [ ] AC-05 **GIVEN** "deal 1 damage to all minions, 20 times" (`repeat 20 × all_minions`),
   **WHEN** validated with `EFFECT_STATIC_STEP_LIMIT = 250`, **THEN** `E_FX_BUDGET` with
   `bound = 321`; with `times: 10` it passes (`161`).
-- [ ] AC-06 **GIVEN** an effect using `shuffle_into_deck`, **WHEN** validated, **THEN**
-  `E_FX_OP_UNAVAILABLE`.
+- [ ] AC-06 **GIVEN** an effect using `shuffle_into_deck`, `discard`, `weapon_durability`,
+  `hero_power_refresh` or `remove_keyword`, **WHEN** validated, **THEN** no
+  `E_FX_OP_UNAVAILABLE` is raised (their primitives exist, match-rules Interactions); **GIVEN** a
+  test stub engine whose primitive table lacks `add_card_to_deck`, **WHEN** `shuffle_into_deck`
+  is validated against it, **THEN** `E_FX_OP_UNAVAILABLE` names the op and the missing primitive.
 - [ ] AC-07 **GIVEN** row 18 (chosen, `kind: any`) and row 10 (chosen friendly minion, Battlecry),
   **WHEN** `targeting_spec` is queried, **THEN** row 18 → `{mode: required, filter: {kind: any}}`
   and `legal_targets` lists every non-Stealth enemy character plus all friendly characters; row 10
@@ -1374,19 +1399,19 @@ refers to the C11 coverage table.
 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
-| Five primitives this GDD needs are not in match-rules' primitive API: `remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`. Add them to match-rules Interactions (their ops stay `E_FX_OP_UNAVAILABLE` until then). | Match Rules GDD (owner) | Before `/create-architecture` | Open — proposed here |
-| `targeting_spec` is derived from the `chosen` selector rather than stored as a Card Database field; match-rules Dependencies says it reads `targeting {mode, filter}` from the card record. Confirm the derived reading and update that row's wording. | Owner / `/consistency-check` | Before match-rules design-review | Open — proposed here |
-| Event-name drift between siblings: match-rules `healed` / `weapon_destroyed` / `trigger_resolved` / `enchantment_applied` vs rng-event-log `healing_applied` / `weapon_broken` / `deathrattle_triggered` / `minion_modified`. This GDD uses match-rules' names and emits no `minion_modified` (the primitive's `enchantment_applied` already covers it). One catalogue must win. | RNG & Event Log GDD | Before `/consistency-check` | Open |
+| Five primitives this GDD needs are not in match-rules' primitive API: `remove_keyword`, `add_card_to_deck`, `modify_durability`, `refresh_hero_power`, `discard`. Add them to match-rules Interactions (their ops stay `E_FX_OP_UNAVAILABLE` until then). | Match Rules GDD (owner) | Before `/create-architecture` | Resolved 2026-11-03 — cross-review C-22: all five are in match-rules Interactions with their events; C5 rows, C10, Edge Cases and AC-06 updated |
+| `targeting_spec` is derived from the `chosen` selector rather than stored as a Card Database field; match-rules Dependencies says it reads `targeting {mode, filter}` from the card record. Confirm the derived reading and update that row's wording. | Owner / `/consistency-check` | Before match-rules design-review | Resolved 2026-11-03 — cross-review C-04: match-rules Dependencies now reads `effects[]` and calls `targeting_spec(def_id)` (derived, not stored) |
+| Event-name drift between siblings: match-rules `healed` / `weapon_destroyed` / `trigger_resolved` / `enchantment_applied` vs rng-event-log `healing_applied` / `weapon_broken` / `deathrattle_triggered` / `minion_modified`. This GDD uses match-rules' names and emits no `minion_modified` (the primitive's `enchantment_applied` already covers it). One catalogue must win. | RNG & Event Log GDD | Before `/consistency-check` | Resolved 2026-11-03 — DD-X04 (cross-review C-07): Match Rules C15 spelling wins, RNG catalogue mirrors it; `discover_offered` (this GDD) and `choice_requested` (Match Rules) are two distinct events — pairing stated in C8.1 and Interactions |
 | Random draws come **directly** from `match_<floor>` (C6.9); rng-event-log's Interactions row proposes `fork("effect_<id>")`. Confirm direct draws for v1 and amend that row. | RNG & Event Log GDD | Before `/consistency-check` | Open — proposed here |
-| `until_end_of_turn` on an enemy-controlled recipient expires at the recipient's controller's End step (match-rules C4 step 5), i.e. one turn later than Hearthstone. Intended, or should match-rules expire at the end of the turn in which the enchantment was applied? | Match Rules GDD | Before Card Effects design-review | Open |
-| Observer candidate order: match-rules C4 says active side first for turn triggers, C10/Interactions say player side first always. This GDD follows both as written (C6.3); match-rules should state one rule. | Match Rules GDD | Before match-rules design-review | Open |
-| `assets/data/card_effects.json` is a new data file not listed in DD-T01 — confirm and add it to the register (same ask as match-rules' `match_rules.json`). | Owner (orchestrator) | Before `/create-architecture` | Open — proposed here |
+| `until_end_of_turn` on an enemy-controlled recipient expires at the recipient's controller's End step (match-rules C4 step 5), i.e. one turn later than Hearthstone. Intended, or should match-rules expire at the end of the turn in which the enchantment was applied? | Match Rules GDD | Before Card Effects design-review | Resolved 2026-11-03 — cross-review C-16b: intended; match-rules C4 End step 5 documents recipient-controller expiry (F3, Edge Cases updated) |
+| Observer candidate order: match-rules C4 says active side first for turn triggers, C10/Interactions say player side first always. This GDD follows both as written (C6.3); match-rules should state one rule. | Match Rules GDD | Before match-rules design-review | Resolved 2026-11-03 — cross-review C-16c: player side first always, including turn triggers (match-rules C4 step 5 amended); C6.3 aligned |
+| `assets/data/card_effects.json` is a new data file not listed in DD-T01 — confirm and add it to the register (same ask as match-rules' `match_rules.json`). | Owner (orchestrator) | Before `/create-architecture` | Resolved 2026-11-03 — cross-review C-22: DD-T01 lists `card_effects.json` |
 | Boss Discover draws from the **player's** collectible pool (F4). Acceptable for Pillar 2, or do puzzle bosses need their own pool (`cards_by_set(boss)` included)? | Content / Treasures GDD | Alpha content pass | Open — defaulted here |
 | Cross-card cycle lint (A summons B summons A) is not a load-time check; proposed as a `/balance-check` pass over `summon`/`retrigger`/`transform` graphs. | Content / `/balance-check` | Before the first 40-card batch | Open — proposed here |
 | `retrigger` is limited to `deathrattle` in v1. Decay may want "trigger a Battlecry again" — allow `battlecry` with `chosen` re-targeting? | Heroes / Content | Alpha content pass | Deferred |
 | Generated card text from the DSL (so `text.en` cannot drift from the effect) vs authored text. v1 authors text by hand; `W_FX_KEYWORD_MISMATCH` is the only drift check. | Content / Match UI | Vertical Slice | Deferred |
-| Systems index says Card Effects has six dependents; five rows list it. Reconcile (Reward Draft or Run Structure?). | `/map-systems` | Next index update | Open |
+| Systems index says Card Effects has six dependents; five rows list it. Reconcile (Reward Draft or Run Structure?). | `/map-systems` | Next index update | Resolved 2026-11-03 — cross-review C-25: five dependents (Boss AI, Heroes, Treasures, Match UI, Content); the index's bottleneck note is corrected to five, and Run Structure stays indirect (Dependencies intro updated) |
 | Heroes H-3 sketches carry a `targeting` field (C1 rule 1 derives it from `chosen`) and assume a death check between Rot's two ops (C6.0: a pass is atomic; `left_play` is `is_dying`). Rows 8, 16, 25 give the v1 encodings; Heroes to correct its sketches per its own rule ("prose wins") and close its DSL open question. | Heroes GDD (`/propagate-design-change`) | Before `hero_powers.json` is authored | Answered here — Heroes to apply |
-| Treasures R-2 (condition on value triggers: C1), R-3 (`tag` on board minions: C3), R-6 (`owner.turns_taken`: C4), R-10 (hero-slot observers: C9), R-13 (`scope.card` without `kind`: C2) and the `aura`-on-`owner_weapon` legality (C5) are answered; Treasures to close them. R-1 (permanent `add_mana`) remains with Match Rules. | Treasures GDD | `/consistency-check` | Answered here — Treasures to apply |
-| `until_end_of_turn` enchantments on **card instances** in hand or deck (rows 25, 41): match-rules C4 End step 5 removes those "owned by S characters" — confirm the wording covers card instances held by S, or add them. | Match Rules GDD | Before the Knowledge hero stories | Open — proposed here |
-| Content's two redesigns: `war_cleave_through` ("a minion and the minions next to it") is now expressible with `adjacent` `of: target` (C3); Content may restore the original text or keep the sweep. `war_quartermaster` still waits on `modify_durability`. | Content GDD | Alpha content pass | Open — informational |
+| Treasures R-2 (condition on value triggers: C1), R-3 (`tag` on board minions: C3), R-6 (`owner.turns_taken`: C4), R-10 (hero-slot observers: C9), R-13 (`scope.card` without `kind`: C2) and the `aura`-on-`owner_weapon` legality (C5) are answered; Treasures to close them. R-1 (permanent `add_mana`) remains with Match Rules. | Treasures GDD | `/consistency-check` | Resolved 2026-11-03 — cross-review C-26 closes R-2/R-3/R-6/R-10/R-13 and the `aura`-on-weapon row in Treasures; R-1 resolved by cross-review C-02 (match-rules `crystal_bonus`; this GDD's `mana` op row cites it) |
+| `until_end_of_turn` enchantments on **card instances** in hand or deck (rows 25, 41): match-rules C4 End step 5 removes those "owned by S characters" — confirm the wording covers card instances held by S, or add them. | Match Rules GDD | Before the Knowledge hero stories | Resolved 2026-11-03 — cross-review C-16a: match-rules C4 End step 5 now names "card instances in S's hand and deck" (F3 variable row updated) |
+| Content's two redesigns: `war_cleave_through` ("a minion and the minions next to it") is now expressible with `adjacent` `of: target` (C3); Content may restore the original text or keep the sweep. `war_quartermaster`'s `modify_durability` primitive landed in match-rules on 2026-11-03 (cross-review C-22), so its "+1 Durability" text is authorable. | Content GDD | Alpha content pass | Open — informational |

@@ -10,6 +10,7 @@
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `game-designer`, `systems-designer`, `economy-designer` (Section C), `systems-designer` (Sections D, E, G) and `qa-lead` (Section H) not consulted — Lean mode, and this session has no `Agent` tool; review manually before production. Technical feasibility: no engine reference for `scripting` under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (pure GDScript `RefCounted` logic per DD-T02, no engine surface expected).
 > **Decision register rows honoured**: DD-R01–R09, DD-H06, DD-M02, DD-M12, DD-T01–T04.
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): (1) Reward Draft contract reconciled to reward-draft.md D1/D3/D8/D9 — `init_run` at R2 step 5 and on a schema-less resume (R8.2), `offer → Offer{option_ids[], flags[]}`, `pick(kind, id, offer, run_state) → Pick`, `draft_state = {schema_version, treasure_pool[]}`, empty offer ⇒ step skipped with `DraftRecord{picked_id: null}` (R5.7, T19/T20), invariants count non-null picks; (2) Treasures contract reconciled to treasures.md T4/T5 — `treasure_state = {schema_version, by_treasure{}}`, `collect_state` called in R4 before S2; (3) R6 abandon accounting fixed — an abandon from `post_match_reward` credits the won floor and every abandon sets `floor_reached` (Meta Progression F3 reads it); (4) Meta Progression contract marked confirmed (`archive_run` return value, `E_READONLY`, loss accounting, custom-seed exclusion); (5) stale "partner GDD does not exist" text, `*(planned)*` cross-references and two resolved Open Questions updated; AC-2 made assertable, AC-32–35 added. Cross-GDD items left open are listed in `design/gdd/reviews/run-structure-review-log.md`.
+> **REVISED 2026-11-03 (cross-review)**: C-11 / DD-X02 (no first-run hero rule; Heroes and Run UI naming closed), C-12 (`suspend` command: Core Rules, States T21, R8.7, Interactions, Dependencies, Edge Cases, AC-36), C-17 (Run Structure owns the match-driver interface — Interactions / Dependencies Boss AI rows), C-30 housekeeping (Open Questions on `MatchConfig.seed`, catalogue owner / `defeat`, `BossDef.tags`, rule 18, treasures T6 marked resolved). DD-X05 verified already applied (R5.3 `Offer{option_ids[], flags[]}`; `offered_ids` only in the persisted DraftRecord).
 
 ## Summary
 
@@ -72,8 +73,13 @@ visible).
 
 Run Structure is pure logic (`RefCounted`, no Node references, DD-T02). It receives commands
 from Run UI (`new_run`, `begin_match`, `draft_pick` forwarded to Reward Draft, `abandon`,
-`resume`, `return_to_menu`) and callbacks from Match Rules (`match_ended`) and Reward Draft
-(`draft_picked`), mutates `RunState`, and emits exactly one event per mutation (DD-T04).
+`resume`, `suspend`, `return_to_menu`) and callbacks from Match Rules (`match_ended`) and Reward
+Draft (`draft_picked`), mutates `RunState`, and emits exactly one event per mutation (DD-T04).
+`suspend()` ("Quit to menu" between matches, cross-review C-12) is the one command that mutates
+nothing: legal in `hero_select`, `pre_match` and `post_match_reward`, rejected `E_BAD_PHASE`
+elsewhere (the cross-review's `E_PHASE` is this GDD's `E_BAD_PHASE`); it drops the in-memory run
+without an event or a save — the last S-save is the resumable state — and returns to Menu, where
+the saved run reappears as Continue (R8.7, T21).
 All numeric values below are read from `assets/data/run_structure.json` (new file, Open
 Questions), never hardcoded.
 
@@ -318,6 +324,12 @@ Emit `run_saved{floor, phase}` on success.
    rejected `E_DRAFT_DONE`, so a replayed pick cannot append twice.
 6. A saved `status` of `in_match` (impossible from this system; forward-compatibility) is
    coerced to `pre_match` on the same floor with `run_warning{coerced_status}`.
+7. **Suspend is a deliberate quit without a save** (`suspend()`, T21, cross-review C-12). It
+   discards the in-memory `RunState`, emits nothing and writes nothing; the resumable state is
+   the last S-save (S1/S4 in `pre_match`, S2/S3 in `post_match_reward`), so `resume` after a
+   suspend follows rules 1–2 exactly as after an app quit: a suspend from `post_match_reward`
+   after S3 re-enters the same bundle draft with the identical offer (R5.2). Nothing is lost
+   because every state `suspend` is legal in was saved on entry (R7).
 
 #### R9. Seeds (DD-R09)
 
@@ -352,11 +364,11 @@ Emit `run_saved{floor, phase}` on success.
 
 | State | Entry Condition | Exit Condition | Behavior |
 |---|---|---|---|
-| `hero_select` | Player opens New Run from the menu | `new_run` accepted, or back to menu | In-memory only, never saved; seed field editable; locked heroes shown but not selectable |
-| `pre_match` | Run started, bundle picked, match faulted, or resumed into it | `begin_match`, `abandon` | Boss intro shown; `run_floor_entered` emitted on entry; **saved** (S1/S4) |
+| `hero_select` | Player opens New Run from the menu | `new_run` accepted, or back to menu (`suspend`) | In-memory only, never saved; seed field editable; locked heroes shown but not selectable |
+| `pre_match` | Run started, bundle picked, match faulted, or resumed into it | `begin_match`, `abandon`, `suspend` | Boss intro shown; `run_floor_entered` emitted on entry; **saved** (S1/S4) |
 | `in_match` | `begin_match` | `match_ended` from Match Rules | Run Structure is passive; Match Rules owns the state; never saved; quit = restart later |
-| `post_match_reward` / `treasure` | Won on a treasure floor `< F` | `draft_pick(treasure)`, `abandon` | Treasure offers requested from Reward Draft; **saved** (S2) |
-| `post_match_reward` / `bundle` | Won on a non-treasure floor `< F`, or treasure picked | `draft_pick(bundle)`, `abandon` | Bundle offers requested; **saved** (S2/S3) |
+| `post_match_reward` / `treasure` | Won on a treasure floor `< F` | `draft_pick(treasure)`, `abandon`, `suspend` | Treasure offers requested from Reward Draft; **saved** (S2) |
+| `post_match_reward` / `bundle` | Won on a non-treasure floor `< F`, or treasure picked | `draft_pick(bundle)`, `abandon`, `suspend` | Bundle offers requested; **saved** (S2/S3) |
 | `victory` | Won on floor `F` | `return_to_menu`, `new_run` | Terminal; record archived; summary shown |
 | `defeat` | Boss won any match | `return_to_menu`, `new_run` | Terminal; record archived; summary shown |
 | `abandoned` | Player abandon, or resume validation failed | `return_to_menu`, `new_run` | Terminal; record archived (if it parsed); summary shown for player abandon, a reason dialog for system abandon |
@@ -386,12 +398,15 @@ tested; a trigger not listed for a state is rejected with `E_BAD_PHASE` and emit
 | T16 | Menu | `resume()` | `validate(dict) != OK` | `run_ended{abandoned, reason}` if parseable; archive; clear slot; reason dialog | S5 | `abandoned` → Menu |
 | T17 | `victory`, `defeat`, `abandoned` | `return_to_menu` | — | — | — | Menu |
 | T18 | `victory`, `defeat`, `abandoned` | `new_run` ("Run again") | as T2 | as T2 with the same `hero_id`, empty seed | S1 | `pre_match` (floor 1) |
+| T21 | `hero_select`, `pre_match`, `post_match_reward` | `suspend()` ("Quit to menu") | — | none (in-memory run dropped; the last S-save stays the resumable state, R8.7) | none | Menu (saved run shown as Continue) |
 
 \* `run_warning` only when F2 had to repeat a boss.
 
 Rejections (no state change, no event): `begin_match` outside `pre_match`; `draft_pick` outside
 `post_match_reward` or with the wrong `kind`; `abandon` in `in_match` (the UI offers Concede
-instead); `resume` while a run is active; `new_run` with a locked hero (`E_HERO_LOCKED`).
+instead); `suspend` in `in_match` (the UI's "Quit to menu" there is an app-level quit, T10) or in
+a terminal state (use `return_to_menu`, T17); `resume` while a run is active; `new_run` with a
+locked hero (`E_HERO_LOCKED`).
 
 ### Interactions with Other Systems
 
@@ -405,12 +420,12 @@ reconciles anything still marked open.
 | **Card Database** | upstream | `bosses_in_band(band)` (id-sorted, CR-6), `hero(id)` with `starter_deck`, `boss(id)` with `deck, health, passive, ai_profile, intro_text`, `data_version` | — (read-only) | Card Database owns record shapes; this GDD owns draw-without-replacement (DD-R02) |
 | **RNG & Event Log** | upstream | `stream("run")`, `stream("match_<f>")`, `stream("ai_<f>")`, `stream("draft_<f>")`, `snapshot()`, `restore()`, the run log, `match_summary` | `run_seed` at creation; `run_started`, `run_floor_entered`, `run_resumed`, `match_faulted`, `deck_grew`, `treasure_granted`, `run_warning`, `run_saved`, `run_ended` | RNG & Event Log owns the envelope and API; this GDD owns run phase order and its payloads |
 | **Match Rules** | mutual | `MatchResult` via `match_ended` (C14) | `MatchConfig` (R3) | Match Rules owns match state; this GDD owns `MatchConfig`/`MatchResult` record shapes beyond the fields Match Rules names |
-| **Heroes** | upstream (data) | `HeroDef`: `starter_deck`, `hero_power`, `health`, `unlock` | — | **Confirmed by heroes.md H-1/H-2**: the run copies `starter_deck` verbatim; Heroes owns composition. Open: heroes.md and run-ui.md call the start command `start_run` / the rejection `HERO_LOCKED` (this GDD: `new_run` / `E_HERO_LOCKED`), and heroes.md says this GDD owns a "first run forces War" rule it does not state — Open Questions |
+| **Heroes** | upstream (data) | `HeroDef`: `starter_deck`, `hero_power`, `health`, `unlock` | — | **Confirmed by heroes.md H-1/H-2**: the run copies `starter_deck` verbatim; Heroes owns composition. heroes.md now uses `new_run` / `E_HERO_LOCKED`; run-ui.md's `start_run` is a UI intent that issues `new_run` (its U2 map). No first-run hero rule exists (DD-X02): all three launch heroes are `unlock: null` and Run UI merely pre-selects War on a fresh profile |
 | **Reward Draft** | downstream (invoked by the run) | `init_run(run_state) → draft_state` (R2.5); `offer(kind, run_state, stream) → Offer{option_ids[], flags[]}` (R5.3); `pick(kind, id, offer, run_state) → Pick{picked_id, option_index, card_ids_added[]}` (R5.4–5); it emits `draft_offered` / `draft_picked` and mutates nothing | `kind` (treasure before bundle, R5.2), `floor`, read access to `hero_id`, `deck`, `treasures`, `drafts`, `draft_state`, `treasure_floors`; the `draft_<floor>` stream; `draft_state` persisted opaquely | **Confirmed by reward-draft.md D1–D3, D8–D9, D12** with four amendments now folded in here: `init_run`, the `pick` signature, the `draft_state` schema (R1) and empty offer ⇒ step skipped (R5.7). Offers are a pure function of `(run_state, stream position)`; treasure draws precede bundle draws on `draft_<floor>` |
 | **Treasures** | downstream (applied by the run at match start) | `installers_for(treasure_ids[]) → HookInstaller[]` in list order (pure, idempotent); `collect_state(hooks, match_result) → Dictionary` after `match_ended` (R4) | `treasures[]` in pick order at every `begin_match`; nothing at pick time; `treasure_state` persisted opaquely | **Confirmed by treasures.md T3–T5** with one amendment folded in: the run calls `collect_state` before S2 (R4). A treasure is stateless between matches unless it uses `treasure_state`; applying = installing hooks (Match Rules hook table); no treasure mutates `RunState`; a duplicate id in `treasures[]` is Treasures' `run_warning{duplicate_treasure}`, never a crash |
 | **Meta Progression / Persistence** | downstream (record) and upstream (unlock check, storage) | `is_hero_unlocked(id)`, `load_active_run()`, `save_active_run()` result codes (`OK | E_IO | E_READONLY`), `archive_run → {ok, unlocks_granted[]}` | `RunRecord` dict at every save point and `archive_run(record)` at run end; `seed_source`, `abandon_reason`, `result.floor_reached` for statistics | **Confirmed by meta-progression.md M1, M7, M8, F3**: Meta owns file format, path, atomic write, `log_schema_version` migration; `abandoned/player` folds as a loss when `abandon_counts_as_loss` (read from this system's data file); system abandons are void; custom-seed runs count for unlocks but not personal bests (R9); `archive_run` is idempotent on `run_id`; it never mutates a record |
-| **Run UI** | downstream | Commands: `new_run`, `begin_match`, `draft_pick`, `abandon`, `resume`, `return_to_menu` | The run-scope event stream; `RunState` read model (floor, band, boss intro data, progress strip, summary data, `run_seed_hex`); rejection codes | This GDD; UI is display-only (`src/ui/**`) |
-| **Boss AI** | indirect | — | `ai_id` and `rng_ai` inside `MatchConfig` | Boss AI; the run never talks to the AI directly |
+| **Run UI** | downstream | Commands (seven): `new_run`, `begin_match`, `draft_pick`, `abandon`, `resume`, `suspend`, `return_to_menu` | The run-scope event stream; `RunState` read model (floor, band, boss intro data, progress strip, summary data, `run_seed_hex`); rejection codes | This GDD; UI is display-only (`src/ui/**`) |
+| **Boss AI** | indirect | — | `ai_id` and `rng_ai` inside `MatchConfig` | Run Structure owns the match driver interface (`begin_match` constructs the engine, the `BossAI(ai_id, rng_ai, config("ai_profiles"))` and the driver that calls `forecast` / `play_turn` / `choose` at the Match Rules phase transitions); the driver is rules-side code (DD-T02), wrapped but not owned by Match UI's `MatchController` (cross-review C-17) |
 | **Content** | soft | Pool sizes per band (6/6/4 target, DD-R02; 2/1/1 MVP) | `run_warning{boss_pool_short}` when a band is short | Content authors bosses; this GDD degrades gracefully |
 
 ## Formulas
@@ -624,6 +639,8 @@ floors 1, 2, 4, 7 of the above with targets `[0.90, 0.80, 0.65, 0.45]`.
   three treasure offers. **If it quits after the treasure pick but before the bundle pick**: the
   S3 save holds the treasure and the stream position; resume regenerates the same bundle offers
   (R5.2 contract). Neither case loses the won match.
+- **If the player chooses "Quit to menu" between matches** (`suspend()`, T21): identical to the
+  two cases above — no event, no save, the last S-save is what Continue resumes (R8.7).
 - **If `save_active_run` fails** (`E_IO`): `run_warning{save_failed}` is shown once per failure,
   the run continues in memory, the next save point retries; if the player quits before a
   successful save, resume lands at the last good save and the floors since are replayed (same
@@ -699,8 +716,8 @@ dependency (R7); flagged for the index.
 | Reward Draft | Mutual | Hard (for them; the run cannot advance past a draft without it) | Invoked by the run: `init_run` at run start, `offer` / `pick` between floors; treasure before bundle on the same floor; empty offer skips the step; `draft_state` persisted opaquely by the run. **Contract confirmed and amended** (R2.5, R5, R8.2, Interactions). |
 | Treasures | Mutual | Hard (for them) | `installers_for(treasure_ids)` at every `begin_match`, in pick order; `collect_state` after every `match_ended`; `treasure_state` persisted opaquely; no effect at pick time. **Contract confirmed** (R4, R5.6, R8.5). |
 | Meta Progression / Persistence | Mutual | Soft for starting a run (MVP: `is_hero_unlocked` is always true, saves may be in-memory); Hard for DD-R08 | Receives `RunRecord` at S1–S5 and `archive_run` at run end; owns file format, path, atomic write, migrations; answers `is_hero_unlocked`. **Contract confirmed** (R7): `abandoned/player` counts as a loss (M7), `seed_source = custom` is excluded from personal bests but counts for unlocks (M3.4). |
-| Run UI | Run UI depends on this | Soft (the machine runs headless in tests) | Issues the six commands; renders hero select, boss intro, progress strip, draft picker (with Reward Draft), summaries from the read model and the run-scope events. |
-| Boss AI | Indirect | Soft | Receives `ai_id` and `rng_ai` through `MatchConfig`; no direct interface. |
+| Run UI | Run UI depends on this | Soft (the machine runs headless in tests) | Issues the seven commands (incl. `suspend`, T21); renders hero select, boss intro, progress strip, draft picker (with Reward Draft), summaries from the read model and the run-scope events. |
+| Boss AI | Indirect | Soft | Receives `ai_id` and `rng_ai` through `MatchConfig`; the run's match driver (owned here, Interactions row Boss AI, C-17) constructs `BossAI` at `begin_match` and calls `forecast` / `play_turn` / `choose` at Match Rules' phase transitions; no run-scope interface. |
 | Content | Content depends on this | Soft | Pool sizes per band must cover `band_split` (6/6/4 ≥ 3/3/2; MVP 2/1/1 ≥ 2/1/1 exactly — no slack, see Open Questions); `target_win_rate_by_floor` is Content's tuning target. |
 
 ## Tuning Knobs
@@ -761,7 +778,7 @@ Screens belong to Run UI (`/ux-design` specs); this table says what the run must
 | Boss name, band pips, health, passive text, hero power text, intro line, floor "n of F"; "Fight" | Boss intro | On `run_floor_entered` | `pre_match` |
 | Floor progress strip: F pips — cleared / current / upcoming; upcoming shows band only, never the boss identity | Boss intro, draft picker, pause menu | Per floor | Any run state |
 | Draft picker: kind header ("Treasure" then "Bundle"), three offers, pick confirm | Reward screen | Per draft | `post_match_reward` |
-| Pause menu: Concede (in match) / Abandon run (between matches), Quit to menu with "progress since the last save will be replayed" note when in a match | Pause | On open | `in_match` vs other |
+| Pause menu: Concede (in match) / Abandon run (between matches), Quit to menu (`suspend`, T21, between matches; app-level quit with "progress since the last save will be replayed" note when in a match) | Pause | On open | `in_match` vs other |
 | Summary: outcome, floor reached / cleared, killing boss, matches and turns, duration, deck list in acquisition order with drafted cards marked, treasures, top-N damage by card, seed hex with Copy, `attempt > 1` floors marked; "Run again", "Menu" | Victory / Death summary | Once | Terminal states |
 | Warning toasts (`boss_pool_short`, `save_failed`, …) | Overlay | On event | `run_warning` |
 
@@ -826,7 +843,7 @@ fixture hero `hero_war` with a 15-card starter deck, and stub Match Rules with a
   `seq[2]` are swapped, no further draw is taken from `run`, and with the knob `false` the
   unswapped order is produced from the same seed.
 
-**Phase machine (T1–T18)**
+**Phase machine (T1–T21)**
 - [ ] AC-9 **GIVEN** a fresh run in `pre_match` on floor 1, **WHEN** `begin_match` is issued, **THEN**
   Match Rules receives a `MatchConfig` with `floor 1`, `player.deck` of 15 ids equal to the starter
   deck, empty `player.hook_installers`, `boss.boss_def_id = boss_sequence[0]`, the memoised
@@ -932,22 +949,28 @@ fixture hero `hero_war` with a 15-card starter deck, and stub Match Rules with a
   by_treasure: {t1: {n: 1}}}`, **WHEN** `match_ended{winner: player}` arrives on floor 2,
   **THEN** `collect_state` was called once with the match's hooks and result before
   `save_active_run`, and the S2 record's `treasure_state` equals that value.
+- [ ] AC-36 (cross-review C-12) **GIVEN** `post_match_reward / bundle` on floor 3 after save S3,
+  **WHEN** `suspend()` is issued, **THEN** no event is emitted, `save_active_run` is not called
+  again, no `RunState` is active (Menu), and `load_active_run()` still returns the S3 record;
+  **WHEN** `resume()` follows, **THEN** the run re-enters `post_match_reward / bundle` on floor 3
+  with the identical bundle offer (R8.2); **AND GIVEN** `in_match` or `defeat`, **WHEN**
+  `suspend()` is issued, **THEN** it is rejected `E_BAD_PHASE` with no state change.
 
 ## Open Questions
 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
 | `assets/data/run_structure.json` is a new data file not listed in DD-T01 — add it to the register (same situation as `match_rules.json`). | Owner (orchestrator) | Before `/create-architecture` | **Resolved 2026-11-03** — DD-T01 now lists `run_structure.json` |
-| heroes.md H-2 says "the first run forces War per the concept's onboarding note — Run Structure owns that rule"; run-ui.md pre-selects War on a fresh profile and never forces; this GDD states no such rule (MVP ships War only, so nothing observable changes until a second launch hero exists). Decide: force (this GDD adds `first_run_hero`, applied when Meta reports `runs_started == 0`) or pre-select only (heroes.md H-2 is corrected). | Owner | Before Alpha (second hero) | Open — surfaced by `/design-review` |
-| Command and code names differ across GDDs: `new_run` / `E_HERO_LOCKED` here vs `start_run` / `HERO_LOCKED` in heroes.md and run-ui.md. This GDD owns the command set; the other two should adopt its names (or this GDD renames once). | `/consistency-check` | Before `/create-architecture` | Open |
-| `MatchConfig.seed` (Match Rules C3) vs. passing the memoised `match_<floor>` / `ai_<floor>` streams (this GDD R3). One field name must win. | Match Rules GDD / `/consistency-check` | Before `/create-architecture` | Open — this GDD passes streams |
+| heroes.md H-2 says "the first run forces War per the concept's onboarding note — Run Structure owns that rule"; run-ui.md pre-selects War on a fresh profile and never forces; this GDD states no such rule (MVP ships War only, so nothing observable changes until a second launch hero exists). Decide: force (this GDD adds `first_run_hero`, applied when Meta reports `runs_started == 0`) or pre-select only (heroes.md H-2 is corrected). | Owner | Before Alpha (second hero) | **Resolved 2026-11-03 — cross-review C-11 / DD-X02**: no forced hero; Run UI pre-selects War on a fresh profile; heroes.md H-2 corrected |
+| Command and code names differ across GDDs: `new_run` / `E_HERO_LOCKED` here vs `start_run` / `HERO_LOCKED` in heroes.md and run-ui.md. This GDD owns the command set; the other two should adopt its names (or this GDD renames once). | `/consistency-check` | Before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-11**: heroes.md adopted the names; Run UI's `start_run` is a UI-layer intent alias that issues `new_run` |
+| `MatchConfig.seed` (Match Rules C3) vs. passing the memoised `match_<floor>` / `ai_<floor>` streams (this GDD R3). One field name must win. | Match Rules GDD / `/consistency-check` | Before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-05 / C-30**: `MatchConfig.seed` is gone; match-rules Dependencies take the injected `match_<floor>` / `ai_<floor>` stream handles |
 | Treasure-before-bundle on the same floor fixes Reward Draft's draw order on `draft_<floor>`; confirm or amend when Reward Draft is designed. | Reward Draft GDD | `/design-system reward-draft` | **Confirmed** (reward-draft.md D2, F4); its four amendments folded in 2026-11-03 (R1, R2.5, R5.3–5.7, R8.2) |
-| `treasure_granted` is emitted by Run Structure (the append is its mutation) although the RNG & Event Log catalogue lists Reward Draft as owner; update the owner column or move the emit. | RNG & Event Log GDD | `/consistency-check` | Open — Run Structure, Reward Draft (D11) and Treasures (T5, R-9) all agree on owner = Run Structure; only the catalogue row in rng-event-log.md needs editing. The same catalogue row for `run_ended` writes the outcome as `death` where this GDD and Meta Progression use `defeat` — align to `defeat` |
+| `treasure_granted` is emitted by Run Structure (the append is its mutation) although the RNG & Event Log catalogue lists Reward Draft as owner; update the owner column or move the emit. | RNG & Event Log GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: the catalogue now lists Run Structure as `treasure_granted` owner (rng L173). The `run_ended` outcome `death` → `defeat` alignment is cross-review C-09 (rng-event-log.md); this GDD uses `defeat` |
 | Game concept says "the first treasure pick is always offered on floor 2"; DD-R05 says floors 1, 3, 5. This GDD follows DD-R05; the concept line should be corrected or DD-R05 revised with `/propagate-design-change`. | Owner | Before Reward Draft design | **Resolved 2026-11-03** — game-concept.md Flow State Design now reads "after the first win (floor 1, per DD-R05)" |
-| `no_adjacent_shared_theme` needs `BossDef.tags[]` (`^[a-z_]+$`, may be `[]`), not in Card Database CR-3. Add the field or drop the knob. | Card Database GDD / Content | Alpha content pass | Open — knob inert until then |
+| `no_adjacent_shared_theme` needs `BossDef.tags[]` (`^[a-z_]+$`, may be `[]`), not in Card Database CR-3. Add the field or drop the knob. | Card Database GDD / Content | Alpha content pass | **Resolved 2026-11-03 — cross-review C-30**: Card Database CR-3 now carries `BossDef.tags`; the knob stays inert until Content tags bosses |
 | Mid-match restore from the event log (`restore(log)`) so a crash does not restart the match — currently restart with the same streams (R8.3). | Run Structure + Match Rules | Vertical Slice | Deferred; accepted for MVP |
-| RNG & Event Log rule 18 keys archived match logs by `run_seed_hex` alone; a replayed seed would overwrite them. Suggest `<run_seed_hex>-<started_at>` (= `run_id`). | RNG & Event Log GDD | `/consistency-check` | Open — proposed here |
+| RNG & Event Log rule 18 keys archived match logs by `run_seed_hex` alone; a replayed seed would overwrite them. Suggest `<run_seed_hex>-<started_at>` (= `run_id`). | RNG & Event Log GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: rng-event-log rule 18 now keys the folder by `run_id` |
 | MVP boss pool 2/1/1 equals `band_split [2, 1, 1]` exactly: every MVP run has the same four bosses, only band-1 order varies. Acceptable for the MVP hypothesis, or author one spare band-1 boss? | Owner / Content | MVP content plan | Open |
 | Should `abandoned / player` count as a loss (this GDD: yes) and should `seed_source = custom` runs be excluded from personal bests (this GDD: yes, unlocks still count)? | Meta Progression GDD | `/design-system meta-progression` | **Confirmed** (meta-progression.md M3.4, M7.2, M7.4) |
-| Does any v1 treasure need cross-match state (`treasure_state`)? If none, drop the field before implementation. | Treasures GDD | `/design-system treasures` | **Answered** (treasures.md T4): none in v1; the field and the `collect_state` call stay as the schema-versioned hook (`by_treasure` is always `{}` in v1). treasures.md T6 still cites `draft_state.offered_treasure_ids[]`, superseded by Reward Draft D3 — flagged for treasures.md |
+| Does any v1 treasure need cross-match state (`treasure_state`)? If none, drop the field before implementation. | Treasures GDD | `/design-system treasures` | **Answered** (treasures.md T4): none in v1; the field and the `collect_state` call stay as the schema-versioned hook (`by_treasure` is always `{}` in v1). **Resolved 2026-11-03 — cross-review C-30**: treasures.md T6 now marks `draft_state.offered_treasure_ids[]` superseded (exclusion derives from `drafts[]`, reward-draft D7); its States row is treasures' own housekeeping |
 | `target_win_rate_by_floor` is an analysis knob living in a gameplay data file; move to a `balance/` config if `/balance-check` prefers. | systems-designer | First balance pass | Open |

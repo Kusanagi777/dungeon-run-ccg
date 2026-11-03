@@ -10,6 +10,7 @@
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No Agent tool in this session: `systems-designer` (Sections C/D/E) and `qa-lead` (Section H) not consulted — review manually before production.
 > **Engine claims**: Godot 4.7.2; `docs/engine-reference/godot/modules/` has no `core.md`, so file-system behaviour below is marked **NOT SOURCEABLE** unless cited to `breaking-changes.md`.
 > **REVISED 2026-11-03** (`/design-review`, lean, revise-now): (1) M10 locked-treasure table replaced by the four ids and keys `treasures.md` T8 actually locks (`treasure_grave_tithe`, `treasure_plague_bell`, `treasure_dogeared_grimoire`, `treasure_living_armory`); counts 16 unlocked / 4 locked; F1/F5/F6 examples and AC-19–21, AC-24 rewritten on those keys. (2) M2.1 key-format rule relaxed so Treasures' milestone keys (`hero_decay_first_win` …) are valid; `unlock.<kind>_<id>` stays the default for new content. (3) M1.3 API gains `unlocked_keys()` (Treasures `pool()` contract), `is_treasure_unlocked(id)` (Reward Draft `init_run` contract), `unlock_hint()` and `last_hero_id()` (Run UI contract); M3.7, Interactions, Dependencies and Cross-References updated — Treasures and Reward Draft GDDs exist and are no longer "planned". (4) M9 settings aligned to the consumers' keys: `anim_speed` (Match UI enum) replaces the invented `action_delay_ms`; `high_contrast_states` added; `telegraph_mode` kept for Run UI with its owner marked open (Boss AI defines no player-side mode). (5) Profile `Loading` order fixed: the M6 lock check runs **before** migration and retro-grant writes.
+> **REVISED 2026-11-03 (cross-review)**: C-01 (M9 settings record now matches DD-X07 exactly — `anim_speed` labels `instant|fast|normal`, `reduce_motion`, `text_scale`, `high_contrast_states`, `telegraph_mode` consumed by Boss AI per DD-X03, `action_delay_ms` consumed by Match UI, `volume_*`, `fullscreen`, `keep_run_records`; Boss AI restored as a settings dependent in Interactions, Dependencies and Cross-References; Tuning Knobs `profile_defaults` row updated), C-10 (unlock-state API confirmed on the M1.3 names `unlocked_keys()` / `is_treasure_unlocked(id)` read at `init_run` — no text change needed here; Reward Draft adopts them), C-19 (`unlock_granted` note), C-20 (toast ack timing deferred to run-ui F3), C-21 (`assets/data/profile.json` → `assets/data/profile_defaults.json` everywhere), C-30 (Open Questions on DD-X01, `bosses_defeated_16` reading, R6 `floor_reached`, rule 18 marked resolved). D-03 (one universal treasure on `runs_won ≥ 1`) is flagged, not applied — content choice, Open Questions.
 
 ## Summary
 
@@ -294,18 +295,21 @@ condition := {"type": "always"}
 
 #### M9. Settings
 
-`settings = {volume_master, volume_music, volume_sfx: float 0..1 (1.0, 0.8, 1.0); fullscreen:
-bool (false); anim_speed: 1.0 | 1.5 | 2.0 | "instant" (1.0) — Match UI's animation speed
-(match-ui.md Core Rules 4, Tuning Knobs; Match UI owns the enum — run-ui.md's
-`instant|fast|normal` labels map onto it in the settings screen); high_contrast_states: bool
-(false) — Match UI's high-contrast state rendering; telegraph_mode: "full" | "brief" | "off"
-("full") — the intent-banner verbosity Run UI lists as a settings key (**owner open**: Boss AI's
-`intent_mode` is per-boss data in `ai_profiles.json`, not this setting; Match UI's intent banner
-is the likely consumer — Open Questions); keep_run_records: bool (true); language: "en"}`.
-Defaults live in `assets/data/profile.json` (a DD-T01 data file, **new**: `profile_defaults`;
-DD-T01's file list needs the row), not in code. An unknown value for an enum key is replaced by
-the default (M5.3). Settings are applied by their owning systems on change via
-`settings_changed{key, value}`; this system only stores them.
+The record is exactly the DD-X07 key set (owned here; Run UI edits it; Match UI and Boss AI read
+it): `settings = {volume_master, volume_music, volume_sfx: float 0..1 (1.0, 0.8, 1.0); fullscreen:
+bool (false); anim_speed: "instant" | "fast" | "normal" ("normal") — DD-X07; Match UI and Run UI
+map the label to their own durations (match-ui F3, run-ui F2); reduce_motion: bool (false) —
+Match UI drops shake, hit-stop and lethal slow-down (match-ui Tuning Knobs); text_scale: 1.0 |
+1.25 | 1.5 (1.0) — Run UI and Match UI typography (ui-code rule 7); high_contrast_states: bool
+(false) — art bible §4 alternate state set; telegraph_mode: "full" | "brief" | "off" ("full") —
+consumed by Boss AI as effective_mode = min(boss.intent_mode, telegraph_mode) (DD-X03);
+action_delay_ms: int 0..2000 (600) — Match UI boss-turn pacing override of Boss AI's
+presentation.action_delay_s (DD-X07, match-ui F4); keep_run_records: bool (true); language: "en"}`.
+Defaults live in `assets/data/profile_defaults.json` (DD-T01 data file `profile_defaults`,
+served by `config("profile_defaults")`; renamed from `profile.json` on 2026-11-03, cross-review
+C-21, so it no longer shares a basename with `user://profile.json`), not in code. An unknown
+value for an enum key is replaced by the default (M5.3). Settings are applied by their owning
+systems on change via `settings_changed{key, value}`; this system only stores them.
 
 #### M10. v1 unlock content
 
@@ -368,18 +372,18 @@ active slot: on next load, `load_active_run()` returns a record whose `run_id` i
 | **Run Structure** | mutual | `RunRecord` dicts at S1–S5; `archive_run(record)`; `seed_source`, `abandon_reason`, `result`, `match_summaries`, `drafts` read from the record | `save_active_run` result codes; `load_active_run()` blob; `is_hero_unlocked(id)`; `abandon_counts_as_loss` read from `run_structure.json` | Run Structure owns the record schema (R1) and `validate()`; this GDD owns storage, archive shape (M8.1), stats and unlocks — **all R7/R9 contract points confirmed above** |
 | **Heroes** | upstream (data) | `HeroDef.unlock {key, condition}`; hero ids | `is_hero_unlocked`; `stats_for_hero` for hero select | Heroes owns which heroes exist and their identity; this GDD owns keys, grammar, evaluation (answers heroes OQ: `HeroDef.unlock`) |
 | **Card Database** | upstream | `heroes()`, `treasure_pool()`, `bundle_pool()` with `unlock` fields; `data_version`; `boss(id)`/`has(id)` for the validator | `validate_unlock_defs` (injected validator, CR-5 stage) | Card Database owns schemas and load; this GDD owns the `unlock` object shape (CR-3 amendment) and the validator's rules |
-| **Treasures** | downstream | treasure ids picked/offered (via the record's `drafts[]`); the four keys T8 names | `unlocked_keys()` for `pool(unlocked_keys, exclude_ids)` (T6); `treasures[id].picked` for display | **Confirmed against treasures.md** (T1 `unlock`, T6, T8, R-14): Treasures names the keys, this GDD defines their conditions (M10). Treasures' States table calls the grant event `unlock_earned`; this GDD's name `unlock_granted` (M3.6, also Run UI's) is authoritative — flagged for treasures.md |
+| **Treasures** | downstream | treasure ids picked/offered (via the record's `drafts[]`); the four keys T8 names | `unlocked_keys()` for `pool(unlocked_keys, exclude_ids)` (T6); `treasures[id].picked` for display | **Confirmed against treasures.md** (T1 `unlock`, T6, T8, R-14): Treasures names the keys, this GDD defines their conditions (M10). The grant event is `unlock_granted` (M3.6, also Run UI's); treasures.md's States row renames its `unlock_earned` to it (cross-review C-19) |
 | **Reward Draft** | downstream | — | `is_treasure_unlocked(id)` / `unlocked_keys()` at `init_run` (run start), building `draft_state.treasure_pool` once; `unlocked_ids("bundle")` likewise when bundles lock | **Confirmed against reward-draft.md** (Interactions, Dependencies, AC-27): read at `init_run` only, before any seeded draw, so a locked treasure never consumes a draw and a mid-run grant is invisible to the running run |
 | **RNG & Event Log** | upstream (format) | Sealed run log inside the record (`to_json()`, rule 17), `log_schema_version` | Nothing at runtime; `user://runs/` files for the replay viewer and `/balance-check` | RNG & Event Log owns the log format; this GDD owns `log_schema_version` migration and the archive key `run_id` (rule 18 amendment) |
-| **Boss AI** | none at v1 | — | — | boss-ai.md defines no player-side setting (`intent_mode` is per-boss data); row kept so the earlier `telegraph_mode` attribution is visibly withdrawn |
-| **Match UI** | indirect | — | `settings.anim_speed`, `high_contrast_states`, volumes via `settings_changed` (match-ui.md Interactions, Dependencies) | Match UI owns the enum and pacing; this GDD only stores the value |
-| **Run UI** | downstream | Commands: `set_setting`, `ack_notification`, `reset_profile`, "Clear run records", "Copy seed" | Read models: Continue card (`active_run` header fields), hero stats, `last_hero_id`, run log pages, `unlock_hint` / `unlock_progress`, `pending_notifications` + `unlock_granted`, load-status messages, ReadOnly banner | This GDD; UI is display-only (`src/ui/**`). run-ui.md's proposed names map per M1.3; its `anim_speed` labels `instant\|fast\|normal` are a display mapping over Match UI's enum (cross-GDD note for Run UI) |
+| **Boss AI** | downstream (setting) | — | Soft: reads `settings.telegraph_mode` via `settings_changed` and clamps its per-boss `intent_mode` to it (DD-X03, boss-ai C8.4 `effective_mode`) | Boss AI owns `effective_mode` and what `ai_intent_*` carries; this GDD only stores the setting (default `full`) |
+| **Match UI** | indirect | — | `settings.anim_speed` (label set per DD-X07), `reduce_motion`, `text_scale`, `high_contrast_states`, `action_delay_ms`, volumes via `settings_changed` (match-ui.md Interactions, Dependencies) | Match UI owns the label → duration mapping (F3) and pacing (F4); this GDD only stores the value |
+| **Run UI** | downstream | Commands: `set_setting`, `ack_notification`, `reset_profile`, "Clear run records", "Copy seed" | Read models: Continue card (`active_run` header fields), hero stats, `last_hero_id`, run log pages, `unlock_hint` / `unlock_progress`, `pending_notifications` + `unlock_granted`, load-status messages, ReadOnly banner | This GDD; UI is display-only (`src/ui/**`). run-ui.md's proposed names map per M1.3; its `anim_speed` labels `instant\|fast\|normal` are the stored values (DD-X07) |
 | **Content** | soft | Authors `unlock` objects in `treasures.json`/`heroes.json`/`bundles.json` | Validator errors at load | Content owns which items are locked and their milestones; this GDD owns the grammar |
 
 ## Formulas
 
 `systems-designer` not consulted — Lean mode (no Agent tool). All numbers below are data-file
-values in `assets/data/profile.json` unless marked constant.
+values in `assets/data/profile_defaults.json` unless marked constant.
 
 ### F1. Unlock condition evaluation
 
@@ -624,7 +628,7 @@ Run Structure, Heroes, Treasures, Card Database and RNG & Event Log (all below) 
 as depending on it (below). Run Structure, Heroes, Card Database and RNG & Event Log each already
 name Meta Progression in their Dependencies — consistent. This table adds **Reward Draft, Boss
 AI, Match UI** as dependents (settings and pool filter) — flagged for `/map-systems`, not edited
-here. Treasures and Reward Draft are Designed (treasures.md, reward-draft.md); both name Meta
+here (cross-review C-01 adds Meta Progression to the index's Boss AI row). Treasures and Reward Draft are Designed (treasures.md, reward-draft.md); both name Meta
 Progression as a contract and their rows below are confirmed against those files.
 
 | System | Direction | Hard/Soft | Nature of dependency / interface |
@@ -635,14 +639,14 @@ Progression as a contract and their rows below are confirmed against those files
 | RNG & Event Log | This depends on RNG & Event Log (format) | Soft | Sealed run log and `match_summary` shapes inside the record; `log_schema_version` migrated here; `user://runs/<run_id>.json` keyed by `run_id` (rule 18 amendment). Works without logs (unlocks and counts only). |
 | Treasures | Mutual | Soft | In: the four locked ids and their keys (T8); Out: `unlocked_keys()` for `pool()`, `stats.treasures{}` for display. **Confirmed** against treasures.md T1/T6/T8/R-14 (conditions in M10). |
 | Reward Draft | Reward Draft depends on this | Soft (MVP: everything unlocked) | `is_treasure_unlocked(id)` / `unlocked_keys()` read once at `init_run`, before any seeded draw; locked ids never consume a draw. **Confirmed** against reward-draft.md Interactions / AC-27. |
-| Match UI | Match UI depends on this | Soft | `settings.anim_speed`, `high_contrast_states`, volumes (match-ui.md Interactions); session-local defaults until this system exists (MVP). |
+| Match UI | Match UI depends on this | Soft | `settings.anim_speed` (label set per DD-X07), `reduce_motion`, `text_scale`, `high_contrast_states`, `action_delay_ms`, volumes (match-ui.md Interactions); session-local defaults until this system exists (MVP). |
 | Run UI | Run UI depends on this | Hard (for them) | Continue card, hero stats, Run Log screen, unlock progress and toasts, settings screen, load-status and ReadOnly messages; commands `set_setting`, `ack_notification`, `reset_profile`. |
-| Boss AI | none at v1 | — | Withdrawn: boss-ai.md defines no player setting; `telegraph_mode`'s consumer is open (Open Questions). |
+| Boss AI | Boss AI depends on this (setting) | Soft | Reads `settings.telegraph_mode` via `settings_changed` and clamps its per-boss `intent_mode` to it (DD-X03, boss-ai C8.4 `effective_mode`); absent at MVP → `full`. |
 | Content | Content depends on this | Soft | The grammar and key format for authoring `unlock`; the 4 v1 treasure keys (M10) and the unmapped milestones are the content brief. |
 
 ## Tuning Knobs
 
-All in `assets/data/profile.json` (new DD-T01 file) unless noted; `systems-designer` not
+All in `assets/data/profile_defaults.json` (DD-T01 file `profile_defaults`) unless noted; `systems-designer` not
 consulted — Lean mode. Interacting pair: `run_log_cap` × `archive_top_cards` sets F5's size —
 raise one, check the other against `max_profile_bytes`. Owned elsewhere, pointed to not
 duplicated: `abandon_counts_as_loss`, `allow_custom_seed`, `floors_per_run` (Run Structure);
@@ -662,7 +666,7 @@ duplicated: `abandon_counts_as_loss`, `allow_custom_seed`, `floors_per_run` (Run
 | `max_floor_clamp` | 12 | = top of run-structure `floors_per_run` range | Must track that range; a lower value re-clamps honest records | — |
 | `max_repairs_before_rebuild` | 25 | 5 – 100 | Tolerates more hand edits before a stats rebuild | Rebuilds sooner; a rebuild can only under-count (M7.5) |
 | Unlock thresholds (M10 table) | per key | `n` 1 – 999; first key should be met inside ~3 runs (today that is `unlock.hero_fortune` at the first victory; the four treasure keys all need a Decay/Knowledge result or 16 boss kills — see Open Questions) | Later unlocks; the "Curiosity" hook starves if nothing opens in the first session | Everything opens at once; locked treasures stop reading as milestones |
-| `profile_defaults` (M9) | volumes 1.0/0.8/1.0, `anim_speed` 1.0, `high_contrast_states` false, telegraph `full` | per field in M9 | — | — |
+| `profile_defaults` (M9) | volumes 1.0/0.8/1.0, `anim_speed` normal, `reduce_motion` false, `text_scale` 1.0, `high_contrast_states` false, `telegraph_mode` full, `action_delay_ms` 600 | per field in M9 | — | — |
 
 ## Visual/Audio Requirements
 
@@ -684,8 +688,8 @@ Screens belong to Run UI (`/ux-design` specs); this table says what the profile 
 | Per-hero wins / losses / best floor; bests line (fastest victory, fewest turns) with "random seeds only" note | Hero select corner (heroes.md UI row), Run Log header | On screen open | Always (zeros allowed) |
 | Locked hero or treasure: condition text + progress "7 / 10" or bar (F6); `each_launch` lists per-hero ticks | Hero select; treasure codex / draft offer tooltip | On screen open | key Locked |
 | Run Log screen: newest first — date, hero, result (Victory / Defeat on floor n by <boss> / Abandoned), floors "n of F", deck size, treasures, top-`archive_top_cards` damage cards, seed hex with **Copy**, "custom seed" tag, `attempt > 1` marker, "details unavailable" for opaque schema rows; pagination `run_log(offset, limit)` | Run Log (from main menu) | On open, on page | Always; empty state "No runs yet" |
-| Victory / defeat summary additions: "New treasure unlocked: <name>" toasts drained from `pending_notifications` (one per key, acked when dismissed or after 4 s); unlock's condition shown as the toast subtitle | Run summary (run-structure UI row), main menu for `retro` grants | On summary open | queue non-empty |
-| Settings: volumes, fullscreen, animation speed (`anim_speed`, Match UI enum), high-contrast states, telegraph mode, keep run records, "Clear run records", "Reset profile" (typed confirm) | Settings screen | On change (debounced write) | Always |
+| Victory / defeat summary additions: "New treasure unlocked: <name>" toasts drained from `pending_notifications` (one per key; Run UI acks each on show and owns the visible duration, run-ui F3 2–6 s); unlock's condition shown as the toast subtitle | Run summary (run-structure UI row), main menu for `retro` grants | On summary open | queue non-empty |
+| Settings: volumes, fullscreen, animation speed (`anim_speed` labels, DD-X07), reduce motion, text scale, high-contrast states, telegraph mode, action delay, keep run records, "Clear run records", "Reset profile" (typed confirm) | Settings screen | On change (debounced write) | Always |
 | `save_failed` / `run_record_not_kept` toasts | Overlay | On event | Run Structure's `run_warning` path |
 
 > **📌 UX Flag — Meta Progression**: This system has UI requirements. In Pre-Production, run
@@ -713,8 +717,9 @@ Screens belong to Run UI (`/ux-design` specs); this table says what the profile 
 | Sealed run log never reopened; `unlock_granted` not on the run log (M3.6) | `design/gdd/rng-event-log.md` | Rule 15 | Rule dependency |
 | `replay_equivalence` requires same `data_version`; `user://runs/` files are the replay input | `design/gdd/rng-event-log.md` | F6 (registry formula) | Data dependency |
 | `match_summary.result`, `damage_by_card` used by F2 and M8.1 | `design/gdd/rng-event-log.md` | Rule 19, catalogue `match_summary` | Data dependency |
-| `anim_speed` enum and `high_contrast_states` stored in `settings` (M9) | `design/gdd/match-ui.md` | Core Rules 4, Tuning Knobs `anim_speed`, Interactions "Meta Progression" | Data dependency (Match UI owns semantics) |
-| `telegraph_mode` settings key; Run UI's proposed API names and settings list (M1.3, M9) | `design/gdd/run-ui.md` | Interactions "Meta Progression" row, Open Questions | Contract (resolved by the M1.3 mapping; `telegraph_mode` owner open) |
+| `anim_speed` label set (DD-X07), `reduce_motion`, `text_scale`, `high_contrast_states`, `action_delay_ms` stored in `settings` (M9) | `design/gdd/match-ui.md` | Core Rules 4, F3 `SPEED_DIV`, F4 `ai_action_delay_s`, Tuning Knobs `anim_speed`, Interactions "Meta Progression" | Data dependency (Match UI owns semantics) |
+| `telegraph_mode` settings key consumed as `effective_mode = min(intent_mode, telegraph_mode)` (M9) | `design/gdd/boss-ai.md` | C8.4 `effective_mode`, Dependencies "Meta Progression" | Data dependency (DD-X03; Boss AI owns semantics) |
+| `telegraph_mode` settings key; Run UI's proposed API names and settings list (M1.3, M9) | `design/gdd/run-ui.md` | Interactions "Meta Progression" row, Open Questions | Contract (resolved by the M1.3 mapping; `telegraph_mode` owner is Boss AI, DD-X03) |
 | `is_treasure_unlocked(id)` at `init_run`; pool filter before seeded draws (M3.7) | `design/gdd/reward-draft.md` | `init_run`, Interactions "Meta Progression", AC-27 | Rule dependency (confirmed) |
 | The four locked treasure ids and their keys (M10); `pool(unlocked_keys, exclude_ids)` | `design/gdd/treasures.md` | T1 `unlock`, T6, T8 rows 13/15/17/18, R-14 | Ownership handoff (keys named there, conditions defined here) |
 
@@ -840,22 +845,22 @@ with an injected `user://`-equivalent temp directory and synthetic `RunRecord` f
 - [ ] AC-29 **GIVEN** `pending_notifications` holding one treasure key, **WHEN** the run summary
   opens, **THEN** a retained screenshot shows the "New treasure unlocked" toast with the
   treasure name and condition text, and the queue is empty after dismissal.
-- [ ] AC-30 No hardcoded values: every knob in Tuning Knobs is read from `assets/data/profile.json`;
+- [ ] AC-30 No hardcoded values: every knob in Tuning Knobs is read from `assets/data/profile_defaults.json`;
   `PROFILE_SCHEMA_VERSION` is the one code constant.
 
 ## Open Questions
 
 | Question | Owner | Deadline | Resolution |
 |---|---|---|---|
-| CR-3 amendment: `TreasureDef.unlock` from "string or null" to `{key, condition} or null`, and the same field on `HeroDef` and `BundleDef`. Accept, or keep string keys in defs and move conditions to a separate `unlocks.json`? | Card Database GDD owner + Jacob | before `/create-architecture` | Proposed here (M2.1); `/consistency-check` to reconcile |
+| CR-3 amendment: `TreasureDef.unlock` from "string or null" to `{key, condition} or null`, and the same field on `HeroDef` and `BundleDef`. Accept, or keep string keys in defs and move conditions to a separate `unlocks.json`? | Card Database GDD owner + Jacob | before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-30 / DD-X01**: the `{key, condition}` object on HeroDef, TreasureDef and BundleDef (M2.1 grammar); Card Database CR-3 and Treasures T1 adopt it (C-06) |
 | Rename atomicity of `.tmp → profile.json` on Windows/macOS/Linux under Godot 4.7 (`DirAccess.rename_absolute` or equivalent) — **NOT SOURCEABLE** from the pinned reference | `engine-programmer` via ADR | Technical Setup | Open; ADR must cite the 4.7 docs |
 | Is `max_save_ms` 50 achievable with a synchronous 2 MB pretty-printed write on the minimum spec, or do we need a background thread / compact JSON / a split `runs.json`? | `gameplay-programmer` | Vertical Slice (measure, AC-27) | Open; fallback is lowering `run_log_cap` |
-| ~~The six locked-treasure ids are placeholders~~ Resolved 2026-11-03: M10 now carries treasures.md T8's four ids and keys. Remaining: (a) does `bosses_defeated_16` mean 16 cumulative kills (this GDD's reading) or every one of the 16 bosses once (inexpressible at fan-out 8)? (b) no treasure rewards an any-hero milestone, so a War-only player sees no treasure unlock until 16 kills — should Treasures lock one more universal treasure on `runs_won ≥ 1`? | Treasures GDD + Content | `/review-all-gdds` | Open — (a) assumed cumulative; (b) content choice |
-| `telegraph_mode` is a settings key Run UI lists and this GDD stores, but no GDD owns its semantics: Boss AI's `intent_mode` is per-boss data, Match UI renders the intent banner. Assign to Match UI, or drop the key? | Match UI + Run UI GDDs | `/consistency-check` | Open — stored with default `full`, no consumer yet |
-| run-ui.md labels `anim_speed` as `instant\|fast\|normal`; match-ui.md (owner) defines `1.0 \| 1.5 \| 2.0 \| instant`. This GDD stores the owner's enum; Run UI should map labels | Run UI GDD | `/consistency-check` | Proposed here (M9) |
-| treasures.md States names the grant event `unlock_earned`; this GDD and run-ui.md use `unlock_granted` | Treasures GDD | `/consistency-check` | Proposed: rename in treasures.md |
-| `assets/data/profile.json` (defaults) and `user://profile.json` (the profile) share a basename; rename the data file `profile_defaults.json` and add it to DD-T01's list? | Jacob + design-decisions.md | before `/create-architecture` | Proposed |
-| Run-structure R6 does not set `result.floor_reached` on victory; this GDD derives it (F3). Should R6 set it instead? | Run Structure GDD | `/consistency-check` | Proposed: R6 sets `floor_reached = floors_per_run` |
-| rng-event-log rule 18 keys match logs by `run_seed_hex`; this GDD keys full run records by `run_id`. Align rule 18 to `run_id`? | RNG & Event Log GDD | `/consistency-check` | Proposed here (M8.2) |
+| ~~The six locked-treasure ids are placeholders~~ Resolved 2026-11-03: M10 now carries treasures.md T8's four ids and keys. Remaining: (a) does `bosses_defeated_16` mean 16 cumulative kills (this GDD's reading) or every one of the 16 bosses once (inexpressible at fan-out 8)? (b) no treasure rewards an any-hero milestone, so a War-only player sees no treasure unlock until 16 kills — should Treasures lock one more universal treasure on `runs_won ≥ 1`? | Treasures GDD + Content | `/review-all-gdds` | (a) **Resolved 2026-11-03 — cross-review C-30 (V-13)**: treasures.md R-14 confirms `boss_defeated(any) ≥ 16`, cumulative. (b) Open — content choice; cross-review D-03 recommends Treasures lock one universal treasure on `runs_won ≥ 1` (e.g. Living Armory → `runs_won_any_1`, Stampede Horn → `bosses_defeated_16`) and one on `floor_reached ≥ 5` for any hero; when Treasures/Content decide, the M10 table and AC-19 follow |
+| `telegraph_mode` is a settings key Run UI lists and this GDD stores, but no GDD owns its semantics: Boss AI's `intent_mode` is per-boss data, Match UI renders the intent banner. Assign to Match UI, or drop the key? | Match UI + Run UI GDDs | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-01 / DD-X03**: Boss AI consumes it as `effective_mode = min(boss.intent_mode, telegraph_mode)` (boss-ai C8.4); Match UI renders what Boss AI emits; stored here with default `full` (M9) |
+| run-ui.md labels `anim_speed` as `instant\|fast\|normal`; match-ui.md (owner) defines `1.0 \| 1.5 \| 2.0 \| instant`. This GDD stores the owner's enum; Run UI should map labels | Run UI GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-01 / DD-X07**: the labels `instant\|fast\|normal` are the stored values (M9); Match UI maps them to durations (`SPEED_DIV`, match-ui F3) |
+| treasures.md States names the grant event `unlock_earned`; this GDD and run-ui.md use `unlock_granted` | Treasures GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-19**: treasures.md States renames to `unlock_granted` (M3.6) |
+| `assets/data/profile.json` (defaults) and `user://profile.json` (the profile) share a basename; rename the data file `profile_defaults.json` and add it to DD-T01's list? | Jacob + design-decisions.md | before `/create-architecture` | **Resolved 2026-11-03 — cross-review C-21**: renamed `assets/data/profile_defaults.json` (M9, Tuning Knobs, AC-30); DD-T01 lists it; Card Database CR-1 serves `config("profile_defaults")` |
+| Run-structure R6 does not set `result.floor_reached` on victory; this GDD derives it (F3). Should R6 set it instead? | Run Structure GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: run-structure R6 sets `floor_reached` on victory; F3 remains the fallback for older records |
+| rng-event-log rule 18 keys match logs by `run_seed_hex`; this GDD keys full run records by `run_id`. Align rule 18 to `run_id`? | RNG & Event Log GDD | `/consistency-check` | **Resolved 2026-11-03 — cross-review C-30**: rng-event-log rule 18 keys the log folder by `run_id` (M8.2) |
 | Should the profile also keep a tiny `profile.index.json` (last run, hero, floor) so the main menu can render before parsing 2 MB? | Run UI `/ux-design` + `ui-programmer` | Pre-Production | Open; only if AC-1 load time is visible |
 | Multiple profiles / Steam Cloud: out of v1 by brief. If added, `profile_id` and the lock scheme already allow `user://profiles/<id>/` | Jacob | Full Vision | Deferred |

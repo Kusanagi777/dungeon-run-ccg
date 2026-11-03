@@ -74,6 +74,10 @@ entities:
       - design/gdd/run-structure.md
       - design/gdd/content.md
       - design/gdd/meta-progression.md
+      - design/gdd/reward-draft.md
+      - design/gdd/match-ui.md
+      - design/gdd/run-ui.md
+      - design/gdd/treasures.md
     display_name: Halvard
     health: 30
     set: war
@@ -90,6 +94,10 @@ entities:
       - design/gdd/run-structure.md
       - design/gdd/content.md
       - design/gdd/meta-progression.md
+      - design/gdd/reward-draft.md
+      - design/gdd/match-ui.md
+      - design/gdd/run-ui.md
+      - design/gdd/treasures.md
     display_name: Mother Wythe
     health: 30
     set: decay
@@ -106,6 +114,10 @@ entities:
       - design/gdd/run-structure.md
       - design/gdd/content.md
       - design/gdd/meta-progression.md
+      - design/gdd/reward-draft.md
+      - design/gdd/match-ui.md
+      - design/gdd/run-ui.md
+      - design/gdd/treasures.md
     display_name: Archivist Ilse
     health: 30
     set: knowledge
@@ -697,7 +709,6 @@ formulas:
     source: design/gdd/card-database.md
     referenced_by:
       - design/gdd/card-database.md
-      - design/gdd/reward-draft.md
       - design/gdd/card-effects.md
     variables:
       - n_nontoken_hero_set
@@ -884,7 +895,6 @@ formulas:
     referenced_by:
       - design/gdd/boss-ai.md
       - design/gdd/content.md
-      - design/gdd/match-ui.md
     variables:
       - w_board
       - w_face
@@ -999,7 +1009,6 @@ formulas:
       - design/gdd/card-effects.md
       - design/gdd/match-rules.md
       - design/gdd/content.md
-      - design/gdd/match-ui.md
     variables:
       - amount
       - spell_damage_owner
@@ -1015,7 +1024,6 @@ formulas:
       - design/gdd/card-effects.md
       - design/gdd/card-database.md
       - design/gdd/boss-ai.md
-      - design/gdd/match-ui.md
     variables:
       - collectible_pool
       - DISCOVER_COUNT
@@ -1238,7 +1246,6 @@ formulas:
     source: design/gdd/run-ui.md
     referenced_by:
       - design/gdd/run-ui.md
-      - design/gdd/match-ui.md
     variables:
       - base_ms
       - anim_speed
@@ -1396,7 +1403,6 @@ constants:
       - design/gdd/match-rules.md
       - design/gdd/heroes.md
       - design/gdd/run-structure.md
-      - design/gdd/match-ui.md
     value: 30
     unit: health
     added: 2026-11-03
@@ -1512,7 +1518,6 @@ constants:
     source: design/gdd/boss-ai.md
     referenced_by:
       - design/gdd/boss-ai.md
-      - design/gdd/match-ui.md
     value: 50
     unit: ms per boss turn (p95, measurement only)
     added: 2026-11-03
@@ -1553,7 +1558,6 @@ constants:
     referenced_by:
       - design/gdd/heroes.md
       - design/gdd/content.md
-      - design/gdd/reward-draft.md
     value: 25
     unit: cards (DD-H03)
     added: 2026-11-03
