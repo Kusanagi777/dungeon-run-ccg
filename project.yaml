@@ -58,7 +58,7 @@ commands:
   # build: no export_presets.cfg exists yet, so there is no preset name to
   # write. Set it via /settings once a preset exists, e.g.
   # "godot --headless --export-debug 'Windows Desktop'".
-  build: "[TO BE CONFIGURED]"
+  build: "godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe"
   test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode"
   run: "godot --path . --windowed --resolution 1280x720"
   # smoke needs run/main_scene, which is unset until the first UI story. Until
