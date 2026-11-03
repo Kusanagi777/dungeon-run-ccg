@@ -57,7 +57,7 @@
 | DD-T01 | Data format | All definitions are JSON under `assets/data/` (`cards_<set>.json` incl. `cards_boss.json`, `heroes.json`, `hero_powers.json`, `bosses.json`, `treasures.json`, `bundles.json`, `ai_profiles.json`, `match_rules.json`, `run_structure.json`, `heroes_balance.json`, `card_effects.json`, `reward_draft.json`, `treasures_balance.json`, `match_ui.json`, `run_ui.json`, `profile_defaults.json`; the player profile itself is saved at `user://profile.json`), snake_case keys, `schema_version` field. Files added 2026-11-03 by the card-database, match-rules and boss-ai GDDs. | Plan |
 | DD-T02 | Rules purity | Match and run rules are `RefCounted` GDScript with no Node references; the UI subscribes to events and issues commands | Plan / ADR-0001 |
 | DD-T03 | RNG | One seeded service; named streams `run`, `match_<floor>`, `draft_<floor>`, `ai_<floor>` (rng-event-log F2); tests inject fixed seeds | Plan / ADR-0003 |
-| DD-T04 | Event log | Append-only list of `{seq, type, payload}`; every state mutation emits exactly one event; the UI renders from events | Pillar 4 |
+| DD-T04 | Event log | Append-only list of `{seq, turn, type, payload, cause_seq}` (rng-event-log rule 11; wording updated 2026-11-03); every state mutation emits exactly one event; the UI renders from events | Pillar 4 |
 | DD-T05 | Resolution | 1280x720 logical, `canvas_items` stretch, mouse primary, keyboard shortcuts for end turn and cancel | Owner (PC) |
 
 ## Cross-GDD decisions taken after the 2026-11-03 design reviews

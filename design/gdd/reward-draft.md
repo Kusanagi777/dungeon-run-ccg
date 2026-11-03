@@ -6,6 +6,7 @@
 > **Author**: Jacob (owner) + `/design-system` (guided, lean)
 > **REVISED 2026-11-03** (`/design-review`, lean, first review — NEEDS REVISION, blockers fixed in place): (1) treasure `tags` semantics aligned to Treasures T1/T8 and the registry — *universal* is the `universal` affinity tag, not an empty list, `affine` also matches the hero's own affinity tag, `tags` is 1–4 long; (2) the two names for the offer list are now stated as a rule in D11 — `option_ids[]` on `Offer` / `draft_offered` (as Run UI U8 and the RNG & Event Log catalogue use it), `offered_ids[]` only as the `DraftRecord` field Run Structure persists; Run Structure R5.3's `→ offered_ids[]` is flagged; (3) the Meta Progression call is `unlocked_ids("treasure")` at `init_run` (was the non-existent `is_treasure_unlocked(id)`); plus: per-item (not per-slot) rarity weighting stated explicitly against Treasures T6, Treasures' `pool()` declared unused, `theme_labels` declared not emitted, T10 labelled a synthetic fixture, AC-9 pick policies named, a cooling-count arithmetic slip in Edge Cases, stale *(planned)* cross-references and the systems-index note, and five Open Questions rows. Status set to In Review pending re-review.
 > **REVISED 2026-11-03 (cross-review)**: C-10 (Meta Progression call is `unlocked_keys()` per M1.3, read once at `init_run`; membership `unlock == null ∨ unlock.key ∈ unlocked_keys()` — D3, Interactions, Dependencies, Cross-References; the earlier `unlocked_ids("treasure")` is superseded), C-13 (`treasure_short_policy = reoffer` is debug-only and rejected by the release config validator, DD-X06 — D8, Edge Cases, Tuning Knobs, AC-11), C-28 (stale Card Database "requests" removed — CR-3 has `TreasureDef.tags`, DD-T01 lists `reward_draft.json`; one universal-floor rule everywhere: hard floor 3, recommended 7 = 3K − 2), C-30 (Open Questions housekeeping: Run Structure amendments, offer naming, `treasure_granted` owner, Run UI row — D1, D11), DD-H05 (36 bundles = 8 per hero + 12 neutral, so B = 20 per hero: D4, F5 incl. the `bundle_pool_min` range 4–27, F7 uniform-picker baseline 0.50 → 0.40, Dependencies, Tuning Knobs, Edge Cases, new fixture P20 in AC-29), D-02 (`AFFINITY_CAP` 8 → 6 so an on-plan bundle tops out at 2.5× not 3.0× — F1 range and floor-7 example, AC-20, Tuning Knobs; `/balance-check` reports the "only off-plan option is the coverage slot" share, Open Questions).
+> **REVISED 2026-11-03 (re-review)**: Heroes H-4 / F2 (cross-review C-03, option B) now count the War starter at **7** plan cards — `war_iron_vanguard` carries Content's `armour` tag beside `war_shield_squire` — where this GDD's worked examples still used 6 (`armour` × 1). Re-derived: F1 floor-1 example (`bundle_war_armour` 150, total 675, slot-1 odds 26.7 / 25.9 / 22.2 / 14.8 / 10.4 %), AC-20, F3 example (`3 vs 2 vs 2`), F7 (`plan_share(8) = (7 + 3k)/36`, uniform-picker baseline 0.43), F8 (4.7 plan cards in the first ten at floor 1), AC-29, Tuning Knobs `AFFINITY_STEP`, Cross-References. Housekeeping: the systems-index design-order note (item 4 now lists all six dependencies), the concept's treasure-cadence Open Question (resolved — concept cites DD-R05), a new Open Questions row answering Content's "does pity need ≥ 2 bundles per tag" question. No rule, knob or contract changed.
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 1 (every run builds a deck you couldn't have planned); Pillar 4 (offers reproduce from the seed)
@@ -304,11 +305,13 @@ with `affinity(b) = 1 + AFFINITY_STEP × min(n_tag(theme(b)), AFFINITY_CAP)`,
 **Output Range:** 1 to 325 per bundle at defaults (`100 × 2.5 × 1.30`); off-theme mid-cost = 100.
 A 50-candidate pool totals under 20,000, far below F4's `2^31 − 1` cap.
 **Example (War, floor 1, starter deck):** the starter carries `weapons` × 3 (Sharpen, Rusted Axe,
-Quartermaster), `aggro` × 2 (Warcry, Pit Brawler), `armour` × 1 (Shield Squire). Candidates:
+Quartermaster), `aggro` × 2 (Warcry, Pit Brawler), `armour` × 2 (Shield Squire, and Iron
+Vanguard — the non-★ Taunt that carries Content's `armour` tag, Heroes H-4 / F2: 7 plan cards of
+15). Candidates:
 `bundle_war_aggro` (avg 2.0, low) = 100 × 1.50 × 1.20 = **180**; `bundle_war_weapons` (avg 2.67,
-mid) = 100 × 1.75 × 1.00 = **175**; `bundle_war_armour` (avg 3.33, mid) = **125**;
+mid) = 100 × 1.75 × 1.00 = **175**; `bundle_war_armour` (avg 3.33, mid) = 100 × 1.50 × 1.00 = **150**;
 `bundle_neutral_taunt` (avg 3.0, mid, no shared tag) = **100**; `bundle_neutral_giants` (avg 5.33,
-high) = 100 × 1.0 × 0.70 = **70**. Total 650 → slot-1 odds 27.7 / 26.9 / 19.2 / 15.4 / 10.8 %.
+high) = 100 × 1.0 × 0.70 = **70**. Total 675 → slot-1 odds 26.7 / 25.9 / 22.2 / 14.8 / 10.4 %.
 On floor 7 (band 3) with nine `weapons` cards in the deck (`affinity = 1 + 0.25 × min(9, 6) =
 2.5`): weapons bundle = 100 × 2.5 × 1.0 = 250, giants = 130 — on-plan still leads, but the late
 high-cost neutral now beats any off-plan mid.
@@ -364,7 +367,7 @@ pity_due   = starve ≥ PITY_WINDOW
 **Output Range:** `pity_due` is boolean; it is never true on floors 1–2 (fewer than 2 prior
 drafts) and fires at most every `PITY_WINDOW + 1` floors. Pity is deterministic — **no draw** —
 so RNG & Event Log's "pity rolls" wording reduces to "pity restricts the slot-1 candidate list".
-**Example:** War starter, `D = weapons` (3 vs 2 vs 1). Floors 1 and 2 offer no `weapons` bundle
+**Example:** War starter, `D = weapons` (3 vs 2 vs 2). Floors 1 and 2 offer no `weapons` bundle
 → `starve = 2` on floor 3 → slot 1 is drawn among weapons bundles, flag `pity_forced`. Had the
 player taken two `aggro` bundles meanwhile (`aggro` 8 vs `weapons` 3), `D` is `aggro` on floor 3
 and its own starve count applies.
@@ -434,14 +437,15 @@ top_tag_share(f) = max_t n_tag(t) / deck_size(f)
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | deck_size(f) | int | 15–36 | Run Structure F4 (registry) | `15 + 3 × (f − 1)` |
-| plan_tags(hero) | string[] | 3–4 | Heroes H-5 | Same set Heroes F2 scores the starter with (6/15 = 0.40) |
+| plan_tags(hero) | string[] | 3–4 | Heroes H-5 | Same set Heroes F2 scores the starter with (War 7/15 ≈ 0.47 — `war_iron_vanguard` carries Content's `armour` tag; Decay 5/15, Knowledge 6/15) |
 | k | int | 0–7 | from `drafts[]` | Hero-set bundles taken (each adds 3 plan cards; neutral bundles add 0) |
 
-**Output Range:** `plan_share(8) = (6 + 3k) / 36`: k = 0 → 0.17, 3 → 0.42, 4 → 0.50, 5 → 0.58,
-7 → 0.75. **Targets:** median player `plan_share(8) ≥ 0.45` (≥ 4 hero bundles of 7 — a uniform
-random picker lands near **0.40** because 8 of DD-H05's 20 per-hero bundles are hero-set
-(`k ≈ 7 × 8/20 = 2.8 → (6 + 8.4)/36`), so the 0.45 target rests on affinity and pity, which is
-what they are for; at the former 14-bundle pool the uniform baseline was ≈ 0.50), and
+**Output Range (War, 7 starter plan cards):** `plan_share(8) = (7 + 3k) / 36`: k = 0 → 0.19,
+3 → 0.44, 4 → 0.53, 5 → 0.61, 7 → 0.78 (Decay starts from 5, Knowledge from 6 — the intercept
+moves, the slope does not). **Targets:** median player `plan_share(8) ≥ 0.45` (≥ 4 hero bundles
+of 7 — a uniform random picker lands near **0.43** because 8 of DD-H05's 20 per-hero bundles are
+hero-set (`k ≈ 7 × 8/20 = 2.8 → (7 + 8.4)/36`), so the 0.45 target rests on affinity and pity,
+which is what they are for; at the former 14-bundle pool the uniform baseline was ≈ 0.53), and
 `top_tag_share(8) ≥ 0.30` (three bundles per tag at DD-H05's 8 hero bundles give 3 + 9 = 12/36 =
 0.33 from bundles alone). The brief's "top theme ≥ 45 %" is unreachable from a single tag with
 ~3 bundles per tag, so 45 % is set on `plan_share` — Open Questions. Measured by `/balance-check`
@@ -465,7 +469,7 @@ P_card_seen(f, n)   = n / deck_size(f)                               # one speci
 `E_starter_seen(·, 10)` 10 / 6.3 / 4.2; `P_no_starter_hand` 0 / 0.04 / 0.19; `P_card_seen(·, 10)`
 0.67 / 0.42 / 0.28. **Reading:** by floor 8 a given starter card shows up in the first ten cards
 of fewer than three matches in ten — the plan can no longer be carried by the starter. Expected
-*plan* cards in the first ten = `10 × plan_share`: 4.0 at floor 1 (0.40), 4.5 at floor 8 if F7's
+*plan* cards in the first ten = `10 × plan_share`: 4.7 at floor 1 (0.47, War), 4.5 at floor 8 if F7's
 0.45 holds. The affinity + pity rules therefore exist to keep plan density flat-to-rising under
 dilution, which is the design claim `/balance-check` tests.
 

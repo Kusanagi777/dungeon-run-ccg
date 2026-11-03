@@ -374,16 +374,16 @@ The `validation_checks` formula is defined as:
 **Variables:**
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
-| n_records | int | 0–`max_records` (knob, 5000) | data file | all records across all files; ~212 at v1 |
+| n_records | int | 0–`max_records` (`card_database.json` knob, default 5000) | data file | all records across all files; ~240 at v1 (Content CN-1: 120 collectible + 7 tokens + 32 boss-only + 16 bosses + 20 treasures + 36 bundles + 3 heroes + 7 powers) |
 | n_refs | int | 0–50000 | calculated | every id reference checked in CR-5 step 6 |
-| boss_deck_size | int | 1–60 | data file | per boss; Content decides the target |
-| data_load_budget_ms | int | 50–1000 | data file (tuning knob, default 200) | wall-clock budget for `Unloaded → Ready` on target hardware (mid-range desktop, SSD, release build) |
-| data_memory_budget_mb | int | 1–32 | data file (tuning knob, default 4) | resident size of the frozen snapshot |
+| boss_deck_size | int | 1–60 | data file | per boss; Content decides the target (30 at v1, content.md B2) |
+| data_load_budget_ms | int | 50–1000 | `card_database.json` (tuning knob, default 200) | wall-clock budget for `Unloaded → Ready` on target hardware (mid-range desktop, SSD, release build) |
+| data_memory_budget_mb | int | 1–32 | `card_database.json` (tuning knob, default 4) | resident size of the frozen snapshot |
 
-**Output Range:** ~750 O(1) checks at v1 (212 + 90 + 90 + ~320 + 22), far inside budget; the
+**Output Range:** ~900 O(1) checks at v1 (241 + 45 + 108 + 480 + 19), far inside budget; the
 budget exists so that the JSON parse of ~150 KB plus the delegated validators cannot creep past a
 perceptible boot stall. Load time is measured, logged and asserted in the performance test.
-**Example:** v1 estimate: 212 records, 522 refs → 734 checks; parse + validate measured < 50 ms
+**Example:** v1 estimate: 241 records, 652 refs → 893 checks; parse + validate measured < 50 ms
 expected, budget 200 ms.
 
 ## Edge Cases
@@ -471,8 +471,9 @@ Specialist note: `systems-designer` not spawned — Lean mode. Review manually b
 
 ## Dependencies
 
-Upstream: **none**. The Card Database is a Foundation system; it reads files and three injected
-validators, nothing else. Every row below is a downstream dependent. **Hard** = cannot function
+Upstream: **none**. The Card Database is a Foundation system; it reads files and the injected
+validators (four record validators and one config validator per externally owned config file,
+CR-5 stage 7), nothing else. Every row below is a downstream dependent. **Hard** = cannot function
 without this system; **Soft** = reads display data only.
 
 | System | Direction | Hard/Soft | Nature of Dependency |
@@ -492,7 +493,7 @@ without this system; **Soft** = reads display data only.
 
 Every config-file owner in CR-1 (Match Rules, Card Effects, Boss AI, Run Structure, Reward Draft,
 Treasures, Heroes, Match UI, Run UI, Meta Progression) is additionally a Hard dependent for
-`config(<name>)`.
+`config(<name>)`. `card_database.json` is this system's own and is read internally.
 
 **Bidirectional note (design-docs.md):** all twelve dependent GDDs exist and each lists Card
 Database in its own Dependencies section (verified 2026-11-03: match-rules §Dependencies,
@@ -563,7 +564,8 @@ rows when any of them changes.
 | `data_version` | `design/gdd/meta-progression.md` | `data_versions_seen[]`, retro-grants M3.5 | Data dependency |
 | data-error screen, `passive_text` | `design/gdd/run-ui.md` | boot failure presentation (CR-8); boss intro | State trigger |
 | `BossDef.tags`, `passive_text`, boss cards in `cards_boss.json` | `design/gdd/content.md` | boss themes, CN-6 file layout | Data dependency |
-| file list and envelope | `design/design-decisions.md` | DD-T01 (as amended 2026-11-03: `hero_powers.json`, `cards_boss.json`, ten config files incl. `profile_defaults.json`), DD-X01 | Data dependency |
+| file list and envelope | `design/design-decisions.md` | DD-T01 (as amended 2026-11-03: `hero_powers.json`, `cards_boss.json`, ten config files incl. `profile_defaults.json`; `card_database.json` row **pending** — Open Questions), DD-X01 | Data dependency |
+| MVP / v1 record counts, boss deck size | `design/gdd/content.md` | CN-1 scope table (MVP: 40 collectible, 3 tokens, 10 boss-only, 5 bosses, 10 treasures, 10 bundles); B2 (30-card boss decks) | Data dependency |
 
 ## Acceptance Criteria
 
@@ -575,13 +577,18 @@ under the test root, never the shipped data, except where "shipped data set" is 
 **Loading and failure (CR-1, CR-5, CR-8)**
 - [ ] **GIVEN** the shipped data set, **WHEN** the game boots, **THEN** state is `Ready`, `report()`
   has zero errors, and the per-type record counts (cards per set, tokens, bosses, treasures,
-  bundles) equal the numbers in `design/gdd/content.md`'s content-volume table for the shipped
-  batch (MVP: 40 collectible, 4 tokens, 8 boss-only, 4 bosses, 10 treasures, 10 bundles).
+  bundles) equal the numbers in `design/gdd/content.md`'s CN-1 scope table for the shipped
+  batch (MVP: 40 collectible — war 25 + neutral 15 —, 3 tokens, 10 boss-only, 5 bosses, 10
+  treasures, 10 bundles; CN-1 is the source of truth if the batch changes).
 - [ ] **GIVEN** the shipped data set, **WHEN** loaded, **THEN** `config("match_rules")`,
   `config("card_effects")`, `config("ai_profiles")`, `config("run_structure")`,
   `config("reward_draft")`, `config("treasures_balance")`, `config("heroes_balance")`,
-  `config("match_ui")`, `config("run_ui")` and `config("profile_defaults")` each return a
-  non-null frozen Dictionary, and `config("no_such")` returns `null` with one logged error.
+  `config("match_ui")`, `config("run_ui")`, `config("profile_defaults")` and
+  `config("card_database")` each return a non-null frozen Dictionary, and `config("no_such")`
+  returns `null` with one logged error.
+- [ ] **GIVEN** `card_database.json` with `min_bundle_pool: 2` (below its 3–30 range), **WHEN**
+  loading, **THEN** `E_SCHEMA` names the file and the key and state is `Failed`; **GIVEN** it is
+  missing, **THEN** `E_MISSING_FILE` names it (no built-in defaults path).
 - [ ] **GIVEN** a release-configured load where `match_rules.json` is present but Match Rules has
   registered no config validator, **WHEN** loading, **THEN** `E_DELEGATED` names
   `match_rules.json` and state is `Failed`.

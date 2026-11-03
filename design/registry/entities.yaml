@@ -845,8 +845,10 @@ formulas:
     variables:
       - t_side
       - MAX_MANA
+      - crystal_bonus
     output_range: [1, 10]
-    expression: "min(t_side, MAX_MANA)"
+    expression: "min(t_side + crystal_bonus, MAX_MANA)"
+    notes: "crystal_bonus added 2026-11-03 (cross-review C-02, Hollow Crown)."
     added: 2026-11-03
     revised: ""
   - name: turns_to_lethal
@@ -1392,6 +1394,7 @@ constants:
       - design/gdd/card-effects.md
       - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
+      - design/gdd/match-rules.md
     value: 10000
     unit: events
     added: 2026-11-03
