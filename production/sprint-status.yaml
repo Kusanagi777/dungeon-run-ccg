@@ -26,14 +26,14 @@ stories:
     name: "Match setup: bind, heroes, shuffle, starting hands"
     file: "production/epics/match-rules/story-003-match-setup.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     wave: 1
     serialised: true
     blocker: ""
     note: "merges first in W1: new test_effect_resolver.gd, match_factory.gd, MatchState"
-    completed: ""
+    completed: "2026-11-03"
   - id: "rng-event-log-005"
     name: "EventLog core — envelope, append, subscribe, events_since, turn, sealing"
     file: "production/epics/rng-event-log/story-005-event-log-core-append-subscribe-seal.md"

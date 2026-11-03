@@ -16,12 +16,14 @@
 ## [method health], [method attack], [method has_windfury],
 ## [method max_attacks], [method attacks_remaining].
 ##
-## This story (match-rules 001) builds the constructor, the derived values and
-## [method state_snapshot]; `start(config)` (story 003) builds the state from a
-## `MatchConfig`. Until then a state is installed with [method load_state].
+## Story 001 built the constructor, the derived values and
+## [method state_snapshot]; story 003 adds [method start] (C3 setup from a
+## `MatchConfig`), the resolver surface [method emit] / [method rng_match] /
+## [method state], and the [method draw] primitive. [method load_state]
+## remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
-## engine.load_state(MatchState.from_config(config))
+## engine.start(config)
 ## var hp: int = engine.health(engine.state().players["player"].hero)
 ## [/codeblock]
 class_name RulesEngine
@@ -71,10 +73,17 @@ const E_RULES_NOT_INTEGER: StringName = &"E_RULES_NOT_INTEGER"
 ## Owner code: a knob lies outside its [constant CONFIG_SAFE_RANGES] row.
 const E_RULES_OUT_OF_RANGE: StringName = &"E_RULES_OUT_OF_RANGE"
 
+## `hook_install_skipped.reason` for a second installer with an installed
+## `host_id` (ADR-0005 rule 5).
+const SKIP_REASON_DUPLICATE: String = "duplicate"
+
 var _db: Variant
 var _rules_config: Dictionary
 var _resolver: Variant
 var _state: MatchState = null
+## The `cause_seq` [method emit] stamps: 0 during setup and for the direct
+## consequences of a command (C15); story 009's C10 loop sets it per step.
+var _cause_seq: int = 0
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -157,6 +166,111 @@ func state() -> MatchState:
 	return _state
 
 
+## Begins a match from [param config], the `MatchConfig` Dictionary (C3 step 1,
+## Run Structure R3: `{floor, band, rng_match, rng_ai, log, player:
+## {hero_def_id, deck, hook_installers}, boss: {boss_def_id, deck, health,
+## hook_installers, ai_id}}`) — the engine's only input and the only way a
+## match begins. Runs C3 steps 1–6 in one fixed order, ending in phase
+## `mulligan` with `mulligan_offered` the last event:
+## 1. `state.hooks = HookRegistry.new()`, then
+##    `resolver.bind(self, player.hook_installers + boss.hook_installers)`;
+##    one `hook_install_skipped {host_id, reason: duplicate}` per installer
+##    whose `host_id` an earlier one already installed (ADR-0005, ADR-0007).
+## 2. Heroes: player `base_health` = `starting_health_player`, boss
+##    `base_health = config.boss.health` (never the boss definition's).
+## 3. Each deck to `CardInstance`s in list order, shuffled with `rng_match` —
+##    player first; one `deck_shuffled {side, instance_ids}` per side.
+## 4. `on_match_start` hooks, player side then boss side.
+## 5. Starting hands, player then boss: `clampi(fold(modify_starting_hand_size,
+##    starting_hand_*), 0, hand_size)` cards each.
+## 6. `phase = mulligan`; `mulligan_offered {side: player, instance_ids}`.
+## `rng_match` is stored as given and `rng_ai` is never touched: the engine
+## never creates, seeds or forks a stream (DD-T03). Every event of setup has
+## `cause_seq = 0`.
+## [codeblock]
+## var engine := RulesEngine.new(db, db.config("match_rules"), resolver)
+## engine.start(config)
+## engine.state().phase   # "mulligan"
+## [/codeblock]
+func start(config: Dictionary) -> void:
+	assert(_state == null, "RulesEngine.start: a match was already started on this engine")
+	_state = MatchState.from_config(config)
+	_cause_seq = 0
+	# C3 step 1: the registry, then bind (installs entries, registers evaluators)
+	_state.hooks = HookRegistry.new()
+	var installers: Array = []
+	installers.append_array(config.player.hook_installers)
+	installers.append_array(config.boss.hook_installers)
+	_resolver.bind(self, installers)
+	_log_skipped_installers(installers)
+	# C3 step 2: heroes
+	# TODO(card-database story 006): read the hero record's `health` (defaulting
+	# to this knob) and its hero power id once `CardDatabase` answers queries.
+	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, rule("starting_health_player"))
+	_state.players[MatchRecords.SIDE_BOSS].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_BOSS, int(config.boss.health))
+	# C3 step 3: decks, player first
+	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck)
+	_build_deck(MatchRecords.SIDE_BOSS, config.boss.deck)
+	# C3 step 4: on_match_start, before any card is drawn
+	for side: String in MatchRecords.SIDES:
+		_state.hooks.run_triggers(&"on_match_start", StringName(side), {})
+	# C3 step 5: starting hands, fold then clamp once
+	draw(MatchRecords.SIDE_PLAYER, _starting_hand_size(MatchRecords.SIDE_PLAYER, rule("starting_hand_player")))
+	draw(MatchRecords.SIDE_BOSS, _starting_hand_size(MatchRecords.SIDE_BOSS, rule("starting_hand_boss")))
+	# C3 step 6
+	_state.phase = MatchState.PHASE_MULLIGAN
+	emit(&"mulligan_offered", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(_state.players[MatchRecords.SIDE_PLAYER].hand)})
+
+
+## Appends one event to the match log with the engine's current `cause_seq`
+## and returns its `seq` (ADR-0007 Decision 6). Every engine mutation emits
+## through here, and so does the resolver (`effect_resolved`,
+## `counter_changed`, …), so `log.append` call sites stay inside the engine.
+## [codeblock]
+## var seq: int = engine.emit(&"counter_changed", {"source_id": 7, "key": "seen", "value": 2})
+## [/codeblock]
+func emit(type: StringName, payload: Dictionary) -> int:
+	# TODO(rng-event-log story 005): type the log as `EventLog`.
+	var log: Variant = _state.log
+	return log.append(type, payload, _cause_seq)
+
+
+## The injected `match_<floor>` stream from `MatchConfig.rng_match` (ADR-0007
+## Decision 7; C3 step 1) — the one stream rules and the resolver draw from.
+## Typed `RefCounted` so the production `RngStream` and the test double fit.
+## [codeblock]
+## var i: int = engine.rng_match().randi_range(0, pool.size() - 1)
+## [/codeblock]
+func rng_match() -> RefCounted:
+	return _state.rng_match
+
+
+## Primitive (C11, match-rules Interactions): [param side] draws [param n]
+## cards. Each draw pops the top of the deck (index 0); into the right end of
+## the hand with `card_drawn {side, instance_id, card_id, hand_size}`, or —
+## when the hand already holds `hand_size` — into the graveyard with
+## `card_burned {side, instance_id, card_id}` (DD-M06).
+## TODO(story 006): the fatigue branch (empty deck: this draw does nothing
+## yet) and the `on_draw` hook / trigger after a successful draw.
+## [codeblock]
+## engine.draw("player", 2)
+## [/codeblock]
+func draw(side: String, n: int) -> void:
+	var player: Dictionary = _state.players[side]
+	for _i: int in n:
+		if player.deck.is_empty():
+			continue
+		var card: Dictionary = player.deck.pop_front()
+		if player.hand.size() >= rule("hand_size"):
+			card.zone = "graveyard"
+			player.graveyard.append(card)
+			emit(&"card_burned", {"side": side, "instance_id": card.instance_id, "card_id": card.def_id})
+			continue
+		card.zone = "hand"
+		player.hand.append(card)
+		emit(&"card_drawn", {"side": side, "instance_id": card.instance_id, "card_id": card.def_id, "hand_size": player.hand.size()})
+
+
 ## C1: `max_health = base_health + Σ enchantment.health_delta`.
 ## [codeblock]
 ## # base_health 2 with one +2 enchantment
@@ -233,6 +347,50 @@ static func _config_error(code: StringName, key: String, message: String) -> Dic
 		"field": key,
 		"message": message,
 	}
+
+
+## C3 step 1: the engine, not the registry or the resolver, logs a skipped
+## installer. The registry is fresh at `bind`, so an installer is skipped
+## exactly when an earlier one in [param installers] has its `host_id`.
+func _log_skipped_installers(installers: Array) -> void:
+	var seen: Dictionary = {}
+	for installer: HookInstaller in installers:
+		if seen.has(installer.host_id):
+			emit(&"hook_install_skipped", {"host_id": installer.host_id, "reason": SKIP_REASON_DUPLICATE})
+		else:
+			seen[installer.host_id] = true
+
+
+## C3 step 3 for [param side]: one `CardInstance` per entry of [param def_ids]
+## in list order, one `rng_match` shuffle, one `deck_shuffled`.
+func _build_deck(side: String, def_ids: Array) -> void:
+	var deck: Array = _state.players[side].deck
+	for def_id: Variant in def_ids:
+		deck.append(MatchRecords.card_instance(_take_entity_id(), str(def_id), "deck"))
+	var stream: Variant = _state.rng_match
+	stream.shuffle(deck)
+	emit(&"deck_shuffled", {"side": side, "instance_ids": _instance_ids(deck)})
+
+
+## C3 step 5: the `modify_starting_hand_size` fold over [param base], clamped
+## once to `[0, hand_size]` (Interactions hook table; ADR-0005 rule 4).
+func _starting_hand_size(side: String, base: int) -> int:
+	var n: int = _state.hooks.fold(&"modify_starting_hand_size", StringName(side), base, {})
+	return clampi(n, 0, rule("hand_size"))
+
+
+## The next entity id (C1: unique per match, assigned at creation).
+func _take_entity_id() -> int:
+	var id: int = _state.next_entity_id
+	_state.next_entity_id = id + 1
+	return id
+
+
+static func _instance_ids(cards: Array) -> Array[int]:
+	var ids: Array[int] = []
+	for card: Dictionary in cards:
+		ids.append(int(card.instance_id))
+	return ids
 
 
 func _weapon_of(character: Dictionary) -> Variant:

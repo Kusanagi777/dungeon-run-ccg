@@ -17,7 +17,9 @@
 ## `make_rules_config` is the injected `match_rules` body — the `config` of
 ## `assets/data/match_rules.json` — built from `TestConstants`. Since
 ## match-rules story 002 `make_match_state` carries a real (empty)
-## `HookRegistry`, and `make_hook_installer` builds `HookInstaller`s.
+## `HookRegistry`, and `make_hook_installer` builds `HookInstaller`s. Since
+## match-rules story 003 `make_started_engine` returns an engine after
+## `RulesEngine.start` (phase Mulligan), bound to a `TestEffectResolver`.
 class_name MatchFactory
 extends RefCounted
 
@@ -45,6 +47,10 @@ const REJECTION_CODES: Array[String] = [
 ## Entity ids the factory reserves for the two heroes (C1: unique per match).
 const PLAYER_HERO_ENTITY_ID: int = 1
 const BOSS_HERO_ENTITY_ID: int = 2
+## Fixture boss deck size of [method make_started_engine] — not a gameplay
+## value: large enough for the starting hand plus 12 boss turns of draws
+## (match-rules AC-06) before story 006's fatigue branch exists.
+const STARTED_BOSS_DECK_SIZE: int = 20
 
 
 ## The `match_rules` config body (match-rules F9 Limits and Tuning Knobs,
@@ -161,6 +167,54 @@ static func make_match_config(floor: int = 1, rng: TestRngService = null, log: T
 	}
 	config.merge(overrides, true)
 	return config
+
+
+## A `RulesEngine` after `start(config)` (match-rules C3 steps 1–6: phase
+## Mulligan, hands dealt), built over `make_match_config(floor, rng, log)`
+## with `make_rules_config(rules_overrides)` and [param resolver] (a fresh
+## [TestEffectResolver] when null). A null [param rng] / [param log] is
+## replaced by `TestRngService.new()` / `TestEventLog.new()`; read them back
+## through `engine.state().log` / `engine.rng_match()`.
+## [param overrides] is applied to the config with the `player` and `boss`
+## sub-dictionaries **merged** key by key (so `{"boss": {"health": 42}}`
+## keeps the boss deck), every other key replaced; `floor` picks the streams.
+## The boss deck defaults to [constant STARTED_BOSS_DECK_SIZE] fixture cards
+## (`make_match_config`'s one-card boss deck cannot deal a starting hand).
+## [codeblock]
+## var engine: RulesEngine = MatchFactory.make_started_engine(null, null, {"boss": {"health": 42}})
+## engine.phase()   # "mulligan"
+## [/codeblock]
+static func make_started_engine(rng: TestRngService = null, log: TestEventLog = null, overrides: Dictionary = {}, rules_overrides: Dictionary = {}, resolver: TestEffectResolver = null) -> RulesEngine:
+	var service: TestRngService = rng if rng != null else TestRngService.new()
+	var match_log: TestEventLog = log if log != null else TestEventLog.new()
+	var config: Dictionary = make_started_config(service, match_log, overrides)
+	var bound: TestEffectResolver = resolver if resolver != null else TestEffectResolver.new()
+	var engine: RulesEngine = RulesEngine.new(null, make_rules_config(rules_overrides), bound)
+	engine.start(config)
+	return engine
+
+
+## The `MatchConfig` [method make_started_engine] starts: `make_match_config`
+## with a [constant STARTED_BOSS_DECK_SIZE]-card boss deck and [param overrides]
+## applied as described there. Exposed so a test can start two engines from
+## equal configs (match-rules AC-01).
+static func make_started_config(rng: TestRngService, log: TestEventLog, overrides: Dictionary = {}) -> Dictionary:
+	var config: Dictionary = make_match_config(int(overrides.get("floor", 1)), rng, log)
+	config.boss.deck = make_boss_deck_ids(STARTED_BOSS_DECK_SIZE)
+	for key: String in overrides:
+		if (key == "player" or key == "boss") and overrides[key] is Dictionary:
+			(config[key] as Dictionary).merge(overrides[key], true)
+		else:
+			config[key] = overrides[key]
+	return config
+
+
+## [param count] CR-2-valid boss fixture card ids, `boss_test_01` upwards.
+static func make_boss_deck_ids(count: int) -> Array:
+	var ids: Array = []
+	for i: int in count:
+		ids.append("boss_test_%02d" % (i + 1))
+	return ids
 
 
 ## A HookInstaller (treasures T3.2; ADR-0005) for `host_id` on `side`
