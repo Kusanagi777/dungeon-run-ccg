@@ -13,6 +13,7 @@
 > **Related UX Specs**: `design/ux/interaction-patterns.md` (Button (Primary / Secondary), Toast, Treasure Chip, Card Inspect, List Item, Scroll Container, Tooltip, Screen Replace, Focus Management, Escape / Cancel, Standard Shortcuts, Success Confirmation "Copied", Empty State, Error State "Save failed"); `design/accessibility-requirements.md`; `hero-select.md` (exit; written in this run), `run-start.md` / `boss-intro.md` (exit via New Run), `main-menu.md`, `run-log.md` (`run_detail` reuses this layout), `toast.md` — not yet written.
 > **Accessibility Tier**: Standard with reduce-motion, visual-for-every-sound and the high-contrast state set elevated (`design/accessibility-requirements.md`). The Run UI matrix row's requirement for this screen: "the defeat summary must say why you lost".
 > **Template**: UX Spec
+> **REVISED 2026-11-03 (ux-review)**: (1) abandoned variant is **one line + New Run · Main Menu** everywhere — no columns (§4, §5.1, §5.3, §6, §12, consistent with run-ui U2 `summary_abandoned`); (2) floors block kept and cited to run-ui U9's per-floor strip (§5.2, §15 resolved); (3) damage list → **8 visible rows at 44 px** (List Item rule) from y 108 to 460, "and N more" at y 468 — nothing reaches the status line at y 560; 7 / 6 rows at 125 / 150 % (§5.1, §5.2, §5.3, §6, §11, §14); (4) floors zone corrected to 72–292 (header 72, eight 24 px rows 100–292; deck header stays at 304); (5) fixtures `abandoned_sample` and `victory_sample_ts150` are run-ui U10 names (§4, §6, §14, §15); (6) §15 gamepad rows for every §11 untick; (7) `text_muted` on `table_lit` is now in art bible §4 at 5.08:1 — the victory variant's `text_light` substitution is **dropped**; `text_muted` is used on both backgrounds (§5.1, §12, §14, §15).
 
 > **Sources read** (by section): run-ui U1–U10, States, F1–F3, Edge Cases, Tuning Knobs, Visual/Audio, Game Feel, UI Requirements, AC; run-structure R1, R6, R10, UI Requirements, Tuning Knobs; meta M3, M7 (via R6), M8, F6, UI Requirements; rng-event-log and treasures UI Requirements; art bible §2 (Victory / Defeat moods), §4, §7; accessibility-requirements Visual, Motor, Cognitive, Per-Feature Matrix; interaction-patterns entries named above, Animation and Sound Standards.
 
@@ -77,7 +78,7 @@ Main Menu
 | Match → summary | `run_ended{victory}` / `run_ended{defeat}` buffered during the match, applied at `match_view_finished` (S16) | Victory on winning floor `floors_per_run`; defeat on any boss win, incl. `both_dead` and `concede` |
 | Pause / resume prompt → Abandon → confirm | `abandon()` → `run_ended{abandoned, abandon_reason: player}` (S6, S17) | Counts as a loss (R6) |
 | Resume failure | `resume()` → `E_SCHEMA` / `E_CORRUPT` / `E_DATA_VERSION` → system abandon (`abandon_reason: data_version_mismatch | save_corrupt`) | run-ui Edge Cases: the **reason dialog** with New Run replaces the summary in the menu flow; the abandoned summary variant covers the case where Run Structure emits `run_ended{abandoned}` for a system reason (R6 "recorded but not losses") |
-| Launch argument | `--run-ui-screen=summary_victory --run-ui-fixture=victory_sample`; `summary_defeat` + `defeat_sample`; abandoned needs **`abandoned_sample`** (new — §15) | run-ui U10 |
+| Launch argument | `--run-ui-screen=summary_victory --run-ui-fixture=victory_sample`; `summary_defeat` + `defeat_sample`; `summary_abandoned` + `abandoned_sample`; `summary_victory` + `victory_sample_ts150` for the 150 % layout | run-ui U10 |
 | Never | A `fault` match (`match_ended{result: fault}`) | Goes to the boss intro "Attempt n" (S11b), never here — stated so no fault copy is expected on this screen |
 
 ---
@@ -89,8 +90,8 @@ Main Menu
 | Trigger | Source Screen / State | Transition Type | Data Passed In | Notes |
 |---------|----------------------|-----------------|----------------|-------|
 | `run_ended{result, floors_cleared, total_turns, run_seed_hex}` | `match` | Screen Replace `fade` 250 ms; victory adds the 400 ms portrait saturation ramp after the fade | The in-memory `RunRecord` handed with `run_ended` (never re-read from the archive — run-ui Edge Cases): `hero_id`, `result{outcome, floors_cleared, floor_reached, total_turns, ended_by, abandon_reason}`, `totals{matches_played, turns, damage_by_card{}, cards_drafted, treasures_taken, play_seconds}`, `match_summaries[]{floor, boss_id, band, result, reason, turns, attempt, duration_s, cards_played, damage_by_card{}}`, `deck[]`, `drafts[]`, `treasures[]`, `run_seed_hex`, `seed_source`, `floors_per_run`; Meta `unlocks_granted[]`; `summary_top_cards` (10); latest actionable `run_warning` | Toasts queued during the match start draining here (U5) |
-| `run_ended{abandoned}` | `pause` / `resume_prompt` confirm | `fade` 250 | Same record; `abandon_reason` | One-line variant |
-| Fixture | `victory_sample` (8-floor record, 1 unlock), `defeat_sample` (fell on floor 5, floor 3 `attempt = 2`, reason `hero_dead`) | None | Fixture record | AC-6, AC-7 |
+| `run_ended{abandoned}` | `pause` / `resume_prompt` confirm | `fade` 250 | Same record; `abandon_reason` — only the headline is rendered | One-line variant (run-ui U2): one line + New Run · Main Menu, no columns |
+| Fixture | `victory_sample` (8-floor record, 1 unlock), `defeat_sample` (fell on floor 5, floor 3 `attempt = 2`, reason `hero_dead`), `abandoned_sample` (player abandon from floor 3), `victory_sample_ts150` (`text_scale` 1.5) | None | Fixture record | AC-6, AC-7, AC-31 |
 
 **Exit table**:
 

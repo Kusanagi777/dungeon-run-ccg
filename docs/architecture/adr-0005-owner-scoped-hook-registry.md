@@ -50,10 +50,10 @@ Treasures and boss passives alter match rules through a per-match `HookRegistry`
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split: `src/gameplay/**` is `RefCounted`, no Node, constructor-injected — **not yet written**); ADR-0007 (effect resolver / validator boundary: hook effects are DSL effects and the resolver is the only evaluator — **not yet written**). Acceptance is refused while either is unwritten or `Proposed` |
+| **Depends On** | ADR-0001 (rules / presentation split: `src/gameplay/**` is `RefCounted`, no Node, constructor-injected — `adr-0001-rules-presentation-split.md`, **Proposed** 2026-11-03); ADR-0007 (effect resolver / validator boundary: hook effects are DSL effects and `EffectResolver.apply_value_hook` / `run_hook_effect` are the only evaluators — `adr-0007-effect-resolver-validator-boundary.md`, **Proposed** 2026-11-03). Acceptance is refused while either is `Proposed` |
 | **Enables** | ADR-0006 (Boss AI planner relies on `clone()` carrying hooks by value — boss-ai A20); ADR-0008 (`MatchConfig.player/boss.hook_installers` built by the match driver); Treasures epic; boss passives in Content MVP-1 |
 | **Blocks** | Treasures epic (installers, pool, `collect_state`), the Match Rules story that implements the hook table, boss-passive content stories |
-| **Ordering Note** | `architecture.md` priority order places this after ADR-0007 (0001 → 0002 → 0003 → 0004 → 0010 → 0007 → 0005). It is written now in DD-X08 number order; the resolver-side binding it assumes (`EffectResolver.bind(engine, installers)`, card-effects C6.1) is fixed by ADR-0007 and restated here only as a consumer. Supersedes `docs/architecture/modifier-hook-chain.md` (prior art; stays unnumbered per DD-X08) |
+| **Ordering Note** | `architecture.md` priority order places this after ADR-0007 (0001 → 0002 → 0003 → 0004 → 0010 → 0007 → 0005). It is written now in DD-X08 number order, in the same session as ADR-0007; the resolver-side binding it assumes (`EffectResolver.bind(engine, installers)` installing through `state.hooks.install(installer)` at C3 step 1; a clone binding a fresh resolver with no installers — ADR-0007 Decision 2–3) is fixed there and restated here only as a consumer. Checked against ADR-0007 on 2026-11-03: no contradiction. Supersedes `docs/architecture/modifier-hook-chain.md` (prior art; stays unnumbered per DD-X08) |
 
 ## Context
 
@@ -86,7 +86,7 @@ No production code. `match-rules.md` Interactions fixes the twelve hook points, 
 
 ## Decision
 
-**`HookRegistry` is a plain `RefCounted` owned by `MatchState` (`src/gameplay/match/hook_registry.gd`), created by `RulesEngine.start` and discarded with the match. It stores, per hook point, an `Array` of `HookEntry` dictionaries in installation order, and nothing else that could reach outward: no log, no engine, no `Node`, no autoload.** Entries are installed by `EffectResolver.bind(engine, installers)` during match-rules C3 step 1, from `MatchConfig.player.hook_installers` (treasures, pick order) followed by `MatchConfig.boss.hook_installers` (the passive), one entry per effect in each installer's `effects[]` array order. The registry evaluates nothing itself: at `bind` the resolver hands it two evaluator `Callable`s (`fold_entry`, `run_entry`), which the registry calls per entry; `copy()` copies entries only, and the clone's own resolver rebinds its evaluators. That keeps the DSL out of Match Rules (ADR-0007 boundary) while the engine keeps the single call sites `architecture.md` names.
+**`HookRegistry` is a plain `RefCounted` owned by `MatchState` (`src/gameplay/match/hook_registry.gd`), created by `RulesEngine.start` and discarded with the match. It stores, per hook point, an `Array` of `HookEntry` dictionaries in installation order, and nothing else that could reach outward: no log, no engine, no `Node`, no autoload.** Entries are installed by `EffectResolver.bind(engine, installers)` during match-rules C3 step 1, from `MatchConfig.player.hook_installers` (treasures, pick order) followed by `MatchConfig.boss.hook_installers` (the passive), one entry per effect in each installer's `effects[]` array order. The registry evaluates nothing itself: at `bind` the resolver hands it two evaluator `Callable`s — its bound methods `apply_value_hook` and `run_hook_effect` (ADR-0007 Decision 1 table) — which the registry calls per entry; `copy()` copies entries only, and the clone's fresh resolver, bound with no installers (ADR-0007 Decision 3), sets its own evaluators. `unbind()` on `match_ended` (ADR-0007) also clears the evaluators, so no `RefCounted` cycle survives the match. That keeps the DSL out of Match Rules (ADR-0007 boundary) while the engine keeps the single call sites `architecture.md` names.
 
 Rules the decision fixes:
 
@@ -145,7 +145,7 @@ const VALUE_POINTS: Array[StringName]   = [&"modify_cost", &"modify_damage", &"m
                                            &"modify_starting_hand_size", &"modify_max_attacks"]
 const GATE_POINTS: Array[StringName]    = []                       # reserved kind; none in v1
 func install(installer: HookInstaller) -> bool                     # false on duplicate host_id; installs nothing then
-func set_evaluators(fold_entry: Callable, run_entry: Callable) -> void   # (addition) bound by EffectResolver.bind; unset after copy()
+func set_evaluators(fold_entry: Callable, run_entry: Callable) -> void   # (addition) EffectResolver.bind passes apply_value_hook / run_hook_effect; unset after copy() and on unbind()
 func entries(point: StringName) -> Array                           # (addition, read-only view) installation order
 func fold(point: StringName, side: StringName, value: int, ctx: Dictionary) -> int
 #   for e in entries[point]: value = fold_entry.call(e, side, value, ctx)   — scope mismatch returns value unchanged; no allocation
