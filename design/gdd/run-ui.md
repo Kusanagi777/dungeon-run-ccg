@@ -246,7 +246,7 @@ transition. Debug-build only; ignored in export builds. Required fixtures: `fres
 `locked_heroes` (all six `HeroDef`s present, three locked with hints), `abandoned_sample` (a
 player abandon from floor 3 — `summary_abandoned`, "counted as a loss"). Derived fixtures that
 reuse those records: `draft_treasure_sample`, `draft_bundle_sample` (offers of 3),
-`draft_treasure_short` (an offer of 1 with the `short` flag — two dimmed placeholder slots),
+`draft_treasure_short` (`option_ids` of 2 with the `short` flag — slot 2 a dimmed placeholder; draft-picker.md §6 / AC),
 `resume_prompt` (from `mid_run_floor4`), `data_error_sample` (a 12-row validation report),
 `toast_sample` (3 queued). **Settings variants** (`text_scale = 1.5` in the fixture profile,
 everything else equal): `draft_bundle_sample_ts150`, `locked_heroes_ts150`,

@@ -13,6 +13,7 @@
 > **Related UX Specs**: `design/ux/interaction-patterns.md` (Pick One of N, Card (Hand), Card Inspect, Button (Primary/Secondary), Modal Dialog, Toast, Tooltip, List Item, Scroll Container, Progress Strip, Treasure Chip, Screen Replace, Overlay Open / Close, Focus Management, Escape / Cancel, Standard Shortcuts, Empty / Error / Success states); `design/accessibility-requirements.md`; `boss-intro.md` (exit), `pause.md` (overlay), `toast.md`, `progress-strip.md` — not yet written; `hud.md` (sibling, written in this run).
 > **Accessibility Tier**: Standard with reduce-motion, visual-for-every-sound and the high-contrast state set elevated (`design/accessibility-requirements.md`). The Per-Feature Matrix's Reward Draft row leaves one item to this spec: the `text_scale` reading path for the bundle panel's compact rows (§12).
 > **Template**: UX Spec
+> **REVISED 2026-11-03 (ux-review)**: (1) §5.1 bundle Card Inspect anchoring replaced — the left panel previews on its right side, the right panel on its left, the middle panel above the hovered row, every rect clamped to the viewport (exact rects given, reading-panel sides at ≥ 125 %); (2) §11 gamepad unticked rows each have a §15 entry; (3) fixtures `draft_treasure_short` and `draft_bundle_sample_ts150` are now run-ui U10 names — §6, §14 and §15 cite them; (4) §15 synergy-hint and reading-panel rows ratified (designer default), Deck Drawer row resolved against the pattern library's new `Deck Drawer` entry.
 
 > **Sources read** (by section, coordination rule 6): run-ui U1–U10, States, Interactions, F1–F4, Edge Cases, Tuning Knobs, Visual/Audio, Game Feel, UI Requirements, AC; reward-draft Core Rules D1–D12, States, Visual/Audio, Game Feel, UI Requirements; run-structure R1, R5, R6, R10, UI Requirements, Tuning Knobs; treasures / card-database / content UI Requirements; meta M9; art bible §2 (Reward draft mood), §4, §7; accessibility-requirements Visual, Motor, Cognitive, Per-Feature Matrix; interaction-patterns (entries named above), Animation and Sound Standards, Gaps ("Deck drawer", "Compact card row" are assigned to this spec).
 
@@ -151,8 +152,18 @@ Bundle variant (`draft_bundle`), F4 panels 340 wide at x 90 / 470 / 850, gap 40:
  494 │                               Deck 27 → 30                                         │  hint 2 (spec)
  640 │ [Take nothing]*            ( Pick )                              [Deck (27)]      │  640–684
  720 └───────────────────────────────────────────────────────────────────────────────────┘
-     Hover/focus on a card row → 225x315 Card Inspect preview anchored to the panel's outer edge
+     Hover/focus on a card row → 225x315 Card Inspect preview, anchored per panel (table below)
 ```
+
+**Bundle preview anchoring** (ux-review 2026-11-03 — the earlier "panel's outer edge" rule put the left panel's preview at x < 0). Rows sit at y 212 / 284 / 356 (centres 244 / 316 / 388); the preview is 225x315 and is always clamped to x 0–1055, y **96**–405 (so the title and strip rows stay visible and the bottom edge stays ≥ 15 px above Pick at y 640):
+
+| Hovered / focused panel | Side | Preview rect (row 1 / row 2 / row 3) | Reading panel at ≥ 125 % (max 360 wide, same y) |
+|---|---|---|---|
+| Left (x 90–430) | **Right** of the panel, 8 px gap | `438, 96, 225, 315` / `438, 159, 225, 315` / `438, 231, 225, 315` (top = row centre − 157, clamped) | Right of the preview: `671, y, 360, 315` |
+| Right (x 850–1190) | **Left** of the panel, 8 px gap | `617, 96, 225, 315` / `617, 159, 225, 315` / `617, 231, 225, 315` | Left of the preview: `249, y, 360, 315` |
+| Middle (x 470–810) | **Above** the hovered row, centred on the panel (x 640 − 112) | `528, 96, 225, 315` for every row — the natural top (row top − 8 − 315) is above y 96 for all three rows, so the clamp always engages | Right of the preview: `761, 96, 360, 315` |
+
+The clamped middle-panel preview overlaps the panel's own rows 1–2 (and row 3's top), so the `InspectLayer` draws it with `mouse_filter = MOUSE_FILTER_IGNORE`: the pointer still rests on the row underneath, the row stays hovered and the preview does not flicker; focus is unaffected. A left-panel preview overlaps the middle panel's left 193 px and a right-panel preview the middle panel's right 193 px — acceptable because only one option is inspected at a time and the panel beneath is not the one being read. Nothing moves; neighbours never shift (Card Inspect rule).
 
 Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320, 624 over the content; the title and strip rows stay visible; Pick (560–720) stays clear of it; the covered option (bundle panel 3 / nothing in the treasure variant) is still focusable — focusing it closes the drawer.
 
@@ -222,7 +233,7 @@ Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320,
 | Option selected | `Enter` / click on a focused option | Outline persists when focus leaves; siblings stay at full brightness | Pick becomes Actionable (outline, `text_light`) | Pick One of N "Selected" |
 | Committed | Pick / second `Enter` / double-click | Selected option locks (stays lifted), siblings dim 60 %, Pick stays pressed; `ui_pick` | Every further intent ignored until the swap (U4 `committed`); exactly one `draft_pick` (AC-9) | ≤ 50 ms to the lock (Game Feel) |
 | Fly-to-strip | `treasure_granted` / `deck_grew` | Picked frame / the three card rows shrink along a straight path to the strip (treasure → chip slot at left; cards → the deck-size label at right); deck size ticks "27 → 30" in `text_light` | 400 ms, skippable; fade under `reduce_motion` | `deck_thump` audio |
-| Short offer (`short` / `reoffer` flag) | `len(option_ids)` 1–2 | Missing slots drawn as dimmed `table_dark` placeholders at their F4 positions (no reflow) with the one-line reason inside ("No more treasures in this run" / "No more bundles in this run"); the header shows nothing extra | Placeholders not focusable; `1/2/3` past the last real option ignored; `pick(i ≥ len)` never sent | run-ui AC-28; fixture **`draft_treasure_short`** (new — §15) |
+| Short offer (`short` / `reoffer` flag) | `len(option_ids)` 1–2 | Missing slots drawn as dimmed `table_dark` placeholders at their F4 positions (no reflow) with the one-line reason inside ("No more treasures in this run" / "No more bundles in this run"); the header shows nothing extra | Placeholders not focusable; `1/2/3` past the last real option ignored; `pick(i ≥ len)` never sent | run-ui AC-28; fixture **`draft_treasure_short`** (run-ui U10: `option_ids` of 2, `flags: [short]`) |
 | Reoffer (debug only, treasure) | `treasure_short_policy = reoffer` | Same as short placeholders but the re-filled slots render normally | `E_CONFIG` in release (DD-X06) | Fixture only |
 | Empty offer | `option_ids == []` | **Never shown** — the run skips the step (D8c) | — | Stated so a reviewer does not look for a missing state |
 | Missing id | An `option_ids` entry fails to resolve in Card Database | That slot is an error frame "missing: <id>" (`text_muted` on `table_dark`), the others normal; `ui_data_missing` warning toast | Not pickable; not focusable | run-ui AC-21 |
@@ -234,7 +245,7 @@ Deck drawer open (either variant): right drawer 320 px (*spec*) at 960, 96, 320,
 | Resume into a draft | `resume()` OK | Same offer, no reveal stagger; strip and deck from the record | Identical behaviour | run-ui AC-12 |
 | Toast showing | Unlock / warning queued while idle | Banner top-right for `t_toast` 5–8 s; hover/focus pauses | Never steals focus | Unlocks are rare here (granted at `archive_run`) — mostly `save_failed` |
 | ReadOnly profile | Meta `ReadOnly` | Banner strip above the title row | Picks still work; the run is not saved (Meta M6) | run-ui Edge Cases |
-| `text_scale` 125 % / 150 % | Setting | §12 narrative: title and hints grow; compact rows drop their text line; reading panel on Card Inspect | — | Fixture variant `draft_bundle_sample` with `settings.text_scale` 1.5 (AC-31) |
+| `text_scale` 125 % / 150 % | Setting | §12 narrative: title and hints grow; compact rows drop their text line; reading panel on Card Inspect | — | Fixture **`draft_bundle_sample_ts150`** (run-ui U10 settings variant, `settings.text_scale` 1.5; AC-31) |
 | `reduce_motion` / `instant` | Setting | Stagger → one fade / 0 ms; fly-to-strip → fade; drawer slide → fade | `committed` still blocks a second intent (state-based) | run-ui AC-20 |
 
 ---
@@ -354,7 +365,7 @@ Impact moments on this screen: exactly one — the draft reveal (run-ui Game Fee
 
 ## 11. Input Method Completeness Checklist
 
-Platform Target is keyboard + mouse; the **Touch** block is dropped (not supported) and the **Gamepad** block is kept unticked as the post-v1 mapping (Partial). A tick means §7 above specifies it; an untick is an open implementation question listed in §15.
+Platform Target is keyboard + mouse; the **Touch** block is dropped (not supported) and the **Gamepad** block is kept unticked as the post-v1 mapping (Partial). A tick means §7 above specifies it; **every untick below has its own §15 row** (d-pad reachability, face buttons, bumpers, disconnection).
 
 **Keyboard**
 - [x] All interactive elements are reachable using Tab and arrow keys alone (§12 focus order; `Down`/`Up` inside panels and the drawer)
@@ -365,11 +376,11 @@ Platform Target is keyboard + mouse; the **Touch** block is dropped (not support
 - [x] Esc key closes or cancels (drawer → confirm/pause → opens pause) and does not quit the game from within this screen
 
 **Gamepad** (post-v1 — documented mapping only)
-- [ ] All interactive elements reachable with D-Pad and left stick — mapping defined (Focus Management), not implemented in v1
-- [ ] Face button mapping documented and consistent with platform conventions — `ui_accept` / `ui_cancel` only
+- [ ] All interactive elements reachable with D-Pad and left stick — mapping defined (Focus Management), not implemented in v1 (§15 "Gamepad: d-pad graph")
+- [ ] Face button mapping documented and consistent with platform conventions — `ui_accept` / `ui_cancel` only (§15 "Gamepad: face buttons")
 - [x] No action requires analog stick precision that cannot be replicated with D-Pad
-- [ ] Trigger and bumper shortcuts documented if used — shoulders = Tab / Shift+Tab (library default), nothing screen-specific
-- [ ] Controller disconnection while screen is open is handled gracefully — not specified anywhere yet (§15)
+- [ ] Trigger and bumper shortcuts documented if used — shoulders = Tab / Shift+Tab (library default), nothing screen-specific (§15 "Gamepad: bumpers")
+- [ ] Controller disconnection while screen is open is handled gracefully — not specified anywhere yet (§15 "Controller disconnection")
 
 **Mouse**
 - [x] Hover states defined for all interactive elements (lift; Button patterns)
@@ -458,7 +469,7 @@ Streams on the bundle variant: (1) three theme labels, (2) nine card texts, (3) 
 
 ## 14. Acceptance Criteria
 
-Fixtures are run-ui U10's (`--run-ui-screen=<id> --run-ui-fixture=<name>`), captured per `.claude/docs/run-and-observe.md` into `production/qa/evidence/`. Two fixtures this spec needs are **not** in U10's list and are named as new: `draft_treasure_short` and the `text_scale` 1.5 variant of `draft_bundle_sample` (§15).
+Fixtures are run-ui U10's (`--run-ui-screen=<id> --run-ui-fixture=<name>`), captured per `.claude/docs/run-and-observe.md` into `production/qa/evidence/`: `draft_treasure_sample`, `draft_bundle_sample`, `draft_treasure_short` and the `text_scale` 1.5 settings variant `draft_bundle_sample_ts150` (all in U10's required list as of 2026-11-03).
 
 **Performance**
 - [ ] Screen builds and renders its first frame within 100 ms of `draft_offered` on the reference machine (run-ui AC-26) and is fully interactive when the reveal ends (≤ 360 ms at `normal`, 0 at `instant`)
@@ -470,7 +481,8 @@ Fixtures are run-ui U10's (`--run-ui-screen=<id> --run-ui-fixture=<name>`), capt
 - [ ] GIVEN `draft_bundle_sample`, THEN three 340-wide panels sit at x 90 / 470 / 850 (±2 px), each with a theme label, a pitch and three 300x64 rows, and no card text is clipped without a preview (AC-5)
 - [ ] GIVEN F = 8, THEN the strip's node centres are at 416 + 64·(f−1) (AC-24) with the current floor ringed and upcoming nodes hollow with no initials
 - [ ] GIVEN the window at 3840x2160 fullscreen, THEN the layout is the 1280x720 layout scaled uniformly, nothing re-flowed (AC-31)
-- [ ] GIVEN `settings.text_scale = 1.5` in the fixture profile, THEN no text clips, the compact rows show name + stamps without their text line, and focusing a row opens the preview **and** the reading panel (AC-31; accessibility matrix)
+- [ ] GIVEN `draft_bundle_sample_ts150` (`settings.text_scale = 1.5` in the fixture profile), THEN no text clips, the compact rows show name + stamps without their text line, and focusing a row opens the preview **and** the reading panel at the §5.1 rects (AC-31; accessibility matrix)
+- [ ] GIVEN `draft_bundle_sample` with row 1 of each panel hovered in turn, THEN the preview sits at `438, 96` (left panel), `528, 96` (middle) and `617, 96` (right), fully inside the viewport, and the hovered row stays hovered under the middle panel's preview (no flicker)
 - [ ] All states in §6 that have a fixture render correctly; the Empty state does not exist and no "no offers" copy is reachable
 
 **Input**
