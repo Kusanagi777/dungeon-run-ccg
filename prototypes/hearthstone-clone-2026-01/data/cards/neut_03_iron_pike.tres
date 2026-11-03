@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://0icb38uxu8qd"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_ajsr8"]
+
+[resource]
+script = ExtResource("1_ajsr8")
+card_name = "Iron Pike"
+cost = 2
+description = "Deal 2 damage to a unit."

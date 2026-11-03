@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://1yv1chf1g8bu"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_4gbpy"]
+
+[resource]
+script = ExtResource("1_4gbpy")
+card_name = "Lucky Coin"
+description = "Gain 1 Mana this turn. Fated: Gain 2 Mana instead."

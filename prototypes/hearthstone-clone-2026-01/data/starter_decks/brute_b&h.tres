@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="StarterDeckData" load_steps=2 format=3 uid="uid://i7xhm1ppoj4n"]
+
+[ext_resource type="Script" uid="uid://b2ov1080u64vp" path="res://data/starter_deck_data.gd" id="1_t1u4h"]
+
+[resource]
+script = ExtResource("1_t1u4h")
+id = "brute1"
+deck_name = "Blood & Hunger"
+description = "Strategy: Aggro/Self-Harm. You want to deal damage (to enemies or yourself) to generate Hunger, then spend that Hunger on efficient buffs or finishers."
+class_id = "brute"
+card_ids = Array[String](["brute_common_07", "brute_common_07", "brute_uncommon_01", "brute_uncommon_01", "brute_legendary_01", "brute_common_08", "brute_common_08", "brute_common_08", "brute_common_09", "brute_common_09", "brute_rare_01", "brute_rare_01", "NEU_01", "NEU_01", "NEU_01"])
+metadata/_custom_type_script = "uid://b2ov1080u64vp"

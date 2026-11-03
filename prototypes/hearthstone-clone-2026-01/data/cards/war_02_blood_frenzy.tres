@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://c7lr2ep4yyld8"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_h4ql2"]
+
+[resource]
+script = ExtResource("1_h4ql2")
+card_name = "Blood Frenzy"
+cost = 1
+description = "Give a friendly unit +2 Attack and Pierce this turn."

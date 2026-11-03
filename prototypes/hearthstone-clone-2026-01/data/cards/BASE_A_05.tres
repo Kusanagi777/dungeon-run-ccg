@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://bn0i212mitard"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_dai5h"]
+
+[resource]
+script = ExtResource("1_dai5h")
+id = "BASE_A_05"
+card_name = "Fifth Column"
+cost = 5
+card_type = 1
+rarity = 1
+description = "A 5-cost baseline action for cost verification."
+keywords = Array[String](["[]"])

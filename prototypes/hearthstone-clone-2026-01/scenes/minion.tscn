@@ -1,0 +1,146 @@
+[gd_scene load_steps=2 format=3 uid="uid://c7ww28dm0nbva"]
+
+[ext_resource type="Script" uid="uid://buerix1e6wghp" path="res://scripts/minion.gd" id="1_script"]
+
+[node name="Minion" type="Control"]
+custom_minimum_size = Vector2(70, 85)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 70.0
+offset_bottom = 85.0
+script = ExtResource("1_script")
+
+[node name="TauntBorder" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = 3.0
+offset_bottom = 3.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Frame" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Highlight" type="ColorRect" parent="Frame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.2, 1, 0.2, 0.3)
+
+[node name="DivineShieldEffect" type="ColorRect" parent="Frame"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.9, 0.3, 0.4)
+
+[node name="ArtPanel" type="Panel" parent="Frame"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 65.0
+offset_bottom = 45.0
+mouse_filter = 2
+
+[node name="CardArt" type="TextureRect" parent="Frame/ArtPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="NameLabel" type="Label" parent="Frame"]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 47.0
+offset_right = 67.0
+offset_bottom = 60.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 8
+horizontal_alignment = 1
+clip_text = true
+
+[node name="SleepingIcon" type="Label" parent="Frame"]
+layout_mode = 0
+offset_left = 50.0
+offset_top = 3.0
+offset_right = 67.0
+offset_bottom = 16.0
+theme_override_font_sizes/font_size = 9
+text = "💤"
+
+[node name="AttackIcon" type="Panel" parent="Frame"]
+layout_mode = 0
+offset_left = 3.0
+offset_top = 62.0
+offset_right = 23.0
+offset_bottom = 82.0
+mouse_filter = 2
+
+[node name="AttackLabel" type="Label" parent="Frame/AttackIcon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthIcon" type="Panel" parent="Frame"]
+layout_mode = 0
+offset_left = 47.0
+offset_top = 62.0
+offset_right = 67.0
+offset_bottom = 82.0
+mouse_filter = 2
+
+[node name="HealthLabel" type="Label" parent="Frame/HealthIcon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DamageLabel" type="Label" parent="Frame"]
+visible = false
+layout_mode = 0
+offset_left = 20.0
+offset_top = 25.0
+offset_right = 50.0
+offset_bottom = 55.0
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+vertical_alignment = 1

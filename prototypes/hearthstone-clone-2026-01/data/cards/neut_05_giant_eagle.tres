@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cfb1p5cvln1id"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_o348t"]
+
+[resource]
+script = ExtResource("1_o348t")
+card_name = "Giant Eagle"
+cost = 4
+attack = 4
+health = 3
+description = "Snipe."
+role_tag = 2
+biology_tag = 1

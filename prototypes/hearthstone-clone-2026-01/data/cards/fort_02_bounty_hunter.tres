@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://dpovml1yh5se3"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_neeix"]
+
+[resource]
+script = ExtResource("1_neeix")
+card_name = "Bounty Hunter"
+cost = 2
+attack = 2
+health = 2
+description = "Bounty: You draw 1 card."
+role_tag = 2

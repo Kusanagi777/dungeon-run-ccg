@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cr8sjvnifrulp"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_06"
+card_name = "Steel Titan"
+cost = 6
+attack = 6
+health = 7
+card_type = 0
+rarity = 2
+description = "A 6-cost baseline unit for late-midgame."
+keywords = Array[String](["[]"])
+minion_tags = 0

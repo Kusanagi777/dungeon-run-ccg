@@ -1,0 +1,577 @@
+[gd_scene load_steps=6 format=3 uid="uid://632ip3qy3hbl"]
+
+[ext_resource type="Script" uid="uid://bdldyqqf2ya2u" path="res://scripts/main_game.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cw8qmv5mojciq" path="res://scripts/player_controller.gd" id="2_player_controller"]
+[ext_resource type="PackedScene" uid="uid://b4kgbdvrib7yv" path="res://scenes/card_ui.tscn" id="3_mgc0q"]
+[ext_resource type="PackedScene" uid="uid://c7ww28dm0nbva" path="res://scenes/minion.tscn" id="4_bb2iq"]
+[ext_resource type="PackedScene" uid="uid://3raggsnv71v5" path="res://scenes/targeting_arrow.tscn" id="5_18r40"]
+
+[node name="MainGame" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+z_index = -10
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.15, 0.2, 1)
+
+[node name="GameArea" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="EnemyHeroRow" type="HBoxContainer" parent="GameArea"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="EnemyResourcePanel" type="PanelContainer" parent="GameArea/EnemyHeroRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="EnemyResourceLabel" type="Label" parent="GameArea/EnemyHeroRow/EnemyResourcePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.7, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EnemyHeroPanel" type="PanelContainer" parent="GameArea/EnemyHeroRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="HeroContent" type="VBoxContainer" parent="GameArea/EnemyHeroRow/EnemyHeroPanel"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="Portrait" type="Panel" parent="GameArea/EnemyHeroRow/EnemyHeroPanel/HeroContent"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="GameArea/EnemyHeroRow/EnemyHeroPanel/HeroContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+text = "Enemy"
+horizontal_alignment = 1
+
+[node name="EnemyHandPanel" type="PanelContainer" parent="GameArea/EnemyHeroRow"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="EnemyHandContainer" type="HBoxContainer" parent="GameArea/EnemyHeroRow/EnemyHandPanel"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -30
+alignment = 1
+
+[node name="BoardSection" type="VBoxContainer" parent="GameArea"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="EnemyBoardRow" type="HBoxContainer" parent="GameArea/BoardSection"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="LeftStats" type="VBoxContainer" parent="GameArea/BoardSection/EnemyBoardRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 89
+alignment = 2
+
+[node name="EnemyManaLabel" type="Label" parent="GameArea/BoardSection/EnemyBoardRow/LeftStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.5, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "0 / 0"
+horizontal_alignment = 1
+
+[node name="EnemyDeckLabel" type="Label" parent="GameArea/BoardSection/EnemyBoardRow/LeftStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.65, 1)
+theme_override_font_sizes/font_size = 20
+text = "Deck: 30"
+horizontal_alignment = 1
+
+[node name="EnemyBoardArea" type="VBoxContainer" parent="GameArea/BoardSection/EnemyBoardRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="EnemyBackRow" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea"]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="EnemyBackLanes" type="HBoxContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Lane1" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes/Lane1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane2" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes/Lane2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane3" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes/Lane3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane4" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes/Lane4"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane5" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyBackRow/EnemyBackLanes/Lane5"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="EnemyFrontRow" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea"]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="EnemyFrontLanes" type="HBoxContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Lane1" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes/Lane1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane2" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes/Lane2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane3" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes/Lane3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane5" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes/Lane5"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane4" type="PanelContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/EnemyBoardRow/EnemyBoardArea/EnemyFrontRow/EnemyFrontLanes/Lane4"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RightStats" type="VBoxContainer" parent="GameArea/BoardSection/EnemyBoardRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 96
+alignment = 2
+
+[node name="EnemyHealthLabel" type="Label" parent="GameArea/BoardSection/EnemyBoardRow/RightStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 20
+text = "HP: 30"
+horizontal_alignment = 1
+
+[node name="EnemyDiscardLabel" type="Label" parent="GameArea/BoardSection/EnemyBoardRow/RightStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_font_sizes/font_size = 17
+text = "Discard: 0"
+horizontal_alignment = 1
+
+[node name="Divider" type="ColorRect" parent="GameArea/BoardSection"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.4, 0.35, 0.3, 1)
+
+[node name="PlayerBoardRow" type="HBoxContainer" parent="GameArea/BoardSection"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="LeftStats" type="VBoxContainer" parent="GameArea/BoardSection/PlayerBoardRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 89
+alignment = 2
+
+[node name="ManaLabel" type="Label" parent="GameArea/BoardSection/PlayerBoardRow/LeftStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.5, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "0 / 0"
+horizontal_alignment = 1
+
+[node name="PlayerDeckLabel" type="Label" parent="GameArea/BoardSection/PlayerBoardRow/LeftStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.65, 1)
+theme_override_font_sizes/font_size = 20
+text = "Deck: 30"
+horizontal_alignment = 1
+
+[node name="PlayerBoardArea" type="VBoxContainer" parent="GameArea/BoardSection/PlayerBoardRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="PlayerFrontRow" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea"]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="PlayerFrontLanes" type="HBoxContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Lane1" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes/Lane1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane2" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes/Lane2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane3" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes/Lane3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane4" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes/Lane4"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane5" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerFrontRow/PlayerFrontLanes/Lane5"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PlayerBackRow" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea"]
+custom_minimum_size = Vector2(300, 90)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="PlayerBackLanes" type="HBoxContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Lane1" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes/Lane1"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane2" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes/Lane2"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane3" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes/Lane3"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane4" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes/Lane4"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Lane5" type="PanelContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes"]
+custom_minimum_size = Vector2(80, 85)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MinionSlot" type="CenterContainer" parent="GameArea/BoardSection/PlayerBoardRow/PlayerBoardArea/PlayerBackRow/PlayerBackLanes/Lane5"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RightStats" type="VBoxContainer" parent="GameArea/BoardSection/PlayerBoardRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 75
+alignment = 1
+
+[node name="TurnButton" type="Button" parent="GameArea/BoardSection/PlayerBoardRow/RightStats"]
+custom_minimum_size = Vector2(70, 30)
+layout_mode = 2
+text = "End Turn"
+
+[node name="PlayerHealthLabel" type="Label" parent="GameArea/BoardSection/PlayerBoardRow/RightStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 1, 0.3, 1)
+theme_override_font_sizes/font_size = 20
+text = "HP: 30"
+horizontal_alignment = 1
+
+[node name="PlayerDiscardLabel" type="Label" parent="GameArea/BoardSection/PlayerBoardRow/RightStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_font_sizes/font_size = 17
+text = "Discard: 0"
+horizontal_alignment = 1
+
+[node name="PlayerHeroRow" type="HBoxContainer" parent="GameArea"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="PlayerResourcePanel" type="PanelContainer" parent="GameArea/PlayerHeroRow"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="PlayerResourceLabel" type="Label" parent="GameArea/PlayerHeroRow/PlayerResourcePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.7, 0.3, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerHeroPanel" type="PanelContainer" parent="GameArea/PlayerHeroRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="HeroContent" type="VBoxContainer" parent="GameArea/PlayerHeroRow/PlayerHeroPanel"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="Portrait" type="Panel" parent="GameArea/PlayerHeroRow/PlayerHeroPanel/HeroContent"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="NameLabel" type="Label" parent="GameArea/PlayerHeroRow/PlayerHeroPanel/HeroContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 12
+text = "Player"
+horizontal_alignment = 1
+
+[node name="PlayerHandPanel" type="PanelContainer" parent="GameArea/PlayerHeroRow"]
+custom_minimum_size = Vector2(500, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="PlayerHandContainer" type="HBoxContainer" parent="GameArea/PlayerHeroRow/PlayerHandPanel"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = -30
+alignment = 1
+
+[node name="TurnIndicator" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -60.0
+offset_top = 10.0
+offset_right = 60.0
+offset_bottom = 40.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "Your Turn"
+horizontal_alignment = 1
+
+[node name="GameOverPanel" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -75.0
+offset_right = 150.0
+offset_bottom = 75.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="WinnerLabel" type="Label" parent="GameOverPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "Player 1 Wins!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerOneController" type="Node" parent="." node_paths=PackedStringArray("hand_container", "enemy_hero_area", "hero_area")]
+script = ExtResource("2_player_controller")
+hand_container = NodePath("../GameArea/PlayerHeroRow/PlayerHandPanel/PlayerHandContainer")
+enemy_hero_area = NodePath("../GameArea/EnemyHeroRow/EnemyHeroPanel")
+hero_area = NodePath("../GameArea/PlayerHeroRow/PlayerHeroPanel")
+card_ui_scene = ExtResource("3_mgc0q")
+minion_scene = ExtResource("4_bb2iq")
+targeting_arrow_scene = ExtResource("5_18r40")
+
+[node name="PlayerTwoController" type="Node" parent="." node_paths=PackedStringArray("hand_container", "enemy_hero_area", "hero_area")]
+script = ExtResource("2_player_controller")
+player_id = 1
+hand_container = NodePath("../GameArea/EnemyHeroRow/EnemyHandPanel/EnemyHandContainer")
+enemy_hero_area = NodePath("../GameArea/PlayerHeroRow/PlayerHeroPanel")
+hero_area = NodePath("../GameArea/EnemyHeroRow/EnemyHeroPanel")
+card_ui_scene = ExtResource("3_mgc0q")
+minion_scene = ExtResource("4_bb2iq")
+targeting_arrow_scene = ExtResource("5_18r40")
+is_ai = true

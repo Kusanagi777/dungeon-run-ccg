@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://b6vx4cu3smrwn"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_u6oqf"]
+
+[resource]
+script = ExtResource("1_u6oqf")
+card_name = "Execute"
+cost = 2
+description = "Deal 4 damage to a unit. If this kills it, gain +1 Worship."

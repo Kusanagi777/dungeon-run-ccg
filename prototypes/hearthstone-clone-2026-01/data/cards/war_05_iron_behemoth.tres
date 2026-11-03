@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cpqvsxdv63myv"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_83jn0"]
+
+[resource]
+script = ExtResource("1_83jn0")
+card_name = "Iron Behemoth"
+cost = 5
+attack = 5
+health = 5
+description = "Aggressive. Pierce."
+role_tag = 6
+biology_tag = 2

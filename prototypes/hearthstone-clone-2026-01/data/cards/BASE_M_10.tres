@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://bkpais5kkqo8s"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_10"
+card_name = "Core Behemoth"
+cost = 10
+attack = 11
+health = 11
+card_type = 0
+rarity = 3
+description = "A 10-cost baseline unit for overflow testing."
+keywords = Array[String](["[]"])
+minion_tags = 0

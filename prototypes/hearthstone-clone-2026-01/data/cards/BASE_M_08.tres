@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cf5v6hgx4ror"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_08"
+card_name = "Eternal Knight"
+cost = 8
+attack = 8
+health = 9
+card_type = 0
+rarity = 2
+description = "A 8-cost baseline unit for endgame testing."
+keywords = Array[String](["[]"])
+minion_tags = 0

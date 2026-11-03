@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://dtmfjyhxsohm5"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_07"
+card_name = "Sacred Idol"
+cost = 7
+attack = 7
+health = 8
+card_type = 0
+rarity = 2
+description = "A 7-cost baseline unit for high-value trades."
+keywords = Array[String](["[]"])
+minion_tags = 0

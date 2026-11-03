@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="StarterDeckData" load_steps=2 format=3 uid="uid://d1lh4utn3kur4"]
+
+[ext_resource type="Script" uid="uid://b2ov1080u64vp" path="res://data/starter_deck_data.gd" id="1_jn4bd"]
+
+[resource]
+script = ExtResource("1_jn4bd")
+id = "Tech1"
+deck_name = "High Voltage"
+description = "Strategy: Mana Efficiency. Play below your mana curve to bank Battery charges, then unleash powerful effects that scale with Battery or spend it for card advantage."
+class_id = "technical"
+card_ids = Array[String](["TECH_01", "TECH_01", "TECH_02", "TECH_02", "TECH_05", "TECH_05", "TECH_03", "TECH_03", "TECH_04", "TECH_04", "NEU_10", "NEU_10", "NEU_05", "NEU_05", "TECH_03"])
+metadata/_custom_type_script = "uid://b2ov1080u64vp"

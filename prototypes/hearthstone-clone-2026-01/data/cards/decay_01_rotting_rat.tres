@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://clfkl0qfn0sde"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_h0lmu"]
+
+[resource]
+script = ExtResource("1_h0lmu")
+card_name = "Rotting Rat"
+cost = 1
+attack = 1
+health = 1
+description = "Persistent."
+role_tag = 2
+biology_tag = 7

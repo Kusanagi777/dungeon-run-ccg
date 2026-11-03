@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://ce1cboigndb0n"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_b0262"]
+
+[resource]
+script = ExtResource("1_b0262")
+card_name = "Cultist Butcher"
+cost = 2
+attack = 2
+health = 3
+description = "Sacrifice (1): Gain +2/+2."
+role_tag = 5
+biology_tag = 6

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://c7hv7pcdmmmdf"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_lagh6"]
+
+[resource]
+script = ExtResource("1_lagh6")
+card_name = "Crystal Sentinel"
+cost = 3
+attack = 2
+health = 4
+description = "Shielded."
+role_tag = 1
+biology_tag = 2

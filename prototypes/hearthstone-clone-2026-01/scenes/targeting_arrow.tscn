@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://3raggsnv71v5"]
+
+[ext_resource type="Script" uid="uid://cxurn066awoef" path="res://scripts/targeting_arrow.gd" id="1_script"]
+
+[node name="TargetingArrow" type="Node2D"]
+z_index = 1000
+script = ExtResource("1_script")
+arrow_color = Color(1, 0.2, 0.2, 1)

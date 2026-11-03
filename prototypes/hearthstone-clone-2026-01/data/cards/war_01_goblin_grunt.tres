@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://ltuxc2hkhwjk"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_ujura"]
+
+[resource]
+script = ExtResource("1_ujura")
+card_name = "Goblin Grunt"
+cost = 1
+attack = 2
+health = 1
+description = "Deploy: If you have another [Beast], gain +1 Attack."
+role_tag = 1
+biology_tag = 1

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://uh5ls5pm515l"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_psa61"]
+
+[resource]
+script = ExtResource("1_psa61")
+card_name = "Precognition"
+cost = 1
+description = "Scout. Then, Draw 1 card."

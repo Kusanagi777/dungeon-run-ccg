@@ -1,0 +1,139 @@
+[gd_scene load_steps=2 format=3 uid="uid://b4kgbdvrib7yv"]
+
+[ext_resource type="Script" uid="uid://dwt8ktirexae3" path="res://scripts/card_ui.gd" id="1_script"]
+
+[node name="CardUI" type="Control"]
+custom_minimum_size = Vector2(120, 170)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 120.0
+offset_bottom = 170.0
+script = ExtResource("1_script")
+
+[node name="CardFrame" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Highlight" type="ColorRect" parent="CardFrame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.2, 1, 0.2, 0.3)
+
+[node name="ArtPanel" type="Panel" parent="CardFrame"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 25.0
+offset_right = 112.0
+offset_bottom = 85.0
+mouse_filter = 2
+
+[node name="CardArt" type="TextureRect" parent="CardFrame/ArtPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ManaGem" type="Panel" parent="CardFrame"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 29.0
+offset_bottom = 29.0
+mouse_filter = 2
+
+[node name="CostLabel" type="Label" parent="CardFrame/ManaGem"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CardFrame"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 88.0
+offset_right = 115.0
+offset_bottom = 108.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+clip_text = true
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="CardFrame"]
+layout_mode = 0
+offset_left = 8.0
+offset_top = 108.0
+offset_right = 112.0
+offset_bottom = 143.0
+mouse_filter = 2
+bbcode_enabled = true
+fit_content = true
+
+[node name="AttackIcon" type="Panel" parent="CardFrame"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 140.0
+offset_right = 31.0
+offset_bottom = 166.0
+mouse_filter = 2
+
+[node name="AttackLabel" type="Label" parent="CardFrame/AttackIcon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthIcon" type="Panel" parent="CardFrame"]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 140.0
+offset_right = 115.0
+offset_bottom = 166.0
+mouse_filter = 2
+
+[node name="HealthLabel" type="Label" parent="CardFrame/HealthIcon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TypeIcon" type="TextureRect" parent="CardFrame"]
+visible = false
+layout_mode = 0
+offset_left = 91.0
+offset_top = 5.0
+offset_right = 115.0
+offset_bottom = 29.0
+mouse_filter = 2

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="StarterDeckData" load_steps=2 format=3 uid="uid://dqxifewevbp7t"]
+
+[ext_resource type="Script" uid="uid://b2ov1080u64vp" path="res://data/starter_deck_data.gd" id="1_tn6wb"]
+
+[resource]
+script = ExtResource("1_tn6wb")
+class_id = "cute"
+metadata/_custom_type_script = "uid://b2ov1080u64vp"

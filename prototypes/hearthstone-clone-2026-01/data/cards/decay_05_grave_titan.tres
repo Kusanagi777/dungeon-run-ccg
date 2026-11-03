@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://b3ng7v0l5nh7q"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_ao0hq"]
+
+[resource]
+script = ExtResource("1_ao0hq")
+card_name = "Grave Titan"
+cost = 6
+attack = 5
+health = 5
+description = "Affinity ([Undead]). Deploy: Return a unit from your graveyard to hand."
+role_tag = 6
+biology_tag = 6

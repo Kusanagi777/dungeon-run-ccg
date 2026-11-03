@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://dfocxkj7aa65f"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_edkt3"]
+
+[resource]
+script = ExtResource("1_edkt3")
+card_name = "Stand Firm"
+cost = 1
+description = "Give a unit Taunt and Resist (1) this turn."

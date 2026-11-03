@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cftvskubltk06"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_iclqe"]
+
+[resource]
+script = ExtResource("1_iclqe")
+card_name = "Shadow Mimic"
+cost = 3
+attack = 3
+health = 3
+description = "Deploy: Create an Echo copy of the last Action card you played."
+role_tag = 3
+biology_tag = 5

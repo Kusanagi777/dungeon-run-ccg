@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cwumuye2gaval"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_xud2q"]
+
+[resource]
+script = ExtResource("1_xud2q")
+card_name = "Aether Binder"
+cost = 3
+attack = 2
+health = 4
+description = "Deploy: Stun target enemy unit."
+role_tag = 3
+biology_tag = 3
