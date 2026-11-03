@@ -4,20 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 jobs:
   test:
     name: Run GdUnit4 Tests
     runs-on: ubuntu-latest
-    # The action publishes its results as a check run. A new repository's
-    # token is read-only, and without checks: write the job fails even when
-    # every test passes. If you protect main, require the `Run GdUnit4 Tests` job
-    # check, not `test-results`: that check run concludes success even when a
-    # test fails.
+    timeout-minutes: 20
     permissions:
       contents: read
-      checks: write
 
     steps:
       - name: Checkout
@@ -25,23 +19,57 @@ jobs:
         with:
           lfs: true
 
-      # godot-version must be a full release such as 4.7.2 (`godot --version`
-      # shows it); VERSION.md's "4.7" is not one. version: installed runs the
-      # gdUnit4 committed in addons/ -- without it the action deletes that
-      # copy and installs the latest release, which may not match your tests.
-      - name: Run GdUnit4 Tests
-        uses: godot-gdunit-labs/gdUnit4-action@v1
-        with:
-          godot-version: '4.7.2'
-          version: 'installed'
-          paths: |
-            tests/unit
-            tests/integration
-          report-name: test-results
+      # tools/setup.sh is the same idempotent toolchain install the dev
+      # container uses: Godot 4.7.2 (linux.x86_64 from the official GitHub
+      # release) symlinked as `godot` under ~/.local/bin, plus gdUnit4 if
+      # addons/gdUnit4 were ever missing (it is committed, so this is a no-op).
+      - name: Install Godot 4.7.2 and gdUnit4
+        run: bash tools/setup.sh
 
-      - name: Upload Test Results
+      # A fresh checkout has no .godot/ class cache. Without the import,
+      # GdUnitCmdTool.gd fails to load and the test run exits 1 having run
+      # nothing. Godot's very first headless import on a clean machine has been
+      # seen to exit 139 (segfault on shutdown after writing the cache), so one
+      # retry is tolerated; the second import must succeed.
+      - name: Import project (build .godot class cache)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set +e
+          godot --headless --path . --import
+          first=$?
+          set -e
+          if [ "$first" -ne 0 ] && [ "$first" -ne 139 ]; then
+            echo "First import exited $first" >&2
+            exit "$first"
+          fi
+          godot --headless --path . --import
+
+      # Exactly project.yaml commands.test. Exit 0 = all passed; 100 = a test
+      # failed; 101 = passed with leaked nodes (warning, but fails this job so
+      # leaks get fixed); 105 = a test script does not parse; 103/104 = gdUnit4
+      # could not run. --remote-debug prints two ERROR lines about port
+      # 127.0.0.1:0 on every run; they are expected. A run that prints
+      # "No test cases found" exits 0 and is NOT a pass, so it is rejected below.
+      - name: Run GdUnit4 tests
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set -o pipefail
+          godot --headless -s -d --remote-debug tcp://127.0.0.1:0 \
+            res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode \
+            2>&1 | tee gdunit4-run.log
+          if grep -q "No test cases found" gdunit4-run.log; then
+            echo "gdUnit4 found no test cases under res://tests — treating as failure" >&2
+            exit 1
+          fi
+
+      # gdUnit4 writes reports/report_<n>/ (HTML + JUnit results.xml) at the
+      # project root; reports/ is gitignored.
+      - name: Upload gdUnit4 report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results
-          path: reports/
+          name: gdunit4-report
+          path: |
+            reports/
+            gdunit4-run.log
+          if-no-files-found: warn

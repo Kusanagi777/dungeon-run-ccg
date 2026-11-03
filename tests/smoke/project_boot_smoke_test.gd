@@ -29,16 +29,18 @@ func test_gdunit4_plugin_is_enabled_in_project() -> void:
 
 
 func test_node_can_be_added_to_tree_and_freed() -> void:
-	# Arrange
-	var runner: GdUnitSceneRunner = scene_runner(Node.new())
-	var root: Node = runner.scene()
+	# Arrange -- auto_free: the root is freed after the test, and frees its child
+	# with it; a Node left alive is an orphan (gdUnit4 exit 101).
+	var root: Node = auto_free(Node.new())
+	root.name = "SmokeRoot"
+	add_child(root)
 
 	# Act
 	var child: Node = Node.new()
 	child.name = "SmokeChild"
 	root.add_child(child)
-	await runner.simulate_frames(1)
 
 	# Assert
+	assert_bool(root.is_inside_tree()).is_true()
 	assert_bool(child.is_inside_tree()).is_true()
 	assert_int(root.get_child_count()).is_equal(1)

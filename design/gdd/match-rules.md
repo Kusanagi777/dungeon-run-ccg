@@ -673,8 +673,8 @@ The `mana_max(t)` formula is defined as:
 
 **Output Range:** 1 to `MAX_MANA`; the player's crystals on their 10th turn and every turn after
 equal 10. Total mana available over the first n turns is `Σ_{t=1..n} min(t, 10)` — 55 through
-turn 10. **Example:** on turn 4 both sides have had 4 own turns at their respective Main steps →
-4 crystals each (the boss reaches 4 one global turn later).
+turn 10. **Example:** at global turn 7 (the player's 4th own turn, since the global counter
+advances on every Start step) the player has 4 crystals; the boss reaches 4 at global turn 8.
 
 ### F5. Fatigue damage
 
@@ -749,11 +749,150 @@ starting hand size (card advantage raises k), and Content's damage density (k it
 
 ## Edge Cases
 
-[To be designed]
+`systems-designer` not consulted — Lean mode. Review manually before production. Each entry
+names the exact outcome; "the engine decides" is not an answer here.
+
+**Win/loss**
+
+- **If both heroes reach ≤ 0 health in the same action** (e.g. a Deathrattle that damages both
+  heroes, or fatigue on a turn where a Lifesteal trade kills the boss): the loop finishes, then
+  `win_loss_check` finds both dead → **boss wins, reason `both_dead`** (DD-M12). The log shows both
+  `damage_dealt` events, so the player can see it was a tie broken by rule.
+- **If the player's hero drops to ≤ 0 mid-loop and a later Deathrattle in the same loop heals it
+  above 0**: the check runs only at the end of the loop, so the hero survives. Legible and
+  consistent with "when the current action finishes resolving".
+- **If `concede` is issued during the boss's turn**: it is accepted; the engine is synchronous so
+  the boss's current command has already returned; the match ends immediately with `concede`,
+  the boss's remaining planned actions never happen, and Run Structure receives a result with
+  `winner = BOSS`.
+- **If a command arrives while the engine is Resolving** (re-entrant call from an event
+  handler): rejected `ENGINE_BUSY`, no state change, `command_rejected` logged as diagnostic.
+- **If a command arrives after Ended**: rejected `MATCH_ENDED`.
+- **If a resolution loop exceeds `RESOLUTION_STEP_CAP`**: match ends, winner BOSS, reason
+  `resolution_overflow`; the UI shows a "rules error" screen and the run continues as a loss. This
+  is a content bug surfaced, not a design outcome.
+
+**Board and summoning**
+
+- **If a Deathrattle summons a minion onto a full board** (7 after other deaths resolved in the
+  same check): `summon_minion` is a no-op and emits `summon_failed {reason: board_full}`. Death
+  checks remove all dead minions **before** their Deathrattles run, so a board of 7 where one
+  dies and its Deathrattle summons one does fit (6 + 1).
+- **If a minion is played with `position > board.size`**: rejected `INVALID_POSITION`; negative
+  positions likewise. `position == board.size` is the rightmost slot and legal.
+- **If a Deathrattle summons and the dead minion's former index is now beyond the board end**
+  (minions to its left also died): the summon goes to the rightmost slot.
+- **If an aura source dies in the same step as the minions it buffs are damaged**: the death
+  check removes the source, `recompute_auras` drops the buff, the loop re-runs the death check and
+  buffed minions now at ≤ 0 die in the **next** pass — their Deathrattles queue after the source's
+  Deathrattle. The log shows two `minion_died` groups in sequence.
+- **If two auras from different sources overlap**: both apply (auras stack across sources, never
+  from the same source twice).
+
+**Combat**
+
+- **If a Windfury attacker's first target dies**: the first `attack` command resolves normally
+  (`attacks_used = 1`); the second attack is a new command that must name a new legal target
+  (Taunt rule re-evaluated). There is no "continue attacking the same target" state.
+- **If the hero is Frozen and holds a weapon**: `attack` is rejected `ATTACKER_FROZEN`; the weapon
+  loses no durability; the hero power is still usable (Freeze affects attacks only).
+- **If a Taunt minion is summoned or gains Taunt during `on_attack` triggers**: the declared
+  attack proceeds against its original target (legality is checked once at declaration); the
+  Taunt applies to the next attack.
+- **If the defender dies or leaves play during `on_attack` triggers**: `attack_cancelled`, no
+  damage either way, `attacks_used` still incremented.
+- **If an attacker has 0 attack** (debuffed after being chosen in the UI): rejected
+  `CANNOT_ATTACK`; a minion whose attack drops to 0 **during** combat still deals the attack value
+  snapshotted at the damage step (step 4 reads `attack` once).
+- **If the defender has Divine Shield and the attacker Poisonous**: the shield pops, 0 damage,
+  the defender survives, the attacker still takes the defender's damage.
+- **If the defender has Divine Shield and the attacker Lifesteal**: 0 dealt → 0 healed; the
+  `healed` event is not emitted (there is no heal step when `dealt = 0`).
+- **If a Rush minion is targeted at the enemy hero on its first turn**: `RUSH_CANNOT_HIT_HERO`;
+  next turn it attacks anything (summoning sickness gone).
+- **If the only enemy Taunt minion also has Stealth**: it is excluded from `taunters`, so the
+  attacker may hit anything *except* that minion (Stealth still protects it).
+
+**Keywords and status**
+
+- **If Silence hits a minion with Divine Shield, Taunt and a Deathrattle**: all three are removed
+  in one step; when it later dies no Deathrattle fires; a shield already popped is not restored.
+- **If Silence hits a minion that was buffed by an aura from another minion**: the buff is removed
+  by Silence and immediately re-applied by `recompute_auras` — net no change to received auras;
+  only the Silenced minion's own emitted aura stops.
+- **If a Frozen minion is Silenced**: it thaws immediately and may attack this turn if it has
+  attacks remaining and is not summoning-sick.
+- **If a character is Frozen twice in one turn**: `frozen_on_turn` is re-stamped; the thaw rule
+  still evaluates once at the End step.
+- **If a minion gains Windfury after attacking once this turn**: `attacks_remaining` becomes 1
+  (derived); it may attack again.
+- **If a Poisonous minion is killed by its defender in the simultaneous-damage step**: its poison
+  still applies (both damages are in one step before any death check); both die together.
+
+**Hand, draw and fatigue**
+
+- **If the last card is drawn and a later draw happens in the same turn**: the first draw adds a
+  card, the second applies fatigue 1 (counter 1). Drawing two from an empty deck in one effect
+  applies 1 then 2.
+- **If a Battlecry draws while the hand is full**: the drawn card is burned (`card_burned`),
+  `on_draw` triggers do not fire, no fatigue is involved unless the deck is also empty — in which
+  case fatigue damage applies and nothing is burned (there was no card).
+- **If the hand is full at the Start-step draw**: the card is burned; the turn continues.
+- **If the deck is empty at match start** (a 0-card deck from a malformed config): starting-hand
+  draws apply fatigue 1, 2, 3 to that hero before the mulligan; the engine does not special-case
+  it. Card Database validation should make this unreachable.
+
+**Mulligan and setup**
+
+- **If the mulligan returns cards and redraws one of the same cards**: allowed. DD-M05 returns
+  cards before the redraw; the redraw is a fresh shuffle of the whole deck. Tests must not assert
+  "never redraws the same card".
+- **If `keep_mask` length differs from the hand size**: rejected `INVALID_MASK`.
+- **If the boss has a 4-card hand and a treasure grants the player an extra starting card**:
+  `modify_starting_hand_size` changes only the side it is called for; the mask length follows
+  the resulting hand size.
+
+**Targeting and playing**
+
+- **If a spell requires a target and no legal target exists**: not playable (`NO_LEGAL_TARGET`).
+  Optional-target spells are playable with `target_id = null`. A Battlecry minion with no legal
+  target **is** playable and its Battlecry does not resolve. A hero power follows the spell rule.
+- **If a chosen target becomes illegal between the UI's highlight and `submit`** (cannot happen
+  in a single-threaded turn, but Boss AI may compute stale lists): rejected `ILLEGAL_TARGET`; the
+  AI re-queries `legal_commands()`.
+- **If a weapon is equipped while another is held**: the old weapon is destroyed first and its
+  Deathrattle queues before the new weapon's Battlecry resolves.
+- **If the hero power's cost is reduced to 0 by hooks**: still once per turn; `HERO_POWER_USED` on
+  the second attempt.
+- **If a Discover is raised during the boss's turn**: `Choice` is entered with
+  `pending_choice.side = BOSS`; Boss AI must `choose`; the player's commands are rejected
+  `CHOICE_PENDING` (except `concede`).
+
+**Degenerate strategies** (identified, accepted or constrained)
+
+- **Infinite heal/armour stalling**: fatigue grows without bound and `TURN_CAP` ends the match, so
+  a stall always ends in a boss win; Content should avoid repeatable armour > fatigue rate.
+- **Board-fill denial** (keeping 7 tokens so the boss cannot summon): legal; the boss AI should
+  value removal when the player's board is full (Boss AI GDD).
 
 ## Dependencies
 
-[To be designed]
+Hard = the engine cannot run a match without it; soft = the engine runs with a null
+implementation. Bidirectionality: the systems index already lists every downstream row below as
+depending on Match Rules; the sibling GDDs are expected to mirror these rows (checked by
+`/consistency-check` once they land).
+
+| System | Direction | Hard/Soft | Nature of dependency / interface |
+|---|---|---|---|
+| Card Database | This depends on Card Database | Hard | Reads card, hero, boss and weapon records by `def_id`: `cost`, `type`, `attack`, `health`, `durability`, `keywords[]`, `effect` (opaque to this GDD), `targeting {mode: none\|optional\|required, filter}`. Never parses JSON itself (DD-T01). |
+| RNG & Event Log | This depends on RNG & Event Log | Hard | `match` stream for every shuffle and random pick (DD-T03); `log.append` for every event in C15 (DD-T04); `seq` numbering is the log's. Tests inject a fixed seed through it. |
+| Card Effects | Card Effects depends on this | Hard (for them) | They implement the resolver behind the trigger points and call only the primitive API (Interactions). They never touch `MatchState` fields directly. Provisional: the resolver returns steps synchronously, or raises exactly one `ChoiceRequest` per Discover. |
+| Boss AI | Boss AI depends on this | Hard (for them) | Consumes `legal_commands()`, `MatchState.clone()`, `submit()`, `ChoiceRequest`; receives typed rejections. Provisional: AI never relies on state outside `MatchState`. |
+| Run Structure | Mutual | Hard | In: `MatchConfig` (C3). Out: `MatchResult` (C14). Run Structure owns save/resume **between** matches; an in-progress match is not saved in v1 (Open Questions). |
+| Heroes | This depends on Heroes (data) | Hard | Player hero record: starting health (defaults to `STARTING_HEALTH_PLAYER`), hero power `def_id`, starter deck list. Heroes depends on this for the hero-power rule (2 mana, once per turn). |
+| Treasures | Treasures depends on this | Soft | Installs hooks via `hook_installers`; with none installed every hook is identity. The hook table in Interactions is the contract; boss passives use the same table. |
+| Match UI | Match UI depends on this | Soft (engine runs headless) | Sends player commands, renders the event stream, uses `command_rejected` codes for feedback and `legal_commands()` for highlights. Display-only. |
+| Content | Content depends on this | Soft | Card text must be expressible as trigger points + primitives listed here; a card needing a new primitive is a GDD change here first. |
 
 ## Tuning Knobs
 
