@@ -61,6 +61,10 @@ This supplements (not replaces) the agent's built-in knowledge.
   registered as autoload `Boot` is a parse error ("Class \"Boot\" hides an
   autoload singleton") and the autoload never loads. Omit `class_name`, or give
   it a different name, and `preload` the script where a fresh instance is needed
+- **`Array.make_read_only()` / `Dictionary.make_read_only()` are shallow** (observed
+  on 4.7.2, 2026-11-03, card-database story 006): nested containers stay writable.
+  Freeze from the inside out (walk every nested Array/Dictionary). A write to a
+  locked container is a script error `Invalid assignment on read-only value`
 - **gdUnit4 under `godot -s` instantiates autoloads** (observed 4.7.2): tests
   can find `/root/<Autoload>`; keep autoload `_ready()` side-effect free
 
