@@ -669,7 +669,6 @@ items:
     referenced_by:
       - design/gdd/meta-progression.md
       - design/gdd/heroes.md
-      - design/gdd/card-database.md
       - design/gdd/treasures.md
     keys: [hero_decay_first_win, hero_decay_floor_5, hero_knowledge_first_win, bosses_defeated_16, unlock.hero_fortune, unlock.hero_order, unlock.hero_shadow]
     notes: "Treasure keys are owned by treasures.md T8 (DD-X01); hero keys by heroes.md."
@@ -948,7 +947,6 @@ formulas:
     source: design/gdd/run-structure.md
     referenced_by:
       - design/gdd/run-structure.md
-      - design/gdd/card-database.md
       - design/gdd/run-ui.md
     variables:
       - band_split
@@ -1024,7 +1022,6 @@ formulas:
     source: design/gdd/card-effects.md
     referenced_by:
       - design/gdd/card-effects.md
-      - design/gdd/card-database.md
       - design/gdd/boss-ai.md
     variables:
       - collectible_pool
@@ -1066,7 +1063,7 @@ formulas:
       - band
       - cost_bucket
       - band_mult
-    output_range: [1, 390]
+    output_range: [1, 325]
     expression: "max(1, round(BASE_WEIGHT * (1 + AFFINITY_STEP*min(n_tag, AFFINITY_CAP)) * band_mult/100))"
     added: 2026-11-03
     revised: ""

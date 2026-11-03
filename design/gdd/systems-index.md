@@ -67,17 +67,17 @@ Systems, one paragraph each (balanced density):
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
 | 1 | Card Database | Core | MVP | In Review | design/gdd/card-database.md | — |
-| 2 | RNG & Event Log (inferred) | Core | MVP | In Review | design/gdd/rng-event-log.md | — |
-| 3 | Match Rules | Gameplay | MVP | In Review | design/gdd/match-rules.md | Card Database, RNG & Event Log |
+| 2 | RNG & Event Log (inferred) | Core | MVP | Approved | design/gdd/rng-event-log.md | — |
+| 3 | Match Rules | Gameplay | MVP | Approved | design/gdd/match-rules.md | Card Database, RNG & Event Log |
 | 4 | Card Effects | Gameplay | MVP | In Review | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
-| 5 | Boss AI | Gameplay | MVP | In Review | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression |
-| 6 | Heroes | Gameplay | MVP | In Review | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
-| 7 | Run Structure | Progression | MVP | In Review | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
+| 5 | Boss AI | Gameplay | MVP | Approved | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression |
+| 6 | Heroes | Gameplay | MVP | Approved | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
+| 7 | Run Structure | Progression | MVP | Approved | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
 | 8 | Reward Draft | Economy | MVP | In Review | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
-| 9 | Treasures | Gameplay | MVP | In Review | design/gdd/treasures.md | Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes |
-| 10 | Meta Progression | Persistence | Vertical Slice | In Review | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
+| 9 | Treasures | Gameplay | MVP | Approved | design/gdd/treasures.md | Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes |
+| 10 | Meta Progression | Persistence | Vertical Slice | Approved | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
 | 11 | Match UI | UI | MVP | In Review | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
-| 12 | Run UI | UI | MVP | In Review | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
+| 12 | Run UI | UI | MVP | Approved | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
 | 13 | Content | Gameplay | MVP → Alpha | In Review | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
@@ -155,7 +155,7 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 | Order | System | Priority | Layer | Agent(s) | Est. Effort |
 |-------|--------|----------|-------|----------|-------------|
 | 1 | Card Database | MVP | Foundation | systems-designer | S |
-| 2 | RNG & Event Log | MVP | Foundation | systems-designer | S |
+| 2 | RNG & Event Log | MVP | Foundation | systems-designer | L |
 | 3 | Match Rules | MVP | Core | game-designer, systems-designer, ai-programmer | L |
 | 4 | Card Effects | MVP | Core | game-designer, systems-designer | L |
 | 5 | Boss AI | MVP | Core | game-designer, ai-programmer, systems-designer | M |
@@ -197,8 +197,8 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 |--------|-------|
 | Total systems identified | 13 |
 | Design docs started | 13 |
-| Design docs reviewed | 13 (all NEEDS REVISION, revised in place, In Review) |
-| Design docs approved | 0 |
+| Design docs reviewed | 13 (8 Approved; 5 In Review awaiting a final pass) |
+| Design docs approved | 8 |
 | MVP systems designed | 12/12 (In Review) |
 | Vertical Slice systems designed | 1/1 (In Review) |
 
