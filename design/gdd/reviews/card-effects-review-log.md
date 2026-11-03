@@ -113,3 +113,35 @@ Reviewed-Content-Hash: design/gdd/game-concept.md e2b0c05d2b9729099fdcc47c9c96c7
 Reviewed-Content-Hash: design/gdd/systems-index.md a20a2191f2853e48591ac1eec0417f089077f7c6
 Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
 Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: full
+Scope signal: XL
+Specialists: none (lean mode — single-session review; specialist delegation skipped by configuration, not by omission)
+Blocking items: 0 | Recommended: 4
+Summary: Verification pass by an independent reviewer after the final re-review's in-place fixes. The target is byte-identical to that pass's post-revision receipt; the registry and every sibling GDD it cites are UNCHANGED (only systems-index.md and game-concept.md moved — status headers and a tally, no pillar or value change). The whole document was re-read by section (8/8 at `full`): the `on_heal` fix is internally consistent (C2 hook column `—` → C9 hero-slot observer → C6.3 candidate order player side first → Edge Case and AC-25 both read `healed` → minion `enchantment_applied` → passive `damage_dealt`, two `trigger_resolved{on_heal}`) and matches match-rules C4 step 5 / C9 / C10; F6's `count(op)`, `max_targets(adjacent) = 2`, `max_targets(side-scoped) = 1` and the non-literal ceilings reproduce AC-05's 161/321 and row 34's 3; the `mana` row restates match-rules C5's temporary-crystal rule verbatim in substance; `summon` defaults to `end` for non-minion sources and AC-43 asserts the rightmost slot; AC-26's layout computes to 5/3, +1/+1, +1/+1, +2/+2 as stated; the `then: cast` `E_FX_OP_TARGET` case is in the closed code set and the Open Question is closed. 79 registry-term lines checked against 129 registry entries: no value conflicts (`decay_husk` 1/1, `war_whetstone_blade` 1/2, DISCOVER_COUNT 3, MAX_OPS 8, MAX_REPEAT 10, MAX_SUMMON_COUNT 7 = BOARD_SIZE, EFFECT_STATIC_STEP_LIMIT 250, RESOLUTION_STEP_CAP 1000, max_match_events 10,000, HAND_SIZE 10, MAX_MANA 10, HERO_POWER_COST 2, F1/F4/F6 output ranges). Every AC is independently testable; the four items below are precision improvements, none blocking. Recommend systems-index status Approved.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Formulas F6: a non-literal `n` on a `random_*` character selector is capped at `HAND_SIZE` (10) while F5 allows `n` up to 16, so the static bound is not a strict upper bound for that one shape — take a non-literal `n` at the selector's own `max_targets` (16 for `random_character`/`all`-shaped pools, 14 for `random_minion`, 10 for `hand`). No v1 content is affected; runtime caps still hold.
+- [RECOMMENDED] C10 `E_FX_OP_TARGET` (`then: cast`): the "load-time pool after `filter`" is undefined for `pool: deck | hand` (runtime instances) — state that for those pools the validator uses the full collectible pool after `filter` as the load-time superset, or rejects `then: cast` with `pool: deck | hand` outright. Dormant path (no v1 content uses `then: cast`).
+- [RECOMMENDED] Acceptance Criteria AC-25: "WHEN the player heals" should name the heal ("heals their damaged hero for 2"): row 37 carries `min_amount: 1`, so a full-health heal (0 restored, still emits `healed`, match-rules C9) would not fire the passive and a tester could write a false negative.
+- [RECOMMENDED] Formulas F6 / Edge Cases (Recursion and caps): the log-cap ending is named `log_overflow`, which match-rules C15 / C10 define as the appended *event*; the match-ended *reason* is `event_cap` — use "reason `event_cap` (event `log_overflow`)". AC-42's "under 2 ms on the CI runner" still names no reference machine (carried; project-level baseline, not a GDD decision).
+Needs owner / cross-GDD change (not edited here):
+- None for approval.
+- Registry (hygiene for the orchestrator, not value conflicts): `hook_fold` and `max_effects_per_treasure` list `design/gdd/card-effects.md` under `referenced_by` though the GDD never names them; `effect_static_step_limit` unit `steps` → `mutations per pass` (F6 bounds mutations; the registry's `effect_step_bound` expression is otherwise consistent).
+- Systems index: set Card Effects to **Approved**; dependents count (five) consistent.
+Reviewed-Content-Hash: design/gdd/card-effects.md 3ad4c403613cbe3ea2799f6e4df4ca8861ceaae1
+Reviewed-Content-Hash: design/registry/entities.yaml 15a5aaa3931e9b5af78e87f742bfa2de9e0fa8d0
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/match-rules.md 7af4351b32a419195d38bf274c2a68b9c63aa804
+Reviewed-Content-Hash: design/gdd/heroes.md 3e9c89b4cd87b8fde225762af7e169fcf2fed1dd
+Reviewed-Content-Hash: design/gdd/treasures.md b50806cc8b2b5117b0064b934122be5ecaced4ad
+Reviewed-Content-Hash: design/gdd/content.md dc95b8e96ca465d68b1835307341807ef8ffe3a8
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 6981bf37934cae2e74ed37a23eb349fb62dcbf5b
+Reviewed-Content-Hash: design/gdd/card-database.md d04095c7f44e5d930ba3c23c4f88024736fdc6a8
+Reviewed-Content-Hash: design/gdd/boss-ai.md 2c2bedbaa6ff558777d2af7d81b3b91c5783af82
+Reviewed-Content-Hash: design/gdd/match-ui.md e2bcccad61083401a8c8dbdbd0a4068afc64e3d7
+Reviewed-Content-Hash: design/gdd/game-concept.md 7b53c9052605f0613e566bd3d056e5518b37a5c8
+Reviewed-Content-Hash: design/gdd/systems-index.md 7129826738d9964c13cfd8382b3b4c96f7b71915
+Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

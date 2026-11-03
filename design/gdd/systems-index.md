@@ -1,6 +1,6 @@
 # Systems Index: Deckdelve (working title)
 
-> **Status**: Draft
+> **Status**: Approved (all 13 system GDDs Approved after individual design review)
 > **Created**: 2026-11-03
 > **Last Updated**: 2026-11-03 (all 13 systems Designed; reviews pending)
 > **Source Concept**: design/gdd/game-concept.md
@@ -68,7 +68,7 @@ Systems, one paragraph each (balanced density):
 | 1 | Card Database | Core | MVP | Approved | design/gdd/card-database.md | — |
 | 2 | RNG & Event Log (inferred) | Core | MVP | Approved | design/gdd/rng-event-log.md | — |
 | 3 | Match Rules | Gameplay | MVP | Approved | design/gdd/match-rules.md | Card Database, RNG & Event Log |
-| 4 | Card Effects | Gameplay | MVP | In Review | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
+| 4 | Card Effects | Gameplay | MVP | Approved | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
 | 5 | Boss AI | Gameplay | MVP | Approved | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log, Meta Progression |
 | 6 | Heroes | Gameplay | MVP | Approved | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
 | 7 | Run Structure | Progression | MVP | Approved | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
@@ -196,8 +196,8 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 |--------|-------|
 | Total systems identified | 13 |
 | Design docs started | 13 |
-| Design docs reviewed | 13 (12 Approved; Card Effects awaiting a final pass) |
-| Design docs approved | 12 |
+| Design docs reviewed | 13 (all Approved 2026-11-03) |
+| Design docs approved | 13 |
 | MVP systems designed | 12/12 (In Review) |
 | Vertical Slice systems designed | 1/1 (In Review) |
 

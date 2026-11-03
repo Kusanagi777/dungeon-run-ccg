@@ -1162,7 +1162,6 @@ formulas:
     referenced_by:
       - design/gdd/treasures.md
       - design/gdd/match-rules.md
-      - design/gdd/card-effects.md
     variables:
       - v_in
       - entries_h
@@ -1665,7 +1664,7 @@ constants:
       - design/gdd/card-effects.md
       - design/gdd/match-rules.md
     value: 250
-    unit: steps
+    unit: mutations per pass
     added: 2026-11-03
     revised: ""
   - name: pity_window
@@ -1755,7 +1754,6 @@ constants:
     source: design/gdd/treasures.md
     referenced_by:
       - design/gdd/treasures.md
-      - design/gdd/card-effects.md
     value: 3
     unit: effects
     added: 2026-11-03
