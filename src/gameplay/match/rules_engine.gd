@@ -76,6 +76,38 @@ const E_RULES_OUT_OF_RANGE: StringName = &"E_RULES_OUT_OF_RANGE"
 ## `hook_install_skipped.reason` for a second installer with an installed
 ## `host_id` (ADR-0005 rule 5).
 const SKIP_REASON_DUPLICATE: String = "duplicate"
+## The C2 rejection codes — a closed set, spelled and ordered as C2 lists
+## them. Adding one is a match-rules GDD change.
+const REJECTION_CODES: Array[String] = [
+	"MATCH_ENDED", "NOT_YOUR_TURN", "WRONG_PHASE", "CHOICE_PENDING", "ENGINE_BUSY",
+	"INVALID_INDEX", "INVALID_POSITION", "INVALID_MASK", "INVALID_CHOICE", "NOT_ENOUGH_MANA",
+	"BOARD_FULL", "TARGET_REQUIRED", "NO_LEGAL_TARGET", "ILLEGAL_TARGET", "TARGET_STEALTHED",
+	"MUST_ATTACK_TAUNT", "CANNOT_ATTACK", "ATTACKER_FROZEN", "SUMMONING_SICK",
+	"RUSH_CANNOT_HIT_HERO", "HERO_POWER_USED",
+]
+const R_MATCH_ENDED: String = "MATCH_ENDED"
+const R_NOT_YOUR_TURN: String = "NOT_YOUR_TURN"
+const R_WRONG_PHASE: String = "WRONG_PHASE"
+const R_CHOICE_PENDING: String = "CHOICE_PENDING"
+const R_ENGINE_BUSY: String = "ENGINE_BUSY"
+const R_INVALID_MASK: String = "INVALID_MASK"
+## The phase guard (match-rules States and Transitions): per phase, the
+## command types it accepts and from whom — `"active"` (the issuer must be
+## the active side, else `NOT_YOUR_TURN`), `"player"` (PLAYER only) or
+## `"choice"` (the side named in `pending_choice`, else `NOT_YOUR_TURN`).
+## Any (phase, command) pair not listed is `WRONG_PHASE`; a listed pair from
+## a disallowed issuer of a `"player"` row is `WRONG_PHASE` too (the boss has
+## no mulligan row and no concede row). In `choice`, an unlisted command is
+## `CHOICE_PENDING`. `setup`, `start` and `end` accept nothing.
+const PHASE_COMMANDS: Dictionary[String, Dictionary] = {
+	MatchState.PHASE_MULLIGAN: {MatchRecords.CMD_MULLIGAN: "player", MatchRecords.CMD_CONCEDE: "player"},
+	MatchState.PHASE_MAIN: {
+		MatchRecords.CMD_PLAY_CARD: "active", MatchRecords.CMD_ATTACK: "active",
+		MatchRecords.CMD_USE_HERO_POWER: "active", MatchRecords.CMD_END_TURN: "active",
+		MatchRecords.CMD_CONCEDE: "player",
+	},
+	MatchState.PHASE_CHOICE: {MatchRecords.CMD_CHOOSE: "choice", MatchRecords.CMD_CONCEDE: "player"},
+}
 
 var _db: Variant
 var _rules_config: Dictionary
@@ -84,6 +116,14 @@ var _state: MatchState = null
 ## The `cause_seq` [method emit] stamps: 0 during setup and for the direct
 ## consequences of a command (C15); story 009's C10 loop sets it per step.
 var _cause_seq: int = 0
+## True for the whole of a `submit` call or engine step (the `Resolving`
+## state): a nested `submit` answers `ENGINE_BUSY`. A plain instance field —
+## never a captured local (lambdas capture by value).
+var _resolving: bool = false
+## `seq` of the first and last event the current `submit` produced (its
+## `CommandResult.events`); diagnostics appended meanwhile are not counted.
+var _call_first_seq: int = 0
+var _call_last_seq: int = 0
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -196,6 +236,7 @@ func start(config: Dictionary) -> void:
 	assert(_state == null, "RulesEngine.start: a match was already started on this engine")
 	_state = MatchState.from_config(config)
 	_cause_seq = 0
+	_resolving = true
 	# C3 step 1: the registry, then bind (installs entries, registers evaluators)
 	_state.hooks = HookRegistry.new()
 	var installers: Array = []
@@ -220,6 +261,87 @@ func start(config: Dictionary) -> void:
 	# C3 step 6
 	_state.phase = MatchState.PHASE_MULLIGAN
 	emit(&"mulligan_offered", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(_state.players[MatchRecords.SIDE_PLAYER].hand)})
+	_resolving = false
+
+
+## The single command channel (C2; ADR-0001): validates [param command]
+## (`{type, issuer, ...args}`, see [method MatchRecords.command]) in full and
+## either rejects it — no mutation, exactly one `command_rejected {side,
+## command, code, detail, diagnostic: true}` on the match log (rng-event-log
+## rule 12a) — or runs it to completion inside this call. Returns the C2
+## `CommandResult` `{accepted, rejection: {code, detail} | null, events:
+## [seq_first, seq_last]}` ([method MatchRecords.command_result]); a
+## rejection's range is its own `command_rejected` event.
+## Check order: `ENGINE_BUSY` (a nested call while resolving) →
+## `MATCH_ENDED` → the phase guard [constant PHASE_COMMANDS] (`WRONG_PHASE`,
+## `NOT_YOUR_TURN`, `CHOICE_PENDING`) → the command's own C2 row, first
+## failing reason wins. Synchronous: no `await`.
+## [codeblock]
+## var r: Dictionary = engine.submit(MatchRecords.mulligan([true, false, false]))
+## if not r.accepted: show(r.rejection.code)
+## [/codeblock]
+func submit(command: Dictionary) -> Dictionary:
+	if _resolving:
+		return _reject(command, R_ENGINE_BUSY, "nested submit while resolving")
+	if _state.phase == MatchState.PHASE_ENDED:
+		return _reject(command, R_MATCH_ENDED, "")
+	var guard: String = _phase_guard(command)
+	if guard != "":
+		return _reject(command, guard, "phase %s, active %s" % [_state.phase, _state.active_side])
+	var type: String = str(command.get("type", ""))
+	var invalid: String = _validate(type, command)
+	if invalid != "":
+		return _reject(command, invalid, "")
+	_resolving = true
+	_cause_seq = 0
+	_call_first_seq = 0
+	_call_last_seq = 0
+	match type:
+		MatchRecords.CMD_MULLIGAN:
+			_do_mulligan(command.keep_mask)
+	# TODO(story 009): the C10 loop; TODO(story 008): win_loss_check.
+	_resolving = false
+	return MatchRecords.command_result(true, "", "", _call_first_seq, _call_last_seq)
+
+
+## Every command the engine would accept now (C2): in Mulligan the "keep
+## all" mulligan; `[]` in any other phase until the handler stories (008
+## `concede`, 010–016) extend it. Allocates only the result array.
+## [codeblock]
+## for cmd: Dictionary in engine.legal_commands(): print(cmd.type)
+## [/codeblock]
+func legal_commands() -> Array:
+	var legal: Array = []
+	if _state.phase == MatchState.PHASE_MULLIGAN:
+		var keep_all: Array[bool] = []
+		for _card: Dictionary in _state.players[MatchRecords.SIDE_PLAYER].hand:
+			keep_all.append(true)
+		legal.append(MatchRecords.mulligan(keep_all))
+	return legal
+
+
+## The current phase, one of [constant MatchState.PHASES]. `resolving` is
+## never returned: between calls the engine is always in its originating
+## phase (States "Resolving").
+func phase() -> String:
+	return _state.phase
+
+
+## The side whose turn it is (`&"player"` / `&"boss"`).
+func active_side() -> StringName:
+	return StringName(_state.active_side)
+
+
+## A value copy of the pending `ChoiceRequest`, or null (C1, C2).
+func pending_choice() -> Variant:
+	var choice: Variant = _state.pending_choice
+	return choice.duplicate(true) if choice is Dictionary else choice
+
+
+## A value copy of the `MatchResult` once `Ended`, else null (C14).
+func result() -> Variant:
+	var outcome: Variant = _state.result
+	return outcome.duplicate(true) if outcome is Dictionary else outcome
 
 
 ## Appends one event to the match log with the engine's current `cause_seq`
@@ -232,7 +354,12 @@ func start(config: Dictionary) -> void:
 func emit(type: StringName, payload: Dictionary) -> int:
 	# TODO(rng-event-log story 005): type the log as `EventLog`.
 	var log: Variant = _state.log
-	return log.append(type, payload, _cause_seq)
+	var seq: int = log.append(type, payload, _cause_seq)
+	if seq > 0:
+		if _call_first_seq == 0:
+			_call_first_seq = seq
+		_call_last_seq = seq
+	return seq
 
 
 ## The injected `match_<floor>` stream from `MatchConfig.rng_match` (ADR-0007
@@ -347,6 +474,89 @@ static func _config_error(code: StringName, key: String, message: String) -> Dic
 		"field": key,
 		"message": message,
 	}
+
+
+## A rejection (C2): no mutation; one diagnostic `command_rejected` on the
+## same log, outside the current call's event range (rule 12a).
+func _reject(command: Dictionary, code: String, detail: String) -> Dictionary:
+	assert(REJECTION_CODES.has(code), "rejection code '%s' is outside the closed C2 set" % code)
+	var log: Variant = _state.log
+	var seq: int = log.append(&"command_rejected", {
+		"side": str(command.get("issuer", "")),
+		"command": command.duplicate(true),
+		"code": code,
+		"detail": detail,
+		"diagnostic": true,
+	}, 0)
+	return MatchRecords.command_result(false, code, detail, seq, seq)
+
+
+## The States-table guard: "" when [param command]'s type is accepted in the
+## current phase from its issuer, else the rejection code ([constant PHASE_COMMANDS]).
+func _phase_guard(command: Dictionary) -> String:
+	var type: String = str(command.get("type", ""))
+	var issuer: String = str(command.get("issuer", ""))
+	var accepted: Dictionary = PHASE_COMMANDS.get(_state.phase, {})
+	if not accepted.has(type):
+		return R_CHOICE_PENDING if _state.phase == MatchState.PHASE_CHOICE else R_WRONG_PHASE
+	match str(accepted[type]):
+		"player":
+			return "" if issuer == MatchRecords.SIDE_PLAYER else R_WRONG_PHASE
+		"active":
+			if not MatchRecords.SIDES.has(issuer):
+				return R_WRONG_PHASE
+			return "" if issuer == _state.active_side else R_NOT_YOUR_TURN
+		"choice":
+			var owed: Variant = _state.pending_choice
+			var owed_side: String = str((owed as Dictionary).get("side", "")) if owed is Dictionary else ""
+			return "" if issuer == owed_side else R_NOT_YOUR_TURN
+	return R_WRONG_PHASE
+
+
+## The command's own C2 row, checked in row order before any mutation: ""
+## when valid, else the first failing code.
+func _validate(type: String, command: Dictionary) -> String:
+	match type:
+		MatchRecords.CMD_MULLIGAN:
+			var mask: Variant = command.get("keep_mask")
+			if not mask is Array or (mask as Array).size() != _state.players[MatchRecords.SIDE_PLAYER].hand.size():
+				return R_INVALID_MASK
+			for bit: Variant in mask:
+				if typeof(bit) != TYPE_BOOL:
+					return R_INVALID_MASK
+			return ""
+	# TODO(stories 005, 008, 010, 012, 016): end_turn, concede, play_card,
+	# use_hero_power, attack and choose handlers. Until one exists its
+	# command is not accepted in any phase.
+	return R_WRONG_PHASE
+
+
+## C3 step 7 (DD-M05): unkept cards return to the bottom of the deck in hand
+## order **before** one shuffle of the whole deck, then the same number is
+## drawn; `mulligan_resolved {side, replaced_instance_ids}`. Kept cards keep
+## their hand order; redraws append right.
+func _do_mulligan(keep_mask: Array) -> void:
+	var player: Dictionary = _state.players[MatchRecords.SIDE_PLAYER]
+	var kept: Array[Dictionary] = []
+	var replaced: Array[int] = []
+	for i: int in keep_mask.size():
+		var card: Dictionary = player.hand[i]
+		if keep_mask[i]:
+			kept.append(card)
+		else:
+			card.zone = "deck"
+			player.deck.append(card)
+			replaced.append(int(card.instance_id))
+	player.hand.assign(kept)
+	var stream: Variant = _state.rng_match
+	stream.shuffle(player.deck)
+	emit(&"deck_shuffled", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(player.deck)})
+	draw(MatchRecords.SIDE_PLAYER, replaced.size())
+	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
+	# TODO(story 005): C3 step 8 — `match_started` and the first Start step.
+	# Until then the match rests in a PlayerTurn.Start placeholder.
+	_state.phase = MatchState.PHASE_START
+	_state.active_side = MatchRecords.SIDE_PLAYER
 
 
 ## C3 step 1: the engine, not the registry or the resolver, logs a skipped

@@ -37,6 +37,45 @@ const EXPIRES_END_OF_TURN: String = "end_of_turn"
 const KEYWORD_WINDFURY: String = "windfury"
 ## MatchResult `result` values, from the player's side (C14).
 const RESULTS: Array[String] = ["win", "loss", "fault"]
+## C2 command types (the `Command.type` spellings).
+const CMD_MULLIGAN: String = "mulligan"
+const CMD_PLAY_CARD: String = "play_card"
+const CMD_ATTACK: String = "attack"
+const CMD_USE_HERO_POWER: String = "use_hero_power"
+const CMD_CHOOSE: String = "choose"
+const CMD_END_TURN: String = "end_turn"
+const CMD_CONCEDE: String = "concede"
+## Every C2 command type, in C2 table order.
+const COMMAND_TYPES: Array[String] = [
+	CMD_MULLIGAN, CMD_PLAY_CARD, CMD_ATTACK, CMD_USE_HERO_POWER, CMD_CHOOSE,
+	CMD_END_TURN, CMD_CONCEDE,
+]
+
+
+## A C2 Command: `{type, issuer, ...args}` — [param type] one of
+## [constant COMMAND_TYPES], [param issuer] `"player"` or `"boss"` (stamped by
+## `MatchDriver`, ADR-0008), [param args] merged in (e.g. `hand_index`).
+## [codeblock]
+## var play: Dictionary = MatchRecords.command(MatchRecords.CMD_PLAY_CARD, "player", {"hand_index": 0, "position": 0})
+## [/codeblock]
+static func command(type: String, issuer: String, args: Dictionary = {}) -> Dictionary:
+	var out: Dictionary = {"type": type, "issuer": issuer}
+	out.merge(args, true)
+	return out
+
+
+## The C2 `mulligan(keep_mask)` command; [param keep_mask] has one bool per
+## card in hand, `true` = keep (all `true` is a legal "keep all").
+## [codeblock]
+## engine.submit(MatchRecords.mulligan([true, false, false]))
+## [/codeblock]
+static func mulligan(keep_mask: Array, issuer: String = SIDE_PLAYER) -> Dictionary:
+	return command(CMD_MULLIGAN, issuer, {"keep_mask": keep_mask.duplicate()})
+
+
+## The C2 `end_turn` command from [param issuer].
+static func end_turn(issuer: String) -> Dictionary:
+	return command(CMD_END_TURN, issuer)
 
 
 ## A C1 Character base, shared by heroes and minions: `entity_id`,
