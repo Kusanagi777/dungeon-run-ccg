@@ -949,7 +949,63 @@ generation prompts from this section.
 
 ## Game Feel
 
-[To be designed]
+The engine is instantaneous and silent; feel is delivered by the Match UI playing back the event
+stream. These targets therefore bind two things: how fast the engine must answer, and how the UI
+must pace events so the rules read as deliberate rather than dumped.
+
+### Feel Reference
+
+Hearthstone's attack: drag, release, the attacker *lunges* and both health numbers change on the
+same frame, then the board settles. We borrow the **simultaneity** (nobody wonders who hit first)
+and the **settle** (the row closes gaps only after all deaths). Anti-reference: Slay the Spire's
+long enemy multi-hit sequences when accelerated — effects that blur together so the player cannot
+count them.
+
+### Input Responsiveness
+
+| Action | Max input-to-response latency (ms) | Frame budget (60 fps) | Notes |
+|---|---|---|---|
+| Any `submit()` call (engine only) | 5 | < 1 frame | Pure logic; worst case a 50-step Deathrattle chain |
+| `legal_commands()` | 2 | < 1 frame | Called on every hover by the UI and per node by Boss AI |
+| Command accepted → first visual event | 50 | 3 frames | UI starts playback immediately; no "thinking" delay for the player |
+| Rejection → inline feedback | 50 | 3 frames | Code-keyed message, no modal |
+
+### Animation Feel Targets
+
+| Animation | Startup frames | Active frames | Recovery frames | Feel goal | Notes |
+|---|---|---|---|---|---|
+| Minion attack lunge | 6 | 3 | 9 | Committed, weighty | Both `damage_dealt` land on the first active frame |
+| Card play to board | 4 | 8 | 4 | Snappy, decisive | Battlecry events start after recovery |
+| Death group removal | 6 | 6 | 6 | Deliberate | One group = one removal; gap-close after |
+| Boss turn playback | — | — | — | Brisk | Entire boss turn ≤ 8 s typical, ≤ 15 s hard cap (Pillar 3; concept: "opponent's turn resolves quickly") |
+
+### Impact Moments
+
+| Impact type | Duration (ms) | Effect description | Configurable? |
+|---|---|---|---|
+| Hit-stop | 60 (minion), 90 (hero face hit ≥ 5) | Freeze attacker and defender on contact | Yes |
+| Screen shake | 120 | Only on hero damage ≥ 5 or lethal | Yes |
+| Lethal slow-down | 400 | Time-scale 0.5 on the `damage_dealt` that drops a hero to ≤ 0 | Yes |
+| Controller rumble | — | Not applicable (mouse-first PC) | — |
+
+### Weight and Responsiveness Profile
+
+- **Weight**: deliberate. Attacks commit; cards land with a thump. Nothing floats.
+- **Player control**: total until `submit`; zero after. Targeting can be cancelled at any time
+  before release (UI concern); once accepted, the command resolves fully.
+- **Snap quality**: crisp and binary — a move is legal or it is not, and the UI shows which before
+  the drop.
+- **Acceleration model**: instant start, short decay (arcade). Events never queue faster than the
+  player can count them: the UI plays one death group or damage event at a time.
+- **Failure texture**: fair. Every loss has a readable cause in the event feed; rejections name
+  the rule that blocked them.
+
+### Feel Acceptance Criteria
+
+- [ ] Playtesters never ask "who attacked first?" — simultaneous damage reads as simultaneous.
+- [ ] No playtester describes a boss turn as "too long" when it is under 8 seconds.
+- [ ] Playtesters can state why they lost from the event feed alone in ≥ 8 of 10 losses.
+- [ ] No reviewer uses the words "sluggish" or "confusing order" about combat resolution.
 
 ## UI Requirements
 
