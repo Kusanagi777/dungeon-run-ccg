@@ -77,3 +77,39 @@ Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806
 Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
 Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
 Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: full
+Scope signal: XL
+Specialists: none (lean mode — single-session review; specialist delegation skipped by configuration, not by omission)
+Blocking items: 2 | Recommended: 6
+Summary: Final re-review. The target was byte-identical to the previous (post-revision) receipt; the registry and ten sibling files had changed, so cross-document facts were re-verified and the whole document re-read (8/8 at `full`; 88 registry-term lines checked, no value conflicts). Match Rules C5 now defines `add_mana(side, n, temporary=true)` (temporary crystals, expiring at End step 5), Heroes H-3 carries rows 8/16/25 verbatim, and RNG & Event Log adopted direct draws — three Open Questions closed accordingly. Two residues of the first review's hero-slot-observer fix remained: the Edge Case "boss passive on the player's action" and AC-25 still asserted a hook-step order for row 37's `on_heal` passive, which C2/C9 make a boss-side observer resolving after the player's `on_heal` observers (a test written to AC-25 would fail an implementation written to C9); and F6's static bound had no rule for a non-literal `count`/`times` or for side-scoped/`adjacent` selectors, though Content's Raise Dead uses `count: {ref}`. Both were resolvable from the GDD and its Tuning Knobs, so option [A] "Revise now" was taken; the document carries a `REVISED 2026-11-03 (final re-review)` header note. Status after revision: In Review — nothing is outstanding with an owner or a sibling GDD; the next pass is a receipt check plus a read of the edited lines.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] Edge Cases (Hooks and passives) / Acceptance Criteria AC-25: "whenever the player heals" boss passive described as a hook step resolving before player `on_heal` observers, contradicting C2 (no `on_heal` hook) and C9 (hero-slot observer, candidate order player side first). FIXED: both restated as the observer order (`healed` → minion `enchantment_applied` → passive `damage_dealt`, two `trigger_resolved{on_heal}`), with "hooks first" scoped to triggers that have a hook column.
+- [BLOCKING] Formulas F6: `steps(op)` multiplied only `summon` by `count`, defined no `max_targets` for `adjacent` or side-scoped ops, and gave no value for a non-literal `count`/`n`/`times` (Content's `decay_raise_dead`). FIXED: `count(op)` for every leaf op, `max_targets(adjacent) = 2`, `max_targets(side-scoped) = 1`, ceilings `MAX_SUMMON_COUNT` / `MAX_REPEAT` / `HAND_SIZE` for value expressions.
+- [RECOMMENDED] C5 `mana` row: still claimed match-rules C5 "says v1 content does not use" temporary mana — now false. Applied: row restates match-rules' temporary-crystal rule and names `decay_soul_tithe` and `neutral_treasure_map`; Open Question marked resolved (Match Rules chose crystals over the "`mana_current` only" proposal).
+- [RECOMMENDED] C5 `summon`: default `position` undefined for a non-minion source (spell, hero power, treasure). Applied: `source_slot`/`right_of_source` resolve to `end`.
+- [RECOMMENDED] AC-26: board layout unspecified, so row 27's adjacency to a lord was tester-dependent. Applied: `[row 26, row 26, vanilla 1/1, row 27]`, expected stats per minion.
+- [RECOMMENDED] C10 / Open Questions: `then: cast` targeting gap (owned here) adopted as an `E_FX_OP_TARGET` case; question closed.
+- [RECOMMENDED] C6.9 / Open Questions / Dependencies: RNG fork proposal and Heroes H-3 rows closed against the current sibling texts; Treasures dependency row names hero-slot observers alongside hook-bound triggers.
+- [RECOMMENDED] AC-42: "under 2 ms on the CI runner" still names no reference machine or relative budget — left open (project-level performance baseline, not a GDD decision).
+Needs owner / cross-GDD change (not edited here):
+- Registry (hygiene, not value conflicts): `hook_fold` and `max_effects_per_treasure` list `design/gdd/card-effects.md` under `referenced_by` though the GDD never names them; `effect_static_step_limit` unit `steps` → `mutations per pass` (F6 bounds mutations).
+- Systems index: Card Effects stays **In Review** until a re-review reads the edited lines; dependents count (five) is consistent.
+- No sibling GDD needs a change for this GDD to be approved.
+Reviewed-Content-Hash: design/gdd/card-effects.md 3ad4c403613cbe3ea2799f6e4df4ca8861ceaae1
+Reviewed-Content-Hash: design/registry/entities.yaml 15a5aaa3931e9b5af78e87f742bfa2de9e0fa8d0
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/match-rules.md 7af4351b32a419195d38bf274c2a68b9c63aa804
+Reviewed-Content-Hash: design/gdd/heroes.md 3e9c89b4cd87b8fde225762af7e169fcf2fed1dd
+Reviewed-Content-Hash: design/gdd/treasures.md b50806cc8b2b5117b0064b934122be5ecaced4ad
+Reviewed-Content-Hash: design/gdd/content.md dc95b8e96ca465d68b1835307341807ef8ffe3a8
+Reviewed-Content-Hash: design/gdd/rng-event-log.md 6981bf37934cae2e74ed37a23eb349fb62dcbf5b
+Reviewed-Content-Hash: design/gdd/card-database.md d04095c7f44e5d930ba3c23c4f88024736fdc6a8
+Reviewed-Content-Hash: design/gdd/boss-ai.md 2c2bedbaa6ff558777d2af7d81b3b91c5783af82
+Reviewed-Content-Hash: design/gdd/match-ui.md e2bcccad61083401a8c8dbdbd0a4068afc64e3d7
+Reviewed-Content-Hash: design/gdd/game-concept.md e2b0c05d2b9729099fdcc47c9c96c7ef6724e61f
+Reviewed-Content-Hash: design/gdd/systems-index.md a20a2191f2853e48591ac1eec0417f089077f7c6
+Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
