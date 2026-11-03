@@ -1047,13 +1047,15 @@ Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade
 
 **Category**: Navigation
 **Status**: Draft
+**When to Use**: Every screen inherits this table unchanged; a spec may say which rows apply, never add a key — additions go through this library.
+**Accessibility**: No chord except the optional `Shift+Tab`; no shortcut commits a destructive action; every key is an `InputMap` action rebindable by Alpha, and every action it triggers is also reachable by mouse.
 
 All shortcuts are `InputMap` actions (rebindable by Alpha; accessibility-requirements Motor). Defaults:
 
 | Key | Match (Match UI) | Run screens (Run UI) | Source |
 |-----|------------------|----------------------|--------|
 | `Enter` / `Space` | End Turn when Enabled and armed (`end_turn_arm_ms`); otherwise Skip-all; in `KeyTargeting`: `Enter` confirms; on a focused button: activate | Activate the focused button; second `Enter` on a selected option confirms (Pick / Start) | match-ui U5; run-ui U3 |
-| `Esc` | Priority chain (Escape / Cancel) | Priority chain | match-ui U5; run-ui U3 |
+| `Esc` | Priority chain (Escape / Cancel); **nothing on the match-end banner** (DD-X09) | Priority chain | match-ui U5, U9; run-ui U3 |
 | RMB | Cancel targeting; close drawer | Close drawer | match-ui U5, U7 |
 | `1`–`9`, `0` | Select hand card 1–10 into targeting; in Mulligan/Choice `1`–`3` toggle/select option | `1`/`2`/`3` focus option *n* on any 3-option screen | match-ui U5, U8, U9; run-ui U3 |
 | `Tab` / `Shift+Tab` | Idle: focus cycle (inspect); targeting: cycle legal targets/positions | Focus cycle | match-ui U5 (+ this library) |
@@ -1065,7 +1067,7 @@ All shortcuts are `InputMap` actions (rebindable by Alpha; accessibility-require
 | `F11` (*proposed*) | Toggle fullscreen (mirrors the setting) | Same | proposed — Open Questions |
 | `Ctrl+C` on a focused seed / report | — | Copy (same as the Copy button) | proposed |
 
-Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard conveniences; no shortcut commits a destructive action; the pause menu (via `Esc`) is reachable from every state except `Ended`/`data_error`. Any new screen must map onto this table rather than add keys; additions go through this library.
+Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard conveniences; no shortcut commits a destructive action; the pause menu (via `Esc` or the top-bar menu button) is reachable from every state except `Ended` (DD-X09 — the banner's Continue / auto-advance is the only exit) and `data_error`. Any new screen must map onto this table rather than add keys; additions go through this library.
 
 ---
 
@@ -1077,6 +1079,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Category**: Feedback
 **Status**: Draft
+**When to Use**: The four waits below and nothing else — there are no other loads in a single-player, local-data game; a wait a spec cannot place in this table is a bug, not a new loading state.
+**Accessibility**: Text, never a spinner alone; every wait is either under 2 s or labelled; nothing times out into a blank screen.
 
 | Scope | Pattern | Notes |
 |-------|---------|-------|
@@ -1093,6 +1097,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Category**: Feedback
 **Status**: Draft
+**When to Use**: Any list, row or tray whose count can be zero; the table below is the inventory, and a new screen with a zero-able collection adds a row here.
+**Accessibility**: An empty state is text the player can read and, where an action exists, a focusable button; a "deliberate absence" row must say so in its screen spec so a tester does not log a missing element.
 
 > Every empty list and grid must have a designed empty state. The empty state
 > is not an error — it is a starting point.
@@ -1116,6 +1122,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Category**: Feedback
 **Status**: Draft
+**When to Use**: Anything that went wrong outside the rules of play — data, profile, save, a rejected command or pick; a legal game outcome (defeat, `fault` replay) is never an error state.
+**Accessibility**: Every error is text that names what happened and what to do next, persists somewhere non-timed (screen, status line, feed), and is copyable where a report is useful; colour (`state_danger` pills) is decoration on the code, never the message.
 
 | Error Type | Pattern | Tone |
 |-----------|---------|------|
@@ -1134,6 +1142,8 @@ Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard 
 
 **Category**: Feedback
 **Status**: Draft
+**When to Use**: An action whose effect is not itself visible within 50 ms (copy, save-less settings, a pick that waits on an event); never for actions the screen change already confirms.
+**Accessibility**: The confirmation is a visible state on the control the player used (label change, pressed lock) that focus can read, with sound as a duplicate channel only; no "Saved" toast competes with the unlock / warning toasts.
 
 | Action | Confirmation | Notes |
 |--------|--------------|-------|
@@ -1167,7 +1177,7 @@ ease-in, no bounce** (match-ui Game Feel; run-ui Game Feel) — ease-in reads as
 | Card hover preview in / out | 100 | ease-out | `HOVER_IN_S`; neighbours never move |
 | Card play to board | 250 | ease-out | `play_card`; 4-frame squash on land |
 | Drag return (cancel) | 150 | ease-out | No bounce |
-| Attack lunge | 350 | ease-out | 6/3/9 frames; hit-stop 60/90 ms (off at `anim_speed ≥ 2` or `reduce_motion`) |
+| Attack lunge | 350 | ease-out | 6/3/9 frames; hit-stop 60/90 ms (off at `anim_speed = fast` — which drops impact extras, match-ui Tuning Knobs — at `instant`, or under `reduce_motion`) |
 | Damage / heal pop | 400 | ease-out | Rises 20 px; fade in place under `reduce_motion` |
 | Death group | 300 | ease-out | Then `gap_close` 200 |
 | Draw / burn / shield pop / badge / stat recolour | 200 / 400 / 250 / 150 / 150 | ease-out | — |
@@ -1239,10 +1249,10 @@ GDD change before they are real:
 |-----|-----------|-----------------|----------------|
 | Keyword Glossary overlay | pause-menu, settings, Card Inspect reading panel | Not in any GDD; needs a `keywords.json` string table (DD-M09 set) and an overlay spec | Jacob to assign Run UI or Match UI (accessibility-requirements Open Questions) |
 | Controls / rebinding page | settings (Alpha) | Key-capture Input Field, conflict rule, storage key (meta M9) | Meta Progression + Run UI |
-| Gamma slider | settings | Setting key + render hook | Meta + Run UI |
-| Deck drawer | draft-picker | Non-blocking drawer spec: width, List Item rows with Card Inspect, "held treasures" section | `/ux-design draft-picker` |
-| Compact card row (bundle panel) | draft-picker | The 300x64 row at 150% `text_scale` — likely needs the reading panel on focus rather than reflow | `/ux-design draft-picker` |
-| Top bar | hud | Turn indicator, floor/boss name, feed toggle, menu button — layout and focus order | `/ux-design hud` |
+| ~~Gamma slider~~ | settings | **Closed 2026-11-03 — DD-X10**: Meta M9 `gamma` 0.8–1.4 (1.0), run-ui `settings` slider, `CanvasModulate` hook in Match UI and Run UI | — |
+| ~~Deck drawer~~ | draft-picker, hero-select | **Closed 2026-11-03** — `Deck Drawer` entry under Screen-Owned Compound Patterns; owning spec `draft-picker.md` §5.2 / §6 (960, 96, 320, 624; non-blocking) | — |
+| ~~Compact card row (bundle panel)~~ | draft-picker | **Closed 2026-11-03** — `Compact Card Row` entry; the reading panel on focus is the 150 % path (`draft-picker.md` §12, fixture `draft_bundle_sample_ts150`) | — |
+| ~~Top bar~~ | hud | **Closed 2026-11-03** — `Top Bar` entry; layout and focus stops 7–8 in `hud.md` §4.2 | — |
 | Settings-quick-access in match pause | pause-menu | Add music volume; decide which Segmented Selects appear in-match (anim_speed, reduce_motion only per match-ui U9) | `/ux-design pause-menu` |
 | Screen-reader naming convention | all | A rule for `accessibility_name` strings per pattern once AccessKit live-region behaviour is sourced | ux-designer |
 | Consolidation check | — | Match Choice `1`–`3` *selects* while run `1`–`3` *focuses*; both are two-step, but the words differ — unify wording in both GDDs | `/consistency-check` |
@@ -1255,14 +1265,14 @@ GDD change before they are real:
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
 | Does Godot 4.7 AccessKit announce `Control.accessibility_live` changes (toasts, feed lines) without focus? NOT SOURCEABLE from `docs/engine-reference/godot/` beyond the property's existence. | ux-designer | Before first menu implementation | Unresolved |
-| Click-to-Select pointer entry into `KeyTargeting` and the 8 px click/drag threshold: amend match-ui U5? | Match UI GDD | Before `/ux-design targeting` | Open — specified here |
-| `Tab` in match idle as inspect-cycle (extends match-ui U5 where `Tab` exists only in targeting). | Match UI GDD | Before `/ux-design hud` | Open |
-| `end_turn_arm_ms` (300 ms proposed) to separate skip from End Turn on the same key; alternative: Space = skip only, Enter = End Turn. | Match UI GDD + Jacob | Before `/ux-design hud` | Open |
-| Esc on Mulligan / Choice / end banner → pause menu (not "close overlay"). | Match UI GDD | Before `/ux-design choice-overlay` | Open |
-| Toast floor 5000 ms / cap 8000 ms and hover-pauses-timer (run-ui F3 ranges widen). | Run UI GDD | Before `/ux-design toast` | Open |
+| Click-to-Select pointer entry into `KeyTargeting` and the 8 px click/drag threshold: amend match-ui U5? | Match UI GDD | Before `/ux-design targeting` | **Resolved 2026-11-03** — match-ui U5 "Click to select", Tuning Knobs `CLICK_DRAG_PX` 8 (4–12), States `KeyTargeting` `entered_by` |
+| `Tab` in match idle as inspect-cycle (extends match-ui U5 where `Tab` exists only in targeting). | Match UI GDD | Before `/ux-design hud` | **Resolved 2026-11-03** — match-ui U5 "Keyboard inspect (focus cycling in `Idle`)"; this library's Focus Management owns the stop list, `hud.md` the per-element order |
+| `end_turn_arm_ms` (300 ms proposed) to separate skip from End Turn on the same key; alternative: Space = skip only, Enter = End Turn. | Match UI GDD + Jacob | Before `/ux-design hud` | **Resolved 2026-11-03** — guard adopted: match-ui U5 "Arm guard", Tuning Knobs `end_turn_arm_ms` 300 (150–600) |
+| Esc on Mulligan / Choice / end banner → pause menu (not "close overlay"). | Match UI GDD | Before `/ux-design choice-overlay` | **Resolved 2026-11-03** — Mulligan / Choice: pause menu opens over them (match-ui U5, O19); end banner: **`Esc` does nothing**, pause unreachable in `Ended` (DD-X09) — chain step (4a) |
+| Toast floor 5000 ms / cap 8000 ms and hover-pauses-timer (run-ui F3 ranges widen). | Run UI GDD | Before `/ux-design toast` | **Resolved 2026-11-03** — run-ui F3 `toast_min_ms` 5000 / `toast_max_ms` 8000, hover / focus pause, one toast at a time |
 | Unaffordable-card cue: dashed `text_muted` cost ring (proposed) and whether 60% alpha keeps `text_ink` on `parchment` ≥ 4.5:1. | `/ux-design hand` + art-director manual pass | Pre-Production | Open |
 | `F11` fullscreen and `Ctrl+C` copy conveniences — adopt as default `InputMap` actions? | Jacob | Pre-Production | Proposed |
 | Reading panel at `text_scale` 125/150% — approve as the card-text scaling path. | Jacob | `/ux-design hand` | Open (accessibility-requirements recommends it) |
 | Audio key naming (`sfx.ui.*` vs `ui_*`) — pick one before `/asset-spec`. | Audio ADR | Before `/create-architecture` | Open |
-| Which Segmented labels for `anim_speed` (Normal / Fast / Fastest / Instant) map onto match-ui's `1.0 / 1.5 / 2.0 / instant`, and does run-ui's `action delay` slider stay? | Run UI + Match UI GDDs | `/consistency-check` | Open (match-ui Open Questions already holds it) |
+| Which Segmented labels for `anim_speed` (Normal / Fast / Fastest / Instant) map onto match-ui's `1.0 / 1.5 / 2.0 / instant`, and does run-ui's `action delay` slider stay? | Run UI + Match UI GDDs | `/consistency-check` | **Resolved 2026-11-03 — DD-X07**: three labels `Normal / Fast / Instant` (`normal | fast | instant`); match-ui F3 `SPEED_DIV` maps them (normal 1.0, fast 2.0, instant = final states); the `action_delay_ms` slider stays and overrides Boss AI's `presentation.action_delay_s` (match-ui F4) |
 | Maximum visible toasts: run-ui U5 says one at a time; template suggests 3. Keep one (less load) — confirm in playtest. | ux-designer | First playtest | Provisional: one |
