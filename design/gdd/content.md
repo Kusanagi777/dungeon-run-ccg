@@ -381,7 +381,6 @@ wall — removal over face), Torchbearer (band 1, burn — race or armour up; th
 MVP runs rarely share a sequence), Rot Warden (band 2, deathrattle — every death pings you), Hollow
 King (band 3, snowball — kill on landing). Two band-1 War-weak matchups (swarm, wall — Heroes H-6)
 and one War-even (burn) are deliberate: band 1's AI mistakes keep them at the 0.90 / 0.80 targets
-while teaching the rule. DD-H06 still reads "4 bosses (2 band 1, 1 band 2, 1 band 3)"; the fifth
 is the cross-review's addition and DD-H06 should be amended to match (design-decisions.md).
 
 #### CN-4. Bundle plan

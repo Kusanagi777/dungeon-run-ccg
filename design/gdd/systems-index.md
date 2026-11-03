@@ -15,8 +15,7 @@ win. Mechanically it is two games stacked. The inner game is a **match**: a Hear
 on a single row of up to seven minions per side, driven by a pure rules engine that reads
 data-defined cards and resolves their effects through a trigger/target/operation DSL with an event
 log (Pillar 4, readable deterministic rules). The outer game is the **run**: a state machine that
-picks a hero, sequences eight bosses from a banded pool, offers bundle-or-treasure drafts between
-fights, and ends on death or victory (Pillar 1, every run builds a deck you couldn't have planned;
+picks a hero, sequences eight bosses from a banded pool, offers a bundle draft after every win and an additional treasure draft after floors 1, 3 and 5, and ends on death or victory (Pillar 1, every run builds a deck you couldn't have planned;
 Pillar 3, lose fast). Around both sits a thin **meta** layer: a profile that records runs and
 unlocks heroes and treasures.
 

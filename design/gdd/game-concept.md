@@ -1,7 +1,7 @@
 # Game Concept: Deckdelve (working title)
 
 *Created: 2026-11-03*
-*Status: Under Review*
+*Status: Approved*
 
 > **Review notes**: `CD-PILLARS skipped — Lean mode.` `AD-CONCEPT-VISUAL skipped — Lean mode.`
 > `TD-FEASIBILITY skipped — Lean mode.` `PR-SCOPE skipped — Lean mode.`
@@ -15,6 +15,9 @@
 > Tiers aligned to content.md CN-1; floor-1 bosses are teaching bosses with a passive, not vanilla
 > decks (Pillar 2, content.md CN-3); hero display names noted (heroes.md H-3); the three resolved
 > Open Questions moved to a Resolved list and the genuinely open ones listed; Next Steps ticked.
+> **RE-REVIEWED 2026-11-03** (`/design-review`, lean, second pass, independent reviewer): APPROVED — all
+> cross-document facts re-verified against design-decisions.md, the registry and the GDDs; the GDD
+> review tally in Next Steps refreshed from systems-index.md. See `reviews/game-concept-review-log.md`.
 
 ---
 
@@ -340,7 +343,7 @@ AD-CONCEPT-VISUAL gate in Lean mode).
 - [x] Engine chosen (Godot 4.7) — `/setup-engine` run
 - [x] `/art-bible` sections 1–4 (placeholder art) — `design/art/art-bible.md`, Draft
 - [x] `/map-systems` — decompose into systems — `design/gdd/systems-index.md`, 13 systems
-- [x] `/design-system [system]` for each MVP system — 13 GDDs designed (8 Approved, 5 In Review on 2026-11-03)
+- [x] `/design-system [system]` for each MVP system — 13 GDDs designed (12 Approved, Card Effects In Review on 2026-11-03; see systems-index.md)
 - [ ] `/create-architecture`, `/architecture-decision` ×4, `/architecture-review`
 - [ ] `/test-setup`, `/ux-design`, `/create-epics`, `/create-stories`, `/sprint-plan`
 - [ ] `/gate-check` at each stage transition

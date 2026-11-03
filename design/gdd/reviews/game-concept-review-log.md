@@ -37,3 +37,32 @@ Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5ec
 Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
 Reviewed-Content-Hash: .claude/docs/templates/game-concept.md 3a778a5419100a80903af31d0de043fc0acf184d
 Reviewed-Content-Hash: .claude/skills/gate-check/references/gate-systems-design.md c1dcdfbaab49b94176f8804304bfecbd98936e7e
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: XL
+Specialists: none (lean — single-session; independent reviewer, second pass, not the first-pass reviewer)
+Blocking items: 0 | Recommended: 1
+Summary: Freshness check: game-concept.md UNCHANGED since the first pass's post-revision hash; registry and systems-index CHANGED, so the full review was re-run rather than the delta path. Concept-template structure: all 16 template sections present with content plus Visual Identity Anchor (the 8-section GDD checklist does not apply to the concept doc; gdd-structure-check.sh reports all 8 ABSENT by design). Systems Design gate quality checks all pass at `standard`: core loop at four time scales, target audience and player profile, 4 pillars with design tests and 4 anti-pillars, Visual Identity Anchor with a one-line rule and 3 principles with design tests. Every cross-document fact re-verified: treasure drafts additive on floors 1, 3, 5, treasure first (DD-R04/R05, reward-draft D2, registry `treasure_floors`); 16 bosses 6/6/4 (DD-R02, 16 `boss_*` registry entries); MVP 5 bosses 3/1/1, 4 floors 2/1/1, ~40 cards = War 25 + neutral 15, 10 boss-only, 10 bundles, 10 treasures (DD-H06, content CN-1, registry `floors_per_run`/`band_split`); VS 9 bosses 4/3/2, 60 cards, 18 boss-only, 16 bundles, 12 treasures and Alpha 120/32/16/36/20 (CN-1, AC-3); 36 bundles (DD-H05); 20 `treasure_*` registry entries; board 7, hand 10, mana 10, 15-card starter, deck 15→36 (registry); bands floors 1–3/4–6/7–8 (DD-R01); win-rate targets 0.90 floor 1, 0.70/0.65 floors 4–5 (`target_win_rate_by_floor`); F5 ≈ 40 min victory / ≈ 22 min median and F6 `p_victory` ≈ 3.3 % (run-structure L538–564); restart under five seconds = `restart_budget_ms` 5000; hero display names and placeholder status (heroes.md L88–90, L619); unlock heroes Fortune/Order/Shadow (DD-H02, `unlock_keys_v1`); DD-X02 pre-select; 1280x720 (DD-T05). One stale fact found and fixed in place: Next Steps' GDD tally ("8 Approved, 5 In Review") now reads 12 Approved, Card Effects In Review per systems-index.md. Status set to Approved.
+Prior verdict resolved: Yes — all six first-pass BLOCKING items verified fixed in the current text; the four first-pass RECOMMENDED edits verified present.
+Findings:
+- [FIXED] Next Steps: GDD review tally was stale against systems-index.md (8/5 → 12 Approved, Card Effects In Review).
+- [RECOMMENDED] Cross-GDD (not edited, other files): content.md L384–385 still says DD-H06 "still reads 4 bosses" though DD-H06 now reads 5 (3/1/1); systems-index.md L18, L47–48 and L57–58 still describe "bundle-or-treasure" drafts where DD-R05 makes treasures additive on floors 1, 3, 5. The first pass's systems-index "4 bosses" (L85, L109) and "priority scripts" (L188) items are now resolved in that file.
+- [ADVISORY] Owner decisions remain open and are correctly listed under Open Questions, none blocking: Torchlit Ledger confirmation (AD-CONCEPT-VISUAL and AD-ART-BIBLE skipped in Lean), hero display names, the "~8 hours to see most content" claim to be measured at first playtest.
+Reviewed-Content-Hash: design/gdd/game-concept.md 7b53c9052605f0613e566bd3d056e5518b37a5c8
+Reviewed-Content-Hash: design/registry/entities.yaml 15a5aaa3931e9b5af78e87f742bfa2de9e0fa8d0
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/design-decisions.md 914fb4ab3d19c6957bf65dcff93bb6804f664708
+Reviewed-Content-Hash: design/gdd/systems-index.md 7129826738d9964c13cfd8382b3b4c96f7b71915
+Reviewed-Content-Hash: design/gdd/content.md dc95b8e96ca465d68b1835307341807ef8ffe3a8
+Reviewed-Content-Hash: design/gdd/run-structure.md f89d6a98f6981671324f9a0c49708df0d1847787
+Reviewed-Content-Hash: design/gdd/reward-draft.md a7efa9bae59c93827f73ff208438d3131a6de8bb
+Reviewed-Content-Hash: design/gdd/heroes.md 3e9c89b4cd87b8fde225762af7e169fcf2fed1dd
+Reviewed-Content-Hash: design/gdd/treasures.md b50806cc8b2b5117b0064b934122be5ecaced4ad
+Reviewed-Content-Hash: design/gdd/meta-progression.md 878962538feb2a76598643d4ce90adc4f436ba55
+Reviewed-Content-Hash: design/gdd/boss-ai.md 2c2bedbaa6ff558777d2af7d81b3b91c5783af82
+Reviewed-Content-Hash: design/gdd/match-ui.md e2bcccad61083401a8c8dbdbd0a4068afc64e3d7
+Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+Reviewed-Content-Hash: .claude/docs/templates/game-concept.md 3a778a5419100a80903af31d0de043fc0acf184d
+Reviewed-Content-Hash: .claude/skills/gate-check/references/gate-systems-design.md c1dcdfbaab49b94176f8804304bfecbd98936e7e
