@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Designed
 > **Author**: Jacob (owner) + `/design-system` (guided, lean)
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
@@ -11,9 +11,15 @@
 
 ## Summary
 
-[To be designed]
+Reward Draft is the between-floors pick: after every win it offers three themed three-card
+bundles (and, on floors 1, 3 and 5, three passive treasures first) and the player takes exactly
+one, so the deck grows by three cards a floor and the run gains three rule-bending treasures.
+Offers are weighted toward the themes already in the deck and the cost curve the next band
+wants, always cover two themes, and a pity rule brings a starved plan back — so the draft is a
+plan the player discovers rather than a tier list. Every offer is a pure function of the run
+record and the seeded `draft_<floor>` stream, so resumes and shared seeds reproduce it exactly.
 
-> **Quick reference** — Layer: `Feature` · Priority: `MVP` · Key deps: `[To be designed]`
+> **Quick reference** — Layer: `Feature` · Priority: `MVP` · Key deps: `Run Structure, Card Database, RNG & Event Log, Treasures (contract), Heroes (data), Meta Progression (contract)`
 
 ## Overview
 
@@ -150,8 +156,8 @@ in a `run_warning` (Run Structure R10 catalogue).
 
 | Kind | Condition | Resolution |
 |---|---|---|
-| bundle | `|cands| < 3` | (a) drop `cooling` — every offered-not-taken bundle is eligible again; flag `reoffer`. (b) Still `< 3`: offer all `|cands|` (1–2) with flag `short` and `run_warning{bundle_pool_short, floor, needed: 3, available}`. (c) `|cands| == 0`: return `option_ids = []`; the run must skip the bundle step for this floor (`floor += 1`, no `deck_grew`, a `DraftRecord` with `picked_id = null`) — **contract amendment for run-structure.md**, Open Questions. Card Database refuses a pool below 3 (`E_COUNT`), so (c) needs 3 bundles and ≥ 4 drafts. |
-| treasure | `|cands| < 3` | per `treasure_short_policy`: `fewer` (default) — offer `|cands|` (1–2), flag `short`, `run_warning{treasure_pool_short, floor, needed: 3, available}`; `reoffer` — refill the missing slots from `{offered-not-held}`, flag `reoffer`. `|cands| == 0` under either policy: return `[]`; the run skips to the bundle step (same amendment). A held treasure is **never** offered again under any policy. |
+| bundle | `len(cands) < 3` | (a) drop `cooling` — every offered-not-taken bundle is eligible again; flag `reoffer`. (b) Still `< 3`: offer all `len(cands)` (1–2) with flag `short` and `run_warning{bundle_pool_short, floor, needed: 3, available}`. (c) `len(cands) == 0`: return `option_ids = []`; the run must skip the bundle step for this floor (`floor += 1`, no `deck_grew`, a `DraftRecord` with `picked_id = null`) — **contract amendment for run-structure.md**, Open Questions. Card Database refuses a pool below 3 (`E_COUNT`), so (c) needs 3 bundles and ≥ 4 drafts. |
+| treasure | `len(cands) < 3` | per `treasure_short_policy`: `fewer` (default) — offer `len(cands)` (1–2), flag `short`, `run_warning{treasure_pool_short, floor, needed: 3, available}`; `reoffer` — refill the missing slots from the offered-not-held set, flag `reoffer`. `len(cands) == 0` under either policy: return `[]`; the run skips to the bundle step (same amendment). A held treasure is **never** offered again under any policy. |
 
 **D9 — Pick resolution.** Run Structure guards `kind == reward_step`, `id ∈ option_ids`, and
 "not already drafted this floor" (`E_DRAFT_KIND`, `E_NOT_OFFERED`, `E_DRAFT_DONE`) and then calls
@@ -366,7 +372,7 @@ DD-H05's 14 bundles therefore require `W ≤ 2` — the default. MVP (`F = 4`): 
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | N | int | 0–100 | `draft_state.treasure_pool` size | Unlocked treasures at run start |
-| K | int | 0–7 | `|treasure_floors ∩ [1, F − 1]|` | Treasure drafts in this run |
+| K | int | 0–7 | `len(treasure_floors ∩ [1, F − 1])` | Treasure drafts in this run |
 | n_universal | int | 0–N | Treasures data | Treasures with `tags == []` |
 
 **Output Range / Example (DD-H06 arithmetic):** `N = 10, K = 3` → 10, 7, 4 before drafts 1–3: all
@@ -419,36 +425,255 @@ dilution, which is the design claim `/balance-check` tests.
 
 ## Edge Cases
 
-[To be designed]
+`systems-designer` not consulted — Lean mode and no `Agent` tool in this session.
+
+**Short and exhausted pools**
+- **If fewer than 3 bundles are eligible**: D8 — first drop the cooling window (`reoffer`), then
+  offer what remains with `short` and `run_warning{bundle_pool_short}`, then, at zero, return
+  `[]` and the run skips the bundle step. Card Database rejects a pool under 3 at load, so zero
+  needs 3 bundles and a 4th draft.
+- **If fewer than 3 treasures are eligible**: with DD-H06's 10 and `K = 3` this never happens
+  (10, 7, 4 — F6); with 8 it happens on draft 3 (2 left) → `treasure_short_policy = fewer` offers
+  two with `short` + `run_warning{treasure_pool_short}`; `reoffer` refills from offered-not-held.
+  Zero eligible → `[]` and the run proceeds to the bundle step. A held treasure is never offered.
+- **If every hero-set bundle is taken or cooling** (possible from floor 6 at v1: 8 hero bundles,
+  5 taken, 2 cooling): candidates are neutral-only; pity has no `D` candidate and does not fire
+  (no flag — pity never invents a bundle); coverage still works across neutral themes; no warning
+  because this is expected late-run content pressure, visible in `flags` and `/balance-check`.
+- **If pity is due but no candidate carries `D`**: slot 1 is an ordinary weighted pick; `starve`
+  keeps counting and pity re-arms on the next draft that has a `D` candidate.
+- **If every candidate shares one theme**: three same-theme offers; `coverage_forced` is not set
+  (it marks a restriction that was applied, not a wish). Content can see it in `draft_offered`.
+- **If no universal treasure remains**: slot 1 draws over all candidates; flag `universal_missing`.
+
+**Ties, tags and data**
+- **If two plan tags tie for `n_tag`**: `D` is the earlier tag in `plan_tags(hero)` data order
+  (War: `weapons` before `aggro` before `armour`) — fixed, never a draw.
+- **If a deck card carries several tags**: it counts once toward each tag's `n_tag`; a card can
+  feed two themes' affinity and two themes can tie through it (previous rule).
+- **If a bundle's theme is not one of the hero's plan tags** (every neutral theme): affinity
+  still counts deck cards carrying that tag (a Taunt-heavy deck boosts `bundle_neutral_taunt`),
+  but pity never forces it because `D ∈ plan_tags(hero)`.
+- **If a bundle contains a token id, a missing id, or not exactly 3 cards**: impossible after
+  Card Database CR-5 stage 6 (`E_TOKEN_IN_LIST`, `E_UNKNOWN_REF`, `E_COUNT`). Defensively, `offer`
+  checks `len(cards) == 3` and `card(id) != null ∧ !token` (reachable only via a debug
+  `reload()`), excludes the bundle, and emits `run_warning{bundle_invalid, bundle_id}`.
+- **If `pick` names an offered id whose record no longer resolves** (debug reload between offer
+  and pick): `E_UNKNOWN_ID`, no event; the run calls `offer` again.
+- **If `weighted_pick` returns `−1`** (zero total — impossible since F1/F2 weights are ≥ 1):
+  assert in debug; in release return `[]` with `run_warning{draft_fault, floor, kind}` so a bug
+  is a logged empty draft, never a crash or a silent pick.
+
+**Save, resume, seeds**
+- **If the app quits between the treasure pick and the bundle pick**: the S3 save holds the
+  treasure and `draft_<floor>` at `draws = 3`; the bundle offer regenerates identically — nothing
+  the treasure pick changed (`treasures[]`, the treasure `DraftRecord`) is an input to D4–D6.
+- **If the app quits while an offer is on screen**: nothing is written mid-pick (DD-R08); resume
+  restores S2/S3 and `offer` regenerates the same ids; a second `draft_offered` is logged.
+- **If a treasure is unlocked mid-run**: invisible to this run — `draft_state.treasure_pool` was
+  snapshotted at `init_run`; it appears from the next `new_run`. The reverse (a snapshotted
+  treasure becoming locked) likewise changes nothing.
+- **If `draft_state` lacks `schema_version`/`treasure_pool`** (save predating `init_run`, or
+  tampered): Run Structure calls `init_run` at resume before any `offer`, emits
+  `run_warning{draft_state_init_late}`, and the offers may differ from those shown before the quit
+  — accepted on a corrupted-save path (**contract amendment**, Open Questions).
+- **If two runs share a seed and hero**: identical offers on every floor while picks are
+  identical; from the first divergent pick, `deck`, weights and pity history differ and so do
+  later offers (DD-R09). Quitting and resuming cannot re-roll an offer, so pity cannot be farmed.
+- **If `allow_custom_seed` is off**: no effect here; `offer` never reads the seed, only the stream.
+
+**Layout and configuration**
+- **If `floors_per_run = 4` (MVP, DD-H06)**: Run Structure filters `treasure_floors` to `[1, 3]`
+  (`K = 2`, needs 6 treasures); three bundle drafts need `B ≥ 9` (F5), satisfied by 10.
+- **If a treasure floor is `≥ floors_per_run`**: Run Structure ignores it; `offer(treasure)` is
+  never called for it.
+- **If `reoffer_after_floors = 0`**: no cooling — a declined bundle can return next floor; legal,
+  but F5 collapses to `B ≥ F + 1` and offers feel repetitive (Tuning Knobs warns).
+- **If `allow_skip` is on and the player skips every floor**: the deck stays at 15; every
+  invariant holds (non-null picks counted); F7/F8 tables degenerate to floor-1 values.
+- **If the deck exceeds 40 cards** (longer `floors_per_run`): no cap (DD-R06); `AFFINITY_CAP`
+  bounds every weight so a 50-card deck cannot inflate totals; Run UI's deck list must scroll.
+- **If `hero(hero_id).set` has no bundles of its own** (an unlock hero shipped early): the pool
+  is neutral-only (≥ 6 at v1); pity never fires; everything else works.
 
 ## Dependencies
 
-[To be designed]
+Hard = Reward Draft cannot produce an offer without it; soft = degrades to a default.
+Bidirectional check against `design/gdd/systems-index.md`: the index lists Reward Draft as
+depending on Run Structure, Card Database, Treasures and RNG & Event Log (all below) and lists
+Run UI as depending on Reward Draft (below) — consistent. This table **adds** Heroes (data) and
+Meta Progression (unlock state at `init_run`) as upstream, and Content as a soft dependent —
+flagged for `/map-systems`, not edited here. Run Structure, Card Database, RNG & Event Log and
+Heroes each already name Reward Draft in their own Dependencies — consistent.
+
+| System | Direction | Hard/Soft | Nature of dependency / interface |
+|---|---|---|---|
+| Run Structure | Mutual | Hard | It invokes `init_run` (R2 — amendment), `offer` (R5.3, R8.2) and `pick` (T11/T12), passes `run_state` and `draft_<floor>`, persists `draft_state` opaquely, enforces the pick guards, and emits `treasure_granted` / `deck_grew`. We own offer content, weights, pity, the two draft events and `draft_state`'s schema. Amendments to its R5 contract: `init_run`, empty-offer skip, `draft_state` schema, `pick` signature. |
+| Card Database | This depends on Card Database | Hard | `bundle_pool(set)`, `treasure_pool()`, `bundle(id)`, `card(id)` (`cost`, `tags`, `token`), `hero(id).set`; id-sorted results (CR-6) are what make seeded draws reproducible; CR-5 stage 6 guarantees bundle integrity. **Requests**: `TreasureDef.tags` field; `reward_draft.json` in CR-1/DD-T01. |
+| RNG & Event Log | This depends on RNG & Event Log | Hard | `draft_<floor>` stream, `weighted_pick` (1 draw, integer weights, positive total guaranteed here); the run log for `draft_offered` / `draft_picked`; `restore()` semantics make D12 true. |
+| Treasures | This depends on Treasures (data) | Hard for treasure drafts | `rarity`, `tags`, `unlock` per treasure (**contract — to be confirmed in treasures.md**, Interactions); Treasures owns effects and applies picks at match start; we never call it. |
+| Heroes | This depends on Heroes (data) | Soft | `HeroDef.set` selects the pools; H-5 theme tags are `plan_tags(hero)`. Without plan tags, pity and affinity are inert and offers are uniform-by-band. |
+| Meta Progression | This depends on Meta Progression | Soft | `is_treasure_unlocked(id)` at `init_run` only (**contract — to be confirmed in meta-progression.md**); MVP default `unlock == null ⇒ unlocked`. Downstream it reads pick rates from archived logs. |
+| Run UI | Run UI depends on this | Soft (headless in tests) | Renders the `Offer` read model and issues `draft_pick`; UI Requirements. |
+| Content | Content depends on this | Soft | F5/F6 pool floors (`B ≥ 13` at v1 with `W = 2`; `N ≥ 9`, `n_universal ≥ 5`); theme tags per bundle; `run_warning{*_pool_short}` tells Content when it is thin. |
 
 ## Tuning Knobs
 
-[To be designed]
+All in `assets/data/reward_draft.json` unless noted. `systems-designer` not consulted — Lean mode.
+Interactions to check together: `reoffer_after_floors` and `PITY_WINDOW` (a long cooling window
+can remove every `D` bundle exactly when pity wants one); `AFFINITY_STEP` × `AFFINITY_CAP` against
+the coverage rule (above ≈ 4.0 the forced off-theme slot is the *only* off-theme offer and the
+draft reads as solved); `treasure_offers_per_draft` against Card Database `min_treasure_pool`.
+
+| Parameter | Current Value | Safe Range | Effect of Increase | Effect of Decrease |
+|---|---|---|---|---|
+| `BASE_WEIGHT` | 100 | 10–1000 | Pure scale; no behavioural effect unless rounding bites below ~20 | Below 10, rounding flattens affinity steps |
+| `AFFINITY_STEP` (stored ×100) | 0.25 | 0.10–0.50 | Stronger "the game knows my deck"; above 0.5 off-plan bundles appear only via coverage (solved draft) | Offers drift toward uniform; plan_share falls toward the random-picker 0.50 |
+| `AFFINITY_CAP` | 8 | 4–16 | Late decks keep gaining pull; above 12 the floor-7 draft is a formality | Affinity saturates by floor 3; late drafts feel random |
+| `band_cost_curve` | band 1 = 120/100/70; 2 = 100/110/100; 3 = 80/100/130 (%) | 50–200 each | Steeper curve: cheaper early, bigger late; above 150/50 a bundle class vanishes from a band | Flat (100 everywhere): cost ignored, floor-1 offers of 5-drops |
+| `COST_LOW` / `COST_HIGH` | 2.5 / 4.0 | 2.0–3.0 / 3.5–5.0 | Moves bundles between buckets; must keep `COST_LOW < COST_HIGH` | — |
+| `PITY_WINDOW` | 2 | 1–4 | Rarer forced returns; at 4 a theme can vanish for half a run | At 1, `D` is offered every other draft at least — strong rails, less discovery |
+| `reoffer_after_floors` | 2 | 0–3 at v1 content (F5: `W ≤ 2` for 14 bundles) | Fewer repeats; above 2 the v1 pool goes short on floor 7 | 0 = a declined bundle can return immediately; repetitive |
+| `universal_slot` | true | bool | — | Off: a themed-only treasure offer is possible; weaker "always a safe pick" promise |
+| `treasure_rarity_weights` | common 70 / rare 30 | each 1–100 | More of that tier per slot; 50/50 makes rares ~40 % of slots at a 60/40 pool | — |
+| `TREASURE_AFFINITY` | 50 (%) | 0–200 | Hero-tagged treasures crowd the two free slots; above 100 universal-only offers never happen except by the forced slot | 0: tags ignored |
+| `treasure_short_policy` | `fewer` | `fewer` \| `reoffer` | `reoffer` keeps three options but shows a treasure the player already declined | `fewer` is honest about a thin pool |
+| `allow_skip` | false | bool | On: a "Take nothing" option; deck growth becomes optional (anti-Pillar 1; DD-R06 becomes an upper bound) | — |
+| `bundle_offers_per_draft` / `treasure_offers_per_draft` | 3 / 3 | 2–4 (constants in v1 — DD-R04 / DD-R05) | More choice, faster pool exhaustion (F5/F6 scale with it), wider UI | 2: coverage rule degenerates to "the two differ" |
+| `treasure_floors`, `floors_per_run` | `[1, 3, 5]`, 8 | Run Structure | See `design/gdd/run-structure.md` Tuning Knobs — not duplicated | — |
+| `bundle_card_count`, `starter_deck_size` | 3, 15 | Card Database | Registry constants; F7/F8 read them | — |
 
 ## Visual/Audio Requirements
 
-[To be designed]
+Optional for `Economy`; `art-director` not consulted — Lean mode. Run UI owns the screen; this
+GDD only names the events that need feedback so they are not lost.
+
+| Event | Visual Feedback | Audio Feedback | Priority |
+|---|---|---|---|
+| `draft_offered` | Three options revealed left to right (bundles: 3-card fan with theme label; treasures: single card with rarity frame) | Soft reveal stinger, one per option | Medium |
+| hover on an option | Cards enlarge; synergy count shown (UI Requirements) | — | Low |
+| `draft_picked` | Chosen option lifts and flies to the deck/treasure tray; unchosen fade | Confirm tone; rare treasure gets a brighter variant | Medium |
+| `short` / `reoffer` flag | Empty slot drawn as a dimmed placeholder with the one-line reason | — | Low |
+
+Placeholder art in v1 (art bible §5–9 deferred). 📌 **Asset Spec** — after the art bible is
+approved, run `/asset-spec system:reward-draft` for the option frames and the deck-fly animation.
 
 ## Game Feel
 
-[To be designed]
+Not applicable as a feel system — `Economy` category, no real-time control. The one target: a
+pick is committed on an explicit confirm (no undo exists, DD-R08 saves right after), and the
+confirm-to-`draft_picked` response is immediate (under one frame of logic; the fly animation is
+Run UI's). Anti-reference: a drafting screen that auto-advances on a single click.
 
 ## UI Requirements
 
-[To be designed]
+`ux-designer` not consulted — Lean mode. Run UI renders from the `Offer` read model and the
+run-scope events (`src/ui/**` display-only); no weight, flag or pity state is ever shown.
+
+| Information | Display Location | Update Frequency | Condition |
+|---|---|---|---|
+| Step indicator "Treasure → Bundle" / "Bundle" | Draft screen header | On `draft_offered` | Treasure floors show both steps, current one highlighted |
+| Bundle option: 3 card previews (name, cost, stats, text), theme label, `BundleDef.text` pitch | One panel per option, left to right in `option_ids` order | On `draft_offered` | kind = bundle |
+| Treasure option: name, rarity frame (common/rare), `text` | One panel per option | On `draft_offered` | kind = treasure |
+| Synergy count — "N cards in your deck share *theme*" (bundle `n_tag(theme)`) / "fits your plan" (treasure `affine`) | Hover tooltip on the option | On hover | Shows the number, never the weight; Open Questions asks whether to show it at all |
+| Deck size preview "Deck 21 → 24" | Below the bundle options | On hover of an option | kind = bundle |
+| Empty slot placeholder with reason ("No more treasures in this run") | In place of the missing option | On `draft_offered` with `short` | `len(option_ids) < 3` |
+| Confirm control (select, then Confirm; or double-click) | Bottom centre | — | Always; "Take nothing" appears only when `allow_skip` |
+| Current deck list (scrollable; no cap) and held treasures | Side drawer | On open | Always available from the draft screen |
+| Rejection toast (`E_NOT_OFFERED`, `E_DRAFT_KIND`, `E_DRAFT_DONE`) | Toast | On rejection | Should never fire from a correct UI; shown for debugging honesty |
+
+> **📌 UX Flag — Reward Draft**: This system has UI requirements. In Phase 4 (Pre-Production),
+> run `/ux-design draft-picker` to create the UX spec for the draft screen **before** writing
+> epics. Stories that reference UI should cite `design/ux/draft-picker.md`, not this GDD.
 
 ## Cross-References
 
-[To be designed]
+| This Document References | Target GDD | Specific Element Referenced | Nature |
+|---|---|---|---|
+| `offer(kind, run_state, stream)`, treasure-before-bundle, `draft_state` opaque | `design/gdd/run-structure.md` | R5 Reward phase, Interactions row | Ownership handoff (contract confirmed; amendments D1, D3, D8) |
+| `DraftRecord` fields used for exclusion and pity | `design/gdd/run-structure.md` | R1 `drafts[]` | Data dependency |
+| Save S2 before `offer`, S3 after treasure pick; resume regenerates | `design/gdd/run-structure.md` | R7, R8.2, AC-18 | Rule dependency |
+| Pick guards `E_DRAFT_KIND` / `E_NOT_OFFERED` / `E_DRAFT_DONE`; `deck_grew`, `treasure_granted` emitted by the run | `design/gdd/run-structure.md` | R5.3–5, T11/T12 | State trigger |
+| `band(f)`, `deck_size(f)`, `treasure_floors` filtered below `floors_per_run` | `design/gdd/run-structure.md` | F1, F4, R5.1 | Data dependency |
+| `BundleDef` (`theme`, 3 cards, no tokens), `TreasureDef` (`rarity`, `unlock`) | `design/gdd/card-database.md` | CR-3, CR-5 stage 6 | Data dependency |
+| Id-sorted `bundle_pool`, `treasure_pool`, `card().tags/cost` | `design/gdd/card-database.md` | CR-6 | Rule dependency |
+| `bundle_pool_size` ≥ 3 else `E_COUNT`; `min_treasure_pool` = 9 | `design/gdd/card-database.md` | Formulas | Rule dependency |
+| Cards are not weighted by rarity (treasures are) | `design/gdd/card-database.md` | CR-4 | Rule dependency |
+| `draft_<floor>` stream ownership; draws only inside commands | `design/gdd/rng-event-log.md` | Core Rules A.3, B.7–8 | Rule dependency |
+| `weighted_pick` = 1 draw, integer weights, positive total | `design/gdd/rng-event-log.md` | F4, Edge Cases | Rule dependency |
+| `snapshot()`/`restore()` by draw count | `design/gdd/rng-event-log.md` | B.10, F5 | Data dependency |
+| `draft_offered` / `draft_picked` rows; `treasure_granted` owner | `design/gdd/rng-event-log.md` | Core Rules D catalogue | Ownership handoff |
+| `plan_tags(hero)`, starter tags, 6/15 plan share | `design/gdd/heroes.md` | H-4, H-5, F2 | Data dependency |
+| `TreasureDef.tags`, universal treasures, no-duplicate rule, pool snapshot | `design/gdd/treasures.md` *(planned)* | Interactions contract | Ownership handoff (contract) |
+| `is_treasure_unlocked(id)` at `init_run` | `design/gdd/meta-progression.md` *(planned)* | unlock state | Data dependency (contract) |
+| Draft picker screen | `design/gdd/run-ui.md` *(planned)* / `design/ux/draft-picker.md` | UI Requirements | Data dependency |
 
 ## Acceptance Criteria
 
-[To be designed]
+`qa-lead` not consulted — Lean mode and no `Agent` tool in this session (Section H is HIGH-risk
+per the skill). Fixtures: **P14** = the F1 example pool (8 `war` bundles — 3 `weapons`, 3
+`aggro`, 2 `armour` — plus 6 neutral bundles over 3 themes), **T10** = the F2 example treasures,
+**War starter** = Heroes H-4, defaults from `reward_draft.json`, `floors_per_run = 8`,
+`treasure_floors = [1, 3, 5]`. "Seeds 1..N" means `run_seed` = 1, 2, …, N with the real RNG
+service; a **zero stub** is a stream whose `randi32()` always returns 0 (so `weighted_pick`
+returns the first candidate). Every test is a Logic story: automated unit tests under
+`tests/unit/reward_draft/`.
+
+**Determinism and purity (D1, D12, F4)**
+- [ ] AC-1 **GIVEN** seed 42, War, P14/T10, floor 1, **WHEN** `offer(treasure)` then `offer(bundle)` run twice from an identical `run_state` and a freshly restored `draft_1`, **THEN** both runs yield identical `option_ids` and `flags` and `draft_1.draws` reads 3 after the treasure offer and 6 after the bundle offer.
+- [ ] AC-2 **GIVEN** floor 2 (no treasure), **WHEN** `offer(bundle)` runs, **THEN** `draft_2.draws == 3`; over a full 8-floor simulated run the `draft_*` streams total 30 draws, and 15 with `floors_per_run = 4`.
+- [ ] AC-3 **GIVEN** a run saved at S3 on floor 3 (`draft_3` at `draws = 3`) whose pre-quit bundle offer was `[a, b, c]`, **WHEN** restored and `offer(bundle)` is called, **THEN** it returns `[a, b, c]` with the same flags; **AND** a run saved at S2 (`draws = 0`) regenerates the same treasure offer.
+- [ ] AC-4 **GIVEN** any `run_state` fixture, **WHEN** `offer` runs, **THEN** a deep comparison of `run_state` (including `draft_state`) before and after is equal, and no event other than one `draft_offered` was appended.
+- [ ] AC-5 **GIVEN** seeds 1..1000 on any floor, **WHEN** offers are generated, **THEN** every `option_ids` is strictly ascending by id and contains no duplicates.
+
+**Exclusion and cooling (D4, D7, F5, F6)**
+- [ ] AC-6 **GIVEN** bundle `b1` picked on floor 1, **WHEN** offers on floors 2–7 are generated for seeds 1..1000, **THEN** `b1` never appears.
+- [ ] AC-7 **GIVEN** `b2` offered but not taken on floor 1 and `reoffer_after_floors = 2`, **WHEN** offers are generated for seeds 1..1000, **THEN** `b2` appears on no floor-2 or floor-3 offer and on at least one floor-4 offer.
+- [ ] AC-8 **GIVEN** `t1` held and `t2`, `t3` offered on floor 1, **WHEN** treasure offers on floors 3 and 5 are generated for seeds 1..1000, **THEN** none contains `t1`, `t2` or `t3`.
+- [ ] AC-9 **GIVEN** P14 and `W = 2`, **WHEN** a run drafts a bundle on every floor 1–7 for seeds 1..1000 with any pick policy, **THEN** no bundle offer carries `short` or `reoffer`; **AND GIVEN** `W = 3`, **THEN** at least one seed carries `reoffer` by floor 7 (F5 bound).
+- [ ] AC-10 **GIVEN** a treasure snapshot of 10 (T10), **WHEN** the three treasure drafts run, **THEN** none carries `short`; **GIVEN** a snapshot of 8 and `treasure_short_policy = fewer`, **THEN** the floor-5 offer has exactly 2 options, flag `short`, and one `run_warning{treasure_pool_short, floor: 5, needed: 3, available: 2}` is emitted.
+- [ ] AC-11 **GIVEN** the 8-treasure case and `treasure_short_policy = reoffer`, **WHEN** the floor-5 offer runs, **THEN** it has 3 options, flag `reoffer`, the refilled option was previously offered and not held, and no held treasure appears.
+- [ ] AC-12 **GIVEN** a 3-bundle pool and `floors_per_run = 8`, **WHEN** floors 1–4 are drafted, **THEN** floor 1 offers 3; floor 2 offers 2 with flags `[reoffer, short]` and a `run_warning{bundle_pool_short}`; floor 3 offers 1; floor 4 returns `[]`, and a stub run records `DraftRecord{picked_id: null}`, leaves `deck` unchanged and advances the floor.
+
+**Pity and coverage (D6, F3)**
+- [ ] AC-13 **GIVEN** War starter (`D = weapons`) and injected `drafts[]` where floors 1 and 2 offered no `weapons` bundle, **WHEN** `offer(bundle)` on floor 3 runs for seeds 1..1000, **THEN** every offer contains a `weapons` bundle and `flags` contains `pity_forced`.
+- [ ] AC-14 **GIVEN** any deck, **WHEN** offers on floors 1 and 2 are generated for seeds 1..1000, **THEN** `pity_forced` never appears; **AND GIVEN** `PITY_WINDOW = 1` in the fixture config, **THEN** it can appear on floor 2 (proves the value is data-driven).
+- [ ] AC-15 **GIVEN** a `weapons` bundle offered but declined on floor 2, **WHEN** floor 3 is offered, **THEN** `pity_forced` is absent for every seed (decline resets `starve`).
+- [ ] AC-16 **GIVEN** the deck pivots to `aggro` × 8 vs `weapons` × 3 and `aggro` was offered on floor 2, **WHEN** floor 3 is offered, **THEN** `D == aggro` and no pity fires even though `weapons` was starved.
+- [ ] AC-17 **GIVEN** `weapons` 3 and `aggro` 3 in the deck, **WHEN** `D` is computed, **THEN** `D == weapons` (first in `plan_tags` data order).
+- [ ] AC-18 **GIVEN** P14 on floor 1, **WHEN** offers run for seeds 1..1000, **THEN** no offer has three options of one theme; `coverage_forced` is present exactly in the offers where the first two drawn slots shared a theme (verified against a recording stream).
+- [ ] AC-19 **GIVEN** every candidate shares one theme (fixture), **WHEN** an offer runs, **THEN** all three share it and `coverage_forced` is absent; **AND GIVEN** no candidate carries `D` while pity is due, **THEN** `pity_forced` is absent and the offer still has 3 options.
+
+**Weights (F1, F2)**
+- [ ] AC-20 **GIVEN** the F1 example deck and candidates on floor 1, **WHEN** `bundle_weight` is computed, **THEN** the values are 180 / 175 / 125 / 100 / 70; **AND** on floor 7 with nine `weapons` cards the weapons bundle is 300 and the giants bundle 130.
+- [ ] AC-21 **GIVEN** T10 for War, **WHEN** `treasure_weight` is computed, **THEN** affine common = 105, plain common = 70, affine rare = 45, plain rare = 30.
+- [ ] AC-22 **GIVEN** a zero stub stream on floor 1 with P14, **WHEN** `offer(bundle)` runs, **THEN** `option_ids` are the id-first eligible candidate of each slot's (possibly restricted) list, sorted; with a stream returning `total − 1` it is the id-last candidate of each list.
+- [ ] AC-23 **GIVEN** T10 (6 common / 4 rare), **WHEN** floor-1 treasure offers run for seeds 1..10000, **THEN** every offer contains ≥ 1 universal treasure with `universal_forced` set, and rares are 15–30 % of the slot-2/3 picks.
+
+**Pick resolution and events (D9, D11)**
+- [ ] AC-24 **GIVEN** bundle offer `[a, b, c]`, **WHEN** `pick(bundle, b, offer, run_state)` is called, **THEN** exactly one `draft_picked{floor, kind: bundle, picked_id: b, option_index: 1, card_ids_added: bundle(b).cards}` is emitted with 3 ids in data order and the return matches.
+- [ ] AC-25 **GIVEN** a treasure offer, **WHEN** `pick(treasure, id, …)` is called, **THEN** `draft_picked.card_ids_added == []` and `option_index` is `id`'s position in the sorted list; the run's `treasure_granted` follows it in the log.
+- [ ] AC-26 **GIVEN** `allow_skip = false`, **WHEN** `pick(bundle, null, …)` is called, **THEN** it is rejected (`E_NOT_OFFERED`) with no event; **GIVEN** `allow_skip = true`, **THEN** it is accepted with `picked_id: null`, `card_ids_added: []`, and the run's deck is unchanged.
+- [ ] AC-27 **GIVEN** `init_run` with a stub Meta Progression reporting `t9` locked, **WHEN** `t9` is unlocked after floor 1, **THEN** `t9` never appears on floors 3 or 5 of this run and appears in the next run's `draft_state.treasure_pool`.
+- [ ] AC-28 **GIVEN** a bundle whose card list is corrupted to include a token id in a debug reload, **WHEN** `offer` runs, **THEN** that bundle is excluded, `run_warning{bundle_invalid}` names it, and the offer still has 3 options when ≥ 3 valid candidates remain.
+
+**Coherence and dilution (F7, F8)**
+- [ ] AC-29 **GIVEN** 1,000 simulated 8-floor runs (seeds 1..1000, War, P14) under a "follower" policy (always the option with the highest `n_tag(theme)`), **WHEN** final decks are measured, **THEN** mean `plan_share(8) ≥ 0.60` and mean `top_tag_share(8) ≥ 0.30`; under a uniform-random policy mean `plan_share(8) ≥ 0.45`; the harness prints both so a regression is a number, not a feeling.
+- [ ] AC-30 **GIVEN** `deck_size = 36`, **WHEN** F8 is evaluated, **THEN** `p_starter = 15/36`, `P_no_starter_hand = 1330/7140` (±1e-9) and `P_card_seen(8, 10) = 10/36`.
+- [ ] AC-31 **GIVEN** 50 bundles, 20 treasures and a 36-card deck, **WHEN** `offer` runs, **THEN** it completes in under 5 ms on the CI runner (measurement only, logged); **AND** no constant from Tuning Knobs appears as a literal in `src/` (grep gate in the story).
 
 ## Open Questions
 
-[To be designed]
+| Question | Owner | Deadline | Resolution |
+|---|---|---|---|
+| Run Structure amendments proposed here: `init_run` at R2 step 5; `pick(kind, id, offer, run_state)` signature; empty offer ⇒ step skipped with `DraftRecord{picked_id: null}`; `draft_state` schema (D3) replaces "pity counters + `offered_treasure_ids[]`"; `init_run` on resume when `draft_state` lacks `schema_version`. | Run Structure GDD | `/consistency-check` after this GDD | Proposed |
+| `TreasureDef.tags: string[]` is needed for F2 affinity and the universal slot but is absent from Card Database CR-3. Add to CR-3 and `treasures.json`? | Card Database GDD + Treasures GDD | `/design-system treasures` | Proposed; until then all treasures are universal |
+| `assets/data/reward_draft.json` is a new DD-T01 file (knobs in Tuning Knobs). | owner | before `/create-architecture` | Needs a DD-T01 edit |
+| `treasure_granted` owner in the RNG & Event Log catalogue: Reward Draft (catalogue) vs Run Structure (its R5.4 and this GDD's D11). | RNG & Event Log GDD | `/consistency-check` | Proposed: Run Structure |
+| The brief's coherence target "top theme ≥ 45 % by floor 8" is unreachable from one tag with ~3 bundles per tag (F7); set as `plan_share ≥ 0.45` plus `top_tag_share ≥ 0.30`. Accept, or raise bundles-per-tag in Content? | owner | first balance pass | Reinterpreted here |
+| Card Database OQ "MVP 8 treasures vs 9 needed": DD-H06 already raised to 10; F6 shows 10 → 10/7/4; the 8-case falls to D8 `fewer`. | — | — | **Resolved** by F6 + D8 |
+| Concept doc says the first treasure is on floor 2; DD-R05 says 1/3/5 (inherited from run-structure OQ). This GDD follows DD-R05. | owner | before Content batch 1 | Open |
+| Should the synergy count / "fits your plan" hint be shown at all? Player Fantasy wants pity felt as luck; the brief asks for a hover count. | ux-designer (`/ux-design draft-picker`) | Pre-Production | Proposed: show the count on hover only |
+| v2 sinks: card removal at a treasure floor, or "forge" a bundle into one card. Out of v1. | owner | post-MVP | Deferred |
+| Content brief: neutral bundle theme vocabulary (≥ 3 themes), `B ≥ 13` per hero at v1, `n_universal ≥ 5`, ~3 bundles per plan tag. | Content GDD | `/design-system content` | Proposed |
+| `/balance-check` rule for the "take the strongest" risk: flag any bundle whose pick rate when offered exceeds 60 % over ≥ 30 offers, and any below 10 %. | economy-designer | first balance pass | Proposed |

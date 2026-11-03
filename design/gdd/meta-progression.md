@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Designed
 > **Author**: Jacob (owner) + `/design-system` (guided, lean, tier standard, docs.density balanced)
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
@@ -12,9 +12,14 @@
 
 ## Summary
 
-[To be designed]
+Meta Progression is the single local profile file (`user://profile.json`) that outlives a run:
+settings, the one in-progress run slot, an archive of the last 200 runs, lifetime statistics per
+hero and boss, and the unlock state of every hero, treasure and bundle. For the player it is the
+Continue card, the per-hero win counts, the Run Log with copyable seeds, and the "New treasure
+unlocked" toast; it exists because Deckdelve's long-term progression is milestones rather than a
+collection, and because losing a save is the one failure a roguelike cannot apologise for.
 
-> **Quick reference** — Layer: `Feature` · Priority: `Vertical Slice` · Key deps: `[To be designed]`
+> **Quick reference** — Layer: `Feature` · Priority: `Vertical Slice` · Key deps: `Run Structure, Card Database, Heroes, RNG & Event Log, Treasures (contract), Reward Draft (contract)`
 
 ## Overview
 
@@ -682,8 +687,135 @@ Screens belong to Run UI (`/ux-design` specs); this table says what the profile 
 
 ## Acceptance Criteria
 
-[To be designed]
+`qa-lead` not consulted — Lean mode (no Agent tool). Logic criteria run headless under gdUnit4
+with an injected `user://`-equivalent temp directory and synthetic `RunRecord` fixtures
+(`tests/unit/meta-progression/fixtures/`); UI criteria need a retained screenshot.
+
+**File protocol (M1, M4, M5)**
+
+- [ ] AC-1 **GIVEN** a fresh install, **WHEN** `load_profile()` runs, **THEN** status is `FRESH`,
+  `schema_version == 1`, `profile_id` is 32 hex chars, `run_log == []`, `active_run == null`, and
+  the file is written only on the first mutator, not on load.
+- [ ] AC-2 **GIVEN** any profile in memory, **WHEN** `save_profile()` then `load_profile()` run,
+  **THEN** the loaded dict equals the saved dict key-for-key (round-trip equality), including
+  unknown keys injected into `settings` and a 36-card `active_run` blob.
+- [ ] AC-3 **GIVEN** a profile on disk, **WHEN** a save succeeds, **THEN** `profile.bak` equals the
+  previous `profile.json` byte-for-byte, no `.tmp` remains, and `write_seq` increased by 1.
+- [ ] AC-4 **GIVEN** a write where the staged `.tmp` write is forced to fail, **WHEN** `save_profile()`
+  runs, **THEN** it retries once after `io_retry_ms`, returns `E_IO`, `profile.json` and `.bak`
+  are byte-identical to before, and no `.tmp` remains.
+- [ ] AC-5 **GIVEN** `profile.json` truncated mid-file and a valid `.bak`, **WHEN** loading, **THEN**
+  status is `RECOVERED_BAK`, the profile equals `.bak`, and `profile.corrupt-<ts>.json` equals
+  the truncated file.
+- [ ] AC-6 **GIVEN** both files unparseable, **WHEN** loading, **THEN** status is
+  `FRESH_AFTER_CORRUPT`, two `*.corrupt-<ts>.json` copies exist, and nothing was deleted.
+- [ ] AC-7 **GIVEN** a profile with `schema_version: 99`, **WHEN** loading, **THEN** status is
+  `E_SCHEMA_NEWER`, the file's bytes and mtime are unchanged after `set_setting` and
+  `save_active_run` (both return `E_READONLY`), and state is `ReadOnly`.
+- [ ] AC-8 **GIVEN** a v1 profile fixture with three archived victories (two random-seed, one
+  custom) for `hero_war`, **WHEN** loaded by a build with `PROFILE_SCHEMA_VERSION == 2` and the
+  worked v1→v2 migration, **THEN** `schema_version == 2`,
+  `stats.heroes.hero_war.best_turns_victory` equals the smaller of the two random-seed turn
+  counts, the pre-migration file is now `.bak`, and loading the result again applies no migration.
+- [ ] AC-9 **GIVEN** a live `profile.lock` (heartbeat 10 s old), **WHEN** a second `load_profile()`
+  runs, **THEN** status is `E_LOCKED`, state `ReadOnly`; **AND GIVEN** heartbeat 100 s old, **THEN**
+  status is `OK` and the lock now carries the new `instance_id`.
+
+**Run slot and archive (M8)**
+
+- [ ] AC-10 **GIVEN** `save_active_run(dict)` returned `OK`, **WHEN** the process restarts and
+  `load_active_run()` runs, **THEN** it returns a dict equal to the one saved; **AND** after
+  `clear_active_run()` it returns `null`.
+- [ ] AC-11 **GIVEN** a full 8-floor victory record with `run_log`, `rng_snapshot`,
+  `draft_state`, `treasure_state` and 30-key `damage_by_card` per summary, **WHEN** `archive_run`
+  runs, **THEN** the stored ArchivedRun lacks those four keys, each summary has ≤ 10
+  `damage_by_card` entries plus `_others` equal to the dropped sum, `totals.damage_by_card` is
+  intact, and `user://runs/<run_id>.json` holds the complete original record.
+- [ ] AC-12 **GIVEN** `run_log_cap = 200` and 200 archived runs, **WHEN** one more is archived,
+  **THEN** `len(run_log) == 200`, the entry previously at index 0 is gone, index 199 is the new
+  run, and `stats.runs_started == 201`.
+- [ ] AC-13 **GIVEN** a record already archived, **WHEN** `archive_run` is called again with the
+  same `run_id`, **THEN** it returns `{ok: true, unlocks_granted: []}` and `stats`, `run_log` and
+  `pending_notifications` are unchanged.
+- [ ] AC-14 **GIVEN** `active_run.run_id` equal to a `run_log[]` entry, **WHEN** loading, **THEN**
+  `active_run` is `null` and no archive or fold happened.
+
+**Statistics (M7, F2, F3)**
+
+- [ ] AC-15 **GIVEN** synthetic records — a War victory (random seed, 61 turns, 1,400 s), a War
+  custom-seed victory (40 turns, 900 s), a Decay defeat on floor 4 by `boss_x`, a Knowledge
+  `abandoned/player` at floor 2, and a Knowledge `abandoned/data_version_mismatch` — **WHEN** all
+  are archived, **THEN** `runs_started 5, runs_won 2, runs_lost 2, runs_void 1`;
+  `heroes.hero_war = {runs_won 2, fastest_victory_s 1400, fewest_turns_victory 61}`;
+  `heroes.hero_decay.best_floor_reached == 4`; `heroes.hero_knowledge = {runs_lost 1,
+  best_floor_reached 2}`; `bosses.boss_x.defeated_by == 1`; and the custom-seed run's 900 s is
+  nowhere in `bests`.
+- [ ] AC-16 **GIVEN** `abandon_counts_as_loss = false` in `run_structure.json`, **WHEN** an
+  `abandoned/player` record is archived, **THEN** `runs_void` +1 and `runs_lost` unchanged.
+- [ ] AC-17 **GIVEN** a victory record on `floors_per_run = 8`, **WHEN** folded, **THEN**
+  `best_floor_reached == 8`; **AND GIVEN** a defeat with `result.floor_reached = 5`, **THEN** it is 5.
+- [ ] AC-18 **GIVEN** a profile edited to `runs_won: -3, best_floor_reached: 40, volume_master: 7`,
+  **WHEN** loading, **THEN** the values are `0, 12, 1.0`, three `profile_repaired` lines are logged,
+  `load.repairs == 3`, and no unlock changed state.
+
+**Unlocks (M2, M3, F1, F6)**
+
+- [ ] AC-19 **GIVEN** the six M10 treasure definitions and the three hero definitions, **WHEN**
+  `met` is evaluated against each of these synthetic stats — `{}` ; `{runs_won: 1}` ; `{bosses:
+  10 defeated across 4 ids}` ; `{heroes: war/decay/knowledge best_floor 5/5/4}` ; `{heroes:
+  war/decay/knowledge runs_won 1/1/1}` ; `{treasures.treasure_second_wind.picked: 3}` — **THEN**
+  the met sets are exactly: ∅ ; {trophy_rack, hero_fortune} ; {tally_stick} ; ∅ (deep_lamp needs
+  all three ≥ 5) ; {trophy_rack, banner_of_halvard, gauntlet_crown, hero_fortune, hero_order,
+  hero_shadow} ; {lich_grimoire}.
+- [ ] AC-20 **GIVEN** stats one win short of `tally_stick` (9 bosses), **WHEN** a defeat record whose
+  first match was a player win is archived, **THEN** `archive_run` returns
+  `unlocks_granted == ["unlock.treasure_tally_stick"]`, `unlocks[key] == {unlocked: true, at > 0,
+  by_run_id: <that run_id>, retro: false}`, `pending_notifications` holds one entry for it, and
+  `unlock_granted` was emitted once.
+- [ ] AC-21 **GIVEN** a custom-seed victory as the player's first win, **WHEN** archived, **THEN**
+  `unlock.treasure_trophy_rack` is granted (unlocks count custom seeds) and
+  `fastest_victory_s` stays `null` (bests do not).
+- [ ] AC-22 **GIVEN** a profile with `runs_won: 1` saved under `data_version "1.0"` and a data
+  set `"1.1"` that newly defines `unlock.hero_fortune`, **WHEN** loading, **THEN** the key is
+  granted with `retro: true, by_run_id: null`, a notification is queued, `"1.1"` is appended to
+  `data_versions_seen`, and loading again under `"1.1"` evaluates nothing.
+- [ ] AC-23 **GIVEN** a key `unlocked: true` whose condition is now unmet (stats clamped or
+  condition tightened), **WHEN** loading and evaluating, **THEN** it remains `unlocked: true`.
+- [ ] AC-24 **GIVEN** `heroes.json` with `hero_fortune.unlock` set and unmet, **WHEN**
+  `is_hero_unlocked("hero_fortune")` and `is_hero_unlocked("hero_war")` are called, **THEN** they
+  return `false` and `true`; **AND** `unlock_progress("unlock.treasure_tally_stick")` with 7 bosses
+  defeated returns `{met: false, progress: 0.7}`.
+- [ ] AC-25 **GIVEN** a treasure whose condition references `boss_id: "boss_nope"`, **WHEN** Card
+  Database loads with the injected validator, **THEN** load fails with `E_UNLOCK_UNKNOWN_ID`
+  naming the key; **AND GIVEN** a condition nested 4 deep, **THEN** `E_UNLOCK_SHAPE`.
+- [ ] AC-26 **GIVEN** a queued notification, **WHEN** `ack_notification(key)` runs and the process
+  restarts, **THEN** the queue is empty; **AND GIVEN** a crash before the ack, **THEN** the entry is
+  still queued after restart.
+
+**Budget and UI**
+
+- [ ] AC-27 Performance: **GIVEN** a profile at `run_log_cap` with full ArchivedRuns, **WHEN**
+  `save_profile()` runs 20 times on the minimum spec, **THEN** the median completes within
+  `max_save_ms` (50 ms) and the file is under `max_profile_bytes` (2 MB).
+- [ ] AC-28 **GIVEN** the Run Log screen with 3 archived runs (one custom seed, one with
+  `attempt > 1`), **WHEN** opened, **THEN** a retained screenshot shows newest-first rows with
+  hero, result, "n of F", deck size, top damage cards, the "custom seed" tag, the attempt marker,
+  and a Copy control whose clipboard output re-parses to the row's `run_seed`.
+- [ ] AC-29 **GIVEN** `pending_notifications` holding one treasure key, **WHEN** the run summary
+  opens, **THEN** a retained screenshot shows the "New treasure unlocked" toast with the
+  treasure name and condition text, and the queue is empty after dismissal.
+- [ ] AC-30 No hardcoded values: every knob in Tuning Knobs is read from `assets/data/profile.json`;
+  `PROFILE_SCHEMA_VERSION` is the one code constant.
 
 ## Open Questions
 
-[To be designed]
+| Question | Owner | Deadline | Resolution |
+|---|---|---|---|
+| CR-3 amendment: `TreasureDef.unlock` from "string or null" to `{key, condition} or null`, and the same field on `HeroDef` and `BundleDef`. Accept, or keep string keys in defs and move conditions to a separate `unlocks.json`? | Card Database GDD owner + Jacob | before `/create-architecture` | Proposed here (M2.1); `/consistency-check` to reconcile |
+| Rename atomicity of `.tmp → profile.json` on Windows/macOS/Linux under Godot 4.7 (`DirAccess.rename_absolute` or equivalent) — **NOT SOURCEABLE** from the pinned reference | `engine-programmer` via ADR | Technical Setup | Open; ADR must cite the 4.7 docs |
+| Is `max_save_ms` 50 achievable with a synchronous 2 MB pretty-printed write on the minimum spec, or do we need a background thread / compact JSON / a split `runs.json`? | `gameplay-programmer` | Vertical Slice (measure, AC-27) | Open; fallback is lowering `run_log_cap` |
+| The six locked-treasure ids are placeholders; Treasures/Content must map the six milestones onto real treasures (ideally ones whose effect echoes the milestone) | Treasures GDD + Content | `/design-system treasures` | Open — milestones decided, ids provisional |
+| Run-structure R6 does not set `result.floor_reached` on victory; this GDD derives it (F3). Should R6 set it instead? | Run Structure GDD | `/consistency-check` | Proposed: R6 sets `floor_reached = floors_per_run` |
+| rng-event-log rule 18 keys match logs by `run_seed_hex`; this GDD keys full run records by `run_id`. Align rule 18 to `run_id`? | RNG & Event Log GDD | `/consistency-check` | Proposed here (M8.2) |
+| Should the profile also keep a tiny `profile.index.json` (last run, hero, floor) so the main menu can render before parsing 2 MB? | Run UI `/ux-design` + `ui-programmer` | Pre-Production | Open; only if AC-1 load time is visible |
+| Multiple profiles / Steam Cloud: out of v1 by brief. If added, `profile_id` and the lock scheme already allow `user://profiles/<id>/` | Jacob | Full Vision | Deferred |
