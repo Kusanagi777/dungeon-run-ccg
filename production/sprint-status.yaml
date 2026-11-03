@@ -160,7 +160,7 @@ stories:
     wave: 3
     serialised: false
     contract: false
-    blocker: ""
+    blocker: "2026-11-03: MR-010 (play_card in legal_commands()) not merged on lane/s3-card-effects-002-005 — AC-07 last clause; not started (CE-002 done)"
     note: "AC-07 last clause needs MR-010 play_card in legal_commands() merged at M2"
     completed: ""
   - id: "card-effects-005"
@@ -174,7 +174,7 @@ stories:
     wave: 3
     serialised: false
     contract: false
-    blocker: ""
+    blocker: "2026-11-03: waits for CE-004 (blocked on MR-010); not started"
     completed: ""
   - id: "rng-event-log-003"
     name: "Snapshot, restore and the command guard"

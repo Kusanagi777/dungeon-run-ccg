@@ -95,3 +95,8 @@ checks scope against it.*
 
 - Depends on: `production/epics/card-effects/story-003-validator-schema-codes.md`, `production/epics/card-effects/story-004-validator-step-bound-targeting.md`. Cross-epic: `production/epics/card-database/` (`DataLoader`, `CardDatabase.load` stages 7a/7b, `ValidationReport`); story paths are assigned by that epic's concurrent `/create-stories` run.
 - Unlocks: `production/epics/card-effects/story-016-determinism-clone-bounds-perf.md`; every resolution story 006–015 reads this fixture
+
+> **Blocker (2026-11-03, sprint-3 lane `lane/s3-card-effects-002-005`):** not started.
+> It depends on story 004 (`E_FX_BUDGET`, `E_FX_OP_TARGET`, `step_bound` — AC-01's "every
+> C11 row validates" runs the full validator), which is blocked on match-rules story 010
+> (see story 004's blocker note). Stays Ready; carries with story 004.
