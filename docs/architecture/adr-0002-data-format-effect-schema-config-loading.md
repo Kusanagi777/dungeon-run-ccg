@@ -120,7 +120,7 @@ assets/data/*.json  (DD-T01: 7 definition files incl. cards_<set>, 13 config fil
         │  budget warnings                                  [stage 8]
         │  sort by id · make_read_only (recursive) · SHA-256 [stage 9]
         ▼
-   CardDatabase snapshot  { records_by_type, index_of, config_bodies, data_version, report, state }
+   CardDatabase snapshot  { records_by_type, index_of, config_bodies, pools, data_version, report }   (state() is the database's, not the snapshot's)
         │
         ├── card()/hero()/…/pools  (id-ascending, frozen)  → Match Rules, Reward Draft, Run Structure, UI
         ├── config(name)            (frozen body, read once) → every config owner at _init

@@ -94,8 +94,11 @@ func report() -> ValidationReport:
 	return _report
 
 
-## True when a record with `id` exists (any type); never logs.
-## Example: `db.has("war_iron_axe")`.
+## True when a record with `id` exists (any type). An unknown id is not an
+## error: `has()` never logs for it, in `Ready` or during stage 7 — it is how a
+## caller that may ask for an absent id checks before `card(id)`. Called before
+## `Ready` (outside stage 7) it is illegal like every query: `false` and the
+## logged state error. Example: `db.has("war_iron_axe")`.
 func has(id: String) -> bool:
 	var source: Dictionary = _source("has")
 	return not source.is_empty() and source.index_of.has(id)

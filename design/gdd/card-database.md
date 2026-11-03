@@ -220,7 +220,7 @@ with the seeded RNG (DD-T03), so order must not depend on authoring order (DD-R0
 
 | Query | Returns | Notes |
 |-------|---------|-------|
-| `card(id)`, `hero(id)`, `hero_power(id)`, `boss(id)`, `treasure(id)`, `bundle(id)` | the record | unknown id → `null` and a logged error; callers that must have a record assert in debug |
+| `card(id)`, `hero(id)`, `hero_power(id)`, `boss(id)`, `treasure(id)`, `bundle(id)` | the record | unknown id → `null`, a logged error and, in `Ready`, an assert in a debug build (the database asserts, not the caller); a caller that may ask for an absent id checks `has(id)` first. During CR-5 stage 7 an unknown id is data under validation: logged, never asserted |
 | `has(id)` | bool | used by the Card Effects validator for summon/token references |
 | `cards_by_set(set)`, `cards_by_type(type)`, `cards_by_tag(tag)`, `cards_by_cost(cost)`, `cards_by_rarity(rarity)` | CardDef[] | include tokens; filters compose on the caller's side |
 | `collectible_pool(hero_set)` | CardDef[] | `set ∈ {hero_set, neutral}` and `token == false`; `boss` is never included |
