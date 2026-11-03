@@ -15,6 +15,7 @@ tests/
   smoke/          # Critical path test list for /smoke-check gate
                   #   + project_boot_smoke_test.gd — automated boot smoke (see below)
   helpers/        # Shared assertions, factories, test doubles — see "Helpers" below
+  performance/    # Wall-clock budgets — NOT in the blocking run (see "Performance suites")
 ```
 
 Seed suites: `tests/unit/framework/framework_sanity_test.gd` proves the runner
@@ -34,7 +35,7 @@ production/qa/
 
 ```bash
 godot --headless --path . --import
-godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode
+godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode
 ```
 
 Run the import first: a fresh clone has no `.godot/` class cache, and a run
@@ -54,8 +55,30 @@ spot. Use `auto_free(...)` on every Node a test creates (a child added to an
 auto-freed parent is freed with it). `--remote-debug` prints two `ERROR:` lines
 about port `127.0.0.1:0` on every run; they are expected.
 
-CI and the command above both run every suite under `tests/` (the local command
-is exactly `commands.test` in `project.yaml`).
+CI and the command above both run every suite under `tests/` except
+`tests/performance/` (the local command is exactly `commands.test` in
+`project.yaml`).
+
+### Performance suites (non-blocking)
+
+A wall-clock assertion never gates (coding standards: no time-dependent
+assertions in the blocking suite). Timed budgets live under
+`tests/performance/<system>/`, keep their thresholds (a budget that is missed
+fails the suite) and print a `PERF <what>: <n> us (budget <m> us)` line.
+`commands.test` drops them with `-i res://tests/performance`: gdUnit4 6.2.3
+skips every suite whose source path contains the `-i` value (observed
+2026-11-03: the perf suite is not discovered, the other 724 tests run). Run them
+on their own:
+
+```bash
+godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests/performance --ignoreHeadlessMode -c
+```
+
+In CI the `performance` job of `tests.yml` runs that command with
+`continue-on-error: true` and one retry, and writes the `PERF` lines to the job
+summary: read the timings there, not just the job colour. First suite:
+`tests/performance/rng_event_log/rng_event_log_perf_test.gd` (rng-event-log
+story 010).
 
 ### Reports
 
@@ -182,7 +205,9 @@ twice (the first import on a clean machine may exit 139; the second must exit
 `No test cases found` or the exit code is non-zero (including 101, so node
 leaks get fixed rather than ignored), and uploads `reports/` plus the runner
 log as the `gdunit4-report` artifact. If you protect `main`, require the
-`Run GdUnit4 Tests` job.
+`Run GdUnit4 Tests` job — never the `Performance budgets (non-blocking)` job,
+which runs `tests/performance/` with `continue-on-error` and uploads
+`gdunit4-perf-report`.
 
 ### Export is not run in CI (yet)
 

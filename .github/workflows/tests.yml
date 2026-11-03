@@ -78,12 +78,14 @@ jobs:
       # could not run. --remote-debug prints two ERROR lines about port
       # 127.0.0.1:0 on every run; they are expected. A run that prints
       # "No test cases found" exits 0 and is NOT a pass, so it is rejected below.
+      # `-i res://tests/performance` keeps wall-clock budgets out of this
+      # blocking run; the `performance` job below runs them.
       - name: Run GdUnit4 tests
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           set -o pipefail
           godot --headless -s -d --remote-debug tcp://127.0.0.1:0 \
-            res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests --ignoreHeadlessMode \
+            res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode \
             2>&1 | tee gdunit4-run.log
           if grep -q "No test cases found" gdunit4-run.log; then
             echo "gdUnit4 found no test cases under res://tests — treating as failure" >&2
@@ -100,4 +102,82 @@ jobs:
           path: |
             reports/
             gdunit4-run.log
+          if-no-files-found: warn
+
+  # Non-blocking: the wall-clock budgets under tests/performance/ (sprint-3 QA
+  # plan Cross-cutting 2; rng-event-log story 010 — 10,000 appends +
+  # events_since(0) < 50 ms, restore at 10,000 draws < 5 ms). Thresholds still
+  # fail the suite, but `continue-on-error` keeps a red result from failing the
+  # workflow or blocking a merge: a shared runner is too noisy to gate on time.
+  # One retry; every `PERF ...` timing line goes to the job summary. Read the
+  # timings there, not only the job colour.
+  performance:
+    name: Performance budgets (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Install Godot 4.7.2 and gdUnit4
+        run: bash tools/setup.sh
+
+      - name: Import project (build .godot class cache)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set +e
+          godot --headless --path . --import
+          first=$?
+          set -e
+          if [ "$first" -ne 0 ] && [ "$first" -ne 139 ]; then
+            echo "First import exited $first" >&2
+            exit "$first"
+          fi
+          godot --headless --path . --import
+
+      - name: Run performance suites (one retry)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set -o pipefail
+          perf_run() {
+            godot --headless -s -d --remote-debug tcp://127.0.0.1:0 \
+              res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests/performance --ignoreHeadlessMode -c \
+              2>&1 | tee -a perf-run.log
+          }
+          set +e
+          perf_run
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Performance run exited $status; retrying once" | tee -a perf-run.log
+            perf_run
+            status=$?
+          fi
+          set -e
+          {
+            echo "### Performance budgets (non-blocking)"
+            echo '```'
+            grep '^PERF ' perf-run.log || echo "no PERF lines printed"
+            echo '```'
+            echo "Final exit code: $status"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if grep -q "No test cases found" perf-run.log; then
+            echo "gdUnit4 found no performance suites under res://tests/performance" >&2
+            exit 1
+          fi
+          exit "$status"
+
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gdunit4-perf-report
+          path: |
+            reports/
+            perf-run.log
           if-no-files-found: warn

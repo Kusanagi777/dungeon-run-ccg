@@ -114,6 +114,9 @@ const _SEALING_TYPE: Dictionary[String, String] = {
 
 var _max_events: int
 var _scope: String
+# The type that seals this log (`_SEALING_TYPE[_scope]`, "" for a bad scope),
+# looked up once: append compares against it on every call.
+var _sealing_type: String = ""
 var _meta: Dictionary
 var _events: Array[Dictionary] = []
 var _subscribers: Array[Callable] = []
@@ -134,6 +137,7 @@ var _pending: Array[Dictionary] = []
 func _init(max_events: int, scope: String, meta: Dictionary = {}) -> void:
 	_max_events = max_events
 	_scope = scope
+	_sealing_type = _SEALING_TYPE.get(scope, "")
 	_meta = meta.duplicate(true)
 	if not _SEALING_TYPE.has(scope):
 		push_error("EventLog: unknown scope \"%s\" (expected \"%s\" or \"%s\")" % [scope, SCOPE_MATCH, SCOPE_RUN])
@@ -163,18 +167,26 @@ func append(type: StringName, payload: Dictionary, cause_seq: int = 0) -> int:
 	if _state == State.OPEN and _events.size() >= _max_events:
 		_overflow(type_name)
 		return -1
-	# Untyped on purpose: the list must compare equal to its JSON round trip.
-	var coerced: Array = []
-	var stored_payload: Dictionary = _json_copy(payload, "", coerced)
-	if not coerced.is_empty():
-		_caller_bug("EventLog.append: '%s' payload holds non-JSON values at %s" % [type_name, ", ".join(PackedStringArray(coerced))])
-		stored_payload["_coerced"] = coerced
+	# Fast path (the 10,000-append budget, story 010): a payload that is already
+	# rule 14 plain is deep-copied natively and its nested containers frozen in
+	# one pass. Anything else takes the coercing copy below.
+	var stored_payload: Dictionary = payload.duplicate(true)
+	if not _freeze_plain_children(stored_payload):
+		# Untyped on purpose: the list must compare equal to its JSON round trip.
+		var coerced: Array = []
+		stored_payload = _json_copy(payload, "", coerced)
+		@warning_ignore("return_value_discarded")
+		_freeze_plain_children(stored_payload)
+		if not coerced.is_empty():
+			_caller_bug("EventLog.append: '%s' payload holds non-JSON values at %s" % [type_name, ", ".join(PackedStringArray(coerced))])
+			coerced.make_read_only()
+			stored_payload["_coerced"] = coerced
 	if _notifying:
 		_caller_bug("EventLog.append: re-entrant append of '%s' from a subscriber" % type_name)
 		stored_payload["_reentrant"] = true
 	var seq: int = _store(type_name, stored_payload, cause_seq)
 	# Faulted accepts exactly one more event, whatever its type (ADR-0003 D8).
-	if _state == State.FAULTED or type_name == _SEALING_TYPE.get(_scope, ""):
+	if _state == State.FAULTED or type_name == _sealing_type:
 		_state = State.SEALED
 	_deliver()
 	return seq
@@ -585,16 +597,22 @@ func _store(type_name: String, payload: Dictionary, cause_seq: int) -> int:
 		"payload": payload,
 		"cause_seq": cause_seq,
 	}
-	_freeze(event)
+	# Every caller passes a payload whose nested containers are already frozen
+	# (_freeze_plain_children, or primitives only); freeze the two levels left.
+	payload.make_read_only()
+	event.make_read_only()
 	_events.append(event)
-	_pending.append(event)
+	# With no subscriber there is no one to deliver to (subscribe() covers only
+	# later events), so the queue is skipped.
+	if not _subscribers.is_empty():
+		_pending.append(event)
 	return seq
 
 
 # Notifies every subscriber of every queued event, in seq order. A nested
 # append only queues its event; the outermost call drains the queue.
 func _deliver() -> void:
-	if _notifying:
+	if _notifying or _pending.is_empty():
 		return
 	_notifying = true
 	var i: int = 0
@@ -605,6 +623,44 @@ func _deliver() -> void:
 		i += 1
 	_pending.clear()
 	_notifying = false
+
+
+# One pass over a fresh copy `d`: true when every key is a String and every
+# value a rule 14 plain value (null, bool, int, float, String, or an untyped
+# Array / Dictionary of those), freezing each nested container on the way;
+# `d` itself stays writable (append may still add `_coerced` / `_reentrant`).
+# False at the first other key or value (a StringName, an Object, a typed
+# container…): the caller then discards `d` and takes the coercing copy.
+static func _freeze_plain_children(d: Dictionary) -> bool:
+	if d.is_typed():
+		return false
+	for key: Variant in d:
+		if typeof(key) != TYPE_STRING:
+			return false
+		var value: Variant = d[key]
+		if typeof(value) > TYPE_STRING and not _freeze_plain(value):
+			return false
+	return true
+
+
+# _freeze_plain_children for a nested value, which is frozen whole.
+static func _freeze_plain(value: Variant) -> bool:
+	match typeof(value):
+		TYPE_DICTIONARY:
+			if not _freeze_plain_children(value):
+				return false
+			(value as Dictionary).make_read_only()
+			return true
+		TYPE_ARRAY:
+			var items: Array = value
+			if items.is_typed():
+				return false
+			for item: Variant in items:
+				if typeof(item) > TYPE_STRING and not _freeze_plain(item):
+					return false
+			items.make_read_only()
+			return true
+	return typeof(value) <= TYPE_STRING
 
 
 # Makes `value` and every container inside it read-only.
