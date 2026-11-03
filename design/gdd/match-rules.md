@@ -12,7 +12,14 @@
 
 ## Summary
 
-[To be designed]
+Match Rules is the referee for one duel between the player's hero and a boss: whose turn it is,
+what a move costs, whether an attack or a card play is legal, how damage, shields, armour and the
+fifteen v1 keywords resolve, in what order minions die and their Deathrattles fire, and who won.
+It is a pure, engine-free rules engine that takes a small set of commands, returns typed
+rejections instead of errors, and emits one event per state change so the player can always read
+why something happened. It exists because every other gameplay system — card effects, boss AI,
+treasures, the match UI and the run — plugs into its hook points, and because the game's promise of
+readable, deterministic rules (Pillar 4) lives or dies here.
 
 > **Quick reference** — Layer: `Core` · Priority: `MVP` · Key deps: `Card Database, RNG & Event Log`
 
@@ -1052,8 +1059,158 @@ Stories that reference UI should cite `design/ux/[screen].md`, not the GDD direc
 
 ## Acceptance Criteria
 
-[To be designed]
+`qa-lead` not consulted — Lean mode. Review manually before production. Every criterion is a
+gdUnit4 unit test against the pure engine (`tests/unit/match_rules/`) with an injected fixed seed
+and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one of each keyword, a
+2/2 weapon, a 1-damage spell, a "draw 2" spell); no Node, no scene. Event assertions read the log.
+
+**Setup and mulligan**
+
+- [ ] AC-01 **GIVEN** a `MatchConfig` with seed 42, **WHEN** `start` runs twice, **THEN** both
+  decks' instance orders and both starting hands are identical across the two runs.
+- [ ] AC-02 **GIVEN** setup complete, **WHEN** `mulligan_offered` is emitted, **THEN** the player
+  hand has 3 cards, the boss hand has 4, both heroes have `mana 0/0`, player health 30, boss
+  health equal to its definition.
+- [ ] AC-03 **GIVEN** the Mulligan phase, **WHEN** `mulligan([true, false, false])` is accepted,
+  **THEN** the deck size is unchanged, the hand has 3 cards, card 0 is the same instance, and the
+  returned instances are somewhere in the deck.
+- [ ] AC-04 **GIVEN** the Mulligan phase, **WHEN** `mulligan` is sent with a 2-element mask,
+  **THEN** the result is `accepted = false, code = INVALID_MASK` and no event other than
+  `command_rejected` is appended.
+- [ ] AC-05 **GIVEN** the mulligan resolved, **WHEN** the first Start step completes, **THEN**
+  `turn == 1`, `active_side == PLAYER`, player mana `1/1`, player hand has 4 cards.
+
+**Turn structure and mana**
+
+- [ ] AC-06 **GIVEN** a match in progress, **WHEN** each side has taken 12 turns, **THEN**
+  `mana_max` is 10 for both and was `min(turns_taken, 10)` at every Start step (F4).
+- [ ] AC-07 **GIVEN** player Main with mana 3/3, **WHEN** a 2-cost card is played, **THEN**
+  `mana_current == 1` and `mana_spent {amount: 2}` was emitted before any effect event.
+- [ ] AC-08 **GIVEN** a 4-cost card with a −2 enchantment and a `modify_cost` hook of −3, **WHEN**
+  `effective_cost` is evaluated, **THEN** it is 0 and the card is playable at 0 mana (F1).
+- [ ] AC-09 **GIVEN** player Main, **WHEN** the boss side sends `play_card`, **THEN** rejection
+  `NOT_YOUR_TURN`; **WHEN** the player sends `mulligan`, **THEN** rejection `WRONG_PHASE`.
+- [ ] AC-10 **GIVEN** `TURN_CAP = 4` in test config, **WHEN** the 5th Start step would begin,
+  **THEN** `phase == Ended`, `result.winner == BOSS`, `result.reason == turn_cap`.
+
+**Playing cards**
+
+- [ ] AC-11 **GIVEN** 7 friendly minions, **WHEN** a minion is played, **THEN** rejection
+  `BOARD_FULL`; **WHEN** played with `position = 8` on a 2-minion board, **THEN**
+  `INVALID_POSITION`; **WHEN** `position = 2`, **THEN** it becomes `board[2]`.
+- [ ] AC-12 **GIVEN** a minion played this turn without Charge or Rush, **WHEN** it attacks,
+  **THEN** `SUMMONING_SICK`; **GIVEN** it has Rush, **WHEN** it attacks the hero, **THEN**
+  `RUSH_CANNOT_HIT_HERO`, and **WHEN** it attacks a minion, **THEN** accepted.
+- [ ] AC-13 **GIVEN** a required-target spell and no enemy minions (only a Stealth one), **WHEN**
+  `legal_commands()` is queried, **THEN** the spell is absent and `play_card` on it returns
+  `NO_LEGAL_TARGET`; **GIVEN** a required-target Battlecry minion in the same state, **THEN** it
+  is playable and no `battlecry` trigger event is emitted.
+- [ ] AC-14 **GIVEN** a hero holding weapon W1 (durability 1) with a Deathrattle, **WHEN** weapon
+  W2 is played, **THEN** events are `weapon_destroyed(W1)`, W1's `trigger_resolved`, then
+  `weapon_equipped(W2)`.
+- [ ] AC-15 **GIVEN** the hero power unused and mana 2, **WHEN** `use_hero_power` is accepted,
+  **THEN** mana is 0 and a second `use_hero_power` the same turn returns `HERO_POWER_USED`; after
+  the next own Start step it is usable again.
+
+**Combat**
+
+- [ ] AC-16 **GIVEN** a 3/4 attacker and a 2/5 defender, **WHEN** `attack` resolves, **THEN**
+  defender `damage_taken == 3`, attacker `damage_taken == 2`, the two `damage_dealt` events have
+  consecutive `seq` with no `minion_died` between them, and `attacks_used == 1`.
+- [ ] AC-17 **GIVEN** an enemy Taunt minion and an enemy non-Taunt minion, **WHEN** attacking the
+  non-Taunt, **THEN** `MUST_ATTACK_TAUNT`; **GIVEN** the Taunt minion also has Stealth, **THEN**
+  attacking the non-Taunt is accepted and attacking the Stealth Taunt returns `TARGET_STEALTHED`.
+- [ ] AC-18 **GIVEN** a Windfury 1/1 and two enemy 1/1s, **WHEN** it attacks the first (which
+  dies) and then the second, **THEN** both attacks are accepted and a third returns
+  `CANNOT_ATTACK`.
+- [ ] AC-19 **GIVEN** a hero with a 2/2 weapon, **WHEN** the hero attacks an enemy 1/3 minion,
+  **THEN** the minion has `damage_taken 2`, the hero took 1, weapon durability is 1; after a second
+  attack the weapon is destroyed in the death check (`weapon_destroyed` after `attack`'s
+  `damage_dealt` events).
+- [ ] AC-20 **GIVEN** the hero is Frozen and holds a weapon, **WHEN** `attack` is sent, **THEN**
+  `ATTACKER_FROZEN` and durability is unchanged.
+- [ ] AC-21 **GIVEN** an attacker whose `on_attack` trigger destroys the defender, **WHEN** the
+  attack resolves, **THEN** `attack_cancelled` is emitted, no `damage_dealt` follows, and
+  `attacks_used == 1`.
+
+**Damage, shields, keywords**
+
+- [ ] AC-22 **GIVEN** a Divine Shield minion, **WHEN** hit by a Poisonous Lifesteal attacker for
+  4, **THEN** `divine_shield_popped`, `dealt == 0`, the minion survives, no `healed` event, and
+  the attacker still takes the defender's damage.
+- [ ] AC-23 **GIVEN** a boss hero with 2 armour, **WHEN** it takes 5 from a Lifesteal source,
+  **THEN** `armor == 0`, health fell by 3, and the player's hero healed 5 (F2).
+- [ ] AC-24 **GIVEN** a 2/2 minion with +2 health and `damage_taken 3`, **WHEN** Silenced, **THEN**
+  `max_health 2`, `damage_taken 1`, `health 1`, keywords empty, `frozen false`; **GIVEN** the
+  same minion buffed by an aura instead, **WHEN** the aura source dies, **THEN** the minion dies
+  in the same resolution loop, after the source (F6).
+- [ ] AC-25 **GIVEN** a minion Frozen during the opponent's turn, **WHEN** its controller's End
+  step runs, **THEN** it thaws; **GIVEN** a minion Frozen during its own turn before attacking,
+  **THEN** it is still Frozen after that End step and thaws at the following own End step.
+- [ ] AC-26 **GIVEN** a Stealth minion, **WHEN** it attacks, **THEN** `stealth_lost` precedes
+  `damage_dealt`, and it is targetable afterwards.
+
+**Death resolution and ordering**
+
+- [ ] AC-27 **GIVEN** player board [A(dr), B(dr)] and boss board [C(dr)] all at 1 health, **WHEN**
+  a 1-damage-to-all effect resolves, **THEN** the log order is `minion_died A, B, C` then
+  `trigger_resolved A, B, C` (DD-M11), and `on_minion_died` observers among A, B, C do not fire.
+- [ ] AC-28 **GIVEN** a minion with an `on_damage: draw` trigger at 1 health, **WHEN** it is hit
+  for 1, **THEN** `card_drawn` is emitted after `damage_dealt` and before its own
+  `trigger_resolved(deathrattle)`.
+- [ ] AC-29 **GIVEN** 7 friendly minions where `board[3]` has "Deathrattle: summon a 2/2", **WHEN**
+  it dies, **THEN** the token appears at index 3; **GIVEN** 6 others plus a second simultaneous
+  summon, **THEN** the second summon emits `summon_failed {reason: board_full}`.
+- [ ] AC-30 **GIVEN** a test Deathrattle that summons a copy of itself, **WHEN** it dies with
+  `RESOLUTION_STEP_CAP = 50`, **THEN** the match ends with `reason == resolution_overflow`
+  within 50 steps.
+
+**Hand, draw, fatigue**
+
+- [ ] AC-31 **GIVEN** a hand of 10, **WHEN** a draw happens, **THEN** `card_burned` is emitted,
+  the hand stays at 10, the deck shrank by 1, no `on_draw` trigger event.
+- [ ] AC-32 **GIVEN** an empty deck and hero health 30, **WHEN** four draws occur, **THEN**
+  `fatigue_damage` amounts are 1, 2, 3, 4 and health is 20 (F5); armour of 2 before the first
+  draw absorbs it fully (health 29 after 1+2 instead of 27).
+- [ ] AC-33 **GIVEN** one card left in the deck, **WHEN** a "draw 2" spell resolves, **THEN** one
+  `card_drawn` then one `fatigue_damage {amount: 1}`.
+
+**Win, loss, concede, phases**
+
+- [ ] AC-34 **GIVEN** both heroes at 1 health, **WHEN** an effect deals 1 to both heroes, **THEN**
+  `result.winner == BOSS`, `reason == both_dead`, and both `damage_dealt` events precede
+  `match_ended`.
+- [ ] AC-35 **GIVEN** the boss's Main phase, **WHEN** the player sends `concede`, **THEN**
+  `phase == Ended`, `winner == BOSS`, `reason == concede`; a following boss `end_turn` is
+  rejected `MATCH_ENDED`.
+- [ ] AC-36 **GIVEN** a Discover raised during the boss's turn, **WHEN** the player sends
+  `play_card`, **THEN** `CHOICE_PENDING`; **WHEN** Boss AI sends `choose(1)`, **THEN** resolution
+  resumes and the chosen option is in the boss hand.
+- [ ] AC-37 **GIVEN** an event handler that calls `submit` during playback of a command, **WHEN**
+  the nested call happens, **THEN** `ENGINE_BUSY` and the outer command's result is unaffected.
+- [ ] AC-38 **GIVEN** any 200-command scripted match, **WHEN** replayed with the same seed and
+  commands, **THEN** the two event logs are byte-identical (Pillar 4).
+
+**Interfaces and non-functional**
+
+- [ ] AC-39 **GIVEN** any state, **WHEN** every command in `legal_commands()` is submitted on a
+  `clone()`, **THEN** each is accepted, and no command outside the list is accepted (sampled).
+- [ ] AC-40 **GIVEN** a match with a 7-minion Deathrattle chain, **WHEN** `submit` is timed on the
+  CI runner, **THEN** it completes in under 5 ms; `legal_commands()` under 2 ms.
+- [ ] AC-41 **GIVEN** the engine source, **WHEN** grepped for the F9 constants, **THEN** every
+  value comes from `match_rules.json` and none is a literal in `src/` (no hardcoded values).
+- [ ] AC-42 **GIVEN** a `MatchResult`, **WHEN** inspected after `match_ended`, **THEN** it carries
+  `winner, reason, turns, turns_per_side, stats.damage_dealt_by_card` for both sides and the
+  seed.
 
 ## Open Questions
 
-[To be designed]
+| Question | Owner | Deadline | Resolution |
+|---|---|---|---|
+| Should the boss mulligan (Boss AI deciding via a heuristic) or keep its 4? v1 keeps; revisit if band-1 bosses brick too often. | Boss AI GDD | Before Boss AI design-review | Open |
+| `assets/data/match_rules.json` is a new data file not listed in DD-T01 — confirm and add it to the register. | Owner (orchestrator) | Before `/create-architecture` | Open — proposed here |
+| Save/resume **mid-match**: DD-R08 saves after matches and drafts only; a crash mid-match loses the match. Acceptable for v1? If not, the event log is the replay source and the engine needs `restore(log)`. | Run Structure GDD | Vertical Slice | Open |
+| Queued triggers resolve even if their source left play (C10) — confirm this reading over Hearthstone's partial rules; it is simpler and is what the acceptance tests assert. | Owner | Before Card Effects design-review | Open — proposed here |
+| Should `command_rejected` be written to the same log (flagged diagnostic) or a separate channel? Affects RNG & Event Log's replay purity. | RNG & Event Log GDD | Before `/consistency-check` | Open |
+| Temporary mana / Overload: excluded from v1; Knowledge's set may want "gain 1 mana crystal this turn only". | Heroes / Content | Alpha content pass | Deferred |
+| Mega-Windfury, Elusive/spell immunity, Immune, Reborn: not in DD-M09; any card needing them is a GDD change here. | Content | Alpha content pass | Deferred |
