@@ -103,6 +103,26 @@ static func mulligan(keep_mask: Array, issuer: String = SIDE_PLAYER) -> Dictiona
 	return command(CMD_MULLIGAN, issuer, {"keep_mask": keep_mask.duplicate()})
 
 
+## The C2 `play_card` command: [param hand_index]; [param position] (a board
+## insertion index, minions only — omitted when null); [param target_id]
+## (null for none). C6 validates it.
+## [codeblock]
+## engine.submit(MatchRecords.play_card("player", 0, 2))
+## engine.submit(MatchRecords.play_card("player", 1, null, boss_hero_id))
+## [/codeblock]
+static func play_card(issuer: String, hand_index: int, position: Variant = null, target_id: Variant = null) -> Dictionary:
+	var args: Dictionary = {"hand_index": hand_index, "target_id": target_id}
+	if position != null:
+		args["position"] = position
+	return command(CMD_PLAY_CARD, issuer, args)
+
+
+## The C2 `use_hero_power` command from [param issuer] with [param target_id]
+## (null for none). C7 validates it.
+static func use_hero_power(issuer: String, target_id: Variant = null) -> Dictionary:
+	return command(CMD_USE_HERO_POWER, issuer, {"target_id": target_id})
+
+
 ## The C2 `end_turn` command from [param issuer].
 static func end_turn(issuer: String) -> Dictionary:
 	return command(CMD_END_TURN, issuer)

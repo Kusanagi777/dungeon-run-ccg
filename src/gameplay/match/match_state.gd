@@ -101,8 +101,10 @@ static func from_config(config: Dictionary) -> MatchState:
 ## `add_mana(side, n, temporary=false)` from an `on_match_start` hook — C5, F4),
 ## `deck` (index 0 is the top), `hand`, `board` (index 0 is leftmost),
 ## `weapon` (null or a Weapon), `hero_power {def_id, used_this_turn}`,
-## `fatigue_counter` 0, `graveyard`, `turns_taken` 0 and the Run Structure
-## `stats` block.
+## `fatigue_counter` 0, `graveyard`, `resolving` (the CardInstance of a spell
+## being cast — zone `resolving`, C6 spells step 2 — between `spell_cast` and
+## `card_to_graveyard`; empty otherwise; match-rules story 010), `turns_taken`
+## 0 and the Run Structure `stats` block.
 ## [codeblock]
 ## var ps: Dictionary = MatchState.make_player_state(MatchRecords.hero(1, "player", 30), "power_war")
 ## [/codeblock]
@@ -119,6 +121,7 @@ static func make_player_state(hero: Variant = null, hero_power_def_id: String = 
 		"hero_power": {"def_id": hero_power_def_id, "used_this_turn": false},
 		"fatigue_counter": 0,
 		"graveyard": [] as Array[Dictionary],
+		"resolving": [] as Array[Dictionary],
 		"turns_taken": 0,
 		"stats": MatchRecords.empty_stats(),
 	}

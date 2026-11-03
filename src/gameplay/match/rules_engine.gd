@@ -36,7 +36,10 @@
 ## [method run_action], the engine-owned trigger queue Q, the DD-M11 death
 ## check with Deathrattles and `on_minion_died`, `recompute_auras` after every
 ## step and the `resolution_step_cap` fault — with every command handler, C4
-## sub-step and step-boundary hook entry run as its own step.
+## sub-step and step-boundary hook entry run as its own step; story 010 the
+## `play_card` (minions, spells, weapons) and `use_hero_power` handlers in
+## C6 / C7 check order, the `legal_commands()` expansion, the F1 base
+## [method effective_cost] and the F7 [method spell_damage] total.
 ## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
@@ -147,6 +150,25 @@ const WEAPON_BROKEN: String = "broken"
 ## `resolver.resolve(point, ctx)` with it runs that one effect pass (one C10
 ## step) instead of collecting responders (story 009; card-effects C6.6).
 const CTX_QUEUED: String = "queued"
+## `targeting_spec(def_id).mode` values (card-effects C1; ADR-0007 Key
+## Interfaces): C6 / C7 validate a `target_id` against them.
+const TARGETING_NONE: String = "none"
+const TARGETING_OPTIONAL: String = "optional"
+const TARGETING_REQUIRED: String = "required"
+## The card types `play_card` accepts (card-database CR-3 `type`).
+const CARD_MINION: String = "minion"
+const CARD_SPELL: String = "spell"
+const CARD_WEAPON: String = "weapon"
+const R_INVALID_INDEX: String = "INVALID_INDEX"
+const R_INVALID_POSITION: String = "INVALID_POSITION"
+const R_NOT_ENOUGH_MANA: String = "NOT_ENOUGH_MANA"
+const R_BOARD_FULL: String = "BOARD_FULL"
+const R_TARGET_REQUIRED: String = "TARGET_REQUIRED"
+const R_NO_LEGAL_TARGET: String = "NO_LEGAL_TARGET"
+const R_ILLEGAL_TARGET: String = "ILLEGAL_TARGET"
+const R_HERO_POWER_USED: String = "HERO_POWER_USED"
+## The keyword whose magnitude (`CardDef.spell_damage`) F7 sums.
+const KEYWORD_SPELL_DAMAGE: String = "spell_damage"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
 ## start at `MatchState.FIRST_ENTITY_ID`).
 const NO_ENTITY: int = -1
@@ -388,6 +410,10 @@ func submit(command: Dictionary) -> Dictionary:
 	match type:
 		MatchRecords.CMD_MULLIGAN:
 			_do_mulligan(command.keep_mask)
+		MatchRecords.CMD_PLAY_CARD:
+			_do_play_card(command)
+		MatchRecords.CMD_USE_HERO_POWER:
+			_do_hero_power(command)
 		MatchRecords.CMD_END_TURN:
 			_end_step(_state.active_side)
 		MatchRecords.CMD_CONCEDE:
@@ -430,9 +456,15 @@ func run_action(initial_step: Callable) -> void:
 
 
 ## Every command the engine would accept now (C2): in Mulligan the "keep
-## all" mulligan; in Main the active side's `end_turn`; `[]` in any other
-## phase. The handler stories (008 `concede`, 010–016) extend it. Allocates
-## only the result array.
+## all" mulligan; in Main, for the active side, each playable hand card (hand
+## order) × each valid position (minions, `0..board.size`) × each legal target
+## — a `required` card lists one command per legal target (a spell or power
+## with none is absent; a minion or weapon whose Battlecry has none is listed
+## with `target_id = null`), `optional` lists `null` then each legal target,
+## `none` lists `null` — then the hero power the same way, then `end_turn`
+## (story 012 adds attacks; `concede` is not listed, C2). `[]` in any other
+## phase. Legality is derived from the same checks [method submit] runs,
+## never by trial-submitting; `targeting_spec` is the resolver's memo.
 ## [codeblock]
 ## for cmd: Dictionary in engine.legal_commands(): print(cmd.type)
 ## [/codeblock]
@@ -445,8 +477,44 @@ func legal_commands() -> Array:
 				keep_all.append(true)
 			legal.append(MatchRecords.mulligan(keep_all))
 		MatchState.PHASE_MAIN:
-			legal.append(MatchRecords.end_turn(_state.active_side))
+			var side: String = _state.active_side
+			var player: Dictionary = _state.players[side]
+			for index: int in player.hand.size():
+				_append_play_commands(legal, side, index)
+			if not player.hero_power.used_this_turn and rule("hero_power_cost") <= int(player.mana_current):
+				var power_id: String = str(player.hero_power.def_id)
+				for target: Variant in _listed_targets(power_id, _power_source(side), true):
+					legal.append(MatchRecords.use_hero_power(side, target))
+			legal.append(MatchRecords.end_turn(side))
 	return legal
+
+
+## C5 / F1 (story 010 base): `max(0, base cost + Σ cost_modifiers.cost_delta)`
+## for the hand card [param card] (a CardInstance). The hand-aura and
+## `modify_cost` hook terms are match-rules story 011.
+## [codeblock]
+## if engine.effective_cost(card) <= mana: highlight(card)
+## [/codeblock]
+func effective_cost(card: Dictionary) -> int:
+	var total: int = int(_lookup_def(str(card.def_id)).get("cost", 0))
+	for modifier: Dictionary in card.cost_modifiers:
+		total += int(modifier.get("cost_delta", 0))
+	return maxi(0, total)
+
+
+## F7: [param side]'s Spell Damage total — `Σ CardDef.spell_damage` over its
+## board minions that hold the `spell_damage` keyword (a Silenced minion has
+## lost it). Card Effects adds it to spell damage ops; the engine reports it
+## in `spell_cast`.
+## [codeblock]
+## var bonus: int = engine.spell_damage("player")
+## [/codeblock]
+func spell_damage(side: String) -> int:
+	var total: int = 0
+	for minion: Dictionary in _state.players[side].board:
+		if _has_keyword(minion, KEYWORD_SPELL_DAMAGE):
+			total += int(_lookup_def(str(minion.def_id)).get("spell_damage", 0))
+	return total
 
 
 ## The current phase, one of [constant MatchState.PHASES]. `resolving` is
@@ -1302,12 +1370,333 @@ func _validate(type: String, command: Dictionary) -> String:
 				if typeof(bit) != TYPE_BOOL:
 					return R_INVALID_MASK
 			return ""
+		MatchRecords.CMD_PLAY_CARD:
+			return _validate_play_card(command)
+		MatchRecords.CMD_USE_HERO_POWER:
+			return _validate_hero_power(command)
 		MatchRecords.CMD_END_TURN, MatchRecords.CMD_CONCEDE:
 			return ""
-	# TODO(stories 010, 012, 016): play_card,
-	# use_hero_power, attack and choose handlers. Until one exists its
+	# TODO(stories 012, 016): attack and choose handlers. Until one exists its
 	# command is not accepted in any phase.
 	return R_WRONG_PHASE
+
+
+# --- C6 / C7: playing cards and the hero power (story 010) --------------------
+
+## C6 validation after the phase guard, in row order: `hand_index` in range
+## (`INVALID_INDEX`) → a minion / spell / weapon definition (else
+## `INVALID_INDEX`) → `effective_cost ≤ mana_current` (`NOT_ENOUGH_MANA`) →
+## minions: `BOARD_FULL`, then `0 ≤ position ≤ board.size` (`INVALID_POSITION`)
+## → targeting ([method _target_rejection], spells by the spell rule).
+func _validate_play_card(command: Dictionary) -> String:
+	var side: String = str(command.issuer)
+	var player: Dictionary = _state.players[side]
+	var index: Variant = command.get("hand_index")
+	if not _is_whole(index) or int(index) < 0 or int(index) >= player.hand.size():
+		return R_INVALID_INDEX
+	var card: Dictionary = player.hand[int(index)]
+	var type: String = _card_type(card)
+	if type == "":
+		return R_INVALID_INDEX
+	if effective_cost(card) > int(player.mana_current):
+		return R_NOT_ENOUGH_MANA
+	if type == CARD_MINION:
+		if player.board.size() >= rule("board_size"):
+			return R_BOARD_FULL
+		var position: Variant = command.get("position")
+		if not _is_whole(position) or int(position) < 0 or int(position) > player.board.size():
+			return R_INVALID_POSITION
+	return _target_rejection(str(card.def_id), _card_source(side, card), command.get("target_id"), type == CARD_SPELL)
+
+
+## C7 validation after the phase guard: `used_this_turn` (`HERO_POWER_USED`,
+## before cost — a 0-cost power is still once per turn) → cost → targeting by
+## the spell rule.
+func _validate_hero_power(command: Dictionary) -> String:
+	var side: String = str(command.issuer)
+	var player: Dictionary = _state.players[side]
+	if player.hero_power.used_this_turn:
+		return R_HERO_POWER_USED
+	if rule("hero_power_cost") > int(player.mana_current):
+		return R_NOT_ENOUGH_MANA
+	return _target_rejection(str(player.hero_power.def_id), _power_source(side), command.get("target_id"), true)
+
+
+## C6 targeting against `resolver.targeting_spec(def_id).mode` and
+## `resolver.legal_targets(def_id, source)`: `none` ignores [param target_id];
+## `optional` accepts null or a legal target; `required` with ≥ 1 legal target
+## needs one (`TARGET_REQUIRED` / `ILLEGAL_TARGET`); `required` with none is
+## `NO_LEGAL_TARGET` under [param spell_rule] (spells, the hero power) and
+## playable otherwise (a Battlecry body — its Battlecry will not resolve).
+func _target_rejection(def_id: String, source: Dictionary, target_id: Variant, spell_rule: bool) -> String:
+	var mode: String = _targeting_mode(def_id)
+	if mode == TARGETING_NONE:
+		return ""
+	var legal: Array[int] = _resolver.legal_targets(def_id, source)
+	if mode == TARGETING_REQUIRED:
+		if legal.is_empty():
+			return R_NO_LEGAL_TARGET if spell_rule else ""
+		if target_id == null:
+			return R_TARGET_REQUIRED
+	if target_id == null:
+		return ""
+	if not _is_whole(target_id) or not legal.has(int(target_id)):
+		return R_ILLEGAL_TARGET
+	return ""
+
+
+## What an accepted play resolves with: `{target}` — null for `none`, or for a
+## `required` Battlecry with no legal target — and `{fizzles}`, true for that
+## Battlecry (its trigger point is then not fired at all, C6 step 1).
+func _play_plan(def_id: String, source: Dictionary, target_id: Variant) -> Dictionary:
+	var mode: String = _targeting_mode(def_id)
+	if mode == TARGETING_NONE:
+		return {"target": null, "fizzles": false}
+	if mode == TARGETING_REQUIRED and _resolver.legal_targets(def_id, source).is_empty():
+		return {"target": null, "fizzles": true}
+	return {"target": null if target_id == null else int(target_id), "fizzles": false}
+
+
+## The `target_id`s `legal_commands()` lists for [param def_id] (see there).
+func _listed_targets(def_id: String, source: Dictionary, spell_rule: bool) -> Array:
+	var mode: String = _targeting_mode(def_id)
+	if mode == TARGETING_NONE:
+		return [null]
+	var legal: Array[int] = _resolver.legal_targets(def_id, source)
+	var out: Array = []
+	if mode == TARGETING_REQUIRED:
+		if legal.is_empty():
+			return [] if spell_rule else [null]
+	else:
+		out.append(null)
+	out.append_array(legal)
+	return out
+
+
+## `legal_commands()` rows for the hand card at [param index] of [param side].
+func _append_play_commands(legal: Array, side: String, index: int) -> void:
+	var player: Dictionary = _state.players[side]
+	var card: Dictionary = player.hand[index]
+	var type: String = _card_type(card)
+	if type == "" or effective_cost(card) > int(player.mana_current):
+		return
+	if type == CARD_MINION and player.board.size() >= rule("board_size"):
+		return
+	var targets: Array = _listed_targets(str(card.def_id), _card_source(side, card), type == CARD_SPELL)
+	var positions: Array = range(player.board.size() + 1) if type == CARD_MINION else [null]
+	for position: Variant in positions:
+		for target: Variant in targets:
+			legal.append(MatchRecords.play_card(side, index, position, target))
+
+
+func _targeting_mode(def_id: String) -> String:
+	return str(_resolver.targeting_spec(def_id).get("mode", TARGETING_NONE))
+
+
+## The `source` [method legal_targets] reads for a hand card: `{side,
+## source_id: instance_id, card_id}`.
+static func _card_source(side: String, card: Dictionary) -> Dictionary:
+	return {"side": side, "source_id": int(card.instance_id), "card_id": str(card.def_id)}
+
+
+## The `source` for [param side]'s hero power: `{side, source_id: hero id,
+## card_id: the power's def_id}`.
+func _power_source(side: String) -> Dictionary:
+	var player: Dictionary = _state.players[side]
+	return {"side": side, "source_id": int(player.hero.entity_id), "card_id": str(player.hero_power.def_id)}
+
+
+## The playable type of the CardInstance [param card] (`minion`, `spell`,
+## `weapon`), or "" when its definition is missing or of another type.
+func _card_type(card: Dictionary) -> String:
+	var type: String = str(_lookup_def(str(card.def_id)).get("type", ""))
+	return type if [CARD_MINION, CARD_SPELL, CARD_WEAPON].has(type) else ""
+
+
+static func _is_whole(value: Variant) -> bool:
+	if typeof(value) == TYPE_INT:
+		return true
+	return typeof(value) == TYPE_FLOAT and float(value) == floorf(float(value))
+
+
+## An accepted `play_card` (validated in full): the acceptance step — mana
+## paid (`mana_spent`), the card leaves the hand (`stats.cards_played`),
+## `card_played` — then the type's play steps, each with its C10 loop.
+func _do_play_card(command: Dictionary) -> void:
+	var side: String = str(command.issuer)
+	var card: Dictionary = _state.players[side].hand[int(command.hand_index)]
+	var plan: Dictionary = _play_plan(str(card.def_id), _card_source(side, card), command.get("target_id"))
+	match _card_type(card):
+		CARD_MINION:
+			_play_minion(side, card, int(command.position), plan)
+		CARD_SPELL:
+			_cast_spell(side, card, plan)
+		CARD_WEAPON:
+			_play_weapon(side, card, plan)
+
+
+## C6 minions: accept and place the minion at `board[position]` (sick,
+## `summoned_on_turn = turn`; `card_played` then `minion_summoned`), then the
+## card-effects C6.3 steps: (1) `battlecry` (unless it fizzles), (2)
+## `on_card_played` hooks, (3) `on_card_played` observers, (4) `on_play`, (5)
+## `on_minion_summoned` hooks, (6) `on_summon` — each its own step.
+func _play_minion(side: String, card: Dictionary, position: int, plan: Dictionary) -> void:
+	var played: Dictionary = {"cause": 0, "id": NO_ENTITY}
+	_run_step(_accept_minion.bind(side, card, position, plan.target, played))
+	var id: int = int(played.id)
+	var cause: int = int(played.cause)
+	var def_id: String = str(card.def_id)
+	if not plan.fizzles:
+		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
+	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_play", side, id, def_id, cause)
+	_run_hook_steps(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id}, cause)
+	_fire_observers(&"on_summon", side, id, def_id, cause)
+
+
+func _accept_minion(side: String, card: Dictionary, position: int, target: Variant, played: Dictionary) -> void:
+	played.cause = _accept_card(side, card, CARD_MINION, target)
+	if _halted():
+		return
+	var player: Dictionary = _state.players[side]
+	var def_id: String = str(card.def_id)
+	var minion: Dictionary = _minion_from_def(def_id, _lookup_def(def_id), side)
+	player.board.insert(position, minion)
+	player.stats.minions_summoned = int(player.stats.minions_summoned) + 1
+	played.id = int(minion.entity_id)
+	emit(&"minion_summoned", {
+		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": position,
+		"attack": attack(minion), "health": health(minion),
+	})
+
+
+## C6 spells: accept, the card into zone `resolving` ([member
+## MatchState] `players[side].resolving`, so it is the damage source Lifesteal,
+## Poisonous and the stats find), `spell_cast {…, spell_damage: F7}`; then
+## (1) `on_cast` — the spell's effect, (2) `on_card_played` hooks, (3)
+## `on_card_played` observers, (4) `after_cast`; then `card_to_graveyard`.
+func _cast_spell(side: String, card: Dictionary, plan: Dictionary) -> void:
+	var cast: Dictionary = {"cause": 0}
+	_run_step(_accept_spell.bind(side, card, plan.target, cast))
+	var id: int = int(card.instance_id)
+	var cause: int = int(cast.cause)
+	var def_id: String = str(card.def_id)
+	_play_point(&"on_cast", side, id, plan.target, def_id, cause)
+	_run_hook_steps(&"on_card_played", side, {"instance_id": id, "card_id": def_id, "entity_id": id}, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"after_cast", side, id, def_id, cause)
+	if _halted():
+		return
+	var player: Dictionary = _state.players[side]
+	player.resolving.erase(card)
+	card.zone = "graveyard"
+	player.graveyard.append(card)
+	emit(&"card_to_graveyard", {"side": side, "instance_id": id, "card_id": def_id})
+
+
+func _accept_spell(side: String, card: Dictionary, target: Variant, cast: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
+	_accept_card(side, card, CARD_SPELL, target)
+	if _halted():
+		return
+	card.zone = "resolving"
+	_state.players[side].resolving.append(card)
+	cast.cause = emit(&"spell_cast", {
+		"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id),
+		"target_id": target, "spell_damage": spell_damage(side),
+	})
+
+
+## C6 weapons: accept — a held weapon is destroyed first (`weapon_destroyed`,
+## its Deathrattle queued and resolved in this step's loop) — then the equip
+## step (`weapon_equipped`; `attacks_used` untouched), then (1) `battlecry`
+## (unless it fizzles), (2) `on_card_played` hooks, (3) `on_card_played`
+## observers, (4) `on_weapon_equipped`.
+func _play_weapon(side: String, card: Dictionary, plan: Dictionary) -> void:
+	var played: Dictionary = {"cause": 0, "id": NO_ENTITY}
+	_run_step(_accept_weapon.bind(side, card, plan.target, played))
+	var cause: int = int(played.cause)
+	var def_id: String = str(card.def_id)
+	_run_step(_equip_step.bind(side, def_id, played), cause)
+	var id: int = int(played.id)
+	if not plan.fizzles:
+		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
+	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_weapon_equipped", side, id, def_id, cause)
+
+
+func _accept_weapon(side: String, card: Dictionary, target: Variant, played: Dictionary) -> void:
+	played.cause = _accept_card(side, card, CARD_WEAPON, target)
+	if not _halted() and _state.players[side].weapon != null:
+		_weapon_leaves(side, WEAPON_REPLACED)
+
+
+func _equip_step(side: String, def_id: String, played: Dictionary) -> void:
+	played.id = equip_weapon(side, def_id)
+
+
+## The common C6 acceptance: pay [param card]'s effective cost (`mana_spent
+## {side, amount, mana_current}`), take it out of the hand, `stats.cards_played
+## += 1`, `card_played {side, instance_id, card_id, type, hand_index,
+## target_id}`. Returns the `card_played` seq (the `cause_seq` of the play's
+## trigger steps, card-effects C6.6).
+func _accept_card(side: String, card: Dictionary, type: String, target: Variant) -> int:
+	var player: Dictionary = _state.players[side]
+	var cost: int = effective_cost(card)
+	var index: int = player.hand.find(card)
+	player.mana_current = int(player.mana_current) - cost
+	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
+	player.hand.remove_at(index)
+	player.stats.cards_played = int(player.stats.cards_played) + 1
+	return emit(&"card_played", {
+		"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id),
+		"type": type, "hand_index": index, "target_id": target,
+	})
+
+
+## An accepted `use_hero_power` (C7): pay `hero_power_cost` (`mana_spent`),
+## `used_this_turn = true`, `hero_power_used {side, power_id, target_id}`,
+## then trigger point `hero_power` from the hero as its own step.
+func _do_hero_power(command: Dictionary) -> void:
+	var side: String = str(command.issuer)
+	var player: Dictionary = _state.players[side]
+	var power_id: String = str(player.hero_power.def_id)
+	var plan: Dictionary = _play_plan(power_id, _power_source(side), command.get("target_id"))
+	var used: Dictionary = {"cause": 0}
+	_run_step(_accept_hero_power.bind(side, plan.target, used))
+	_play_point(&"hero_power", side, int(player.hero.entity_id), plan.target, power_id, int(used.cause))
+
+
+func _accept_hero_power(side: String, target: Variant, used: Dictionary) -> void:
+	var player: Dictionary = _state.players[side]
+	var cost: int = rule("hero_power_cost")
+	player.mana_current = int(player.mana_current) - cost
+	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
+	player.hero_power.used_this_turn = true
+	used.cause = emit(&"hero_power_used", {"side": side, "power_id": str(player.hero_power.def_id), "target_id": target})
+
+
+## A play trigger point (`battlecry`, `on_cast`, `hero_power`) as one step
+## under [param cause]: the single candidate is the host [param source_id];
+## `ctx {side, candidates: [source], source, target_id, card_id}`. The
+## resolver runs the host's effect now (card-effects C6.2) and may return
+## queued triggers.
+func _play_point(point: StringName, side: String, source_id: int, target: Variant, card_id: String, cause: int) -> void:
+	var candidates: Array[int] = [source_id]
+	var ctx: Dictionary = {"side": side, "candidates": candidates, "source": source_id, "target_id": target, "card_id": card_id}
+	_run_step(_resolve_step.bind(point, ctx), cause)
+
+
+## An observer trigger point of the play order (`on_card_played`, `on_play`,
+## `on_summon`, `after_cast`, `on_weapon_equipped`) as one step under
+## [param cause]: candidates in engine order, `subject` the played entity.
+func _fire_observers(point: StringName, side: String, subject: int, card_id: String, cause: int) -> void:
+	if _halted():
+		return
+	var ctx: Dictionary = {"side": side, "candidates": _candidates_in_order(), "subject": subject, "card_id": card_id}
+	_run_step(_resolve_step.bind(point, ctx), cause)
 
 
 ## C3 step 7 (DD-M05): unkept cards return to the bottom of the deck in hand
@@ -1448,11 +1837,13 @@ func _end_step(side: String) -> void:
 ## triggers the resolver returns join the engine's queue Q, then the C10 loop
 ## drains.
 func _fire_trigger_point(point: StringName, side: String) -> void:
-	_run_step(_fire_step.bind(point, side))
+	_run_step(_resolve_step.bind(point, {"side": side, "candidates": _candidates_in_order()}))
 
 
-func _fire_step(point: StringName, side: String) -> void:
-	_enqueue(point, _resolver.resolve(point, {"side": side, "candidates": _candidates_in_order()}), _cause_seq)
+## One trigger-point step: `resolver.resolve(point, ctx)`; what it returns
+## joins Q, raised by the event the step runs under.
+func _resolve_step(point: StringName, ctx: Dictionary) -> void:
+	_enqueue(point, _resolver.resolve(point, ctx), _cause_seq)
 
 
 ## A trigger hook point at a step boundary (C3 step 4, C4 Start 4 / End 3;
@@ -1462,11 +1853,11 @@ func _fire_step(point: StringName, side: String) -> void:
 ## `on_hero_damaged`, `on_minion_summoned`) run synchronously within the
 ## current step instead — a C10 loop there would run a death check between
 ## the ops of one effect pass (ADR-0007, card-effects C6.0).
-func _run_hook_steps(point: StringName, side: String, ctx: Dictionary) -> void:
+func _run_hook_steps(point: StringName, side: String, ctx: Dictionary, cause: int = -1) -> void:
 	for index: int in _state.hooks.entries(point).size():
 		if _halted():
 			return
-		_run_step(_state.hooks.run_trigger_entry.bind(point, index, StringName(side), ctx))
+		_run_step(_state.hooks.run_trigger_entry.bind(point, index, StringName(side), ctx), cause)
 
 
 ## The one observer order (C4 step 5, C10; cross-review C-16c): player board
@@ -1530,13 +1921,18 @@ func _characters_of(side: String) -> Array[Dictionary]:
 
 ## One action of the C10 loop without the closing `win_loss_check` (the
 ## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed as
-## step 1 of a fresh step count, then [method _drain]. The `cause_seq` the
-## step ran under is restored afterwards, so the next step of the same
-## command is again a direct consequence of it.
-func _run_step(step: Callable) -> void:
+## step 1 of a fresh step count, then [method _drain]. [param step_cause]
+## (≥ 0) is the `cause_seq` the step runs under — a play's trigger steps run
+## under its `card_played` / `spell_cast` / `hero_power_used` (card-effects
+## C6.6); the default keeps the current one. The `cause_seq` from before is
+## restored afterwards, so the next step of the same command is again a
+## direct consequence of it.
+func _run_step(step: Callable, step_cause: int = -1) -> void:
 	if _halted():
 		return
 	var cause: int = _cause_seq
+	if step_cause >= 0:
+		_cause_seq = step_cause
 	_steps = 0
 	step.call()
 	_steps += 1
@@ -1764,8 +2160,9 @@ static func _strip_auras(enchantments: Array) -> void:
 			enchantments.remove_at(i)
 
 
-## The hero, weapon, board minion or hand card [param entity_id] — a source
-## "in play (or in hand for hand triggers)" at raise time (C10) — else `{}`.
+## The hero, weapon, board minion, hand card or resolving spell
+## [param entity_id] — a source "in play (or in hand for hand triggers)" at
+## raise time (C10; a spell being cast counts, story 010) — else `{}`.
 func _live_record(entity_id: int) -> Dictionary:
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
@@ -1776,9 +2173,10 @@ func _live_record(entity_id: int) -> Dictionary:
 		for minion: Dictionary in player.board:
 			if int(minion.entity_id) == entity_id:
 				return minion
-		for card: Dictionary in player.hand:
-			if int(card.instance_id) == entity_id:
-				return card
+		for zone: String in ["hand", "resolving"]:
+			for card: Dictionary in player[zone]:
+				if int(card.instance_id) == entity_id:
+					return card
 	return {}
 
 
@@ -2011,7 +2409,7 @@ func _owner_of(entity_id: int) -> String:
 		for minion: Dictionary in player.board:
 			if int(minion.entity_id) == entity_id:
 				return side
-		for zone: String in ["hand", "deck", "graveyard"]:
+		for zone: String in ["hand", "resolving", "deck", "graveyard"]:
 			for card: Dictionary in player[zone]:
 				if int(card.instance_id) == entity_id:
 					return side
@@ -2146,7 +2544,7 @@ func _find_record(entity_id: int) -> Dictionary:
 		for minion: Dictionary in player.board:
 			if int(minion.entity_id) == entity_id:
 				return minion
-		for zone: String in ["hand", "deck", "graveyard"]:
+		for zone: String in ["hand", "resolving", "deck", "graveyard"]:
 			for card: Dictionary in player[zone]:
 				if int(card.instance_id) == entity_id:
 					return card
