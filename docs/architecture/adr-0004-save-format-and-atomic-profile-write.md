@@ -393,6 +393,55 @@ Error vocabulary: `E_IO` = `ERR_CANT_CREATE`, `E_READONLY` = `ERR_LOCKED`
 - Must not claim power-loss durability in UI copy, docs or stories; the
   `RECOVERED_BAK` banner text is the sanctioned wording.
 
+### Decision addendum (2026-11-03) — input remapping storage
+
+Closes `TR-accessibility-requirements-001` (`design/accessibility-requirements.md`
+Motor "Full input remapping", Standard tier, due Alpha; Open Question "a
+`bindings` map in meta M9, or `InputMap` serialised to `user://bindings.cfg`
+by Run UI?"). Recorded by the post-review fix pass under the owner's standing
+approval; no other decision in this ADR changes.
+
+1. **Key bindings persist in the profile settings record**, not in a second
+   file. `settings.bindings: {action: [InputEvent as Dictionary]}` — one key
+   per `InputMap` action name, each value the action's event list serialised
+   as plain Dictionaries (type tag plus the event's own fields: keycode /
+   physical keycode and modifiers for `InputEventKey`, button index for
+   `InputEventMouseButton` / `InputEventJoypadButton`, axis and sign for
+   `InputEventJoypadMotion`). No `Resource`, no `var_to_str` blob — the
+   profile stays JSON-only under Decision 1, 64-bit values as hex.
+   `profile_defaults.json` carries no `bindings` key; an absent or empty map
+   means "engine defaults" (the `project.godot` `InputMap`). The `bindings`
+   key is added to meta-progression M9 and DD-X07 (same date).
+2. **Applied at Boot, after the profile loads.** `Boot.boot()` step 3 loads
+   the profile; step 4 (`SettingsBus` created, settings published once) then
+   applies `settings.bindings` to `InputMap` — `action_erase_events` then
+   `action_add_event` per listed action, unknown action names ignored with a
+   `profile_repaired`-style log line (M5.3 tamper tolerance). Actions not in
+   the map keep their defaults. Rebinding at runtime goes through
+   `set_setting("bindings", map)` like any other key (debounced per Decision
+   8, flushed by the same `AtomicFileWriter` path — W1–W9 unchanged);
+   `settings_changed{bindings}` is consumed by `Boot`, which re-applies the
+   map, and by the Controls page for its display. `InputRouter` (match) and
+   `RunShell` (run) read actions, never key codes, so no other code changes.
+3. **`cancel` / Esc is never rebindable** — the pattern library "Standard
+   Shortcuts" and accessibility-requirements Motor state the same exception.
+   The Controls page omits `cancel` from the rebindable list; `ProfileStore`
+   enforces it on write (a `bindings.cancel` key is dropped and logged, so a
+   hand-edited profile cannot remove the one guaranteed key). LMB / RMB are
+   likewise fixed.
+4. **Schema rule.** Adding `bindings` to `settings{}` is an additive key with
+   an absent-means-default reading, so it does **not** bump
+   `PROFILE_SCHEMA_VERSION` on its own; M5.2 "unknown keys preserved, known
+   keys clamped" already tolerates it in both directions. If the event
+   serialisation shape ever changes, that is a `schema_version` bump with a
+   `profile_v{k}_to_v{k+1}` migration under Decision 7 — never an in-place
+   rewrite.
+5. **Alternative rejected.** `InputMap` serialised to `user://bindings.cfg`
+   (`ConfigFile`) by Run UI: a second file with its own corruption, lock and
+   `.bak` story, outside the M4/M5 atomic path and the single-instance rule,
+   and one that would not travel with a profile reset or the MVP `MetaStub`
+   fixtures. One file, one write path.
+
 ## Alternatives Considered
 
 ### Alternative 1: `ConfigFile` / `ResourceSaver` (`.tres`) for the profile
@@ -550,6 +599,7 @@ TR-IDs are the provisional ids from `docs/architecture/architecture.md`
 | rng-event-log.md | TR-rng-event-log-006 (rule 18 archives) and rule 17 `to_json` inside `run_log` | Same `AtomicFileWriter` for `user://logs/**`; `log_schema_version` migrated here (M4.4) |
 | systems-index.md | TR-systems-index-001 — Run Structure ↔ Meta: Meta exposes M1.3, Run Structure owns R1; MVP ships a Meta stub | `MetaApi` + `MetaStub` (Decision 9) |
 | design-decisions.md | TR-design-decisions-002 — DD-T01: `profile_defaults.json` under `assets/data/`, the profile at `user://profile.json`; DD-R08 save/resume | Paths fixed as in DD-T01; defaults are data |
+| accessibility-requirements.md | TR-accessibility-requirements-001 — Motor "Full input remapping" (Standard tier, Alpha): every action rebindable except `cancel` / Esc; bindings persist across restarts; storage was undecided | Decision addendum (2026-11-03): `settings.bindings: {action: [InputEvent as Dictionary]}` in the profile settings record, applied to `InputMap` at Boot after the profile loads, written through the same debounced atomic path; `cancel` dropped on write; additive key, no `schema_version` bump |
 
 ## TD Items Retired
 

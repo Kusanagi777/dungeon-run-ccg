@@ -857,4 +857,4 @@ Priority order for `/architecture-decision`: 0001 → 0002 → 0003 → 0004 →
 
 ## Next steps
 
-`/architecture-decision` for ADR-0001..0004 and 0010 first (Foundation), then 0007, 0005, 0008, 0006, 0009, 0011; write `docs/architecture/spikes/2026-11-03-engine-probes.md` alongside 0004/0006/0010; `/create-control-manifest`; `/architecture-review` (registers the 71 provisional TR-IDs); `/ux-review` on the per-screen specs; test-rig completion (export preset, main-scene stub so `commands.smoke` exits, one integration test, one proven Xvfb screenshot into `production/qa/evidence/`); `/gate-check pre-production`.
+`/architecture-decision` for ADR-0001..0004 and 0010 first (Foundation), then 0007, 0005, 0008, 0006, 0009, 0011; write `docs/architecture/spikes/2026-11-03-engine-probes.md` alongside 0004/0006/0010; `/create-control-manifest`; `/architecture-review` (registers the TR-IDs — done 2026-11-03, 71 registered, verdict CONCERNS); `/ux-review` on the per-screen specs; test-rig completion (export preset, main-scene stub so `commands.smoke` exits, one integration test, one proven Xvfb screenshot into `production/qa/evidence/`); `/gate-check pre-production`.

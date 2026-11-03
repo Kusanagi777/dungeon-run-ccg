@@ -309,7 +309,10 @@ consumed by Boss AI as effective_mode = min(boss.intent_mode, telegraph_mode) (D
 action_delay_ms: int 0..2000 (600) — Match UI boss-turn pacing override of Boss AI's
 presentation.action_delay_s (DD-X07, match-ui F4); gamma: float 0.8..1.4 (1.0) — brightness,
 consumed by Match UI and Run UI as a CanvasModulate adjustment (DD-X10; added 2026-11-03 to the
-DD-X07 key set); keep_run_records: bool (true); language: "en"}`. An out-of-range `gamma` is
+DD-X07 key set); keep_run_records: bool (true); language: "en"; bindings: {action: [InputEvent as
+Dictionary]} ({} = engine defaults) — key bindings per `InputMap` action, applied by Boot after the
+profile loads, `cancel`/Esc never rebindable, absent in `profile_defaults.json` (DD-X07; ADR-0004
+decision addendum 2026-11-03; accessibility-requirements Motor, Alpha)}`. An out-of-range `gamma` is
 clamped to 0.8..1.4 on load (M5.3 treats it like an enum default).
 Defaults live in `assets/data/profile_defaults.json` (DD-T01 data file `profile_defaults`,
 served by `config("profile_defaults")`; renamed from `profile.json` on 2026-11-03, cross-review

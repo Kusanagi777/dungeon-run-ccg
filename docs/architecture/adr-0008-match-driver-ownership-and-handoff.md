@@ -44,6 +44,13 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   clone. Dependency ADR-0001 Accepted first; ADR-0007 (ordering note) also
   Accepted first.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
+- **Post-review fixes 2026-11-03** (`/architecture-review` report
+  `architecture-review-2026-11-03.md`, verdict CONCERNS): §Performance
+  Implications `replay_budget_ms` default corrected 4 → **2 ms** (matches
+  ADR-0006, registry `boss_ai_main_thread` and boss-ai F9 `runtime`); the 🟡
+  ADR-0006 vs ADR-0008 drift is closed. Soft dependencies ADR-0007 / ADR-0004
+  / ADR-0005 declared under `Depends On`. `TR-boss-ai-004` row added to the
+  GDD Requirements table. No decision changed.
 
 ## Date
 
@@ -94,7 +101,7 @@ streams (run-structure R8.3).
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (tier rules; `MatchController` as the UI's only command channel) |
+| **Depends On** | ADR-0001 (tier rules; `MatchController` as the UI's only command channel); soft: ADR-0007 (construction order engine → `resolver.bind` → hooks, per the Ordering Note), ADR-0004 (`save_active_run` at S1–S4 is the `MetaApi` the driver's `match_ended` hand-off leads into), ADR-0005 (`hook_installers` in `MatchConfig` and `hooks()` for `collect_state`) — soft edges declared 2026-11-03 per the architecture-review advisory; the acceptance order already honoured them |
 | **Enables** | ADR-0006 (the `PlannerTask` seam, the clone-and-replay protocol's driver side and the "no subscriber off-thread" rule are fixed here; 0006 picks the mechanism), ADR-0009 (Match UI consumes `MatchController` + `tick()`), ADR-0011 (Run UI shell consumes `match_requested` / `match_view_finished`) |
 | **Blocks** | Run Structure epic (R3/R4/T5–T9 stories), Match UI epic (`MatchView.set_controller`, boss-turn playback), Boss AI integration stories (`forecast`/`plan_turn`/`choose` call sites) |
 | **Ordering Note** | ADR-0007 should be Accepted first so `MatchDriver`'s construction order (engine → `resolver.bind` → hooks) is settled; ADR-0006 may be Accepted after this one — the driver runs against `ImmediatePlannerTask` until then and its code does not change with the mechanism |
