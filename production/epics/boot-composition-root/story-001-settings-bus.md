@@ -1,12 +1,12 @@
 # Story 001: SettingsBus
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -65,10 +65,6 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
 - `src/core/save/settings_bus.gd`
 - `tests/unit/boot/boot_settings_bus_test.gd`
 
@@ -88,7 +84,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boot/boot_settings_bus_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 10 test functions, passing (full suite exit 0, 2026-11-03)
 
 ---
 
@@ -96,3 +92,14 @@ checks scope against it.*
 
 - Depends on: None
 - Unlocks: `production/epics/boot-composition-root/story-002-meta-api-abstract-seam.md`, `production/epics/boot-composition-root/story-003-meta-stub.md`, `production/epics/boot-composition-root/story-004-boot-composition-root.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 3/3 passing — AC-1 `boot_settings_bus_test.gd::test_settings_bus_constructs_with_no_collaborator_and_is_refcounted`, `::test_settings_bus_declares_exactly_one_signal_settings_changed`; AC-2 `::test_publish_emits_settings_changed_once_with_key_and_value`, `::test_publish_then_get_setting_returns_published_value`, `::test_get_setting_of_never_published_key_returns_null` (+5 more); AC-3 `godot-parse-check.gd` exit 0 on the file alone, grep for `Boot|Services|Node|Timer|get_tree()|await` in it: no hits
+**Publish entry point named here**: `SettingsBus.publish(key: StringName, value: Variant) -> void` — stores the value as the key's last published value, then emits `settings_changed(key, value)` once, synchronously. Story 003 (`MetaStub.set_setting`) and later `ProfileStore` call it.
+**Deviations**: None
+**Test Evidence**: `tests/unit/boot/boot_settings_bus_test.gd` (10 tests); full suite `commands.test` exit 0, 76 test cases, 0 failures; mutation check (emit removed) observed failing, exit 100, then restored
+**Run result**: N/A — the class has no scene, Node or rendered output; nothing in this story subscribes to the bus, so nothing a player can see changes
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run)

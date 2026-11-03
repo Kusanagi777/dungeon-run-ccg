@@ -48,11 +48,11 @@ stories:
     name: "SettingsBus"
     file: "production/epics/boot-composition-root/story-001-settings-bus.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 0.5
     blocker: ""
-    completed: ""
+    completed: "2026-11-03"
   - id: "boot-composition-root-002"
     name: "MetaApi abstract seam"
     file: "production/epics/boot-composition-root/story-002-meta-api-abstract-seam.md"
