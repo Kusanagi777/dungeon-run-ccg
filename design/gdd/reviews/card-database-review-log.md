@@ -36,3 +36,38 @@ Reviewed-Content-Hash: design/gdd/run-ui.md 92ba5e70b8b6324bae72d3b5238e86b088f3
 Reviewed-Content-Hash: design/gdd/meta-progression.md e1b2d83f2eee16edc639e9093cc89474ca40df94
 Reviewed-Content-Hash: design/gdd/match-ui.md 6645f862cbd413853a0afdec2f3ccf775e811547
 Reviewed-Content-Hash: design/gdd/rng-event-log.md cb06cb1680292fc0af6b80262894d273f27d1fa8
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — main review only; qa-lead AC check performed inline)
+Blocking items: 2 | Recommended: 4
+Summary: Re-review after the first revision and the cross-GDD pass. All four prior blockers and the cross-review Part B items for this file (C-06 `unlock` object, C-21 `profile_defaults.json`, C-04 `targeting`, C-30 housekeeping) are verified applied, and no value in the document contradicts the registry. Two new blockers surfaced: the loader's own five tuning knobs were sourced to "data file" while no CR-1 / DD-T01 file held them and the single-parser rule left a programmer nowhere to put them (and the "no hardcoded values" AC demanded `schema_version_current` be read from a file whose envelope it validates); and the shipped-data AC restated Content CN-1's MVP counts wrongly (4 tokens / 8 boss-only / 4 bosses vs CN-1's 3 / 10 / 5). Both were resolved in place (option [A]); one register edit (a DD-T01 row for `card_database.json`) remains for the owner. Status after revision: In Review.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] Formulas / CR-1 / Acceptance Criteria: `min_collectible_pool`, `min_bundle_pool`, `max_records`, `data_load_budget_ms`, `data_memory_budget_mb` sourced to "data file" with no CR-1 or DD-T01 file to hold them; AC required `schema_version_current` from config (circular) — FIXED: `card_database.json` config row (self-validated at stage 4, `config("card_database")`), `schema_version_current` declared the one code constant (CR-5 stage 3), AC rewritten with a fixture test, new AC for the knob file's range/missing cases; DD-T01 row left as an Open Question for the owner.
+- [BLOCKING] Acceptance Criteria (shipped data set): MVP counts "4 tokens, 8 boss-only, 4 bosses" contradict content.md CN-1 (3 tokens, 10 boss-only, 5 bosses incl. the D-06 spare) — FIXED: aligned to CN-1 with the war 25 + neutral 15 split; CN-1 named as source of truth; Cross-References row added.
+- [RECOMMENDED] Formulas: DD-H05 neutral bundles stated as ~6 (now 12), v1 bundle pool 14 (now 20), MVP collectible split 18 + 22 (CN-1: 25 + 15), validation-cost example built on 212 records / 30 bundles — FIXED in the same pass; `min_bundle_pool` now points at Reward Draft's `bundle_pool_min` (prior review's open recommendation).
+- [RECOMMENDED] Dependencies: intro said "three injected validators" while CR-5 lists four record validators plus config validators — FIXED.
+- [RECOMMENDED] Cross-GDD wording (not edited here): boss-ai.md Edge Cases L602 says an absent `ai_profiles.json` falls back to a built-in `default` profile "so headless tests still run"; under CR-1 a missing required config file is `E_MISSING_FILE` and the load fails, so that fallback can only exist behind an injected stub — Boss AI should say so.
+- [RECOMMENDED] Registry hygiene (not edited here): `referenced_by` lists card-database.md on `discover_pool`, `boss_sequence` and `unlock_keys_v1`, none of which this document names; `bundle_pool_min` is now named (this revision). Remove the three or leave as-is if the registry treats indirect use as a reference.
+- [NICE-TO-HAVE] Tuning Knobs section is absent (advisory at `standard`): the five knobs now live in the `card_database.json` row and the Formulas tables; a short Tuning Knobs table would give Content one place to read them.
+Reviewed-Content-Hash: design/gdd/card-database.md bf374f0a4c79940fe414c216246ea3cca7f195db
+Reviewed-Content-Hash: design/registry/entities.yaml c0b7b1c0ad84e2c548b1bb890c79073e397c259c
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e23e2eb0488
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/reward-draft.md f3443f5279f5593cddfc2fae713d0084f1106aa0
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/content.md 9a4fabbfd9e515a5dd437ed7babbe949119da8ee
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4

@@ -34,3 +34,34 @@ Reviewed-Content-Hash: design/gdd/rng-event-log.md cb06cb1680292fc0af6b80262894d
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — economy-designer, systems-designer, game-designer, qa-lead, creative-director not spawned)
+Blocking items: 1 | Recommended: 4
+Summary: Re-review after the first-review revisions and the cross-review fixes. C-10 (`unlocked_keys()` at `init_run`, meta M1.3 and Meta's rows agree), C-13 / DD-X06 (`reoffer` debug-only, `E_CONFIG`, AC-11), DD-H05 (B = 20 per hero in D4/F5/F7/Edge Cases/AC-11b/AC-29, `bundle_pool_min` 4–27 matches the registry) and D-02 (`AFFINITY_CAP` 6, F1 range 1–325, AC-20 data-driven proof, rails metric kept) all verify against the cross-review and the sibling GDDs; every formula (F1–F8) was re-derived by hand. One new contradiction with an owning GDD: Heroes H-4 / F2 (cross-review C-03, option B) count the War starter at 7 plan cards because `war_iron_vanguard` carries Content's `armour` tag, while this GDD's F1 worked example, AC-20, F3 example, F7, F8 and Cross-References still used `armour` × 1 and 6/15 — AC-20 would fail against the real starter. Fixed in place under guided-mode option [A] (armour bundle 150, total 675, `plan_share(8) = (7 + 3k)/36`, uniform baseline 0.43). Status after revision: In Review, pending re-review; registry `bundle_weight.output_range` needs 390 → 325.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] Formulas F1 / Acceptance Criteria AC-20 / F3 / F7 / F8 / Cross-References: War starter counted `armour` × 1 and 6/15 plan cards; Heroes H-4 / F2 now count 7 (`war_iron_vanguard` tagged `armour`) — FIXED: `bundle_war_armour` 150, total 675, odds 26.7 / 25.9 / 22.2 / 14.8 / 10.4 %, AC-20 180/175/150/100/70, F3 `3 vs 2 vs 2`, F7 `(7 + 3k)/36` with uniform baseline 0.43 (AC-29, Tuning Knobs `AFFINITY_STEP`), F8 4.7 plan cards at floor 1
+- [RECOMMENDED] Registry: `bundle_weight.output_range [1, 390]` predates D-02 — GDD F1 now tops out at 325 (`100 × 2.5 × 1.30`); registry correction for the orchestrator
+- [RECOMMENDED] Open Questions (D-02): the cross-review said "no GDD change now — measure first"; the GDD lowered `AFFINITY_CAP` 8 → 6 and kept the ~70 % metric, noting the owner may restore 8 — owner to confirm the pre-emptive lowering
+- [RECOMMENDED] Cross-GDD (not this GDD): rng-event-log catalogue L173 flag vocabulary `coverage` vs this GDD's `coverage_forced`, and it omits `universal_missing` / `reoffer`; rng-event-log L63/L228/L462 still say "pity rolls" (pity is draw-free, F3); card-database `bundle_pool_size` "14 at v1" predates DD-H05 (20); content L456 "`n_universal` 7 ≥ Reward Draft's 5" predates the F6 one-rule (hard 3 / recommended 7)
+- [RECOMMENDED] Open Questions: Content's Alpha-B question (does pity need ≥ 2 bundles per plan tag?) was assigned to Reward Draft and unanswered — answered in place (no hard requirement; pity never invents a bundle; ≥ 2 keeps the rule live after the first pick)
+- [NICE-TO-HAVE] Dependencies: the "design-order list names only four of six" note was stale (systems-index item 4 lists all six) — fixed
+- [NICE-TO-HAVE] Open Questions: "concept says first treasure on floor 2" — concept now cites DD-R05 (floor 1) — marked Resolved
+Reviewed-Content-Hash: design/gdd/reward-draft.md fefe17c210dcc4fb1bd265441cf2355d0eb202e9
+Reviewed-Content-Hash: design/registry/entities.yaml c0b7b1c0ad84e2c548b1bb890c79073e397c259c
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/content.md 9a4fabbfd9e515a5dd437ed7babbe949119da8ee
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/card-database.md bf374f0a4c79940fe414c216246ea3cca7f195db
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e23e2eb0488
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

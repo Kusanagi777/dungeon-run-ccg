@@ -32,3 +32,32 @@ Reviewed-Content-Hash: design/gdd/match-rules.md 4c45bb5b36e1b50b3b286a2f10ea13c
 Reviewed-Content-Hash: design/gdd/reward-draft.md 40e87d43e0dd3bb8e64a161bfb36ba3d17afe7d0
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: standard
+Scope signal: XL
+Specialists: none (lean mode — no specialist agents spawned; main-review AC check only)
+Blocking items: 2 | Recommended: 4
+Summary: Re-review after the first-review revisions and the cross-review fixes. Everything the prior pass and the cross-review touched verified clean: 6/6 required sections at `standard` (8/8 present); all 16 boss rows match the registry (band, health, passive, hero power); CN-5's 20 treasure ids, affinities, rarities, unlock flags and the 10 MVP ids match Treasures T8 and the registry; 36 bundles recomputed (tags, sets, batch ≤ card batch, band averages, 52/56 hero and 34/39 neutral coverage); C-03 B (`armour` tag kept, PLAN_MAX 7), C-23, C-24, D-04, D-06 (5 = 3/1/1 everywhere), D-07 and DD-H05 wording consistent; F3/F5/F6 arithmetic re-done; 12 card rows and the 5 MVP bosses plus their 10 boss cards checked against card-effects C2/C3/C5/C9/C11 (no v2 pattern). Two new blockers, both the same class the first review caught: five boss deck recipes named cards from a later batch than the boss (AC-10 / "loads clean" unsatisfiable), and F5/AC-7/CN-2 still gate coverage on "provisional" ops after card-effects de-provisionalised them (C-22). Both resolved in session without an owner decision; status is In Review pending re-review.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] CN-3 B2 / Edge Cases: Hollow King (MVP-1) recipe named VS neutrals; Lich Archivist (VS) and Frost Hag (Alpha-A) named Knowledge cards (Alpha-B); Bog Witch and Shadow of the Delve (Alpha-A) named `neutral_ember_sprite` (Alpha-B); the hero-set ordering sentence had `pyre_sergeant` / `lich_archivist` reversed (fixed — explicit same-batch recipes totalling 30, swap-in batch named, Edge Cases lists every fallback case)
+- [BLOCKING] Formulas F5 / AC-7 / CN-2 / CN-5 / Cross-References: coverage excluded "provisional" ops, but card-effects C5/C10 made `remove_keyword`, `shuffle_into_deck`, `discard`, `weapon_durability`, `hero_power_refresh` full v1 ops on 2026-11-03, so `op_coverage = 1.0` at Alpha was undecidable and the `war_quartermaster` rationale false (fixed — explicit `OPS_EXEMPT` / `coverage.ops_exempt`, `W_COVERAGE_UNUSED`, rationale restated)
+- [RECOMMENDED] Open Questions: `war_pit_champion` hero-Windfury question was already answered by Match Rules C1/F3 (resolved in session)
+- [RECOMMENDED] CN-6 step 2: `content_budgets.json` `curve.bucket` used `"6+"` as a key — not snake_case per `.claude/rules/data-files.md` (fixed — array like `pressure.band`)
+- [RECOMMENDED] Cross-GDD (not edited): design-decisions.md DD-H06 still reads "4 bosses"; Run Structure F2 table and its open "spare band-1 boss" question still read 2/1/1 pools — both superseded by D-06; card-effects C5 `mana` row says `this_turn` is unused by v1 content, but `decay_soul_tithe` and `neutral_treasure_map` use it
+- [RECOMMENDED] CN-4 / AC-15: `neutral_tunnel_rat` was omitted from the starters-in-neutral-bundles note; AC-15's parenthetical conflated theme counts with band counts (both fixed)
+Reviewed-Content-Hash: design/gdd/content.md 0ebdda3190f417e6ae20c6444b24daed4e75bf2d
+Reviewed-Content-Hash: design/registry/entities.yaml c0b7b1c0ad84e2c548b1bb890c79073e397c259c
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/card-database.md bf374f0a4c79940fe414c216246ea3cca7f195db
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/reward-draft.md fefe17c210dcc4fb1bd265441cf2355d0eb202e9
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e23e2eb0488
+Reviewed-Content-Hash: .claude/rules/data-files.md d73a823d8bcb94cb974e0f6ada9b4fceda733724

@@ -38,3 +38,42 @@ Reviewed-Content-Hash: design/gdd/content.md ba2af38bd3bd5862e2967bd03c550812022
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: full
+Scope signal: XL
+Specialists: none (lean mode — single-session review; specialist delegation skipped by configuration, not by omission)
+Blocking items: 4 | Recommended: 7
+Summary: Re-review after the first-review revisions and the cross-review fixes. Structurally complete (8/8 at `full`); all seven prior blockers and every cross-review item naming card-effects (C-02, C-04, C-07/DD-X04 pairing, C-16a/b/c, C-22, C-25, V-35) are verifiably applied against the current match-rules, heroes, treasures, content, rng-event-log and match-ui texts; no registry value conflicts (77 matching lines checked). What remained were residues of the first blocker — three places still said "each primitive / each summon is one step" and AC-16 asserted a `trigger_resolved` between two pings of one `repeat` pass — plus a closed `outcome` enum that omitted three outcomes the GDD itself uses, a "hooks before card triggers throughout" claim contradicted by match-rules' End step (card `turn_end` triggers, then `on_turn_end` hooks), and a minion-played order row with no slot for `on_card_played` observers. All four were resolvable from the GDD and match-rules, so option [A] "Revise now" was taken; the document carries a `REVISED 2026-11-03 (re-review)` header note. Status after revision: In Review — no owner decision is outstanding; the next re-review should expect APPROVED unless the sibling GDDs change.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] States and Transitions / Edge Cases / Acceptance Criteria: step-unit residues — `Resolving` row "each primitive is one step", recursion entry "each summon is one step", AC-16 "`trigger_resolved` between them" (two pings of one `repeat` pass), AC-09 loose order — all contradicted C6.0. FIXED: mutation vs pass wording; AC-09 explicit log order (`card_played`, `minion_summoned`, 2× `card_drawn`, `effect_resolved`, `minion_died`); AC-16 asserts exactly one `trigger_resolved` between the hook step and row 34's pass and none between its pings.
+- [BLOCKING] Interactions (`effect_resolved` payload): closed `outcome` set lacked `partial` (C5 `summon`, Edge Cases), `fatigue` (Edge Cases draw entry) and `no_such_trigger` (C5 `retrigger`). FIXED: enum extended; comment marks it the closed set.
+- [BLOCKING] C6.3 / C9 / Tuning Knobs `HOOKS_BEFORE_TRIGGERS`: "hooks before card triggers at the same point is the rule throughout" vs the table's own End-step row and match-rules C4 End steps 2–3 (card `turn_end` triggers first, then `on_turn_end` hooks). FIXED: End step named as the one exception in all three places; the table is authoritative over the shorthand.
+- [BLOCKING] C6.3 minion/weapon-played row: card-hosted `on_card_played` observers (C2, fired for every card per match-rules trigger points) had no position, while the spell row placed them. FIXED: inserted after the `on_card_played` hooks, mirroring the spell row.
+- [RECOMMENDED] C5 `mana` op: "`this_turn` is not used by v1 content" is false — Content's `decay_soul_tithe` (Alpha) uses it and C4 cites that card. Wording corrected here; Match Rules C5 still says the same and defines no temporary semantics — Open Question added (cross-GDD).
+- [RECOMMENDED] C5 `discover` `then: cast`: a spell with `required` targeting has no target at resume time. Logged in Open Questions with a proposed validator rule (`E_FX_OP_TARGET` unless mode `none`); no v1 content uses it.
+- [RECOMMENDED] C8.1: "Match UI opens the panel on `discover_offered`" overstated match-ui U3 (overlay opens when the second of the `choice_requested`/`discover_offered` pair is projected). Wording aligned; DD-X04 pairing itself is correctly stated in C6.6, C8.1 and Interactions.
+- [RECOMMENDED] AC-37: named its replay fixture (`tests/fixtures/replay_card_effects_100.json`) so "any 100-command match" is reproducible. Applied.
+- [RECOMMENDED] AC-42: "under 2 ms on the CI runner" still names no reference machine or relative budget — left open (needs a project-level performance baseline, not a GDD decision).
+- [RECOMMENDED] AC-17: "row 9's Scarabs" → Husks (row 9 summons `decay_husk`). Applied.
+- [RECOMMENDED] Registry hygiene (not value conflicts): `hook_fold` and `max_effects_per_treasure` list `design/gdd/card-effects.md` under `referenced_by` but the GDD never names either; `effect_static_step_limit` unit reads `steps` while the GDD now bounds mutations per pass. Report to the orchestrator; registry not edited.
+Needs owner / cross-GDD change (not edited here):
+- Match Rules: define `add_mana(…, temporary=true)` semantics and drop "not used by v1 content" (Soul Tithe), or Content retexts the card.
+- Registry: `referenced_by` corrections above; optional `effect_static_step_limit` unit → `mutations per pass`.
+- Systems index: keep Card Effects at **In Review** until the next re-review; the five-dependents count is now consistent.
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/registry/entities.yaml 1ee18bfb98f9c2349140eda37142a0e93a335c11
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/content.md 9a4fabbfd9e515a5dd437ed7babbe949119da8ee
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/gdd/card-database.md cb07e8c1f7ef7f6b7336e56e53bf6f1b6e11f06d
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/match-ui.md dbff3a5d072d175f5f8fe406ad9f2258df31077d
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
+Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a

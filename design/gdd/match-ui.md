@@ -8,6 +8,7 @@
 > **Last Verified**: 2026-11-03
 > **REVISED 2026-11-03** (`/design-review`, lean, verdict NEEDS REVISION → revised in place, status In Review): (1) F1 hand arc inverted — with a bottom-centre pivot, `HAND_BASE_Y` 716 and a 24-px downward dip the outer cards sat at y 740 and their rotated attack stamps were off the 720-px viewport, so O1 was unsatisfiable; `HAND_BASE_Y` is now 696, the centre card rises `ARC_H`, the hand zone is 240, 462, 800, 258 and F2's preview top is y 381; (2) the match-end hand-off is confirmed as Run UI's sibling contract (`match_view_finished(result)` → Run UI, which run-ui.md names) — run-structure.md never names this system, so its row is now indirect (`MatchConfig`, the match driver); (3) treasure tray added (F6 zone, inventory row, `treasure_tray` fixture, `healed{amount: 0}` suppressed) — treasures.md is Designed and places the tray on the match screen; stale "undesigned" / "in progress" wording removed; (4) C15 events this GDD does not draw (`turn_reset`, `card_to_graveyard`) are a declared silent set, not `feed.unknown` lines; (5) `reduce_motion` setting defined (`ui-code.md` rule 4) — shake, hit-stop and lethal slow-down drop; (6) `match_ui.json` is already in DD-T01 and loads through Card Database `config("match_ui")`; (7) U12 cross-reference F7 → F6; Open Questions updated with the cross-GDD items the review found (`intent_banner_s` 1.2 vs 0.3, run-ui's `anim_speed` labels and action-delay slider, `telegraph_mode`, `ui-code.md` gamepad / text-scale deferrals).
 > **REVISED 2026-11-03 (cross-review)**: C-01 (`anim_speed` is the DD-X07 label set `instant | fast | normal` with a `SPEED_DIV` table in F3; F4 consumes Meta's `action_delay_ms`; `reduce_motion` and `text_scale` are read from Meta; telegraph rendering follows Boss AI's `effective_mode`, DD-X03), C-07 (the four losing event aliases deleted, the five 2026-11-03 primitive events placed in U3 — DD-X04), S-04 (`fault` end banner copy "floor replayed, not lost", no defeat sting), C-30 housekeeping (`intent_banner_s` OQ, Cross-References status words). Accessibility / pattern-library resolutions (`design/accessibility-requirements.md`, `design/ux/interaction-patterns.md` Open Questions) folded into U5, States, F6, U11, Tuning Knobs and AC: click-to-select mouse path, `end_turn_arm_ms` 300 ms, `Esc` never cancels Mulligan/Choice, `Tab` focus cycling in `Idle` with a 2 px focus ring, 44x44 treasure-chip hit area, hero power `Blocked` reason on focus.
+> **REVISED 2026-11-03 (re-review, `/design-review` lean, independent reviewer — blocking items fixed in place)**: (1) F6 mana bar `1000, 676, 256, 32` sat inside the hand zone — for every n ≥ 6 the right-most card (x 890–1040, rotated edge to x 1048 at y 676) covered its first crystals, and the outer cards' rotated top corners reach x 188 / 1092, so O1's "within x 240–1040", O3's "no overlap" and F1's "nothing is clipped" were false by the document's own numbers; the mana bar is now a two-row `1060, 652, 196, 56`, the deck pile `1180, 540, 76, 106`, the tray holds the three v1 slots (`MAX_TREASURES_HELD`, treasures.md; a fourth slot would sit under card 0's corner), `HAND_W` safe range 700–800, F1 states the rotated envelope and O1 tests it; (2) rng-event-log rule 12a's `diagnostic: true` events (`ai_decision`, `ai_plan_aborted`, `ai_fault`) and card-effects' `counter_changed` were in neither the U3 table nor the silent set, so rule 4 would have printed `feed.unknown` lines every boss turn in release — U3.4a filters diagnostics (player `command_rejected` keeps its tooltip **and** gains a `feed.command_rejected` line, accessibility-requirements "Reading time"), `counter_changed` projects to `counters{}` with a feed line and no badge (card-effects Gaps), L9/L18 test it, `--ai-debug` documented in U11; (3) L15 assumed `Space` ends the turn while U5 gives `Idle` focus to the left-most playable card (where `Space` is not End Turn) — precondition added. Also aligned: U5 idle focus order to interaction-patterns Focus Management (the owner it names), `reduce_motion` in the pause-menu row and O15, O17 defined as state equality plus a retained pose pair, Open Questions (accessibility tier → `design/accessibility-requirements.md`; Meta Progression is Designed).
 > **Implements Pillar**: Pillar 4 (readable, deterministic rules — the UI is a projection of the event log); Pillar 3 (lose fast, learn fast — every loss is legible on screen); Sensation aesthetic (crisp card feedback)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` No `Agent` tool in this run: `game-designer`, `ux-designer`, `ui-programmer`, `art-director`, `systems-designer` and `qa-lead` not consulted — Lean mode. Review manually before production.
 > **Scope boundary**: this GDD defines the Match UI as a *system* — what it must do, its architecture and its contracts with the rules engine. Per-screen UX specs (pixel layout, copy, focus order) are produced later by `/ux-design` into `design/ux/` and cite this document.
@@ -120,7 +121,8 @@ view-state, same steps. It is unit-tested headless. The view-state holds, per si
 `{health, armor, weapon{attack, durability} | null, power_state}`, `mana{available, max,
 temporary}`, `deck_count`, `fatigue_next`, `hand[]` (ids and costs; boss hand = count), `board[]`
 (up to `board_size` = 7 tokens with stats, keywords and flags), plus `phase`, `turn`, `intent`
-(boss), `pending_choice`, `feed_lines[]`, `result`. Projection rules:
+(boss), `pending_choice`, `counters{source_id: {key: value}}` (card-effects `counter_changed`),
+`feed_lines[]`, `result`. Projection rules:
 
 1. **Every event is applied immediately**, in `seq` order, on receipt. The view-state is always
    the engine's state as of the last event seen; only the *displayed* state lags (U4).
@@ -133,6 +135,16 @@ temporary}`, `deck_count`, `fatigue_next`, `hand[]` (ids and costs; boss hand = 
 4. **Unknown event types never fail.** An unrecognised `type` updates nothing, produces no step,
    and adds a feed line with the generic key `feed.unknown` carrying the type name. This is what
    makes the catalogue extension rule (rng-event-log §D) safe for the UI.
+4a. **Diagnostic events are filtered, never "unknown".** An event with `payload.diagnostic = true`
+   (rng-event-log rule 12a: Match Rules' `command_rejected`, Boss AI's `ai_decision`,
+   `ai_plan_aborted`, `ai_fault`) is tested **before** rule 4. It changes no view-state field
+   (`ai_decision` only fills the debug overlay's buffer in debug builds), produces no step and no
+   feed line — unless the `--ai-debug` flag is set (U11), when it renders as `feed.diag.<type>` in
+   `text_muted`. One exception: the **player's own** `command_rejected` produces the
+   `reject_shake` step (U5) **and** a feed line `feed.command_rejected` (`{command, code}`),
+   because the 1.5 s tooltip may not be the only channel for the reason
+   (accessibility-requirements Cognitive "Reading time"); a boss-side `command_rejected` is a plain
+   diagnostic. rng-event-log 12a delegates this filter to the UI; this rule is it.
 5. **Turn ownership**: `phase_changed` / `turn_started` drive `phase` and `active_side`; the
    player's controls are enabled only when `phase == PlayerTurn.Main` **and** the queue is idle.
 
@@ -142,7 +154,8 @@ rng-event-log §D mirrors it). The legacy aliases this table once tolerated (`mu
 a legacy name now falls to rule 4 like any unknown type.
 **Silent set**: C15 events this system does not draw — `turn_reset` and `card_to_graveyard` in v1
 — are listed in the data file as `silent_types[]`: no view-state change, no step, **no feed line**.
-Rule 4's `feed.unknown` line is only for a type in neither this table nor the silent set. The
+Rule 4's `feed.unknown` line is only for a type in neither this table, the silent set nor the
+diagnostic class (rule 4a). The
 events of the five primitives match-rules added on 2026-11-03 (`remove_keyword` →
 `keyword_removed`, `add_card_to_deck` → `card_added_to_deck`, `modify_durability` →
 `weapon_durability_changed`, `refresh_hero_power` → `hero_power_refreshed`, `discard` →
@@ -174,13 +187,15 @@ events of the five primitives match-rules added on 2026-11-03 (`remove_keyword` 
 | `healed`, `armor_gained`, `armor_lost` | `health` / `armor` | number pop `+n` (0.4 s); `healed{amount: 0}` (treasures Edge Cases: Mending Charm on a full hero) → no pop, feed line only |
 | `enchantment_applied/removed`, `auras_recomputed`, `minion_modified`, `silenced`, `frozen`, `thawed`, `stealth_lost` | Stats, keywords, flags | stat digit recolour (0.15 s) or badge add/remove (0.15 s) |
 | `keyword_removed` | `keywords` −= keyword | badge drop (0.15 s) |
+| `counter_changed` (card-effects C5) | `counters[source_id][key] = value` — read by the source's hover / focus tooltip; **no board badge in v1** (card-effects Gaps: "the UI to show progress does not" exist yet) | none; feed line `feed.counter_changed` |
 | `minion_died` (group by `cause_seq`) | Board remove all in group, then re-space | death group (0.3 s) then gap-close (0.2 s) |
 | `trigger_queued` / `trigger_resolved` | `armed_sources` | rim glow on/off (0.15 s) |
 | `effect_resolved` | none (ops already applied by their own events) | feed group line; `fizzled` → "fizzle" wisp on source (0.2 s) |
 | `discover_offered` (Card Effects: `kind`, options) + `choice_requested` (Match Rules: the phase) | `pending_choice` is filled from `discover_offered` (player side only); the overlay step is emitted when the **second** of the pair is projected, whichever order the engine emits them | open Choice overlay (0.2 s) |
 | `choice_made` / `discover_picked` | `pending_choice = null` | overlay close (0.15 s) |
 | `ai_intent_shown`, `ai_intent_committed` | `intent` (incl. the event's `effective_mode`) | banner show (0.3 s) rendered at the `effective_mode` Boss AI emitted (`full` / `class_only` ≡ `brief` / `hidden` ≡ `off`, DD-X03 — this GDD never re-applies `telegraph_mode` itself) / commit beat `intent_banner_s` / "plan changed" crossfade |
-| `command_rejected` (diagnostic) | none | shake + reason tooltip 1.5 s (U5) |
+| `command_rejected` (diagnostic, rule 4a) | none | player side: shake + reason tooltip 1.5 s (U5) and a `feed.command_rejected` line; boss side: nothing |
+| `ai_decision`, `ai_plan_aborted`, `ai_fault` (diagnostic, rule 4a) | none (`ai_decision` → debug overlay buffer, debug builds only) | none; no feed line unless `--ai-debug` |
 | `match_ended` | `result` | end banner (0.6 s) after the queue drains, then hand-off (U9) |
 | `log_overflow`, `resolution_overflow` | `result` fault | end banner with fault copy |
 
@@ -268,9 +283,9 @@ events of the five primitives match-rules added on 2026-11-03 (`remove_keyword` 
   number = pick attacker by board index and cycle defenders with `Tab`. Every action reachable by
   mouse is reachable here (`ui-code.md`, technical-preferences "no hover-only information").
 - **Keyboard inspect (focus cycling in `Idle`).** Outside a targeting session `Tab`/`Shift+Tab`
-  move keyboard focus over hand (left → right) → player board row (left → right) → player hero
-  portrait → hero power → End Turn, then on through the treasure chips, feed toggle, menu button,
-  boss intent banner, boss row and boss portrait and wrap (the full stop list is owned by
+  move keyboard focus over hand (left → right) → player board row (left → right) → hero power →
+  player hero portrait → treasure chips → End Turn → feed toggle → menu button → boss intent
+  banner → boss row (left → right) → boss portrait and wrap (the full stop list is owned by
   `design/ux/interaction-patterns.md` Focus Management and `design/ux/hud.md`'s Focus Order
   table). The focused element draws a **2 px `state_actionable` focus ring** offset 3 px from its
   bounds, above everything on that element, at every `anim_speed` including `instant`; it is
@@ -375,6 +390,7 @@ godot --path . --windowed --resolution 1280x720 --write-movie production/qa/evid
 | `--pose=<pose>` | A view-only pose applied after loading: `drag:<instance_id>` (card lifted, arrow to screen centre, legal targets lit), `hover:<instance_id>` (1.5x preview), `reject:<code>` (shake + tooltip frozen), `menu:concede` / `menu:settings`, `feed:open`, `choice:open` (requires a fixture that ends in `Choice`), `end:<reason>`, `focus:<element>` (keyboard focus on a hand index, token instance id, `hero_power`, `end_turn` or `treasure:<n>` — ring + the focus-opened preview/tooltip), `select:<instance_id>` (click-to-select session, arrow on the first legal target) |
 | `--pause-at=<seq>` | Stop playback with the queue holding every step after `seq` — for mid-animation and boss-turn captures |
 | `--anim-speed=instant\|fast\|normal` | Overrides the `anim_speed` setting for this launch (DD-X07 labels) |
+| `--ai-debug` | Debug builds only: shows the `ai_decision` overlay and renders `diagnostic: true` events as `feed.diag.<type>` lines (U3.4a); without it they never reach the feed |
 
 Required fixtures (one JSON each): `mulligan`, `turn1_player`, `midgame_full_board` (7 v 7),
 `hand_10`, `targeting_taunt`, `targeting_stealth`, `choice_discover`, `choice_choose_one`,
@@ -429,8 +445,8 @@ ignored by the `InputRouter` — never forwarded to `submit`.
 |---|---|---|---|---|
 | **Match Rules** | upstream | `CommandResult` with rejection codes; `legal_commands()`; `MatchQuery` facts (`phase`, `pending_choice`, `effective_cost`, `can_attack` via legal moves, `hero_power_state`) | PLAYER commands via `submit` | Match Rules owns commands, codes and the query facts; this GDD owns the `MatchQuery` facade shape |
 | **RNG & Event Log** | upstream | Every match event via `subscribe` / `events_since`; the envelope `{seq, turn, type, payload, cause_seq}` | Nothing — the UI never appends (a subscriber calling `append` is a bug, rng-event-log Edge Cases) | RNG & Event Log |
-| **Card Effects** | upstream | `effect_resolved` (the feed's playback unit, per-op `outcome`), `discover_offered` options and `kind`, `trigger_queued/resolved` for armed glow, `counter_changed` badges, `targeting_spec` via `legal_commands()` | Nothing | Card Effects owns payloads; this GDD owns how they are drawn |
-| **Boss AI** | upstream | `ai_intent_shown`, `ai_intent_committed{kept}` carrying `effective_mode` = min(boss `intent_mode`, player `telegraph_mode`) — Boss AI computes it (DD-X03, boss-ai C8.4); this GDD renders exactly what is emitted; knobs `presentation.action_delay_s` (= `ai_action_delay_s` unless Meta's `action_delay_ms` overrides it, F4), `max_turn_playback_s`, `intent_banner_s`; `ai_decision` for the debug overlay | Nothing; skip is local to the UI (events are already logged) | Boss AI owns intents and pacing knobs; this GDD owns compression (F4) |
+| **Card Effects** | upstream | `effect_resolved` (the feed's playback unit, per-op `outcome`), `discover_offered` options and `kind`, `trigger_queued/resolved` for armed glow, `counter_changed` (tooltip value on the source and a feed line — no badge in v1, U3), `targeting_spec` via `legal_commands()` | Nothing | Card Effects owns payloads; this GDD owns how they are drawn |
+| **Boss AI** | upstream | `ai_intent_shown`, `ai_intent_committed{kept}` carrying `effective_mode` = min(boss `intent_mode`, player `telegraph_mode`) — Boss AI computes it (DD-X03, boss-ai C8.4); this GDD renders exactly what is emitted; knobs `presentation.action_delay_s` (= `ai_action_delay_s` unless Meta's `action_delay_ms` overrides it, F4), `max_turn_playback_s`, `intent_banner_s`; `ai_decision` / `ai_plan_aborted` / `ai_fault` (diagnostic — debug overlay only, never the feed, U3.4a) | Nothing; skip is local to the UI (events are already logged) | Boss AI owns intents and pacing knobs; this GDD owns compression (F4) |
 | **Card Database** | upstream | `card_text` fields (name/text keys, type, printed stats, keywords) by `card_id`, read through `MatchQuery` | Nothing | Card Database |
 | **Heroes** | upstream (data) | Hero primary/secondary colour, power name/cost/text keys, weapon token stats | Nothing | Heroes |
 | **Treasures** | upstream (display) | Held treasure ids in pick order (from `MatchConfig`) for the tray (F6 zone); hook-hosted `effect_resolved` with `host_kind = treasure` for the tray flare and feed attribution; `healed{amount: 0}` suppressed (treasures.md Edge Cases); boss `passive` plate | Nothing | Treasures (data and tray order); card-effects (event) |
@@ -481,7 +497,12 @@ of each overlapped card is ≥ 72 px, which keeps the cost stamp (x 3–37) and 
 visible (art bible: stamps at the corners "where a fanned hand still shows them"); health is read
 from the hover preview when overlapped. Vertically, the lowest corner of any card is at
 y ≤ 715.4 (outer card: 696 + 75 · sin 15°) and the centre card's top is at y 462, clear of the
-player row (ends y 460) — nothing is clipped at 1280x720.
+player row (ends y 460). Horizontally, card centres stay within x 315–965 for every n (the crowded
+branch applies from n = 6, so the outer cards always sit at the budget's ends), the bottom corners
+within x 243–1037, and the rotated **top** corners reach x 188 / 1092 for y ≥ 474 (210 · sin 15° =
+54 px past the unrotated edge; card 9's right edge is at x 1054 at y 652 and 1048 at y 676). F6
+keeps the mana bar (x ≥ 1060, y ≥ 652) and the treasure chips (x ≤ 162) outside that envelope, so
+nothing is clipped or covered at 1280x720.
 **Example:** n = 10 → c = 4.5, s = 650 / 9 = 72.2, card 0 at x = 640 − 4.5 · 72.2 = 315, rot −15°,
 y = 696; cards 4 and 5 at y = 696 − 24 · (1 − (0.5 / 4.5)²) = 672.3; card 9 at x = 965, rot +15°.
 n = 3 → s = 158, rots −4°, 0°, +4°, centre card y = 672.
@@ -575,10 +596,10 @@ pixels; the board is seven 90-px tokens with 8-px gaps = 678 px, centred (art bi
 | Player row (7 slots) | 301, 334, 678, 126 | summon-position gap opens during drag |
 | Player portrait | 24, 334, 120, 160 | hero primary |
 | Hero power button / weapon slot | 152, 390, 48, 48 / 152, 446, 48, 48 | right of the portrait |
-| Hand zone | 240, 462, 800, 258 | F1: centre card top y 462, outer cards' rotated corners ≤ y 715 |
-| Treasure tray (≤ 4 chips, 40x40 visual, 8-px gaps; treasures.md UI Requirements) | 24, 502, 200, 40 | below the player portrait; hidden when no treasure is held; **each chip's hit rect is 44x44** centred on its 40 px visual (chip centres 48 px apart, so hit rects never overlap) — accessibility-requirements Motor "Minimum target size"; the tray's hit zone is therefore 22, 500, 188, 44 |
-| Player deck pile + count / fatigue | 1180, 560, 76, 106 | |
-| Mana bar (10 crystals + "n/m") | 1000, 676, 256, 32 | |
+| Hand zone (centre budget) | 240, 462, 800, 258 | F1: card centres x 315–965, centre card top y 462, rotated bottom corners ≤ y 715; the **rotated envelope** at n = 10 (±15°) reaches x 188 and 1092 for y ≥ 474, which is why the mana bar starts at x 1060 and the tray has no fourth slot (rows below); the hand draws above the tray and the mana bar in z |
+| Treasure tray (3 chips — `MAX_TREASURES_HELD`, treasures.md; 40x40 visual, 8-px gaps; treasures.md UI Requirements) | 24, 502, 136, 40 | below the player portrait; hidden when no treasure is held; **each chip's hit rect is 44x44** centred on its 40 px visual (chip centres 48 px apart, so hit rects never overlap) — accessibility-requirements Motor "Minimum target size"; the tray's hit zone is therefore 22, 500, 140, 44; chips 1–3 (hit x 22–162) are clear of the hand at every n, whereas a fourth slot (x 168–208) would lie under card 0's rotated top corner (x ≥ 188, y ≥ 512) at n = 10 — if `treasure_floors` ever grows, the tray moves, it does not extend |
+| Player deck pile + count / fatigue | 1180, 540, 76, 106 | moved up 20 px to clear the two-row mana bar |
+| Mana bar ("n/m" row over 10 crystals) | 1060, 652, 196, 56 | two rows: "n/m" 16 px bold at 1060, 652, 196, 20; ten 16-px crystals with 4-px gaps (full / spent / temporary / locked) at 1060, 680, 196, 28; starts at x 1060 because card 9's rotated right edge reaches x 1054 at y 652 (F1) — the earlier 1000, 676 zone sat under the right-most card for every n ≥ 6 |
 | Choice / Mulligan row (3 × 225x315, 24-px gaps) | 278, 202, 723, 315 | over a dimmed table |
 | End banner / pause menu | 340, 260, 600, 200 / 440, 160, 400, 400 | |
 
@@ -695,7 +716,7 @@ the settings menu.
 | `d_base.*` (17 step kinds, F3) | per F3 | 0.1–0.8 s each | More weight; boss turns compress sooner (F4) | Snappier; below 0.15 s effects blur (match-rules anti-reference) | `MIN_ACTION_GAP_S`, `max_turn_playback_s` |
 | `MIN_ACTION_GAP_S` | 0.15 | 0.1–0.3 | Busy boss turns hit `K_MIN` sooner | Actions run together | `ai_action_delay_s`, `K_MIN` |
 | `K_MIN` | 0.25 | 0.25–0.5 | Auto-skip engages earlier on degenerate turns | Very fast playback instead of a jump | F4 |
-| `HAND_W` | 800 | 700–900 | Less overlap; hand intrudes on the deck/mana zones | More overlap; below 700 the attack stamp is partly covered at 10 cards | F1, F6 hand zone |
+| `HAND_W` | 800 | 700–800 | Less overlap; above 800 the right card's rotated edge crosses the mana bar (x 1060) | More overlap; below 700 the attack stamp is partly covered at 10 cards | F1, F6 hand zone and mana bar |
 | `HAND_GAP` / `ARC_H` / `THETA_*` | 8 / 24 / 4°, 30° | per F1 | More "fan"; above ARC_H 26 the centre card's top (486 − ARC_H) crosses into the player row | Flat strip; cards look like a toolbar | F1 |
 | `HOVER_IN_S` | 0.1 | 0.05–0.2 | Hover feels laggy above 0.15 | Pops | F2 |
 | `REJECTION_TOOLTIP_S` | 1.5 | 1.0–3.0 | Reason lingers over the next action | Players miss the reason | match-rules UI Requirements (1.5 s) |
@@ -814,7 +835,7 @@ match-rules', card-effects', boss-ai's and heroes' UI Requirements tables and ar
 |---|---|---|---|---|
 | **Match HUD — top bar** | Turn indicator (side + number), floor/boss name, feed toggle, menu button | `turn_started`, `phase_changed`; match config | `turn1_player` | `design/ux/hud.md` |
 | **Hero portraits** (both) | Health 24 px, armour, weapon slot (attack/durability), hero power button (`Ready/Blocked/Used`; `Blocked` reason and name/cost/text in a tooltip on hover **or focus**), boss hand count, boss passive plate | `damage_dealt`, `healed`, `armor_*`, `weapon_*`, `hero_power_used`; `hero_power_state()` | `midgame_full_board`, `fatigue_and_burn` | `hud.md` |
-| **Treasure tray** | Held treasures as chips in pick order (≤ 4; 40 px visual, 44x44 hit rect — F6), tooltip with the treasure `text` on hover or focus, flare on a hook-hosted `effect_resolved` | `MatchConfig` treasures; `effect_resolved{host_kind: treasure}` | `treasure_tray` | `hud.md` |
+| **Treasure tray** | Held treasures as chips in pick order (3 in v1, `MAX_TREASURES_HELD`; 40 px visual, 44x44 hit rect — F6), tooltip with the treasure `text` on hover or focus, flare on a hook-hosted `effect_resolved` | `MatchConfig` treasures; `effect_resolved{host_kind: treasure}` | `treasure_tray` | `hud.md` |
 | **Mana bar** (player) + boss compact counter | 10 crystals (full/spent/temporary/locked), "n/m" | `mana_*`, `crystal_gained` | `turn1_player`, `midgame_full_board` | `hud.md` |
 | **Deck piles** | Count, fatigue-next label, burn flash | `card_drawn`, `card_burned`, `fatigue_damage` | `fatigue_and_burn` | `hud.md` |
 | **End Turn button** | Enabled / disabled / actionable-outline states; key-armed after `end_turn_arm_ms` (click never gated) | `phase()`, `legal_commands()`, queue idle + arm timer | `turn1_player`, `boss_turn_playback` | `hud.md` |
@@ -828,7 +849,7 @@ match-rules', card-effects', boss-ai's and heroes' UI Requirements tables and ar
 | **Event feed** | 3-line ticker; drawer with grouped, collapsible lines; localised | every event; U10 | `--pose=feed:open` | `design/ux/event-feed.md` |
 | **Rejection tooltip** | `reject.<code>` copy at the cursor, 1.5 s; control shake | `command_rejected` | `--pose=reject:<code>` | `targeting.md` |
 | **Match end overlay** | Victory / defeat / both-dead / concede / fault banner ("floor replayed, not lost" copy, no stinger — U9); continue | `match_ended` → `match_view_finished` | `match_end_*` incl. `match_end_fault` | `design/ux/match-end.md` |
-| **Pause menu** | Concede (with confirm), Resume, settings quick-access (volumes, `anim_speed`) | — | `--pose=menu:concede`, `menu:settings` | `design/ux/pause-menu.md` |
+| **Pause menu** | Concede (with confirm), Resume, settings quick-access (volumes, `anim_speed`, `reduce_motion`) | — | `--pose=menu:concede`, `menu:settings` | `design/ux/pause-menu.md` |
 | **AI debug overlay** | `ai_decision` panel; debug builds / `--ai-debug` only | `ai_decision` | `boss_turn_playback --ai-debug` | none (dev tool) |
 
 📌 **UX Flag — Match UI**: This system has UI requirements. In Phase 4 (Pre-Production), run
@@ -850,7 +871,7 @@ not this GDD directly. Note this in the systems index for this system if you upd
 | Feel targets (frames, hit-stop, shake, slow-down, ≤ 8 s / 15 s boss turn) | `design/gdd/match-rules.md` | Game Feel | Rule dependency |
 | Per-event visual table and 1.5 s rejection tooltip | `design/gdd/match-rules.md` | Visual/Audio; UI Requirements | Ownership handoff (they specify, we render) |
 | Envelope `{seq, turn, type, payload, cause_seq}`; `subscribe` / `events_since`; subscriber must not `append` | `design/gdd/rng-event-log.md` | Rules 11–14; Edge Cases | Data dependency |
-| Hidden boss `card_drawn.card_id`; catalogue extension rule | `design/gdd/rng-event-log.md` | Interactions; §D | Rule dependency |
+| Hidden boss `card_drawn.card_id`; catalogue extension rule; `diagnostic: true` class filtered from the feed (U3.4a) | `design/gdd/rng-event-log.md` | Interactions; §D; rule 12a | Rule dependency |
 | `log_overflow` ends the match | `design/gdd/rng-event-log.md` | Edge Cases | State trigger |
 | `effect_resolved{ops[].outcome, fizzled}`, `discover_offered{kind}`, `discover_picked`, `counter_changed`, `trigger_queued/resolved` | `design/gdd/card-effects.md` | Interactions payload block; C6 | Data dependency |
 | One `ChoiceRequest` at a time; Choose-One targets first, picks second; concede abandons | `design/gdd/card-effects.md` | C8 | Rule dependency |
@@ -898,8 +919,10 @@ U11 fixtures in `production/qa/evidence/` (UI gate, BLOCKING per coding standard
   `normal`, THEN each equals `d_base`.
 - [ ] **L8** GIVEN a boss turn with A = 12 groups and D = 7.0 s at defaults, WHEN F4 runs, THEN
   gap = 0.245 s (±0.001) and T = 10.0 s; GIVEN A = 30, D = 15 s, THEN k = 0.509 and T = 10.0 s.
-- [ ] **L9** GIVEN a `command_rejected` diagnostic, WHEN projected, THEN the view-state is
-  unchanged and exactly one `reject_shake` step with the code is produced.
+- [ ] **L9** GIVEN a player-side `command_rejected` diagnostic, WHEN projected, THEN no view-state
+  field other than `feed_lines` changes, exactly one `reject_shake` step with the code is produced
+  and exactly one `feed.command_rejected` line is appended; GIVEN a boss-side `command_rejected`,
+  THEN no step and no line.
 - [ ] **L10** GIVEN n = 10 and n = 3, WHEN F1 runs, THEN spacings are 72.2 px and 158 px, end-card
   rotations ±15° and ±4°, and no card centre lies outside the hand zone.
 - [ ] **L11** GIVEN a command group with 10 `damage_dealt` on distinct targets from one source,
@@ -911,10 +934,13 @@ U11 fixtures in `production/qa/evidence/` (UI gate, BLOCKING per coding standard
   pending steps completes in < 100 ms; every `MatchQuery` call returns in ≤ 2 ms on a 7 v 7 board.
 - [ ] **L14** No hardcoded values: every constant in F1–F5 and every `d_base` is read through
   `config("match_ui")`; a test that injects a config with `HAND_W = 700` changes F1's output.
-- [ ] **L15** GIVEN the queue drains at time *t* in `PlayerTurn.Main`, WHEN `Space` is pressed at
-  *t* + 100 ms, THEN `InputRouter` forwards nothing to `submit`; WHEN pressed at *t* + 300 ms
-  (`end_turn_arm_ms`), THEN exactly one `end_turn` is submitted; a simulated click on the button
-  at *t* + 0 ms submits `end_turn` (never gated).
+- [ ] **L15** GIVEN the queue drains at time *t* in `PlayerTurn.Main` **with no playable card lit**
+  (so `Idle` focus lands on End Turn, U5), WHEN `Space` is pressed at *t* + 100 ms, THEN
+  `InputRouter` forwards nothing to `submit`; WHEN pressed at *t* + 300 ms (`end_turn_arm_ms`),
+  THEN exactly one `end_turn` is submitted; a simulated click on the button at *t* + 0 ms submits
+  `end_turn` (never gated). GIVEN instead a playable card is lit (focus on it), WHEN `Space` is
+  pressed at *t* + 300 ms, THEN nothing is submitted, and `Enter` enters `KeyTargeting` for that
+  card.
 - [ ] **L16** GIVEN `settings.action_delay_ms = 1200` and a boss turn with A = 5, D = 2.5 s,
   WHEN F4 runs, THEN gap = 1.2 s and T = 7.6 s; GIVEN the setting absent, THEN gap = 0.6 s
   (Boss AI's `presentation.action_delay_s`).
@@ -922,11 +948,18 @@ U11 fixtures in `production/qa/evidence/` (UI gate, BLOCKING per coding standard
   view enters `KeyTargeting` with `entered_by = pointer` and no command is submitted; WHEN a second
   click lands on a lit slot, THEN exactly one `play_card` is submitted; WHEN `Esc` or a click on
   empty table follows instead, THEN nothing is submitted.
+- [ ] **L18** GIVEN `ai_decision`, `ai_plan_aborted` and `ai_fault` events (`diagnostic: true`) and
+  the silent-set events `turn_reset` and `card_to_graveyard`, WHEN projected without `--ai-debug`,
+  THEN no step, no feed line and no view-state change (the debug overlay buffer excepted); GIVEN
+  `counter_changed{source_id, key, value}`, THEN `counters[source_id][key] == value`, exactly one
+  `feed.counter_changed` line and no step.
 
 **Observable (retained screenshots; each names its fixture)**
 
 - [ ] **O1** GIVEN `--fixture=hand_10`, WHEN captured, THEN ten cards are visible with every cost
-  stamp and attack stamp unobscured, the centre card highest, and the fan within x 240–1040.
+  stamp and attack stamp unobscured, the centre card highest, every card centre within x 315–965,
+  no card pixel left of x 188 or right of x 1092, and no card pixel over the mana bar zone
+  (x ≥ 1060, y ≥ 652) or the treasure chips (x ≤ 162).
 - [ ] **O2** GIVEN `hand_10 --pose=hover:<id>`, WHEN captured, THEN the hovered card is 225x315,
   upright, bottom on the baseline, on top of its neighbours, and the neighbours have not moved.
 - [ ] **O3** GIVEN `midgame_full_board`, WHEN captured, THEN 7 tokens per side sit in the F6 rows
@@ -959,13 +992,15 @@ U11 fixtures in `production/qa/evidence/` (UI gate, BLOCKING per coding standard
   shows no `sfx.ui.defeat`.
 - [ ] **O14** GIVEN `--pose=feed:open` on `simultaneous_deaths`, WHEN captured, THEN the deaths are
   indented under their command root and a chain longer than 6 shows "+N more".
-- [ ] **O15** GIVEN `--pose=menu:settings`, WHEN captured, THEN volume sliders and the
-  `anim_speed` selector are visible and the match behind is still rendered.
+- [ ] **O15** GIVEN `--pose=menu:settings`, WHEN captured, THEN volume sliders, the `anim_speed`
+  selector and the `reduce_motion` toggle are visible and the match behind is still rendered.
 - [ ] **O16** GIVEN any fixture, WHEN the window is 1920x1080 or 1024x768, THEN the capture is
   letterboxed with the F6 grid intact and no element clipped (`ui-code.md`: min and max resolutions).
 - [ ] **O17** GIVEN any fixture, WHEN every interactive element is reached by keyboard only
-  (`Tab`, numbers, `Enter`, `Space`, `Esc`), THEN each reachable state matches its mouse-reached
-  screenshot.
+  (`Tab`, numbers, `Enter`, `Space`, `Esc`), THEN for each state the `MatchViewState` and
+  `InputRouter` state after the keyboard path equal those after the mouse path (headless
+  assertion), and the `--pose=focus:*` / `select:*` captures are retained beside their `hover:` /
+  `drag:` pairs with the focus ring as the only permitted pixel difference.
 - [ ] **O18** GIVEN `turn1_player --pose=focus:hero_power` with the power `Blocked`, WHEN captured,
   THEN a 2 px `state_actionable` ring sits 3 px outside the button and the tooltip names the
   `Blocked` reason without any pointer hover; GIVEN `--pose=focus:0` (first hand card), THEN the
@@ -985,8 +1020,8 @@ U11 fixtures in `production/qa/evidence/` (UI gate, BLOCKING per coding standard
 | `telegraph_mode` is a settings key Run UI lists and Meta stores; Boss AI's `intent_mode` is per-boss data. Who owns the player-side banner mode? | — | — | Resolved 2026-11-03 — DD-X03 (cross-review C-01): Boss AI owns `effective_mode = min(intent_mode, telegraph_mode)` and emits it on `ai_intent_*`; this GDD renders what Boss AI emits and never reads `telegraph_mode` |
 | `ui-code.md` rules 3 and 7 make gamepad input, scalable text and colourblind modes mandatory; this GDD ships v1 keyboard + mouse only (technical-preferences: gamepad partial), `high_contrast_states` and `text_scale` as stored settings (DD-X07; the thumbnail-reflow vs reading-panel choice for `text_scale` is accessibility-requirements' open question). Record the v1 gamepad deferral in `ui-code.md` / technical-preferences, or pull it into MVP? | Jacob | Pre-Production | Open |
 | Gamepad mapping (post-v1): does keyboard targeting (U5) map 1:1 to stick + buttons, or does a cursor-emulation mode serve better? | `/ux-design accessibility` | Alpha | Deferred — post-v1 |
-| Accessibility tier: motion reduction (drop shake/hit-stop), high-contrast state set, text scale — which are MVP vs Alpha? | `/ux-design accessibility` | Pre-Production | Open |
-| Who owns settings persistence at MVP when Meta Progression is Vertical Slice — session-local (this GDD's default) or a tiny `user://settings.json` written by Run UI? | Meta Progression GDD (in progress) | Vertical Slice | Provisional: session-local |
+| Accessibility tier: motion reduction (drop shake/hit-stop), high-contrast state set, text scale — which are MVP vs Alpha? | — | — | Resolved 2026-11-03 — `design/accessibility-requirements.md` Visual table: `reduce_motion` Comprehensive (elevated), `text_scale` 100/125/150 % and `high_contrast_states` Standard, all Pre-Production scope per its Test Plan; this GDD reads the three keys (Interactions) and applies `reduce_motion` (F3, Impact Moments); how `text_scale` (reading panel) and `high_contrast_states` (token swap) render is `/ux-design hud` / `hand` |
+| Who owns settings persistence at MVP when Meta Progression is Vertical Slice — session-local (this GDD's default) or a tiny `user://settings.json` written by Run UI? | Meta Progression GDD (Designed; M9) | Vertical Slice | Provisional: session-local |
 | Hover preview overlaps the player's board row (F2). Acceptable, or should the preview anchor beside the hand when the board is full? | `/ux-design hand` | Pre-Production | Open |
 | `intent_mode = hidden` (band 3): show an empty banner frame ("?") or no banner at all? | Boss AI / Content | Alpha | Provisional: "?" frame so the HUD layout is stable |
 | Tween/animation implementation (Godot `Tween` vs `AnimationPlayer` vs custom stepper driven by the queue) and the scene partition in U1 | `/architecture-decision` | Technical Setup | → becomes an ADR |

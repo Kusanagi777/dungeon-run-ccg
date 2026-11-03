@@ -38,3 +38,41 @@ Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98
 Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
+
+## Review — 2026-11-03 — Verdict: NEEDS REVISION
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean — main review only; no Agent calls)
+Blocking items: 3 | Recommended: 6
+Summary: Re-review after the first-review revisions, cross-review C-01 / C-07 / S-04 and the accessibility and pattern-library alignments. Every prior blocking item is resolved and the alignments landed as specified (click-to-select with the 8 px threshold, `end_turn_arm_ms` 300 ms with the click never gated, `Esc` falling through to the pause menu on Mulligan / Choice / end banner, `Tab` idle focus cycle with the 2 px ring, 44x44 chip hit rects, `Blocked` reason on focus); ui-code.md rules 1, 2, 4–6 and 8 and art bible §4 geometry and tokens hold, and every registry value the GDD restates matches. Three new defects a programmer would have implemented as written were found and fixed in place (option A, no owner decision): the F6 mana bar sat inside the hand zone (covered for every n ≥ 6, and the rotated fan envelope reaches x 188 / 1092, so O1, O3 and F1's "no overlap" claims were false); rng-event-log rule 12a's `diagnostic: true` events and card-effects' `counter_changed` were in neither the U3 table nor the silent set, so rule 4 would have printed `feed.unknown` lines every boss turn in release; L15 assumed `Space` ends the turn while U5 gives idle focus to the left-most playable card. Status is In Review pending a byte-identical re-review.
+Prior verdict resolved: Yes
+Findings:
+- [BLOCKING] Formulas F6 / F1 / AC O1, O3: mana bar `1000, 676, 256, 32` overlapped the hand zone (right card x 890–1040, rotated edge x 1048 at y 676; outer top corners x 188 / 1092) — fixed: mana bar `1060, 652, 196, 56` (two rows), deck pile `1180, 540, 76, 106`, tray three v1 slots (`MAX_TREASURES_HELD`), `HAND_W` safe range 700–800, F1 envelope stated, O1 rewritten
+- [BLOCKING] Detailed Design U3 / Interactions: `ai_decision`, `ai_plan_aborted`, `ai_fault` (rng rule 12a) and `counter_changed` (card-effects C5) fell to rule 4 (`feed.unknown`) — fixed: rule 4a filters diagnostics (player `command_rejected` keeps the tooltip and gains `feed.command_rejected`, accessibility-requirements "Reading time"), `counter_changed` → `counters{}` + feed line, no badge; L9 / L18; `--ai-debug` in U11
+- [BLOCKING] Acceptance Criteria L15: unsatisfiable when a playable card is lit (U5: `Space` is End Turn only with no card focused) — fixed: precondition "no playable card lit" plus the lit-card branch
+- [RECOMMENDED] Detailed Design U5 (fixed): idle focus order differed from interaction-patterns Focus Management, the owner the GDD names — aligned to hero power → portrait → chips → End Turn
+- [RECOMMENDED] UI Requirements / AC O15 (fixed): pause-menu row omitted `reduce_motion` that U9 lists; O17 defined as view-state equality plus a retained pose pair
+- [RECOMMENDED] Detailed Design U5 (`/ux-design hud`): `Space` with a playable card focused does nothing in `Idle` and gives no feedback — specify a response (focus jumps to End Turn, or a flash)
+- [RECOMMENDED] Acceptance Criteria L13: millisecond budgets still name no reference machine
+- [RECOMMENDED] Cross-GDD housekeeping: rng-event-log rule 12a line 117 ("hides diagnostic events … unless a debug flag") now has the player `command_rejected` exception; treasures.md Tuning Knobs line 669 says the tray width "assumes ≤ 4" — it is three slots
+- [RECOMMENDED] Registry: `boss_turn_gap.output_range` [0.15, 0.6] is stale — `action_delay_ms` (0–2000) raises the clamp cap to 2.0 (L16 yields 1.2); `hero_war` / `hero_decay` / `hero_knowledge` list match-ui.md in `referenced_by` though the GDD never names those entries (harmless)
+Reviewed-Content-Hash: design/gdd/match-ui.md 2d49b0054a541eaef149cf7b26ce21617b2099e4
+Reviewed-Content-Hash: design/registry/entities.yaml c0b7b1c0ad84e2c548b1bb890c79073e397c259c
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/card-database.md bf374f0a4c79940fe414c216246ea3cca7f195db
+Reviewed-Content-Hash: design/gdd/heroes.md 2c76cf8115794dbf939f51317884d278d4561656
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
+Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5eca280f2b
+Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e23e2eb0488
+Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
+Reviewed-Content-Hash: design/accessibility-requirements.md 96c731ff0757d53872c56769c5893286d5c351dd
+Reviewed-Content-Hash: design/ux/interaction-patterns.md 0a5713271e352b17d993667908c55de8d2b3670e

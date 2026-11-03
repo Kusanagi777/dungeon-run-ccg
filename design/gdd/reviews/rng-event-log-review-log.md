@@ -75,3 +75,36 @@ Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a8
 Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
 Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
 Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
+
+## Review — 2026-11-03 — Verdict: APPROVED
+Review mode: lean · Workflow: standard
+Scope signal: L
+Specialists: none (lean mode — single-session review; no `systems-designer` / `qa-lead` pass)
+Blocking items: 0 | Recommended: 3
+Summary: Third pass; the target document is byte-identical to the revised version of the second pass and four stamped cross-documents changed (registry, design-decisions, card-effects, reward-draft), so every catalogue row was re-verified against its owner. The three in-place fixes hold: `run_ended` carries Run Structure's R1/R6 `abandon_reason` enum with `floor_reached` and `ended_by`; `match_ended` is match-rules C14's `MatchResult` verbatim (`winner`, full `reason` enum incl. `event_cap`); `ai_intent_shown` / `ai_intent_committed` match boss-ai C8.1–C8.2 field for field and the `effective_mode` formula is DD-X03's. The added rows (`discover_*`, `counter_changed`, `hook_install_skipped`, `deck_grew`, `run_warning`) match card-effects, treasures T3 and run-structure R10; every F1/F2 worked example re-verifies numerically; the dependency graph is 10/10 on disk; the registry search (≈25 terms, 50 lines) found no conflict; DD-T03 / DD-T04 now read this GDD's stream names and five-field envelope. Nothing regressed. What remains is additive: the owned `match_summary` row leaves `result` undefined and lacks the `reason`/`winner` its two consumers read, and the `draft_offered` flag enum lags reward-draft D11.
+Prior verdict resolved: Yes
+Findings:
+- [RECOMMENDED] Detailed Design §D `match_summary` (owned here): `result` values undefined; run-structure R10 reads `reason` from it and meta-progression M7.2 tests `result == player` — define `result` as C14's `win | loss | fault` and add `winner`, `reason` (copied from `match_ended`)
+- [RECOMMENDED] Detailed Design §D `draft_offered`: `flags[]` enum reads `short | pity_forced | universal_forced | coverage`; reward-draft D11 is `pity_forced | coverage_forced | universal_forced | universal_missing | reoffer | short`
+- [RECOMMENDED] Formulas F7: `run_total_events` "reported in `run_ended` diagnostics" — `run_ended` is Run Structure's payload and carries no such field; state it as Σ `match_summary.event_count` or drop the clause
+- [NICE-TO-HAVE] §D `run_ended`: fields are listed flat; R6 emits `run_ended{result, floors_cleared, total_turns, run_seed_hex}` with `result` = the R1 record (`outcome`, `abandon_reason`, `ended_by`, `floor_reached`) — note the nesting
+- [NICE-TO-HAVE] Cross-References DD-T04 row: "this GDD extends the envelope" is moot now that DD-T04 reads the five-field form
+- [CROSS-GDD] card-effects Open Questions `fork("effect_<id>")` row still "Open — proposed here" though this GDD's Interactions row was amended two passes ago; card-effects Cross-References cite a `minion_modified` catalogue row that does not exist (`enchantment_applied`) and describe `effect_resolved`'s catalogue row by its pre-realignment fields
+- [CROSS-GDD] meta-progression M7.2 / F2 pseudo-code test `match_summary.result == player` — should read the `winner` field once the row above defines it
+- [CROSS-GDD] run-structure R4 lists `seed` in `MatchResult` (C14 says the record carries no seed) and R3.2 still flags the `MatchConfig.seed` name as open (resolved by cross-review C-05)
+- [CROSS-GDD] systems-index Recommended Design Order row 2 still scores RNG & Event Log `S`; three reviews score it `L`
+Reviewed-Content-Hash: design/gdd/rng-event-log.md dc7474f4995cf1741e5617c0b5938f18eee5fcc4
+Reviewed-Content-Hash: design/registry/entities.yaml c0b7b1c0ad84e2c548b1bb890c79073e397c259c
+Reviewed-Content-Hash: .claude/skills/design-review/SKILL.md a63d8fba9b7142eeb43791f061e2e1533c429b43
+Reviewed-Content-Hash: design/gdd/game-concept.md c781025c5f2a71209b4de0976ab806d097b8f0b0
+Reviewed-Content-Hash: design/design-decisions.md 6d7e7fac963fc62e7ff90a531df77e23e2eb0488
+Reviewed-Content-Hash: design/gdd/match-rules.md 54e7dae9ecc522fc57787bf4c65313364d74be3f
+Reviewed-Content-Hash: design/gdd/card-effects.md 0a434c1bcf30900536181fc057877a04832c766e
+Reviewed-Content-Hash: design/gdd/boss-ai.md 346787f0550706b31047cb67b5356266e488440a
+Reviewed-Content-Hash: design/gdd/run-structure.md 1485f9df6fb25ee9514c6a88385e8f88704f7603
+Reviewed-Content-Hash: design/gdd/reward-draft.md fefe17c210dcc4fb1bd265441cf2355d0eb202e9
+Reviewed-Content-Hash: design/gdd/treasures.md 97a87411e8e8b1e2988f8eaf36cd4edbde227cee
+Reviewed-Content-Hash: design/gdd/match-ui.md cd8dc9c6ed098bb2b6036957a1690f4c6c4556ea
+Reviewed-Content-Hash: design/gdd/run-ui.md d9018ff2729512cf024dd40326853be715a806b4
+Reviewed-Content-Hash: design/gdd/meta-progression.md 43936af8124347bad40ad7d52e1eda53d7ec5fcf
+Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c7189442aceb
