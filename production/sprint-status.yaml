@@ -98,7 +98,7 @@ stories:
     name: "EffectRuntime, resolver binding lifecycle and card_effects.json"
     file: "production/epics/card-effects/story-002-runtime-binding-config.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 3
@@ -106,8 +106,8 @@ stories:
     serialised: false
     contract: true
     blocker: ""
-    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config"
-    completed: ""
+    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config (name unchanged; final snake_case keys)"
+    completed: "2026-11-03"
   - id: "content-001"
     name: "Batch-0 first-playable data set"
     file: "production/epics/content/story-001-batch-0-first-playable-data-set.md"

@@ -68,14 +68,15 @@ const CODES: Array[StringName] = [
 	E_FX_CHOSEN, E_FX_BUDGET, W_FX_KEYWORD_MISMATCH, W_FX_UNREACHABLE,
 ]
 
-## The `caps` keys this story reads (the `card_effects` config body, card-effects
-## Tuning Knobs). ADR-0007 spells them UPPER_CASE; the snake_case spelling is
-## read too, since story 002 owns `card_effects.json`'s key naming (match-rules
-## uses snake_case keys). A missing cap skips its bound check: `validate_config`
+## The `caps` keys [method validate_effects] reads (the `card_effects` config
+## body, card-effects Tuning Knobs). The GDD and ADR-0007 name the knobs
+## UPPER_CASE (`MAX_REPEAT`); the file key is the snake_case spelling
+## (`max_repeat`, DD-T01 — settled by story 002), and only that spelling is
+## read. A missing cap skips its bound check: [method validate_config]
 ## (stage 7a) is what reports a missing knob.
-const CAP_MAX_OPS_PER_EFFECT: String = "MAX_OPS_PER_EFFECT"
-const CAP_MAX_REPEAT: String = "MAX_REPEAT"
-const CAP_MAX_SUMMON_COUNT: String = "MAX_SUMMON_COUNT"
+const CAP_MAX_OPS_PER_EFFECT: String = "max_ops_per_effect"
+const CAP_MAX_REPEAT: String = "max_repeat"
+const CAP_MAX_SUMMON_COUNT: String = "max_summon_count"
 
 ## Host kinds Card Database stage 7b passes (card-database story 004), plus the
 ## C2 spellings. `card` resolves to the record `type` through `db.card(host_id)`;
@@ -83,23 +84,34 @@ const CAP_MAX_SUMMON_COUNT: String = "MAX_SUMMON_COUNT"
 const HOST_KIND_CARD: StringName = &"card"
 const HOST_KIND_BOSS: StringName = &"boss"
 
+## The keys of the `card_effects.json` config body: the card-effects Tuning
+## Knobs, snake_case (DD-T01), whole-number knobs first — the order
+## [method validate_config] reports in. Every knob is required; no other key is
+## allowed.
+const CONFIG_KEYS: Array[String] = [
+	"discover_count", "max_ops_per_effect", "max_repeat", "max_summon_count",
+	"effect_static_step_limit", "discover_exclude_hand", "spell_damage_default",
+	"hooks_before_triggers",
+]
 ## The whole-number Tuning Knobs of `card_effects.json` and their safe ranges
 ## `[min, max]`, inclusive (design/gdd/card-effects.md Tuning Knobs; F6
 ## variables). Validation bounds, not knob values: like
 ## `RulesEngine.CONFIG_SAFE_RANGES` they cannot come from the file they check.
+## `tests/integration/card_effects/card_effects_config_file_test.gd` pins
+## them, and the shipped values, to the GDD table.
 const CONFIG_INT_RANGES: Dictionary[String, Array] = {
-	"DISCOVER_COUNT": [1, 5],
-	"MAX_OPS_PER_EFFECT": [4, 12],
-	"MAX_REPEAT": [2, 20],
-	"MAX_SUMMON_COUNT": [1, 7],
-	"EFFECT_STATIC_STEP_LIMIT": [50, 1000],
+	"discover_count": [1, 5],
+	"max_ops_per_effect": [4, 12],
+	"max_repeat": [2, 20],
+	"max_summon_count": [1, 7],
+	"effect_static_step_limit": [50, 1000],
 }
 ## The other Tuning Knobs and the only values their safe range allows
 ## (compared with type equality, so `"true"` is not `true`).
 const CONFIG_ALLOWED_VALUES: Dictionary[String, Array] = {
-	"DISCOVER_EXCLUDE_HAND": [true, false],
-	"SPELL_DAMAGE_DEFAULT": ["auto", false],
-	"HOOKS_BEFORE_TRIGGERS": [true],
+	"discover_exclude_hand": [true, false],
+	"spell_damage_default": ["auto", false],
+	"hooks_before_triggers": [true],
 }
 
 
@@ -158,56 +170,43 @@ static func validate_effects(host_kind: StringName, host_id: String, effects: Ar
 
 ## The `card_effects` config validator (card-database CR-5 stage 7a; ADR-0002
 ## Decision 4: `call(body, db) -> Array`), registered by `Boot` as
-## `configs.card_effects`. **Interim** (code review 2026-11-03): it checks
-## that every Tuning Knob is present and inside its safe range; card-effects
-## story 002 owns the final key spelling and may extend it. A knob is read
-## under its GDD name (`MAX_REPEAT`) or the snake_case spelling
-## (`max_repeat`), as [method validate_effects] reads its caps. Static and
-## pure ([param _db] is unused). Returns one `E_FX_SCHEMA` entry
-## `{code, host_id: null, field, message}` per problem, `field` the GDD knob
-## name, in [constant CONFIG_INT_RANGES] then [constant CONFIG_ALLOWED_VALUES]
-## order; `[]` when the body is valid:
-## - a knob absent under both spellings;
+## `configs.card_effects` (story 002 AC-41 — it replaces the interim one of
+## the 2026-11-03 code review under the same name). Keys are the snake_case
+## [constant CONFIG_KEYS] (DD-T01); the GDD's UPPER_CASE names are not file
+## keys. Static and pure ([param _db] is unused). Returns one `E_FX_SCHEMA`
+## entry `{code, host_id: null, field, message}` per problem, `field` the file
+## key, in [constant CONFIG_KEYS] order then unknown keys in body order; `[]`
+## when the body is valid:
+## - a knob that is absent;
 ## - a [constant CONFIG_INT_RANGES] knob that is not a whole number (JSON
 ##   numbers parse as `float`: `8.0` passes, `8.5`, `"8"`, `true` fail), or a
 ##   whole number outside its range;
-## - a [constant CONFIG_ALLOWED_VALUES] knob holding any other value.
+## - a [constant CONFIG_ALLOWED_VALUES] knob holding any other value;
+## - a key that is not a knob (a misspelt knob would otherwise go unnoticed
+##   while the real one is reported missing).
 ## [codeblock]
 ## var errors: Array = EffectValidator.validate_config({"max_repeat": 30.0}, null)
-## errors[0].field   # "DISCOVER_COUNT" (missing); errors[2] is MAX_REPEAT out of range
+## errors[0].field   # "discover_count" (missing); errors[2] is max_repeat out of range
 ## [/codeblock]
 static func validate_config(body: Dictionary, _db: Variant) -> Array:
 	var errors: Array = []
-	for knob: String in CONFIG_INT_RANGES:
-		var key: Variant = _config_key(body, knob)
-		if key == null:
+	for knob: String in CONFIG_KEYS:
+		if not body.has(knob):
 			errors.append(_config_error(knob, "missing knob `%s` (card-effects Tuning Knobs)" % knob))
-			continue
-		var raw: Variant = body[key]
-		var is_number: bool = typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT
-		if not is_number or float(raw) != floorf(float(raw)):
-			errors.append(_config_error(knob, "`%s` must be a whole number, found %s (%s)" % [key, str(raw), type_string(typeof(raw))]))
-			continue
-		var bounds: Array = CONFIG_INT_RANGES[knob]
-		if int(raw) < int(bounds[0]) or int(raw) > int(bounds[1]):
-			errors.append(_config_error(knob, "`%s` is %d, outside the safe range %d–%d" % [key, int(raw), int(bounds[0]), int(bounds[1])]))
-	for knob: String in CONFIG_ALLOWED_VALUES:
-		var key: Variant = _config_key(body, knob)
-		if key == null:
-			errors.append(_config_error(knob, "missing knob `%s` (card-effects Tuning Knobs)" % knob))
-		elif not _enum_has(CONFIG_ALLOWED_VALUES[knob], body[key]):
-			errors.append(_config_error(knob, "`%s` is one of %s, found %s" % [key, str(CONFIG_ALLOWED_VALUES[knob]), str(body[key])]))
+		elif CONFIG_INT_RANGES.has(knob):
+			var raw: Variant = body[knob]
+			var is_number: bool = typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT
+			var bounds: Array = CONFIG_INT_RANGES[knob]
+			if not is_number or float(raw) != floorf(float(raw)):
+				errors.append(_config_error(knob, "`%s` must be a whole number, found %s (%s)" % [knob, str(raw), type_string(typeof(raw))]))
+			elif int(raw) < int(bounds[0]) or int(raw) > int(bounds[1]):
+				errors.append(_config_error(knob, "`%s` is %d, outside the safe range %d–%d" % [knob, int(raw), int(bounds[0]), int(bounds[1])]))
+		elif not _enum_has(CONFIG_ALLOWED_VALUES[knob], body[knob]):
+			errors.append(_config_error(knob, "`%s` is one of %s, found %s" % [knob, str(CONFIG_ALLOWED_VALUES[knob]), str(body[knob])]))
+	for key: Variant in body:
+		if not CONFIG_KEYS.has(str(key)):
+			errors.append(_config_error(str(key), "unknown knob `%s` (card-effects Tuning Knobs: %s)" % [key, ", ".join(CONFIG_KEYS)]))
 	return errors
-
-
-## The key [param knob] is stored under in [param body] — its GDD name, else
-## its snake_case spelling — or `null` when neither is present.
-static func _config_key(body: Dictionary, knob: String) -> Variant:
-	if body.has(knob):
-		return knob
-	if body.has(knob.to_lower()):
-		return knob.to_lower()
-	return null
 
 
 static func _config_error(knob: String, message: String) -> Dictionary:
@@ -850,10 +849,10 @@ static func _collect_op_names(ops: Variant, into: Dictionary) -> void:
 
 # --- Report ------------------------------------------------------------------------
 
+## The cap [param name] (a snake_case [constant CONFIG_KEYS] key) from
+## [param caps], or `null` when absent.
 static func _cap(caps: Dictionary, name: String) -> Variant:
-	if caps.has(name):
-		return caps[name]
-	return caps.get(name.to_lower())
+	return caps.get(name)
 
 
 static func _add(ctx: Dictionary, code: StringName, path: String, message: String) -> void:
