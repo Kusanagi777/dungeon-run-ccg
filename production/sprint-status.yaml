@@ -200,14 +200,14 @@ stories:
     name: "No-global-RNG lint (tools/lint/no_global_rng.sh) in CI"
     file: "production/epics/rng-event-log/story-004-no-global-rng-lint.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     wave: 3
     serialised: false
     blocker: ""
     note: "stretch; after BOOT-005 (tests.yml)"
-    completed: ""
+    completed: "2026-11-03"
   - id: "boot-composition-root-006"
     name: "main.tscn composition entry and the RunShell stub"
     file: "production/epics/boot-composition-root/story-006-main-scene-composition-entry.md"
