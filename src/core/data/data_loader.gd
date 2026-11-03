@@ -15,7 +15,8 @@
 ## staging (`LoadResult.staging`), 7 (the injected validators, 7a configs
 ## then 7b records, with the database's stage-7 lookups open), 8 (budget
 ## warnings and pool thresholds) and 9 (the recursive freeze into the
-## snapshot, story 006). Stage 9's `data_version` is card-database story 007.
+## snapshot, story 006, and the CR-9 `data_version` fingerprint, story 007 —
+## [method fingerprint], [method canonical_json]).
 ##
 ## [codeblock]
 ## var loader: DataLoader = DataLoader.new("res://tests/fixtures/data/minimal/")
@@ -109,7 +110,7 @@ const CONFIG_VALIDATOR_EXEMPT: Array[String] = ["card_database.json"]
 ## index_of: {<id>: {type, position}}, config_bodies: {<config name without
 ## .json>: body}, pools: {collectible: {<set>: Array}, bundle: {<set>: Array},
 ## bosses_in_band: {<band int>: Array}, all: {TreasureDef: Array, HeroDef:
-## Array}}, data_version: "" (story 007 computes it), report}`.
+## Array}}, data_version: <16 lowercase hex, CR-9>, report}`.
 class LoadResult extends RefCounted:
 	## Every problem the run found (warnings only on a clean load).
 	var report: ValidationReport
@@ -173,7 +174,7 @@ func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	# Stage 8 — budget warnings and pool thresholds, every threshold from data.
 	_check_budgets(staged, staging, report)
 	# Stage 9 — only with zero errors: freeze the id-sorted staging and every
-	# config body into the snapshot (data_version: story 007).
+	# config body into the snapshot, and fingerprint every file (CR-9).
 	if report.has_errors():
 		return LoadResult.new(report, null, staging)
 	return LoadResult.new(report, _freeze(staged, staging, report), staging)
@@ -827,17 +828,65 @@ static func in_bundle_pool(bundle: Dictionary, hero_set: String) -> bool:
 	return bundle["set"] == hero_set or bundle["set"] == "neutral"
 
 
-## Stage 9 (CR-5 step 9, CR-6, CR-7; ADR-0002 Decision 5), run only with zero
-## errors: the snapshot ([class LoadResult] shape) over the id-sorted staging
-## (never file order) and every config body, with the common pools
+## CR-9 canonical serialisation: `JSON.stringify(value, "", true, true)` —
+## no indent and no whitespace, keys sorted at every depth, floats at full
+## precision. Observed on 4.7.2 (2026-11-03): `{"b":2.0,"a":{"c":"x","d":[1,2]}}`
+## style output, a parsed (float) `2` renders as `2.0`, an int as `2`, and a
+## read-only container serialises like a writable one.
+## Example: `DataLoader.canonical_json({"b": 1, "a": 2}) == "{\"a\":2,\"b\":1}"`.
+static func canonical_json(value: Variant) -> String:
+	return JSON.stringify(value, "", true, true)
+
+
+## CR-9 `data_version` over `bodies`, `[{name: String, body: Variant}]` in
+## manifest order (stage 9 passes every file it loaded; an absent optional
+## file is simply not in the list): one `HashingContext` (`HASH_SHA256`), per
+## entry `update(name.to_utf8_buffer())` then
+## `update(canonical_json(body).to_utf8_buffer())`, and
+## `finish().hex_encode().substr(0, 16)` — 16 lowercase hex characters. A
+## definition envelope's `records` list is hashed in id order (the CR-6 order),
+## so record authoring order is as irrelevant as key order and whitespace
+## (control manifest: never depend on file or authoring order); every other
+## list keeps its order (a starter deck's order is content). Pure: needs no
+## database. Example: `DataLoader.fingerprint([{"name": "a.json", "body": {"k": 1}}])`.
+static func fingerprint(bodies: Array[Dictionary]) -> String:
+	var ctx: HashingContext = HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	for entry: Dictionary in bodies:
+		ctx.update(String(entry.name).to_utf8_buffer())
+		ctx.update(canonical_json(_records_in_id_order(entry.body)).to_utf8_buffer())
+	return ctx.finish().hex_encode().substr(0, 16)
+
+
+## `body` itself, or — for an envelope whose `records` is a list of records
+## with string ids — a shallow copy with that list sorted by id.
+static func _records_in_id_order(body: Variant) -> Variant:
+	if not body is Dictionary or not (body as Dictionary).get("records") is Array:
+		return body
+	var records: Array = Array(body.records).duplicate()
+	for rec: Variant in records:
+		if not rec is Dictionary or not (rec as Dictionary).get("id") is String:
+			return body
+	records.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a.id) < String(b.id))
+	var copy: Dictionary = (body as Dictionary).duplicate()
+	copy["records"] = records
+	return copy
+
+
+## Stage 9 (CR-5 step 9, CR-6, CR-7, CR-9; ADR-0002 Decision 5), run only with
+## zero errors: the snapshot ([class LoadResult] shape) over the id-sorted
+## staging (never file order) and every config body, with the common pools
 ## precomputed — collectible and bundle pools for every CR-3 set, the boss
 ## pool for every band in the BossDef `band` range — so those queries are a
-## lookup. Then every container in it is made read-only, bottom-up
-## ([method _freeze_deep]); the report object is not a container and stays
-## as it is.
+## lookup, and `data_version` = [method fingerprint] over every staged file
+## (all present files: a clean load dropped none) in manifest order. Then
+## every container in it is made read-only, bottom-up ([method _freeze_deep]);
+## the report object is not a container and stays as it is.
 func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationReport) -> Dictionary:
 	var config_bodies: Dictionary = {}
+	var bodies: Array[Dictionary] = []
 	for item: Dictionary in staged:
+		bodies.append({"name": item.row.name, "body": item.body})
 		if item.row["class"] == "config":
 			config_bodies[String(item.row.name).get_basename()] = item.body.config
 	var records: Dictionary = staging.records_by_type
@@ -860,7 +909,7 @@ func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationR
 			"bosses_in_band": bosses_in_band,
 			"all": {"TreasureDef": records.TreasureDef, "HeroDef": records.HeroDef},
 		},
-		"data_version": "",
+		"data_version": fingerprint(bodies),
 		"report": report,
 	}
 	_freeze_deep(snapshot)

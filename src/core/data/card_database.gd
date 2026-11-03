@@ -29,8 +29,8 @@
 ## first. Records are returned as the snapshot's own Dictionary
 ## (`records[index_of[id]]`, O(1), no copy); the CR-6 pools are precomputed at
 ## freeze and returned as the same frozen Array each call; `cards_by_*` filter
-## on demand and freeze their result. Story 007 computes `data_version`;
-## Story 008 adds `reload()`, `Reloading`, `E_NOT_LOADED` and
+## on demand and freeze their result. `data_version()` is the snapshot's CR-9
+## fingerprint (`DataLoader.fingerprint`, story 007). Story 008 adds `reload()`, `Reloading`, `E_NOT_LOADED` and
 ## `E_NOT_SUPPORTED`. Single-thread-only.
 class_name CardDatabase
 extends RefCounted
@@ -52,8 +52,6 @@ var _snapshot: Variant = null
 var _stage7_staging: Dictionary = {}
 ## True only while the loader runs CR-5 stage 7 (ADR-0002 Decision 4).
 var _stage7_lookups_open: bool = false
-## CR-9 fingerprint; empty until Story 007 computes it at freeze.
-var _data_version: String = ""
 
 
 ## A database that will load through `loader`, or through a `DataLoader` over
@@ -214,14 +212,16 @@ func config(config_name: String) -> Variant:
 	return body
 
 
-## The CR-9 fingerprint in `Ready` (empty until Story 007 computes it); `""`
-## and a logged error before `Ready` (asserting during stage 7 in a debug
-## build). Example: `RngService.new(run_seed, db.data_version())`.
+## The CR-9 fingerprint in `Ready`: 16 lowercase hex characters, the same for
+## the same files on every machine and changed by any edit (computed at freeze,
+## `DataLoader.fingerprint`); `""` and a logged error before `Ready`
+## (asserting during stage 7 in a debug build).
+## Example: `RngService.new(run_seed, db.data_version())`.
 func data_version() -> String:
 	if _state != State.READY:
 		_illegal_before_ready("data_version")
 		return ""
-	return _data_version
+	return _snapshot.data_version
 
 
 ## Loader-only: opens the stage-7 lookups over `staging` (`LoadResult.staging`

@@ -1,0 +1,16 @@
+{
+    "records": [
+        {
+            "art": "powers/power_sharpen",
+            "text": {
+                "en": "",
+                "key": "power.power_sharpen.text"
+            },
+            "effects": [],
+            "cost": 2,
+            "name": "Sharpen",
+            "id": "power_sharpen"
+        }
+    ],
+    "schema_version": 1
+}

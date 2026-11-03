@@ -1,0 +1,6 @@
+{
+    "config": {
+        "treasure_offers_per_draft": 3
+    },
+    "schema_version": 1
+}

@@ -1,0 +1,157 @@
+{
+    "records": [
+        {
+            "token": true,
+            "text": {
+                "en": "",
+                "key": "card.war_recruit.text"
+            },
+            "tags": [],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "health": 1,
+            "attack": 1,
+            "cost": 1,
+            "type": "minion",
+            "set": "war",
+            "name": "War Recruit",
+            "id": "war_recruit"
+        },
+        {
+            "art": "cards/war_battle_cry_alt",
+            "text": {
+                "en": "",
+                "key": "card.war_battle_cry.text"
+            },
+            "tags": [],
+            "effects": [],
+            "keywords": [
+                "battlecry"
+            ],
+            "rarity": "legendary",
+            "health": 4,
+            "attack": 4,
+            "cost": 4,
+            "type": "minion",
+            "set": "war",
+            "name": "War Battle Cry",
+            "id": "war_battle_cry"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.war_whetstone.text"
+            },
+            "tags": [
+                "weapons"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "cost": 1,
+            "type": "spell",
+            "set": "war",
+            "name": "War Whetstone",
+            "id": "war_whetstone"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.war_iron_axe.text"
+            },
+            "tags": [
+                "weapons"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "durability": 2,
+            "attack": 2,
+            "cost": 2,
+            "type": "weapon",
+            "set": "war",
+            "name": "War Iron Axe",
+            "id": "war_iron_axe"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.war_axe_thrower.text"
+            },
+            "tags": [
+                "weapons"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "health": 2,
+            "attack": 2,
+            "cost": 2,
+            "type": "minion",
+            "set": "war",
+            "name": "War Axe Thrower",
+            "id": "war_axe_thrower"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.war_iron_vanguard.text"
+            },
+            "tags": [
+                "armor"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "rare",
+            "health": 4,
+            "attack": 3,
+            "cost": 3,
+            "type": "minion",
+            "set": "war",
+            "name": "War Iron Vanguard",
+            "id": "war_iron_vanguard"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.war_plate_squire.text"
+            },
+            "tags": [
+                "armor"
+            ],
+            "effects": [],
+            "keywords": [],
+            "rarity": "common",
+            "health": 3,
+            "attack": 2,
+            "cost": 2,
+            "type": "minion",
+            "set": "war",
+            "name": "War Plate Squire",
+            "id": "war_plate_squire"
+        },
+        {
+            "text": {
+                "en": "",
+                "key": "card.war_shield_bearer.text"
+            },
+            "tags": [
+                "armor"
+            ],
+            "effects": [],
+            "keywords": [
+                "taunt"
+            ],
+            "rarity": "common",
+            "health": 3,
+            "attack": 1,
+            "cost": 1,
+            "type": "minion",
+            "set": "war",
+            "name": "War Shield Bearer",
+            "id": "war_shield_bearer"
+        }
+    ],
+    "schema_version": 1
+}
