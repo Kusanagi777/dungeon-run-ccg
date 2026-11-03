@@ -41,7 +41,7 @@ stories:
     name: "Damage, healing and armour pipeline"
     file: "production/epics/match-rules/story-007-damage-heal-armor.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 1
@@ -50,7 +50,7 @@ stories:
     contract: false
     blocker: ""
     note: "edits tests/helpers/test_effect_resolver.gd; /code-review at M1"
-    completed: ""
+    completed: "2026-11-03"
   - id: "match-rules-008"
     name: "Win, loss, concede and MatchResult"
     file: "production/epics/match-rules/story-008-win-loss-concede-result.md"

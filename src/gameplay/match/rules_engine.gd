@@ -164,6 +164,11 @@ var _call_last_seq: int = 0
 ## returns the triggers it queues and the engine appends them here). Drained
 ## by the C10 loop (story 009).
 var _queue: Array[Dictionary] = []
+## The `{source, target}` contexts of the `modify_damage` / `modify_heal`
+## folds, reused on every call (ADR-0005: the fold allocates nothing; the
+## engine does not build a context per hit either).
+var _damage_ctx: Dictionary = {"source": null, "target": 0}
+var _heal_ctx: Dictionary = {"source": null, "target": 0}
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -483,15 +488,28 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 
 ## Primitive (F2, C9): [param requested] damage to the character
 ## [param target_id] from [param source] — an entity id (a minion, a hero, the
-## weapon a hero attacks with, a card instance) or [constant SOURCE_FATIGUE].
-## Armour absorbs first (heroes; 0 for minions), the rest raises
-## `damage_taken`; emits `damage_dealt {source, target, requested, prevented,
-## armor_absorbed, dealt, health_after}` (`health_after` may be negative) and
-## moves the target side's `stats.damage_taken` and the source side's
-## `stats.damage_dealt_by_card[def_id]` by `dealt`. Returns `dealt`. A
-## missing target is a no-op returning 0. Never runs the death check (C10).
-## TODO(story 007): the `modify_damage` fold and its single clamp, Divine
-## Shield, `armor_lost`, Poisonous, Lifesteal, `on_hero_damaged`, `on_damage`.
+## weapon a hero attacks with — its keywords then count for the attack — or a
+## card instance) or [constant SOURCE_FATIGUE] — evaluated in one step:
+## 1. `amount = maxi(0, hooks.fold(&"modify_damage", source_side, requested,
+##    {source, target}))` — the engine's one clamp, after the whole fold
+##    (ADR-0005 rule 4). `source_side` is the source's side; fatigue, which
+##    has none, folds with the target's side.
+## 2. Divine Shield and `amount > 0`: `prevented = amount`, `amount = 0`, the
+##    shield keyword is removed, `divine_shield_popped {entity_id, prevented}`.
+## 3. Armour absorbs first (heroes only): `armor_lost {side, entity_id,
+##    amount, armor}` when > 0; the rest raises `damage_taken`.
+## 4. `dealt = armor_absorbed + to_health`; `damage_dealt {source, target,
+##    requested, prevented, armor_absorbed, dealt, health_after}`
+##    (`health_after` may be negative); stats: the target side's
+##    `damage_taken` and the source side's `damage_dealt_by_card[def_id]`.
+## 5. When `dealt > 0`: a Poisonous source marks a minion target
+##    `pending_destroy` (heroes immune); a Lifesteal source heals its side's
+##    hero by `dealt` ([method apply_heal]); a hero target runs the
+##    `on_hero_damaged` hooks `{amount_dealt, source}`; trigger point
+##    `on_damage {subject, amount, source}` is raised (its triggers join Q).
+## Returns `dealt`. A missing target is a no-op returning 0. Never runs the
+## death check (C10), so a Poisonous attacker killed by its defender still
+## poisons it.
 ## [codeblock]
 ## var dealt: int = engine.apply_damage(target_id, 3, attacker_id)
 ## [/codeblock]
@@ -499,28 +517,54 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 	var target: Dictionary = _character(target_id)
 	if target.is_empty():
 		return 0
-	var amount: int = maxi(0, requested)
+	var target_side: String = str(target.controller)
+	var source_side: String = _owner_of(source) if typeof(source) == TYPE_INT else ""
+	var fold_side: String = source_side if source_side != "" else target_side
+	_damage_ctx.source = source
+	_damage_ctx.target = target_id
+	var amount: int = maxi(0, _state.hooks.fold(&"modify_damage", StringName(fold_side), requested, _damage_ctx))
+	var prevented: int = 0
+	if amount > 0 and _has_keyword(target, MatchRecords.KEYWORD_DIVINE_SHIELD):
+		prevented = amount
+		amount = 0
+		_strip_keyword(target, MatchRecords.KEYWORD_DIVINE_SHIELD)
+		emit(&"divine_shield_popped", {"entity_id": target_id, "prevented": prevented})
 	var armor_absorbed: int = 0
 	if target.kind == MatchRecords.KIND_HERO:
 		armor_absorbed = mini(int(target.armor), amount)
-		target.armor = int(target.armor) - armor_absorbed
+		if armor_absorbed > 0:
+			target.armor = int(target.armor) - armor_absorbed
+			emit(&"armor_lost", {"side": target_side, "entity_id": target_id, "amount": armor_absorbed, "armor": int(target.armor)})
 	var to_health: int = amount - armor_absorbed
 	target.damage_taken = int(target.damage_taken) + to_health
 	var dealt: int = armor_absorbed + to_health
 	emit(&"damage_dealt", {
-		"source": source, "target": target_id, "requested": requested, "prevented": 0,
+		"source": source, "target": target_id, "requested": requested, "prevented": prevented,
 		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
 	})
-	_record_damage_stats(target, source, dealt)
+	if dealt <= 0:
+		return dealt
+	_record_damage_stats(target_side, source, source_side, dealt)
+	if target.kind == MatchRecords.KIND_MINION and _source_has(source, MatchRecords.KEYWORD_POISONOUS):
+		target["pending_destroy"] = true
+	if source_side != "" and _source_has(source, MatchRecords.KEYWORD_LIFESTEAL):
+		@warning_ignore("return_value_discarded")
+		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
+	if target.kind == MatchRecords.KIND_HERO:
+		_state.hooks.run_triggers(&"on_hero_damaged", StringName(target_side), {"amount_dealt": dealt, "source": source})
+	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source})
 	return dealt
 
 
-## Primitive (C9): heals the character [param target_id] by [param amount]
-## from [param source]: `restored = min(amount, damage_taken)` (health never
-## exceeds `max_health`); emits `healed {source, target, requested, amount:
-## restored}` always — a full-health target heals 0 and still emits. Returns
-## `restored`; a missing target is a no-op returning 0.
-## TODO(story 007): the `modify_heal` fold floored once at 0, `on_heal`.
+## Primitive (C9): heals the character [param target_id] from
+## [param source]: `heal = maxi(0, hooks.fold(&"modify_heal", source_side,
+## amount, {source, target}))` — floored once, so a hook can reduce a heal to
+## nothing but never turn it into damage (Treasures R-4); then `restored =
+## min(heal, damage_taken)` (health never exceeds `max_health`). Emits
+## `healed {source, target, requested, amount: restored}` always — a
+## full-health target heals 0 and still emits — then raises trigger point
+## `on_heal {subject, amount, source}`. Returns `restored`; a missing target
+## is a no-op returning 0. A source with no side folds with the target's.
 ## [codeblock]
 ## engine.apply_heal(hero_id, 10, source_id)   # restores at most damage_taken
 ## [/codeblock]
@@ -528,9 +572,15 @@ func apply_heal(target_id: int, amount: int, source: Variant) -> int:
 	var target: Dictionary = _character(target_id)
 	if target.is_empty():
 		return 0
-	var restored: int = mini(maxi(0, amount), int(target.damage_taken))
+	var target_side: String = str(target.controller)
+	var source_side: String = _owner_of(source) if typeof(source) == TYPE_INT else ""
+	_heal_ctx.source = source
+	_heal_ctx.target = target_id
+	var heal: int = maxi(0, _state.hooks.fold(&"modify_heal", StringName(source_side if source_side != "" else target_side), amount, _heal_ctx))
+	var restored: int = mini(heal, int(target.damage_taken))
 	target.damage_taken = int(target.damage_taken) - restored
 	emit(&"healed", {"source": source, "target": target_id, "requested": amount, "amount": restored})
+	_raise(&"on_heal", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": restored, "source": source})
 	return restored
 
 
@@ -1427,24 +1477,37 @@ static func _enchantment_payload(owner_id: int, enchantment: Dictionary) -> Dict
 	return payload
 
 
-## C1 stats for one `apply_damage`: the target side's `damage_taken` and the
-## source side's `damage_dealt_by_card[def_id]` move by [param dealt]. A
-## source without a `def_id` (a hero, [constant SOURCE_FATIGUE], one that
-## left every zone) attributes nothing.
-func _record_damage_stats(target: Dictionary, source: Variant, dealt: int) -> void:
-	if dealt <= 0:
-		return
-	var target_stats: Dictionary = _state.players[str(target.controller)].stats
+## C1 stats for one `apply_damage`: [param target_side]'s `damage_taken` and
+## [param source_side]'s `damage_dealt_by_card[def_id]` move by
+## [param dealt]. A source without a `def_id` (a hero,
+## [constant SOURCE_FATIGUE], one that left every zone) attributes nothing.
+func _record_damage_stats(target_side: String, source: Variant, source_side: String, dealt: int) -> void:
+	var target_stats: Dictionary = _state.players[target_side].stats
 	target_stats.damage_taken = int(target_stats.damage_taken) + dealt
-	if typeof(source) != TYPE_INT:
+	if source_side == "":
 		return
-	var source_record: Dictionary = _find_record(source)
-	var def_id: String = str(source_record.get("def_id", ""))
-	var source_side: String = _owner_of(source)
-	if def_id == "" or source_side == "":
+	var def_id: String = str(_find_record(source).get("def_id", ""))
+	if def_id == "":
 		return
 	var by_card: Dictionary = _state.players[source_side].stats.damage_dealt_by_card
 	by_card[def_id] = int(by_card.get(def_id, 0)) + dealt
+
+
+## Whether damage [param source] has [param keyword] (C12, F2): a character's
+## or weapon's keywords (definition plus enchantments — a weapon's count for
+## the hero attacking with it, story 013 passes the weapon as the source), a
+## card instance's definition keywords. [constant SOURCE_FATIGUE], null and a
+## source that left every zone have none.
+func _source_has(source: Variant, keyword: String) -> bool:
+	if typeof(source) != TYPE_INT:
+		return false
+	var record: Dictionary = _find_record(source)
+	if record.is_empty():
+		return false
+	if record.has("keywords"):
+		return _has_keyword(record, keyword)
+	var def: Variant = _db.card(str(record.def_id)) if _db != null else null
+	return def is Dictionary and (def as Dictionary).get("keywords", []).has(keyword)
 
 
 ## A fresh card instance of [param def_id] into [param side]'s hand, or the
