@@ -176,14 +176,14 @@ stories:
     name: "Turn structure, mana curve and turn cap"
     file: "production/epics/match-rules/story-005-turn-structure-and-mana.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     wave: 3
     serialised: true
     blocker: ""
     note: "test_effect_resolver.gd; merges second in W3"
-    completed: ""
+    completed: "2026-11-03"
   - id: "card-database-005"
     name: "Budget warnings and pool thresholds (CR-5 stage 8, Formulas)"
     file: "production/epics/card-database/story-005-budget-warnings-and-pool-thresholds.md"

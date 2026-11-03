@@ -36,6 +36,14 @@ func _engine_in_phase(phase: String, active_side: String = SIDE_PLAYER, pending_
 	return engine
 
 
+## Subscriber: copies [param player]'s hand and deck into [param out] when
+## `mulligan_resolved` is appended.
+func _snapshot_zones_on_resolved(event: Dictionary, player: Dictionary, out: Dictionary) -> void:
+	if event.type == "mulligan_resolved":
+		out.hand = player.hand.duplicate(true)
+		out.deck = player.deck.duplicate(true)
+
+
 func _assert_rejected(result: Dictionary, code: String) -> void:
 	assert_bool(result.accepted).is_false()
 	assert_str(str(result.rejection.code)).is_equal(code)
@@ -55,25 +63,28 @@ func test_mulligan_returns_unkept_cards_before_the_redraw() -> void:
 	all_ids.sort()
 	var stream: TestRngStream = rng.stream("match_1")
 	var shuffles_before: int = stream.calls.size()
+	# read the zones at mulligan_resolved — before C3 step 8's first draw
+	var at_resolved: Dictionary = {}
+	log.subscribe(_snapshot_zones_on_resolved.bind(player, at_resolved))
 
 	# Act
 	var result: Dictionary = engine.submit(MatchRecords.mulligan(_mask([true, false, false])))
 
 	# Assert
 	assert_bool(result.accepted).is_true()
-	assert_int(player.deck.size()).is_equal(deck_size)
-	assert_int(player.hand.size()).is_equal(TestConstants.STARTING_HAND_PLAYER)
-	assert_int(int(player.hand[0].instance_id)).is_equal(before_hand[0])
+	assert_int(at_resolved.deck.size()).is_equal(deck_size)
+	assert_int(at_resolved.hand.size()).is_equal(TestConstants.STARTING_HAND_PLAYER)
+	assert_int(int(at_resolved.hand[0].instance_id)).is_equal(before_hand[0])
 	# the returned cards went back into the deck before the one shuffle, so
 	# they are in the deck or redrawn (DD-M05 — never asserted "not redrawn")
-	assert_int(stream.calls.size()).is_equal(shuffles_before + 1)
+	assert_int(stream.count_calls("shuffle")).is_equal(2 + 1)
 	assert_int(int(stream.calls[shuffles_before].args[0])).is_equal(deck_size + 2)
-	var now_ids: Array[int] = _instance_ids(player.hand + player.deck)
+	var now_ids: Array[int] = _instance_ids(at_resolved.hand + at_resolved.deck)
 	now_ids.sort()
 	assert_array(now_ids).is_equal(all_ids)
-	for card: Dictionary in player.deck:
+	for card: Dictionary in at_resolved.deck:
 		assert_str(card.zone).is_equal("deck")
-	for card: Dictionary in player.hand:
+	for card: Dictionary in at_resolved.hand:
 		assert_str(card.zone).is_equal("hand")
 	var resolved: Dictionary = log.first(&"mulligan_resolved")
 	assert_str(resolved.payload.side).is_equal(SIDE_PLAYER)

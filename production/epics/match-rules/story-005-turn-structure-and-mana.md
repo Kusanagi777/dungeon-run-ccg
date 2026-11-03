@@ -1,12 +1,12 @@
 # Story 005: Turn structure, mana curve and turn cap
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -72,9 +72,10 @@ The turn loop is where the clock of the match lives: `turn` advances on every St
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (Start step, End step, `end_turn` handler, `_candidates_in_order`, `add_mana` permanent branch, `TURN_CAP` guard)
-- `tests/helpers/test_effect_resolver.gd` (record `ctx.candidates` per call)
-- `tests/unit/match_rules/match_rules_turn_structure_test.gd`
+- `src/gameplay/match/rules_engine.gd` — C3 step 8 (`match_started`), `_start_step`, `_end_step`, `end_turn` handler, `_candidates_in_order`, `_fire_trigger_point` + engine queue `_queue`, `_expire_end_of_turn`, `add_mana` permanent branch, `TURN_CAP` guard and `_end_match`, `legal_commands` `end_turn` row, log turn stamping
+- `tests/helpers/test_effect_resolver.gd` — unchanged here: `resolve_calls` / `candidates_for` already record `ctx.candidates` (added with the double in story 003)
+- `tests/unit/match_rules/match_rules_command_channel_test.gd` — AC-03 test now reads the zones at `mulligan_resolved` (the Start step's draw follows it since this story)
+- `tests/unit/match_rules/match_rules_turn_structure_test.gd` — 12 test functions
 
 ---
 
@@ -92,7 +93,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_turn_structure_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (12 test functions)
 
 ---
 
@@ -100,3 +101,19 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-004-command-channel-and-mulligan.md`
 - Unlocks: `production/epics/match-rules/story-006-primitives-draw-burn-fatigue.md`
+
+## Completion Notes
+**Completed**: 2026-11-03 (started 21:17:50 UTC, ended 21:28 UTC)
+**Criteria**: 4/4 passing — AC-05 (`test_first_start_step_gives_turn_one_player_one_crystal_and_four_cards`, `test_first_start_step_events_follow_c4_order`, `test_turn_reset_clears_only_the_starting_sides_characters`), AC-06 (`test_twelve_turns_each_follow_f4_and_cap_at_max_mana`, `test_global_turn_seven_is_the_players_fourth_turn`, `test_permanent_crystal_from_on_match_start_raises_the_player_curve_only`, `test_add_mana_permanent_raises_crystal_bonus_and_is_read_at_the_next_start`), AC-09 (`test_player_main_rejects_boss_play_card_and_a_second_mulligan`, `test_end_turn_runs_the_end_step_in_c4_order_then_the_boss_start`, `test_end_turn_result_spans_end_step_and_next_start_step`), AC-10 (`test_turn_cap_ends_the_match_for_the_boss_before_the_next_start_step`). Watched fail: all 12 against the story-004 engine; mutant ordering candidates active-side-first and emitting `crystal_gained` every Start (3 tests fail); mutant with an off-by-one `TURN_CAP`, hooks after triggers and no end-of-turn expiry (3 tests fail).
+**Deviations** (advisory):
+- `turn_started` payload is `{turn, side}`: the rng-event-log catalogue row also lists `mana_max, mana_available`, but C4 emits `turn_started` before the mana step, so those values would be the previous turn's; they are carried by `crystal_gained {side, mana_max, gained}` and `mana_refilled {side, mana_available, mana_max}`.
+- `enchantment_removed` payload is `{instance_id, attack_delta, health_delta, keywords_added, reason: "end_of_turn"}` (the removed enchantment's own values); the catalogue's derived `attack / health / max_health` fields are left to the primitive story (`remove_enchantment`), since a weapon or a hand card has none.
+- The C10 loop and `win_loss_check` are stubs (`TODO(story 009)`, `TODO(story 008)`); trigger hooks run as one `run_triggers` call followed by the loop stub, not the loop after each entry (needs a per-entry seam in `HookRegistry`, story 009). Triggers `resolve()` returns are appended to the engine's `_queue`, not drained yet.
+- `match_ended` carries `MatchRecords.match_result` with `turns_per_side` and `final_health` filled; the stats block and `resolver.unbind()` remain story 008.
+- `legal_commands()` lists `end_turn` in Main (C2: "plus `end_turn`"); the rest of Main's expansion is stories 010–016.
+- The log's turn is stamped through `set_turn(n)` when the log has it, else the `TestEventLog.turn` property (`TODO(rng-event-log story 005)`).
+- Thaw at End step 4 is a no-op (`TODO(story 015)`); temporary crystals are story 011 (`add_mana(..., true)` logs an error and changes nothing).
+- Shared-test change: story 004's AC-03 test now snapshots hand and deck at `mulligan_resolved`, because the Start-step draw now follows the mulligan in the same call.
+**Test Evidence**: `tests/unit/match_rules/match_rules_turn_structure_test.gd` (12 tests); full suite 381 test cases, 0 failures, exit 0; smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — the story changes the headless turn loop and event log only; no scene, node or screen renders it (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

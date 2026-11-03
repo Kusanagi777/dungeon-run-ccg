@@ -19,8 +19,12 @@
 ## Story 001 built the constructor, the derived values and
 ## [method state_snapshot]; story 003 adds [method start] (C3 setup from a
 ## `MatchConfig`), the resolver surface [method emit] / [method rng_match] /
-## [method state], and the [method draw] primitive. [method load_state]
-## remains the seam for `clone()` and fixture states.
+## [method state], and the [method draw] primitive; story 004 the command
+## channel [method submit] / [method legal_commands] with the closed
+## [constant REJECTION_CODES], the [constant PHASE_COMMANDS] guard and the
+## `mulligan` handler; story 005 C3 step 8, the C4 Start / End steps, the
+## `end_turn` handler, [method add_mana] (permanent) and the `TURN_CAP` end.
+## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
 ## engine.start(config)
@@ -91,6 +95,8 @@ const R_WRONG_PHASE: String = "WRONG_PHASE"
 const R_CHOICE_PENDING: String = "CHOICE_PENDING"
 const R_ENGINE_BUSY: String = "ENGINE_BUSY"
 const R_INVALID_MASK: String = "INVALID_MASK"
+## C14 `MatchResult.reason` for the `TURN_CAP` termination guarantee.
+const REASON_TURN_CAP: String = "turn_cap"
 ## The phase guard (match-rules States and Transitions): per phase, the
 ## command types it accepts and from whom — `"active"` (the issuer must be
 ## the active side, else `NOT_YOUR_TURN`), `"player"` (PLAYER only) or
@@ -124,6 +130,10 @@ var _resolving: bool = false
 ## `CommandResult.events`); diagnostics appended meanwhile are not counted.
 var _call_first_seq: int = 0
 var _call_last_seq: int = 0
+## The engine-owned trigger queue Q (C10; ADR-0007 erratum: `resolve()`
+## returns the triggers it queues and the engine appends them here). Drained
+## by the C10 loop (story 009).
+var _queue: Array[Dictionary] = []
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -299,24 +309,30 @@ func submit(command: Dictionary) -> Dictionary:
 	match type:
 		MatchRecords.CMD_MULLIGAN:
 			_do_mulligan(command.keep_mask)
+		MatchRecords.CMD_END_TURN:
+			_end_step(_state.active_side)
 	# TODO(story 009): the C10 loop; TODO(story 008): win_loss_check.
 	_resolving = false
 	return MatchRecords.command_result(true, "", "", _call_first_seq, _call_last_seq)
 
 
 ## Every command the engine would accept now (C2): in Mulligan the "keep
-## all" mulligan; `[]` in any other phase until the handler stories (008
-## `concede`, 010–016) extend it. Allocates only the result array.
+## all" mulligan; in Main the active side's `end_turn`; `[]` in any other
+## phase. The handler stories (008 `concede`, 010–016) extend it. Allocates
+## only the result array.
 ## [codeblock]
 ## for cmd: Dictionary in engine.legal_commands(): print(cmd.type)
 ## [/codeblock]
 func legal_commands() -> Array:
 	var legal: Array = []
-	if _state.phase == MatchState.PHASE_MULLIGAN:
-		var keep_all: Array[bool] = []
-		for _card: Dictionary in _state.players[MatchRecords.SIDE_PLAYER].hand:
-			keep_all.append(true)
-		legal.append(MatchRecords.mulligan(keep_all))
+	match _state.phase:
+		MatchState.PHASE_MULLIGAN:
+			var keep_all: Array[bool] = []
+			for _card: Dictionary in _state.players[MatchRecords.SIDE_PLAYER].hand:
+				keep_all.append(true)
+			legal.append(MatchRecords.mulligan(keep_all))
+		MatchState.PHASE_MAIN:
+			legal.append(MatchRecords.end_turn(_state.active_side))
 	return legal
 
 
@@ -396,6 +412,25 @@ func draw(side: String, n: int) -> void:
 		card.zone = "hand"
 		player.hand.append(card)
 		emit(&"card_drawn", {"side": side, "instance_id": card.instance_id, "card_id": card.def_id, "hand_size": player.hand.size()})
+
+
+## Primitive (C5, match-rules Interactions): [param side] gains [param n]
+## crystals. Permanent (`temporary = false`, an `on_match_start` hook such as
+## Hollow Crown): raises `crystal_bonus`, which every later Start step reads
+## (F4) — mana itself moves at the next Start step — and emits
+## `mana_added {side, n, temporary: false}`.
+## TODO(story 011): the temporary branch (this-turn crystals, End-step
+## expiry); until then it logs an error and changes nothing.
+## [codeblock]
+## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
+## [/codeblock]
+func add_mana(side: String, n: int, temporary: bool = false) -> void:
+	if temporary:
+		push_error("RulesEngine.add_mana: temporary crystals are match-rules story 011")
+		return
+	var player: Dictionary = _state.players[side]
+	player.crystal_bonus = int(player.crystal_bonus) + n
+	emit(&"mana_added", {"side": side, "n": n, "temporary": false})
 
 
 ## C1: `max_health = base_health + Σ enchantment.health_delta`.
@@ -525,7 +560,9 @@ func _validate(type: String, command: Dictionary) -> String:
 				if typeof(bit) != TYPE_BOOL:
 					return R_INVALID_MASK
 			return ""
-	# TODO(stories 005, 008, 010, 012, 016): end_turn, concede, play_card,
+		MatchRecords.CMD_END_TURN:
+			return ""
+	# TODO(stories 008, 010, 012, 016): concede, play_card,
 	# use_hero_power, attack and choose handlers. Until one exists its
 	# command is not accepted in any phase.
 	return R_WRONG_PHASE
@@ -553,10 +590,194 @@ func _do_mulligan(keep_mask: Array) -> void:
 	emit(&"deck_shuffled", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(player.deck)})
 	draw(MatchRecords.SIDE_PLAYER, replaced.size())
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
-	# TODO(story 005): C3 step 8 — `match_started` and the first Start step.
-	# Until then the match rests in a PlayerTurn.Start placeholder.
+	# C3 step 8: match_started, then the player's first Start step (DD-M03)
+	emit(&"match_started", {
+		"floor": _state.floor,
+		"hero_id": int(_state.players[MatchRecords.SIDE_PLAYER].hero.entity_id),
+		"boss_id": int(_state.players[MatchRecords.SIDE_BOSS].hero.entity_id),
+		"player_deck_size": _state.players[MatchRecords.SIDE_PLAYER].deck.size(),
+		"boss_deck_size": _state.players[MatchRecords.SIDE_BOSS].deck.size(),
+	})
+	_start_step(MatchRecords.SIDE_PLAYER)
+
+
+## C4 Start step for [param side] (engine-driven; no command is accepted
+## until Main). Step 0 is the States guard `*Turn.Start` with
+## `turn > TURN_CAP`: the match ends for the boss, reason `turn_cap` (C14).
+func _start_step(side: String) -> void:
+	if _state.turn + 1 > rule("turn_cap"):
+		_end_match(MatchRecords.SIDE_BOSS, REASON_TURN_CAP)
+		return
+	var player: Dictionary = _state.players[side]
+	# 1. phase, the global and own turn counters
 	_state.phase = MatchState.PHASE_START
-	_state.active_side = MatchRecords.SIDE_PLAYER
+	_state.active_side = side
+	_state.turn += 1
+	player.turns_taken = int(player.turns_taken) + 1
+	_stamp_log_turn(_state.turn)
+	emit(&"turn_started", {"turn": _state.turn, "side": side})
+	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill
+	var old_max: int = int(player.mana_max)
+	player.mana_max = mini(int(player.turns_taken) + int(player.crystal_bonus), rule("max_mana"))
+	if int(player.mana_max) > old_max:
+		emit(&"crystal_gained", {"side": side, "mana_max": player.mana_max, "gained": int(player.mana_max) - old_max})
+	player.mana_current = player.mana_max
+	emit(&"mana_refilled", {"side": side, "mana_available": player.mana_current, "mana_max": player.mana_max})
+	# 3. one bulk reset, one event (DD-T04)
+	var reset_ids: Array[int] = []
+	for character: Dictionary in _characters_of(side):
+		character.attacks_used = 0
+		if character.get("kind", "") == MatchRecords.KIND_MINION:
+			character.summoning_sick = false
+		reset_ids.append(int(character.entity_id))
+	player.hero_power.used_this_turn = false
+	emit(&"turn_reset", {"side": side, "entity_ids": reset_ids})
+	# 4. on_turn_start hooks; 5. turn_start triggers in engine candidate order
+	_state.hooks.run_triggers(&"on_turn_start", StringName(side), {})
+	_run_resolution_loop()
+	_fire_trigger_point(&"turn_start", side)
+	# 6. draw one, turn 1 included; 7. win/loss, then Main
+	draw(side, 1)
+	if _win_loss_check():
+		return
+	_set_phase(MatchState.PHASE_MAIN)
+
+
+## C4 End step for the active [param side], entered by `end_turn`; runs the
+## other side's Start step when the match goes on.
+func _end_step(side: String) -> void:
+	# 1.
+	_state.phase = MatchState.PHASE_END
+	emit(&"turn_ending", {"turn": _state.turn, "side": side})
+	# 2. turn_end triggers (same candidate order); 3. on_turn_end hooks
+	_fire_trigger_point(&"turn_end", side)
+	_state.hooks.run_triggers(&"on_turn_end", StringName(side), {})
+	_run_resolution_loop()
+	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
+	# 5. end_of_turn enchantments on everything `side` owns, then auras
+	#    TODO(story 011): temporary crystals expire here too.
+	_expire_end_of_turn(side)
+	_resolver.recompute_auras()
+	# 6.
+	if _win_loss_check():
+		return
+	emit(&"turn_ended", {"turn": _state.turn, "side": side})
+	_start_step(MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER)
+
+
+## Fires trigger point [param point] for [param side] (ADR-0007 Decision 1):
+## `ctx.candidates` in the engine's one observer order; the triggers the
+## resolver returns join the engine's queue Q, then the C10 loop runs.
+func _fire_trigger_point(point: StringName, side: String) -> void:
+	var queued: Array[Dictionary] = _resolver.resolve(point, {"side": side, "candidates": _candidates_in_order()})
+	_queue.append_array(queued)
+	_run_resolution_loop()
+
+
+## The one observer order (C4 step 5, C10; cross-review C-16c): player board
+## left to right, player weapon, player hero (hero power and hero
+## enchantments live on it), then the boss side the same way — player side
+## first regardless of whose turn it is.
+func _candidates_in_order() -> Array[int]:
+	var ids: Array[int] = []
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		for minion: Dictionary in player.board:
+			ids.append(int(minion.entity_id))
+		if player.weapon != null:
+			ids.append(int(player.weapon.entity_id))
+		if player.hero != null:
+			ids.append(int(player.hero.entity_id))
+	return ids
+
+
+## C4 End step 5: removes every `expires = end_of_turn` enchantment on what
+## [param side] owns — its hero and minions, its weapon, and the
+## `cost_modifiers` of its hand and deck cards — one `enchantment_removed`
+## each, in that order.
+func _expire_end_of_turn(side: String) -> void:
+	var player: Dictionary = _state.players[side]
+	for character: Dictionary in _characters_of(side):
+		_expire_in(character.enchantments, int(character.entity_id))
+	if player.weapon != null:
+		_expire_in(player.weapon.enchantments, int(player.weapon.entity_id))
+	for zone: String in ["hand", "deck"]:
+		for card: Dictionary in player[zone]:
+			_expire_in(card.cost_modifiers, int(card.instance_id))
+
+
+func _expire_in(enchantments: Array, owner_id: int) -> void:
+	var i: int = 0
+	while i < enchantments.size():
+		var enchantment: Dictionary = enchantments[i]
+		if enchantment.get("expires") == MatchRecords.EXPIRES_END_OF_TURN:
+			enchantments.remove_at(i)
+			emit(&"enchantment_removed", {
+				"instance_id": owner_id,
+				"attack_delta": enchantment.attack_delta,
+				"health_delta": enchantment.health_delta,
+				"keywords_added": enchantment.keywords_added,
+				"reason": MatchRecords.EXPIRES_END_OF_TURN,
+			})
+		else:
+			i += 1
+
+
+## [param side]'s characters in observer order: the hero, then the board left to right.
+func _characters_of(side: String) -> Array[Dictionary]:
+	var player: Dictionary = _state.players[side]
+	var out: Array[Dictionary] = []
+	if player.hero != null:
+		out.append(player.hero)
+	out.append_array(player.board)
+	return out
+
+
+## C10 resolution loop (death check → `recompute_auras()` → queue pop) after a
+## step. TODO(story 009): the real loop and `RESOLUTION_STEP_CAP`; until then
+## queued triggers wait in [member _queue].
+func _run_resolution_loop() -> void:
+	pass
+
+
+## C14 `win_loss_check()`: true when the match has ended.
+## TODO(story 008): the hero-dead / both-dead outcomes; this story ends a
+## match only through `turn_cap`.
+func _win_loss_check() -> bool:
+	return _state.phase == MatchState.PHASE_ENDED
+
+
+## `phase = Ended` with a `MatchResult` (C14), emitted as `match_ended` — the
+## log's last event. [param winner] is a side; `result` is read from the
+## player's side.
+## TODO(story 008): the full `MatchResult` stats block, faults, and
+## `resolver.unbind()` at Ended (breaks the engine↔resolver cycle).
+func _end_match(winner: String, reason: String) -> void:
+	_state.phase = MatchState.PHASE_ENDED
+	var outcome: Dictionary = MatchRecords.match_result("win" if winner == MatchRecords.SIDE_PLAYER else "loss", winner, reason, _state.floor, _state.turn)
+	for side: String in MatchRecords.SIDES:
+		outcome.turns_per_side[side] = int(_state.players[side].turns_taken)
+		outcome.final_health[side] = health(_state.players[side].hero)
+	_state.result = outcome
+	emit(&"match_ended", outcome)
+
+
+## Sets [param phase] for the active side and emits `phase_changed {phase, side}`.
+func _set_phase(new_phase: String) -> void:
+	_state.phase = new_phase
+	emit(&"phase_changed", {"phase": new_phase, "side": _state.active_side})
+
+
+## rng-event-log rule 13: the log stamps `turn` from its current turn, which
+## the engine sets immediately before appending `turn_started`.
+## TODO(rng-event-log story 005): call `EventLog.set_turn` only, once the
+## production log exists; `TestEventLog` exposes the `turn` property.
+func _stamp_log_turn(turn_number: int) -> void:
+	var log: Variant = _state.log
+	if log.has_method(&"set_turn"):
+		log.set_turn(turn_number)
+	else:
+		log.turn = turn_number
 
 
 ## C3 step 1: the engine, not the registry or the resolver, logs a skipped
