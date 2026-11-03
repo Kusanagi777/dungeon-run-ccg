@@ -10,11 +10,11 @@
 ```
 tests/
   unit/           # Isolated unit tests (formulas, state machines, logic)
-    framework/    #   framework_sanity_test.gd — runner seed, no production code
+    framework/    #   framework_sanity_test.gd (runner seed) + test_helpers_test.gd (helper self-test)
   integration/    # Cross-system and save/load tests
   smoke/          # Critical path test list for /smoke-check gate
                   #   + project_boot_smoke_test.gd — automated boot smoke (see below)
-  helpers/        # Shared assertions, factories, mocks — filled by /test-helpers
+  helpers/        # Shared assertions, factories, test doubles — see "Helpers" below
 ```
 
 Seed suites: `tests/unit/framework/framework_sanity_test.gd` proves the runner
@@ -75,6 +75,35 @@ until then it prints `Can't run project: no main scene defined` and does not
 exit, so run it under a timeout or skip it. Once a main scene exists,
 `commands.smoke` becomes the real "game launches" check and entry 1 of
 `smoke/critical-paths.md` should point at it.
+
+## Helpers
+
+`tests/helpers/` (written by `/test-helpers` on 2026-11-03) holds plain
+`RefCounted` classes — none extends `GdUnitTestSuite`, so the runner never
+sees them as empty suites. `class_name` makes them available in any test with
+no import. Every helper asserts through gdUnit4's own API
+(`GdUnitTestSuite.assert_bool(...)`, a `static func` in the installed addon),
+never a bare `assert()`.
+
+| File | Class | Use it for |
+|---|---|---|
+| `test_constants.gd` | `TestConstants` | The one source of gameplay numbers in tests; each constant names its `design/registry/entities.yaml` entry (board 7, hand 10, mana 10, health 30, hands 3/4, hero power 2, discover 3, floors 8, …). Never write these as literals in a test. |
+| `game_assertions.gd` | `GameAssertions` | `fail_if`, `assert_in_range`, `assert_signal_emitted` / `_not_emitted`, `assert_json_representable` (rng-event-log rule 14), `assert_sorted_ascending`, `assert_no_duplicates`, `assert_has_keys`, `assert_node_exists`. |
+| `test_rng_stream.gd` | `TestRngStream` | Injected named stream (DD-T03): `seeded`, `scripted` (fixed `randi32()` values) or `constant` ("zero stub"); F4 draw API with exact `draws`; `fork`; `restore`; F1/F2/F3 seed arithmetic pinned to the GDD examples; records `calls`. |
+| `test_rng_service.gd` | `TestRngService` | `stream(name)` memoised per F2, `install(stream)` for a scripted stream, `snapshot()` / `restore()`, `draws_outside([...])` for "no RNG call outside `rng_match`". |
+| `test_event_log.gd` | `TestEventLog` | Append-only log double: `append(type, payload, cause_seq)`, `events_since`, `subscribe`, sealing on `match_ended`, `max_events` overflow path, canonical `to_json` / `from_json`. |
+| `event_log_assertions.gd` | `EventLogAssertions` | `assert_order`, `assert_consecutive`, `assert_contains_type`, `assert_count`, `assert_last_type`, `assert_payload`, `assert_seq_contiguous`, `assert_cause_seq_valid`, `assert_envelopes_valid`, `assert_replay_equal` (F6). Accepts a `TestEventLog` or an Array of events. |
+| `card_factory.gd` | `CardFactory` | CR-3 records (`make_minion` / `make_spell` / `make_weapon` / `make_hero_def` / `make_boss_def` / `make_treasure_def` / `make_bundle_def`), C1 effects (`make_effect`, `make_op`), CR-1 envelopes, the match-rules fixture card set, `validate_card_def`. |
+| `match_factory.gd` | `MatchFactory` | C1 data model as Dictionaries: `make_match_state`, `make_player_state`, `summon` (ids from `next_entity_id`, board-full returns `{}`), `deal_deck`, `draw_top`, `make_match_config(floor, rng, log)`, `make_command_result`, `make_match_result`, derived `health_of` / `max_health_of` / `attack_of`, `REJECTION_CODES`. |
+| `run_factory.gd` | `RunFactory` | R1 `make_run_state` (invariants hold by default), `make_draft_record`, `apply_bundle_pick` / `apply_treasure_pick`, `make_offer`, `make_match_summary`, the 6/6/4 fixture boss pool, `band_of`, `deck_size_at_floor`, `effective_treasure_floors`, `validate_invariants` / `assert_invariants`. |
+| `scene_runner_helper.gd` | `SceneRunnerHelper` | `load_scene_and_wait(self, path_or_packed_scene)` for UI integration tests; wrap the result in `auto_free`. |
+
+The factories return plain Dictionaries with the GDD field names because
+`src/` has no production classes yet; each file carries a
+`TODO(E1/E2 story): swap to production class` marker for the story that adds
+the real type. `tests/unit/framework/test_helpers_test.gd` exercises every
+helper, including each failure path through `assert_failure(...)`, so a
+helper that stops asserting shows up as a red test.
 
 ## Installing GdUnit4
 

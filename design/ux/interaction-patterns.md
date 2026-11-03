@@ -1,0 +1,1210 @@
+# Interaction Pattern Library
+
+> Authoring guidance: .claude/docs/templates/guidance/interaction-pattern-library-guide.md (load per-section as you author — do not read entirely).
+
+> **Status**: In Design
+> **Author**: Jacob + ux-designer (`/ux-design patterns`, automation `guided`, workflow `standard`, density `balanced`; no `ui-programmer` / `art-director` agent spawned — no Agent tool in this run)
+> **Last Updated**: 2026-11-03
+> **Version**: 0.1
+> **Engine**: Godot 4.7.2 (GDScript)
+> **UI Framework**: Godot Control nodes, `canvas_items` stretch at 1280x720 logical (DD-T05)
+> **Related Documents**:
+> - `design/art/art-bible.md` §4 — visual standards (colour tokens, typography, state colours and their non-colour backups, card slot layout); §7 UI direction
+> - `design/accessibility-requirements.md` — Standard tier with reduce-motion, high-contrast state set and text scale elevated; the requirements every pattern below must satisfy
+> - `design/gdd/match-ui.md` (U4–U10, F1–F6), `design/gdd/run-ui.md` (U1–U10, F2–F4), `design/gdd/boss-ai.md` (C8, UI Requirements), `design/gdd/reward-draft.md` (UI Requirements), `design/gdd/rng-event-log.md` (UI Requirements) — the system GDDs these patterns implement
+> - `design/ux/[screen].md` — individual screen specs that reference patterns (none exist yet; the screen list is match-ui and run-ui UI Requirements)
+>
+> **Template**: Interaction Pattern Library
+
+> **Why this document exists**: Every UI screen spec should be able to say
+> "uses Button (Primary) pattern" rather than re-specifying hover states,
+> press animations, focus behavior, keyboard handling, and screen reader
+> announcements from scratch. This library is the single source of truth for
+> reusable interaction behaviors. When a screen spec references a pattern name,
+> the programmer looks it up here. When the behavior changes, it changes here
+> and applies everywhere.
+>
+> This is a living document. Patterns are added as new screens are designed —
+> do not design a new interaction without checking here first. If a new pattern
+> is needed, add it here (or propose it to the ux-designer) before writing the
+> first screen spec that uses it.
+>
+> **Status definitions**:
+> - **Draft**: Interaction specified but not yet implemented or validated
+> - **Stable**: Implemented, tested, and validated in at least one shipped screen
+> - **Deprecated**: Being phased out — existing uses will be migrated, do not use in new screens
+
+---
+
+## Overview
+
+Deckdelve's UI is two surfaces with one grammar. The **match** (Match UI) is a tabletop: a
+hand fan, two rows of tokens, two portraits, a mana bar and an End Turn button, all driven by
+the event log and operated mouse-first with a complete keyboard path (match-ui U5). The **run
+shell** (Run UI) is a stack of flat screens — menu, hero select, boss intro, draft, summary,
+settings — operated by focus and `1/2/3` + `Enter` (run-ui U3). Both obey the same five rules,
+which every pattern below inherits and which a screen spec may not override:
+
+1. **Lit by state, not by hierarchy.** There is no primary button colour (art bible §4 UI
+   palette). A control the player can use now carries the `state_actionable` outline; an idle
+   one is `table_dark` + `text_muted`. Saturated colour is reserved for `state_danger`,
+   `state_buff`, `state_target`, `state_freeze` — readouts of a current state, never animation.
+2. **Legality before commitment.** Legal drops, targets and options light up *before* release
+   or confirm (match-ui Game Feel "pre-release legality"); a pick is select-then-confirm
+   (reward-draft Game Feel). Nothing commits on hover; nothing commits on a single ambiguous
+   press.
+3. **Hover duplicates, focus equals.** Hover never carries unique information (art bible §7,
+   run-ui U3). Everything a hover shows, keyboard focus shows; selection is focus or click,
+   never hover.
+4. **Every motion is skippable and data-driven.** Any input skips any animation (ui-code rule
+   4; match-ui U4.5; run-ui U4); durations come from `match_ui.json` / `run_ui.json`; `anim_speed`
+   divides them, `instant` zeroes them, `reduce_motion` removes shakes, slides and loops.
+5. **Display only.** Patterns render view-state and emit intents/commands; they never hold game
+   state (ui-code rule 1, DD-T02). A rejected command changes nothing on screen except the
+   rejection feedback.
+
+Density: this version specifies behaviour, states and accessibility for each pattern at
+`balanced` depth; pixel geometry beyond art bible §4 and the F-grids of the GDDs belongs to the
+per-screen specs. Status is `Draft` throughout — nothing is implemented.
+
+### How to Use This Library
+
+**If you are designing a screen**: Browse the Pattern Catalog Index below before
+inventing new interactions. When a standard pattern fits, reference it by name
+in the screen spec (e.g., "The confirm button uses Button (Primary) pattern").
+When no existing pattern fits, propose a new one — document it here alongside
+or before the screen spec that introduces it.
+
+**If you are implementing a screen**: When a screen spec says "use [PatternName]
+pattern," find it in this document for the complete specification. The
+implementation notes section contains engine-specific guidance. The accessibility
+section contains the requirements that are non-negotiable.
+
+**If you are reviewing a screen spec**: Verify that all interactive elements
+reference a pattern from this library or include their own full interaction
+specification. "Standard button" or "the usual way" is not a valid reference.
+
+**If you are updating a pattern**: Changing a Stable pattern affects every screen
+that uses it. Before changing, audit all usages (search screen specs for the
+pattern name), determine the impact, get approval from the ux-designer, and
+update this document before or simultaneously with any implementation change.
+
+---
+
+## Pattern Catalog
+
+The catalog keeps the template's pattern names so that `/ux-review` and other projects' habits
+still apply, and maps each onto this game. Patterns the game does not use are listed with the
+reason rather than dropped, so a reviewer can tell "decided against" from "forgotten".
+Screen names in *Used In* are the `design/ux/` files match-ui and run-ui UI Requirements name.
+
+### Pattern Catalog Index
+
+> Add a row here every time a new pattern is added to this document.
+> The "Used In" column is the usages audit trail — update it when new screens
+> adopt the pattern.
+
+| Pattern Name | Category | Description | Used In (Screens) | Status |
+|-------------|----------|-------------|------------------|--------|
+| Button (Primary) | Input | The screen's default-focus action, lit by `state_actionable` outline when pressable. One per screen. | main-menu (New Run), hero-select (Start), boss-intro (Fight), draft-picker (Pick), run-summary (New Run same hero), mulligan / choice-overlay (Confirm), settings (Back) | Draft |
+| Button (Secondary) | Input | Alternative or back action; `table_dark` + `text_light`, no outline unless focused. | All dialogs (Cancel), Back everywhere, Hero Select / Main Menu on summaries, Take nothing | Draft |
+| Button (Destructive) | Input | Ends or discards something: always opens Confirmation Dialog. | pause (Abandon run, Concede), main-menu (Abandon in resume prompt), settings (Clear run records, Reset profile), hero-select (Start while a run is saved) | Draft |
+| Toggle | Input | Binary setting as a `CheckButton`. | settings (fullscreen, reduce_motion, high_contrast_states, keep_run_records) | Draft |
+| Slider | Input | Continuous value with numeric readout. | settings and pause-menu (master / music / SFX volume), settings (action delay 0–2000 ms, gamma — proposed) | Draft |
+| Dropdown / Select | Input | **Replaced by Segmented Select** for 3–4 option settings; no dropdown in v1. | settings (anim_speed, text_scale, telegraph_mode) | Draft |
+| List Item | Layout / Input | Selectable or read-only row in a scrollable list. | run-log (archived runs), draft-picker deck drawer, data-error rows, event-feed drawer lines | Draft |
+| Grid Item | Layout / Input | **Not used** — all collections are single rows (hand fan, board row, 3-option rows) or vertical lists. | — | N/A |
+| Modal Dialog | Feedback / Layout | Blocking overlay with focus trap. | pause-menu, confirm, resume prompt, deck drawer (non-blocking variant), glossary (proposed) | Draft |
+| Confirmation Dialog | Feedback / Layout | Two-button consequence dialog, Cancel focused; typed-token variant for Reset profile. | Abandon, Concede, Clear run records, Reset profile, Start-over-saved-run | Draft |
+| Toast / Notification | Feedback | Queued top-right banner, ≥ 5 s, pausable, never modal. | toast (unlocks, run warnings, draft rejections) | Draft |
+| Tooltip | Feedback | Parchment panel on hover **and** focus; 300 ms delay on hover, immediate on focus. | hero power, treasure chips, settings rows, rejection tooltip (variant), buffed-stat aura attribution | Draft |
+| Progress Bar | Feedback / Layout | **Not used** — no loading bars; floor progress is the Progress Strip pattern. | — | N/A |
+| Input Field | Input | `LineEdit` with visible label. | hero-select (seed), confirm (typed token), settings Controls page (key capture — Alpha) | Draft |
+| Tab Bar | Navigation | **Not used in v1** — settings is one scrollable list; revisit if a Controls page is added. | — | N/A |
+| Scroll Container | Layout | Vertical scroll with visible bar and focus-follows-scroll. | run-log, deck drawer, event-feed drawer, data-error, settings | Draft |
+| Card (Hand) | Game-Specific | The 150x210 hand card: playable / unaffordable / hovered / focused / lifted / targeting source. | hand | Draft |
+| Card Drag-to-Play | Game-Specific | Press-drag-release play and attack gesture with pre-release legality. | hand, hud (board), targeting | Draft |
+| Click-to-Select / Keyboard Targeting | Game-Specific | The hold-free path: select a source (click or number key), cycle or click a target, confirm. | hand, hud, targeting | Draft |
+| Targeting Arrow | Game-Specific | Bezier arrow + 3 px ring on the current legal target; follows cursor or keyboard cycle. | targeting | Draft |
+| Board Token | Game-Specific | 90x126 minion token with stamps, badge row, can-attack outline, summon-gap behaviour. | hud | Draft |
+| Card Inspect | Game-Specific | 1.5x preview on hover or focus; reading panel at `text_scale` > 100%. | hand, hud, draft-picker, mulligan, choice-overlay, run-summary, run-log | Draft |
+| End Turn Button | Game-Specific | 140x44 control lit when nothing is left to do; key path with arm guard. | hud | Draft |
+| Hero Power Button | Game-Specific | 48x48 ability button: Ready / Blocked / Used; tooltip with reason. | hud | Draft |
+| Hero Portrait & Health Stamp | Game-Specific | 120x160 panel with 24 px health, armour, weapon slot, passive plate (boss), hand count (boss). | hud | Draft |
+| Mana Bar | Game-Specific | 10 crystals (full / spent / temporary / locked) + "n/m". | hud | Draft |
+| Boss Intent Banner | Game-Specific | Forecast / committed / plan-changed banner with icon, amount, reticle; `class_only` and `hidden` modes. | hud | Draft |
+| Pick One of N (Option Row) | Game-Specific | 1–3 option slots, `1/2/3` focus, select-then-confirm, no accidental pick. | mulligan (toggle variant), choice-overlay, draft-picker (treasure + bundle), hero-select | Draft |
+| Progress Strip | Game-Specific | F nodes (cleared / current / upcoming), gem marks, treasure icons, deck size. | progress-strip (shared) on boss-intro, draft-picker, pause | Draft |
+| Treasure Chip | Game-Specific | 40x40 chip, 44 px hit area, tooltip on hover/focus, flare on trigger. | hud (treasure tray), progress-strip, run-summary | Draft |
+| Event Feed | Game-Specific | 3-line ticker + 200-line drawer, grouped under command roots, collapsible. | event-feed, hud | Draft |
+| Rejection Feedback | Game-Specific | 0.2 s shake + `reject.<code>` tooltip + related-control flash + feed line; display unchanged. | targeting, hand, hud | Draft |
+| Skip & Playback | Game-Specific | Skip-all on any non-control input; boss-turn pacing with skip hint. | hud | Draft |
+| Floating Number | Game-Specific | `−n` / `+n` pop on an `ink` pill; coalesced for AoE. | hud | Draft |
+| Dialogue Box | Game-Specific | **Not used** — boss intro lines are static text on `boss-intro` (concept: no dialogue). | — | N/A |
+| Context Action Prompt | Game-Specific | **Not used** — no world interaction; the skip hint is part of Skip & Playback. | — | N/A |
+| Minimap / Quest Tracker | Game-Specific | **Not used** — the Progress Strip and the boss passive plate cover orientation. | — | N/A |
+| Health / Resource Bar | Game-Specific | Replaced by Hero Portrait & Health Stamp and Mana Bar (numbers, not bars). | — | N/A |
+| Screen Replace | Navigation | Run base screens replace each other with a skippable fade; no push/pop slide. | All Run UI base screens | Draft |
+| Overlay Open / Close | Navigation | Dims the base to `table_dark`, stacks, restores focus. | pause-menu, confirm, resume prompt, deck drawer, feed drawer, mulligan, choice-overlay, match-end | Draft |
+| Focus Management | Navigation | Where focus starts, moves and returns, per screen; focus ring rules. | All screens | Draft |
+| Escape / Cancel | Navigation | One priority chain for Esc / RMB across match and run. | All screens | Draft |
+| Standard Shortcuts | Navigation | The keyboard table every screen inherits; all rebindable (Alpha). | All screens | Draft |
+| Loading State | Feedback | Boot data load and scene swaps. | data-error (on failure), match handoff, run-start | Draft |
+| Empty State | Feedback | Empty run log, hidden tray, short offers, absent locked row. | run-log, hud, draft-picker, hero-select | Draft |
+| Error State | Feedback | data-error screen, warning toasts, rejections. | data-error, toast, targeting | Draft |
+| Success Confirmation | Feedback | "Copied", pick lock, settings applied live. | run-summary, draft-picker, settings | Draft |
+| Optimistic UI | Feedback | **Not used** — no network; every state shown is an event already in the log. | — | N/A |
+
+---
+
+## Patterns
+
+[Entries below are the project's specifications. Each is written against art bible §4 tokens and the GDD rules it cites; values marked *proposed* are this library's additions that a GDD does not yet hold and are listed in Open Questions.]
+
+### Standard Control Patterns
+
+> Full reference specifications for every pattern in this section (state tables
+> with timing/audio values, accessibility requirements, implementation notes)
+> are in `.claude/docs/templates/guidance/interaction-pattern-library-guide-standard-controls.md` —
+> load only the pattern(s) currently being specified.
+
+---
+
+#### Button (Primary)
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: The one action a screen exists for: Start, Fight, Pick, Confirm, New Run (same hero), Continue. It receives default focus (Focus Management) unless the screen deliberately forces a choice first (drafts).
+**When NOT to Use**: Back / Cancel (Secondary); anything that ends a run or discards data (Destructive); the End Turn control (its own pattern — it is lit by game state, not by screen role).
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Idle (not pressable yet — e.g. Pick with no option focused) | `table_dark` fill, 4 px radius, `text_muted` 16 px label | — | No response; cursor stays default | — | — |
+| Actionable | `table_dark` fill, `text_light` label, 2 px `state_actionable` outline | Becomes legal | Outline appears | instant (art bible §7: v1 state changes are instant) | — |
+| Hovered | Actionable + label `text_light`, lift 2 px (no scale; no hue change) | Mouse over | — | 80 ms ease-out | `ui_hover` |
+| Focused | Actionable + focus ring (2 px `state_actionable`, 3 px offset — distinct from the outline by the gap) | Tab / `1`–`3` routing / default focus | — | 80 ms ease-out | `ui_hover` |
+| Pressed | Fill darkens to `bg_edge`, label unchanged; action fires on release | LMB / Enter / Space | Visible press ≤ 33 ms (run-ui Game Feel) | 60 ms | `ui_select` (Run) / `sfx.ui.end_turn`-class key per screen |
+| Committed (post-press on terminal intents) | Stays pressed-looking; siblings dim | After Pick / Start / Fight / Continue | Ignores further input until the screen swaps (run-ui U4) | until swap | — |
+| Disabled | `table_dark` fill, `text_muted` at 60% alpha, no outline, reason in Tooltip on hover/focus | — | No response | — | — |
+
+**Accessibility**: Keyboard: Tab-reachable, Enter and Space activate. Focus ring always visible; never suppressed by `anim_speed = instant`. Label is the accessible name (stock `Button` → AccessKit exposes it). Primary is distinguished from Secondary by the outline and by position (right-most / bottom-centre per screen spec), never by hue. Hit area ≥ 44x44 (labels may be shorter; pad the Control). Disabled reason is a Tooltip on focus, not hover-only. Label text scales with `text_scale`; buttons grow in width, never clip.
+
+**Implementation Notes**: Stock `Button` with a project theme (`StyleBoxFlat` per state from the art bible theme resource); `focus_mode = FOCUS_ALL`; no `_draw()` override needed in v1. Use the theme's `focus` stylebox for the ring so it draws for every Control the same way. "Lit" is a theme variation (`actionable`), toggled by the screen from view-state, not by the button polling the game.
+
+---
+
+#### Button (Secondary)
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: Back, Cancel, Resume, Hero Select / Main Menu on summaries, "Take nothing" (when `allow_skip`), Copy seed, Copy report, Load more.
+**When NOT to Use**: The screen's main action; anything that needs a Confirmation Dialog.
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Default | `table_dark` fill, `text_light` label, **no outline** | — | — | — | — |
+| Hovered | Lift 2 px | Mouse over | — | 80 ms ease-out | `ui_hover` |
+| Focused | Focus ring (2 px `state_actionable`, 3 px offset) | Tab / Esc-target | — | 80 ms ease-out | `ui_hover` |
+| Pressed | Fill `bg_edge` | LMB / Enter / Space; **Esc activates the screen's Secondary that means back/cancel** | Fires on release (Esc fires on press) | 60 ms | `ui_select` (pitch-down "cancel" variant) |
+| Disabled | `text_muted` 60% alpha | — | Tooltip with reason on focus/hover | — | — |
+
+**Accessibility**: Same baseline as Primary. In a dialog the Cancel Secondary is the Esc target and the default focus (Confirmation Dialog). Secondary and Primary are never visually identical: Primary has the outline when actionable; if a screen's Primary is not yet actionable (draft before a choice), Secondary still has no outline, so the pair never both read as "lit".
+
+**Implementation Notes**: Same `Button` scene with the `secondary` theme variation. Place Cancel/Back **left** of Primary in dialogs and bottom-left on screens; keep this constant across every screen so muscle memory holds (reviewed by `/ux-review`).
+
+---
+
+#### Button (Destructive)
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: Abandon run (pause, resume prompt), Concede (match pause), Clear run records, Reset profile, Start a new run while one is saved. Anything that ends a run or deletes profile data.
+**When NOT to Use**: Quit to menu with the run saved (run-ui `pause.go_main_menu` — the run reappears as Continue, nothing is lost: Secondary); Take nothing in a draft (a legal choice, not a loss: Secondary).
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Default | As Secondary, label names the consequence ("Abandon run", "Concede", "Reset profile") plus a leading ⚠-class glyph (letter "!" in v1) | — | — | — | — |
+| Hovered / Focused | As Secondary | — | — | 80 ms | `ui_hover` |
+| Pressed | As Secondary | LMB / Enter / Space | **Opens Confirmation Dialog — never executes directly** | 60 ms | `ui_select` |
+
+> **Critical rule**: A Button (Destructive) NEVER executes its action directly.
+> It always triggers a Confirmation Dialog. There are no exceptions.
+
+**Accessibility**: Accessible name includes the consequence ("Abandon run — counts as a loss"). No red fill: `state_danger` is reserved for game-state readouts (art bible rule b); destructiveness is carried by the glyph, the label and the dialog. Never the default focus on any screen.
+
+**Implementation Notes**: Same `Button` scene, `destructive` variation; the `pressed` handler only calls `open_confirm(spec)`.
+
+---
+
+#### Toggle
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: `fullscreen`, `reduce_motion`, `high_contrast_states`, `keep_run_records` (settings).
+**When NOT to Use**: Three-way settings (Segmented Select); one-shot actions.
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Off | Row: label left (`text_light` 16 px), `CheckButton` right; knob left, track `table_dark`, state word "Off" (`text_muted`) beside it | — | — | — | — |
+| On | Knob right, track `table_dark` with `state_actionable` outline, state word "On" | — | — | — | — |
+| Hovered / Focused | Row gains focus ring; description Tooltip appears (focus: immediate; hover: 300 ms) | Tab / mouse | — | 80 ms | `ui_hover` |
+| Toggling | Knob slides (or jumps under `reduce_motion` / `instant`) | LMB / Enter / Space / Left / Right | `set_setting(key, value)` immediately — live, no Apply button (run-ui settings "On change (live)") | 100 ms ease-out | `ui_select` |
+
+**Accessibility**: State is shown by knob position **and** the word On/Off — never colour alone. Stock `CheckButton` exposes the switch role and checked state. `reduce_motion` and `high_contrast_states` take effect on the very next frame so the player sees what they chose.
+
+**Implementation Notes**: `CheckButton` in an `HBoxContainer` row scene shared by all settings rows; the row, not the control, owns the Tooltip.
+
+---
+
+#### Slider
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: Volumes (0–100% shown; stored 0–1), action delay (0–2000 ms), gamma (proposed).
+**When NOT to Use**: `text_scale` and `anim_speed` — three discrete steps are a Segmented Select, so each step is a tested layout.
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Default | Label, `HSlider` (track `table_dark`, grabber `text_light`), numeric readout right ("80%", "600 ms") | — | — | — | — |
+| Focused / Hovered | Focus ring on the row; grabber grows 2 px | Tab / mouse | — | 80 ms | `ui_hover` |
+| Adjusting | Readout updates live; volume sliders play a sample tick at the new level | Drag; Left/Right = 1 step (5% / 50 ms); PageUp/PageDown = 5 steps; Home/End = min/max | Live `set_setting`; Meta debounces the write | — | `ui_slider_tick` per step |
+| Disabled | `text_muted` | — | — | — | — |
+
+**Accessibility**: Always a numeric readout (value is never only a position). Keyboard steps as above; stock `HSlider` exposes value/min/max. Hit area of the grabber ≥ 44 px tall via the row.
+
+**Implementation Notes**: `HSlider` with `step` set per setting; readout `Label` bound to `value_changed`.
+
+---
+
+#### Dropdown / Select → Segmented Select
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: 3–4 mutually exclusive options whose names are short: `anim_speed` (Normal / Fast / Fastest / Instant — run-ui's labels map onto match-ui's `1.0 / 1.5 / 2.0 / instant` enum, run-ui Open Questions), `text_scale` (100% / 125% / 150%), `telegraph_mode` (Full / Brief / Off).
+**When NOT to Use**: Lists longer than 4 (none exist in v1); binary settings (Toggle).
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Default | Label left; a row of equal-width `Button`s in a `ButtonGroup`; the selected one has the `state_actionable` outline and `text_light`, others `text_muted` | — | — | — | — |
+| Focused | Focus ring on the selected segment; Left/Right move the selection (and apply) | Tab enters the group once | — | 80 ms | `ui_hover` |
+| Selecting | Outline moves | LMB on a segment / Left / Right / Enter | Live `set_setting` | instant | `ui_select` |
+
+**Accessibility**: Selected state = outline + text colour + (for `text_scale`) the segment labels themselves rendered at their own scale as a preview. Tab treats the group as one stop (WAI radio-group behaviour); stock `Button`s in a `ButtonGroup` expose radio semantics.
+
+**Implementation Notes**: `HBoxContainer` of toggle-mode `Button`s sharing a `ButtonGroup`; `focus_neighbor_left/right` wired within the group, `focus_next/previous` jump out of it.
+
+---
+
+#### List Item
+
+**Category**: Layout / Input
+**Status**: Draft
+**When to Use**: Run log rows (selectable → `run_detail`), deck drawer rows (read-only, Card Inspect on focus/hover), data-error rows (read-only), event-feed drawer lines (read-only, expandable groups).
+**When NOT to Use**: Option rows of 1–3 cards (Pick One of N).
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Default | Row ≥ 44 px tall on `table_dark`; columns per screen spec; `text_light` / `text_muted` | — | — | — | — |
+| Hovered (selectable rows) | Lift 2 px | Mouse over | — | 80 ms | `ui_hover` |
+| Focused | Focus ring; row scrolled into view | Up/Down/Tab; Home/End | Card Inspect / Tooltip for rows that have one | 80 ms | `ui_hover` |
+| Activated | Press state | LMB / Enter | Opens detail / expands group | 60 ms | `ui_select` |
+| Expandable group (feed) | "+N more" affordance as a trailing Secondary-styled text button | LMB / Enter on it | Group expands in place; focus stays on the affordance | instant | — |
+
+**Accessibility**: Up/Down are the primary keys inside a list; Tab leaves the list (one stop in / one stop out). Row position is announced for stock `ItemList`/`Tree`; custom rows carry "row n of N" in their accessible name. Read-only lists are still focusable so Card Inspect works by keyboard.
+
+**Implementation Notes**: `ItemList` or `Tree` for text-only lists (free accessibility); custom row scenes inside a `VBoxContainer` for the deck drawer and feed (they host card thumbnails). `ScrollContainer.ensure_control_visible()` on focus.
+
+---
+
+#### Grid Item
+
+**Category**: Layout / Input
+**Status**: N/A — not used
+**When to Use**: No two-dimensional selectable grid exists in v1 (DD-M01 single rows; drafts are rows of ≤ 3). If a card collection view is ever added (anti-pillar: no collection), start from the template guide.
+
+---
+
+#### Modal Dialog
+
+**Category**: Feedback / Layout
+**Status**: Draft
+**When to Use**: Pause menu (match and run), Confirmation Dialog, Resume prompt, Glossary (proposed), Mulligan and Choice overlays (modal, no cancel), Match-end banner (modal, auto-advances).
+**When NOT to Use**: Toasts; the deck drawer and feed drawer (non-blocking **drawers** — Overlay Open / Close without a focus trap; the base keeps working, Esc closes them first).
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Opening | Base dims to `table_dark` (match: the table; run: the screen); panel `table_dark` with 4 px radius centred (match-ui F6: pause 440,160,400,400; end banner 340,260,600,200); scales 0.95 → 1.0 | `Esc`, top-bar menu button, event (`mulligan_offered`, `choice_requested`, `match_ended`) | Focus moves to the dialog's default (Cancel in confirms; Resume in pause; first option in Mulligan/Choice) | `overlay_open` 0.2 s (match) / fade 250 ms (run); scale removed under `reduce_motion` | `sfx.ui.overlay` |
+| Active | Base non-interactive; **focus trapped** inside | Tab cycles within; Esc = the dialog's cancel if it has one | — | — | — |
+| Dismissing (confirmed) | Panel fades; base brightens | Primary pressed | Action; focus returns to the trigger element | `overlay_close` 0.15 s | per action |
+| Dismissing (cancelled) | Same | Cancel / Esc | No action; focus returns to the trigger | 0.15 s | `ui_select` cancel variant |
+| Cannot dismiss | No Cancel control; Esc opens the pause menu *over* it instead (Mulligan, Choice) or does nothing (data error) | — | — | — | — |
+
+> **Focus trap rule**: While a modal dialog is open, focus navigation must cycle
+> within the dialog only, and focus must return to the trigger element on close.
+
+**Accessibility**: Every dialog has a title (`text_light` 16–20 px) that is its accessible name. Enter = Primary, Esc = Cancel, **except** Confirmation Dialog where Enter on first open is intercepted (see there). Under `reduce_motion`: no scale, fade at half duration. Dialog text scales with `text_scale`; the panel grows downward, never clips (min panel height from content).
+
+**Implementation Notes**: One `ModalLayer` (`CanvasLayer` 100) owning the dim `ColorRect` and a stack of panels; `Viewport.gui_disable_input` is not used — instead the base's root Control gets its mouse/focus recursively disabled (engine reference: "recursive Control disable" exists in 4.5+). Store `return_focus` on open. Match UI's underlying playback keeps running behind the pause menu (match-ui States `Menu`).
+
+---
+
+#### Confirmation Dialog
+
+**Category**: Feedback / Layout
+**Status**: Draft
+**When to Use**: Every Button (Destructive). Also Start when an active run is saved ("This ends your current run — counted as a loss", run-ui U7).
+**When NOT to Use**: Picks and confirms that are legal choices (Mulligan Confirm, Pick); informational notices.
+
+> **Label rule**: The confirm button must be labeled with the specific action,
+> not a generic "OK" or "Yes."
+
+**Structure**:
+- Title: the action as a question — "Abandon this run?", "Concede the match?", "Reset profile?"
+- Body: one sentence of consequence — "Abandon counts as a loss." / "The run is recorded as a defeat on floor n." / "All runs, stats and unlocks are deleted. This cannot be undone."
+- Confirm button: Button (Primary) labelled with the action — "Abandon run", "Concede", "Reset profile"
+- Cancel button: Button (Secondary) — "Cancel", placed left
+- Default focus: **Cancel**
+- Typed-token variant (Reset profile only, meta M1.1): an Input Field under the body showing the required word; Confirm stays Disabled until the text matches exactly; Enter in the field moves focus to Confirm (does not confirm). Not used anywhere else — it is friction by design for the one irreversible action.
+
+**Accessibility**: Inherits Modal Dialog. Default focus on Cancel is required. Because Cancel is focused, a reflexive Enter cancels — the safe outcome. The consequence sentence is in the dialog's accessible description. No countdown, no auto-dismiss.
+
+**Implementation Notes**: One `confirm.tscn` parameterised by `{title_key, body_key, confirm_key, token: String | null}`; run-ui's `confirm` overlay and match-ui's concede confirm are the same scene.
+
+---
+
+#### Toast / Notification
+
+**Category**: Feedback
+**Status**: Draft
+**When to Use**: Unlock notifications, `run_warning` codes (`save_failed`, `boss_pool_short`, …), draft rejections (`E_*`, debugging honesty — reward-draft UI Requirements), "Copied" (short variant).
+**When NOT to Use**: Anything needing a decision (Modal); anything the player must act on *now* with no other channel — an actionable warning also persists elsewhere (main-menu status line / summary), accessibility-requirements "Reading time".
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Entering | `table_dark` banner at top-right (run) / below the top bar, right (match; never over the boss intent banner); `text_light` title ("New hero unlocked: Fortune"), `text_muted` subtitle (unlock condition / warning detail); identification swatch for unlocks; fades in (slides only if not `reduce_motion`) | Queue drain while the shell is idle (run-ui U5) | — | `toast_in_out` 200 ms | `ui_unlock` / none (warning) / `ui_select` (Copied) |
+| Displayed | Static; dismiss "×" affordance at right | Hover or focus **pauses the timer**; LMB anywhere on it or Enter when focused dismisses | — | `t_toast` = clamp(5000 + 30·chars, **5000**, **8000**) ms (run-ui F3 with the floor raised — Open Questions); "Copied" variant 1500 ms (non-informational) | — |
+| Auto-dismiss | Fade out | Timer | Next toast after `toast_gap_ms` 150 | 200 ms | — |
+| Queue overflow | — | > `toast_queue_max` 8 | Oldest *warning* dropped first; unlocks never dropped (run-ui U5) | — | — |
+
+**Accessibility**: Toasts never take focus and never block (run-ui U5). They are not the sole channel: unlocks also appear on the run summary and hero select; warnings also in the main-menu status line. Minimum 5 s, pausable, dismissable. Under `reduce_motion` fade only. Screen-reader announcement without focus depends on AccessKit live regions — **NOT SOURCEABLE** from the engine reference beyond `Control.accessibility_live`'s existence (accessibility-requirements Open Questions); until verified, do not claim it.
+
+**Implementation Notes**: `ToastLayer` (`CanvasLayer` 50, below modals) with a `VBoxContainer` anchored top-right; one visible at a time per run-ui U5. Match UI reuses the same scene for draft-rejection toasts only; match rejections are Rejection Feedback, not toasts.
+
+---
+
+#### Tooltip
+
+**Category**: Feedback
+**Status**: Draft
+**When to Use**: Hero power (name, cost, text, and the `Blocked` reason); treasure chips (name, rarity word, text, tags, "picked on floor f" — treasures.md); settings rows (what the setting does); buffed stat → aura attribution (card-effects); disabled buttons (reason); the Rejection Feedback tooltip (variant below).
+**When NOT to Use**: Card text (Card Inspect — a tooltip is too small for a card); information needed to complete an action that is not also visible somewhere.
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Hidden | — | — | — | — | — |
+| Hover trigger | — | Mouse enters | 300 ms delay (treasures.md budgets 100 ms to *visible* once triggered; the delay guards against sweep-over) | — | — |
+| Focus trigger | — | Element receives keyboard focus | **Immediate** (0 ms) — navigation is intentional | — | — |
+| Displayed | `parchment` panel, `text_ink` 14 px × `text_scale` body, optional `ink` title band; max width 300 px; positioned above the element, flipped to stay on screen; never covers the element itself | — | — | fade 120 ms (0 under `instant`) | — |
+| Hiding | Fade | Mouse leaves / focus moves / any command issued | — | 80 ms | — |
+
+**Rejection variant**: at the cursor (mouse) or above the originating control (keyboard), `reject.<code>` text, `REJECTION_TOOLTIP_S` 1.5 s then fade; see Rejection Feedback.
+
+**Accessibility**: Everything in a tooltip is reachable by focus (rule 3). Tooltip text ≥ 4.5:1 (`text_ink` on `parchment` 12.72). The focusable element's accessible description carries the tooltip text. Tooltips never contain controls.
+
+**Implementation Notes**: One `TooltipLayer` (`CanvasLayer` 90) with a single reusable panel; triggers call `TooltipService.show(anchor_rect, content, mode)`. Do not use Godot's built-in `tooltip_text` popup for the visual (it is not themeable enough and ignores focus), but **do set `tooltip_text`** on the Control as well so AccessKit has the description.
+
+---
+
+#### Progress Bar
+
+**Category**: Feedback / Layout
+**Status**: N/A — not used
+**When to Use**: No determinate progress exists (boot load is < 2 s or fails to `data_error`; there is no XP). Floor progress is the Progress Strip. If a long load ever appears, the Loading State pattern names the fallback.
+
+---
+
+#### Input Field
+
+**Category**: Input
+**Status**: Draft
+**When to Use**: Seed entry on hero select (any text; echoes the normalised 16-hex form, run-ui U7); typed confirmation token (Reset profile); key capture on the Controls page (Alpha).
+**When NOT to Use**: Anything selectable from a list.
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Default | Visible label left ("Seed (optional)"); `LineEdit` on `table_dark`, `text_light` 16 px; placeholder `text_muted` ("random") — placeholder is not the label | — | — | — | — |
+| Focused | Focus ring; caret | Tab / click | — | 80 ms | `ui_hover` |
+| Typing | Live echo line under the field: "→ 3F2A…" normalised hex (`text_muted`) | Keys; standard editing shortcuts (Ctrl+A/C/V/X, Home/End) | Local only; no command until Start | — | — |
+| Value present | Clear "×" affordance | LMB / Delete on the affordance | Clears | — | — |
+| Token mismatch (confirm variant) | Confirm stays Disabled; no red border — the Disabled Confirm is the signal | — | — | — | — |
+| Token match | Confirm becomes Actionable | Text equals the shown word | Enter in field → focus Confirm | — | `ui_hover` |
+
+**Accessibility**: Label is always visible and bound (accessible name). The seed field is never required; Enter in it activates Start only if Start is Actionable (so Enter from a hero-less state does nothing). Text scales.
+
+**Implementation Notes**: Stock `LineEdit`; `text_changed` → `RngService.parse_seed()` echo (rng-event-log F1). Key capture (Alpha) uses `InputEventKey` capture in `_unhandled_input` with Esc to cancel capture.
+
+---
+
+#### Tab Bar
+
+**Category**: Navigation
+**Status**: N/A — not used in v1
+**When to Use**: Not needed: settings is one scrollable list ≤ 14 rows; run log filters by hero with a Segmented Select, not tabs. Revisit if a Controls page splits settings.
+
+---
+
+#### Scroll Container
+
+**Category**: Layout
+**Status**: Draft
+**When to Use**: Run log, deck drawer, event-feed drawer, data-error report, settings list, bundle panel card rows if they overflow at 150% text.
+**When NOT to Use**: Fixed rows (hand, board, option rows) — they fit by construction (match-ui F1, run-ui F4).
+
+**Interaction Specification**:
+
+| State | Visual | Input | Response | Duration | Audio |
+|-------|--------|-------|----------|----------|-------|
+| Content fits | No bar | — | — | — | — |
+| Scrollable | Visible 8 px bar (`text_muted` thumb on `bg_edge` track), always shown when content overflows; fade top/bottom edge hint | — | — | — | — |
+| Scrolling | — | Wheel (3 rows), drag bar, PageUp/PageDown, Home/End | — | 100 ms ease-out (0 under `instant`) | — |
+| Focus follows scroll | Focused item always fully visible | Up/Down/Tab | `ensure_control_visible` | 100 ms | — |
+
+**Accessibility**: Never hide the bar on PC. Keyboard scroll works without a focusable child (container itself focusable when it has none). Scroll position is not information: nothing is reachable *only* by scrolling that is not also reachable by focus.
+
+**Implementation Notes**: `ScrollContainer` with `vertical_scroll_mode = SCROLL_MODE_SHOW_ALWAYS` when overflowing; call `ensure_control_visible()` on `focus_entered` of children.
+
+---
+
+### Game-Specific UI Patterns
+
+> Full reference specifications for every pattern in this section are in
+> `.claude/docs/templates/guidance/interaction-pattern-library-guide-game-specific.md` — load only the
+> pattern(s) currently being specified.
+
+---
+
+#### Card (Hand)
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Every card in the hand fan (match-ui F1), mulligan and Choice rows (at 1.5x), draft treasure frames, deck drawer thumbnails (static variant).
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Playable | Full card (art bible §4 slots); 2 px `state_actionable` outline; **not** lifted | `playable = true` from `hand()`; effective cost shown on the cost stamp (`effective_cost`, card-effects) |
+| Unaffordable / not playable | No outline; body dimmed to 60% alpha; cost stamp ring `text_muted` dashed (*proposed*, accessibility audit) | Numbers remain readable (dim is alpha on the whole card, text contrast still ≥ 4.5:1 on `parchment` at 60%? — **verify in test plan row 1**; if not, dim only the art box and frame) |
+| Hovered | Card Inspect preview (1.5x in place, neighbours do not move — F2); hover tween 0.1 s | Mouse only; no selection |
+| Focused | Focus ring + Card Inspect preview immediately | Keyboard: `Tab` cycle (idle) or `1`–`0` (which also selects) |
+| Lifted / selected | Card at 1.0x following the cursor (drag) or lifted 8 px with the outline (click-to-select / key targeting); shadow | Source of a Targeting session |
+| Leaving | Travels to slot 0.25 s with 4-frame squash; or tweens back 0.15 s on cancel | match-ui Visual/Audio |
+
+**Accessibility**: Playability = outline (light, not hue) + lift behaviour; cost vs mana is always numerically visible. Card text readable via Card Inspect by focus. Number-key selection `1`–`9`,`0` maps to fan position left→right; positions are announced in the accessible name ("Card 3 of 7: Fireblast, 2 mana").
+
+**Implementation Notes**: `CardView` Control, `_draw()` for stamps; `focus_mode = FOCUS_ALL`; `accessibility_name`/`tooltip_text` set to the Card Inspect text. The fan layout (F1) owns positions; the hover transform (F2) is applied on a duplicate preview layer so the fan never reflows.
+
+---
+
+#### Card Drag-to-Play
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Mouse play of a hand card, mouse attack from a token, mouse-targeted hero power (match-ui U5).
+
+**States and behaviors**:
+
+| State | Visual | Input | Response | Duration |
+|-------|--------|-------|----------|---------|
+| Pickup | Card lifts instantly (≤ 16 ms), follows cursor exactly, no easing | LMB press on a playable card / legal attacker / Ready hero power | Legal summon positions open as slot gaps in the player row; targeted cards and attacks start the Targeting Arrow with legal targets outlined `state_target` | 0 |
+| Dragging | Card at 1.0x under the cursor; End Turn disabled | Move | Legality shown live; hovered legal slot/target gets the 3 px ring | per frame |
+| Drop (legal) | Card travels to slot 0.25 s / attack lunge | Release over a lit slot or target | `submit(play_card / attack / hero_power)` | ≤ 50 ms to first visual |
+| Drop (illegal) | Card tweens back 0.15 s, ease-out, no bounce | Release elsewhere | No command, no event | 0.15 s |
+| Cancel | Same as illegal drop | RMB / Esc during drag | No command | 0.15 s |
+
+**Accessibility**: Drag is a hold input, so it is **never the only path** — Click-to-Select / Keyboard Targeting provides the hold-free equivalent for the same three sources. Drop zones are whole tokens/slots (≥ 90x126), not edges. Under `reduce_motion` the squash is dropped; the travel remains (it is positional information).
+
+**Implementation Notes**: `InputRouter` (match-ui U1) owns a single `Dragging` session; the dragged visual is a duplicate on a top `CanvasLayer`; `legal_commands()` is queried once on pickup and cached for the session (match-rules budgets it at < 1 frame per hover).
+
+---
+
+#### Click-to-Select / Keyboard Targeting
+
+**Category**: Game-Specific
+**Status**: Draft (**extends match-ui U5**: the keyboard half is in the GDD; the pointer entry is this library's addition — Open Questions)
+**When to Use**: The hold-free path for playing, attacking and targeted hero powers. One state machine, two entries: pointer click or number key.
+
+**States and behaviors**:
+
+| State | Visual | Input | Response | Duration |
+|-------|--------|-------|----------|---------|
+| Select source | Card lifts 8 px with outline / token or hero power gains the outline; legal positions or targets light exactly as in a drag; the Targeting Arrow starts from the source and points at the **current** target (first legal, or nearest to cursor) | **Click** (press+release without moving > 8 px) on a playable card, legal attacker or Ready hero power; or `1`–`9`,`0` (hand index), `A` then `1`–`7` (attacker by board index), `H` (hero power) | Enter `KeyTargeting` (match-ui States); End Turn disabled | 0 |
+| Cycle target / position | Ring moves; arrow follows | `Tab` / `Shift+Tab` (cyclic, so Shift is optional); mouse hover over a lit target also moves the ring | — | per press |
+| Confirm | As drop (legal) | `Enter`, or LMB click on a lit target/slot | `submit(...)` | ≤ 50 ms |
+| Cancel | Source settles back | `Esc`, RMB, click on empty table, or click on a *different* legal source (which re-selects it) | No command | 0.15 s |
+| Untargeted play (minion with one legal position, untargeted spell) | Source lifts; a single lit position/“cast” affordance | Click source | **Still requires Confirm** (Enter / second click) — a single click never plays a card, so a mis-click costs nothing (rule 2) | — |
+
+**Accessibility**: This is the one-hand and tremor path (accessibility-requirements Motor). Every step is a discrete press; the only chord (`Shift+Tab`) is optional. Current target is shown by the 3 px ring and the arrow (shape), with its name in the accessible announcement ("Target 2 of 3: Bone Guard"). Taunt-only and Stealth-excluded rules apply identically to cycling (match-ui U5).
+
+**Implementation Notes**: Same `KeyTargeting` session object as the GDD's keyboard mode with `entered_by: pointer | key`; a click is distinguished from a drag by the 8 px threshold on press→release, so both gestures coexist on the same card without a setting.
+
+---
+
+#### Targeting Arrow
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Any targeting session (drag, click-to-select, keyboard) whose source is a targeted card, an attacker or a targeted hero power (match-ui U7).
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Active | Quadratic Bezier from source centre to the cursor (drag) or to the current target's centre (click/keyboard), control point `ARROW_LIFT_PX` 50 above the midpoint, 20 segments, `state_target`, triangular head; redrawn per frame | Colour is secondary: the arrow's shape and the ring are the cue (art bible colourblind rule) |
+| Over legal target | Target gains a 3 px `state_target` ring | Only legal targets are lit; Stealth never; Taunt-only when a Taunt exists |
+| Over illegal / empty | Arrow stays, no ring, head dims to 60% | Release here cancels |
+| Keyboard cycling | Arrow snaps between targets (tween 80 ms, 0 under `reduce_motion`/`instant`) | Cyclic order: boss row left→right, then boss hero; for positions: player row slots left→right |
+
+**Accessibility**: Shape-first; works unchanged under `high_contrast_states` (target amber is unchanged). The arrow never obscures the target's stamps (head stops at the ring).
+
+**Implementation Notes**: Salvage `prototypes/hearthstone-clone-2026-01/scripts/targeting_arrow.gd` (match-ui U7); `Line2D` on the top `CanvasLayer`; data-driven lift and colour.
+
+---
+
+#### Board Token
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Every minion on either row (match-ui UI Requirements "Board rows").
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Default | 90x126: art box, attack and health stamps (26 px circles, 14 px numerals), keyword badge row (12 px glyphs; letters in v1) | No name band, no rules text — Card Inspect shows the full card |
+| Can attack (player) | 2 px `state_actionable` outline | From `legal_commands()` |
+| Summoning sick / already attacked | No outline; small "z"/"✓" badge (*letters in v1*) | Non-colour |
+| Damaged / buffed | Stamp numeral `state_danger` with crack glyph / `state_buff` with up-arrow; stays while the state holds (art bible rule c) | |
+| Frozen / Silenced / Stealth / Divine Shield / Taunt / Windfury / Poisonous / Lifesteal | Badge glyph each; Frozen adds `state_freeze` outline + snowflake; Silence greys the art box + slash glyph; Taunt adds a thicker frame (shape) | No two badges differ by colour alone |
+| Hovered / Focused | Card Inspect preview above the row; focus ring | Keyboard focus reaches tokens in idle (Focus Management) |
+| Legal target | 3 px `state_target` ring | Targeting Arrow |
+| Dying | Fade + 2 px drop with its death group; gap-close after | Grouped per cause (match-ui U3.3) |
+| Summon gap | Row opens a gap at the hovered/cycled legal index | During targeting of a minion play |
+
+**Accessibility**: All stats numeric; all keywords glyphs; Card Inspect on focus supplies name and text. Hit area is the full 90x126.
+
+**Implementation Notes**: `TokenView` shares the stamp drawing code with `CardView` at 0.6x; `apply_final` from `AnimStep` sets state idempotently (match-ui U4.1).
+
+---
+
+#### Card Inspect
+
+**Category**: Game-Specific
+**Status**: Draft (**extends** match-ui F2's hover preview with the focus path and the reading panel)
+**When to Use**: Any card-shaped thing: hand cards, board tokens, mulligan/Choice/draft options, bundle compact rows, deck drawer rows, run-summary drafted cards, hero power and boss passive plates (text-only variant).
+
+**States and behaviors**:
+
+| State | Visual | Input | Response | Duration |
+|-------|--------|-------|----------|---------|
+| Preview (100% text) | Full card at 1.5x (225x315, text ×1.5 = 18 px body) in place for hand cards (F2: bottom on the baseline, clamped to the viewport, on top; neighbours do not move) or anchored beside the element elsewhere (bundle panel outer edge, run-ui F4) | Hover (tween `HOVER_IN_S` 0.1 s) or **keyboard focus (immediate)** | — | ≤ 100 ms to complete |
+| Preview + reading panel (125% / 150%) | The 1.5x card **plus** a `parchment` panel beside it (toward screen centre) with name (`ink` band), keyword reminder lines, and rules text at 18 px × `text_scale`, no line cap, `text_ink`; max width 360 px, scrolls only if > 50% viewport height | As above | — | as above |
+| Token inspect | Preview above the row (boss row: below) with the full card including name and text | Hover / focus on a token | — | as above |
+| Dismiss | Preview fades 0.1 s (0 under `instant`) | Mouse out / focus move / any command / card leaves hand (match-ui Edge Cases) | — | 0.1 s |
+
+**Accessibility**: This is the committed reading path for the 12 px card thumbnail (accessibility-requirements Visual). Hover and focus produce the **same** content. Scaled spell damage and aura attribution (card-effects UI Requirements) render inside the preview/panel, so they are focus-reachable. The preview never requires a hold.
+
+**Implementation Notes**: One `InspectLayer` (`CanvasLayer` 80) hosting a `CardView` at 1.5x and an optional `ReadingPanel`; callers pass `{card_id, anchor_rect, side}`. Reading-panel keyword reminders come from a `keywords.json` string table (also the Glossary's source — Gaps).
+
+---
+
+#### End Turn Button
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: The one End Turn control (match-ui F6: 1116, 296, 140, 44).
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Disabled | `table_dark`, `text_muted` "End Turn" | Boss turn, `Resolving`, `Choice`, `Dragging`/`KeyTargeting`, queue busy; a press does nothing and never reaches `submit` (match-ui U5) |
+| Enabled | `table_dark`, `text_light` | `PlayerTurn.Main`, queue idle, plays remain |
+| Actionable ("nothing left to do") | + 2 px `state_actionable` outline | No legal play other than `end_turn`, or mana 0 (art bible UI palette) |
+| Hovered / Focused | Lift 2 px / focus ring | |
+| Pressed | Depress; `sfx.ui.end_turn`; boss intent commit beat visible ≤ 300 ms after | `submit(end_turn)` |
+
+**Keyboard**: `Space`/`Enter` = End Turn when Enabled **and the queue has been idle ≥ `end_turn_arm_ms` (proposed 300 ms)**; otherwise the same key is Skip (Skip & Playback). The arm guard exists so a skip press cannot end the turn on the frame the boss turn finishes (accessibility-requirements Motor; Open Questions for match-ui U5). A mouse click is never gated.
+
+**Accessibility**: State by label colour value + outline (never hue); accessible name "End Turn" with state "nothing left to do" appended when Actionable. Hit area 140x44.
+
+**Implementation Notes**: Stock `Button` with the three theme variations; `InputRouter` resolves the key between skip and end turn from queue state + arm timer.
+
+---
+
+#### Hero Power Button
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: The player's hero power (match-ui F6: 152, 390, 48, 48); the weapon slot below it is display-only.
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Ready | Hero primary fill (the one place the hero colour is a control — art bible §4 "hero power button"), cost "2" stamp, `state_actionable` outline when affordable | Click / `H` enters Click-to-Select or submits directly if untargeted (after confirm per rule 2) |
+| Blocked | Dimmed; reason in Tooltip on **hover or focus** (match-ui says hover — amended here) | e.g. not enough mana, a treasure rule |
+| Used | Dimmed, "✓" letter badge | Once per turn (DD-M13) |
+| Focused | Focus ring; Tooltip (name, cost, text) immediately | Tab order after the player row |
+
+**Accessibility**: Name, cost and text on focus; reason for Blocked never hover-only. 48x48 meets the 44 px floor.
+
+**Implementation Notes**: `Button` subclass drawing the stamp; `hero_power_state()` from view-state.
+
+---
+
+#### Hero Portrait & Health Stamp
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Both portraits (120x160; player at 24,334; boss at 1136,96 — match-ui F6).
+
+**States and behaviors**:
+
+| Event | Visual | Audio | Duration |
+|-------|--------|-------|---------|
+| Health decrease | 24 px numeral turns `state_danger` with crack glyph while below max; Floating Number `−n`; 2-frame card shake (dropped under `reduce_motion`) | `sfx.ui.damage` | 0.4 s pop |
+| Health increase | Numeral `state_buff` only while above printed max (rare); `+n` pop | `sfx.ui.heal` | 0.4 s |
+| Armour gained / lost | Armour pill beside health with shield glyph + number | — | 0.15 s badge |
+| Weapon equipped | Weapon slot shows attack/durability stamps | — | 0.25 s |
+| Lethal range (player) | Health stamp ring `state_danger` + "!" glyph; boss intent `lethal` (Boss Intent Banner) | — | static |
+| Boss hand count | Strip under the boss portrait: card-back glyph × n or "n" | — | per event |
+| Boss passive plate | `table_dark` plate with the passive text 14 px; Card Inspect (text-only) on hover/focus for the full text | — | static |
+| Victory | Winning portrait saturates to its primary (the one fill exception) | `sfx.ui.victory` | 0.4 s ramp |
+| Hovered / Focused | Tooltip: hero name, health/armour numerically, weapon, passive | — | immediate on focus |
+
+**Accessibility**: Numbers are the readout; colour is additive. Portraits are focusable (so the boss passive is keyboard-readable) and are legal targets with the 3 px ring.
+
+**Implementation Notes**: `PortraitView` with stamps drawn like cards; the boss passive text comes from `ai_profiles.json`/bosses data via Card Database.
+
+---
+
+#### Mana Bar
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Player mana (match-ui F6: 1000, 676, 256, 32); the boss has a compact "n/m" counter only.
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Full crystal | `#3B5A82` steel-blue fill, `ink` ring | Mana stamp colour (art bible §4 identification table) |
+| Spent | Hollow ring only | Shape |
+| Temporary | Fill + "+" glyph | |
+| Locked / overloaded | Hatched fill + lock glyph | |
+| Count | "n/m" 16 px bold `text_light` always shown | The numeric readout is primary |
+| `NOT_ENOUGH_MANA` rejection | Bar flashes outline 0.2 s (Rejection Feedback) | |
+
+**Accessibility**: Four crystal states differ by shape/glyph, not hue. "n/m" scales with `text_scale`.
+
+---
+
+#### Boss Intent Banner
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: The banner above the boss portrait (match-ui F6: 980, 52, 276, 36) driven by `ai_intent_shown` / `ai_intent_committed` (boss-ai C8).
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Forecast (`full`) | Icon per `intent_key` (letters in v1) + localised label + amount ("Attack face for 6") + a reticle glyph on the named target token | `intent_show` 0.3 s |
+| Forecast (`class_only`) | Icon + label only | Boss data |
+| Hidden | No banner; a "?" plate so the absence is visibly deliberate | Band 3 only, reason recorded per boss |
+| Committed, kept | Banner brightens (commit beat `intent_banner_s`) | |
+| Committed, plan changed | "Plan changed" label for `plan_changed_s`, then the new intent | The Pillar 3 lesson |
+| Lethal | `state_danger` text on `ink` + a single pulse (static under `reduce_motion`) + the word "Lethal" | Word + icon are the cue |
+| Hovered / Focused | Tooltip: full sentence ("The boss plans to attack your hero with its 3 minions for 6") | Focusable in idle |
+
+**Accessibility**: Text + icon always; amount numeric; `telegraph_mode` default `full` (DD-X03) — `brief`/`off` are player choices (owner open, meta-progression Open Questions). Banner text scales; the banner grows left.
+
+---
+
+#### Pick One of N (Option Row)
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Mulligan (3 cards, toggle keep/replace, Confirm), Choice overlay (Discover 3 cards / Choose One 3 plates, select-then-Confirm, no cancel), Treasure draft (1–3 frames), Bundle draft (1–3 panels), Hero select (hero panels, Start). Geometry: match-ui F6 Choice row and run-ui F4 slots.
+
+**States and behaviors**:
+
+| State | Visual | Input | Response | Duration |
+|-------|--------|-------|----------|---------|
+| Revealed | Options left→right in `option_ids` order (run-ui U8); staggered reveal 3 × 120 ms (one fade under `reduce_motion`); **no option focused on drafts** (forcing a choice), first option focused on Mulligan/Choice, pre-selected hero focused on hero select | Event | Primary (Pick / Confirm / Start) Idle until a selection exists (except Mulligan: Confirm always Actionable, replacing none is legal) | `draft_reveal` 360 ms |
+| Focused / hovered option | `state_actionable` outline + lift 8 px; Card Inspect for card options; the hint line under the option ("fits your plan" / "N cards share *theme*" / "Deck 21 → 24") | `1`/`2`/`3` move focus; Tab cycles; mouse hover highlights **without selecting** (run-ui U3) | — | 80 ms |
+| Selected | Outline persists after focus leaves; others at full brightness still (not dimmed until committed) | Click on the option / `Enter` on a focused option (first Enter = select) | Primary becomes Actionable | — |
+| Toggle variant (Mulligan) | Each card toggles keep ↔ replace: replace shows a crossed card-back overlay + "Replace" word | Click / `1`–`3` | — | — |
+| Confirm | Selected option lifts and flies (fly-to-strip 400 ms / Choice: to hand); others dim; screen `committed` | Primary / `Enter` with a selection (second Enter) / **double-click** on an option | `pick(index)` / `choose(i)` / `mulligan(mask)` | ≤ 50 ms to lock |
+| Short offer | Missing slots as dimmed placeholders with the one-line reason | `short`/`reoffer` flag | Not focusable | — |
+| Take nothing | Secondary button, only when `allow_skip` | | `skip_pick` | |
+
+**Accessibility**: Two-step everywhere (select, then confirm) so a single press never commits; double-click is a shortcut, not the only path. `1/2/3` are focus moves, consistent across run screens; in the match Choice overlay `1`–`3` select (same two-step). Hints appear on focus as well as hover. Options are ≥ 150x210 targets. No cancel on Choice — Esc opens the pause menu over it (Escape / Cancel).
+
+**Implementation Notes**: `OptionRow` scene parameterised by `n`, option scene and `mode: select | toggle`; owns the `committed` flag (run-ui U4) and the `1/2/3` routing.
+
+---
+
+#### Progress Strip
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Shared overlay on `boss_intro`, `draft_treasure`, `draft_bundle`, `pause` (run-ui U6, F4).
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Cleared node | Filled `text_light` 24 px disc with the boss initial | |
+| Current node | Ring in band colour with the boss initial | Shape + letter |
+| Upcoming node | Hollow ring in band colour, **no identity** | Band colour only (run-structure) |
+| Treasure floor | Gem mark (letter "T" in v1) under the node | |
+| Held treasures | Treasure Chips at the strip's left | Focusable |
+| Deck size | "24 cards" at the right; ticks up with fly-to-strip | `text_light`, never state colour (run-ui Visual/Audio) |
+| Hovered / Focused node | Tooltip: "Floor 3 — cleared: Rat King" / "Floor 4 — current" / "Floor 6 — band 2" | Nodes are focusable for inspection only |
+
+**Accessibility**: Three node shapes; floor numbers in tooltips; deck size numeric. Not an interactive control — Tab reaches it after the screen's actions.
+
+---
+
+#### Treasure Chip
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Treasure tray in the match (≤ 4, 40x40, match-ui F6), Progress Strip left, run summary.
+
+**States**:
+
+| State | Visual | Notes |
+|-------|--------|-------|
+| Held | 40x40 chip: rarity frame + letter glyph; **hit area 44x44** (visual stays 40, gaps 8 → hit areas touch, no overlap) | accessibility-requirements Motor |
+| Hovered / Focused | Tooltip: name, rarity word, text, tags as pills, "picked on floor f" (treasures.md) | Immediate on focus |
+| Triggered | Flare: outline flash 0.15 s on a hook-hosted `effect_resolved` (static brightening under `reduce_motion`) | |
+| Tray empty | Tray hidden (Empty State) | |
+
+---
+
+#### Event Feed
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: The readable log (rng-event-log UI Requirements; match-ui U10, F5, F6).
+
+**States and behaviors**:
+
+| State | Visual | Input | Response |
+|-------|--------|-------|----------|
+| Ticker (collapsed) | 3 newest lines, 13 px × `text_scale`, `text_light`/`text_muted` on `table_dark` at 24,48,400,42; non-interactive | — | — |
+| Drawer (open) | Panel 0,40,300,290 (never over the player portrait); last 200 lines grouped under command roots, children indented; groups > 6 collapse to "+N more" (List Item expandable) | `L` / top-bar button toggles; Esc closes it first (Escape / Cancel) | Non-blocking: play continues; focus enters the drawer only when the toggle was by keyboard |
+| New line | Appended at the bottom; auto-scroll unless the player has scrolled up (then a "↓ new" affordance) | — | — |
+| Rejection line | `command_rejected` renders as a `text_muted` line "— rejected: not enough mana" (*required by accessibility-requirements*) | — | — |
+| Boss hand | Never shown until played | — | — |
+
+**Accessibility**: The feed is the non-animated, non-timed record of everything (Pillar 4); line height ≥ 1.3; scales with `text_scale` (the drawer grows to 360 px wide at 150%, still clear of the portrait). Drawer is a Scroll Container.
+
+---
+
+#### Rejection Feedback
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: `submit` returns `accepted = false` (match-ui U5); run-shell intents dropped while `transitioning` are **silent** debug events, not this pattern (run-ui U4).
+
+**Behavior** (all simultaneous, ≤ 50 ms after the rejection):
+- Originating control shakes 0.2 s `reject_shake` (3 px horizontal; under `reduce_motion` a 2-frame outline flash instead).
+- Tooltip (rejection variant) at the cursor / above the control: `reject.<code>` for 1.5 s.
+- Related-control flash: `MUST_ATTACK_TAUNT` → Taunt tokens' frames flash; `NOT_ENOUGH_MANA` → Mana Bar outline flash.
+- Event Feed rejection line (persistent record).
+- `sfx.ui.deny`, soft.
+- **The display does not change otherwise** — nothing happened.
+
+**Accessibility**: Reason is text (tooltip + feed), never a colour or a sound alone; the 1.5 s tooltip is acceptable only because the feed line persists. Works identically for keyboard-issued commands (tooltip anchors to the source).
+
+---
+
+#### Skip & Playback
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Any time the animation queue is busy (player command playback, boss turn, end banner) — match-ui U4.5, U6.
+
+**Behavior**:
+- **Skip-all** triggers: LMB anywhere outside an interactive control, `Space`, `Enter` (while busy), and any new command (flush then submit). Latency ≤ 100 ms; every remaining `apply_final` runs in order within one frame; impact extras cancelled; skipped SFX dropped.
+- **Boss turn**: controls lock (skip, concede/pause, settings, feed stay live); commit beat `intent_banner_s`; command groups paced by F4 within `max_turn_playback_s`; a "Click or Space to skip" hint (`text_muted`, static — no pulse under `reduce_motion`, and never a pulse faster than 1 Hz anyway) appears after 1 s under the boss portrait.
+- **Run shell**: any input during a transition skips it to its end state (run-ui U4); `run_start` is skippable.
+- **Settings interplay**: `anim_speed` divides durations; `instant` = always skipped; `reduce_motion` removes hit-stop/shake/slow-down/slides/loops but keeps positional travel; `action_delay_ms` (Meta) paces boss groups.
+
+**Accessibility**: Skipping never produces a state the animation was not heading to (match-ui U4.6 invariant, AC L6). The skip input is the same key as End Turn, hence the `end_turn_arm_ms` guard (End Turn Button).
+
+---
+
+#### Floating Number
+
+**Category**: Game-Specific
+**Status**: Draft
+**When to Use**: Damage, heal and stat-change pops on tokens and portraits (match-ui Visual/Audio).
+
+**Variants**:
+
+| Variant | Visual | Notes |
+|---------|--------|-------|
+| Damage | "−n" `state_danger` 20 px bold on an `ink` pill; rises 20 px over 0.4 s | Sign is the non-colour cue |
+| Heal / buff | "+n" `state_buff` on `ink` pill | |
+| Divine Shield absorbed | Ring burst in `text_light`, no number | |
+| Fatigue | "Fatigue n" label + damage pop | |
+| Coalesced (AoE > 8 targets) | All pops in one step (match-ui U4.3) | Countable, never blurred |
+
+**Behavior**: One pop per event; max simultaneous = board size + 2; under `reduce_motion` the rise is replaced by a fade in place. Pools of `Label` on the top layer.
+
+**Accessibility**: Supplementary — the stamp numeral and the feed line carry the same number; pops may be disabled by `anim_speed = instant` without losing information.
+
+---
+
+### Navigation Patterns
+
+> Full reference specifications for this section and the next are in
+> `.claude/docs/templates/guidance/interaction-pattern-library-guide-navigation-feedback.md` — load
+> only the pattern(s) currently being specified.
+
+---
+
+#### Screen Push / Pop / Replace
+
+**Category**: Navigation
+**Status**: Draft
+
+The run shell has **one base screen at a time plus overlays** (run-ui U1): base screens *replace* each other; there is no push/pop slide stack, because every base transition is event-driven (`run_floor_entered`, `draft_offered`, `run_ended`) and the only "back" is to the main menu. Overlays use Overlay Open / Close.
+
+| Pattern | Trigger | Animation | Stack Behavior | Focus Behavior |
+|---------|---------|-----------|---------------|----------------|
+| Replace (fade) | Any base-screen change: menu → hero select → run start → boss intro → match → drafts → summary; Back from run log / settings | Cross-fade `fade` 250 ms (F2: × `anim_speed` factor; 0 at `instant`); `run_start` 600 ms; `intro_slide` 300 ms is a slide **only** without `reduce_motion` | Previous base freed (match scene hidden, not freed, during `match`) | New screen's default per Focus Management; Back returns focus to the element that left (main menu remembers New Run / Run Log / Settings) |
+| Overlay open | Pause, confirm, resume prompt, deck drawer, feed drawer, mulligan, choice, match end | See Overlay Open / Close | Stacked on the base | Trapped (modal) / not trapped (drawer) |
+| Push / Pop | **Not used** | — | — | — |
+
+**Animation durations**: run-ui F2 values; match overlays `overlay_open` 0.2 s / `overlay_close` 0.15 s (match-ui F3).
+
+**Motion reduction**: slides become fades at half duration; stagger collapses to one fade.
+
+**Implementation Notes**: `RunShell` screen stack (run-ui U1) with `ShellState.transitioning`; intents other than `skip` are dropped during a transition (U4) — a dropped intent is a debug event, never user-facing feedback.
+
+---
+
+#### Overlay Open / Close
+
+**Category**: Navigation
+**Status**: Draft
+
+| Overlay | Modal? | Dims base | Esc | Focus on open | Focus on close |
+|---------|--------|-----------|-----|---------------|----------------|
+| Pause (match / run) | Yes | Yes | Closes (Resume) | Resume | Trigger (menu button) or last focused |
+| Confirmation Dialog | Yes | Yes | Cancel | Cancel | Trigger |
+| Resume prompt | Yes | Yes | Back | Continue | Continue button on menu |
+| Mulligan / Choice overlay | Yes, **no cancel** | Yes | Opens Pause over it | First option | n/a (closes on confirm) |
+| Match-end banner | Yes, auto-advance 4 s | Yes | Nothing (banner continues) | Continue | n/a |
+| Deck drawer (draft) | No | No | Closes it | Drawer only if opened by key | Trigger |
+| Feed drawer (match) | No | No | Closes it | Drawer only if opened by `L` | Trigger / previous |
+| Toast | No | No | Ignored | Never | — |
+| Glossary (proposed) | Yes | Yes | Closes | First entry | Trigger |
+
+Rule: an overlay's open/close is `overlay_open`/`overlay_close` (match) or `fade` (run); the base behind a modal is input-disabled recursively; the base behind a drawer keeps working.
+
+---
+
+#### Focus Management
+
+**Category**: Navigation
+**Status**: Draft
+
+> Focus management is the most common keyboard and gamepad accessibility failure
+> in game UIs. These rules must be implemented consistently.
+
+| Rule | Description |
+|------|-------------|
+| Focus ring | 2 px `state_actionable` outline offset 3 px from the element's bounds, drawn above everything on that element, on every focusable Control, always — including under `anim_speed = instant`. Distinct from the "actionable" outline (which hugs the bounds) by the 3 px gap; hover = 8 px lift (cards/options) or 2 px lift (buttons) with no ring. |
+| Screen open | Focus goes to the **most likely next action** (run-ui U3): main menu → Continue if a run is saved else New Run; hero select → Start (pre-selected hero per U7); boss intro → Fight; drafts → **nothing** (forces a choice; Tab enters at option 1); summaries → New Run (same hero); settings → first row; run log → first row (or Back when empty); pause → Resume; confirm → Cancel; mulligan → card 1; Choice → option 1; match idle → End Turn **only when nothing is lit**, else the left-most playable card. |
+| Screen close / replace | Focus returns to the element that triggered the navigation when it still exists (Back from settings → the Settings button); otherwise to the new screen's default. |
+| Modal open / close | Trapped inside; returns to the trigger (Modal Dialog). |
+| Element disabled / destroyed | Focus moves to the next element in tab order; if a focused hand card is played or burned, focus goes to the card now at that index, else End Turn. |
+| Tab order — run screens | Title-less: options/panels left→right → hints → Primary → Secondary (Back) → Progress Strip → chips. Each `/ux-design` screen spec includes a **Focus Order table** listing every stop in order; `/ux-review` checks it. |
+| Tab order — match idle (`PlayerTurn.Main`, queue idle) | Hand left→right → player row left→right → hero power → player portrait → treasure chips → End Turn → feed toggle → menu button → boss intent banner → boss row left→right → boss portrait → (wrap). `Tab` here *inspects* (Card Inspect / Tooltip); `Enter` on a playable card or legal attacker enters Click-to-Select; this extends match-ui U5, where `Tab` is defined only inside `KeyTargeting` (Open Questions). |
+| Tab order — targeting | `Tab` cycles legal targets/positions only (match-ui U5); leaving the set requires Esc. |
+| Number keys | Run screens: `1/2/3` focus option *n* (run-ui U3). Match: `1`–`9`,`0` select hand card *n* (into targeting); Mulligan/Choice: `1`–`3` toggle/select option *n*. Always "focus/select", never "commit". |
+| Gamepad (post-v1) | d-pad = `focus_neighbor_*` spatial moves over the same graph; `ui_accept` = Enter; `ui_cancel` = Esc; shoulder = `Tab`/`Shift+Tab`. No v1 decision may require a pointer with no focus equivalent. |
+| Mouse hover vs focus | Hover never moves keyboard focus (engine reference: focus and hover are separate in 4.6+); a click does. A hovered-but-unfocused element is highlighted, not selected. |
+
+---
+
+#### Escape / Cancel
+
+**Category**: Navigation
+**Status**: Draft
+
+> The "go back" action is the most-used navigation input in all menu systems.
+> It must be consistent across every screen with no exceptions.
+
+| Platform | Input | Behavior |
+|----------|-------|---------|
+| PC (keyboard) | `Esc` | One priority chain, first match wins: (1) cancel an active drag / click-to-select / keyboard-targeting session; (2) close a non-modal drawer (feed, deck); (3) cancel/close the top-most modal **that has a cancel** (confirm → Cancel, pause → Resume, resume prompt → Back, glossary); (4) on a modal with no cancel (Mulligan, Choice, match-end banner) or with nothing open: open the **pause menu**; (5) on a run base screen: `back` (settings/run log → menu; hero select → menu); (6) on the main menu: Quit confirm. |
+| PC (mouse) | RMB | Steps (1) and (2) only — RMB cancels a targeting session or closes a drawer; it never opens the pause menu and never navigates (so a stray right-click during play costs nothing). |
+| PC (gamepad, post-v1) | B / Circle | Same chain as `Esc`. |
+
+**Rules**: `Esc` is never rebound to anything else and never commits an action. Every screen's UX spec states its `Esc` behaviour explicitly, including "opens pause menu" for the no-cancel overlays — this corrects match-ui U5's "close overlay" wording for Mulligan/Choice (Open Questions). A Choice has no legal "back" (match-rules States); the only way out is concede from the pause menu, which the chain makes reachable in two presses.
+
+---
+
+#### Standard Shortcuts
+
+**Category**: Navigation
+**Status**: Draft
+
+All shortcuts are `InputMap` actions (rebindable by Alpha; accessibility-requirements Motor). Defaults:
+
+| Key | Match (Match UI) | Run screens (Run UI) | Source |
+|-----|------------------|----------------------|--------|
+| `Enter` / `Space` | End Turn when Enabled and armed (`end_turn_arm_ms`); otherwise Skip-all; in `KeyTargeting`: `Enter` confirms; on a focused button: activate | Activate the focused button; second `Enter` on a selected option confirms (Pick / Start) | match-ui U5; run-ui U3 |
+| `Esc` | Priority chain (Escape / Cancel) | Priority chain | match-ui U5; run-ui U3 |
+| RMB | Cancel targeting; close drawer | Close drawer | match-ui U5, U7 |
+| `1`–`9`, `0` | Select hand card 1–10 into targeting; in Mulligan/Choice `1`–`3` toggle/select option | `1`/`2`/`3` focus option *n* on any 3-option screen | match-ui U5, U8, U9; run-ui U3 |
+| `Tab` / `Shift+Tab` | Idle: focus cycle (inspect); targeting: cycle legal targets/positions | Focus cycle | match-ui U5 (+ this library) |
+| `A` then `1`–`7` | Pick attacker by board index, then cycle defenders with `Tab` | — | match-ui U5 |
+| `H` | Hero power (enters targeting if targeted) | — | match-ui U5 |
+| `L` | Toggle the event-feed drawer | — | match-ui U5 |
+| `Space` during playback | Skip-all (also LMB on empty table) | Skip transition | match-ui U4.5; run-ui U4 |
+| `Up` / `Down` / `Home` / `End` | — (no lists in the HUD) | List navigation inside lists; slider steps with `Left`/`Right`/`PageUp`/`PageDown` | this library |
+| `F11` (*proposed*) | Toggle fullscreen (mirrors the setting) | Same | proposed — Open Questions |
+| `Ctrl+C` on a focused seed / report | — | Copy (same as the Copy button) | proposed |
+
+Rules: no shortcut is a chord except the optional `Shift+Tab` and the clipboard conveniences; no shortcut commits a destructive action; the pause menu (via `Esc`) is reachable from every state except `Ended`/`data_error`. Any new screen must map onto this table rather than add keys; additions go through this library.
+
+---
+
+### Feedback and Loading Patterns
+
+---
+
+#### Loading State
+
+**Category**: Feedback
+**Status**: Draft
+
+| Scope | Pattern | Notes |
+|-------|---------|-------|
+| Boot (Card Database load + validation) | Black `bg_edge` with the title in `text_light`; no bar (< 2 s expected). If validation fails → `data_error` base screen (Error State). If load exceeds 2 s, show "Loading cards…" in `text_muted`. | Never a blank frame longer than 2 s without text |
+| Match handoff (`begin_match` → Match UI first frame) | ≤ 500 ms (run-ui Game Feel); the boss intro stays visible until the match scene is ready, then `fade` | No loading screen; the Run shell hides, never frees, itself |
+| Run start | The `run_start` panel (hero colour, seed) for 600 ms, skippable | Doubles as the one "transition" screen |
+| Background async (profile save) | Nothing; failure surfaces as a `save_failed` toast + status line | Saves are small; no spinner |
+
+**Accessibility**: Text, not spinners; everything skippable; a failed load is a screen the player can act on (copy report, quit), never a hang.
+
+---
+
+#### Empty State
+
+**Category**: Feedback
+**Status**: Draft
+
+> Every empty list and grid must have a designed empty state. The empty state
+> is not an error — it is a starting point.
+
+| Location | Empty State Content | Notes |
+|----------|--------------------|----|
+| Run log (no archived runs) | Glyph (scroll letter), "No runs yet.", "Finish or fall in a run and it will be recorded here." + New Run (Secondary) | Back keeps focus when the list is empty |
+| Run log filtered to a hero with no runs | "No runs with Decay yet." + "Show all heroes" affordance | Mirror the filter back |
+| Treasure tray (no treasures) | Tray hidden entirely (match-ui F6) | Hidden, not an empty box; the Progress Strip shows "no treasures" implicitly by absence |
+| Draft with `short` offers | Dimmed placeholder slot(s) with "No more treasures in this run" | Not focusable; the remaining options still work |
+| Hero select with no locked heroes (MVP) | Locked row absent — no "coming soon" filler (run-ui U7) | Deliberate absence |
+| Continue on main menu (no active run) | Button absent | Deliberate absence, not disabled |
+| Event feed at match start | Ticker shows the three setup lines (`match_started`, mulligan, turn 1) — never blank | The log always has events by the time the HUD shows |
+| Settings Controls page (Alpha) before any rebind | Defaults listed; "Reset to defaults" disabled with reason | — |
+
+**Rule**: Every empty state must include an icon, a message, and either a sub-message or an action button — except the four "deliberate absence" rows above, where showing nothing *is* the design and the spec says so.
+
+---
+
+#### Error State
+
+**Category**: Feedback
+**Status**: Draft
+
+| Error Type | Pattern | Tone |
+|-----------|---------|------|
+| Data validation at boot | `data_error` base screen: count, scrollable rows (file, id, code on `ink` pill in `state_danger`, message), Copy report, Quit (run-ui U2) | Factual: "12 problems in card data. Copy the report and send it along." |
+| Profile load problems | One-time status line on the main menu ("restored from backup" / "a copy was kept" / "saved by a newer version") + ReadOnly banner with Retry (meta M5/M6) | Calm; names what happened and what still works |
+| Save failed during a run | Warning toast (≥ 5 s, pausable) **and** a persistent line on the next summary/menu | Actionable: "Run could not be saved. Check disk space; the run continues." |
+| Rejected match command | Rejection Feedback (shake + tooltip + feed line) | Specific: "Not enough mana (needs 4, have 3)" — never "invalid" |
+| Rejected draft pick (`E_*`) | Toast + screen uncommits (run-ui U8) | "That option is no longer offered." (should never happen) |
+| Dropped intent during a transition | Silent (debug event only) | Not an error the player made |
+
+**Principle**: Error messages are never the player's fault. They tell the player what happened and what to do next.
+
+---
+
+#### Success Confirmation
+
+**Category**: Feedback
+**Status**: Draft
+
+| Action | Confirmation | Notes |
+|--------|--------------|-------|
+| Copy seed / Copy report | Button label flashes "Copied" 1.5 s (`text_light`), short toast variant optional | Label change is the primary cue |
+| Pick / Start / Fight | `committed` visual: the chosen locks, siblings dim, Primary stays pressed until the swap | Immediate (≤ 50 ms) |
+| Setting changed | Live effect (text grows, motion stops, colours swap) + the control's own state; no "Saved" toast | Meta debounces the write silently |
+| Rebind (Alpha) | Row shows the new key; conflict shows the other action's name inline | — |
+| Unlock earned | Unlock toast + row on the summary + hero select panel changes | Three channels |
+
+---
+
+## Animation Standards
+
+> These timing values apply to ALL patterns in this library. When a pattern says
+> "150ms ease-out," the easing function is defined here. Consistency in timing
+> makes the UI feel like a single designed system rather than a collection of
+> individual decisions.
+
+Values are the GDDs' data-file defaults (match-ui F3 `d_base`, run-ui F2 `base_ms`); the
+template's generic table is replaced by them. **Project-wide easing rule: ease-out only, no
+ease-in, no bounce** (match-ui Game Feel; run-ui Game Feel) — ease-in reads as lag on a
+0.25 s tween. Every value is divided by `anim_speed` (match) or multiplied by its
+`speed_factor` (run), is 0 at `instant`, and is skippable.
+
+| Animation Type | Duration (ms) | Easing Function | Notes |
+|---------------|--------------|----------------|-------|
+| Button hover / focus enter | 80 | ease-out | Lift 2 px; no scale |
+| Button hover / focus exit | 60 | ease-out | — |
+| Button press | 60 | linear | Visible ≤ 33 ms after input (run-ui) |
+| Card pickup (drag) | 0 | — | Instant; no tween-in |
+| Card hover preview in / out | 100 | ease-out | `HOVER_IN_S`; neighbours never move |
+| Card play to board | 250 | ease-out | `play_card`; 4-frame squash on land |
+| Drag return (cancel) | 150 | ease-out | No bounce |
+| Attack lunge | 350 | ease-out | 6/3/9 frames; hit-stop 60/90 ms (off at `anim_speed ≥ 2` or `reduce_motion`) |
+| Damage / heal pop | 400 | ease-out | Rises 20 px; fade in place under `reduce_motion` |
+| Death group | 300 | ease-out | Then `gap_close` 200 |
+| Draw / burn / shield pop / badge / stat recolour | 200 / 400 / 250 / 150 / 150 | ease-out | — |
+| Turn banner / intent show / end banner | 400 / 300 / 600 | ease-out | — |
+| Overlay open / close (match) | 200 / 150 | ease-out | Scale 0.95→1 removed under `reduce_motion` |
+| Reject shake | 200 | linear | 3 px; outline flash under `reduce_motion` |
+| Screen fade (run) | 250 | ease-out | `fade` |
+| Run start panel | 600 | ease-out | Skippable |
+| Boss intro slide | 300 | ease-out | Fade under `reduce_motion` |
+| Draft reveal | 3 × 120 stagger | ease-out | One fade under `reduce_motion` |
+| Fly-to-strip | 400 | ease-out | Straight path; fade under `reduce_motion` |
+| Toast in / out | 200 | ease-out | Fade only under `reduce_motion` |
+| Tooltip appear / disappear | 120 / 80 | ease-out | Hover delay 300 ms; focus 0 ms |
+| Scroll step | 100 | ease-out | — |
+| Victory portrait saturation | 400 | linear | The one colour ramp |
+| Boss action gap | 600 (compressed by F4, floor 150) | — | Paced, not eased |
+
+**Motion reduction overrides**: When `reduce_motion` is enabled (see accessibility-requirements.md), all slide and scale animations are replaced with fades at half duration; hit-stop, screen shake and lethal slow-down are removed; looping or pulsing indicators (skip hint, `lethal` banner pulse) are static; positional travel that carries information (card to slot, fly-to-strip) is kept but un-squashed. `reduce_motion` is independent of `anim_speed`.
+
+---
+
+## Sound Standards
+
+> Every interactive event should have audio feedback. Sound is a primary feedback
+> channel, not a decoration. The sounds defined here are event categories — the
+> specific audio assets are defined in `design/audio/sound-bible.md` (or
+> `design/gdd/sound-bible.md`, where earlier versions put it). This table maps
+> interaction events to sound categories so the sound designer and UI programmer
+> use the same vocabulary.
+
+No sound bible exists yet. Keys below are the GDDs' own: match-ui uses dotted `sfx.ui.*`
+keys, run-ui uses snake `ui_*` event names — **two naming styles that the audio ADR must
+unify** (Open Questions). All sounds fire through the audio event bus by key (ui-code rule 5);
+skipped animation steps fire no sound; every sound is the audio half of a visible event
+(accessibility-requirements SFX Audit). Volume: SFX bus (UI shares it), music bus, master.
+
+| Interaction Event | Sound Category / key | Notes |
+|------------------|---------------|-------|
+| Focus move / hover enter | `ui_hover` | Very short, quiet; non-fatiguing on rapid Tab |
+| Button (Primary) activate | `ui_select` / `ui_pick` (draft) | Confirm feel |
+| Button (Secondary) back / cancel; drawer close | `ui_select` cancel variant (pitch-down) | Same family |
+| Button (Destructive) → confirm opens | `sfx.ui.overlay` | No warning buzzer — the dialog is the warning |
+| Confirmation confirmed | `ui_select` weighted variant | Final |
+| Toggle / Segmented change | `ui_select` | — |
+| Slider step | `ui_slider_tick` | One per step; volume sliders tick at the new level |
+| Overlay open / close (match) | `sfx.ui.overlay` | — |
+| Toast — unlock / warning / Copied | `ui_unlock` / none / `ui_select` | Warnings are silent by design (run-ui Visual/Audio) |
+| Card lift / play | `sfx.ui.card_lift` / `sfx.ui.card_play` | — |
+| Attack | `sfx.ui.attack_whoosh` + `sfx.ui.impact_light` / `impact_heavy` (≥ 5) | — |
+| Damage / heal / shield / death | `sfx.ui.damage` / `heal` / `shield_pop` / `death_thud` | One `death_thud` per group |
+| Draw / burn / fatigue | `sfx.ui.draw` / `burn` / `heartbeat` | — |
+| End Turn / boss turn start | `sfx.ui.end_turn` / `sfx.ui.turn_chime` | — |
+| Intent shown / plan changed | `sfx.ui.page_turn` / `sfx.ui.plan_changed` | — |
+| Rejection | `sfx.ui.deny` | Soft "no", not a buzzer |
+| Match end | `sfx.ui.victory` / `sfx.ui.defeat` | — |
+| Draft reveal / pick | `ui_draft_reveal` / `ui_pick` | Rare treasure: brighter variant |
+| Run start / boss intro / run end | `run_start` / `boss_intro_<band>` / `run_victory` / `run_defeat` | — |
+| Hero selected | hero-specific sting (heroes.md) | — |
+| Ambient | `music.match_ambient` | Ducked under stingers |
+
+---
+
+## Gaps & Patterns Needed
+
+Patterns the screens will need that this version does not fully specify, or that need a
+GDD change before they are real:
+
+| Gap | Needed by | What is missing | Proposed owner |
+|-----|-----------|-----------------|----------------|
+| Keyword Glossary overlay | pause-menu, settings, Card Inspect reading panel | Not in any GDD; needs a `keywords.json` string table (DD-M09 set) and an overlay spec | Jacob to assign Run UI or Match UI (accessibility-requirements Open Questions) |
+| Controls / rebinding page | settings (Alpha) | Key-capture Input Field, conflict rule, storage key (meta M9) | Meta Progression + Run UI |
+| Gamma slider | settings | Setting key + render hook | Meta + Run UI |
+| Deck drawer | draft-picker | Non-blocking drawer spec: width, List Item rows with Card Inspect, "held treasures" section | `/ux-design draft-picker` |
+| Compact card row (bundle panel) | draft-picker | The 300x64 row at 150% `text_scale` — likely needs the reading panel on focus rather than reflow | `/ux-design draft-picker` |
+| Top bar | hud | Turn indicator, floor/boss name, feed toggle, menu button — layout and focus order | `/ux-design hud` |
+| Settings-quick-access in match pause | pause-menu | Add music volume; decide which Segmented Selects appear in-match (anim_speed, reduce_motion only per match-ui U9) | `/ux-design pause-menu` |
+| Screen-reader naming convention | all | A rule for `accessibility_name` strings per pattern once AccessKit live-region behaviour is sourced | ux-designer |
+| Consolidation check | — | Match Choice `1`–`3` *selects* while run `1`–`3` *focuses*; both are two-step, but the words differ — unify wording in both GDDs | `/consistency-check` |
+| Audio key naming | all | `sfx.ui.*` vs `ui_*` | Audio ADR |
+
+---
+
+## Open Questions
+
+| Question | Owner | Deadline | Resolution |
+|----------|-------|----------|-----------|
+| Does Godot 4.7 AccessKit announce `Control.accessibility_live` changes (toasts, feed lines) without focus? NOT SOURCEABLE from `docs/engine-reference/godot/` beyond the property's existence. | ux-designer | Before first menu implementation | Unresolved |
+| Click-to-Select pointer entry into `KeyTargeting` and the 8 px click/drag threshold: amend match-ui U5? | Match UI GDD | Before `/ux-design targeting` | Open — specified here |
+| `Tab` in match idle as inspect-cycle (extends match-ui U5 where `Tab` exists only in targeting). | Match UI GDD | Before `/ux-design hud` | Open |
+| `end_turn_arm_ms` (300 ms proposed) to separate skip from End Turn on the same key; alternative: Space = skip only, Enter = End Turn. | Match UI GDD + Jacob | Before `/ux-design hud` | Open |
+| Esc on Mulligan / Choice / end banner → pause menu (not "close overlay"). | Match UI GDD | Before `/ux-design choice-overlay` | Open |
+| Toast floor 5000 ms / cap 8000 ms and hover-pauses-timer (run-ui F3 ranges widen). | Run UI GDD | Before `/ux-design toast` | Open |
+| Unaffordable-card cue: dashed `text_muted` cost ring (proposed) and whether 60% alpha keeps `text_ink` on `parchment` ≥ 4.5:1. | `/ux-design hand` + art-director manual pass | Pre-Production | Open |
+| `F11` fullscreen and `Ctrl+C` copy conveniences — adopt as default `InputMap` actions? | Jacob | Pre-Production | Proposed |
+| Reading panel at `text_scale` 125/150% — approve as the card-text scaling path. | Jacob | `/ux-design hand` | Open (accessibility-requirements recommends it) |
+| Audio key naming (`sfx.ui.*` vs `ui_*`) — pick one before `/asset-spec`. | Audio ADR | Before `/create-architecture` | Open |
+| Which Segmented labels for `anim_speed` (Normal / Fast / Fastest / Instant) map onto match-ui's `1.0 / 1.5 / 2.0 / instant`, and does run-ui's `action delay` slider stay? | Run UI + Match UI GDDs | `/consistency-check` | Open (match-ui Open Questions already holds it) |
+| Maximum visible toasts: run-ui U5 says one at a time; template suggests 3. Keep one (less load) — confirm in playtest. | ux-designer | First playtest | Provisional: one |
