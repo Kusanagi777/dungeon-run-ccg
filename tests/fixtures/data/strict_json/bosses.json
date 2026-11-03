@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "records": [
+    {"id": "boss_a", "name": "id", "say": "a, ] and }, then {\"id\": 1,}"},
+    {"id": "boss_b", "tags": ["x", "y"], "nested": {"id": "inner", "name": "id"}}
+  ]
+}

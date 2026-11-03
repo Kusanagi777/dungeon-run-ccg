@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "records": [
+    {"id": "war_dup", "name": "First", "id": "war_dup_again"}
+  ]
+}
