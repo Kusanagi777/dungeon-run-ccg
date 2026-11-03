@@ -566,7 +566,7 @@ signal match_view_finished(result: MatchResult)        # MatchView → RunShell,
 ## Performance Implications
 
 - **CPU**: `tick()` = one `poll()` + replay bounded by `replay_budget_ms`
-  (ADR-0006 default 4 ms, data-driven; A30 asserts the 2 ms AI share). Each
+  (ADR-0006 default 2 ms per `ai_profiles.json` `runtime.replay_budget_ms`, data-driven; A30 asserts the 2 ms AI share; corrected 2026-11-03 from a stale 4 ms). Each
   replayed command is a normal `submit` (≤ 5 ms worst case, typically far less).
   One `clone()` per forecast and per boss turn on the main thread, in addition to
   the planner's own sandboxes (boss-ai F7 budgets).
