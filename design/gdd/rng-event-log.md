@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/game-design-document-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Designed
 > **Author**: owner + Claude (`/design-system`, guided automation, Lean review — no specialist agents consulted)
 > **Last Updated**: 2026-11-03
 > **Last Verified**: 2026-11-03
@@ -12,9 +12,15 @@
 
 ## Summary
 
-[To be designed]
+RNG & Event Log is the determinism foundation of Deckdelve: one 64-bit run seed is split into named
+streams (`run`, `match_<floor>`, `draft_<floor>`, `ai_<floor>`) that every rule draws from by
+injection, and an append-only event log that records exactly one `{seq, turn, type, payload,
+cause_seq}` event per state mutation. The player sees it as the seed on the run summary, the match
+event feed, and the damage-per-card table; the project relies on it for reproducible bug reports,
+headless deterministic tests, and the Pillar 4 promise that any loss can be explained and any run
+replayed from its seed.
 
-> **Quick reference** — Layer: `Foundation` · Priority: `MVP` · Key deps: `None`
+> **Quick reference** — Layer: `Foundation` · Priority: `MVP` · Key deps: `None` (upstream); depended on by Match Rules, Card Effects, Boss AI, Run Structure, Reward Draft, Treasures, Match UI, Run UI, Meta Progression
 
 ## Overview
 
@@ -545,4 +551,11 @@ Each criterion is a gdUnit4 test unless marked *manual*; all run headless with l
 
 ## Open Questions
 
-[To be designed]
+| Question | Owner | Deadline | Resolution |
+|---|---|---|---|
+| 1. Does Godot 4.7.2 `RandomNumberGenerator` expose settable `seed`/`state` as assumed, and does GDScript `int` wrap on overflow for F2's multiplications? NOT SOURCEABLE from `docs/engine-reference/godot/`. | engine-programmer | `/create-architecture` | Open — verify with a 5-line headless script; record in the RNG ADR |
+| 2. What does Run Structure do after `match_ended{result: fault}` — replay the floor via the retry fork, or count it as a win? | game-designer (Run Structure GDD) | Run Structure GDD | Open — provisional: replay, no loss |
+| 3. What trigger depth / per-action event limit does Card Effects enforce, so that `log_overflow` is a second line of defence rather than the first? | systems-designer (Card Effects GDD) | Card Effects GDD | Open |
+| 4. Should bug-report JSON redact boss hand contents (`card_drawn.card_id` for `side = boss`) when the player shares a log before finishing the run? | game-designer | Match UI GDD | Open — default: no redaction; logs are per-run artefacts |
+| 5. Should `keep_match_logs` default to true in release for the first public build to gather balance data? | owner | Alpha sprint plan | Open |
+| 6. `design/design-decisions.md` cites ADR-0001 and ADR-0003, but no such files exist under `docs/architecture/`; the RNG ADR should take the next free id from `registry.sh next-id adr`. | technical-director | `/create-architecture` | Open |

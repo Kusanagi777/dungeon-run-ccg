@@ -48,7 +48,7 @@
 | DD-H03 | Card pool v1 | ~120 cards: ~25 per hero set (75) + ~45 neutral | Owner (~120) |
 | DD-H04 | Treasure pool v1 | ~20 passive treasures with rarity Common/Rare; some unlock via meta progression | Owner (~20) |
 | DD-H05 | Bundles | ~30 bundles: ~8 per hero (hero cards) + ~6 neutral; each bundle has one theme tag used by Reward Draft weighting | default |
-| DD-H06 | MVP content cut | War hero only, 4 bosses (2 band 1, 1 band 2, 1 band 3), ~40 cards, 8 treasures, 10 bundles | Concept doc |
+| DD-H06 | MVP content cut | War hero only, 4 bosses (2 band 1, 1 band 2, 1 band 3), ~40 cards, 10 treasures (DD-R05 needs 9 distinct per run; was 8, raised 2026-11-03 per card-database GDD), 10 bundles | Concept doc |
 
 ## Technical constants shared by GDDs
 

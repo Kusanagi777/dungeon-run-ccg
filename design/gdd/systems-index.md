@@ -66,18 +66,18 @@ Systems, one paragraph each (balanced density):
 
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
-| 1 | Card Database | Core | MVP | Not Started | — | — |
+| 1 | Card Database | Core | MVP | Designed | design/gdd/card-database.md | — |
 | 2 | RNG & Event Log (inferred) | Core | MVP | Not Started | — | — |
 | 3 | Match Rules | Gameplay | MVP | Not Started | — | Card Database, RNG & Event Log |
 | 4 | Card Effects | Gameplay | MVP | Not Started | — | Match Rules, Card Database, RNG & Event Log |
-| 5 | Boss AI | Gameplay | MVP | Not Started | — | Match Rules, Card Effects |
+| 5 | Boss AI | Gameplay | MVP | Not Started | — | Match Rules, Card Effects, Card Database |
 | 6 | Heroes | Gameplay | MVP | Not Started | — | Card Database, Card Effects |
-| 7 | Run Structure | Progression | MVP | Not Started | — | Match Rules, Heroes, RNG & Event Log |
+| 7 | Run Structure | Progression | MVP | Not Started | — | Match Rules, Heroes, Card Database, RNG & Event Log |
 | 8 | Reward Draft | Economy | MVP | Not Started | — | Run Structure, Card Database, Treasures, RNG & Event Log |
-| 9 | Treasures | Gameplay | MVP | Not Started | — | Card Effects, Run Structure |
-| 10 | Meta Progression | Persistence | Vertical Slice | Not Started | — | Run Structure, Heroes, Treasures |
-| 11 | Match UI | UI | MVP | Not Started | — | Match Rules, Card Effects, Boss AI |
-| 12 | Run UI | UI | MVP | Not Started | — | Run Structure, Reward Draft, Meta Progression |
+| 9 | Treasures | Gameplay | MVP | Not Started | — | Card Effects, Run Structure, Card Database |
+| 10 | Meta Progression | Persistence | Vertical Slice | Not Started | — | Run Structure, Heroes, Treasures, Card Database |
+| 11 | Match UI | UI | MVP | Not Started | — | Match Rules, Card Effects, Boss AI, Card Database |
+| 12 | Run UI | UI | MVP | Not Started | — | Run Structure, Reward Draft, Meta Progression, Card Database |
 | 13 | Content | Gameplay | MVP → Alpha | Not Started | — | Card Database, Card Effects, Heroes, Treasures, Boss AI |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
@@ -196,7 +196,7 @@ None in v1 (hard-band modifiers and accessibility options are Full Vision).
 | Metric | Count |
 |--------|-------|
 | Total systems identified | 13 |
-| Design docs started | 0 |
+| Design docs started | 1 |
 | Design docs reviewed | 0 |
 | Design docs approved | 0 |
 | MVP systems designed | 0/12 |
