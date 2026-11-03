@@ -91,7 +91,6 @@ entities:
     source: design/gdd/heroes.md
     referenced_by:
       - design/gdd/heroes.md
-      - design/gdd/run-structure.md
       - design/gdd/content.md
       - design/gdd/meta-progression.md
       - design/gdd/reward-draft.md
@@ -111,7 +110,6 @@ entities:
     source: design/gdd/heroes.md
     referenced_by:
       - design/gdd/heroes.md
-      - design/gdd/run-structure.md
       - design/gdd/content.md
       - design/gdd/meta-progression.md
       - design/gdd/reward-draft.md
@@ -177,7 +175,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 1
     health: 30
@@ -189,7 +186,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 1
     health: 30
@@ -201,7 +197,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 1
     health: 30
@@ -214,7 +209,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 1
     health: 30
@@ -226,7 +220,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 1
     health: 30
@@ -239,7 +232,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 1
     health: 30
@@ -251,7 +243,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 2
     health: 40
@@ -263,7 +254,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 2
     health: 40
@@ -275,7 +265,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 2
     health: 40
@@ -287,7 +276,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 2
     health: 40
@@ -299,7 +287,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 2
     health: 40
@@ -312,7 +299,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 2
     health: 40
@@ -324,7 +310,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 3
     health: 50
@@ -336,7 +321,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 3
     health: 50
@@ -349,7 +333,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 3
     health: 50
@@ -361,7 +344,6 @@ entities:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     band: 3
     health: 50
@@ -739,7 +721,6 @@ formulas:
     referenced_by:
       - design/gdd/rng-event-log.md
       - design/gdd/match-rules.md
-      - design/gdd/run-structure.md
       - design/gdd/reward-draft.md
       - design/gdd/boss-ai.md
     variables:
@@ -946,7 +927,6 @@ formulas:
     status: active
     source: design/gdd/run-structure.md
     referenced_by:
-      - design/gdd/run-structure.md
       - design/gdd/run-ui.md
     variables:
       - band_split
@@ -975,7 +955,6 @@ formulas:
     status: active
     source: design/gdd/run-structure.md
     referenced_by:
-      - design/gdd/run-structure.md
       - design/gdd/match-rules.md
     variables:
       - BossDef.health
@@ -1302,7 +1281,6 @@ formulas:
     source: design/gdd/content.md
     referenced_by:
       - design/gdd/content.md
-      - design/gdd/run-structure.md
       - design/gdd/boss-ai.md
     variables:
       - deck_vanilla_budget
@@ -1415,7 +1393,6 @@ constants:
       - design/gdd/heroes.md
       - design/gdd/content.md
       - design/gdd/boss-ai.md
-      - design/gdd/run-structure.md
     value: "30 / 40 / 50"
     unit: health (band 1 / 2 / 3, DD-M02)
     added: 2026-11-03
