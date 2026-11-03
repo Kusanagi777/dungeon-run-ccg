@@ -6,7 +6,7 @@
 > **Control Manifest**: Foundation Layer Rules for data (`data-files.md` governs `assets/data/**/*.json`); Manifest Version 2026-11-03
 > **Build Order**: 14 of 14 — plan E9; its first batch (War starter + one band-1 boss) is pulled forward into sprints 1–2 by the first playable
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories content`
+> **Stories**: 9 stories — see Stories below
 
 ## Overview
 
@@ -53,3 +53,19 @@ Requirements covered by Accepted ADRs: 2 / 2. Untraced Requirements: None.
 - Config/Data stories carry a smoke-check pass in `production/qa/smoke-[date].md`
 - Logic and Integration stories have passing tests in the test root
 - Visual/Feel and UI stories have retained screenshots in `production/qa/evidence/` (a lead sign-off too for Visual/Feel)
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | Batch 0 — first-playable data set (War starter, The Torchbearer, every DD-T01 file) | Config/Data | Ready | ADR-0002, ADR-0007, ADR-0006 |
+| 002 | MVP-1 — complete the War set (25 cards) | Config/Data | Ready | ADR-0002, ADR-0007 |
+| 003 | MVP-1 — band-1 bosses The Rat King and The Gatekeeper (+ `boss_rat`, Smite or Mend) | Config/Data | Ready | ADR-0002, ADR-0006, ADR-0007 |
+| 004 | MVP-1 — The Rot Warden and The Hollow King (+ `decay_husk`) | Config/Data | Ready | ADR-0002, ADR-0006, ADR-0007 |
+| 005 | MVP-1 — the 10 MVP bundles | Config/Data | Ready | ADR-0002 |
+| 006 | MVP-1 — the 10 MVP treasures | Config/Data | Ready | ADR-0002, ADR-0007 |
+| 007 | `tools/content/validate.gd` headless command, exit contract and `content_budgets` validator | Logic | Ready | ADR-0002 |
+| 008 | Content checks F1–F5 in the validate command | Logic | Ready | ADR-0002 |
+| 009 | MVP-1 batch close — validate exits 0, `/content-audit`, `/balance-check` | Config/Data | Ready | ADR-0002, ADR-0003, ADR-0006 |
+
+Review: QL-STORY-READY skipped — Lean mode.
