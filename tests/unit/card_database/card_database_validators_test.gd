@@ -253,6 +253,25 @@ func test_owner_warning_codes_merge_as_warnings_and_do_not_fail_the_load() -> vo
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 
 
+func test_an_entry_severity_overrides_the_owner_code_prefix() -> void:
+	# Arrange — a W_ code the owner marks error (a pending validator in an
+	# exported build), and an E_ code it marks warning
+	var map: Dictionary = ValidatorStubs.accept_all()
+	map.configs.run_ui = ValidatorStubs.config_returning([{"severity": ValidationReport.SEVERITY_ERROR, "code": "W_VALIDATOR_PENDING", "message": "pending"}])
+	map.configs.match_ui = ValidatorStubs.config_returning([{"severity": ValidationReport.SEVERITY_WARNING, "code": "E_Y", "message": "soft"}])
+
+	# Act
+	var report: ValidationReport = DataLoader.new(FIXTURES + "clean").run(map).report
+
+	# Assert
+	var by_file: Dictionary = {}
+	for e: Dictionary in _delegated(report):
+		by_file[e.file] = String(e.severity)
+	assert_str(by_file.get("run_ui.json", "")).is_equal(String(ValidationReport.SEVERITY_ERROR))
+	assert_str(by_file.get("match_ui.json", "")).is_equal(String(ValidationReport.SEVERITY_WARNING))
+	assert_bool(report.has_errors()).is_true()
+
+
 func test_a_validator_returning_a_non_array_is_e_delegated() -> void:
 	var map: Dictionary = ValidatorStubs.accept_all()
 	map.configs.heroes_balance = func(_body: Dictionary, _db_arg: Variant) -> Variant: return null

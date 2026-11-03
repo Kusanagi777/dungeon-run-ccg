@@ -50,6 +50,11 @@ var name: String = ""
 var draws: int = 0
 
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## The [method fork] memo, `"<name>/<label>" → child`. Any restore of this
+## stream's position (rng-event-log story 003's `restore()`; the
+## `TestRngStream.restore` double) must clear it, or a fork after restore
+## returns the pre-restore child without its parent draw (code review
+## 2026-11-03).
 var _forks: Dictionary = {}
 
 

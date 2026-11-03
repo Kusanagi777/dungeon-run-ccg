@@ -114,3 +114,7 @@ checks scope against it.*
 **Test Evidence**: `tests/unit/match_rules/match_rules_setup_test.gd` (15 tests); full suite 352 test cases, 0 failures, exit 0; smoke exit 0, no SCRIPT ERROR.
 **Run result**: N/A — the story changes headless rules state and the event log only; no scene, node or screen renders it (Match UI is a later epic).
 **Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
+
+**Code review fixes** (2026-11-03, started 2026-11-03T22:00:05Z, finished 2026-11-03T22:01:54Z UTC; `/code-review` sprint 2, MR-003 on `fix/review-sprint2`):
+- should-fix fixed — `start()` builds installers as `Array[HookInstaller]` (ADR-0007's `bind` signature); `TestEffectResolver.bind` is typed the same, so a plain Array now fails there as it would against `EffectResolver` (probe: the old `start()` against the typed double is a SCRIPT ERROR, every setup test failed). New test `test_start_passes_bind_a_typed_hook_installer_array`.
+- nit fixed — `_log_skipped_installers` reads the refusals from `hooks.hosts()` after `bind` (installed hosts in installer order; an installer that is not the next installed host was refused by `install()`) instead of re-deriving the duplicate rule; supersedes the "detected from the installer list" note above. New regression test `test_interleaved_duplicates_log_one_skip_each_in_installer_order` (passes on both old and new logic — it pins behaviour, it is not a bug test). Setup suite now 17 tests.

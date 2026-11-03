@@ -172,11 +172,16 @@ func test_boot_unloaded_card_database_override_is_loaded_by_boot() -> void:
 	# Act
 	var result: BootResult = boot.boot({"card_database": db})
 
-	# Assert
+	# Assert -- Ready with no error; the pending validators are visible as
+	# W_VALIDATOR_PENDING warnings in this debug build (code review 2026-11-03)
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 	assert_bool(result.ok).is_true()
 	assert_str(String(result.load_status)).is_equal("Ready")
 	assert_object(boot.services().card_database).is_same(db)
+	assert_array(result.report.errors()).override_failure_message(result.report.to_text()).is_empty()
+	var prefix: String = String(ValidationReport.W_VALIDATOR_PENDING) + ": "
+	var pending: Array = result.report.warnings().filter(func(e: Dictionary) -> bool: return String(e.message).begins_with(prefix))
+	assert_int(pending.size()).is_equal(BOOT_SCRIPT.PENDING_CONFIG_OWNERS.size())
 
 
 func test_boot_settings_bus_is_shared_with_meta() -> void:

@@ -142,10 +142,13 @@ func fork(label: String) -> TestRngStream:
 
 
 ## F5: reseed and discard `target_draws` outputs so the next output equals the
-## original stream's next output after that many draws. Clears recorded calls.
+## original stream's next output after that many draws. Clears recorded calls
+## and the fork memo: a fork after restore consumes its parent draw and is
+## seeded from it, as on a fresh run (code review 2026-11-03).
 ## Example: `stream.restore(37)`.
 func restore(target_draws: int) -> void:
 	calls.clear()
+	_forks.clear()
 	draws = 0
 	_script_index = 0
 	if _mode == Mode.SEEDED:

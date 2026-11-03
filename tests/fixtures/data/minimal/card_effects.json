@@ -1,4 +1,13 @@
 {
   "schema_version": 1,
-  "config": {}
+  "config": {
+    "discover_count": 3,
+    "discover_exclude_hand": false,
+    "max_ops_per_effect": 8,
+    "max_repeat": 10,
+    "max_summon_count": 7,
+    "effect_static_step_limit": 250,
+    "spell_damage_default": "auto",
+    "hooks_before_triggers": true
+  }
 }

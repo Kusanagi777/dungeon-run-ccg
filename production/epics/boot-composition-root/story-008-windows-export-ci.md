@@ -76,7 +76,7 @@
 
 **CI run**: verified 2026-11-03 by the orchestrator — run https://github.com/Kusanagi777/dungeon-run-ccg/actions/runs/41714090015 (head 85ba444, `pull_request`) completed **success**; artifact `deckdelve-windows-0da81e779bcd7f55850d2f6bd55b00ab4bf9f635` (the PR merge-ref sha), 38,964,535 bytes zipped, expires 2026-11-17. The first run on ac76506 was cancelled by `cancel-in-progress` when 85ba444 was pushed (expected). Cache hit confirmed on the second run (https://github.com/Kusanagi777/dungeon-run-ccg/actions/runs/41715071351, head 0d5b421, success; the install step took 1 s). Owner first-launch screenshot: pending (`production/qa/evidence/windows-first-light-<date>/`).
 
-**Status**: [x] Local build passes; [x] CI run green with artifact; [ ] owner first launch on Windows
+**Status**: [x] Local build passes; [x] CI run green with artifact; [x] owner first launch on Windows (2026-11-03, PASS — `production/qa/evidence/windows-first-light-2026-11-03/README.md`)
 
 ---
 

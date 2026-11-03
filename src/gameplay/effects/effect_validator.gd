@@ -83,6 +83,25 @@ const CAP_MAX_SUMMON_COUNT: String = "MAX_SUMMON_COUNT"
 const HOST_KIND_CARD: StringName = &"card"
 const HOST_KIND_BOSS: StringName = &"boss"
 
+## The whole-number Tuning Knobs of `card_effects.json` and their safe ranges
+## `[min, max]`, inclusive (design/gdd/card-effects.md Tuning Knobs; F6
+## variables). Validation bounds, not knob values: like
+## `RulesEngine.CONFIG_SAFE_RANGES` they cannot come from the file they check.
+const CONFIG_INT_RANGES: Dictionary[String, Array] = {
+	"DISCOVER_COUNT": [1, 5],
+	"MAX_OPS_PER_EFFECT": [4, 12],
+	"MAX_REPEAT": [2, 20],
+	"MAX_SUMMON_COUNT": [1, 7],
+	"EFFECT_STATIC_STEP_LIMIT": [50, 1000],
+}
+## The other Tuning Knobs and the only values their safe range allows
+## (compared with type equality, so `"true"` is not `true`).
+const CONFIG_ALLOWED_VALUES: Dictionary[String, Array] = {
+	"DISCOVER_EXCLUDE_HAND": [true, false],
+	"SPELL_DAMAGE_DEFAULT": ["auto", false],
+	"HOOKS_BEFORE_TRIGGERS": [true],
+}
+
 
 ## Validates every effect object of one host and returns a new report
 ## (`[{code, host_id, effect_id, path, message}]`, empty when clean).
@@ -135,6 +154,64 @@ static func validate_effects(host_kind: StringName, host_id: String, effects: Ar
 			"report": report, "host_id": host_id, "effect_id": null,
 		})
 	return report
+
+
+## The `card_effects` config validator (card-database CR-5 stage 7a; ADR-0002
+## Decision 4: `call(body, db) -> Array`), registered by `Boot` as
+## `configs.card_effects`. **Interim** (code review 2026-11-03): it checks
+## that every Tuning Knob is present and inside its safe range; card-effects
+## story 002 owns the final key spelling and may extend it. A knob is read
+## under its GDD name (`MAX_REPEAT`) or the snake_case spelling
+## (`max_repeat`), as [method validate_effects] reads its caps. Static and
+## pure ([param _db] is unused). Returns one `E_FX_SCHEMA` entry
+## `{code, host_id: null, field, message}` per problem, `field` the GDD knob
+## name, in [constant CONFIG_INT_RANGES] then [constant CONFIG_ALLOWED_VALUES]
+## order; `[]` when the body is valid:
+## - a knob absent under both spellings;
+## - a [constant CONFIG_INT_RANGES] knob that is not a whole number (JSON
+##   numbers parse as `float`: `8.0` passes, `8.5`, `"8"`, `true` fail), or a
+##   whole number outside its range;
+## - a [constant CONFIG_ALLOWED_VALUES] knob holding any other value.
+## [codeblock]
+## var errors: Array = EffectValidator.validate_config({"max_repeat": 30.0}, null)
+## errors[0].field   # "DISCOVER_COUNT" (missing); errors[2] is MAX_REPEAT out of range
+## [/codeblock]
+static func validate_config(body: Dictionary, _db: Variant) -> Array:
+	var errors: Array = []
+	for knob: String in CONFIG_INT_RANGES:
+		var key: Variant = _config_key(body, knob)
+		if key == null:
+			errors.append(_config_error(knob, "missing knob `%s` (card-effects Tuning Knobs)" % knob))
+			continue
+		var raw: Variant = body[key]
+		var is_number: bool = typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT
+		if not is_number or float(raw) != floorf(float(raw)):
+			errors.append(_config_error(knob, "`%s` must be a whole number, found %s (%s)" % [key, str(raw), type_string(typeof(raw))]))
+			continue
+		var bounds: Array = CONFIG_INT_RANGES[knob]
+		if int(raw) < int(bounds[0]) or int(raw) > int(bounds[1]):
+			errors.append(_config_error(knob, "`%s` is %d, outside the safe range %d–%d" % [key, int(raw), int(bounds[0]), int(bounds[1])]))
+	for knob: String in CONFIG_ALLOWED_VALUES:
+		var key: Variant = _config_key(body, knob)
+		if key == null:
+			errors.append(_config_error(knob, "missing knob `%s` (card-effects Tuning Knobs)" % knob))
+		elif not _enum_has(CONFIG_ALLOWED_VALUES[knob], body[key]):
+			errors.append(_config_error(knob, "`%s` is one of %s, found %s" % [key, str(CONFIG_ALLOWED_VALUES[knob]), str(body[key])]))
+	return errors
+
+
+## The key [param knob] is stored under in [param body] — its GDD name, else
+## its snake_case spelling — or `null` when neither is present.
+static func _config_key(body: Dictionary, knob: String) -> Variant:
+	if body.has(knob):
+		return knob
+	if body.has(knob.to_lower()):
+		return knob.to_lower()
+	return null
+
+
+static func _config_error(knob: String, message: String) -> Dictionary:
+	return {"code": E_FX_SCHEMA, "host_id": null, "field": knob, "message": message}
 
 
 # --- Host ------------------------------------------------------------------------

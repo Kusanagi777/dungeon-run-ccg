@@ -7,10 +7,11 @@
 ## module receives a named [RngStream] from [method stream] (DD-T03); there is
 ## no global seeded RNG (TD-007).
 ##
-## [method stream] validates the rule 3 name pattern (a bad name is a
-## programmer bug: logged, still served), creates the stream on first use with
-## the F2 seed and returns the same object thereafter, position intact. Forks
-## (`stream.fork(label)`, rule 5 / F3) are memoised on their parent stream.
+## [method stream] takes root names only (rule 3: a `/` name is refused, `null`;
+## any other bad name is a programmer bug: logged, still served), creates the
+## stream on first use with the F2 seed and returns the same object
+## thereafter, position intact. Forks (`stream.fork(label)`, rule 5 / F3) are
+## memoised on their parent stream and are the only source of `/` names.
 ## [codeblock]
 ## var rng: RngService = RngService.new(run_seed, db.data_version())
 ## var deck_rng: RngStream = rng.stream("match_3")   # F2-seeded, memoised
@@ -37,8 +38,15 @@
 class_name RngService
 extends RefCounted
 
-## rng-event-log rule 3 stream-name pattern.
+## rng-event-log rule 3 stream-name pattern: every stream's full name, a root
+## name plus any `/<label>` fork path (`"ai_1/sim_3"`).
 const STREAM_NAME_PATTERN: String = "^[a-z]+(_[0-9]+)?(/[a-z0-9_]+)*$"
+## rng-event-log rule 3: the names [method stream] accepts — root names only
+## (`run`, `match_3`, `draft_2`, `ai_1`). A `/` name comes only from
+## `RngStream.fork()`: `stream("ai_1/x")` and `stream("ai_1").fork("x")` would
+## share a name under different seeds (F2 vs F3), so the first is refused
+## (code review 2026-11-03; ADR-0003 erratum).
+const ROOT_STREAM_NAME_PATTERN: String = "^[a-z]+(_[0-9]+)?$"
 ## rng-event-log F2: FNV-1a 64 offset basis 0xCBF29CE484222325 as signed int64.
 const FNV_OFFSET_BASIS: int = -3750763034362895579
 ## rng-event-log F2: FNV-1a 64 prime 0x00000100000001B3.
@@ -53,35 +61,55 @@ const _HEX_SEED_PATTERN: String = "^(0x)?[0-9A-Fa-f]{16}$"
 const _DECIMAL_SEED_PATTERN: String = "^-?[0-9]{1,19}$"
 const _HEX_DIGITS: String = "0123456789ABCDEF"
 
-## The three F1 / rule 3 patterns, compiled once for every service.
+## The F1 / rule 3 patterns, compiled once for every service.
 static var _name_regex: RegEx = RegEx.create_from_string(STREAM_NAME_PATTERN)
+static var _root_name_regex: RegEx = RegEx.create_from_string(ROOT_STREAM_NAME_PATTERN)
 static var _hex_seed_regex: RegEx = RegEx.create_from_string(_HEX_SEED_PATTERN)
 static var _decimal_seed_regex: RegEx = RegEx.create_from_string(_DECIMAL_SEED_PATTERN)
 
-## The run's single 64-bit seed (rule 1), stored signed. Never changed after
-## construction. Example: `RngService.new(42, "v").run_seed == 42`.
-var run_seed: int = 0
+## The run's single 64-bit seed (rule 1), stored signed. Read-only: set at
+## construction; a write is logged and ignored.
+## Example: `RngService.new(42, "v").run_seed == 42`.
+var run_seed: int:
+	get:
+		return _run_seed
+	set(_value):
+		push_error("RngService.run_seed is read-only; set at construction")
 ## Card Database `data_version` the service was created under (rule 10).
+## Read-only like [member run_seed].
 ## Example: `RngService.new(42, db.data_version()).data_version`.
-var data_version: String = ""
+var data_version: String:
+	get:
+		return _data_version
+	set(_value):
+		push_error("RngService.data_version is read-only; set at construction")
 
+var _run_seed: int = 0
+var _data_version: String = ""
 var _streams: Dictionary = {}
 
 
 ## A service for `seed_value` under `version`. Creates no stream and takes no
 ## draw (rule 8). Example: `var rng: RngService = RngService.new(42, "test")`.
 func _init(seed_value: int, version: String) -> void:
-	run_seed = seed_value
-	data_version = version
+	_run_seed = seed_value
+	_data_version = version
 
 
 ## Rule 2: the memoised stream `stream_name`, created on first use seeded by
 ## `stream_seed_for(run_seed, stream_name)` (F2); later calls return the same
-## object with its draw position intact. A name outside the rule 3 pattern is
-## a programmer bug: `push_error`, then served anyway (ADR-0003 Decision 2).
+## object with its draw position intact. Root names only
+## ([constant ROOT_STREAM_NAME_PATTERN]): a name holding `/` is a fork path,
+## reachable only through `stream(root).fork(label)`, and is refused like
+## `fork("a/b")` — asserts (debug) or logs (release), returns `null`, creates
+## no stream. Any other name outside the pattern is a programmer bug:
+## `push_error`, then served anyway (ADR-0003 Decision 2).
 ## Example: `rng.stream("match_3").randi_range(1, 6)`.
 func stream(stream_name: String) -> RngStream:
-	if not is_valid_stream_name(stream_name):
+	if stream_name.contains("/"):
+		_reject("RngService.stream: \"%s\" is a fork path; stream() takes root names only, use stream(root).fork(label)" % stream_name.c_escape())
+		return null
+	if not _whole_match(_root_name_regex, stream_name):
 		push_error("RngService.stream: \"%s\" violates the rule 3 name pattern" % stream_name.c_escape())
 	if not _streams.has(stream_name):
 		_streams[stream_name] = _make_stream(stream_name, stream_seed_for(run_seed, stream_name))
@@ -203,6 +231,14 @@ static func parse_hex_u64(hex16: String) -> int:
 ## Example: `RngService.is_valid_stream_name("ai_1/sim_3")` → true.
 static func is_valid_stream_name(stream_name: String) -> bool:
 	return _whole_match(_name_regex, stream_name)
+
+
+# Caller-bug report, as `RngStream._reject`: asserts in debug builds (the
+# assert aborts only this function, so the caller still returns its
+# fallback), logs in release.
+func _reject(message: String) -> void:
+	assert(false, message)
+	push_error(message)
 
 
 # Whole-string match: PCRE's `$` also matches before a trailing newline.
