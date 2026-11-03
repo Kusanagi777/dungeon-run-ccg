@@ -121,6 +121,7 @@ entities:
       - design/gdd/heroes.md
       - design/gdd/card-effects.md
       - design/gdd/content.md
+      - design/gdd/treasures.md
     attack: 1
     health: 1
     token: true
@@ -133,6 +134,7 @@ entities:
       - design/gdd/heroes.md
       - design/gdd/card-effects.md
       - design/gdd/content.md
+      - design/gdd/treasures.md
     attack: 1
     durability: 2
     token: true
@@ -158,6 +160,204 @@ entities:
 #     revised: ""
 
 
+  - name: boss_rat_king
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 1
+    health: 30
+    passive: "Start of boss turn: summon a 1/1 Rat"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_gatekeeper
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 1
+    health: 30
+    passive: "Boss minions have Taunt"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_cellar_hermit
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 1
+    health: 30
+    hero_power: power_mend
+    passive: "none (Mend: restore 3)"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_torchbearer
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 1
+    health: 30
+    passive: "End of boss turn: 1 damage to enemy hero"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_scrap_golem
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 1
+    health: 30
+    hero_power: power_reinforce
+    passive: "Match start: 5 Armor"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_bog_witch
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 1
+    health: 30
+    passive: "Boss minion dies: boss draws a card"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_rot_warden
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 2
+    health: 40
+    passive: "Boss minion dies: 1 damage to enemy hero"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_blood_abbess
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 2
+    health: 40
+    passive: "Start of boss turn: restore 5 Health"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_iron_tollman
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 2
+    health: 40
+    passive: "Player minions cost (1) more"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_frost_hag
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 2
+    health: 40
+    passive: "End of boss turn: Freeze a random enemy minion"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_pyre_sergeant
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 2
+    health: 40
+    hero_power: power_brand
+    passive: "Boss hero attacks: 1 damage to enemy hero"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_mirror_sage
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 2
+    health: 40
+    passive: "Player plays a minion: boss gets a copy in hand"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_hollow_king
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 3
+    health: 50
+    passive: "Start of boss turn: boss minions +1/+1"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_lich_archivist
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 3
+    health: 50
+    hero_power: power_drain
+    passive: "Boss spells deal 2 more damage"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_shadow_of_the_delve
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 3
+    health: 50
+    passive: "Boss minions have Stealth (intent class_only)"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_dungeon_heart
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    band: 3
+    health: 50
+    hero_power: power_mend
+    passive: "Start of boss turn: 2 damage to all enemy minions"
+    added: 2026-11-03
+    revised: ""
+
 # ─── ITEMS ───────────────────────────────────────────────────────────────────
 # Named collectables, equipment, consumables, crafting materials, currency.
 # Register an item when its name or value appears in more than one GDD.
@@ -166,7 +366,303 @@ entities:
 # Attribute fields: value_gold, weight, stackable, category, and any stat
 #   modifiers that another system (e.g., economy, crafting) might reference.
 
-items: []
+items:
+  - name: treasure_hollow_crown
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [universal, economy]
+    power: 5.4
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_worn_signet
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [universal, economy]
+    power: 2.8
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_quartermasters_ledger
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [universal, economy]
+    power: 2.1
+    mvp: false
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_vanguards_banner
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [universal, tempo]
+    power: 5.0
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_sprinters_boots
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [war, aggro, tempo]
+    power: 2.5
+    mvp: false
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_scholars_candle
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [knowledge, draw, value]
+    power: 3.0
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_bottomless_satchel
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [universal, value]
+    power: 3.9
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_iron_constitution
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [universal, defensive, armour]
+    power: 3.5
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_thornhide_cloak
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [universal, defensive, armour]
+    power: 2.1
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_mending_charm
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [universal, defensive]
+    power: 3.2
+    mvp: false
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_whetstone_wheel
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [war, weapons]
+    power: 2.5
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_twin_grip
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [war, weapons, aggro]
+    power: 4.5
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_grave_tithe
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [decay, husk, deathrattle]
+    power: 5.0
+    mvp: false
+    unlock: hero_decay_first_win
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_rotting_bargain
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [decay, deathrattle]
+    power: 2.8
+    mvp: false
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_plague_bell
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [decay, husk, sacrifice]
+    power: 3.0
+    mvp: false
+    unlock: hero_decay_floor_5
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_focusing_prism
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: common
+    tags: [knowledge, spell_damage, spells]
+    power: 2.6
+    mvp: false
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_dogeared_grimoire
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [knowledge, spells]
+    power: 4.2
+    mvp: false
+    unlock: hero_knowledge_first_win
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_living_armory
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [universal, wild]
+    power: 4.0
+    mvp: false
+    unlock: bosses_defeated_16
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_stampede_horn
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [universal, wild, aggro]
+    power: 4.0
+    mvp: true
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_captured_standard
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/meta-progression.md
+    rarity: rare
+    tags: [war, aggro]
+    power: 4.0
+    mvp: false
+    added: 2026-11-03
+    revised: ""
+  - name: unlock_keys_v1
+    status: active
+    source: design/gdd/meta-progression.md
+    referenced_by:
+      - design/gdd/meta-progression.md
+      - design/gdd/heroes.md
+      - design/gdd/card-database.md
+      - design/gdd/treasures.md
+    keys: [unlock.treasure_trophy_rack, unlock.treasure_tally_stick, unlock.treasure_deep_lamp, unlock.treasure_banner_of_halvard, unlock.treasure_lich_grimoire, unlock.treasure_gauntlet_crown, unlock.hero_fortune, unlock.hero_order, unlock.hero_shadow]
+    notes: "Treasure unlock ids in meta-progression differ from the treasures GDD pool ids; reconcile in /review-all-gdds."
+    added: 2026-11-03
+    revised: ""
 
 # Example:
 #
@@ -545,6 +1041,272 @@ formulas:
     added: 2026-11-03
     revised: ""
 
+  - name: bundle_weight
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+      - design/gdd/run-ui.md
+    variables:
+      - BASE_WEIGHT
+      - AFFINITY_STEP
+      - AFFINITY_CAP
+      - n_tag
+      - band
+      - cost_bucket
+      - band_mult
+    output_range: [1, 390]
+    expression: "max(1, round(BASE_WEIGHT * (1 + AFFINITY_STEP*min(n_tag, AFFINITY_CAP)) * band_mult/100))"
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_weight
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/treasures.md
+      - design/gdd/content.md
+    variables:
+      - RARITY_W
+      - TREASURE_AFFINITY
+      - affine
+    output_range: [30, 105]
+    expression: "round(RARITY_W[rarity] * (100 + TREASURE_AFFINITY*affine)/100)"
+    added: 2026-11-03
+    revised: ""
+  - name: plan_share
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/heroes.md
+      - design/gdd/content.md
+    variables:
+      - deck
+      - plan_tags
+      - deck_size
+    output_range: [0, 1]
+    expression: "count(c in deck with tags(c) intersecting plan_tags) / deck_size(f); target >= 0.45 at floor 8"
+    added: 2026-11-03
+    revised: ""
+  - name: bundle_pool_min
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/card-database.md
+      - design/gdd/content.md
+    variables:
+      - floors_per_run
+      - reoffer_after_floors
+    output_range: [5, 21]
+    expression: "3 + (F-2) + 2*min(F-2, W)"
+    notes: "13 at v1 (F=8, W=2); 9 at MVP."
+    added: 2026-11-03
+    revised: ""
+  - name: unlock_met
+    status: active
+    source: design/gdd/meta-progression.md
+    referenced_by:
+      - design/gdd/meta-progression.md
+      - design/gdd/heroes.md
+      - design/gdd/treasures.md
+    variables:
+      - condition
+      - stats
+    output_range: [0, 1]
+    expression: "recursive over always|runs_won|boss_defeated|floor_reached|treasure_picked|all_of|any_of (meta-progression F1)"
+    added: 2026-11-03
+    revised: ""
+  - name: stats_fold
+    status: active
+    source: design/gdd/meta-progression.md
+    referenced_by:
+      - design/gdd/meta-progression.md
+      - design/gdd/run-structure.md
+      - design/gdd/run-ui.md
+    variables:
+      - stats
+      - run_record
+      - abandon_counts_as_loss
+      - seed_source
+    output_range: [0, 999999]
+    expression: "meta-progression F2; bests only when seed_source == random"
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_power
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/content.md
+    variables:
+      - n_triggers
+      - value_per_trigger
+      - efficiency
+    output_range: [1.5, 6.5]
+    expression: "sum(n_triggers * value_per_trigger * efficiency)"
+    added: 2026-11-03
+    revised: ""
+  - name: hook_fold
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/match-rules.md
+      - design/gdd/card-effects.md
+    variables:
+      - v_in
+      - entries_h
+      - clamp_h
+    output_range: [0, 99]
+    expression: "clamp_h(fold(entries_h in install order, v_in))"
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_offers_per_run
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/reward-draft.md
+    variables:
+      - treasure_floors
+      - floors_per_run
+      - offers_per_draft
+    output_range: [9, 9]
+    expression: "count(treasure_floors < floors_per_run) * offers_per_draft"
+    added: 2026-11-03
+    revised: ""
+  - name: hand_fan_layout
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    variables:
+      - n
+      - CARD_W
+      - HAND_GAP
+      - HAND_W
+      - HAND_CX
+      - HAND_BASE_Y
+      - ARC_H
+      - THETA_STEP_MAX
+      - THETA_TOTAL_MAX
+    output_range: [72.2, 158]
+    expression: "match-ui F1"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_turn_gap
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+      - design/gdd/boss-ai.md
+    variables:
+      - ai_action_delay_s
+      - max_turn_playback_s
+      - intent_banner_s
+      - MIN_ACTION_GAP_S
+      - K_MIN
+      - A
+      - D
+    output_range: [0.15, 0.6]
+    expression: "match-ui F4"
+    added: 2026-11-03
+    revised: ""
+  - name: restart_time
+    status: active
+    source: design/gdd/run-ui.md
+    referenced_by:
+      - design/gdd/run-ui.md
+      - design/gdd/run-structure.md
+    variables:
+      - restart_budget_ms
+      - fade_out
+      - new_run
+      - run_start
+      - intro_ready
+      - select_ready
+      - t_human_pick
+    output_range: [500, 5000]
+    expression: "sum of machine + human steps on path A (same hero) or B (via hero select); <= restart_budget_ms"
+    added: 2026-11-03
+    revised: ""
+  - name: transition_duration
+    status: active
+    source: design/gdd/run-ui.md
+    referenced_by:
+      - design/gdd/run-ui.md
+      - design/gdd/match-ui.md
+    variables:
+      - base_ms
+      - anim_speed
+    output_range: [0, 600]
+    expression: "round(base_ms[kind] * {instant:0, fast:0.5, normal:1})"
+    added: 2026-11-03
+    revised: ""
+  - name: toast_visible_ms
+    status: active
+    source: design/gdd/run-ui.md
+    referenced_by:
+      - design/gdd/run-ui.md
+      - design/gdd/meta-progression.md
+    variables:
+      - chars
+      - toast_base_ms
+      - toast_per_char_ms
+      - toast_min_ms
+      - toast_max_ms
+    output_range: [2000, 6000]
+    expression: "clamp(2000 + 30*chars, 2000, 6000)"
+    added: 2026-11-03
+    revised: ""
+  - name: progress_strip_geometry
+    status: active
+    source: design/gdd/run-ui.md
+    referenced_by:
+      - design/gdd/run-ui.md
+      - design/gdd/run-structure.md
+    variables:
+      - floors_per_run
+      - node_d
+      - seg_len
+    output_range: [216, 640]
+    expression: "strip_w = F*24 + (F-1)*40; x0 = (1280 - strip_w)/2"
+    added: 2026-11-03
+    revised: ""
+  - name: vanilla_stat_budget
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/heroes.md
+      - design/gdd/boss-ai.md
+    variables:
+      - cost
+      - keyword_tax
+      - effect_tax
+    output_range: [1, 25]
+    expression: "attack + health = 2*cost + 1 - keyword_tax - effect_tax (content F3)"
+    added: 2026-11-03
+    revised: ""
+  - name: boss_pressure
+    status: active
+    source: design/gdd/content.md
+    referenced_by:
+      - design/gdd/content.md
+      - design/gdd/run-structure.md
+      - design/gdd/boss-ai.md
+    variables:
+      - deck_vanilla_budget
+      - expected_turns
+      - band
+    output_range: [0, 60]
+    expression: "content F4: sum of vanilla budget over expected turns, by band"
+    added: 2026-11-03
+    revised: ""
+
 # ─── CONSTANTS ───────────────────────────────────────────────────────────────
 # Named numerical values referenced across multiple systems.
 # Register a constant when it is defined in one GDD but another GDD must
@@ -579,6 +1341,7 @@ constants:
       - design/gdd/card-database.md
       - design/gdd/heroes.md
       - design/gdd/run-structure.md
+      - design/gdd/reward-draft.md
     value: 15
     unit: cards
     added: 2026-11-03
@@ -834,6 +1597,7 @@ constants:
       - design/gdd/run-structure.md
       - design/gdd/reward-draft.md
       - design/gdd/card-database.md
+      - design/gdd/treasures.md
     value: "1, 3, 5"
     unit: floors (DD-R05; filtered to < floors_per_run)
     added: 2026-11-03
@@ -897,5 +1661,191 @@ constants:
       - design/gdd/match-rules.md
     value: 250
     unit: steps
+    added: 2026-11-03
+    revised: ""
+  - name: pity_window
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/run-ui.md
+    value: 2
+    unit: bundle drafts
+    added: 2026-11-03
+    revised: ""
+  - name: reoffer_after_floors
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/content.md
+    value: 2
+    unit: floors
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_rarity_weights
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/treasures.md
+    value: "70 / 30"
+    unit: weight (common / rare)
+    added: 2026-11-03
+    revised: ""
+  - name: offers_per_draft
+    status: active
+    source: design/gdd/reward-draft.md
+    referenced_by:
+      - design/gdd/reward-draft.md
+      - design/gdd/run-structure.md
+      - design/gdd/card-database.md
+      - design/gdd/run-ui.md
+    value: 3
+    unit: options (bundle and treasure, DD-R04/R05)
+    added: 2026-11-03
+    revised: ""
+  - name: profile_schema_version
+    status: active
+    source: design/gdd/meta-progression.md
+    referenced_by:
+      - design/gdd/meta-progression.md
+      - design/gdd/run-structure.md
+    value: 1
+    unit: version
+    added: 2026-11-03
+    revised: ""
+  - name: run_log_cap
+    status: active
+    source: design/gdd/meta-progression.md
+    referenced_by:
+      - design/gdd/meta-progression.md
+      - design/gdd/run-ui.md
+    value: 200
+    unit: archived runs
+    added: 2026-11-03
+    revised: ""
+  - name: archive_top_cards
+    status: active
+    source: design/gdd/meta-progression.md
+    referenced_by:
+      - design/gdd/meta-progression.md
+      - design/gdd/run-ui.md
+    value: 10
+    unit: entries
+    added: 2026-11-03
+    revised: ""
+  - name: treasure_rarity_bands
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/content.md
+    value: "common [1.5,3.5], rare [3.5,6.5]"
+    unit: mana-equivalent per match
+    added: 2026-11-03
+    revised: ""
+  - name: max_effects_per_treasure
+    status: active
+    source: design/gdd/treasures.md
+    referenced_by:
+      - design/gdd/treasures.md
+      - design/gdd/card-effects.md
+    value: 3
+    unit: effects
+    added: 2026-11-03
+    revised: ""
+  - name: hand_fan_width_px
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    value: 800
+    unit: px
+    added: 2026-11-03
+    revised: ""
+  - name: hover_scale
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    value: 1.5
+    unit: x
+    added: 2026-11-03
+    revised: ""
+  - name: anim_play_card_s
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    value: 0.25
+    unit: s
+    added: 2026-11-03
+    revised: ""
+  - name: anim_attack_s
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    value: 0.35
+    unit: s
+    added: 2026-11-03
+    revised: ""
+  - name: anim_damage_pop_s
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    value: 0.4
+    unit: s
+    added: 2026-11-03
+    revised: ""
+  - name: min_action_gap_s
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+      - design/gdd/boss-ai.md
+    value: 0.15
+    unit: s
+    added: 2026-11-03
+    revised: ""
+  - name: rejection_tooltip_s
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+      - design/gdd/match-rules.md
+    value: 1.5
+    unit: s
+    added: 2026-11-03
+    revised: ""
+  - name: feed_max_lines
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+    value: 200
+    unit: lines
+    added: 2026-11-03
+    revised: ""
+  - name: match_end_auto_s
+    status: active
+    source: design/gdd/match-ui.md
+    referenced_by:
+      - design/gdd/match-ui.md
+      - design/gdd/run-ui.md
+    value: 4
+    unit: s
+    added: 2026-11-03
+    revised: ""
+  - name: restart_budget_ms
+    status: active
+    source: design/gdd/run-ui.md
+    referenced_by:
+      - design/gdd/run-ui.md
+      - design/gdd/run-structure.md
+    value: 5000
+    unit: ms (defeat summary to first boss intro)
     added: 2026-11-03
     revised: ""
