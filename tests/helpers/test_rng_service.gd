@@ -49,7 +49,8 @@ func snapshot() -> Dictionary:
 func restore(snap: Dictionary) -> Error:
 	if str(snap.get("data_version", "")) != data_version:
 		return ERR_INVALID_DATA
-	run_seed = int(snap.get("run_seed", run_seed))
+	# The production fields are read-only; the double rewrites the backing one.
+	_run_seed = int(snap.get("run_seed", run_seed))
 	_streams.clear()
 	var positions: Dictionary = snap.get("streams", {})
 	for stream_name: String in positions:

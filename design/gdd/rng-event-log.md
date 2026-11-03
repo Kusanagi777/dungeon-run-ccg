@@ -69,6 +69,13 @@ boss AI is untestable.
 
    `<floor>` is 1–8. A consumer draws only from streams it owns; an owner may pass a fork to a
    callee (rule 5). Ownership is enforced by code review, not at runtime.
+
+   **`stream(name)` takes root names only**, `^[a-z]+(_[0-9]+)?$` (`run`, `match_3`, `draft_2`,
+   `ai_1`); the full pattern above, with `/<label>` segments, names forks, and a `/` name comes
+   only from `fork(label)` (rule 5). `stream("ai_1/x")` is refused — no stream is created, the
+   same treatment as `fork("a/b")` — because it would carry the name of `stream("ai_1").fork("x")`
+   under a different seed (F2 instead of F3) and a snapshot keyed by name could not tell them apart
+   (code review 2026-11-03, a determinism hazard).
 4. The draw API on a stream is exactly `randi_range(lo, hi)` (inclusive), `randf()`
    (`[0, 1)`, weight normalisation only — rules never compare floats for equality),
    `shuffle(array)` (in place), `weighted_pick(weights)` and `fork(label)` — all defined in F4.

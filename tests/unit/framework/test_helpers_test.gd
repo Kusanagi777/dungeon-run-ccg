@@ -255,6 +255,39 @@ func test_restore_reproduces_next_outputs() -> void:
 	assert_bool(GameAssertions.is_json_representable(snap)).is_true()
 
 
+func test_fork_after_stream_restore_matches_a_fresh_run() -> void:
+	# Arrange (F3 / F5, code review 2026-11-03): the fresh run draws 5 then forks
+	var seed_value: int = TestConstants.DEFAULT_TEST_SEED
+	var warmup: int = 5
+	var fresh: TestRngStream = TestRngStream.seeded("ai_1", seed_value)
+	for _i: int in range(warmup):
+		fresh.randi32()
+	var fresh_child: TestRngStream = fresh.fork("sim_1")
+	var expected: Array[int] = []
+	for _i: int in range(10):
+		expected.append(fresh_child.randi32())
+	# the restored run forked and drew from the child before restoring to 5
+	var restored: TestRngStream = TestRngStream.seeded("ai_1", seed_value)
+	for _i: int in range(warmup):
+		restored.randi32()
+	var stale_child: TestRngStream = restored.fork("sim_1")
+	for _i: int in range(3):
+		stale_child.randi32()
+
+	# Act
+	restored.restore(warmup)
+	var child: TestRngStream = restored.fork("sim_1")
+	var actual: Array[int] = []
+	for _i: int in range(10):
+		actual.append(child.randi32())
+
+	# Assert — a new child, seeded from a fresh parent draw, same sequence
+	assert_object(child).is_not_same(stale_child)
+	assert_int(restored.draws).is_equal(fresh.draws)
+	assert_array(actual).is_equal(expected)
+	assert_int(restored.randi32()).is_equal(fresh.randi32())
+
+
 func test_restore_rejects_data_version_mismatch() -> void:
 	# Arrange (rng-event-log AC: snapshot data_version "1.0", installed "1.1" → error, no stream)
 	var saved: TestRngService = TestRngService.new(TestConstants.DEFAULT_TEST_SEED, "1.0")

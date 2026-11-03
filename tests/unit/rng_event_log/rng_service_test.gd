@@ -226,6 +226,59 @@ func test_a_name_outside_the_rule_3_pattern_is_reported_and_still_served() -> vo
 		assert_str((out.stream as RngStream).name).is_equal(bad)
 
 
+## A caller bug: a runtime assert in debug builds, a push_error in release.
+func _assert_rejected(call: Callable, message: String) -> void:
+	if OS.is_debug_build():
+		await assert_error(call).is_runtime_error("Assertion failed: " + message)
+	else:
+		await assert_error(call).is_push_error(message)
+
+
+func test_stream_refuses_a_fork_path_name_and_creates_no_stream() -> void:
+	# Rule 3 (code review 2026-11-03): stream() takes root names only; a `/`
+	# name would share "ai_1/x" with stream("ai_1").fork("x") under an F2
+	# seed instead of the F3 one
+	for bad: String in ["ai_1/x", "ai_1/sim_3/leaf", "run/", "/run"]:
+		# Arrange
+		var service: RngService = RngService.new(SEED, "test")
+		var out: Dictionary = {}
+		var message: String = "RngService.stream: \"%s\" is a fork path; stream() takes root names only, use stream(root).fork(label)" % bad
+
+		# Act
+		await _assert_rejected(func() -> void: out.stream = service.stream(bad), message)
+
+		# Assert — null, nothing memoised, the parent untouched
+		assert_object(out.get("stream")).is_null()
+		assert_bool(service.has_stream(bad)).is_false()
+		assert_bool(service.has_stream("ai_1")).is_false()
+
+
+func test_the_fork_path_name_is_reachable_only_through_fork() -> void:
+	# Arrange
+	var service: RngService = RngService.new(SEED, "test")
+
+	# Act
+	var child: RngStream = service.stream("ai_1").fork("x")
+
+	# Assert — the full rule 3 name, served by fork, not by stream()
+	assert_str(child.name).is_equal("ai_1/x")
+	assert_bool(RngService.is_valid_stream_name(child.name)).is_true()
+	assert_bool(service.has_stream("ai_1/x")).is_false()
+
+
+func test_run_seed_and_data_version_are_read_only() -> void:
+	# Arrange
+	var service: RngService = RngService.new(SEED, "v1")
+
+	# Act / Assert — each write is logged and does not stick
+	await assert_error(func() -> void: service.run_seed = SEED + 1) \
+		.is_push_error("RngService.run_seed is read-only; set at construction")
+	await assert_error(func() -> void: service.data_version = "v2") \
+		.is_push_error("RngService.data_version is read-only; set at construction")
+	assert_int(service.run_seed).is_equal(SEED)
+	assert_str(service.data_version).is_equal("v1")
+
+
 func test_rule_3_names_in_the_v1_table_are_valid() -> void:
 	for good: String in ["run", "match_1", "match_8", "draft_3", "ai_2", "ai_1/sim_3", "ai_1/forecast_2/leaf"]:
 		assert_bool(RngService.is_valid_stream_name(good)).override_failure_message(good).is_true()
