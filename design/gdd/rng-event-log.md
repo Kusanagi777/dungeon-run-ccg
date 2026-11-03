@@ -557,9 +557,10 @@ Each criterion is a gdUnit4 test unless marked *manual*; all run headless with l
   service, **THEN** the next 20 outputs match the original's next 20.
 - [ ] **GIVEN** a stream, **WHEN** `fork("x")` is called twice, **THEN** the same object is returned
   and the parent's `draws` rose by exactly 1 in total.
-- [ ] **GIVEN** the rules source tree (`src/` excluding `src/ui/`), **WHEN** grepped for `randi(`,
-  `randf(`, `randi_range(`, `randomize(`, `.shuffle(`, `.pick_random(` outside the RNG service
-  file, **THEN** zero matches (CI lint; rule 7). *No rules test uses global RNG.*
+- [ ] **GIVEN** the rules source tree (`src/` excluding `src/ui/`), **WHEN** grepped with the pattern
+  `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|pick_random\(`
+  (bare global calls only — `stream.randf()` is legitimate) outside the RNG service file,
+  **THEN** zero matches (CI lint; rule 7; pattern per ADR-0001/0003 errata 2026-11-03). *No rules test uses global RNG.*
 - [ ] **GIVEN** `weighted_pick([5, 0, 15])` over 10,000 draws from seed 42, **WHEN** counted,
   **THEN** index 1 is never picked and index 2 is picked 7,200 – 7,800 times.
 - [ ] **GIVEN** an open match log, **WHEN** 5 events are appended, **THEN** `seq` is 1..5,

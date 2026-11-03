@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: Every class under `src/core/**` `extends RefCounted`; every collaborator arrives through `_init(...)` or an explicit `bind(...)` — ADR-0001
 - Required: `Services` bag field `settings_bus`; `SettingsBus` is ADR-0004's class, `signal settings_changed(key: StringName, value: Variant)` — ADR-0004, ADR-0011
-- Forbidden: Never reference `Boot` or `Services` from `src/core/**` (minus `boot.gd`) — gate G3; never a second event channel in `src/core/` — ADR-0001, ADR-0003
+- Forbidden: Never reference `Boot` or `Services` from `src/core/**` (minus `boot.gd`, `services.gd`, `boot_result.gd` and `##` doc-comment lines — G3 erratum 2026-11-03) — gate G3; never a second event channel in `src/core/` — ADR-0001, ADR-0003
 - Guardrail: none specific (the bus holds no data and runs no tick)
 
 ---

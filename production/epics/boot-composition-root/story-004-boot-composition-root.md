@@ -26,7 +26,7 @@
 - Required: Scene roots and `*_debug_loader.gd` are the only non-test callers of `Boot.services()`; they pass services down by argument — ADR-0001
 - Required: Tests under `tests/unit/**` construct rules objects directly, never through `Boot` — ADR-0001, ADR-0003
 - Forbidden: Never a service-locator autoload (`Boot.card_database` read on demand) — it is TD-001 again; never a second autoload; never a second composition path — ADR-0001 (Alt 1, Alt 2)
-- Forbidden: Never reference `Boot` or `Services` from `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`) — gate G3
+- Forbidden: Never reference `Boot` or `Services` from `src/gameplay/**`, `src/ai/**`, `src/core/**` (minus `boot.gd`, `services.gd`, `boot_result.gd` and `##` doc-comment lines — G3 erratum 2026-11-03) — gate G3
 - Guardrail: Data load (`Boot.boot()` → `CardDatabase` `Unloaded → Ready`) ≤ `data_load_budget_ms` 200 (expected < 50 ms), synchronous at boot; frozen snapshot ≤ `data_memory_budget_mb` 4 — ADR-0002, ADR-0001
 
 ---

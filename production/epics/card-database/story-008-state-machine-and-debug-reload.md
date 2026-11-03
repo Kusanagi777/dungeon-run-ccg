@@ -23,7 +23,7 @@
 
 **Control Manifest Rules (this layer)**:
 - Required: `load()` failure is visible (`state() == Failed`, `data_error` screen, validate command exits 1). `reload()` builds a new snapshot and swaps atomically in debug builds; returns `E_NOT_SUPPORTED` in release. Scene roots are the only non-test callers of `Boot.services()`; `CardDatabase` is composed by `Boot` and injected.
-- Forbidden: Never `assert()` on data or throw in release paths. Never reference `Boot` or `Services` from `src/core/**` (minus `boot.gd`). Never a service-locator autoload.
+- Forbidden: Never `assert()` on data or throw in release paths. Never reference `Boot` or `Services` from `src/core/**` (minus `boot.gd`, `services.gd`, `boot_result.gd` and `##` doc-comment lines — G3 erratum 2026-11-03). Never a service-locator autoload.
 - Guardrail: `reload()` in debug briefly holds two snapshots (≤ 2 × `data_memory_budget_mb`).
 
 ---
