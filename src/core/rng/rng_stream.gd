@@ -16,9 +16,10 @@
 ## var sim: RngStream = rng.fork("sim_3")        # "match_1/sim_3", 1 parent draw
 ## [/codeblock]
 ##
-## Invalid input (a bad range, bad weights) is a caller bug: it asserts in
-## debug builds and in release logs an error and returns the documented
-## fallback without consuming a draw — never a silently corrected value.
+## Invalid input (a bad range, bad weights, a bad fork label) is a caller bug:
+## it asserts in debug builds and in release logs an error and returns the
+## documented fallback without consuming a draw — never a silently corrected
+## value.
 ##
 ## Single-thread-only: a stream is not locked. A worker thread uses its own
 ## fork or a cloned engine's streams, never a live stream (ADR-0006/0008).
@@ -43,6 +44,11 @@ const MIX_MULT_A: int = -4658895280553007687
 const MIX_MULT_B: int = -7723592293110705685
 ## `randf()` divisor, 2^32 (F4).
 const _TWO_POW_32: float = 4294967296.0
+## rng-event-log F3 variable table: a fork label is `[a-z0-9_]+`.
+const _LABEL_PATTERN: String = "^[a-z0-9_]+$"
+
+## [constant _LABEL_PATTERN], compiled once for every stream.
+static var _label_regex: RegEx = RegEx.create_from_string(_LABEL_PATTERN)
 
 ## Stream name (rule 3), e.g. `"run"`, `"match_1"`, `"ai_1/sim_3"`.
 ## Example: `RngStream.new("run", 42).name == "run"`.
@@ -106,13 +112,17 @@ func shuffle(array: Array) -> void:
 
 ## F4: `total = sum(weights)`, `r = randi_range(0, total - 1)`, returns the
 ## smallest index whose cumulative weight exceeds `r`; 1 draw. Weights are
-## integers (integral floats from JSON are accepted). An empty array, a
-## negative weight, or a total of 0 or above 65,536 asserts (debug) or logs and
-## returns -1 with no draw (release); callers never invent a fallback pick.
+## integers (integral floats from JSON are accepted). An empty array, a weight
+## that is not an `int` or a whole `float` (`2.5`, `"5"`, `true`), a negative
+## weight, or a total of 0 or above 65,536 asserts (debug) or logs and returns
+## -1 with no draw (release); callers never invent a fallback pick.
 ## Example: `stream.weighted_pick([5, 0, 15])` returns 0 or 2, never 1.
 func weighted_pick(weights: Array) -> int:
 	var total: int = 0
 	for w: Variant in weights:
+		if not _is_whole_number(w):
+			total = -1
+			break
 		var weight: int = int(w)
 		# A single weight above the cap already fails the total; checking it
 		# here keeps the running sum far from int64 overflow.
@@ -136,15 +146,34 @@ func weighted_pick(weights: Array) -> int:
 ## label consumes one parent draw and seeds the child with
 ## `fork_seed(parent_draw, name, label)`; later calls with the same label
 ## return the same object and consume nothing. Child draws never touch the
-## parent's generator.
+## parent's generator. `label` matches `[a-z0-9_]+` (F3): anything else — `""`,
+## `"a/b"` (whose name would collide with `fork("a").fork("b")` under a
+## different seed), upper case, `-` — asserts (debug) or logs and returns
+## `null` with no draw (release).
 ## Example: `var sim: RngStream = ai_stream.fork("sim_3")` → `"ai_1/sim_3"`.
 func fork(label: String) -> RngStream:
+	var found: RegExMatch = _label_regex.search(label)
+	# Whole-string match: PCRE's `$` also matches before a trailing newline.
+	if found == null or found.get_string() != label:
+		_reject("RngStream.fork: bad label \"%s\"" % label.c_escape())
+		return null
 	var child_name: String = "%s/%s" % [name, label]
 	if _forks.has(child_name):
 		return _forks[child_name]
 	var child: RngStream = RngStream.new(child_name, _fork_seed(randi32(), name, label))
 	_forks[child_name] = child
 	return child
+
+
+## Whether `w` is a whole number: an `int`, or a finite `float` with no
+## fractional part (JSON numbers arrive as floats).
+static func _is_whole_number(w: Variant) -> bool:
+	match typeof(w):
+		TYPE_INT:
+			return true
+		TYPE_FLOAT:
+			return is_finite(w) and w == floorf(w)
+	return false
 
 
 # --- F3 seed arithmetic --------------------------------------------------------
