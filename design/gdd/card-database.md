@@ -655,9 +655,12 @@ under the test root, never the shipped data, except where "shipped data set" is 
 - [ ] Performance: **GIVEN** the shipped v1 data set on target hardware (release build, SSD), **WHEN**
   `load()` runs, **THEN** `Unloaded → Ready` completes in ≤ `data_load_budget_ms` (200 ms) and the
   frozen snapshot is ≤ `data_memory_budget_mb` (4 MB); the test logs both numbers.
-- [ ] No hardcoded values: `schema_version_current`, pool thresholds and budgets are read from
-  config, not literals in the loader; no file outside the Card Database parses `assets/data/*.json`
-  (a grep-based test enforces this).
+- [ ] No hardcoded values: `min_collectible_pool`, `min_bundle_pool`, `max_records`,
+  `data_load_budget_ms` and `data_memory_budget_mb` are read from `config("card_database")`, not
+  literals in the loader (a test that loads a fixture `card_database.json` with
+  `min_collectible_pool: 99` sees `W_POOL_SIZE` fire on a 40-card pool); `schema_version_current`
+  is the one declared code constant (CR-5 stage 3); no file outside the Card Database parses
+  `assets/data/*.json` (a grep-based test enforces this).
 
 ## Open Questions
 
@@ -673,3 +676,4 @@ under the test root, never the shipped data, except where "shipped data set" is 
 | Runtime schema migration vs offline script when `schema_version` changes | engine-programmer (ADR) | first schema bump | Resolved for v1: offline script in `tools/`, loader rejects old versions |
 | Does Discover need a per-effect card list, or is `collectible_pool(hero_set)` its universe? | Card Effects GDD | `/design-system card-effects` | Open; both are supported by CR-6 |
 | Rarity three tiers (common/rare/legendary) vs four | owner | `/design-system content` | Resolved here as three (CR-4); revisit only if a rule needs a fourth tier |
+| `card_database.json` (CR-1, this system's own knob file) needs a DD-T01 row — the register is the discovery list and CR-1 says a file outside it is `W_UNKNOWN_FILE`. One-token register edit; no design choice involved. | owner (register) | before `/create-architecture` | **Open** — added 2026-11-03 (re-review); apply by appending `card_database.json` to the DD-T01 file list |

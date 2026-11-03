@@ -554,8 +554,8 @@ Hard = Reward Draft cannot produce an offer without it; soft = degrades to a def
 Bidirectional check against `design/gdd/systems-index.md`: the index's system row lists Reward
 Draft as depending on Run Structure, Card Database, Treasures, Heroes, Meta Progression and RNG &
 Event Log (all below) and lists Run UI as depending on Reward Draft (below) — consistent; its
-design-order list (§ "Design order", item 4) still names only four of the six — flagged for
-`/map-systems`, not edited here. This table **adds** Content as a soft dependent. Run Structure,
+design-order list (§ "Design order", item 4) names the same six — consistent (re-checked
+2026-11-03). This table **adds** Content as a soft dependent. Run Structure,
 Card Database, RNG & Event Log, Heroes, Treasures, Meta Progression and Run UI each already name
 Reward Draft in their own Dependencies — consistent.
 
@@ -581,7 +581,7 @@ coverage slot the only off-plan option from floor 5; above ≈ 4.0 the draft rea
 | Parameter | Current Value | Safe Range | Effect of Increase | Effect of Decrease |
 |---|---|---|---|---|
 | `BASE_WEIGHT` | 100 | 10–1000 | Pure scale; no behavioural effect unless rounding bites below ~20 | Below 10, rounding flattens affinity steps |
-| `AFFINITY_STEP` (stored ×100) | 0.25 | 0.10–0.50 | Stronger "the game knows my deck"; above 0.5 off-plan bundles appear only via coverage (solved draft) | Offers drift toward uniform; plan_share falls toward the random-picker 0.40 (F7) |
+| `AFFINITY_STEP` (stored ×100) | 0.25 | 0.10–0.50 | Stronger "the game knows my deck"; above 0.5 off-plan bundles appear only via coverage (solved draft) | Offers drift toward uniform; plan_share falls toward the random-picker 0.43 (F7) |
 | `AFFINITY_CAP` | 6 (was 8 — cross-review D-02) | 4–12 | Late decks keep gaining pull; at 8 an on-plan bundle weighs 3.0× and from floor 5 the coverage slot is usually the only off-plan option (rails); above 12 the floor-7 draft is a formality | Affinity saturates early (a War starter with one `weapons` bundle already sits at the cap); below 4 late drafts feel random |
 | `band_cost_curve` | band 1 = 120/100/70; 2 = 100/110/100; 3 = 80/100/130 (%) | 50–200 each | Steeper curve: cheaper early, bigger late; above 150/50 a bundle class vanishes from a band | Flat (100 everywhere): cost ignored, floor-1 offers of 5-drops |
 | `COST_LOW` / `COST_HIGH` | 2.5 / 4.0 | 2.0–3.0 / 3.5–5.0 | Moves bundles between buckets; must keep `COST_LOW < COST_HIGH` | — |
@@ -656,7 +656,7 @@ run-scope events (`src/ui/**` display-only); no weight, flag or pity state is ev
 | `weighted_pick` = 1 draw, integer weights, positive total | `design/gdd/rng-event-log.md` | F4, Edge Cases | Rule dependency |
 | `snapshot()`/`restore()` by draw count | `design/gdd/rng-event-log.md` | B.10, F5 | Data dependency |
 | `draft_offered` / `draft_picked` rows; `treasure_granted` owner | `design/gdd/rng-event-log.md` | Core Rules D catalogue | Ownership handoff |
-| `plan_tags(hero)`, starter tags, 6/15 plan share | `design/gdd/heroes.md` | H-4, H-5, F2 | Data dependency |
+| `plan_tags(hero)`, starter tags, War 7/15 plan share (`war_iron_vanguard` tagged `armour`) | `design/gdd/heroes.md` | H-4, H-5, F2 | Data dependency |
 | `TreasureDef.tags` shape (one affinity tag + plan/archetype), the T8 pool (20 / 10 MVP, 10 universal), T6 pool predicate and per-item weights | `design/gdd/treasures.md` | T1, T6, T8 | Ownership handoff (contract confirmed both ways) |
 | `unlocked_keys()` at `init_run` | `design/gdd/meta-progression.md` | M1.3, Interactions row "Reward Draft" | Data dependency (contract confirmed both ways — cross-review C-10) |
 | `draft_offered{floor, kind, option_ids[], flags[]}`, 0–3 offers, no `theme_labels` | `design/gdd/run-ui.md` / `design/ux/draft-picker.md` *(planned)* | U8 contract, UI Requirements | Ownership handoff (contract) |
@@ -701,7 +701,7 @@ returns the first candidate). Every test is a Logic story: automated unit tests 
 - [ ] AC-19 **GIVEN** every candidate shares one theme (fixture), **WHEN** an offer runs, **THEN** all three share it and `coverage_forced` is absent; **AND GIVEN** no candidate carries `D` while pity is due, **THEN** `pity_forced` is absent and the offer still has 3 options.
 
 **Weights (F1, F2)**
-- [ ] AC-20 **GIVEN** the F1 example deck and candidates on floor 1, **WHEN** `bundle_weight` is computed, **THEN** the values are 180 / 175 / 125 / 100 / 70; **AND** on floor 7 with nine `weapons` cards the weapons bundle is 250 (`AFFINITY_CAP = 6`) and the giants bundle 130; **AND GIVEN** `AFFINITY_CAP = 8` in the fixture config, **THEN** the weapons bundle is 300 (proves the cap is data-driven).
+- [ ] AC-20 **GIVEN** the F1 example deck and candidates on floor 1, **WHEN** `bundle_weight` is computed, **THEN** the values are 180 / 175 / 150 / 100 / 70 (the War starter counts `armour` × 2 — Heroes H-4); **AND** on floor 7 with nine `weapons` cards the weapons bundle is 250 (`AFFINITY_CAP = 6`) and the giants bundle 130; **AND GIVEN** `AFFINITY_CAP = 8` in the fixture config, **THEN** the weapons bundle is 300 (proves the cap is data-driven).
 - [ ] AC-21 **GIVEN** T10 for War, **WHEN** `treasure_weight` is computed, **THEN** affine common = 105, plain common = 70, affine rare = 45, plain rare = 30.
 - [ ] AC-22 **GIVEN** a zero stub stream on floor 1 with P14, **WHEN** `offer(bundle)` runs, **THEN** `option_ids` are the id-first eligible candidate of each slot's (possibly restricted) list, sorted; with a stream returning `total − 1` it is the id-last candidate of each list.
 - [ ] AC-23 **GIVEN** T10 (6 common / 4 rare), **WHEN** floor-1 treasure offers run for seeds 1..10000, **THEN** every offer contains ≥ 1 universal treasure with `universal_forced` set, and rares are 15–30 % of the slot-2/3 picks.
@@ -714,7 +714,7 @@ returns the first candidate). Every test is a Logic story: automated unit tests 
 - [ ] AC-28 **GIVEN** a bundle whose card list is corrupted to include a token id in a debug reload, **WHEN** `offer` runs, **THEN** that bundle is excluded, `run_warning{bundle_invalid}` names it, and the offer still has 3 options when ≥ 3 valid candidates remain.
 
 **Coherence and dilution (F7, F8)**
-- [ ] AC-29 **GIVEN** 1,000 simulated 8-floor runs (seeds 1..1000, War, P14) under a "follower" policy (always the option with the highest `n_tag(theme)`), **WHEN** final decks are measured, **THEN** mean `plan_share(8) ≥ 0.60` and mean `top_tag_share(8) ≥ 0.30`; under a uniform-random policy mean `plan_share(8) ≥ 0.45`; **AND GIVEN** the same 1,000 runs on **P20** (DD-H05 shape), **THEN** the follower mean `plan_share(8) ≥ 0.60` still holds, the uniform-random mean lands within ±0.05 of F7's 0.40 baseline (reported, not gated — it measures the pool, not the weighting), and the harness also prints the share of floor-5+ drafts whose only off-plan option is the `coverage_forced` slot (cross-review D-02 rails metric; Open Questions names the ~70 % trigger); the harness prints every number so a regression is a number, not a feeling.
+- [ ] AC-29 **GIVEN** 1,000 simulated 8-floor runs (seeds 1..1000, War, P14) under a "follower" policy (always the option with the highest `n_tag(theme)`), **WHEN** final decks are measured, **THEN** mean `plan_share(8) ≥ 0.60` and mean `top_tag_share(8) ≥ 0.30`; under a uniform-random policy mean `plan_share(8) ≥ 0.45`; **AND GIVEN** the same 1,000 runs on **P20** (DD-H05 shape), **THEN** the follower mean `plan_share(8) ≥ 0.60` still holds, the uniform-random mean lands within ±0.05 of F7's 0.43 baseline (reported, not gated — it measures the pool, not the weighting), and the harness also prints the share of floor-5+ drafts whose only off-plan option is the `coverage_forced` slot (cross-review D-02 rails metric; Open Questions names the ~70 % trigger); the harness prints every number so a regression is a number, not a feeling.
 - [ ] AC-30 **GIVEN** `deck_size = 36`, **WHEN** F8 is evaluated, **THEN** `p_starter = 15/36`, `P_no_starter_hand = 1330/7140` (±1e-9) and `P_card_seen(8, 10) = 10/36`.
 - [ ] AC-31 **GIVEN** 50 bundles, 20 treasures and a 36-card deck, **WHEN** `offer` runs, **THEN** it completes in under 5 ms on the CI runner (measurement only, logged); **AND** no constant from Tuning Knobs appears as a literal in `src/` (grep gate in the story).
 

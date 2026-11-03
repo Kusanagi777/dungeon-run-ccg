@@ -1267,8 +1267,9 @@ formulas:
       - toast_per_char_ms
       - toast_min_ms
       - toast_max_ms
-    output_range: [2000, 6000]
-    expression: "clamp(2000 + 30*chars, 2000, 6000)"
+    output_range: [5000, 8000]
+    expression: "clamp(5000 + 30*chars, 5000, 8000)"
+    notes: "Floor raised to 5000 ms by accessibility-requirements (2026-11-03)."
     added: 2026-11-03
     revised: ""
   - name: progress_strip_geometry
