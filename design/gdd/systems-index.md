@@ -77,7 +77,7 @@ Systems, one paragraph each (balanced density):
 | 10 | Meta Progression | Persistence | Vertical Slice | Approved | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
 | 11 | Match UI | UI | MVP | Approved | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
 | 12 | Run UI | UI | MVP | Approved | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
-| 13 | Content | MVP → Alpha | Feature | game-designer, systems-designer, economy-designer | L |
+| 13 | Content | Gameplay | MVP → Alpha | Approved | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
 immediately replay a run") can be tested without unlocks; it is still required for v1 (Alpha).
@@ -205,6 +205,6 @@ None in v1 (hard-band modifiers and accessibility options beyond the Standard ti
 
 ## Next Steps
 
-- [ ] Design MVP-tier systems in the order above (`/design-system [system-name]`)
-- [ ] Run `/design-review` on each completed GDD (fresh session)
-- [ ] Run `/review-all-gdds`, then `/gate-check` to move Systems Design → Technical Setup
+- [x] Design MVP-tier systems in the order above (`/design-system [system-name]`) — all 13 Approved 2026-11-03
+- [x] Run `/design-review` on each completed GDD — logs under design/gdd/reviews/
+- [x] Run `/review-all-gdds` (2026-11-03 and 2026-11-03b, CONCERNS); `/gate-check technical-setup` in progress
