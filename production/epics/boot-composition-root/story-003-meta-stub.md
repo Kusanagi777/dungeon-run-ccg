@@ -1,12 +1,12 @@
 # Story 003: MetaStub — the MVP MetaApi implementation
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation (file at `src/gameplay/meta/` per the layer map; shipped as the MVP `Services.meta`)
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -69,13 +69,8 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
 - `src/gameplay/meta/meta_stub.gd`
 - `tests/unit/boot/boot_meta_stub_test.gd`
-- (consumes) `assets/data/profile_defaults.json` via `CardDatabase.config("profile_defaults")` — owned by the card-database / content epics
 
 ---
 
@@ -93,7 +88,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boot/boot_meta_stub_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 50 test functions, passing (full suite exit 0, 2026-11-03)
 
 ---
 
@@ -101,3 +96,19 @@ checks scope against it.*
 
 - Depends on: `production/epics/boot-composition-root/story-001-settings-bus.md`, `production/epics/boot-composition-root/story-002-meta-api-abstract-seam.md`; **cross-epic**: the `card-database` epic's `CardDatabase` class with `config()`, `heroes()`, `treasure_pool()` and a loadable `profile_defaults.json` (story path not known at creation — that epic's stories are being written concurrently)
 - Unlocks: `production/epics/boot-composition-root/story-004-boot-composition-root.md`; Run UI epic's `RunDebugLoader` and `tests/unit/run_ui/` stories
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 4/4 passing — AC-1 `boot_meta_stub_test.gd::test_stub_constructs_with_card_database_alone_and_is_meta_api`, `::test_load_status_is_fresh`, `::test_is_hero_unlocked_true_for_every_hero_in_data`, `::test_is_treasure_unlocked_true_for_every_treasure_in_data`, `::test_unlocked_keys_are_every_distinct_unlock_key_in_data`, `::test_stats_for_hero_returns_zero_counts`, `::test_last_hero_id_is_null`, `::test_run_log_and_pending_notifications_are_empty` (+ every override parses with an explicit `return`: parse check exit 0); AC-2 `::test_save_then_load_active_run_round_trips_record`, `::test_clear_active_run_then_load_returns_null`, `::test_archive_run_returns_ok_grants_nothing_and_leaves_run_log_empty`, `::test_every_mutator_call_is_recorded_in_order_with_args`; AC-3 `::test_settings_start_as_profile_defaults_body`, `::test_set_setting_writes_copy_and_leaves_frozen_defaults_untouched`, `::test_set_setting_in_range_float_returns_ok_stores_and_emits_once`, `::test_set_setting_out_of_range_float_returns_e_range`, `::test_set_setting_out_of_range_int_returns_e_range`, `::test_set_setting_unknown_enum_label_returns_e_range`, `::test_set_setting_unknown_key_returns_e_range`; AC-4 `::test_from_fixture_merges_settings_over_defaults_and_keeps_unknown_keys`, `::test_from_fixture_clamps_out_of_range_numbers`, `::test_from_fixture_with_active_run_loads_it`, `::test_from_fixture_without_active_run_loads_null` (50 tests in all)
+**Deviations** (all ADVISORY):
+- Cross-epic dependency not met (no `CardDatabase`, no `ProfileStore`, no `assets/data/profile_defaults.json`): proceeded with the injected stand-in the story allows — the test's `FakeCardDatabase` (`config`, `heroes`, `treasure_pool`, read-only config body). The constructor is therefore `_init(db: Variant, mirror: RefCounted = null)` and `from_fixture(db: Variant, fixture)`, not `CardDatabase` / `ProfileStore`-typed; `TODO(card-database)` / `TODO(meta-progression)` markers say to tighten the types when those classes land.
+- M9's ranges / enums live as `MetaStub.SETTINGS_SCHEMA` (the GDD's declared ranges, cited per key; no default values in code). `TODO(meta-progression)`: move them to the shared `profile_defaults` / M9 validator with `ProfileStore`.
+- `set_setting` returns `E_RANGE` and emits nothing for a bad value; clamping happens only on load (`from_fixture`), per M1.3 and M9 — ADR-0011 Decision 4 still says the stub "clamps". The note in Implementation Notes stands; a one-line ADR-0011 wording fix (or a GDD change) is the open item.
+- `stats_for_hero` returns zero counts with `fastest_victory_s`, `fewest_turns_victory` and `last_played_at` as `null` (no run played), not `0`.
+- The whole `config("profile_defaults")` body is taken as the settings record, as AC-3 says. ADR-0004's diagram reads "defaults + knobs" from the same file; if the data file also carries save knobs, the stub must take only the settings part — open for the card-database / meta-progression epics.
+- `reset_profile` restores defaults without emitting; the bus is not seeded with defaults by the stub (architecture.md Data Flow 5 step 4 "publishes the settings record once" is story 004's `Boot`, through `SettingsBus.publish`). A `bindings.cancel` key is dropped with a `push_warning` `profile_repaired{…}` line.
+**Test Evidence**: `tests/unit/boot/boot_meta_stub_test.gd` (50 tests); full suite `commands.test` exit 0, 137 test cases, 0 failures; mutation check (gamma max 1.4 → 1.5) observed failing, exit 100, then restored
+**Run result**: N/A — an in-memory `RefCounted` with no scene, Node or rendered output; no consumer applies a setting yet, so nothing a player can see changes
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE skipped — Lean mode; LP-CODE-REVIEW skipped — Lean mode; `/code-review` not run)
