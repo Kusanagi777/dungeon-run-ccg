@@ -693,7 +693,7 @@ Everything here is rendered by Run UI from the run-scope events; this system emi
 Not applicable: the run is not an operated mechanic (no input latency, frames or impact
 moments). The one feel target it owns is **restart speed** — from the defeat summary's "Run
 again" to the floor-1 boss intro in under 5 s (concept: "a loss returns to hero select in under
-five seconds"); tracked under Acceptance Criteria AC-24.
+five seconds"); tracked under Acceptance Criteria AC-29.
 
 ## UI Requirements
 
