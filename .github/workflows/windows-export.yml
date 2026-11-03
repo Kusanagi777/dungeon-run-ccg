@@ -95,7 +95,7 @@ jobs:
       # glob only matters if that option is ever turned off. upload-artifact
       # zips the files, so the download is deckdelve-windows-<sha>.zip.
       - name: Upload Windows build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deckdelve-windows-${{ github.sha }}
           path: |
