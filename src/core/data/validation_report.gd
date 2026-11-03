@@ -48,6 +48,19 @@ const E_SET_MISMATCH: StringName = &"E_SET_MISMATCH"
 ## A `text.key` that is not `card.<id>.text` (or `passive_text.key` not
 ## `boss.<id>.passive`) (CR-3, Edge Cases).
 const E_TEXT_KEY: StringName = &"E_TEXT_KEY"
+## One id defined more than once, in one file or across files and record
+## types; the entry names every `file records[i]` and no copy is kept (CR-5 step 5).
+const E_DUP_ID: StringName = &"E_DUP_ID"
+## A list entry or `hero_power` naming no record of the expected type; the
+## message names the list index and the id (CR-5 step 6).
+const E_UNKNOWN_REF: StringName = &"E_UNKNOWN_REF"
+## A list of the wrong length (starter deck 15, bundle 3), found and expected
+## in the message (CR-5 step 6).
+const E_COUNT: StringName = &"E_COUNT"
+## A token card in a starter deck, bundle or boss deck (CR-5 step 6).
+const E_TOKEN_IN_LIST: StringName = &"E_TOKEN_IN_LIST"
+## A bundle card without the bundle's `theme` tag (CR-5 step 6).
+const E_TAG_MISMATCH: StringName = &"E_TAG_MISMATCH"
 ## A `.json` file not in `DataLoader.FILE_MANIFEST`; it is not loaded (CR-1).
 const W_UNKNOWN_FILE: StringName = &"W_UNKNOWN_FILE"
 

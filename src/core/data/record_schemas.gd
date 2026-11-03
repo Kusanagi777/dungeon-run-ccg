@@ -73,7 +73,8 @@ const CARD_DATABASE_FILE: String = "card_database.json"
 ## (opaque), `object_or_null` (opaque), `string_or_null`, `string_list`,
 ## `tag_list`, `keyword_list`, `text`, `unlock`. `required` (bool); `min` /
 ## `max` for `int`; `min_len` / `max_len` for `string` / lists; `enum` for
-## `enum`; `pattern` (`tag`) for `string`.
+## `enum`; `pattern` (`tag`) for `string`; `count` for a list whose exact
+## length CR-3 fixes (checked at stage 6 as `E_COUNT`, not here).
 const CARD_FIELDS: Dictionary = {
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1, "max_len": 32},
@@ -104,7 +105,7 @@ const HERO_FIELDS: Dictionary = {
 	"set": {"kind": "enum", "required": true, "enum": HERO_SETS},
 	"health": {"kind": "int", "required": true, "min": 1},
 	"hero_power": {"kind": "string", "required": true, "min_len": 1},
-	"starter_deck": {"kind": "string_list", "required": true},
+	"starter_deck": {"kind": "string_list", "required": true, "count": 15},  # DD-R03, counted at stage 6
 	"unlock": {"kind": "unlock", "required": true},
 	"text": {"kind": "text", "required": true},
 	"art": {"kind": "string", "required": false, "min_len": 1},
@@ -146,7 +147,7 @@ const BUNDLE_FIELDS: Dictionary = {
 	"name": {"kind": "string", "required": true, "min_len": 1},
 	"set": {"kind": "enum", "required": true, "enum": BUNDLE_SETS},
 	"theme": {"kind": "string", "required": true, "pattern": "tag"},
-	"cards": {"kind": "string_list", "required": true},
+	"cards": {"kind": "string_list", "required": true, "count": 3},  # DD-R04, counted at stage 6
 	"unlock": {"kind": "unlock", "required": true},
 	"text": {"kind": "text", "required": true},
 }

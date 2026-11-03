@@ -11,9 +11,10 @@
 ##
 ## Implemented here: stage 1 (discover), 2 (read and parse), 3 (envelope),
 ## 4 (per-record schema and the `card_database.json` knobs, through
-## `RecordSchemas`). Stages 5-8 slot into `run()` at the marked points
-## (card-database stories 003-005); stage 9 (freeze, `index_of`,
-## `data_version`) is stories 006-007.
+## `RecordSchemas`), 5 (id uniqueness), 6 (cross-references) and the
+## id-sorted staging stage 7 reads (`LoadResult.staging`). Stages 7-8 slot
+## into `run()` at the marked points (card-database stories 004-005); stage 9
+## (freeze, `data_version`) is stories 006-007.
 ##
 ## [codeblock]
 ## var loader: DataLoader = DataLoader.new("res://tests/fixtures/data/minimal/")
@@ -89,10 +90,16 @@ class LoadResult extends RefCounted:
 	var report: ValidationReport
 	## The parsed data, or `null` when `report.has_errors()`.
 	var snapshot: Variant
+	## The records that passed stages 4-6, built after stage 6 whatever the
+	## outcome: `{records: {<record_type>: Array[Dictionary] sorted by id},
+	## index_of: {<id>: {type, position}}, files: {<id>: <file name>}}`. Stage 7
+	## answers its lookups from it; Story 006 freezes it into the snapshot.
+	var staging: Dictionary
 
-	func _init(p_report: ValidationReport, p_snapshot: Variant) -> void:
+	func _init(p_report: ValidationReport, p_snapshot: Variant, p_staging: Dictionary = {}) -> void:
 		report = p_report
 		snapshot = p_snapshot
+		staging = p_staging
 
 
 var _root: String
@@ -126,13 +133,18 @@ func run(_validators: Dictionary) -> LoadResult:
 	# Stage 4 — per-record schema; each definition item gains `records`, the
 	# `{index, record}` rows that passed. A failing card_database.json is dropped.
 	staged = _check_schemas(staged, report)
-	# Stages 5-6 — uniqueness and cross-references (Story 003) slot in here.
+	# Stage 5 — one global id namespace: every copy of a repeated id is out.
+	var pool: Dictionary = _check_unique(staged, report)
+	# Stage 6 — cross-references; records that fail are out, then the
+	# id-sorted staging stage 7 reads is built from what is left.
+	_check_references(pool, report)
+	var staging: Dictionary = _build_staging(pool)
 	# Stage 7 — delegated validators over `_validators` (Story 004) slots in here.
 	# Stage 8 — budget warnings (Story 005) slots in here.
 	# Stage 9 — freeze, index_of, data_version (Stories 006-007) replace this.
 	if report.has_errors():
-		return LoadResult.new(report, null)
-	return LoadResult.new(report, _snapshot_of(staged))
+		return LoadResult.new(report, null, staging)
+	return LoadResult.new(report, _snapshot_of(staged), staging)
 
 
 func _warn_unknown_files(report: ValidationReport) -> void:
@@ -282,23 +294,166 @@ func _check_schema_version(file_name: String, body: Dictionary, report: Validati
 ## `RecordSchemas.check_card_database_config`. Every other config body passes
 ## untouched (stage 7a). Each definition item gains `records`: the
 ## `{index: int, record: Dictionary}` rows that passed, in file order; a record
-## that failed is left out of stages 5-9, the file itself stays.
+## that failed is left out of stages 6-9, the file itself stays. It also gains
+## `ids`: `{index, id}` for every record with a string id, passed or not, so
+## stage 5 sees a duplicate even when one copy failed its schema (a `war_` card
+## pasted into `cards_neutral.json` fails its prefix *and* is a duplicate).
 func _check_schemas(staged: Array[Dictionary], report: ValidationReport) -> Array[Dictionary]:
 	var passed: Array[Dictionary] = []
 	for item: Dictionary in staged:
 		var row: Dictionary = item.row
 		if row["class"] == "definition":
 			var rows: Array[Dictionary] = []
+			var ids: Array[Dictionary] = []
 			var records: Array = item.body.records
 			for i: int in records.size():
 				if RecordSchemas.check_record(row.record_type, row.name, i, records[i], report):
 					rows.append({"index": i, "record": records[i]})
+				if records[i] is Dictionary and records[i].get("id") is String:
+					ids.append({"index": i, "id": records[i]["id"]})
 			item["records"] = rows
+			item["ids"] = ids
 		elif row.name == RecordSchemas.CARD_DATABASE_FILE:
 			if not RecordSchemas.check_card_database_config(item.body.config, report):
 				continue
 		passed.append(item)
 	return passed
+
+
+## Stage 5 (CR-2, CR-5 step 5): one id namespace across every definition
+## file and record type. An id seen more than once is one `E_DUP_ID` entry
+## (file: the first defining file in manifest order; the message lists every
+## `file records[i]`) and **no** copy is kept — there is no "last one wins".
+## Returns the pool for stage 6: `{id: {type, record, file}}` for every row
+## that passed stage 4 and is unique.
+func _check_unique(staged: Array[Dictionary], report: ValidationReport) -> Dictionary:
+	var seen: Dictionary = {}  # id -> Array of "file records[i]"
+	var first_file: Dictionary = {}
+	for item: Dictionary in staged:
+		for entry: Dictionary in item.get("ids", []):
+			var where: String = "%s records[%d]" % [item.row.name, entry.index]
+			if seen.has(entry.id):
+				seen[entry.id].append(where)
+			else:
+				seen[entry.id] = [where]
+				first_file[entry.id] = item.row.name
+	for id: String in seen:
+		var places: Array = seen[id]
+		if places.size() > 1:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DUP_ID, first_file[id], id, "id",
+				"id \"%s\" is defined %d times: %s (CR-2: one namespace; no copy is kept)" % [id, places.size(), ", ".join(places)])
+	var pool: Dictionary = {}
+	for item: Dictionary in staged:
+		for row: Dictionary in item.get("records", []):
+			var id: String = row.record["id"]
+			if seen[id].size() == 1:
+				pool[id] = {"type": item.row.record_type, "record": row.record, "file": item.row.name}
+	return pool
+
+
+## Stage 6 (CR-3, CR-5 step 6, Edge Cases "Pools and lists"): hero
+## `starter_deck` (exactly the CR-3 count, no tokens, each card of the hero's
+## set or `neutral`), hero `hero_power`, the hero's `cards_<set>.json` being
+## present in the root, boss `deck` (no tokens, any set) and non-null
+## `hero_power`, bundle `cards` (exactly the CR-3 count, no tokens, each of
+## the bundle's set and carrying its `theme` tag). References resolve against
+## `pool` only, so a record that failed stage 4 or 5 is an unknown reference.
+## Every record with a fault is removed from `pool`; one entry per fault, each
+## naming the referring record, the field and, in the message, the index and
+## the id. Lookups are O(1) in `pool` (no scan per reference).
+func _check_references(pool: Dictionary, report: ValidationReport) -> void:
+	var failed: Array[String] = []
+	for id: String in pool:
+		var entry: Dictionary = pool[id]
+		var ctx: Dictionary = {"report": report, "pool": pool, "file": entry.file, "id": id, "faults": 0}
+		var rec: Dictionary = entry.record
+		match String(entry.type):
+			"HeroDef":
+				var set_file: String = "cards_%s.json" % rec["set"]
+				if not FileAccess.file_exists(_root + set_file):
+					report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_MISSING_FILE, set_file, id, "set",
+						"hero %s has set \"%s\" but %s is not in the data root" % [id, rec["set"], set_file])
+					ctx.faults += 1
+				_ref(ctx, "hero_power", "hero_power", rec["hero_power"], "HeroPowerDef")
+				_check_count(ctx, "starter_deck", rec["starter_deck"], RecordSchemas.HERO_FIELDS.starter_deck["count"])
+				_check_card_list(ctx, "starter_deck", rec["starter_deck"], [rec["set"], "neutral"], "")
+			"BossDef":
+				if rec["hero_power"] != null:
+					_ref(ctx, "hero_power", "hero_power", rec["hero_power"], "HeroPowerDef")
+				_check_card_list(ctx, "deck", rec["deck"], [], "")
+			"BundleDef":
+				_check_count(ctx, "cards", rec["cards"], RecordSchemas.BUNDLE_FIELDS.cards["count"])
+				_check_card_list(ctx, "cards", rec["cards"], [rec["set"]], rec["theme"])
+		if ctx.faults > 0:
+			failed.append(id)
+	for id: String in failed:
+		pool.erase(id)
+
+
+func _check_count(ctx: Dictionary, field: String, items: Array, expected: int) -> void:
+	if items.size() != expected:
+		_ref_fault(ctx, ValidationReport.E_COUNT, field, "`%s` found %d, expected %d (CR-3)" % [field, items.size(), expected])
+
+
+## Each entry of a card-id list: a known CardDef, not a token, of one of
+## `sets` (any set when empty), carrying `theme` (unchecked when empty).
+func _check_card_list(ctx: Dictionary, field: String, items: Array, sets: Array, theme: String) -> void:
+	for i: int in items.size():
+		var where: String = "%s[%d]" % [field, i]
+		var card: Variant = _ref(ctx, field, where, items[i], "CardDef")
+		if card == null:
+			continue
+		if card.get("token", false):
+			_ref_fault(ctx, ValidationReport.E_TOKEN_IN_LIST, field,
+				"%s \"%s\" is a token; tokens exist only through effects" % [where, items[i]])
+		if not sets.is_empty() and not sets.has(card["set"]):
+			_ref_fault(ctx, ValidationReport.E_SET_MISMATCH, field,
+				"%s \"%s\" is from set %s; expected %s" % [where, items[i], card["set"], " or ".join(sets)])
+		if not theme.is_empty() and not Array(card["tags"]).has(theme):
+			_ref_fault(ctx, ValidationReport.E_TAG_MISMATCH, field,
+				"%s \"%s\" lacks the theme tag \"%s\"" % [where, items[i], theme])
+
+
+## The referenced record when `target` names a `record_type` record in the
+## pool; otherwise one `E_UNKNOWN_REF` and `null`.
+func _ref(ctx: Dictionary, field: String, where: String, target: String, record_type: String) -> Variant:
+	var hit: Variant = ctx.pool.get(target)
+	if hit == null:
+		_ref_fault(ctx, ValidationReport.E_UNKNOWN_REF, field,
+			"%s: no %s \"%s\" (unknown id, or its record failed validation)" % [where, record_type, target])
+		return null
+	if hit.type != record_type:
+		_ref_fault(ctx, ValidationReport.E_UNKNOWN_REF, field,
+			"%s: \"%s\" is a %s, not a %s" % [where, target, hit.type, record_type])
+		return null
+	return hit.record
+
+
+func _ref_fault(ctx: Dictionary, code: StringName, field: String, message: String) -> void:
+	ctx.report.add(ValidationReport.SEVERITY_ERROR, code, ctx.file, ctx.id, field, message)
+	ctx.faults += 1
+
+
+## The records that passed stages 4-6, per CR-3 type, sorted by id ascending
+## (never file order — CR-6), with `index_of` `{id: {type, position}}` into
+## those lists and `files` `{id: file name}`. Built once; stage 7's lookups
+## and Story 006's freeze read it.
+func _build_staging(pool: Dictionary) -> Dictionary:
+	var records: Dictionary = {}
+	for record_type: String in RecordSchemas.SCHEMAS:
+		var empty: Array[Dictionary] = []
+		records[record_type] = empty
+	var ids: Array = pool.keys()
+	ids.sort()
+	var index_of: Dictionary = {}
+	var files: Dictionary = {}
+	for id: String in ids:
+		var entry: Dictionary = pool[id]
+		var list: Array[Dictionary] = records[entry.type]
+		index_of[id] = {"type": entry.type, "position": list.size()}
+		files[id] = entry.file
+		list.append(entry.record)
+	return {"records": records, "index_of": index_of, "files": files}
 
 
 func _body_key(row: Dictionary) -> String:

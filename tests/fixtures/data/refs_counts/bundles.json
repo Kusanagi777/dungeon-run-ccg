@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_war_weapons",
+      "name": "Weapons",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_axe_thrower",
+        "war_iron_axe"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_war_armor",
+      "name": "Armor",
+      "set": "war",
+      "theme": "armor",
+      "cards": [
+        "war_shield_bearer",
+        "war_plate_squire",
+        "war_iron_vanguard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_armor.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_fire",
+      "name": "Fire",
+      "set": "neutral",
+      "theme": "fire",
+      "cards": [
+        "neutral_torch_imp",
+        "neutral_ember_hound",
+        "neutral_arcane_spark"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fire.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_war_quad",
+      "name": "Quad",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_axe_thrower",
+        "war_iron_axe",
+        "war_whetstone",
+        "war_iron_axe"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_quad.text",
+        "en": ""
+      }
+    }
+  ]
+}
