@@ -923,7 +923,29 @@ aggression weights.
 
 ## Visual/Audio Requirements
 
-[To be designed]
+`art-director` not consulted — Lean mode (no `Agent` tool in this run). Review manually before
+production. This system renders nothing itself (DD-T02); these are the events whose feedback the
+Match UI **must** present, because the player plays by reading them (Pillar 4). Visual Identity
+Anchor "Torchlit Ledger" applies: saturated colour only for state changes.
+
+| Event | Visual feedback | Audio feedback | Priority |
+|---|---|---|---|
+| `damage_dealt` | Number splat on the target in the damage colour; health digit changes; armour shown separately when `armor_absorbed > 0` | Impact hit, weight scaled by `dealt` (2 tiers) | Must |
+| `divine_shield_popped` | Shield burst, distinct from damage; no number | Glass-crack ping | Must |
+| `minion_died` | Card leaves the row; row closes the gap only after the whole death group | Short death thud; one per group, not per minion | Must |
+| `attack_declared` → `attack_resolved` | Attacker lunges to defender and returns; both numbers update at the same frame (simultaneous damage) | Whoosh + impact | Must |
+| `card_played` / `spell_cast` / `hero_power_used` | Card travels to its slot or to a centre "resolving" position; spells show Spell Damage total if > 0 | Card slap / spell cast / power chime | Must |
+| `frozen` / `thawed`, `silenced`, `stealth_lost` | Persistent state overlay (frost edge, muted text, shimmer) added or removed | Soft status cue | Must |
+| `card_burned`, `fatigue_damage` | Burned card shown briefly over the deck then destroyed; fatigue shows the number on the hero with a "fatigue" label | Burn sizzle / heartbeat | Must |
+| `auras_recomputed`, `enchantment_applied/removed` | Green (buff) or red (debuff) stat digits, settled before the next event plays | None | Should |
+| `summon_failed` | Brief "board full" ghost at the slot | Dull thump | Should |
+| `command_rejected` | Inline reason near the cursor, keyed by code (e.g. `MUST_ATTACK_TAUNT` → highlight the Taunts) | Soft deny | Must |
+| `match_ended` | Winner/loser banner; `both_dead` and `concede` carry their own copy | Win / lose stinger | Must |
+| `choice_requested` | Discover panel with the 3 options; everything else dimmed | Reveal cue | Must |
+
+📌 **Asset Spec** — Visual/Audio requirements are defined. After the art bible is approved, run
+`/asset-spec system:match-rules` to produce per-asset visual descriptions, dimensions, and
+generation prompts from this section.
 
 ## Game Feel
 
