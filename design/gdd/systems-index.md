@@ -35,7 +35,7 @@ Systems, one paragraph each (balanced density):
   start/end of turn, on damage; target selectors; operations such as damage, heal, buff, summon,
   draw, discover) and the resolver with a defined ordering for chains and auras. Hero powers and
   treasures are expressed in the same DSL.
-- **Boss AI** (Gameplay, Core). A priority-scripted opponent that evaluates plays and attacks
+- **Boss AI** (Gameplay, Core). A utility-scored opponent that evaluates plays and attacks
   against the match state using data-defined weights per boss, with a telegraphed intent where
   the boss passive allows it. Must play competently against any drafted deck.
 - **Heroes** (Gameplay, Feature). The three launch heroes (War, Decay, Knowledge): starting
@@ -57,7 +57,7 @@ Systems, one paragraph each (balanced density):
 - **Run UI** (UI, Presentation). Hero select, boss intro with passive text, draft picker (bundle
   or treasure), floor map or progress strip, death and victory summary, main menu and run log.
 - **Content** (Gameplay, Feature). The authored data itself: ~120 cards across War, Decay,
-  Knowledge and Neutral, 16 bosses in three bands, ~20 treasures, ~30 bundles; produced in
+  Knowledge and Neutral, 16 bosses in three bands, ~20 treasures, 36 bundles; produced in
   batches and balanced with `/balance-check`.
 
 ---
@@ -66,23 +66,23 @@ Systems, one paragraph each (balanced density):
 
 | # | System Name | Category | Priority | Status | Design Doc | Depends On |
 |---|-------------|----------|----------|--------|------------|------------|
-| 1 | Card Database | Core | MVP | Designed | design/gdd/card-database.md | — |
-| 2 | RNG & Event Log (inferred) | Core | MVP | Designed | design/gdd/rng-event-log.md | — |
-| 3 | Match Rules | Gameplay | MVP | Designed | design/gdd/match-rules.md | Card Database, RNG & Event Log |
-| 4 | Card Effects | Gameplay | MVP | Designed | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
-| 5 | Boss AI | Gameplay | MVP | Designed | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log |
-| 6 | Heroes | Gameplay | MVP | Designed | design/gdd/heroes.md | Card Database, Card Effects |
-| 7 | Run Structure | Progression | MVP | Designed | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log |
-| 8 | Reward Draft | Economy | MVP | Designed | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
-| 9 | Treasures | Gameplay | MVP | Designed | design/gdd/treasures.md | Card Effects, Run Structure, Card Database, RNG & Event Log |
-| 10 | Meta Progression | Persistence | Vertical Slice | Designed | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
-| 11 | Match UI | UI | MVP | Designed | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure |
-| 12 | Run UI | UI | MVP | Designed | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI |
-| 13 | Content | Gameplay | MVP → Alpha | Designed | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI |
+| 1 | Card Database | Core | MVP | In Review | design/gdd/card-database.md | — |
+| 2 | RNG & Event Log (inferred) | Core | MVP | In Review | design/gdd/rng-event-log.md | — |
+| 3 | Match Rules | Gameplay | MVP | In Review | design/gdd/match-rules.md | Card Database, RNG & Event Log |
+| 4 | Card Effects | Gameplay | MVP | In Review | design/gdd/card-effects.md | Match Rules, Card Database, RNG & Event Log |
+| 5 | Boss AI | Gameplay | MVP | In Review | design/gdd/boss-ai.md | Match Rules, Card Effects, Card Database, RNG & Event Log |
+| 6 | Heroes | Gameplay | MVP | In Review | design/gdd/heroes.md | Card Database, Card Effects, Match Rules |
+| 7 | Run Structure | Progression | MVP | In Review | design/gdd/run-structure.md | Match Rules, Heroes, Card Database, RNG & Event Log, Meta Progression |
+| 8 | Reward Draft | Economy | MVP | In Review | design/gdd/reward-draft.md | Run Structure, Card Database, Treasures, Heroes, Meta Progression, RNG & Event Log |
+| 9 | Treasures | Gameplay | MVP | In Review | design/gdd/treasures.md | Card Effects, Run Structure, Card Database, RNG & Event Log, Match Rules, Heroes |
+| 10 | Meta Progression | Persistence | Vertical Slice | In Review | design/gdd/meta-progression.md | Run Structure, Heroes, Treasures, Card Database, RNG & Event Log |
+| 11 | Match UI | UI | MVP | In Review | design/gdd/match-ui.md | Match Rules, Card Effects, Boss AI, Card Database, RNG & Event Log, Heroes, Treasures, Run Structure, Run UI, Meta Progression |
+| 12 | Run UI | UI | MVP | In Review | design/gdd/run-ui.md | Run Structure, Reward Draft, Meta Progression, Card Database, RNG & Event Log, Match UI, Heroes, Boss AI, Treasures, Content |
+| 13 | Content | Gameplay | MVP → Alpha | In Review | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
 
 Priority notes: Meta Progression is Vertical Slice because the MVP hypothesis ("players want to
 immediately replay a run") can be tested without unlocks; it is still required for v1 (Alpha).
-Content is MVP for the first ~40 cards, 4 bosses and 8 treasures and grows to Alpha scope.
+Content is MVP for the first ~40 cards, 4 bosses and 10 treasures and grows to Alpha scope.
 
 ---
 
@@ -144,7 +144,7 @@ and Run UI stories; boss intro lines are content, not a narrative system).
 
 None in v1 (hard-band modifiers and accessibility options are Full Vision).
 
-**Bottlenecks**: Match Rules (five dependents) and Card Effects (six dependents). Both get the
+**Bottlenecks**: Match Rules (nine dependents) and Card Effects (nine dependents). Both get the
 `full` section set via `system_overrides` and are designed first after the foundation.
 **Leaf nodes**: Match UI, Run UI, Meta Progression, Content.
 
@@ -166,7 +166,7 @@ None in v1 (hard-band modifiers and accessibility options are Full Vision).
 | 10 | Match UI | MVP | Presentation | game-designer, ux-designer, ui-programmer | M |
 | 11 | Run UI | MVP | Presentation | game-designer, ux-designer, ui-programmer | M |
 | 12 | Meta Progression | Vertical Slice | Feature | systems-designer, game-designer | S |
-| 13 | Content | Gameplay | MVP → Alpha | Designed | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI |
+| 13 | Content | Gameplay | MVP → Alpha | In Review | design/gdd/content.md | Card Database, Card Effects, Heroes, Treasures, Boss AI, Match Rules |
 
 ---
 
@@ -197,7 +197,7 @@ None in v1 (hard-band modifiers and accessibility options are Full Vision).
 |--------|-------|
 | Total systems identified | 13 |
 | Design docs started | 13 |
-| Design docs reviewed | 0 |
+| Design docs reviewed | 13 (all NEEDS REVISION, revised in place, In Review) |
 | Design docs approved | 0 |
 | MVP systems designed | 0/12 |
 | Vertical Slice systems designed | 0/1 |

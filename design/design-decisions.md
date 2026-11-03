@@ -21,7 +21,7 @@
 | DD-M08 | Card types | Minion, Spell, Weapon. Weapons have attack and durability; a hero with a weapon may attack once per turn (Windfury weapons twice) | default |
 | DD-M09 | Keyword set v1 | Taunt, Charge, Rush, Divine Shield, Windfury, Stealth, Lifesteal, Poisonous, Freeze, Silence, Battlecry, Deathrattle, Spell Damage +N, Discover, Aura (static buff while on board) | default |
 | DD-M10 | Attack rules | Minions have summoning sickness unless Charge/Rush (Rush: minions only). Taunt must be attacked first. Stealth cannot be targeted until it attacks | default |
-| DD-M11 | Death and trigger ordering | Simultaneous damage; deaths resolved after the action completes in board order left to right, player side first; Deathrattles queue in that order; auras recomputed after each resolution step | default |
+| DD-M11 | Death and trigger ordering | Simultaneous damage; deaths checked after each resolution step (match-rules C10), resolved in board order left to right, player side first; Deathrattles queue in that order; auras recomputed after each resolution step. Wording aligned to match-rules on 2026-11-03. | default |
 | DD-M12 | Win/loss | A hero at 0 or less health loses when the current action finishes resolving; if both reach 0 in the same action the player loses (boss advantage, legible) | default |
 | DD-M13 | Hero power | 2 mana, once per turn, defined in the effect DSL like a spell | default |
 
@@ -47,7 +47,7 @@
 | DD-H02 | Unlock heroes | Fortune, Order, Shadow: data-only after v1 | Owner |
 | DD-H03 | Card pool v1 | ~120 cards: ~25 per hero set (75) + ~45 neutral | Owner (~120) |
 | DD-H04 | Treasure pool v1 | ~20 passive treasures with rarity Common/Rare; some unlock via meta progression | Owner (~20) |
-| DD-H05 | Bundles | ~30 bundles: ~8 per hero (hero cards) + ~6 neutral; each bundle has one theme tag used by Reward Draft weighting | default |
+| DD-H05 | Bundles | 36 bundles: 8 per hero (hero cards) + 12 neutral (raised from 6 on 2026-11-03 so neutral bundles cover the non-starter neutral pool, per content review); each bundle has one theme tag used by Reward Draft weighting | default |
 | DD-H06 | MVP content cut | War hero only, 4 bosses (2 band 1, 1 band 2, 1 band 3), ~40 cards, 10 treasures (DD-R05 needs 9 distinct per run; was 8, raised 2026-11-03 per card-database GDD), 10 bundles | Concept doc |
 
 ## Technical constants shared by GDDs
@@ -56,6 +56,18 @@
 |---|---|---|---|
 | DD-T01 | Data format | All definitions are JSON under `assets/data/` (`cards_<set>.json` incl. `cards_boss.json`, `heroes.json`, `hero_powers.json`, `bosses.json`, `treasures.json`, `bundles.json`, `ai_profiles.json`, `match_rules.json`, `run_structure.json`, `heroes_balance.json`, `card_effects.json`, `reward_draft.json`, `treasures_balance.json`, `match_ui.json`, `run_ui.json`; profile at `user://profile.json`), snake_case keys, `schema_version` field. Files added 2026-11-03 by the card-database, match-rules and boss-ai GDDs. | Plan |
 | DD-T02 | Rules purity | Match and run rules are `RefCounted` GDScript with no Node references; the UI subscribes to events and issues commands | Plan / ADR-0001 |
-| DD-T03 | RNG | One seeded service; named streams `run`, `match`, `draft`; tests inject fixed seeds | Plan / ADR-0003 |
+| DD-T03 | RNG | One seeded service; named streams `run`, `match_<floor>`, `draft_<floor>`, `ai_<floor>` (rng-event-log F2); tests inject fixed seeds | Plan / ADR-0003 |
 | DD-T04 | Event log | Append-only list of `{seq, type, payload}`; every state mutation emits exactly one event; the UI renders from events | Pillar 4 |
 | DD-T05 | Resolution | 1280x720 logical, `canvas_items` stretch, mouse primary, keyboard shortcuts for end turn and cancel | Owner (PC) |
+
+## Cross-GDD decisions taken after the 2026-11-03 design reviews
+
+| ID | Decision | Value | Source |
+|---|---|---|---|
+| DD-X01 | Unlock field shape | `unlock: {key, condition}` object on HeroDef, TreasureDef and BundleDef (meta-progression M2.1 grammar); `unlock: null` = always unlocked. Card Database CR-3 adopts it; Heroes and Treasures cite it. | designer default |
+| DD-X02 | First-run hero | No forced hero. Run UI pre-selects War on a fresh profile; all three launch heroes are unlocked. The concept's "first run forces War" line is withdrawn (autonomy). | designer default |
+| DD-X03 | Telegraph setting | `telegraph_mode` (`full` / `brief` / `off`) is a player setting stored by Meta Progression, surfaced by Run UI settings, consumed by Boss AI as `effective_mode = min(boss.intent_mode, setting)`; Match UI only renders what Boss AI emits. | designer default |
+| DD-X04 | Event names | Match Rules C15 is the authoritative spelling for match events; RNG & Event Log's catalogue mirrors it; `choice_requested` (Match Rules) and `discover_offered` (Card Effects) are two distinct events. | designer default |
+| DD-X05 | Offer naming | `Offer{option_ids[], flags[]}` on events and APIs; `offered_ids[]` only inside the persisted DraftRecord. | designer default |
+| DD-X06 | Treasure shortfall policy | `treasure_short_policy = fewer` is the only shipping value; `reoffer` is debug-only and violates DD-R05. | designer default |
+| DD-X07 | Player settings owned by Meta Progression | `anim_speed` (`instant`/`fast`/`normal`), `reduce_motion`, `text_scale`, `high_contrast_states`, `telegraph_mode`, `action_delay_ms` (consumed by Match UI pacing), `volume_*`, `fullscreen`, `keep_run_records`. Run UI edits them; Match UI and Boss AI read them. | designer default |

@@ -659,8 +659,8 @@ items:
       - design/gdd/heroes.md
       - design/gdd/card-database.md
       - design/gdd/treasures.md
-    keys: [unlock.treasure_trophy_rack, unlock.treasure_tally_stick, unlock.treasure_deep_lamp, unlock.treasure_banner_of_halvard, unlock.treasure_lich_grimoire, unlock.treasure_gauntlet_crown, unlock.hero_fortune, unlock.hero_order, unlock.hero_shadow]
-    notes: "Treasure unlock ids in meta-progression differ from the treasures GDD pool ids; reconcile in /review-all-gdds."
+    keys: [hero_decay_first_win, hero_decay_floor_5, hero_knowledge_first_win, bosses_defeated_16, unlock.hero_fortune, unlock.hero_order, unlock.hero_shadow]
+    notes: "Treasure keys are owned by treasures.md T8 (DD-X01); hero keys by heroes.md."
     added: 2026-11-03
     revised: ""
 
@@ -943,7 +943,7 @@ formulas:
       - bosses_in_band
       - run_stream
       - no_adjacent_shared_theme
-    output_range: [4, 12]
+    output_range: [3, 12]
     expression: "per band: shuffle(sort_by_id(bosses_in_band(b))) take s_b (wrap if short); concat; optional draw-free adjacency pass"
     added: 2026-11-03
     revised: ""
@@ -1100,7 +1100,7 @@ formulas:
     variables:
       - floors_per_run
       - reoffer_after_floors
-    output_range: [5, 21]
+    output_range: [4, 27]
     expression: "3 + (F-2) + 2*min(F-2, W)"
     notes: "13 at v1 (F=8, W=2); 9 at MVP."
     added: 2026-11-03
@@ -1174,7 +1174,7 @@ formulas:
       - treasure_floors
       - floors_per_run
       - offers_per_draft
-    output_range: [9, 9]
+    output_range: [6, 9]
     expression: "count(treasure_floors < floors_per_run) * offers_per_draft"
     added: 2026-11-03
     revised: ""
@@ -1847,5 +1847,18 @@ constants:
       - design/gdd/run-structure.md
     value: 5000
     unit: ms (defeat summary to first boss intro)
+    added: 2026-11-03
+    revised: ""
+  - name: data_version
+    status: active
+    source: design/gdd/card-database.md
+    referenced_by:
+      - design/gdd/card-database.md
+      - design/gdd/run-structure.md
+      - design/gdd/treasures.md
+      - design/gdd/meta-progression.md
+      - design/gdd/run-ui.md
+    value: "fingerprint(all loaded data files)"
+    unit: deterministic content fingerprint string (card-database CR-9)
     added: 2026-11-03
     revised: ""
