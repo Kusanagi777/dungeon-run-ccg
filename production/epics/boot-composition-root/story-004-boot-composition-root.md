@@ -1,12 +1,12 @@
 # Story 004: Boot — the one autoload and lazy composition root
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-03
 
 ## Context
 
@@ -72,15 +72,12 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/core/boot.gd`
-- `src/core/services.gd`
-- `src/core/boot_result.gd`
-- `project.godot` (`[autoload]` section — exactly `Boot`)
-- `tests/integration/boot/boot_composition_test.gd`
+- `src/core/boot.gd` (+ `.uid`) — the `Boot` autoload script; no `class_name` (engine: `class_name Boot` hides the autoload singleton on 4.7.2)
+- `src/core/services.gd` (+ `.uid`) — `class_name Services`, four fields, no methods
+- `src/core/boot_result.gd` (+ `.uid`) — `class_name BootResult` `{ok, report, load_status}`
+- `project.godot` (`[autoload]` section — exactly `Boot="*res://src/core/boot.gd"`)
+- `tests/integration/boot/boot_composition_test.gd` (+ `.uid`) — 12 test functions
+- `.godot/global_script_class_cache.cfg` — regenerated (`BootResult`, `Services`)
 
 ---
 
@@ -98,7 +95,7 @@ checks scope against it.*
 **Required evidence**:
 - Integration: `tests/integration/boot/boot_composition_test.gd` — must exist and pass (the epic's Definition of Done names `tests/integration/boot/` proving `boot()` idempotence, `BootResult` on a Failed data load, and the `{meta: MetaStub.new(...)}` override)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 12 test functions, passing (full suite exit 0, 266 cases, 2026-11-03)
 
 ---
 
@@ -106,3 +103,18 @@ checks scope against it.*
 
 - Depends on: `production/epics/boot-composition-root/story-001-settings-bus.md`, `production/epics/boot-composition-root/story-003-meta-stub.md`; **cross-epic**: the `card-database` epic's `CardDatabase` + `ValidationReport` (`load(validators)`, `state()`, `report()`, `config()`) — story path not known at creation
 - Unlocks: `production/epics/boot-composition-root/story-005-lint-gates-ci.md`, `production/epics/boot-composition-root/story-006-main-scene-composition-entry.md`, `production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md`; every other epic's scene root / debug loader
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-03
+**Criteria**: 4/4 passing (all covered by `tests/integration/boot/boot_composition_test.gd`; none deferred)
+**Deviations** (advisory, closed under the owner's standing approval):
+- **No `class_name Boot`** (AC 1, ADR-0001 Key Interfaces, control manifest). Observed on 4.7.2 in a scratch project: `class_name Boot` on the script registered as autoload `Boot` is `Parse Error: Class "Boot" hides an autoload singleton`, and the autoload is not instantiated. `boot.gd` is `extends Node` with no `class_name`; the autoload name `Boot` (G4) and every `Boot.boot()` / `Boot.services()` / `Boot.booted` call site work as written; tests `preload` the script for fresh instances. ADR-0001, architecture.md §API Boundaries and the control manifest need an erratum (story 007 / `/architecture-decision`).
+- **QQ-04 answered**: a `godot --headless -s GdUnitCmdTool.gd` run *does* instantiate `[autoload]` entries (the test finds `/root/Boot`, idle, `booted == false`).
+- `_collect_validators(meta: MetaApi)` takes the `meta` override so `unlock` is `meta.validate_unlock_defs`; with no override the stub's `[]` answer stands in (the stub is built after the load because it reads `config()`). Only `unlock` and an empty `configs` exist; the other owners are TODO lines.
+- `BootResult.load_status` is the `CardDatabase` state name (`&"Ready"` / `&"Failed"`), as AC 4 reads.
+- `CardDatabase` has no `config()` / `heroes()` / `treasure_pool()` until card-database story 006, so the test uses a test-side `ConfigCardDatabase` subclass; a real `Ready` load with no `meta` override would fail in `MetaStub._init` until then. With no override today, `boot()` ends `Failed` (no `assets/data/`) and builds no `MetaStub`.
+- Data-load budget measured on the `minimal` fixture root (no MVP data set exists): 1.59 ms against `TestConstants.DATA_LOAD_BUDGET_MS` 200.
+**Test Evidence**: `tests/integration/boot/boot_composition_test.gd` (12 tests); full suite `commands.test` exit 0 (266 cases, 0 failures, 0 orphans); `commands.smoke` exit 0, no `SCRIPT ERROR`; `--import` exit 0; parse check exit 0 on all four new scripts. Run result: N/A — no player-visible surface (the autoload is idle; `boot.tscn` is unchanged and does not call `Boot`).
+**Reviewed by**: self, no independent review (review lean: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped — Lean mode; engine-specialist check NOT ASSESSED — no agent spawned; `/code-review` not run)
