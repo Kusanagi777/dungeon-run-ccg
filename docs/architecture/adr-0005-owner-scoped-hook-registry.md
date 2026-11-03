@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -15,6 +15,8 @@ Proposed
 - TD-ADR (`technical-director`, Step 5.6): **skipped — Lean mode** (`review_mode: lean`; not a PHASE-GATE).
 - GDD sync (Step 5.7): checked 4 referenced GDDs (treasures, match-rules, card-effects, boss-ai). No renames. One arity difference carried from `architecture.md` §API Boundaries: treasures T3.1 writes `installers_for(treasure_ids)`; code is `installers_for(treasure_ids, treasure_state)` because T3.2 says each installer's `state` comes from `treasure_state.by_treasure[host_id]` and `Treasures` never reads `RunState` itself (T5.1).
 - Numbering: fixed by `design/design-decisions.md` DD-X08 (the owner-scoped hook registry ADR supersedes `docs/architecture/modifier-hook-chain.md`, which stays unnumbered).
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** the diagram passed `resolver.fold_entry` / `resolver.run_entry`, method names that exist nowhere; now `resolver.apply_value_hook` / `resolver.run_hook_effect` (ADR-0007 Key Interfaces), and the `set_evaluators` comment states that `fold_entry` / `run_entry` are parameter names only. Call shapes `(entry, side, value, ctx) -> int` and `(entry, side, ctx)` agree with ADR-0007. TD: retires the modifier half of TD-009, consistent with ADR-0004/0008/0011 and `architecture.md` §Tech-debt retirement mapping. Dependencies ADR-0001 and ADR-0007 were Accepted first.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
@@ -50,7 +52,7 @@ Treasures and boss passives alter match rules through a per-match `HookRegistry`
 
 | Field | Value |
 |-------|-------|
-| **Depends On** | ADR-0001 (rules / presentation split: `src/gameplay/**` is `RefCounted`, no Node, constructor-injected — `adr-0001-rules-presentation-split.md`, **Proposed** 2026-11-03); ADR-0007 (effect resolver / validator boundary: hook effects are DSL effects and `EffectResolver.apply_value_hook` / `run_hook_effect` are the only evaluators — `adr-0007-effect-resolver-validator-boundary.md`, **Proposed** 2026-11-03). Acceptance is refused while either is `Proposed` |
+| **Depends On** | ADR-0001 (rules / presentation split: `src/gameplay/**` is `RefCounted`, no Node, constructor-injected — `adr-0001-rules-presentation-split.md`, **Accepted** 2026-11-03); ADR-0007 (effect resolver / validator boundary: hook effects are DSL effects and `EffectResolver.apply_value_hook` / `run_hook_effect` are the only evaluators — `adr-0007-effect-resolver-validator-boundary.md`, **Accepted** 2026-11-03). Acceptance is refused while either is `Proposed` |
 | **Enables** | ADR-0006 (Boss AI planner relies on `clone()` carrying hooks by value — boss-ai A20); ADR-0008 (`MatchConfig.player/boss.hook_installers` built by the match driver); Treasures epic; boss passives in Content MVP-1 |
 | **Blocks** | Treasures epic (installers, pool, `collect_state`), the Match Rules story that implements the hook table, boss-passive content stories |
 | **Ordering Note** | `architecture.md` priority order places this after ADR-0007 (0001 → 0002 → 0003 → 0004 → 0010 → 0007 → 0005). It is written now in DD-X08 number order, in the same session as ADR-0007; the resolver-side binding it assumes (`EffectResolver.bind(engine, installers)` installing through `state.hooks.install(installer)` at C3 step 1; a clone binding a fresh resolver with no installers — ADR-0007 Decision 2–3) is fixed there and restated here only as a consumer. Checked against ADR-0007 on 2026-11-03: no contradiction. Supersedes `docs/architecture/modifier-hook-chain.md` (prior art; stays unnumbered per DD-X08) |
@@ -116,7 +118,7 @@ RulesEngine.start(config)   (Core, match-rules C3 step 1)
   resolver.bind(engine, player_installers + boss_installers)
         │  for each installer, for each effect in effects[] (array order):
         │     hooks.install(...) → HookEntry appended to entries[point]        ← duplicate host → false,
-        │  hooks.set_evaluators(resolver.fold_entry, resolver.run_entry)          engine logs hook_install_skipped
+        │  hooks.set_evaluators(resolver.apply_value_hook, resolver.run_hook_effect)   engine logs hook_install_skipped
         ▼
 HookRegistry (plain data)                                      MatchState.clone()  →  hooks.copy()
   entries: { on_match_start: [e, e, …], modify_cost: [e, e], … }   (entries duplicate(true); evaluators unset;
@@ -145,7 +147,7 @@ const VALUE_POINTS: Array[StringName]   = [&"modify_cost", &"modify_damage", &"m
                                            &"modify_starting_hand_size", &"modify_max_attacks"]
 const GATE_POINTS: Array[StringName]    = []                       # reserved kind; none in v1
 func install(installer: HookInstaller) -> bool                     # false on duplicate host_id; installs nothing then
-func set_evaluators(fold_entry: Callable, run_entry: Callable) -> void   # (addition) EffectResolver.bind passes apply_value_hook / run_hook_effect; unset after copy() and on unbind()
+func set_evaluators(fold_entry: Callable, run_entry: Callable) -> void   # (addition) parameter names only; EffectResolver.bind passes its methods apply_value_hook / run_hook_effect (ADR-0007); unset after copy() and on unbind()
 func entries(point: StringName) -> Array                           # (addition, read-only view) installation order
 func fold(point: StringName, side: StringName, value: int, ctx: Dictionary) -> int
 #   for e in entries[point]: value = fold_entry.call(e, side, value, ctx)   — scope mismatch returns value unchanged; no allocation

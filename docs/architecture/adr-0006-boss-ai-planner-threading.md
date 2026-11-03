@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -185,10 +185,11 @@ live `RulesEngine` (which the main thread does not touch while the task runs)".
 This ADR narrows that: the worker touches **a clone**, never the live engine,
 because (a) the live engine emits `match_ended` (a signal) and appends to a log
 with main-thread subscribers, both forbidden off-thread by the same section, and
-(b) `forecast` must run while the player acts. The driver, the buffering rule
-and the "events replayed on the main thread in `tick()`" rule stay as written.
-`architecture.md` is not edited by this run; `/propagate-design-change` or the
-architecture owner should align the two sentences when this ADR is Accepted.
+(b) `forecast` must run while the player acts. The driver and the "work
+reaches the live engine on the main thread in `tick()`" rule stay; what is
+replayed is the plan's commands, not buffered events (ADR-0008 Decision 5).
+`architecture.md` §Data Flow 2 and §Threading model were aligned to this wording
+on acceptance (2026-11-03).
 
 **Reconciliation with ADR-0008** (written the same day, `Proposed`). ADR-0008
 Decision 3 and its guideline say that while a task is live "main-thread code
@@ -197,16 +198,15 @@ must never read or write `RulesEngine`, `EffectResolver`, `BossAI` or the match
 this ADR those read as follows, and ADR-0008 should adopt the wording on
 acceptance of either:
 
-- **Boss-turn and boss-choice tasks**: ADR-0008's gate stands unchanged —
-  `submit` returns `ENGINE_BUSY / planner_live`, `concede` is queued,
-  `MatchQuery.is_busy()` is true. The engine is in `BossTurn.Main` or a boss
-  `Choice`, so no player command is legal anyway; the invariant costs nothing
-  and keeps the driver simple. The task body is `plan_turn(engine.clone())`,
-  and `_on_task_done()` replays the plan into the live engine **before** it
-  forwards `events_since(_cursor)` — ADR-0008's forwarding step is unchanged.
-- **Forecast tasks** (`PlayerTurn.Main`): the gate is **relaxed** — the task
-  owns a clone, so player `submit` and `MatchQuery` proceed normally against the
-  live engine and `is_busy()` is false. If the player's command moves the engine
+- **Boss-turn and boss-choice tasks** (as ADR-0008 Decision 2 adopted it):
+  player `submit` goes to the live engine, which answers `NOT_YOUR_TURN` /
+  `CHOICE_PENDING` because it is in `BossTurn.Main` or a boss `Choice`; only
+  `concede` is queued by the driver (`ENGINE_BUSY / concede_queued`). The task
+  body is `plan_turn(engine.clone())`, and `_on_task_done()` replays the plan
+  into the live engine, whose subscribers fire synchronously (no event buffer —
+  ADR-0008 Decision 5).
+- **Forecast tasks** (`PlayerTurn.Main`): no gate — the task owns a clone, so
+  player `submit` and `MatchQuery` proceed normally against the live engine. If the player's command moves the engine
   out of `PlayerTurn.Main` (end turn, concede) before the forecast returns, the
   driver discards the result and appends nothing. This is the one behavioural
   difference from ADR-0008 as written and the reason the clone design is
@@ -325,8 +325,8 @@ class_name TurnPlan extends RefCounted                   # new — plain data, J
 class_name MatchDriver extends RefCounted
 func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask) -> void
 func tick() -> void              # ≤ 2 ms of AI work: one poll(); replay bounded by replay_budget_ms, carried to the next tick
-func submit(command: Command) -> CommandResult   # boss-turn / boss-choice task live: ENGINE_BUSY/planner_live except concede → queued (ADR-0008); forecast task live: passes through
-func is_planning() -> bool                       # ADR-0008 addition; true only for boss-turn / boss-choice tasks under this ADR
+func submit(command: Command) -> CommandResult   # always to the live engine (main thread); concede while any task is live → queued, ENGINE_BUSY/concede_queued (ADR-0008 Decision 2)
+func is_planning() -> bool                       # ADR-0008 addition (owned there): true while any task is live or a plan is pending replay
 func shutdown() -> void          # new — if a task is live, blocks on poll()/wait until it ends; MatchView calls it on _exit_tree
 ```
 
@@ -454,8 +454,9 @@ the data owner prefers another home (ADR-0002 config loading), only the
 
 ## TD Items Retired
 
-None directly — `architecture.md` §Tech-debt retirement maps TD-006's AI half
-("AI reparents nodes") to ADR-0001 (all input through `submit()`). This ADR
+None directly — `architecture.md` §Tech-debt retirement maps TD-006 to
+ADR-0001/0008/0009; its AI half ("AI reparents nodes") is ADR-0001 (all input
+through `submit()`) completed by ADR-0008. This ADR
 reinforces it: the AI's commands reach the live engine only through the
 driver's `submit()` replay on the main thread.
 
@@ -484,8 +485,8 @@ Greenfield: no existing production code. Order of stories: `PlannerTask` +
 `ImmediatePlannerTask` + `TurnPlan` and the driver replay path (fully
 testable headless) → `WorkerPoolPlannerTask` with the determinism test → A30
 measurement → `TimeSlicedPlannerTask` (built as the fallback; selectable by
-data). `architecture.md` §Threading model / §Data Flow 2 wording is updated by
-the architecture owner on acceptance (one sentence: clone, not live engine).
+data). `architecture.md` §Threading model / §Data Flow 2 wording was updated
+on acceptance, 2026-11-03 (clone, not live engine).
 
 **Rollback plan**: set `runtime.planner_mode = "time_sliced"` in
 `ai_profiles.json` — no code change, same seam, same results (slower first

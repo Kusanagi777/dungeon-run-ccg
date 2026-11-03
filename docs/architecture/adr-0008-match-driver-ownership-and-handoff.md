@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 > **Who may move this to `Accepted`: the user, or `technical-director` on the
 > user's explicit confirmation. No other agent, and no skill on its own.**
@@ -32,6 +32,18 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   record carries no seed; `architecture.md` follows C14 and so does this ADR
   (open point for `/consistency-check`).
 - Numbering fixed by DD-X08.
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** Decision 1's
+  `EventLog.new(db.config("rng_event_log"))` did not match ADR-0003's
+  `EventLog._init(max_events, scope, meta)` or its rule that the composition root
+  computes `max_events`; corrected to that constructor. This ADR's driver gate
+  (engine answers `NOT_YOUR_TURN` / `CHOICE_PENDING`; only `concede` is queued,
+  `ENGINE_BUSY/concede_queued`; `is_planning()` true while any task is live or a
+  plan is pending; no event buffer) is kept as the authority; ADR-0006's
+  reconciliation text and ADR-0003 rule 7 were aligned to it, and
+  `architecture.md` §Data Flow 2 / §Threading now say the planner runs over a
+  clone. Dependency ADR-0001 Accepted first; ADR-0007 (ordering note) also
+  Accepted first.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
@@ -162,7 +174,9 @@ boss's plan.**
 
 1. **Ownership and construction.** `RunMachine.begin_match()` (T5) builds
    `MatchConfig` per R3, creates a **fresh match `EventLog`** for this attempt
-   (`EventLog.new(db.config("rng_event_log"))`; the run-scope log is a different
+   (`EventLog.new(max_match_events, "match", meta)` — ADR-0003's constructor;
+   `max_match_events` is computed once by the composition root from
+   `config("rng_event_log")` (F7) and reaches `RunMachine` in `run_config`; the run-scope log is a different
    instance — a sealed log is never reopened, and the match log is sealed on
    `match_ended`) and calls the injected `driver_factory.call(config) ->
    MatchDriver`. `Boot` supplies the factory (`func(cfg): return

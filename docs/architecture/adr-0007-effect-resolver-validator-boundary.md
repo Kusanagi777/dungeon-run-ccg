@@ -26,6 +26,13 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   Callables ADR-0005's `HookRegistry.set_evaluators` receives (shape aligned
   with ADR-0005, and the stage-7b call shape with ADR-0002, on 2026-11-03).
 - Numbering fixed by DD-X08.
+- **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** the
+  Decision 8 test stub had four parameters while ADR-0002's stage 7b calls every
+  record validator with five; a four-parameter lambda would fail at call time.
+  Stub now takes five. Stage 7a/7b contract otherwise agrees with ADR-0002
+  (ADR-0002 now names `derive_targeting_spec`, this ADR's spelling). Dependencies
+  ADR-0001 and ADR-0002 were Accepted first.
+- **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 
 ## Date
 
