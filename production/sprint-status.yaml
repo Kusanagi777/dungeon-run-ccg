@@ -57,7 +57,7 @@ stories:
     name: "Combat keywords"
     file: "production/epics/match-rules/story-014-combat-keywords.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 1
@@ -66,7 +66,7 @@ stories:
     contract: false
     blocker: ""
     note: ""
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-011"
     name: "Effective cost, mana payment and temporary crystals"
     file: "production/epics/match-rules/story-011-effective-cost-and-temporary-mana.md"

@@ -1473,7 +1473,8 @@ func _append_attack_commands(legal: Array, side: String) -> void:
 
 ## An accepted `attack` (C8 resolution, story 013), each numbered step its
 ## own engine step with its C10 loop:
-## 1. `attack_declared {attacker, defender}`.
+## 1. `attack_declared {attacker, defender}`; a Stealth attacker loses it
+##    (`stealth_lost`).
 ## 2. Trigger point `on_attack {side, candidates, attacker, defender, source:
 ##    attacker, subject: defender}` under `attack_declared`; each response is
 ##    a queued step with the full loop.
@@ -1513,9 +1514,18 @@ func _do_attack(command: Dictionary) -> void:
 
 
 ## C8 step 1: `attack_declared`; its `seq` goes into [param declared]`.cause`
-## (the `on_attack` step runs under it).
+## (the `on_attack` step runs under it). An attacker with Stealth loses it
+## now (story 014, C12): the keyword leaves its definition set and every
+## granting enchantment, and `stealth_lost {entity_id}` is emitted — the
+## combat event, not `keyword_removed` (C15) — so from here on it is a legal
+## enemy target and its Taunt binds.
 func _declare_attack_step(payload: Dictionary, declared: Dictionary) -> void:
 	declared.cause = emit(&"attack_declared", payload)
+	var attacker: Dictionary = _character(int(payload.attacker))
+	if _halted() or not _has_keyword(attacker, MatchRecords.KEYWORD_STEALTH):
+		return
+	_strip_keyword(attacker, MatchRecords.KEYWORD_STEALTH)
+	emit(&"stealth_lost", {"entity_id": int(payload.attacker)})
 
 
 ## C8 step 3, the attack cancelled: `attack_cancelled`, and the swing still
