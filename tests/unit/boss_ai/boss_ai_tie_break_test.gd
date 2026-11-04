@@ -194,3 +194,21 @@ func test_pick_on_an_empty_list_chooses_nothing_and_draws_nothing() -> void:
 	assert_that(decision.chosen).is_null()
 	assert_array(decision.ties).is_empty()
 	assert_int(ai.draws).is_equal(0)
+
+
+func test_equal_scored_choose_candidates_sort_by_option_index_whatever_their_input_order() -> void:
+	# Arrange — C9 canonical order covers `choose` (code review 2026-11-04, nit N1)
+	var options: Array = [2, 0, 1]
+	var shuffled: Array = options.map(func(i: int) -> Dictionary: return _entry(1.0, MatchRecords.choose(SIDE_BOSS, i)))
+	var reversed: Array = shuffled.duplicate()
+	reversed.reverse()
+
+	# Act
+	var from_shuffled: Array = TieBreak.sort_canonical(shuffled).map(func(e: Dictionary) -> int: return int(e.command.option_index))
+	var from_reversed: Array = TieBreak.sort_canonical(reversed).map(func(e: Dictionary) -> int: return int(e.command.option_index))
+
+	# Assert
+	var ascending: Array = options.duplicate()
+	ascending.sort()
+	assert_array(from_shuffled).is_equal(ascending)
+	assert_array(from_reversed).is_equal(ascending)

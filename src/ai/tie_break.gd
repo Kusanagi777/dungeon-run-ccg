@@ -14,7 +14,7 @@
 ## Canonical order (C9): command type (`play_card`, `attack`,
 ## `use_hero_power`, `choose`, `end_turn` — the C2 order `legal_commands()`
 ## lists them in), then `hand_index`, `attacker_id`, `target_id`, `position`,
-## each ascending with an absent or null field first.
+## `option_index`, each ascending with an absent or null field first.
 ## A candidate scored `-INF` (a sandbox overflow, Edge Cases) is never in a tie
 ## set unless every candidate is, in which case the set is the canonically
 ## first of them alone (no draw).
@@ -32,8 +32,10 @@ const TYPE_ORDER: Array[String] = [
 	MatchRecords.CMD_USE_HERO_POWER, MatchRecords.CMD_CHOOSE, MatchRecords.CMD_END_TURN,
 	MatchRecords.CMD_CONCEDE,
 ]
-## The C9 tie-break fields after the type, in order.
-const KEY_FIELDS: Array[String] = ["hand_index", "attacker_id", "target_id", "position"]
+## The C9 tie-break fields after the type, in order; `option_index` last, so
+## equal-scored `choose` candidates sort canonically too (code review
+## 2026-11-04, nit N1 — no other command carries it).
+const KEY_FIELDS: Array[String] = ["hand_index", "attacker_id", "target_id", "position", "option_index"]
 ## The sort value of an absent or null field (every real value is ≥ 0).
 const ABSENT: int = -1
 ## C4 / C8.1 fork label prefixes (`ai_stream.fork("sim_<turn>")`, `fork("forecast_<turn>")`).
