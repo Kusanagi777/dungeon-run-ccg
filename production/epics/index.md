@@ -17,7 +17,7 @@ Review: PR-EPIC skipped — Lean mode
 | Match UI | Presentation | Match UI | design/gdd/match-ui.md | 24 stories | Ready |
 | Run Structure | Feature | Run Structure | design/gdd/run-structure.md | Not yet created | Ready |
 | Reward Draft | Feature | Reward Draft | design/gdd/reward-draft.md | Not yet created | Ready |
-| Treasures | Feature | Treasures | design/gdd/treasures.md | Not yet created | Ready |
+| Treasures | Feature | Treasures | design/gdd/treasures.md | 13 stories | Ready |
 | Heroes | Feature | Heroes | design/gdd/heroes.md | 4 stories | Ready |
 | Run UI | Presentation | Run UI | design/gdd/run-ui.md | Not yet created | Ready |
 | Meta Progression (persistence + seam) | Feature / Foundation code | Meta Progression | design/gdd/meta-progression.md | Not yet created | Ready |
