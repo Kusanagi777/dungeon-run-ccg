@@ -8,6 +8,8 @@
 class_name PerfGate
 extends RefCounted
 
+## AC-40: "a regression above 2× the budget fails the performance job".
+const GATE_FACTOR: int = 2
 ## [method planner_target_usec] when the data carries no usable target.
 const NOT_SET: int = -1
 const USEC_PER_MS: int = 1000
@@ -15,6 +17,22 @@ const USEC_PER_MS: int = 1000
 ## in `design/registry/entities.yaml`, which a Godot test does not parse.
 const PLANNER_TARGET_KEY: String = "planner_target_ms"
 const PLANNER_TARGET_SOURCE: String = "ai_profiles.json runtime.planner_target_ms"
+
+
+## `{median, p95, max}` of [param samples] (nearest-rank, µs).
+static func stats(samples: Array[int]) -> Dictionary:
+	var sorted: Array[int] = samples.duplicate()
+	sorted.sort()
+	var n: int = sorted.size()
+	var p95_index: int = clampi(ceili(0.95 * n) - 1, 0, n - 1)
+	return {"median": sorted[n / 2], "p95": sorted[p95_index], "max": sorted[n - 1]}
+
+
+## A Match Rules gate's line: [param measured] from [method stats] against
+## [param budget] and its gate.
+static func match_rules_line(what: String, measured: Dictionary, budget: Variant) -> String:
+	return "PERF match_rules %s: median %d us, p95 %d us, max %d us (budget %s us, gate %s us)" % [
+		what, int(measured.median), int(measured.p95), int(measured.max), str(budget), str(budget * GATE_FACTOR)]
 
 
 ## A gate that produced no verdict, in the form the job summary keeps.

@@ -2,7 +2,7 @@
 ## beside the gates because it describes them, so it runs in the non-blocking
 ## `performance` job and `commands.test` drops it with the rest of this folder.
 ##
-## Review: production/reviews/2026-11-04/code-review-s4-unreviewed.md S6.
+## Review: production/reviews/2026-11-04/code-review-s4-unreviewed.md S6, S7.
 ## Decision: design/design-decisions.md DD-X18 (500 ms per planner run).
 extends GdUnitTestSuite
 
@@ -13,10 +13,36 @@ const BAND_2_NODES: int = 1460
 const BAND_3_NODES: int = 6000
 const GATE_FACTOR: int = 2
 const T_SIM_USEC: int = 400
+const PERF_ROOT: String = "res://tests/performance/"
+## A gate suite's file name. This suite and the helper are not gates.
+const GATE_SUITE_SUFFIX: String = "_perf_test.gd"
+## The suites of this folder at 2026-11-04, so a walk that finds nothing fails.
+const MIN_GATE_SUITES: int = 10
 
 
 func _profiles(runtime: Dictionary) -> Dictionary:
 	return {"config": {"runtime": runtime}}
+
+
+## Every gate suite under [param dir], recursively.
+func _gate_suites(dir: String) -> Array[String]:
+	var paths: Array[String] = []
+	for file: String in DirAccess.get_files_at(dir):
+		if file.ends_with(GATE_SUITE_SUFFIX):
+			paths.append(dir.path_join(file))
+	for sub: String in DirAccess.get_directories_at(dir):
+		paths.append_array(_gate_suites(dir.path_join(sub)))
+	return paths
+
+
+## How many lines of [param source] start with [param prefix].
+func _lines_starting(source: String, prefix: String) -> int:
+	var count: int = 0
+	for line: String in source.split("
+"):
+		if line.begins_with(prefix):
+			count += 1
+	return count
 
 
 # --- S6: the planner target comes from the shipped data ---------------------------
@@ -122,3 +148,43 @@ func test_not_assessed_line_reaches_the_job_summary() -> void:
 
 	# Assert
 	assert_str(line).is_equal("PERF match_rules planner gate: NOT ASSESSED (no target)")
+
+
+# --- S7: a failing gate hides nothing -----------------------------------------------
+
+## gdUnit4 without `-c` stops a suite at its first failure, so a gate that shares
+## a suite can vanish behind another. One test per suite holds with or without
+## the flag: the abort never crosses suites.
+func test_every_gate_suite_holds_exactly_one_test() -> void:
+	# Arrange
+	var paths: Array[String] = _gate_suites(PERF_ROOT)
+	var shared: Array[String] = []
+
+	# Act
+	for path: String in paths:
+		var tests: int = _lines_starting(FileAccess.get_file_as_string(path), "func test_")
+		if tests != 1:
+			shared.append("%s has %d" % [path, tests])
+
+	# Assert
+	assert_int(paths.size()).is_greater_equal(MIN_GATE_SUITES)
+	assert_array(shared).is_empty()
+
+
+## The gate's own `after()` prints NOT ASSESSED if the test ended before its
+## measurement: a missing line is invisible in a job that exits green on 100.
+func test_every_gate_suite_reports_not_assessed_from_after() -> void:
+	# Arrange
+	var paths: Array[String] = _gate_suites(PERF_ROOT)
+	var silent: Array[String] = []
+
+	# Act
+	for path: String in paths:
+		var source: String = FileAccess.get_file_as_string(path)
+		var hook: int = source.find("func after() -> void:")
+		if hook == -1 or source.find("PerfGate.not_assessed(", hook) == -1:
+			silent.append(path)
+
+	# Assert
+	assert_int(paths.size()).is_greater_equal(MIN_GATE_SUITES)
+	assert_array(silent).is_empty()

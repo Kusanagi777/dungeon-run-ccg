@@ -4,6 +4,10 @@
 ## `.github/workflows/tests.yml` runs this folder (continue-on-error, one
 ## retry, `PERF` lines in the job summary).
 ##
+## One gate per suite, so a failing gate cannot hide another (review S7): the
+## memory gate is `card_database_memory_budget_perf_test.gd` and the logged
+## check count `card_database_validation_checks_perf_test.gd`.
+##
 ## Story: production/epics/card-database/story-009-load-and-memory-budget.md
 ## AC-1, AC-2 (amended 2026-11-04 per the sprint-4 QA plan); the
 ## deterministic half (synchronous return, counters, knob presence) is in
@@ -22,23 +26,24 @@
 ## each on a fresh database, and min / median / max are printed. Both budgets
 ## are read from `config("card_database")` after the load — never literals.
 ##
-## Memory: the `Performance.MEMORY_STATIC` delta across one `load()` (the
-## database kept alive until after the second reading) and, as the documented
-## proxy, the UTF-8 byte length of `DataLoader.canonical_json(snapshot)` — a
-## conservative upper figure, since the precomputed pools repeat records the
-## snapshot shares by reference. Both are printed; the delta is compared when
-## it is positive (measurable), else the proxy, and the `PERF` line says which.
-## `Time.get_ticks_usec()` and `Performance.get_monitor(MEMORY_STATIC)` are NOT
-## SOURCEABLE against `docs/engine-reference/godot/` (pre-4.4 APIs; the story
-## rates them LOW risk) — the numbers printed are what this build observed.
+## `Time.get_ticks_usec()` is NOT SOURCEABLE against
+## `docs/engine-reference/godot/` (a pre-4.4 API; the story rates it LOW risk) —
+## the numbers printed are what this build observed.
 extends GdUnitTestSuite
 
 const SHIPPED_ROOT: String = "res://assets/data/"
 const BOOT_SCRIPT: GDScript = preload("res://src/core/boot.gd")
 ## Measured loads after the warm-up (an odd count, so the median is a sample).
 const MEASURED_LOADS: int = 5
-const BYTES_PER_MB: int = 1024 * 1024
 const USEC_PER_MS: int = 1000
+
+var _measured: bool = false
+
+
+## A test that ended before its measurement still leaves a line in the summary.
+func after() -> void:
+	if not _measured:
+		print(PerfGate.not_assessed("card_database load", "the test ended before its measurement"))
 
 
 func _validators() -> Dictionary:
@@ -71,49 +76,10 @@ func test_shipped_load_median_is_within_data_load_budget_ms() -> void:
 		assert_int(db.state()).is_equal(CardDatabase.State.READY)
 	samples.sort()
 	var median: int = samples[MEASURED_LOADS / 2]
+	_measured = true
 	print("PERF card_database load (shipped, Boot debug map) x%d: min %d us, median %d us, max %d us (budget %d ms)"
 		% [MEASURED_LOADS, samples[0], median, samples[-1], budget_ms])
 
 	# Assert
 	assert_int(median).override_failure_message("shipped load median %d us, budget %d ms" % [median, budget_ms]) \
 		.is_less_equal(budget_ms * USEC_PER_MS)
-
-
-func test_shipped_snapshot_is_within_data_memory_budget_mb() -> void:
-	# Arrange — warm-up load, thrown away
-	var warm: CardDatabase = _loaded_db()
-	var budget_mb: int = int(warm.config("card_database").data_memory_budget_mb)
-	var validators: Dictionary = _validators()
-	var db: CardDatabase = CardDatabase.new(DataLoader.new(SHIPPED_ROOT))
-
-	# Act
-	var before: float = Performance.get_monitor(Performance.MEMORY_STATIC)
-	db.load(validators)
-	var after: float = Performance.get_monitor(Performance.MEMORY_STATIC)
-	var delta: int = int(after - before)
-	var proxy: int = DataLoader.canonical_json(db.snapshot_handle()).to_utf8_buffer().size()
-	var measurable: bool = delta > 0
-	var compared: int = delta if measurable else proxy
-	print("PERF card_database snapshot (shipped): MEMORY_STATIC delta %d bytes, canonical-JSON proxy %d bytes; compared: %s (budget %d MB = %d bytes)"
-		% [delta, proxy, "delta" if measurable else "proxy (delta not measurable)", budget_mb, budget_mb * BYTES_PER_MB])
-
-	# Assert
-	assert_int(db.state()).is_equal(CardDatabase.State.READY)
-	assert_int(compared).override_failure_message("snapshot %d bytes (%s), budget %d MB" % [compared, "delta" if measurable else "proxy", budget_mb]) \
-		.is_less_equal(budget_mb * BYTES_PER_MB)
-	assert_int(proxy).override_failure_message("canonical-JSON proxy %d bytes, budget %d MB" % [proxy, budget_mb]) \
-		.is_less_equal(budget_mb * BYTES_PER_MB)
-
-
-func test_shipped_validation_checks_logged_beside_the_v1_estimate() -> void:
-	# Arrange
-	var loader: DataLoader = DataLoader.new(SHIPPED_ROOT)
-
-	# Act
-	var result: DataLoader.LoadResult = loader.run(_validators(), CardDatabase.new(loader))
-	print("PERF card_database validation_checks (shipped): %d = n_records %d + n_refs %d (GDD v1 estimate %d; logged, not asserted)"
-		% [result.validation_checks(), result.n_records, result.n_refs, TestConstants.VALIDATION_CHECKS_V1_ESTIMATE])
-
-	# Assert — the figure is a log line (AC-3); only the identity is checked here
-	assert_bool(result.report.has_errors()).override_failure_message(result.report.to_text()).is_false()
-	assert_int(result.validation_checks()).is_equal(result.n_records + result.n_refs)
