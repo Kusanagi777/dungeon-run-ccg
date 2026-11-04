@@ -121,3 +121,37 @@ Key changes affecting architecture: none. The rule is scorer arithmetic over sta
 - Boss-ai EPIC: story-table row, Definition of Done count 31.
 
 **Sprint 5:** `src/ai/threat_estimate.gd` `reach` / `unsafe`; `src/ai/scorer.gd` exception; `tests/unit/boss_ai/boss_ai_face_attack_vulnerability_test.gd` and its fixture (boss-ai story 009).
+
+## DD-X23 — match-ui.md and boss-ai.md: the commit beat stretches over planning
+
+### Change Summary
+Changed sections:
+- match-ui U6 step 2: the beat starts at End Turn on the intent already shown and lasts `max(intent_banner_s, planner run)`, capped at `planner_target_ms` 500 ms. Past the cap, "boss thinking" shows until the plan arrives, then playback.
+- match-ui F4 `intent_banner_s` row: the stretch is planning time, not playback, so `max_turn_playback_s` is unchanged.
+- match-ui Input Responsiveness: the End Turn row (was "commit beat visible ≤ 300 ms"). Impact Moments: the commit-beat row.
+- boss-ai Game Feel: Feel Reference; Input Responsiveness "planner complete" and "first boss action" rows; Impact Moments. Tuning Knobs: the `planner_target_ms` effect text.
+- UX `design/ux/hud.md`: the End Turn button update behaviour and the intent-banner timing row.
+
+Unchanged: `intent_banner_s` 0.3, `plan_changed_s`, F4 arithmetic, `planner_target_ms` 500 (DD-X18), skip behaviour, control locking.
+
+Key changes affecting architecture: the latency row that ADR-0009 and ADR-0006 quote. TR-match-ui-005 changes.
+
+Downstream GDDs to re-check: none in the registry.
+
+### ADRs in scope
+match-ui.md (standard): Foundation ADR-0001, 0002, 0003, 0004, 0010 plus the ADRs naming match-ui.md (0006, 0008, 0009, 0011), 9 in all. A search for the commit-beat latency and "300 ms banner beat" hits ADR-0006 and ADR-0009.
+- **ADR-0009** (Match UI animation queue): Needs Review → **Updated in place (erratum 2026-11-04, DD-X23)**. The Related latency line is updated. Decisions 1–4 still hold, because boss-turn mode already starts on `turn_started{side: boss}` and the beat is view-state.
+- **ADR-0006** (planner threading): Needs Review → **Updated in place (erratum 2026-11-04, DD-X23)**. The Validation Criteria flag from DD-X18 is resolved, and Performance Implications is reworded. The "boss thinking" branch of the tick diagram is unchanged.
+- ADR-0001, 0002, 0003, 0004, 0008, 0010, 0011: **Still Valid**, since none quotes the beat.
+
+### Other documents fixed
+- `architecture.md`: the TR-match-ui-005 baseline row, §Performance budgets "Boss AI planner per run" and "UI input latency".
+- `control-manifest.md`: the "Boss AI worker" guardrail.
+- `tr-registry.yaml`: TR-match-ui-005, `revised: 2026-11-04` (same intent, ID kept).
+- `requirements-traceability.md`: a row.
+
+### Stories (dated AC notes)
+- Affected: match-ui story 010 (new pacing AC with a planner fake), 015 (End Turn AC amended; "boss thinking" screenshot), 024 (latency-table row), and the match-ui EPIC scope line.
+- MUI-003, MUI-004 and MUI-011 were checked and are **not affected**. They hold no commit-beat or latency criterion; 003/004 use `ImmediatePlannerTask`, so there is no planning delay.
+
+**Sprint 5:** `src/ui/match/` boss-turn mode (beat start on End Turn, `max` / cap, "boss thinking" state) per match-ui 010 / 015; the latency test per 024. No data change (`intent_banner_s`, `planner_target_ms` unchanged).

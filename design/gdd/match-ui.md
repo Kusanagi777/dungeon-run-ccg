@@ -313,7 +313,14 @@ The Match UI therefore **paces a burst it already holds**:
 
 1. On `turn_started{side: boss}` the player's controls lock (only skip, concede, settings, feed).
 2. `ai_intent_committed` plays the commit beat (`intent_banner_s`, boss-ai knob) before the first
-   action group; `kept = false` shows the "plan changed" label instead.
+   action group; `kept = false` shows the "plan changed" label instead. **Commit beat over planning
+   (2026-11-04, DD-X23):** the beat starts at End Turn on the intent already shown and lasts
+   `max(intent_banner_s, planner run)`, capped at boss-ai `planner_target_ms` (500 ms). The
+   planner runs off the main thread (ADR-0006), so `ai_intent_committed` and the first group can
+   arrive during the beat. They are applied when it ends, and playback then starts. If the plan has
+   not arrived when the 500 ms cap is reached, the beat ends and the "boss thinking" state shows
+   on the intent banner (ADR-0006) until it arrives; playback then starts with the committed intent
+   (or "plan changed"). Controls stay locked throughout (step 1).
 3. Command groups (U4.2) play in order with a **gap** between them derived from
    `ai_action_delay_s` — the player's `action_delay_ms / 1000` when Meta's setting is present
    (DD-X07), else Boss AI's `presentation.action_delay_s` 0.6 s — and compressed so the whole turn
@@ -569,7 +576,7 @@ Every step duration and every gap is multiplied by `k`. If `k = K_MIN` and the c
 |----------|------|-------|--------|-------------|
 | ai_action_delay_s | float | 0.0–2.0 | `settings.action_delay_ms / 1000` when the Meta setting is present (DD-X07), else Boss AI data `presentation.action_delay_s` (0.6) | Preferred gap between boss actions; the clamp floor `MIN_ACTION_GAP_S` still applies |
 | max_turn_playback_s | float | 6–20 (10) | Boss AI data | Budget for the whole boss turn |
-| intent_banner_s | float | 0.3 | Boss AI data | Commit beat before the first action |
+| intent_banner_s | float | 0.3 | Boss AI data | Commit beat before the first action (its minimum; the stretch to `max(intent_banner_s, planner run)` ≤ 500 ms, and any "boss thinking" wait, is planning time and does not count against `max_turn_playback_s` — 2026-11-04, DD-X23) |
 | MIN_ACTION_GAP_S | float | 0.1–0.3 (0.15) | data file | Floor so actions never blur (match-rules anti-reference) |
 | K_MIN | float | 0.25–0.5 (0.25) | data file | Hardest compression before auto-skip |
 | A | int | 1–30 (`max_actions_per_turn`) | calculated | Boss commands this turn incl. `end_turn` |
@@ -805,7 +812,7 @@ UI where the hand re-flows under the cursor while hovering (salvage lesson from 
 | Release on legal target → first visual event | 50 | 3 frames | match-rules target: `submit` ≤ 5 ms + step start |
 | Rejection → shake + tooltip | 50 | 3 frames | |
 | Skip-all → display equals view-state | 100 | 6 frames | boss-ai target |
-| End Turn → boss intent commit beat visible | 300 | 18 frames | boss-ai target |
+| End Turn → commit beat ends, boss playback starts | `max(300, planner run)`, ≤ 500; past 500 the "boss thinking" state shows until the plan arrives | 18–30 frames | boss-ai `intent_banner_s` and `planner_target_ms` (U6.2). The beat itself starts on the End Turn frame. Was "commit beat visible ≤ 300" (2026-11-04, DD-X23) |
 | Hover → 1.5x preview complete | 100 | 6 frames | `HOVER_IN_S` |
 
 ### Animation Feel Targets
@@ -824,7 +831,7 @@ UI where the hand re-flows under the cursor while hovering (salvage lesson from 
 | Hit-stop | 60 (minion) / 90 (hero, dealt ≥ 5) | Attacker and defender freeze on contact | Yes (`d_base`), off at `anim_speed = fast` or `reduce_motion` |
 | Screen shake | 120 | Hero damage ≥ 5 or lethal; 3 px, decaying | Yes; off when `reduce_motion` |
 | Lethal slow-down | 400 | Time-scale 0.5 on the lethal `damage_dealt` step only | Yes; off when `reduce_motion` |
-| Intent commit beat | 300 | Banner brightens, hold | Yes (`intent_banner_s`, Boss AI) |
+| Intent commit beat | 300–500 (`max(intent_banner_s, planner run)`, capped at `planner_target_ms`; 2026-11-04, DD-X23) | Banner brightens, hold; "boss thinking" past the cap | Yes (`intent_banner_s`, `planner_target_ms`, Boss AI) |
 
 ### Weight and Responsiveness Profile
 - **Weight**: light in the hand, heavy on the table. Picking up costs nothing; landing thumps.

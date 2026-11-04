@@ -288,7 +288,7 @@ Each block names the pattern that owns its behaviour; the block adds only placem
 
 - Visual description: 1116, 296, 140, 44; label "End Turn" 16 px (`hud.end_turn`); states Disabled (`text_muted`) / Enabled (`text_light`) / Actionable (+ 2 px `state_actionable` outline when no legal play other than `end_turn` remains or mana is 0) / Pressed.
 - Data displayed: derived from `phase == PlayerTurn.Main`, queue idle, `legal_commands()`.
-- Update behavior: instant state swaps; depress 60 ms on press; the boss intent commit beat must be visible ≤ 300 ms after (match-ui Input Responsiveness).
+- Update behavior: instant state swaps; depress 60 ms on press; the boss intent commit beat starts on the press and lasts `max(300 ms, planner run)` up to 500 ms, then playback starts; past 500 ms the banner shows "boss thinking" until the plan arrives (match-ui Input Responsiveness, U6.2; 2026-11-04, DD-X23 — was "visible ≤ 300 ms after").
 - Urgency states: Actionable is the only emphasis — it is a "nothing left to do" readout, not an alarm.
 - Interaction: click (never gated); `Space` / `Enter` when Enabled **and armed** (`end_turn_arm_ms` 300 ms after the queue drained) and no card / token / hero power holds focus; otherwise those keys are Skip & Playback. Focus stop 6. Accessible name "End Turn" + "nothing left to do" when Actionable.
 - Player customization: none; label scales with `text_scale` — the button grows **left** (right edge fixed at 1256), to at most 200 px wide, staying clear of the boss row's right edge at x 979.
@@ -449,7 +449,7 @@ Everything transient on the match screen is an `AnimStep` in match-ui's `Animati
 | Fatigue label | Match Rules `fatigue_damage` | Player deck pile / portrait | 400 | fade | 1 | Normal | Then the damage pop | Skip-all |
 | Burn flash | Match Rules `card_burned` | Over the player deck pile, face up | 400 | dissolve | 1 | Normal | FIFO | Skip-all |
 | Turn banner | Match Rules `turn_started{boss}` | 440, 215, 400, 48 | 400 | slide (fade under `reduce_motion`) | 1 | Normal | First step of the boss turn, before the commit beat | Skip-all (view-state text remains in the top bar) |
-| Intent shown / commit beat / plan changed | Boss AI | Banner 980, 52, 276, 36 | 300 / `intent_banner_s` 300 / `plan_changed_s` 1200 | fade / brighten / crossfade | 1 | High — the first thing in a boss turn | Commit beat plays before the first action group (U6.2); skip leaves the final banner state | Skip-all; the final state is not dismissible (it is a readout) |
+| Intent shown / commit beat / plan changed | Boss AI | Banner 980, 52, 276, 36 | 300 / `intent_banner_s` 300, stretched to `max(300, planner run)` ≤ 500 (2026-11-04, DD-X23) / `plan_changed_s` 1200 | fade / brighten / crossfade | 1 | High — the first thing in a boss turn | Commit beat plays before the first action group (U6.2); skip leaves the final banner state | Skip-all; the final state is not dismissible (it is a readout) |
 | "Boss discovers…" label | Card Effects (boss Choice) | On the boss portrait | 400 | fade | 1 | Normal | Inside its command group | Skip-all |
 | Treasure chip flare | Card Effects `effect_resolved{host_kind: treasure}` | The chip | 150 | outline flash (static brighten under `reduce_motion`) | 3 | Low | `parallel_ok` with the hosted effect's steps | Skip-all |
 | Rim glow (armed source) | Card Effects `trigger_queued` → `trigger_resolved` | The source token / card | 150 in / 150 out | fade | many | Low | `parallel_ok` | — |

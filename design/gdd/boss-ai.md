@@ -739,7 +739,7 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `lethal_max_nodes` | 50 / 500 / 4000 | 10–20,000 | Finds deeper lethals; planner time up | Misses multi-step lethals | `planner_target_ms` |
 | `max_evals_per_action` | 40 / 120 / 250 | 10–1,000 | Better target choice on wide boards; time up | Pre-filter decides more; weaker play | `op_values`, `planner_target_ms` |
 | `max_actions_per_turn` | 30 | 10–100 | Longer degenerate turns possible | Legit token turns cut short | Match Rules `TURN_CAP` |
-| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; runs past 300 ms show "boss thinking" more often | Forces smaller budgets | F7 (measurement only; never a runtime switch), `intent_banner_s` |
+| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; the commit beat stretches over the run up to this cap (match-ui U6.2, 2026-11-04, DD-X23), and runs past it show "boss thinking" | Forces smaller budgets | F7 (measurement only; never a runtime switch), `intent_banner_s` |
 | `presentation.action_delay_s` | 0.6 | 0.3–1.2 | Boss turns read slower; risk "long opponent turns" | Actions blur together | `max_turn_playback_s` |
 | `presentation.max_turn_playback_s` | 10 | 6–20 | Long turns play in full | Delay compresses on busy turns | `action_delay_s` |
 | `presentation.intent_banner_s` / `plan_changed_s` | 0.3 / 1.2 | 0.2–0.6 / 0.6–2.0 | Longer commit beat / longer "plan changed" label; the first boss action starts later | Beat unreadable / label missed | Match UI `boss_turn_gap` (reads `intent_banner_s`) |
@@ -774,14 +774,15 @@ prompts from this section (11 intent icons, banner frame, "plan changed" label).
 Slay the Spire's enemy intent icons — the boss's plan is public, so a loss is "I saw it and
 could not stop it", never "where did that come from". Anti-reference: Hearthstone's AI opponents
 pausing with a "thinking" emote; the boss here does not stall on screen — a short "boss thinking"
-beat (ADR-0006) appears only when a planner run outlasts the 300 ms banner beat (2026-11-04,
-DD-X18).
+beat (ADR-0006) appears only when a planner run outlasts the commit beat, which stretches over
+planning to `max(intent_banner_s, planner run)` up to `planner_target_ms` 500 ms (2026-11-04,
+DD-X18; DD-X23: was "outlasts the 300 ms banner beat").
 
 ### Input Responsiveness
 | Action | Max latency (ms) | Frame budget (60 fps) | Notes |
 |---|---|---|---|
-| Player `end_turn` → boss planner complete | 500 | 30 frames | F7 target per planner run (was 50 ms / 3 frames — 2026-11-04, DD-X18), measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30). A run longer than the 300 ms banner beat shows the existing "boss thinking" state (ADR-0006) |
-| Planner complete → first boss action on screen | 300 | 18 frames | Banner commit beat, then playback |
+| Player `end_turn` → boss planner complete | 500 | 30 frames | F7 target per planner run (was 50 ms / 3 frames — 2026-11-04, DD-X18), measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30). The commit beat covers the run up to 500 ms; a longer run shows the existing "boss thinking" state (ADR-0006) (2026-11-04, DD-X23; was "longer than the 300 ms banner beat") |
+| End Turn → first boss action on screen | `max(300, planner run)`, ≤ 500 at target | 18–30 frames | The commit beat starts at End Turn and lasts `max(intent_banner_s, planner run)` capped at `planner_target_ms`; playback follows. Past the cap, "boss thinking" until the plan arrives, then playback (match-ui U6.2). Was "Planner complete → first boss action 300" (2026-11-04, DD-X23) |
 | Each subsequent boss action | `action_delay_s` = 600 | 36 frames | Compressed to fit `max_turn_playback_s` on busy turns |
 | Player click "skip" during playback | 100 | 6 frames | Playback jumps to the final state (events already logged) |
 
@@ -791,7 +792,7 @@ Not applicable — the AI animates nothing; playback reuses Match Rules' targets
 ### Impact Moments
 | Impact Type | Duration (ms) | Effect Description | Configurable? |
 |---|---|---|---|
-| Intent commit beat | 300 | Banner brightens, short hold before the first action | Yes (`intent_banner_s`) |
+| Intent commit beat | 300–500 (`max(intent_banner_s, planner run)`, capped at `planner_target_ms`; 2026-11-04, DD-X23) | Banner brightens, short hold before the first action | Yes (`intent_banner_s`) |
 | Lethal intent (`intent_key = lethal`) | 600 | Banner pulses red once; no other emphasis — the board already says it | Yes |
 
 ### Weight and Responsiveness Profile

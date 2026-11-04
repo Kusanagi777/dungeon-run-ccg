@@ -483,9 +483,9 @@ requirements:
 - id: TR-match-ui-005
   system: match-ui
   gdd: design/gdd/match-ui.md
-  requirement: "Input Responsiveness latency table: pickup 16 ms, drag 16 ms, release to first event 50 ms, rejection 50 ms, skip 100 ms, End Turn to intent 300 ms, hover 100 ms"
+  requirement: "Input Responsiveness latency table: pickup 16 ms, drag 16 ms, release to first event 50 ms, rejection 50 ms, skip 100 ms, End Turn to commit beat end max(300 ms, planner run) up to 500 ms then boss thinking, hover 100 ms"
   created: 2026-11-03
-  revised: ""
+  revised: 2026-11-04
   status: active
 
 - id: TR-match-ui-006

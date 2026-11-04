@@ -6,11 +6,11 @@
 > **Type**: UI
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04 (DD-X23 AC note; implementation not started)
 
 ## Context
 
-**GDD**: `design/gdd/match-ui.md` U3 (`ai_intent_shown`, `ai_intent_committed`, `effective_mode`), U6, States (`BossTurn` hand dim), U11 (`--pause-at`), Input Responsiveness (End Turn → commit beat 300 ms, skip 100 ms), O8, O9 · UX: `design/ux/hud.md` §4.2 intent banner / skip hint, §5 `BossTurn` and `effective_mode = hidden` rows, §12 Per-Context rows; `design/ux/interaction-patterns.md` Boss Intent Banner, Skip & Playback
+**GDD**: `design/gdd/match-ui.md` U3 (`ai_intent_shown`, `ai_intent_committed`, `effective_mode`), U6, States (`BossTurn` hand dim), U11 (`--pause-at`), Input Responsiveness (End Turn → commit beat `max(300 ms, planner run)` ≤ 500 ms, then "boss thinking" — 2026-11-04, DD-X23; skip 100 ms), O8, O9 · UX: `design/ux/hud.md` §4.2 intent banner / skip hint, §5 `BossTurn` and `effective_mode = hidden` rows, §12 Per-Context rows; `design/ux/interaction-patterns.md` Boss Intent Banner, Skip & Playback
 **Requirement**: `TR-match-ui-003`, `TR-match-ui-005`
 *(Requirement text lives in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
 
@@ -34,7 +34,7 @@
 
 - [ ] **O8** GIVEN `boss_intent_full`, WHEN captured, THEN the banner at 980,52,276,36 shows an intent icon, label, amount and a reticle on the named target; GIVEN `boss_intent_plan_changed`, THEN the "plan changed" label is visible; GIVEN `boss_intent_hidden` (band-3 boss, `effective_mode = hidden`), THEN a "?" plate fills the banner rect with no icon, amount or reticle.
 - [ ] **O9** GIVEN `boss_turn_playback --pause-at=<seq>` inside the boss turn, WHEN captured, THEN End Turn is disabled, no hand card or token carries the actionable outline, the hand zone is dimmed to `table_dark` (60 %), and the skip hint occupies 980,90,152,20 once 1 s has elapsed.
-- [ ] GIVEN `Idle` with a forecast shown, WHEN End Turn is clicked, THEN the boss intent commit beat is visible within 300 ms (`scene_runner()` timing, Linux CI).
+- [ ] GIVEN `Idle` with a forecast shown, WHEN End Turn is clicked, THEN the boss intent commit beat is visible within 300 ms (`scene_runner()` timing, Linux CI). *(2026-11-04, DD-X23: amended. The beat is visible on the End Turn frame, over the forecast intent. It ends and playback starts at `max(300 ms, planner run)` while the run is ≤ 500 ms. With a planner fake held past 500 ms, the banner shows the "boss thinking" state from 500 ms until the plan arrives, and a retained screenshot of that state goes to `production/qa/evidence/`. The 300 ms line stands as the beat's minimum, not as its deadline.)*
 - [ ] GIVEN skip-all (click, `Space` or `Enter`) during `boss_turn_playback`, WHEN the frame after the input is captured, THEN every presenter equals `MatchViewState` (U4.6), the intent banner shows its final state and the turn banner text is present.
 
 ---

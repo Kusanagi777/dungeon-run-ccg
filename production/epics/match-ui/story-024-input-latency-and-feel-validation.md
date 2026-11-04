@@ -6,7 +6,7 @@
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04 (DD-X23 AC note; implementation not started)
 
 ## Context
 
@@ -32,7 +32,7 @@
 
 *From match-ui Input Responsiveness and Feel Acceptance Criteria:*
 
-- [ ] GIVEN `tests/integration/match_ui/input_latency_test.gd` (`scene_runner()`), WHEN each row is measured on `turn1_player` / `boss_turn_playback`, THEN press → lift ≤ 16 ms, drag → position ≤ 16 ms, release → first visual event ≤ 50 ms, rejection → shake + tooltip ≤ 50 ms, skip-all → display = view-state ≤ 100 ms, End Turn → intent commit beat ≤ 300 ms, hover → preview complete ≤ 100 ms.
+- [ ] GIVEN `tests/integration/match_ui/input_latency_test.gd` (`scene_runner()`), WHEN each row is measured on `turn1_player` / `boss_turn_playback`, THEN press → lift ≤ 16 ms, drag → position ≤ 16 ms, release → first visual event ≤ 50 ms, rejection → shake + tooltip ≤ 50 ms, skip-all → display = view-state ≤ 100 ms, End Turn → intent commit beat ≤ 300 ms, hover → preview complete ≤ 100 ms. *(2026-11-04, DD-X23: the End Turn row is now "beat visible on the End Turn frame; playback starts at `max(300 ms, planner run)` ≤ 500 ms; past 500 ms 'boss thinking' until the plan arrives". Measure the planner run from the driver's task start and finish, and assert playback start = max(300, run) ± one frame.)*
 - [ ] GIVEN the Windows export, WHEN the same seven rows are timed by hand or by a debug overlay, THEN the results are recorded beside the Linux numbers (advisory, ADR-0010).
 - [ ] GIVEN playtest #2 (≥ 10 losses across testers), WHEN reported with `/playtest-report`, THEN no tester calls pickup / drag "laggy", "floaty" or "sticky", none asks "who attacked first?", none calls a boss turn "long" at defaults or "a blur" at `fast`, and testers state why they lost from the board and ticker alone in ≥ 8 of 10 losses.
 
