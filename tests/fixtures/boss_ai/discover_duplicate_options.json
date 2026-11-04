@@ -1,0 +1,29 @@
+{
+  "name": "discover_duplicate_options",
+  "description": "boss-ai A16, C7 Discover (story 010): default profile, band 2 (tie_epsilon 0.05). boss_turns_taken 3 makes next turn's mana_max 4 (match-rules F4). options is A16's [2-cost, 2-cost identical, 7-cost]: bai_squire scores 0.8 * (2 + 3) / 4 = 1.0, bai_colossus 0.8 * (3 + 3) / 4 * 0.5 = 0.6, so index 0 wins beyond tie_epsilon with no draw. bai_page has bai_squire's stats and another id: a real tie. The other cards each carry one choice_preference tag.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "ai_stream": "ai_1",
+  "ai_seeds": [1, 2],
+  "boss_turns_taken": 3,
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_squire", "type": "minion", "cost": 2, "attack": 2, "health": 3},
+    {"id": "bai_page", "type": "minion", "cost": 2, "attack": 2, "health": 3},
+    {"id": "bai_colossus", "type": "minion", "cost": 7, "attack": 3, "health": 3},
+    {"id": "bai_at_limit", "type": "minion", "cost": 4, "attack": 3, "health": 3},
+    {"id": "bai_over_limit", "type": "minion", "cost": 5, "attack": 3, "health": 3},
+    {"id": "bai_raider", "type": "minion", "cost": 2, "attack": 2, "health": 3, "keywords": ["charge"]},
+    {"id": "bai_blade", "type": "weapon", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_wall", "type": "minion", "cost": 2, "attack": 2, "health": 3, "keywords": ["taunt"]},
+    {"id": "bai_salve", "type": "spell", "cost": 2, "effects": [{"trigger": "cast", "targets": "owner_hero", "ops": [{"op": "heal", "amount": 3}]}]},
+    {"id": "bai_wave", "type": "spell", "cost": 3, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_jab", "type": "spell", "cost": 3, "effects": [{"trigger": "cast", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_crypt", "type": "minion", "cost": 2, "attack": 2, "health": 3, "keywords": ["deathrattle"], "effects": [{"trigger": "deathrattle", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_goblet", "type": "minion", "cost": 1, "attack": 2, "health": 3}
+  ],
+  "boss": {"mana": 4, "board": [], "hand": []},
+  "player": {"health": 30, "board": ["bai_filler", "bai_filler"]},
+  "options": ["bai_squire", "bai_squire", "bai_colossus"]
+}

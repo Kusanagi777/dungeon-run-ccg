@@ -148,16 +148,7 @@ func op_value(command: Dictionary, sandbox: RulesEngine) -> float:
 	var player: Dictionary = sandbox.state().players[own]
 	match str(command.type):
 		MatchRecords.CMD_PLAY_CARD:
-			var def: Variant = _card(str(player.hand[int(command.hand_index)].def_id))
-			if not def is Dictionary:
-				return 0.0
-			var value: float = def_value(def, sandbox, own)
-			match str(def.get("type")):
-				RulesEngine.CARD_MINION:
-					value += _row(OP_BODY) * float(int(def.get("attack", 0)) + int(def.get("health", 0))) / BODY_DIVISOR
-				RulesEngine.CARD_WEAPON:
-					value += _row(OP_WEAPON)
-			return value
+			return card_value(_card(str(player.hand[int(command.hand_index)].def_id)), sandbox, own)
 		MatchRecords.CMD_USE_HERO_POWER:
 			var power: Variant = _db.hero_power(str(player.hero_power.def_id)) if _db != null else null
 			return def_value(power, sandbox, own) if power is Dictionary else 0.0
@@ -203,6 +194,35 @@ func def_value(def: Variant, sandbox: RulesEngine, own: String) -> float:
 		if effect is Dictionary and effect.get("ops") is Array:
 			total += _ops_value(effect.ops, effect.get("targets"), sandbox, own)
 	return total
+
+
+## The C6 value of the card [param def] for its owner [param own], whichever
+## way it reaches play: its [method def_value], plus C7's body value
+## `buff × (attack + health) / 4` for a minion or the `equip` row for a weapon.
+## 0 for anything that is not a definition. [method op_value] uses it for a
+## card in hand, [Chooser] for a Discover option.
+func card_value(def: Variant, sandbox: RulesEngine, own: String) -> float:
+	if not def is Dictionary:
+		return 0.0
+	var value: float = def_value(def, sandbox, own)
+	match str(def.get("type")):
+		RulesEngine.CARD_MINION:
+			value += _row(OP_BODY) * float(int(def.get("attack", 0)) + int(def.get("health", 0))) / BODY_DIVISOR
+		RulesEngine.CARD_WEAPON:
+			value += _row(OP_WEAPON)
+	return value
+
+
+## C7's `Σ op_value(op) × targets_now(op)` of the op list [param ops] (a Choose
+## One option's `ops[]`) on [param sandbox]'s current board, for [param own].
+func ops_value(ops: Array, sandbox: RulesEngine, own: String) -> float:
+	return _ops_value(ops, null, sandbox, own)
+
+
+## The `op_values` map this instance values with, read only: what a search
+## holding only the picker hands [Chooser].
+func op_values() -> Dictionary:
+	return _op_values
 
 
 ## The three C6 annotations of [param def], memoised by its `id` in this

@@ -26,8 +26,9 @@
 ## estimate and can differ from what the sandbox really draws: story 008's
 ## step-by-step execution detects that (`ai_plan_aborted`).
 ##
-## A boss-side Choice raised at a node is answered with option 0 until story
-## 010's `choose` exists, as [Scorer] does in its trials.
+## A boss-side Choice raised at a node is answered with [Chooser] (C7), as
+## [Scorer] does in its trials: a tie draws from the node's own stream, so it
+## moves neither the fork nor the live `ai_<floor>` stream.
 ##
 ## F4 reads "hand damage cards" as the C3 subset: a Charge minion, a Rush
 ## minion against a Taunt, a weapon and a damage hero power count alongside
@@ -135,7 +136,7 @@ func search(sandbox: RulesEngine, profile: Dictionary, budgets: Dictionary, plan
 		var child: RulesEngine = parent.clone(sim_stream.copy() if sim_stream != null and parent == sandbox else null)
 		var accepted: bool = child.submit(move.duplicate(true)).accepted
 		if accepted:
-			_answer_choices(child)
+			_answer_choices(child, profile)
 		await planner.checkpoint()
 		if accepted and _is_lethal(child):
 			child.end_match()
@@ -389,12 +390,15 @@ static func _reaches_face(selector: Variant) -> bool:
 
 # --- nodes ---------------------------------------------------------------------------
 
-## Answers boss-side Choices with option 0 until story 010's `choose` exists.
-static func _answer_choices(node: RulesEngine) -> void:
+## Answers the Choices the side to move owes on [param node] with [Chooser].
+func _answer_choices(node: RulesEngine, profile: Dictionary) -> void:
 	var own: String = String(node.active_side())
 	while node.phase() == MatchState.PHASE_CHOICE:
 		var pending: Variant = node.pending_choice()
-		if not pending is Dictionary or str(pending.side) != own or not node.submit(MatchRecords.choose(own, 0)).accepted:
+		if not pending is Dictionary or str(pending.side) != own:
+			return
+		var index: int = int(Chooser.choose(node, pending, profile, _picker.op_values(), node.rng_match(), _db).index)
+		if index == Chooser.NO_OPTION or not node.submit(MatchRecords.choose(own, index)).accepted:
 			return
 
 

@@ -41,9 +41,9 @@
 ## owns the F9 `hero_power` rule this file applies as `f_hp`); the tie-break and `ai_<floor>` draws
 ## (story 006); DEFENSIVE weight multipliers (story 009 — the scorer takes the
 ## already-multiplied weights and branches on mode only for the Taunt BV bonus);
-## `choose` scoring for a sandbox Discover (story 010 — until then a boss-side
-## Choice raised in a trial is answered with option 0 and the entry is flagged
-## `sim_choice_placeholder`); forking `ai_<floor>.fork("sim_<turn>")` and
+## `choose` scoring ([Chooser], story 010 — a boss-side Choice raised in a
+## trial is answered with it from the trial's own stream, C4); forking
+## `ai_<floor>.fork("sim_<turn>")` and
 ## passing it as `context[CONTEXT_SIM_STREAM]` (story 008 `plan_turn`). Until
 ## a caller passes it, a trial falls back to a copy of the base's
 ## `rng_match` — the live outcome of a random effect, which C4 forbids (code
@@ -95,7 +95,9 @@ const FEATURE_KEYS: Array[String] = ["f_board", "f_face", "f_self", "f_trade", "
 ##   closing paragraph, and C6: `w_threat × 1.25` while the player's board
 ##   holds `BOARD_SIZE` minions;
 ## - `defensive_taunt_bv` 0.5 — States and Transitions `DEFENSIVE`: "Taunt
-##   minions gain +0.5 board value in F2".
+##   minions gain +0.5 board value in F2";
+## - `cost_fit_full` 1 / `cost_fit_over` 0.5 — C7 `cost_fit` of an option within
+##   and beyond the boss's next-turn mana ([Chooser]).
 const NORMALISERS: Dictionary = {
 	"taunt_bonus": 1.5,
 	"threat_windfury": 0.5,
@@ -108,6 +110,8 @@ const NORMALISERS: Dictionary = {
 	"trade_even_band": 0.2,
 	"board_full_threat": 1.25,
 	"defensive_taunt_bv": 0.5,
+	"cost_fit_full": 1.0,
+	"cost_fit_over": 0.5,
 }
 
 ## Keyword and trigger names the F2 terms read (DD-M09 keywords; Card Effects
@@ -129,15 +133,19 @@ const STAT_FIELDS: Array[String] = ["attack", "health"]
 
 var _db: Variant
 var _keyword_values: Dictionary
+var _op_values: Dictionary
 
 
 ## [param db] answers `card(def_id)` (the frozen `CardDatabase`, or a test
 ## double) for the F2 flat bonuses and C6 synergy; [param keyword_values] is
-## the `ai_profiles` `keyword_values` map (F2 `keyword_mult`). Both are read
-## only.
-func _init(db: Variant, keyword_values: Dictionary) -> void:
+## the `ai_profiles` `keyword_values` map (F2 `keyword_mult`); [param op_values]
+## its `op_values` map, which a trial's Choice answer reads (C4, C7): [BossAI]
+## always passes it, and without it every op values at the C6 fallback row. All
+## read only.
+func _init(db: Variant, keyword_values: Dictionary, op_values: Dictionary = {}) -> void:
 	_db = db
 	_keyword_values = keyword_values
+	_op_values = op_values
 
 
 ## Scores every command of [param candidates] on [param sandbox] (a
@@ -173,8 +181,8 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## `aoe_seen`: C1.3, F5 — see [method aoe_seen_in]; `card_playable`:
 ## whether a `play_card` is legal on the base, for the F9 `spare_mana` rule —
 ## [method score_all] fills it once, else a `use_hero_power` candidate reads it
-## from the base's `legal_commands()`). Returns `{command, score, features, sim_overflow,
-## sim_choice_placeholder}`: `features` has exactly [constant FEATURE_KEYS],
+## from the base's `legal_commands()`). Returns `{command, score, features,
+## sim_overflow}`: `features` has exactly [constant FEATURE_KEYS],
 ## each in [−1, 1] (C5); a trial that faults `resolution_overflow`, or is
 ## rejected, scores `-INF` with zero features (`sim_overflow` true for the
 ## former; Edge Cases).
@@ -185,14 +193,14 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictionary, mode: StringName, context: Dictionary) -> Dictionary:
 	var own: String = String(sandbox_before.active_side())
 	var before: Dictionary = _measure(sandbox_before, mode)
-	var entry: Dictionary = {"command": candidate, "score": 0.0, "features": {}, "sim_overflow": false, "sim_choice_placeholder": false}
+	var entry: Dictionary = {"command": candidate, "score": 0.0, "features": {}, "sim_overflow": false}
 	var after: Dictionary = before
 	if str(candidate.get("type")) != MatchRecords.CMD_END_TURN:
 		var sim: Variant = context.get(CONTEXT_SIM_STREAM)
 		var trial: RulesEngine = sandbox_before.clone((sim as RngStream).copy() if sim is RngStream else null)
 		var result: Dictionary = trial.submit(candidate.duplicate(true))
 		if result.accepted:
-			entry.sim_choice_placeholder = _answer_choices(trial, own)
+			_answer_choices(trial, own, profile)
 		var outcome: Variant = trial.result()
 		var overflow: bool = outcome is Dictionary and str(outcome.get("reason")) == MatchRecords.REASON_RESOLUTION_OVERFLOW
 		if not result.accepted or overflow:
@@ -362,18 +370,17 @@ static func synergy_match(def: Variant, tags: Array) -> bool:
 
 # --- internals -------------------------------------------------------------------
 
-## Answers boss-side Choices the trial raised with option 0 until story 010's
-## `choose` exists; returns whether it answered any.
-func _answer_choices(trial: RulesEngine, own: String) -> bool:
-	var answered: bool = false
+## Answers the Choices [param own] owes on [param trial] with [Chooser] (C4), a
+## tie drawing from the trial's own stream: the turn's fork, or the fallback copy
+## of `rng_match`. A player's Choice stays unanswered (C1.3).
+func _answer_choices(trial: RulesEngine, own: String, profile: Dictionary) -> void:
 	while trial.phase() == MatchState.PHASE_CHOICE:
 		var pending: Variant = trial.pending_choice()
 		if not pending is Dictionary or str(pending.side) != own:
-			break
-		answered = true
-		if not trial.submit(MatchRecords.choose(own, 0)).accepted:
-			break
-	return answered
+			return
+		var index: int = int(Chooser.choose(trial, pending, profile, _op_values, trial.rng_match(), _db).index)
+		if index == Chooser.NO_OPTION or not trial.submit(MatchRecords.choose(own, index)).accepted:
+			return
 
 
 ## The F1 features of [param candidate] from the two measurements.

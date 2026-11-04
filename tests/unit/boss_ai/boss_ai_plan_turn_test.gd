@@ -806,8 +806,7 @@ func test_a_trial_that_overflows_is_never_chosen_and_the_decision_says_so() -> v
 
 
 func test_a_boss_discover_on_the_sandbox_is_answered_and_held_in_the_plan() -> void:
-	# Arrange — the only other move is a Discover spell; story 010 will replace the
-	# flagged option 0
+	# Arrange — the only other move is a Discover spell
 	var fixture: Dictionary = BossAiBoard.read("f1_worked_example")
 	fixture.cards.append({"id": "bai_seek", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "ops": [{"op": "discover", "pool": "list", "list": ["bai_ogre", "bai_brute", "bai_wall"], "then": "add_to_hand"}]}]})
 	fixture.boss.hand = ["bai_seek"]
@@ -853,3 +852,36 @@ func test_aoe_seen_comes_from_the_public_log_through_plan_task() -> void:
 		return float(play.features.f_over)
 	assert_float(over.call(with_log)).is_less(0.0)
 	assert_float(over.call(without)).is_equal(0.0)
+
+
+# --- NC-8: `planner_target_ms` is never a runtime clock ---------------------------------
+
+## The plan of [param fixture] with `runtime.planner_target_ms` at [param target],
+## built from the whole config body as the driver does, as canonical JSON.
+func _plan_with_target(fixture: Dictionary, target: int) -> String:
+	var config: Dictionary = BossAiBoard.stub_config()
+	config.runtime.planner_target_ms = target
+	var band: int = int(fixture.band)
+	var boss_def: Dictionary = CardFactory.make_boss_def("boss_test", band, {"ai_profile": str(fixture.profile)})
+	var profile: Dictionary = ProfileResolver.resolve(config, boss_def, band)
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var stream: RngStream = TestRngStream.seeded("ai_1", AI_SEED)
+	var ai: BossAI = BossAI.new(boss_def, profile, band, stream, config.op_values, null, db, config.keyword_values)
+	var sandbox: RulesEngine = engine.clone()
+	var plan: TurnPlan = _run(ai, sandbox)
+	sandbox.end_match()
+	assert_array(plan.commands).is_not_empty()
+	return JSON.stringify(plan.to_dict(), "", true)
+
+
+func test_a_plan_is_byte_identical_at_either_end_of_the_planner_target_range() -> void:
+	# Arrange — same state and seed; the Validator's bounds, 50 and 1,000
+	var fixture: Dictionary = BossAiBoard.read("f1_worked_example")
+
+	# Act
+	var at_floor: String = _plan_with_target(fixture, 50)
+	var at_ceiling: String = _plan_with_target(fixture, 1000)
+
+	# Assert
+	assert_str(at_floor).is_equal(at_ceiling)
