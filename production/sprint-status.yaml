@@ -309,16 +309,16 @@ stories:
     name: "MVP-1 bosses: Rot Warden, Hollow King"
     file: "production/epics/content/story-004-mvp-1-bosses-rot-warden-hollow-king.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "game-designer (data), lane 5"
     estimate_days: 1
     lane: 5
     wave: 2
     serialised: false
     contract: true
     blocker: ""
-    note: "same bosses.json/cards_boss.json as content 003"
-    completed: ""
+    note: "same bosses.json/cards_boss.json as content 003; zero E_AI_* through the load (7b registered); neutral_gravekeeper slots on the Edge-Cases fallback (Hollow King boss cards x3, Rot Warden crypt_brute x2)"
+    completed: "2026-11-04"
   - id: "content-008"
     name: "Content budget checks"
     file: "production/epics/content/story-008-content-budget-checks.md"

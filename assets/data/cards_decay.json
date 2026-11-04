@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "decay_husk",
+      "name": "Husk",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_husk.text",
+        "en": ""
+      },
+      "token": true
+    }
+  ]
+}
