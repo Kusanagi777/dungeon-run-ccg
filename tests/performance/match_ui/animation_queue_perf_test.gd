@@ -19,6 +19,14 @@ const SKIP_BUDGET_USEC: int = 100_000
 const HERO_IDS: Array[int] = [1, 2]
 const MINION_BASE: int = 100
 
+var _measured: bool = false
+
+
+## A test that ended before its measurement still leaves a line in the summary.
+func after() -> void:
+	if not _measured:
+		print(PerfGate.not_assessed("match_ui skip_all", "the test ended before its measurement"))
+
 
 func test_skip_all_over_a_300_step_stream_fits_in_100_ms() -> void:
 	# Arrange
@@ -46,6 +54,7 @@ func test_skip_all_over_a_300_step_stream_fits_in_100_ms() -> void:
 	var started: int = Time.get_ticks_usec()
 	queue.skip_all()
 	var elapsed: int = Time.get_ticks_usec() - started
+	_measured = true
 	print("PERF match_ui skip_all x%d steps: %d us (budget %d us)" % [steps, elapsed, SKIP_BUDGET_USEC])
 
 	# Assert
