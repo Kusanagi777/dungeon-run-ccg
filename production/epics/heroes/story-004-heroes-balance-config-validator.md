@@ -1,7 +1,7 @@
 # Story 004: `Heroes.validate_config` — the `heroes_balance.json` stage-7a validator, registered at Boot
 
 > **Epic**: Heroes
-> **Status**: In Review
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S
@@ -37,7 +37,7 @@ Boot still registers `heroes_balance` as a pending config validator (`Boot.PENDI
 
 - [x] **AC-1** GIVEN the shipped `heroes_balance.json` body, WHEN `Heroes.validate_config(body, null)` is called, THEN it returns `[]`.
 - [x] **AC-2 (Tuning Knobs safe ranges)** GIVEN a fixture body with each knob set outside its Tuning Knobs safe range in turn — `avg_min`–`avg_max` outside 2.2–3.2 (or `avg_min > avg_max`), `max_cost` outside 4–6, `plan_min`–`plan_max` outside 3–8, `hp_value_min`–`hp_value_max` outside 1.0–3.0, `set_share_tol` outside 0.04–0.15, `synergy_min` outside 3–8 — THEN exactly one `E_RANGE` entry naming that key is returned; GIVEN a required key removed, THEN one `E_MISSING_FIELD`; GIVEN an extra key, THEN one `E_UNKNOWN_FIELD`.
-- [ ] **AC-3 (registration)** GIVEN `Boot._collect_validators`, THEN `configs.heroes_balance` is `Heroes.validate_config` and `Boot.PENDING_CONFIG_OWNERS` no longer lists `heroes_balance` (the pinned lists in `tests/integration/boot/boot_validator_map_test.gd` are updated); a full load of the shipped data reports no `W_VALIDATOR_PENDING` for `heroes_balance.json`.
+- [x] **AC-3 (registration)** GIVEN `Boot._collect_validators`, THEN `configs.heroes_balance` is `Heroes.validate_config` and `Boot.PENDING_CONFIG_OWNERS` no longer lists `heroes_balance` (the pinned lists in `tests/integration/boot/boot_validator_map_test.gd` are updated); a full load of the shipped data reports no `W_VALIDATOR_PENDING` for `heroes_balance.json`.
 
 ---
 
@@ -97,10 +97,10 @@ Boot still registers `heroes_balance` as a pending config validator (`Boot.PENDI
 ---
 
 ## Completion Notes
-**Implemented**: 2026-11-04. Status stays In Review until AC-3's line lands; the orchestrator sets Complete at merge.
+**Implemented**: 2026-11-04. AC-3 closed at the M1 merge: the orchestrator added the Boot line, removed the pending owner and extended `boot_validator_map_test.gd`.
 **Start / end (UTC)**: 2026-11-04T19:57:11Z to 2026-11-04T20:08:52Z
 **Readiness**: READY (2026-11-04). ADR-0002 Accepted at the story's version, manifest 2026-11-04 matches, dependencies Complete. The sprint plan's readiness note applies: AC-3 is met by the orchestrator's line.
-**Criteria**: 2/3 passing. AC-3 NOT ASSESSED on this branch: `src/core/boot.gd` is orchestrator-owned.
+**Criteria**: 3/3 passing.
 **AC-3 lines for the orchestrator, one commit**:
 - `src/core/boot.gd` `_collect_validators()`: `configs["heroes_balance"] = Heroes.validate_config`
 - `src/core/boot.gd` `PENDING_CONFIG_OWNERS`: remove `"heroes_balance"`

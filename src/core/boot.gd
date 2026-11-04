@@ -40,7 +40,7 @@ const OVERRIDE_KEYS: PackedStringArray = ["meta", "card_database"]
 ## (control manifest, Foundation). The owner named in each entry is the
 ## `DataLoader.FILE_MANIFEST` row's.
 const PENDING_CONFIG_OWNERS: PackedStringArray = [
-	"run_structure", "reward_draft", "treasures_balance", "heroes_balance",
+	"run_structure", "reward_draft", "treasures_balance",
 	"match_ui", "run_ui", "profile_defaults",
 ]
 ## Stage-7b record validator keys whose owner has not shipped its validator;
@@ -160,6 +160,7 @@ func services() -> Services:
 ## - `configs.ai_profiles` → `BossAI.validate_profiles_config` (boss-ai 002);
 ## - `configs.rng_event_log` → `EventLog.validate_config` (rng-event-log 007);
 ## - `configs.content_budgets` → `ContentValidator.validate_config` (content 007);
+## - `configs.heroes_balance` → `Heroes.validate_config` (heroes 004);
 ## - pending: [constant PENDING_RECORD_OWNERS] through
 ##   [method _pending_record_validator] and [constant PENDING_CONFIG_OWNERS]
 ##   through [method _pending_config_validator].
@@ -178,6 +179,7 @@ func _collect_validators(meta: MetaApi, debug_build: bool = OS.is_debug_build())
 	configs["ai_profiles"] = BossAI.validate_profiles_config
 	configs["rng_event_log"] = EventLog.validate_config
 	configs["content_budgets"] = ContentValidator.validate_config
+	configs["heroes_balance"] = Heroes.validate_config
 	var unlock_defs: Callable = meta.validate_unlock_defs if meta != null else _validate_unlock_defs_mvp
 	var reported: Dictionary = {}
 	var map: Dictionary = {
