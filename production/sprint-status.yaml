@@ -93,7 +93,6 @@ stories:
     contract: true
     blocker: ""
     note: "[C] merges last at M1; fixes tests that mutate returned records; /code-review at M1; unblocks CE-002, MUI-001, content-001, BOOT-006"
-    completed: ""
   - id: "card-effects-002"
     name: "EffectRuntime, resolver binding lifecycle and card_effects.json"
     file: "production/epics/card-effects/story-002-runtime-binding-config.md"
