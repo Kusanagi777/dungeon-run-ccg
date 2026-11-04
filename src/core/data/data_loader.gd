@@ -122,14 +122,31 @@ class LoadResult extends RefCounted:
 	## files: {<id>: <file name>}}`. Stage 7 answers its lookups from it; on a
 	## clean load stage 9 freezes its records and `index_of` into the snapshot.
 	var staging: Dictionary
+	## Debug counter (card-database Formulas "Validation cost and load
+	## budget", story 009): every record across every definition file that
+	## reached stage 4, passed or not. Diagnostic only; nothing branches on it.
+	var n_records: int = 0
+	## Debug counter: every id reference stage 6 checked (one per `_ref`
+	## lookup — hero `hero_power` and `starter_deck[i]`, boss `hero_power` when
+	## not `null` and `deck[i]`, bundle `cards[i]`), resolved or not.
+	var n_refs: int = 0
 
 	func _init(p_report: ValidationReport, p_snapshot: Variant, p_staging: Dictionary = {}) -> void:
 		report = p_report
 		snapshot = p_snapshot
 		staging = p_staging
 
+	## The Formulas `validation_checks = n_records + n_refs` for this run.
+	## Example: `print("checks: %d" % DataLoader.new().run(validators).validation_checks())`.
+	func validation_checks() -> int:
+		return n_records + n_refs
+
 
 var _root: String
+## Story 009 debug counters for the run in progress (reset by [method run],
+## copied into its [class LoadResult]).
+var _n_records: int = 0
+var _n_refs: int = 0
 
 
 ## A loader over `root` (default the shipped data). Tests point it at a
@@ -154,6 +171,8 @@ func root() -> String:
 ## Example: `var result: DataLoader.LoadResult = DataLoader.new().run(validators)`.
 func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	var report: ValidationReport = ValidationReport.new()
+	_n_records = 0
+	_n_refs = 0
 	# Stage 1 — discover (CR-1): manifest rows by name, plus W_UNKNOWN_FILE.
 	_warn_unknown_files(report)
 	# Stage 2 — read and parse. Each staged item: {row, body}.
@@ -163,6 +182,7 @@ func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	# Stage 4 — per-record schema; each definition item gains `records`, the
 	# `{index, record}` rows that passed. A failing card_database.json is dropped.
 	staged = _check_schemas(staged, report)
+	_n_records = _count_records(staged)
 	# Stage 5 — one global id namespace: every copy of a repeated id is out.
 	var pool: Dictionary = _check_unique(staged, report)
 	# Stage 6 — cross-references; records that fail are out, then the
@@ -175,9 +195,25 @@ func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	_check_budgets(staged, staging, report)
 	# Stage 9 — only with zero errors: freeze the id-sorted staging and every
 	# config body into the snapshot, and fingerprint every file (CR-9).
+	var result: LoadResult
 	if report.has_errors():
-		return LoadResult.new(report, null, staging)
-	return LoadResult.new(report, _freeze(staged, staging, report), staging)
+		result = LoadResult.new(report, null, staging)
+	else:
+		result = LoadResult.new(report, _freeze(staged, staging, report), staging)
+	result.n_records = _n_records
+	result.n_refs = _n_refs
+	return result
+
+
+## Every record across the definition files in `staged` (stage 4 output:
+## each file that parsed and passed its envelope), passed or not — the
+## Formulas `n_records`.
+static func _count_records(staged: Array[Dictionary]) -> int:
+	var count: int = 0
+	for item: Dictionary in staged:
+		if item.row["class"] == "definition":
+			count += Array(item.body.records).size()
+	return count
 
 
 func _warn_unknown_files(report: ValidationReport) -> void:
@@ -448,8 +484,10 @@ func _check_card_list(ctx: Dictionary, field: String, items: Array, sets: Array,
 
 
 ## The referenced record when `target` names a `record_type` record in the
-## pool; otherwise one `E_UNKNOWN_REF` and `null`.
+## pool; otherwise one `E_UNKNOWN_REF` and `null`. Each call is one checked
+## reference (the story-009 `n_refs` counter).
 func _ref(ctx: Dictionary, field: String, where: String, target: String, record_type: String) -> Variant:
+	_n_refs += 1
 	var hit: Variant = ctx.pool.get(target)
 	if hit == null:
 		_ref_fault(ctx, ValidationReport.E_UNKNOWN_REF, field,

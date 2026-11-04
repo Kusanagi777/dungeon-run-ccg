@@ -1,12 +1,13 @@
 # Story 007: Boot responsibilities list for the control manifest (gate condition 12)
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Config/Data
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
+> **Readiness**: 2026-11-04 `/story-readiness` (by hand, lane 4 W2): **READY**. ADR-0001, ADR-0004 (Foundation) and ADR-0011 Accepted, versions 2026-11-03 = story stamp; TR-tech-debt-001 and TR-accessibility-requirements-001 active; Manifest Version 2026-11-03 = manifest; stories 004–006 Complete, and the L4 W1 fix buffer has merged (trunk `5237557`, `boot.gd` now registers `BossAI.validate_ai_profile`); 3 ACs ≥ 1 (Config/Data). Clarified from the story's own text, not a gap: AC-3's "records the resulting `Manifest Version`" depends on the `/create-control-manifest update` run, which Out of Scope and Implementation Notes place outside this story (technical-director, separate approval) — this story records the hand-over and the version **pending**; the update run writes the new version back here. QL-STORY-READY skipped — Lean mode.
 
 ## Context
 
@@ -68,6 +69,7 @@ planned ones; `/dev-story` replaces the list with the files it changed; `/story-
 checks scope against it.*
 
 - `production/epics/boot-composition-root/boot-responsibilities.md` (new)
+- `production/epics/boot-composition-root/EPIC.md` (condition 12 handed over, 2026-11-04; story 007 row → Complete)
 - `production/epics/boot-composition-root/EPIC.md` (Gate Entry Conditions Carried — condition 12 marked handed over, with the date)
 
 ---
@@ -86,7 +88,7 @@ checks scope against it.*
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-*.md`) — the first `/smoke-check` after the hand-over
 
-**Status**: [ ] Not yet created
+**Status**: [~] Pending — no `production/qa/smoke-*.md` after the hand-over yet (the next `/smoke-check sprint` is the evidence). Verified in the lane 2026-11-04: `commands.test` 1234/1234 exit 0, `commands.smoke` exit 0 with no `SCRIPT ERROR`, `tools/lint/gates.sh` G1–G6 0 hits
 
 ---
 
@@ -94,3 +96,24 @@ checks scope against it.*
 
 - Depends on: `production/epics/boot-composition-root/story-004-boot-composition-root.md`, `production/epics/boot-composition-root/story-005-lint-gates-ci.md`, `production/epics/boot-composition-root/story-006-main-scene-composition-entry.md`
 - Unlocks: `/create-control-manifest update` (gate condition 12 closure); none within this epic
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:54:00 UTC, ended 03:58:15 UTC; lane 4 W2, branch `lane/s4-l4-w2`)
+**Criteria**: 3/3 — AC-1 and AC-2 passing; AC-3 passing for the hand-over, its Manifest Version clause **pending** by the story's own Out of Scope (see below).
+
+| Criterion | Covered by | Status |
+|---|---|---|
+| AC-1 every does / never-does row from architecture.md, ADR-0001 D4, ADR-0004 D6/D8/addendum step 4, ADR-0011 D4, each with ADR + decision and `MVP` / `later (<epic>)` | `boot-responsibilities.md` §Boot does (17 rows), §Boot never does (8 rows) | COVERED (doc read against the sources) |
+| AC-2 matches `boot.gd`: every public member (`boot`, `services`, `booted`, `_collect_validators`, the override keys) appears; no `MVP` row absent from code; TD-001 / TD-009 named | §Member list, derived with `rg -n "^func \|^var \|^signal \|^const \|^static func " src/core/boot.gd` at trunk `c9cd55b` — all 20 members mapped; each `MVP` row names a member and an existing test in `tests/integration/boot/`; Guards column names TD-001 / TD-009 (also TD-006, TD-008) | COVERED |
+| AC-3 handed to `/create-control-manifest update`; resulting Manifest Version recorded | Hand-over: `EPIC.md` condition 12 row (2026-11-04) and the proposed Required / Forbidden rows at the end of the list. Manifest Version: **pending — still 2026-11-03**; the technical-director's update run (separate approval, Out of Scope here) records the new version in this story | COVERED (hand-over); version DEFERRED to the update run |
+
+**Deviations**:
+- ADVISORY — Manifest Version not recorded: the update run has not happened (this story does not run it, per Implementation Notes). Condition 12 is handed over, not closed. Stories stamped 2026-11-03 stay current until it runs.
+- ADVISORY — Config/Data evidence pending: no `production/qa/smoke-*.md` after the hand-over yet; the lane ran `commands.test` (1234/1234), `commands.smoke` (exit 0) and `tools/lint/gates.sh` (G1–G6 0 hits) instead.
+- Observation for architecture.md (not changed here): §Data Flow 5 names the `ai_profile` validator `BossAI.validate_profile_key`; the code registers `BossAI.validate_ai_profile`. Recorded in the list's Observations section.
+- `boot.gd` not edited (orchestrator-owned).
+**Test Evidence**: none required beyond the smoke check (Config/Data); see Test Evidence above
+**Run result**: N/A — a documentation deliverable; no code, scene or data file changed.
+**Reviewed by**: self, no independent review (lean)

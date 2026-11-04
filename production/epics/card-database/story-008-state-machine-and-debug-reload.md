@@ -119,4 +119,4 @@
 - OUT OF SCOPE (directed, [C] story) — contract fixes in `card_database_pipeline_test.gd` and `card_database_fingerprint_test.gd`.
 **Test Evidence**: `tests/unit/card_database/card_database_state_machine_test.gd`, `tests/unit/card_database/card_database_reload_test.gd`
 **Run result**: N/A — the database draws nothing; the `data_error` screen that renders `to_text()` and the reload overlay are Run UI / boot epic stories
-**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode; `/code-review` due at M2)
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode; `/code-review` due at M2) · `/code-review 2026-11-04 (independent, sprint-4 carry): APPROVED WITH SUGGESTIONS (the E_BUSY gap is boss-ai-match-driver story 019)`

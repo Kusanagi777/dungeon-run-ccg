@@ -18,7 +18,7 @@
 | 004 | Boot — the one autoload and lazy composition root | Integration | Ready | ADR-0001, ADR-0011 |
 | 005 | Grep gates G1–G6 and the per-file parse check in CI | Integration | Ready | ADR-0001 |
 | 006 | main.tscn composition entry and the RunShell stub | UI | Ready | ADR-0001, ADR-0011, ADR-0010 |
-| 007 | Boot responsibilities list for the control manifest (gate condition 12) | Config/Data | Ready | ADR-0001 |
+| 007 | Boot responsibilities list for the control manifest (gate condition 12) | Config/Data | Complete (manifest update pending) | ADR-0001 |
 | 008 | Windows Desktop export in CI, uploaded as an artifact (gate condition 8) | Config/Data | Complete (CI run pending) | ADR-0010, ADR-0001 |
 
 Order: 001 → 002 → 003 → 004 → {005, 006} → 007. Cross-epic: 003 and 004 need the `card-database` epic's `CardDatabase` / `ValidationReport` and `profile_defaults.json`; until then their tests inject a `card_database` override. QL-STORY-READY skipped — Lean mode.
@@ -62,6 +62,7 @@ Requirements covered by Accepted ADRs: 3 / 3. Untraced Requirements: None.
 
 - **Condition 2** (epic order follows ADR order, riskiest first): this epic is ADR-0001's, first in the order.
 - **Condition 12**: `Boot` responsibilities listed in the control manifest on its next revision — the last story of this epic drafts that list for `/create-control-manifest update`.
+  - **Handed over 2026-11-04** (story 007): `production/epics/boot-composition-root/boot-responsibilities.md` — "Boot does" / "Boot never does" tables matched to `src/core/boot.gd` at trunk `c9cd55b`, with proposed Foundation Required / Forbidden rows. Open with the technical-director: the `/create-control-manifest update` run (separate approval); the manifest stays at Manifest Version 2026-11-03 until it runs, and condition 12 closes when the revised manifest carries the rows.
 
 ## Definition of Done
 

@@ -261,10 +261,10 @@ func test_effective_durations_follow_f3_for_every_base_duration_and_speed() -> v
 	var none: Dictionary = {"hit_stop_ms": 0, "shake_ms": 0, "slow_ms": 0}
 	var cases: Array = [
 		# [settings, divisor or 0 for instant, extras kept]
-		[{"anim_speed": "normal"}, float(config.SPEED_DIV.normal), true],
-		[{"anim_speed": "fast"}, float(config.SPEED_DIV.fast), false],
+		[{"anim_speed": "normal"}, float(config.speed_div.normal), true],
+		[{"anim_speed": "fast"}, float(config.speed_div.fast), false],
 		[{"anim_speed": "instant"}, 0.0, false],
-		[{"anim_speed": "normal", "reduce_motion": true}, float(config.SPEED_DIV.normal), false],
+		[{"anim_speed": "normal", "reduce_motion": true}, float(config.speed_div.normal), false],
 	]
 	for case: Array in cases:
 		var queue: AnimationQueue = _queue(case[0])
@@ -289,7 +289,7 @@ func test_fast_halves_playback_on_the_fake_clock() -> void:
 	var presenter: FakePresenter = FakePresenter.new()
 	presenter.listen(queue)
 	var lunge: AnimStep = AnimStep.new(AnimStep.ATTACK_LUNGE, [1, 2], float(config.d_base.attack_lunge), 1, 1)
-	var d_fast: float = float(config.d_base.attack_lunge) / float(config.SPEED_DIV.fast)
+	var d_fast: float = float(config.d_base.attack_lunge) / float(config.speed_div.fast)
 	queue.enqueue(lunge)
 
 	# Act / Assert: still running just before d_eff, finished at d_eff
@@ -325,7 +325,7 @@ func test_set_speed_and_set_reduce_motion_apply_to_later_steps() -> void:
 
 	# Act / Assert
 	queue.set_speed(&"fast")
-	assert_float(queue.effective_duration(step)).is_equal_approx(float(config.d_base.damage_pop) / float(config.SPEED_DIV.fast), 1e-9)
+	assert_float(queue.effective_duration(step)).is_equal_approx(float(config.d_base.damage_pop) / float(config.speed_div.fast), 1e-9)
 	queue.set_speed(&"normal")
 	queue.set_reduce_motion(true)
 	assert_float(queue.effective_duration(step)).is_equal_approx(float(config.d_base.damage_pop), 1e-9)
@@ -353,7 +353,7 @@ func test_ten_pops_on_distinct_targets_from_one_source_coalesce_into_one_step() 
 
 
 func test_pops_up_to_the_threshold_play_one_by_one() -> void:
-	var threshold: int = int(_config().COALESCE_THRESHOLD)
+	var threshold: int = int(_config().coalesce_threshold)
 	for n: int in [7, threshold]:
 		# Arrange
 		var queue: AnimationQueue = _queue()
@@ -371,9 +371,9 @@ func test_pops_up_to_the_threshold_play_one_by_one() -> void:
 func test_one_pop_beyond_the_threshold_coalesces_and_the_threshold_is_read_from_config() -> void:
 	# Arrange: a config threshold of 4 → 5 pops coalesce, 4 do not
 	var config: Dictionary = _config()
-	config.COALESCE_THRESHOLD = 4
+	config.coalesce_threshold = 4
 	var counts: Array = []
-	for n: int in [int(config.COALESCE_THRESHOLD), int(config.COALESCE_THRESHOLD) + 1]:
+	for n: int in [int(config.coalesce_threshold), int(config.coalesce_threshold) + 1]:
 		var queue: AnimationQueue = _queue({}, config)
 		var presenter: FakePresenter = FakePresenter.new()
 		presenter.listen(queue)

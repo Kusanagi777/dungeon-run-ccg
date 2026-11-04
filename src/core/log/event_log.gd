@@ -288,8 +288,10 @@ func to_json() -> String:
 ## `card_played` events. `damage_by_card` (rule 19) sums `damage_dealt.dealt`
 ## — damage actually applied (match-rules C15), never `requested` — per
 ## `card_id`, over events whose `source` is a player-owned instance in the
-## `instance_id → card_id` map built, in log order, from `minion_summoned`,
-## `weapon_equipped` and `card_played` (`side == "player"`) and from
+## `id → card_id` map built, in log order, from `minion_summoned` and
+## `weapon_equipped` (their `entity_id`, match-rules C15; `instance_id` is read
+## when `entity_id` is absent), `card_played` (its `instance_id`) — each with
+## `side == "player"` — and from
 ## `hero_power_used`, whose `power_id` is mapped under the player's hero
 ## instance (`match_started.hero_id`). A source with no entry (fatigue, a boss
 ## instance, an unknown id) attributes to nothing, silently. Reads only: the
@@ -318,7 +320,10 @@ func reduce_to_summary() -> Dictionary:
 			"match_started":
 				player_hero = _as_int(payload.get("hero_id"))
 			"minion_summoned", "weapon_equipped", "card_played":
-				var instance: Variant = _as_int(payload.get("instance_id"))
+				# match-rules C15 (the authoritative catalogue, DD-X04): the
+				# engine names a summoned minion / equipped weapon `entity_id`;
+				# `card_played` carries `instance_id` (code review 2026-11-04).
+				var instance: Variant = _as_int(payload.get("entity_id", payload.get("instance_id")))
 				if is_player and instance != null:
 					card_of[instance] = payload.get("card_id")
 				if is_player and event.type == "card_played":

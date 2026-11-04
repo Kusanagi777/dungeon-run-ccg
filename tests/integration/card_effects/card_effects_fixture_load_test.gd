@@ -4,10 +4,14 @@
 ## Decision 8; control manifest Core "tests inject the five-parameter
 ## accept-all stub").
 ##
-## Composes `DataLoader` + `CardDatabase` + the real validator without `Boot`,
-## the way `tools/content/validate.gd` will: the stage-7b `effects` adapter is
-## built here as `validate_effects(k, id, fx, db, EffectValidator.stage7_caps(configs))`
-## (Boot's own adapter belongs to the orchestrator). Fixtures (read only
+## Composes `DataLoader` + `CardDatabase` + the real validator without booting:
+## the full-fixture AC-01 case loads through Boot's own stage-7b `effects`
+## adapter and 7a effect / rules validators, taken from the map
+## `Boot._collect_validators` builds (`ContentValidateCommand.boot_validators`
+## — code review 2026-11-04: a test-built adapter
+## could not catch Boot's adapter regressing to `caps = bodies["card_effects"]`);
+## the other cases build the stage-7b adapter here as
+## `validate_effects(k, id, fx, db, EffectValidator.stage7_caps(configs))`. Fixtures (read only
 ## through the loader, or as the imported JSON resource — never `FileAccess`):
 ## - `tests/fixtures/cards_effects_test.json` — the flat list: one host per C11
 ##   row 1–46 (ids `<prefix>fx_row_NN_…`) plus the four tokens they name;
@@ -60,6 +64,26 @@ func _map(seen: Dictionary) -> Dictionary:
 	return map
 
 
+## [method _map] with Boot's own entries where this fixture exercises them:
+## the stage-7b `effects` adapter (`Boot._effects_adapter`, wrapped only to
+## record each host's report into [param seen], `host_id → Array`) and the
+## `card_effects` / `match_rules` stage-7a validators, all taken from the map
+## `Boot._collect_validators` builds (`ContentValidateCommand.boot_validators`).
+## The folder's other config bodies are placeholders this fixture does not
+## exercise, so their entries stay stubbed.
+func _boot_map(seen: Dictionary) -> Dictionary:
+	var boot_map: Dictionary = ContentValidateCommand.boot_validators(true)
+	var map: Dictionary = _map(seen)
+	for config_name: String in ["card_effects", "match_rules"]:
+		map.configs[config_name] = boot_map.configs[config_name]
+	var boot_effects: Callable = boot_map.effects
+	map.effects = func(kind: StringName, id: String, fx: Variant, db: Variant, bodies: Dictionary) -> Array:
+		var report: Array = boot_effects.call(kind, id, fx, db, bodies)
+		seen[id] = report
+		return report
+	return map
+
+
 func _fx_entries(report: ValidationReport) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for e: Dictionary in report.entries():
@@ -105,13 +129,13 @@ func test_every_c11_row_1_to_46_is_in_the_fixture_exactly_once() -> void:
 	assert_dict(rows).is_equal(expected)
 
 
-func test_the_full_fixture_loads_ready_with_every_host_validated_clean() -> void:
+func test_the_full_fixture_loads_ready_through_boots_validator_map_with_every_host_clean() -> void:
 	# Arrange
 	var seen: Dictionary = {}
 	var db: CardDatabase = _database(V1)
 
 	# Act
-	var report: ValidationReport = db.load(_map(seen))
+	var report: ValidationReport = db.load(_boot_map(seen))
 
 	# Assert — Ready, no error, and no E_FX / W_FX entry of any severity
 	# (C11 calls for no warning on any row).

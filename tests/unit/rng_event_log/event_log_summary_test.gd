@@ -1,6 +1,9 @@
 ## EventLog.reduce_to_summary() — `match_summary` and `damage_by_card`.
 ##
 ## Story: production/epics/rng-event-log/story-008-match-summary-reduction.md
+## (summon / equip fixtures carry `entity_id`, match-rules C15 — code review
+## 2026-11-04; the engine-written log is tests/integration/rng_event_log/
+## event_log_engine_summary_test.gd)
 ## GDD: design/gdd/rng-event-log.md rules 18-19, event catalogue `match_summary`;
 ## match-rules C14 (`MatchResult`) and C15 (`damage_dealt` payload). ADR-0003
 ## Decision 9. Every log is built directly; no wall clock, no file I/O.
@@ -47,8 +50,8 @@ func _end(log: EventLog, result: String = "win", winner: Variant = "PLAYER", rea
 func test_dealt_from_a_player_minion_is_summed_and_boss_sources_are_excluded() -> void:
 	# Arrange
 	var log: EventLog = _log()
-	log.append(&"minion_summoned", {"side": PLAYER, "instance_id": MINION, "card_id": "card_a", "board_index": 0, "attack": 3, "health": 3, "keywords": []})
-	log.append(&"minion_summoned", {"side": BOSS, "instance_id": BOSS_MINION, "card_id": "boss_card", "board_index": 0, "attack": 9, "health": 9, "keywords": []})
+	log.append(&"minion_summoned", {"side": PLAYER, "entity_id": MINION, "card_id": "card_a", "board_index": 0, "attack": 3, "health": 3, "keywords": []})
+	log.append(&"minion_summoned", {"side": BOSS, "entity_id": BOSS_MINION, "card_id": "boss_card", "board_index": 0, "attack": 9, "health": 9, "keywords": []})
 	_damage(log, MINION, 3)
 	_damage(log, MINION, 4)
 	_damage(log, MINION, 5, 6, 1)
@@ -67,7 +70,7 @@ func test_dealt_from_a_player_minion_is_summed_and_boss_sources_are_excluded() -
 func test_weapon_hero_power_and_played_card_attribute_to_their_ids() -> void:
 	# Arrange
 	var log: EventLog = _log()
-	log.append(&"weapon_equipped", {"side": PLAYER, "instance_id": WEAPON, "card_id": "axe", "attack": 3, "durability": 2})
+	log.append(&"weapon_equipped", {"side": PLAYER, "entity_id": WEAPON, "card_id": "axe", "attack": 3, "durability": 2})
 	log.append(&"card_played", {"side": PLAYER, "instance_id": SPELL, "card_id": "fireball", "cost_paid": 4, "target_id": BOSS_HERO, "board_index": -1})
 	log.append(&"hero_power_used", {"side": PLAYER, "power_id": "war_power", "target_id": BOSS_HERO})
 	_damage(log, WEAPON, 3)
@@ -98,6 +101,22 @@ func test_unmapped_sources_attribute_to_nothing_without_an_error() -> void:
 
 	# Assert
 	assert_dict(out.summary.damage_by_card).is_empty()
+
+
+func test_a_summon_or_equip_carrying_only_instance_id_still_attributes() -> void:
+	# Arrange — the pre-2026-11-04 catalogue shape (`instance_id`), read as the fallback
+	var log: EventLog = _log()
+	log.append(&"minion_summoned", {"side": PLAYER, "instance_id": MINION, "card_id": "card_a", "board_index": 0, "attack": 3, "health": 3, "keywords": []})
+	log.append(&"weapon_equipped", {"side": PLAYER, "instance_id": WEAPON, "card_id": "axe", "attack": 3, "durability": 2})
+	_damage(log, MINION, 3)
+	_damage(log, WEAPON, 2)
+	_end(log)
+
+	# Act
+	var summary: Dictionary = log.reduce_to_summary()
+
+	# Assert
+	assert_dict(summary.damage_by_card).is_equal({"card_a": 3, "axe": 2})
 
 
 # --- AC-3: summary shape ------------------------------------------------------
@@ -157,7 +176,7 @@ func test_an_unsealed_log_gives_an_empty_summary_and_an_error() -> void:
 func test_reduction_leaves_the_log_unchanged_and_survives_a_json_round_trip() -> void:
 	# Arrange
 	var log: EventLog = _log()
-	log.append(&"minion_summoned", {"side": PLAYER, "instance_id": MINION, "card_id": "card_a", "board_index": 0, "attack": 3, "health": 3, "keywords": []})
+	log.append(&"minion_summoned", {"side": PLAYER, "entity_id": MINION, "card_id": "card_a", "board_index": 0, "attack": 3, "health": 3, "keywords": []})
 	_damage(log, MINION, 3)
 	_end(log)
 	var before: String = log.to_json()

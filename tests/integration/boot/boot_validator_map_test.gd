@@ -16,7 +16,9 @@ const FIXTURES: String = "res://tests/fixtures/data/"
 const READY_FIXTURE: String = FIXTURES + "minimal/"
 const RECORDS_FIXTURE: String = FIXTURES + "clean/"
 ## The record validators that are real, not pending.
-const REAL_RECORD_KEYS: Array[String] = ["effects", "unlock"]
+## `ai_profile` is real since the sprint-4 L4 code-review fix (2026-11-04):
+## `BossAI.validate_ai_profile` (boss-ai story 002/003, stage-7b convention).
+const REAL_RECORD_KEYS: Array[String] = ["effects", "unlock", "ai_profile"]
 
 
 func _map(debug_build: bool = true) -> Dictionary:
@@ -152,10 +154,31 @@ func test_pending_record_validators_report_once_per_host_kind_in_a_load() -> voi
 	# Act
 	var report: ValidationReport = DataLoader.new(RECORDS_FIXTURE).run(map).report
 
-	# Assert — one entry per key: ai_profile on bosses.json, treasure on treasures.json
+	# Assert — one entry per pending key: treasure on treasures.json (ai_profile
+	# is real since 2026-11-04)
 	var fields: Array = _pending_entries(report).map(func(e: Dictionary) -> String: return "%s:%s" % [e.file, e.field])
-	assert_array(fields).contains_exactly_in_any_order(["bosses.json:ai_profile", "treasures.json:treasure"])
+	assert_array(fields).contains_exactly_in_any_order(["treasures.json:treasure"])
 	assert_bool(report.has_errors()).is_false()
+
+
+func test_ai_profile_entry_is_boss_ais_stage_7b_validator() -> void:
+	# Arrange — an `ai_profiles` body with one profile and one boss override
+	var ai_profile: Callable = _map().ai_profile
+	var configs: Dictionary = {"ai_profiles": {"profiles": {"steady": {}}, "boss_overrides": {"boss_x": {}}}}
+
+	# Act
+	var known: Array = ai_profile.call(&"boss", "boss_a", "steady", null, configs)
+	var override: Array = ai_profile.call(&"boss", "boss_x", "boss_x", null, configs)
+	var unknown: Array = ai_profile.call(&"boss", "boss_b", "nope", null, configs)
+	var no_body: Array = ai_profile.call(&"boss", "boss_c", "steady", null, {})
+
+	# Assert — BossAI.validate_ai_profile's answers, never a pending entry
+	assert_array(known).is_empty()
+	assert_array(override).is_empty()
+	for rows: Array in [unknown, no_body]:
+		assert_int(rows.size()).is_equal(1)
+		assert_str(String(rows[0].code)).is_equal(String(BossAI.E_AI_PROFILE_UNKNOWN))
+		assert_bool(_is_pending(rows)).is_false()
 
 
 func test_effects_adapter_without_a_card_effects_body_is_an_explicit_error() -> void:

@@ -119,4 +119,4 @@ checks scope against it.*
 - **Side-scoped ops carry `targets: []`** and `values.side`; `summon` / `equip` list the new entity ids as `targets`. `mana` with no `duration` is permanent (`temporary` only for `this_turn`, C5).
 - **Open for match-ui:** `MatchViewState` tests `effect_resolved.fizzled == true`, but the payload carries `null | "condition_false"` (card-effects Interactions), so a fizzle never animates. Not this story's file.
 **Test Evidence**: `tests/unit/card_effects/card_effects_play_triggers_test.gd`
-**Reviewed by**: self, no independent review (lean: LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode; `/code-review` not run)
+**Reviewed by**: self, no independent review (lean: LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode; `/code-review` not run) · `/code-review 2026-11-04 (independent, sprint-4 carry): APPROVED WITH SUGGESTIONS (2 should-fix)` — both closed on trunk by their owning stories: this_turn mana by match-rules 011, pinned end to end in 9645f27; computed values by card-effects 007 (the interim skipped guards 2075537 / 6081c85 were reverted at merge 5852be0)

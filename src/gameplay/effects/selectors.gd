@@ -32,6 +32,12 @@ const SIDE_ENEMY: String = "enemy"
 const SIDE_ANY: String = "any"
 ## What [method kind_of] calls a weapon in play (weapons carry no `kind` field).
 const KIND_WEAPON: String = "weapon"
+## A card instance in hand or deck as an op target (C5 `buff cost`; story
+## 011) — never returned by [method kind_of], which names in-play kinds only.
+const KIND_CARD: String = "card"
+## The zones whose card instances [method is_card_instance] accepts (C5
+## `buff`: "card instances in hand **or deck**").
+const CARD_TARGET_ZONES: Array[String] = ["hand", "deck"]
 ## The reference and side selectors one effect pass resolves (C3; story 006).
 const SELECTOR_SELF: String = "self"
 const SELECTOR_CHOSEN: String = "chosen"
@@ -300,6 +306,19 @@ static func kind_of(state: MatchState, entity_id: int) -> String:
 	if found.has("kind"):
 		return str(found.kind)
 	return KIND_WEAPON
+
+
+## True when [param instance_id] is a card instance in a hand or deck
+## ([constant CARD_TARGET_ZONES]) — what `hand`, `deck_top` and
+## `deck_random` yield (C3; story 011). Reads only.
+## Example: `if EffectSelectors.is_card_instance(state, id): …`.
+static func is_card_instance(state: MatchState, instance_id: int) -> bool:
+	for side: String in MatchRecords.SIDES:
+		for zone: String in CARD_TARGET_ZONES:
+			for card: Dictionary in state.players[side][zone]:
+				if int(card.instance_id) == instance_id:
+					return true
+	return false
 
 
 ## The in-play record (hero, board minion or equipped weapon) of

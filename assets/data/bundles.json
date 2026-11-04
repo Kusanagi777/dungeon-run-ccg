@@ -48,6 +48,118 @@
         "key": "bundle.bundle_war_armour_1.text",
         "en": "Armor up and hold the front."
       }
+    },
+    {
+      "id": "bundle_war_armour_2",
+      "name": "Bulwark",
+      "set": "war",
+      "theme": "armour",
+      "cards": [
+        "war_armorer",
+        "war_shieldwall_veteran",
+        "war_shield_maiden"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_armour_2.text",
+        "en": "Taunt bodies and Armor to outlast any fight."
+      }
+    },
+    {
+      "id": "bundle_war_aggro_1",
+      "name": "First Blood",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_cellar_raider",
+        "war_warcry",
+        "war_pit_brawler"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_aggro_1.text",
+        "en": "Rush and Charge: hit first, hit hard."
+      }
+    },
+    {
+      "id": "bundle_war_aggro_2",
+      "name": "The Pit",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_berserker",
+        "war_rally",
+        "war_pit_champion"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_aggro_2.text",
+        "en": "Pit fighters who grow in the brawl, and a champion to lead them."
+      }
+    },
+    {
+      "id": "bundle_war_aggro_3",
+      "name": "Warband",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_warlord",
+        "war_headsman",
+        "war_cleave_through"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_aggro_3.text",
+        "en": "A warlord, an executioner and a sweep to clear the way."
+      }
+    },
+    {
+      "id": "bundle_war_weapons_1",
+      "name": "Whetted Steel",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_sharpen",
+        "war_rusted_axe",
+        "war_blade_apprentice"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons_1.text",
+        "en": "A first axe and the edge to sharpen it."
+      }
+    },
+    {
+      "id": "bundle_war_weapons_2",
+      "name": "Armoury",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_blade_strike",
+        "war_heavy_maul",
+        "war_quartermaster"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons_2.text",
+        "en": "Heavier steel, and the cards that pay off holding it."
+      }
+    },
+    {
+      "id": "bundle_war_weapons_3",
+      "name": "Kingsguard",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_duelists_edge",
+        "war_twin_hatchets",
+        "war_kingsblade"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons_3.text",
+        "en": "The finest blades in the delve."
+      }
     }
   ]
 }

@@ -110,4 +110,4 @@
 - ADVISORY — the test parses fixture files itself (`JSON.parse_string` in `tests/`, outside the single-parser gate, which scans `src/`) to build the static-call bodies.
 **Test Evidence**: `tests/unit/card_database/card_database_fingerprint_test.gd`
 **Run result**: N/A — the fingerprint is a string with no screen; it is first displayed by Treasures / Run UI (their epics)
-**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode; `/code-review` due at M2)
+**Reviewed by**: self, no independent review (QL-TEST-COVERAGE / LP-CODE-REVIEW skipped — Lean mode; `/code-review` due at M2) · `/code-review 2026-11-04 (independent, sprint-4 carry): APPROVED`

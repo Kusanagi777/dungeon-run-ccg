@@ -125,7 +125,11 @@ func test_shipped_warnings_are_pool_size_and_pending_validators_only() -> void:
 				fail("unexpected warning %s" % str(w))
 	pool_files.sort()
 	pending_files.sort()
-	assert_array(pool_files).is_equal(["bundles.json", "cards_war.json", "treasures.json"])
+	# content story 002 (MVP-1 War set): the War collectible pool is 25 + the
+	# neutrals ≥ min_collectible_pool 30, so `cards_war.json` no longer warns;
+	# content story 005: the 10 MVP bundles ≥ min_bundle_pool 10, so
+	# `bundles.json` no longer warns either.
+	assert_array(pool_files).is_equal(["treasures.json"])
 	assert_array(pending_files).is_equal(_pending_files())
 
 
@@ -160,26 +164,28 @@ func test_power_whetstone_costs_2_and_carries_the_h3_effect() -> void:
 	assert_str(op["then"][0]["duration"]).is_equal("until_end_of_turn")
 
 
-func test_war_set_is_the_eight_cn2_cards_plus_the_whetstone_blade_token() -> void:
+func test_war_set_holds_the_eight_batch0_cn2_cards_and_the_whetstone_blade_token() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 
-	# Assert
+	# Assert — batch 0's rows stay in the set (content story 002 adds the
+	# other 17 MVP-1 War cards; `content_mvp1_data_test.gd` pins all 25)
 	var expected: Array[String] = WAR_COLLECTIBLE.duplicate()
 	expected.append(WAR_TOKEN)
-	expected.sort()
-	assert_array(_ids(db.cards_by_set("war"))).is_equal(expected)
+	assert_array(_ids(db.cards_by_set("war"))).contains(expected)
 	var blade: Dictionary = db.card(WAR_TOKEN)
 	assert_str(blade["type"]).is_equal("weapon")
 	assert_int(int(blade["attack"])).is_equal(1)
 	assert_int(int(blade["durability"])).is_equal(2)
 	assert_bool(blade["token"]).is_true()
-	assert_array(_ids(db.collectible_pool("war")).filter(func(id: String) -> bool: return id.begins_with("war_"))).is_equal(WAR_COLLECTIBLE)
+	assert_array(_ids(db.collectible_pool("war"))).contains(WAR_COLLECTIBLE)
+	assert_array(_ids(db.collectible_pool("war"))).not_contains([WAR_TOKEN])
 
 
-func test_neutral_set_is_the_batch0_rows() -> void:
-	# Act / Assert
-	assert_array(_ids(_loaded().cards_by_set("neutral"))).is_equal(NEUTRALS)
+func test_neutral_set_holds_the_batch0_rows() -> void:
+	# Act / Assert — content story 003 adds `neutral_smite_or_mend`
+	# (`content_mvp1_data_test.gd` pins the whole set)
+	assert_array(_ids(_loaded().cards_by_set("neutral"))).contains(NEUTRALS)
 
 
 func test_war_starter_is_the_h4_list_and_passes_heroes_f1() -> void:
@@ -222,7 +228,8 @@ func test_torchbearer_is_the_cn3_b1_row() -> void:
 	var db: CardDatabase = _loaded()
 
 	# Assert
-	assert_array(_ids(db.bosses_in_band(1))).is_equal(["boss_torchbearer"])
+	# content story 003 adds The Rat King and The Gatekeeper to band 1
+	assert_array(_ids(db.bosses_in_band(1))).contains(["boss_torchbearer"])
 	var boss: Dictionary = db.boss("boss_torchbearer")
 	assert_int(int(boss["health"])).is_equal(30)
 	assert_that(boss["hero_power"]).is_null()
@@ -271,12 +278,12 @@ func test_torchbearer_deck_is_thirty_non_token_ids_per_the_b2_recipe() -> void:
 	assert_int(counts.size()).is_equal(15)
 
 
-func test_boss_cards_are_the_two_b3_rows() -> void:
+func test_boss_cards_hold_the_two_torchbearer_b3_rows() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 
-	# Assert
-	assert_array(_ids(db.cards_by_set("boss"))).is_equal(["boss_ember_bolt", "boss_tinder_imp"])
+	# Assert — content story 003 adds the Rat King / Gatekeeper cards and `boss_rat`
+	assert_array(_ids(db.cards_by_set("boss"))).contains(["boss_ember_bolt", "boss_tinder_imp"])
 	for c: Dictionary in db.cards_by_set("boss"):
 		assert_str(c["rarity"]).is_equal("common")
 
@@ -330,9 +337,12 @@ func test_bundles_are_the_three_cn4_rows_with_set_theme_and_no_token() -> void:
 	# Act
 	var pool: Array = db.bundle_pool("war")
 
-	# Assert
-	assert_array(_ids(pool)).is_equal(BUNDLES.keys())
+	# Assert — the batch-0 rows are still present; content story 005 adds the
+	# other seven MVP bundles (pinned by content_mvp1_data_test.gd)
+	assert_array(_ids(pool)).contains(BUNDLES.keys())
 	for b: Dictionary in pool:
+		if not BUNDLES.has(b["id"]):
+			continue
 		var row: Array = BUNDLES[b["id"]]
 		assert_str(b["set"]).is_equal(row[0])
 		assert_str(b["theme"]).is_equal(row[1])
