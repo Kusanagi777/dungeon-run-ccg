@@ -1,12 +1,12 @@
 # Story 018: Performance budgets: submit and legal_commands
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -69,12 +69,13 @@ Match Rules is the project's first bottleneck: seven systems call `submit` and t
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `tests/performance/match_rules/match_rules_perf_test.gd`
-- `tests/unit/match_rules/match_rules_hook_fold_budget_test.gd`
-- `tests/helpers/test_effect_resolver.gd` (Deathrattle chain fixture)
-- `tests/README.md` (performance suite section)
-- `production/qa/perf-match-rules-<date>.md`
-- `src/gameplay/match/rules_engine.gd` (only if a budget is missed)
+- `tests/performance/match_rules/match_rules_perf_test.gd` (new: 4 timed tests)
+- `tests/unit/match_rules/match_rules_hook_fold_budget_test.gd` (new: 8 blocking tests)
+- `tests/helpers/match_budget_fixtures.gd` (new: the shared budget fixtures, plus story 017's fixture-state replay)
+- `tests/helpers/test_effect_resolver.gd` (additive: `add_deathrattle_chain`, the `recording` flag, and a per-source trigger index that leaves answers and order unchanged)
+- `tests/README.md` (performance suite section, Helpers row)
+- `production/qa/perf-match-rules-2026-11-04.md`
+- `src/gameplay/match/rules_engine.gd`: **not changed**. The submit budget is missed; the fix is routed (see Blocker), not made here.
 
 ---
 
@@ -92,7 +93,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_hook_fold_budget_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING. The timing suite `tests/performance/match_rules/match_rules_perf_test.gd` must exist and its recorded medians in `production/qa/perf-match-rules-<date>.md` must be within 2× budget.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created. The blocking unit file passes (8 tests). The timing suite exists, but 2 of its 4 gates fail (submit, and the planner node cost): see Blocker.
 
 ---
 
@@ -100,3 +101,45 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-017-clone-and-replay.md`
 - Unlocks: None (last story of the epic; `boss-ai-match-driver` and `match-ui` epics consume the budgets)
+
+---
+
+## Readiness (2026-11-04, `/story-readiness` read by hand)
+
+**Verdict: READY** (tier `workflow: full`).
+- ADR-0001, ADR-0005, ADR-0007 and ADR-0009 are Accepted.
+- TR-match-rules-008 is in the registry. The manifest (2026-11-03) is current.
+- Dependency 017 is Complete (merged at `70947a5`).
+- The 3 criteria are observable, Out of Scope is stated, there are no open markers and no asset references.
+- Suite placement, which the Implementation Notes left open, was already settled by the sprint-3 CI work: `commands.test` excludes `tests/performance/` (`-i`), and `tests.yml` runs it in the non-blocking `performance` job. No CI change was needed.
+- QL-STORY-READY skipped — Lean mode.
+
+## Implementation record (2026-11-04, started 04:15:14 UTC)
+
+- **Fixtures** live in a new shared helper, `tests/helpers/match_budget_fixtures.gd`, so the blocking and timing suites build the same matches.
+  - The Deathrattle chain is `TestEffectResolver.add_deathrattle_chain` (additive). A Deathrattle summons a token carrying the same Deathrattle one generation lower, then damages every minion on both boards. Seven hosts of generation 7 give 56 passes, a finite chain that stops when the boards settle.
+  - The story-017 fixture states are replayed with a copy of that suite's loader, pool and scripts. They are private to `match_rules_clone_replay_test.gd`, and L2 owns that file this wave, so it was not edited. The fixtures' `expect` blocks catch any drift between the two copies.
+- **Test double**: `recording = false` drops the deep-copied call records from timed calls. A per-source trigger index replaced the double's O(candidates × triggers) scan, which alone accounted for about 50 ms of the first 75 ms chain sample. Answers and order are unchanged, and a direct edit of `triggers` falls back to the scan. Both changes are additive: the default behaviour is unchanged and the full suite is green.
+- **Budgets** are the GDD Input Responsiveness table and ADR-0005, as cited constants. Neither `project.yaml` nor `match_rules.json` carries a per-call budget (deviation from the Implementation Notes' "never literals"). The planner node budget reads band counts from `assets/data/ai_profiles.json`, and `planner_target_ms` from the entity registry.
+- **Added at the orchestrator's request**: `clone()` and clone+submit cost on every fixture state, F7's node budget per band, a release-template measurement in a scratch export (not in the repository), and the NC-4 append observation. All of it is in `production/qa/perf-match-rules-2026-11-04.md`.
+
+## Blocker (2026-11-04, `/story-done` read by hand: verdict BLOCKED; ended 04:40 UTC)
+
+**AC-40's submit criterion fails**, so the story is not closed:
+
+| Criterion | Measured | Result |
+|---|---|---|
+| Worst-case `submit` (56-pass Deathrattle chain) | median **25.1 ms** on the debug editor, **19.9 ms** on the release template | over the 10 ms gate, 4–5× the 5 ms budget |
+| `legal_commands()` | 0.64 ms | passes |
+| 12-entry fold | 22 µs | passes |
+| ADR-0005 blocking half | 8/8 tests | passes |
+
+The planner node cost (`clone()` + one `submit`) is 365–450 µs, against boss-ai F7's assumed 10 µs (review S8). No F7 band fits `planner_target_ms`.
+
+Per story-done ("never fix a failing criterion yourself") and this story's Out of Scope (`/perf-profile` owns the ranked optimisation), the engine is unchanged. The perf record ranks the hot spots and recommends R1–R6. The largest is `_recompute_auras`, which diffs two full stat maps on every C10 drain iteration, about 60 % of a plain command.
+
+**To unblock**, the owner decides:
+- (a) run `/perf-profile` and take R1–R3 as a match-rules story, then re-measure on the reference machine; and/or
+- (b) re-budget the 5 ms worst case for GDScript.
+
+Separately, boss-ai F7 and ADR-0006 need `/propagate-design-change` (R5) before BAI tuning. The CI `performance` job will report exit 100 as a warning until then.

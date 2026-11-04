@@ -116,6 +116,22 @@ var auras: Dictionary = {}
 ## The double [method clone_unbound] last built (match-rules story 017), as a
 ## weak reference so the live double never keeps a clone alive; null before.
 var last_clone: WeakRef = null
+## Whether the double records its calls ([member resolve_calls],
+## [member passes], [member hook_calls] — each a deep copy of the context).
+## `true` by default, as before; the match-rules story 018 timing suite sets
+## it `false` so a measured `submit` / fold pays for the engine and the
+## scripted effects, not for the double's own bookkeeping (the production
+## resolver records nothing). Copied by [method clone_unbound].
+var recording: bool = true
+
+# Lookup index over [member triggers] (story 018): `source_id → [trigger…]`
+# in registration order and `effect_id → first trigger`. It only speeds up
+# [method resolve] — same answers, same order — and is used only while it
+# covers every entry ([member _indexed] equals `triggers.size()`); a test that
+# edits [member triggers] directly gets the linear scan, as before.
+var _by_source: Dictionary = {}
+var _by_effect: Dictionary = {}
+var _indexed: int = 0
 
 
 ## Registers an event-trigger responder: entity [param source_id] responds to
@@ -126,7 +142,11 @@ var last_clone: WeakRef = null
 ## resolver.add_trigger(&"on_damage", id, "m.0", draw_one, resolver.subject_is.bind(id))
 ## [/codeblock]
 func add_trigger(point: StringName, source_id: int, effect_id: String, pass_script: Callable = Callable(), guard: Callable = Callable()) -> void:
-	triggers.append({"point": point, "source_id": source_id, "effect_id": effect_id, "run": pass_script, "guard": guard})
+	var trigger: Dictionary = {"point": point, "source_id": source_id, "effect_id": effect_id, "run": pass_script, "guard": guard}
+	var was_indexed: bool = _indexed == triggers.size()
+	triggers.append(trigger)
+	if was_indexed:
+		_index(trigger)
 
 
 ## `guard` helper: true when `ctx.subject` is [param entity_id] (bind it).
@@ -140,6 +160,20 @@ func subject_is(_engine: RulesEngine, ctx: Dictionary, entity_id: int) -> bool:
 ## rightmost slot and a full board answers `summon_failed`.
 func add_deathrattle_summon(source_id: int, def_id: String, count: int = 1) -> void:
 	add_trigger(&"deathrattle", source_id, "dr_summon.%d" % source_id, _summon_from_snapshot.bind(def_id, count))
+
+
+## Fixture Deathrattle chain (match-rules story 018, AC-40 worst case): when
+## [param source_id] dies its Deathrattle (a) summons one [param def_id] for
+## its controller at its former index, carrying this same Deathrattle with
+## [param generations] − 1 (none is summoned at 0 — the chain is finite), then
+## (b) deals [param damage] to every minion on both boards (the new token
+## included, so a 1-health token dies in the next death check and its own
+## Deathrattle queues). One host therefore resolves `generations + 1`
+## Deathrattle passes; seven hosts of generation 7 resolve 56. Registered on
+## whichever double runs the pass, so a clone's chain grows on the clone's
+## double only.
+func add_deathrattle_chain(source_id: int, def_id: String, generations: int, damage: int) -> void:
+	add_trigger(&"deathrattle", source_id, "dr_chain.%d" % source_id, _chain_link.bind(def_id, generations, damage))
 
 
 ## AC-30 fixture: each of [param first_id] and [param second_id] has
@@ -200,22 +234,32 @@ func unbind() -> void:
 ## Callables for [param point] and returns the scripted [member queued]
 ## entries followed by the registered responders among `ctx.candidates`.
 func resolve(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
-	resolve_calls.append({"point": point, "ctx": ctx.duplicate(true)})
+	if recording:
+		resolve_calls.append({"point": point, "ctx": ctx.duplicate(true)})
 	var out: Array[Dictionary] = []
 	if ctx.get(RulesEngine.CTX_QUEUED, false):
-		passes.append({"point": point, "ctx": ctx.duplicate(true)})
+		if recording:
+			passes.append({"point": point, "ctx": ctx.duplicate(true)})
+		var effect_id: String = str(ctx.get("effect_id", ""))
+		var indexed: Variant = _by_effect.get(effect_id) if _indexed == triggers.size() else null
+		if indexed != null and (indexed.run as Callable).is_valid():
+			(indexed.run as Callable).call(engine, ctx)
+			return out
 		for trigger: Dictionary in triggers:
-			if trigger.effect_id == str(ctx.get("effect_id", "")) and (trigger.run as Callable).is_valid():
+			if trigger.effect_id == effect_id and (trigger.run as Callable).is_valid():
 				(trigger.run as Callable).call(engine, ctx)
 				break
 		return out
 	for script: Callable in scripts.get(point, []):
 		script.call(engine, ctx)
 	out.assign(queued.get(point, []))
+	var use_index: bool = _indexed == triggers.size()
 	for candidate: Variant in ctx.get("candidates", []):
+		if use_index and not _by_source.has(int(candidate)):
+			continue   # no responder: nothing to answer, silenced or not
 		if _silenced(ctx, int(candidate)):
 			continue
-		for trigger: Dictionary in triggers:
+		for trigger: Dictionary in (_by_source[int(candidate)] if use_index else triggers):
 			if trigger.point != point or int(trigger.source_id) != int(candidate):
 				continue
 			var guard: Callable = trigger.guard
@@ -307,13 +351,26 @@ func clone_unbound() -> TestEffectResolver:
 	out.aura_scripts = aura_scripts.duplicate()
 	out.auras = auras.duplicate(true)
 	out.resume_script = resume_script
+	out.recording = recording
 	for trigger: Dictionary in triggers:
 		var copy: Dictionary = trigger.duplicate()
 		copy.run = _rebound(trigger.run, out)
 		copy.guard = _rebound(trigger.guard, out)
 		out.triggers.append(copy)
+		out._index(copy)
 	last_clone = weakref(out)
 	return out
+
+
+## Adds [param trigger] (the last entry of [member triggers]) to the index.
+func _index(trigger: Dictionary) -> void:
+	var source_id: int = int(trigger.source_id)
+	if not _by_source.has(source_id):
+		_by_source[source_id] = []
+	(_by_source[source_id] as Array).append(trigger)
+	if not _by_effect.has(str(trigger.effect_id)):
+		_by_effect[str(trigger.effect_id)] = trigger
+	_indexed += 1
 
 
 ## [param callable] re-targeted at [param target] when it is one of this
@@ -344,6 +401,21 @@ func _summon_from_snapshot(bound_engine: RulesEngine, ctx: Dictionary, def_id: S
 	for _i: int in count:
 		@warning_ignore("return_value_discarded")
 		bound_engine.summon_minion(str(snapshot.controller), def_id, int(snapshot.position))
+
+
+func _chain_link(bound_engine: RulesEngine, ctx: Dictionary, def_id: String, generations: int, damage: int) -> void:
+	var snapshot: Dictionary = ctx.snapshot
+	if generations > 0:
+		var token: int = bound_engine.summon_minion(str(snapshot.controller), def_id, int(snapshot.position))
+		if token != RulesEngine.NO_ENTITY:
+			add_deathrattle_chain(token, def_id, generations - 1, damage)
+	var ids: Array[int] = []
+	for side: String in MatchRecords.SIDES:
+		for minion: Dictionary in bound_engine.state().players[side].board:
+			ids.append(int(minion.entity_id))
+	for id: int in ids:
+		@warning_ignore("return_value_discarded")
+		bound_engine.apply_damage(id, damage, null)
 
 
 func _destroy_one(bound_engine: RulesEngine, _ctx: Dictionary, entity_id: int) -> void:
@@ -382,7 +454,8 @@ func apply_value_hook(entry: Dictionary, side: StringName, value: int, ctx: Dict
 				output = int(op.set)
 			elif op.has("mul"):
 				output *= int(op.mul)
-	hook_calls.append(_hook_call("fold", entry, side, value, output, ctx))
+	if recording:
+		hook_calls.append(_hook_call("fold", entry, side, value, output, ctx))
 	return output
 
 
@@ -390,7 +463,8 @@ func apply_value_hook(entry: Dictionary, side: StringName, value: int, ctx: Dict
 ## [param side] is in scope.
 func run_hook_effect(entry: Dictionary, side: StringName, ctx: Dictionary) -> void:
 	var ran: bool = _in_scope(entry, side) and hook_scripts.has(entry.effect_id)
-	hook_calls.append(_hook_call("run", entry, side, ran, null, ctx))
+	if recording:
+		hook_calls.append(_hook_call("run", entry, side, ran, null, ctx))
 	if ran:
 		(hook_scripts[entry.effect_id] as Callable).call(engine, entry, side, ctx)
 
