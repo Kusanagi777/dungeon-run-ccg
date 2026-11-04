@@ -1,12 +1,13 @@
 # Story 009: `Treasures.pool(unlocked_keys, exclude_ids)` — the one membership predicate
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
+> **Readiness**: READY (2026-11-04, by hand: ADR-0005 Accepted, manifest 2026-11-04 current, TR-IDs active, story 001 Complete, 0 lint rows; QL-STORY-READY skipped, Lean mode)
 > **First Playable path**: no — the First Playable is one match with no draft. `RewardDraft.init_run` is its consumer
 
 ## Context
@@ -33,9 +34,9 @@
 
 *From GDD `design/gdd/treasures.md` (T6, AC-11, AC-12, Edge Cases), scoped to this story:*
 
-- [ ] **AC-12** GIVEN the 20-record fixture, WHEN `pool(∅, ∅)`, THEN 16 ids in ascending order; `pool({hero_decay_first_win, hero_decay_floor_5, hero_knowledge_first_win, first_victory}, ∅)` → 20; `pool(∅, [treasure_worn_signet])` → 15, without it.
-- [ ] **AC-11** GIVEN a run holding `treasure_grave_tithe` and an `unlocked_keys` set that no longer contains `hero_decay_first_win`, WHEN the run's installers are built (`installers_for`, which `begin_match` calls — T3.1), THEN Grave Tithe is installed; WHEN `pool(unlocked_keys, [])` is queried, THEN it is absent.
-- [ ] **AC-MVP (Meta absent)** GIVEN the MVP's `MetaStub` (`unlocked_keys()` = ∅) and the 10 MVP records (all `unlock: null`, DD-H06), WHEN `pool(∅, ∅)`, THEN all 10 ids are returned id-ascending — ≥ `min_treasure_pool` 9 — and two calls with the same arguments return equal lists.
+- [x] **AC-12** GIVEN the 20-record fixture, WHEN `pool(∅, ∅)`, THEN 16 ids in ascending order; `pool({hero_decay_first_win, hero_decay_floor_5, hero_knowledge_first_win, first_victory}, ∅)` → 20; `pool(∅, [treasure_worn_signet])` → 15, without it.
+- [x] **AC-11** GIVEN a run holding `treasure_grave_tithe` and an `unlocked_keys` set that no longer contains `hero_decay_first_win`, WHEN the run's installers are built (`installers_for`, which `begin_match` calls — T3.1), THEN Grave Tithe is installed; WHEN `pool(unlocked_keys, [])` is queried, THEN it is absent.
+- [x] **AC-MVP (Meta absent)** GIVEN the MVP's `MetaStub` (`unlocked_keys()` = ∅) and the 10 MVP records (all `unlock: null`, DD-H06), WHEN `pool(∅, ∅)`, THEN all 10 ids are returned id-ascending — ≥ `min_treasure_pool` 9 — and two calls with the same arguments return equal lists.
 
 ---
 
@@ -62,12 +63,8 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
 - `src/gameplay/treasures/treasures.gd` — `pool`
-- `tests/unit/treasures/treasures_pool_test.gd`
+- `tests/unit/treasures/treasures_pool_test.gd` — created, 14 tests
 
 ---
 
@@ -85,7 +82,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/treasures/treasures_pool_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created, 14 tests passing
 
 ---
 
@@ -93,3 +90,24 @@ checks scope against it.*
 
 - Depends on: `production/epics/treasures/story-001-installers-passive-and-collect-state.md` (class, fixture, `installers_for`)
 - Unlocks: the Reward Draft epic's `init_run` pool snapshot (no stories yet — `/create-stories reward-draft`)
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-11-04
+**Start / end (UTC)**: 2026-11-04T19:50:07Z to 2026-11-04T19:56:23Z
+**Criteria**: 3/3 passing on the fixture. AC-MVP on shipped data: NOT ASSESSED — shipped `treasures.json` has 0 records until content 006 (sprint 6), so AC-MVP ran on the 10 MVP records of `treasures_v1.json`.
+**Test Evidence**: `tests/unit/treasures/treasures_pool_test.gd`, 14 tests
+**Run result**: N/A — `pool` has no scene or screen; nothing calls it until `RewardDraft.init_run` exists
+**Reviewed by**: self, no independent review (the orchestrator's M1 review row covers this story in summary)
+
+**Seen failing.** All 14. First against no `pool` method (13 errored and 1 failed), then against a stub returning `[]`: 10 failed on their assertions. The other 4 failed against deliberate mutants, and the predicate's own logic was mutated too (ids instead of records, unlocks ignored, any key unlocking all, exclusions ignored, a re-sort, a written argument, the frozen pool handed out, `installers_for` checking unlocks, a non-MVP id in `MVP_IDS`). The stub also showed `test_pool_returns_the_treasure_def_records` passing on an empty list, so it now asserts the count.
+
+**Deviations (ADVISORY).**
+- `pool` returns TreasureDef records, not ids. The ACs say "ids", but T6 and ADR-0005 say `TreasureDef[]`, and the GDD outranks the story. The tests read the ids from the records. Reward Draft's `draft_state.treasure_pool` stores ids (D3), so `init_run` maps them.
+- `unlocked_keys` is a `Dictionary` set, as ADR-0005 types it. `MetaApi.unlocked_keys()` is an Array, so the caller converts once; the ADR's type is unchanged.
+
+**AC-MVP needs the subset.** `MetaStub.unlocked_keys()` is derived from the `unlock` fields in the data, so it is empty over the 10 MVP records and holds all four keys over the 20. The test asserts the empty result rather than assuming it. T8's MVP column is not a record field (CR-3), so the 10 ids live in `TreasureFixtures.MVP_IDS`.
+
+**No RNG (Forbidden).** The QA plan asks to watch the stream counters, but `Treasures` is given no stream, so a counter could not move. The guard is `test_nothing_under_treasures_names_run_state_a_log_or_rng` from story 001, which scans every script in the folder, so it covers `pool`.

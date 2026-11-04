@@ -1,6 +1,7 @@
 ## Treasures: builds the `HookInstaller`s a match carries and owns the
-## `treasure_state` schema (design/gdd/treasures.md T3, T4, T5.2; ADR-0005
-## Decision rules 5, 8 and Key Interfaces).
+## `treasure_state` schema and the pool membership predicate
+## (design/gdd/treasures.md T3, T4, T5.2, T6; ADR-0005 Decision rules 5, 8, 10
+## and Key Interfaces).
 ##
 ## A plain `RefCounted`, constructor-injected. It holds no log and draws no RNG,
 ## and it never reads or writes `RunState` (T5.1): the run hands it the ids and
@@ -88,6 +89,25 @@ static func installer_warnings(treasure_ids: Array, treasure_state: Dictionary) 
 ## (`MatchRecords.match_result`).
 func collect_state(_hooks: HookRegistry, _result: Dictionary) -> Dictionary:
 	return {"schema_version": SCHEMA_VERSION, "by_treasure": {}}
+
+
+## The treasures available to a run, as TreasureDef records in
+## `CardDatabase.treasure_pool()` order, which is id-ascending (T6, CR-6): those
+## with `unlock == null` or `unlock.key` in [param unlocked_keys], less
+## [param exclude_ids]. This is the one membership predicate (ADR-0005 rule 10):
+## `RewardDraft.init_run` calls it and never re-derives it. Pure, and it draws no
+## RNG. [param unlocked_keys] is a set, keys only; `MetaApi.unlocked_keys()` is
+## an Array, so the caller converts once. [param exclude_ids] is held plus
+## previously offered, which Reward Draft derives from `drafts[]` (reward-draft
+## D7). Unlock state gates offers only: [method installers_for] never reads it
+## (T6, Edge Cases "unlock revoked mid-run").
+func pool(unlocked_keys: Dictionary, exclude_ids: Array) -> Array:
+	var available: Array = []
+	for def: Dictionary in _db.treasure_pool():
+		var unlock: Variant = def.unlock
+		if (unlock == null or unlocked_keys.has(unlock.key)) and not exclude_ids.has(def.id):
+			available.append(def)
+	return available
 
 
 ## The boss's installers (T3.1): `[]` when `passive` is null, else one
