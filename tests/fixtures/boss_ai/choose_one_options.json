@@ -1,0 +1,37 @@
+{
+  "name": "choose_one_options",
+  "description": "boss-ai C7 Choose One (story 010): control profile (heal 0.4, taunt 0.5, damage_all 0.6), band 2. The player has three minions, so opt.sweep scores 1.0 * 3 + 0.6 = 3.6, opt.jab 1.0, opt.mend 0.6 + 0.4 = 1.0. duplicate_options repeats opt.sweep under another label: identical ops collapse. equal_options are four different options of one score. bai_fork is a 0-cost spell whose option 1 alone hits the player's hero; bai_oracle is a boss minion whose Deathrattle raises a boss Choice during the player's turn, killed by the player's 0-cost bai_snipe.",
+  "profile": "control",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_fork", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "ops": [{"op": "choose_one", "options": [
+      {"label_key": "opt.mend", "ops": [{"op": "heal", "amount": 1, "targets": "owner_hero"}]},
+      {"label_key": "opt.jab", "ops": [{"op": "damage", "amount": 5, "targets": "enemy_hero"}]}
+    ]}]}]},
+    {"id": "bai_oracle", "type": "minion", "cost": 1, "attack": 1, "health": 1, "keywords": ["deathrattle"], "effects": [{"trigger": "deathrattle", "ops": [{"op": "choose_one", "options": [
+      {"label_key": "opt.mend", "ops": [{"op": "heal", "amount": 1, "targets": "owner_hero"}]},
+      {"label_key": "opt.jab", "ops": [{"op": "damage", "amount": 5, "targets": "enemy_hero"}]}
+    ]}]}]},
+    {"id": "bai_snipe", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"kind": "minion"}}, "ops": [{"op": "damage", "amount": 1}]}]}
+  ],
+  "boss": {"mana": 4, "board": [], "hand": []},
+  "player": {"health": 30, "board": ["bai_filler", "bai_filler", "bai_filler"]},
+  "options": [
+    {"label_key": "opt.jab", "ops": [{"op": "damage", "amount": 2, "targets": "enemy_hero"}]},
+    {"label_key": "opt.sweep", "ops": [{"op": "damage", "amount": 1, "targets": "all_enemy_minions"}]},
+    {"label_key": "opt.mend", "ops": [{"op": "heal", "amount": 4, "targets": "owner_hero"}]}
+  ],
+  "duplicate_options": [
+    {"label_key": "opt.sweep", "ops": [{"op": "damage", "amount": 1, "targets": "all_enemy_minions"}]},
+    {"label_key": "opt.sweep_again", "ops": [{"op": "damage", "amount": 1, "targets": "all_enemy_minions"}]},
+    {"label_key": "opt.draw", "ops": [{"op": "draw", "count": 1}]}
+  ],
+  "equal_options": [
+    {"label_key": "opt.a", "ops": [{"op": "damage", "amount": 1, "targets": "enemy_hero"}]},
+    {"label_key": "opt.b", "ops": [{"op": "damage", "amount": 2, "targets": "enemy_hero"}]},
+    {"label_key": "opt.c", "ops": [{"op": "damage", "amount": 3, "targets": "enemy_hero"}]},
+    {"label_key": "opt.d", "ops": [{"op": "damage", "amount": 4, "targets": "enemy_hero"}]}
+  ]
+}

@@ -144,6 +144,42 @@ const CONFIG_NAME: String = "ai_profiles"
 # Profile-entry contexts for `_check_profile`.
 enum _Context { PROFILE, BAND, OVERRIDE }
 
+## The `ai_decision {kind: choice}` of the last [method choose], for `plan_turn`
+## to add to its diagnostics or the driver's choose task to hand on (ADR-0008
+## Decision 3): `choose` itself returns the index alone (C1.4).
+var last_choice: Dictionary = {}
+
+var _profile: Dictionary
+var _ai_stream: RefCounted
+var _op_values: Dictionary
+var _db: Variant
+
+
+## C1.1's construction: [param resolved_profile] from [ProfileResolver],
+## [param ai_stream] the injected `ai_<floor>` stream, [param op_values] the
+## `ai_profiles` map, [param db] answers `card(id)` for the option definitions.
+func _init(_boss_def: Variant = null, resolved_profile: Dictionary = {}, _band: int = 0, ai_stream: RefCounted = null, op_values: Dictionary = {}, _event_log: Variant = null, db: Variant = null) -> void:
+	_profile = resolved_profile
+	_ai_stream = ai_stream
+	_op_values = op_values
+	_db = db
+
+
+## C1.4 / C7: the option the boss takes for the `ChoiceRequest` [param request]
+## on [param sandbox], a clone (ADR-0006: a task body like the others; inside
+## `plan_turn` the sandbox's own Choices are answered here too). Pure over the
+## clone; a tie takes one draw from the `ai_<floor>` stream. The caller submits
+## `choose{issuer: boss, option_index}`. [param mode] is logged in
+## [member last_choice].
+## [codeblock]
+## var index: int = boss_ai.choose(sandbox, sandbox.pending_choice())
+## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, index))
+## [/codeblock]
+func choose(sandbox: RulesEngine, request: Dictionary, mode: StringName = Scorer.MODE_NORMAL) -> int:
+	var decision: Dictionary = Chooser.choose(sandbox, request, _profile, _op_values, _ai_stream, _db, mode)
+	last_choice = decision.diagnostic
+	return int(decision.index)
+
 
 ## The `ai_profiles` config validator (CR-5 stage **7a**, `call(body, db)`;
 ## ADR-0002 Decision 4), registered by `Boot` as `configs.ai_profiles`.
