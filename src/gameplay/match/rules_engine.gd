@@ -1247,6 +1247,11 @@ func equip_weapon(side: String, def_id: String) -> int:
 ## (DD-X04: not Card Effects' `discover_offered`) and returns it (story 016).
 ## A second request while one is pending is a resolver defect (card-effects
 ## C8: exactly one outstanding): logged, nothing changes, `{}` returned.
+## A request raised in `Setup` (an `on_match_start` hook, C3 step 4) is
+## refused the same way (code review MR-016 S3): States has no `Setup →
+## Choice` transition and no command can answer before `Mulligan`, so a
+## pending request there would block every later `choose` and Discover. The
+## resolver treats `{}` as "no choice": the effect's later ops do not run.
 ##
 ## **The pause** (ADR-0007 Decision 1; the contract card-effects story 010's
 ## pass suspension builds on). After this call the resolver must **return
@@ -1279,6 +1284,9 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 		return {}
 	if _state.pending_choice != null:
 		push_error("RulesEngine.discover: a ChoiceRequest is already pending (card-effects C8: exactly one outstanding)")
+		return {}
+	if _state.phase == MatchState.PHASE_SETUP:
+		push_error("RulesEngine.discover: refused in Setup (an on_match_start hook, C3 step 4): States has no Setup → Choice transition and no command can answer before Mulligan")
 		return {}
 	var request: Dictionary = MatchRecords.choice_request(side, kind, options.duplicate(true), source_id, effect_id)
 	_state.pending_choice = request

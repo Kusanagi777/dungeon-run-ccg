@@ -384,6 +384,40 @@ func test_an_event_cap_on_choice_made_still_moves_the_paused_spell_out_of_resolv
 	assert_int(resolver.resume_calls.size()).is_zero()
 
 
+# --- Refused requests (code review MR-016 S3) ------------------------------------------
+
+func test_a_discover_raised_during_setup_is_refused_and_leaves_no_pending_choice() -> void:
+	# Arrange — an `on_match_start` treasure hook Discovers (C3 step 4, phase
+	# Setup: States has no Setup → Choice row and Setup accepts no command, so
+	# nobody could answer it); its return value is recorded
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.resume_script = _resume
+	var returned: Array = []
+	resolver.hook_scripts["t_oracle.0"] = func(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+		returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_oracle.0"))
+	var oracle: HookInstaller = MatchFactory.make_hook_installer("t_oracle", SIDE_PLAYER, [&"on_match_start"])
+
+	# Act
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [oracle]}}, {}, resolver, _db())
+
+	# Assert — refused: an empty request, Mulligan reached, nothing parked
+	assert_int(returned.size()).is_equal(1)
+	assert_dict(returned[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MULLIGAN)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	EventLogAssertions.assert_not_contains_type(log, &"choice_requested")
+	# … and the match is not poisoned: the mulligan runs, a later Discover pauses
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	_set_hand(engine, SIDE_PLAYER, [DEF_SCOUT])
+	resolver.scripts[&"on_cast"] = [_discover.bind(SIDE_PLAYER, [])]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
 # --- C2 / ADR-0007: the suspended queue and step count ------------------------------
 
 ## A Scout spell whose `on_cast` raises four queued triggers t1…t4 from the
