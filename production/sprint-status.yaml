@@ -197,8 +197,8 @@ stories:
     name: "Hero powers"
     file: "production/epics/card-effects/story-011-hero-powers.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 3)"
     estimate_days: 1
     lane: 3
     wave: 2
@@ -206,7 +206,7 @@ stories:
     contract: false
     blocker: ""
     note: "HeroPowerDef from CE-005 fixture rows 8/16/25; unblocks MUI-005"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-012"
     name: "Auras and enchantments"
     file: "production/epics/card-effects/story-012-auras-enchantments.md"

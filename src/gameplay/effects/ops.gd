@@ -64,18 +64,32 @@ const POSITION_SOURCE_SLOT: String = "source_slot"
 const POSITION_RIGHT_OF_SOURCE: String = "right_of_source"
 ## `summon_minion`'s "rightmost slot" position (match-rules Interactions).
 const POSITION_END: int = -1
+## C5 `summon.position: end`, and what `source_slot` / `right_of_source`
+## resolve to when the source is not a minion in play (story 011) — logged
+## as the summon entry's `values.position`.
+const POSITION_NAME_END: String = "end"
+## `conditional` entries' `values.branch` (story 011, AC-15).
+const BRANCH_THEN: String = "then"
+const BRANCH_ELSE: String = "else"
 ## The kinds each targeted op accepts at runtime (C5 "Legal targets"); a
 ## target of another kind, or one no longer in play, is skipped and logged
-## in `values.skipped`.
+## in `values.skipped`. [constant EffectSelectors.KIND_CARD] is a card
+## instance in hand or deck, legal only for the ops in
+## [constant CARD_INSTANCE_PARAMS].
 const LEGAL_KINDS: Dictionary[String, Array] = {
 	"damage": ["minion", "hero"],
 	"heal": ["minion", "hero"],
-	"buff": ["minion", "hero", "weapon"],
+	"buff": ["minion", "hero", "weapon", EffectSelectors.KIND_CARD],
 	"destroy": ["minion", "weapon"],
 	"silence": ["minion"],
 	"freeze": ["minion", "hero"],
 	"give_keyword": ["minion", "hero", "weapon"],
 }
+## The ops that may target a card instance in hand or deck, and the param
+## such a target needs (C5 `buff`: "card instances in hand **or deck**
+## (`cost` only)"; story 011, row 25 Insight). Without it the instance is
+## skipped like any other illegal target.
+const CARD_INSTANCE_PARAMS: Dictionary[String, String] = {"buff": "cost"}
 
 var _table: Dictionary[String, Callable] = {}
 
@@ -136,7 +150,8 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 ## - `conditional {if, then, else}`: `if` (a C4 condition) evaluated now; the
 ##   branch taken runs, each of the other branch's ops is one `skipped`
 ##   entry; every entry of both carries `values.condition` (Edge Cases: the
-##   log carries the evaluated condition);
+##   log carries the evaluated condition) and `values.branch`, the branch
+##   taken — `then` or `else` (story 011, AC-15);
 ## - `repeat {times, ops}`: `times` (a value, clamped to 0 …
 ##   `max_repeat`) iterations, each re-resolving its selectors against the
 ##   live board (C6.0: a minion an iteration kills is dying, so the next
@@ -159,6 +174,7 @@ func run_all(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Array[
 						entries.append(entry(str((inner as Dictionary).get("op", "")), none, {}, SKIPPED))
 					for e: Dictionary in entries:
 						(e.values as Dictionary)["condition"] = taken
+						(e.values as Dictionary)["branch"] = BRANCH_THEN if taken else BRANCH_ELSE
 						out.append(e)
 		"repeat":
 			var times: int = EffectValues.eval(op.get("times", 1), run_ctx)
@@ -228,6 +244,13 @@ func _op_heal(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dicti
 		return APPLIED)
 
 
+## C5 `buff`: `apply_enchantment(target, {attack_delta, health_delta,
+## cost_delta?, keywords_added, source_entity_id, expires})` per target. A
+## card instance in hand or deck is a legal target when the op has `cost`
+## (story 011; [constant CARD_INSTANCE_PARAMS]): the engine keeps the
+## enchantment in its `cost_modifiers`, which travel with the instance into
+## hand, so `buff cost` on `deck_top` then `draw` is Insight (row 25);
+## `until_end_of_turn` expires at the owner's End step (match-rules C4 step 5).
 func _op_buff(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var enchantment: Dictionary = {
 		"attack_delta": _int(op.get("attack", 0)),
@@ -284,7 +307,7 @@ func _per_target(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary, value
 	var skipped: Array[int] = []
 	var outcomes: Array[String] = []
 	for id: int in EffectSelectors.entities(state, selector, run_ctx):
-		if not (LEGAL_KINDS[name] as Array).has(EffectSelectors.kind_of(state, id)):
+		if not (LEGAL_KINDS[name] as Array).has(_target_kind(state, name, op, id)):
 			skipped.append(id)
 			continue
 		targets.append(id)
@@ -294,6 +317,17 @@ func _per_target(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary, value
 		if not outcomes.is_empty():
 			outcomes.append(SKIPPED)
 	return entry(name, targets, values, fold_outcomes(outcomes))
+
+
+## The kind [param id] counts as for op [param name]: [method
+## EffectSelectors.kind_of] for an entity in play; for a card instance in
+## hand or deck, [constant EffectSelectors.KIND_CARD] when the op has the
+## param [constant CARD_INSTANCE_PARAMS] names, else "" (not a legal target).
+static func _target_kind(state: MatchState, name: String, op: Dictionary, id: int) -> String:
+	var kind: String = EffectSelectors.kind_of(state, id)
+	if kind == "" and CARD_INSTANCE_PARAMS.has(name) and op.has(CARD_INSTANCE_PARAMS[name]) and EffectSelectors.is_card_instance(state, id):
+		return EffectSelectors.KIND_CARD
+	return kind
 
 
 # --- side-scoped ops ----------------------------------------------------------------
@@ -342,9 +376,12 @@ func _op_equip(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dict
 ## C5 `summon`: `summon_minion(side, card_id, position)` × count, left to
 ## right. Position: `right_of_source` (the default outside Deathrattles) and
 ## `source_slot` place the copies right of / at the source while the source
-## is a minion in play on that side; otherwise, and for `end`, the rightmost
-## slot. A full board is `board_full` per copy (the engine emits
-## `summon_failed`). `targets` are the summoned entity ids.
+## is a minion in play on that side; otherwise — a spell, hero power, weapon
+## or passive source (C5; story 011: Rot) — and for `end`, the rightmost
+## slot. `values.position` is the position as resolved: the authored one, or
+## [constant POSITION_NAME_END] after that fallback. A full board is
+## `board_full` per copy (the engine emits `summon_failed`). `targets` are
+## the summoned entity ids.
 ## TODO(story 009): `source_slot` from the Deathrattle snapshot's
 ## `board_index`; TODO(story 007): `chosen_slot`.
 func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
@@ -365,7 +402,10 @@ func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dic
 			outcomes.append(APPLIED)
 		elif board.size() < engine.rule("board_size"):
 			outcomes.append(SKIPPED)
-	return entry("summon", summoned, {"card_id": card_id, "count": count, "side": side}, fold_outcomes(outcomes) if count > 0 else APPLIED)
+	var resolved: String = position
+	if _source_index(board, int(run_ctx.source_id)) < 0:
+		resolved = POSITION_NAME_END
+	return entry("summon", summoned, {"card_id": card_id, "count": count, "side": side, "position": resolved}, fold_outcomes(outcomes) if count > 0 else APPLIED)
 
 
 ## The board index of the next copy: after the source and the copies already
@@ -373,10 +413,19 @@ func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dic
 static func _summon_index(board: Array, position: String, source_id: int, placed: int) -> int:
 	if position != POSITION_RIGHT_OF_SOURCE and position != POSITION_SOURCE_SLOT:
 		return POSITION_END
+	var index: int = _source_index(board, source_id)
+	if index < 0:
+		return POSITION_END
+	return index + placed + (1 if position == POSITION_RIGHT_OF_SOURCE else 0)
+
+
+## The source's index on [param board], or -1 when it is not a minion there
+## (a hero power's hero, a spell, a weapon, a passive — C5's `end` fallback).
+static func _source_index(board: Array, source_id: int) -> int:
 	for index: int in board.size():
 		if int((board[index] as Dictionary).entity_id) == source_id:
-			return index + placed + (1 if position == POSITION_RIGHT_OF_SOURCE else 0)
-	return POSITION_END
+			return index
+	return -1
 
 
 ## C5 `mana`: `add_mana(side, amount, temporary)` with `temporary =
