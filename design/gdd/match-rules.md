@@ -101,6 +101,8 @@ references a Node (DD-T02). Every field below is observable by tests.
   (ordered list, index 0 is the top),
   `hand` (≤ `HAND_SIZE`), `board` (≤ `BOARD_SIZE`, index 0 is leftmost), `weapon` (null or
   Weapon), `hero_power {def_id, used_this_turn}`, `fatigue_counter` (starts 0), `graveyard`,
+  `resolving` (CardInstance list: the spell being cast, from `spell_cast` until `card_to_graveyard`;
+  empty between commands — added 2026-11-03, match-rules story 010),
   `turns_taken`, and `stats {damage_dealt_by_card, damage_taken, cards_played, minions_summoned}`
   for the Run Structure result.
 - **Character** (hero or minion): `entity_id` (unique per match, assigned at creation, the stable
