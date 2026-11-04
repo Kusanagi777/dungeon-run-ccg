@@ -211,8 +211,8 @@ stories:
     name: "Auras and enchantments"
     file: "production/epics/card-effects/story-012-auras-enchantments.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 3)"
     estimate_days: 1
     lane: 3
     wave: 3
@@ -220,7 +220,7 @@ stories:
     contract: false
     blocker: ""
     note: "needs MR-011 (M1) and MR-015 (M2)"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-010"
     name: "Discover and Choose One"
     file: "production/epics/card-effects/story-010-discover-choose-one.md"

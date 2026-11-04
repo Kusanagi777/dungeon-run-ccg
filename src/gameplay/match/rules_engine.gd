@@ -2777,7 +2777,7 @@ func _drain() -> void:
 		_recompute_auras()
 		if _halted():
 			break
-		if dead.is_empty() and _queue.is_empty():
+		if dead.is_empty() and _queue.is_empty() and not _any_minion_dying():
 			break
 		if _queue.is_empty():
 			continue
@@ -2787,6 +2787,19 @@ func _drain() -> void:
 		_execute_queued(_queue.pop_front())
 	if _halted():
 		_queue.clear()
+
+
+## True when a board minion is at `health ≤ 0` or `pending_destroy` after the
+## pass's `recompute_auras()` — the aura loss of that recompute (a Silenced or
+## departed source; card-effects AC-27, F3): the loop runs one more death
+## check instead of settling with it on the board ("dies in the following
+## loop pass"). Card-effects story 012; reads only.
+func _any_minion_dying() -> bool:
+	for side: String in MatchRecords.SIDES:
+		for minion: Dictionary in _state.players[side].board:
+			if health(minion) <= 0 or bool(minion.get("pending_destroy", false)):
+				return true
+	return false
 
 
 ## Executes one queued trigger as a step: `trigger_resolved {point,

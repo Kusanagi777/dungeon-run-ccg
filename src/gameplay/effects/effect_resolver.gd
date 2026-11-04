@@ -114,6 +114,10 @@ const OP_DISCOVER: String = "discover"
 const OP_CHOOSE_ONE: String = "choose_one"
 ## The DSL play trigger a `discover` `then: cast` pick resolves (C5).
 const TRIGGER_CAST: String = "cast"
+## The static aura triggers (C2 static class, C7; story 012): `aura` on a
+## source in play, and `passive_hand`, the self-only hand aura.
+const TRIGGER_AURA: String = "aura"
+const TRIGGER_PASSIVE_HAND: String = "passive_hand"
 ## Run-context field: the index of the running effect in its host's
 ## `effects[]`, so a resumed pass re-reads the effect from the memo instead of
 ## carrying it in the continuation.
@@ -361,11 +365,72 @@ func _keep_tallies(point: StringName, ctx: Dictionary) -> void:
 			EffectRuntime.bump(runtime, side, "minions_died_this_turn")
 
 
-## The engine's C10 loop calls this once per step (match-rules C10; the End
-## step too). Story 012 recomputes auras; until then there are none to
-## recompute. Example: `resolver.recompute_auras()`.
+## C7 / F2 (story 012): re-applies every live aura. The engine's C10 loop calls
+## this once per loop pass (match-rules C10; the End step too) **after** it has
+## stripped every `is_aura` enchantment — characters, weapons and hand
+## `cost_modifiers` (`RulesEngine._recompute_auras`, the engine's side of the
+## contract) — and while it keeps the re-applications silent (one
+## `auras_recomputed` lists the net changes). Walks the sources in canonical
+## order ([method _aura_sources]: player board left to right, boss board, then
+## the equipped weapons, player first; treasure / passive hosts on the hero
+## slot are story 013), skips a **silenced** source (Silence stops emission,
+## match-rules C13), and runs each definition effect with trigger `aura`
+## through [method EffectOps.apply_aura]: its `targets` evaluated afresh, one
+## `apply_enchantment(…, is_aura: true)` per (source, effect, target). Then
+## every hand card's own `passive_hand` effects, each on that card only
+## (C7: the self-only hand aura, its value read now). Holds no state of its
+## own: what an aura grants is re-derived from the board every call, so a
+## `clone()` recomputes the same auras from its copied state.
+## Example: the engine's `_resolver.recompute_auras()`.
 func recompute_auras() -> void:
-	pass
+	assert(_engine != null, "EffectResolver.recompute_auras: not bound to an engine")
+	var state: MatchState = _engine.state()
+	for source: Dictionary in _aura_sources(state):
+		if bool(source.get("silenced", false)) or not source.has("def_id"):
+			continue
+		var def_id: String = str(source.def_id)
+		var owner: String = EffectScope.controller_of(state, int(source.entity_id))
+		var effects: Array = effects_of(def_id)
+		for index: int in effects.size():
+			var effect: Dictionary = effects[index]
+			if str(effect.get("trigger", "")) == TRIGGER_AURA:
+				_ops.apply_aura(_engine, _aura_run(effect, def_id, index, int(source.entity_id), owner), null)
+	for side: String in MatchRecords.SIDES:
+		for card: Dictionary in state.players[side].hand:
+			var effects: Array = effects_of(str(card.def_id))
+			for index: int in effects.size():
+				var effect: Dictionary = effects[index]
+				if str(effect.get("trigger", "")) == TRIGGER_PASSIVE_HAND:
+					_ops.apply_aura(_engine, _aura_run(effect, str(card.def_id), index, int(card.instance_id), side), int(card.instance_id))
+
+
+## The aura sources in play, in C7's canonical source order: player board
+## left to right, boss board left to right, then the equipped weapons (player,
+## boss — `aura` hosts include weapons, C2; C3 orders weapons after the boards).
+func _aura_sources(state: MatchState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for side: String in MatchRecords.SIDES:
+		out.append_array(state.players[side].board)
+	for side: String in MatchRecords.SIDES:
+		var weapon: Variant = state.players[side].weapon
+		if weapon != null:
+			out.append(weapon)
+	return out
+
+
+## The pass context of one aura effect (plain run fields, as [method _run_pass]
+## builds them, plus [constant EffectSelectors.RUN_AURA_RECOMPUTE]).
+func _aura_run(effect: Dictionary, def_id: String, index: int, source_id: int, owner: String) -> Dictionary:
+	return {
+		"effect": effect,
+		"resolver": self,
+		"effect_id": str(effect.get("id", "%s.%d" % [def_id, index])),
+		"host_id": def_id,
+		"source_id": source_id,
+		"owner": owner,
+		"target_id": null,
+		EffectSelectors.RUN_AURA_RECOMPUTE: true,
+	}
 
 
 ## One value-hook fold step (ADR-0005 `set_evaluators` shape; card-effects
