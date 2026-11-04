@@ -54,6 +54,19 @@ var phase: String = PHASE_SETUP
 var players: Dictionary[String, Dictionary] = {}
 ## null, or the engine's `ChoiceRequest` while `phase == "choice"` (C1, C2).
 var pending_choice: Variant = null
+## The action a pending choice paused (match-rules story 016; ADR-0007
+## Decision 1), all plain data so `clone()` is a `duplicate(true)` (story 017).
+## `suspended_queue`: the C10 trigger queue Q at the pause — step Dictionaries
+## `{point, ctx, cause_seq}`, front first. `suspended_steps`: the action's step
+## count so far (`resolution_step_cap` counts across the pause).
+## `suspended_action`: `{}` when nothing is paused, else `{origin_phase,
+## cause_seq, frame, stages}` — the phase `choose` returns to, the `cause_seq`
+## of the paused step (the resumed effect's events keep it), and the rest of
+## the command as `RulesEngine` stages (see `RulesEngine.choose` docs). The
+## resolver's own continuation lives in `effects.pending_choice`.
+var suspended_queue: Array[Dictionary] = []
+var suspended_steps: int = 0
+var suspended_action: Dictionary = {}
 ## null until `Ended`, then the `MatchResult` (C14, [method MatchRecords.match_result]).
 var result: Variant = null
 ## The next id handed to a character, weapon or card instance (C1).

@@ -36,6 +36,8 @@ const MATCH_RESULT_FIELDS: Array[String] = ["result", "winner", "reason", "floor
 const MATCH_STATE_FIELDS: Array[String] = [
 	"turn", "active_side", "phase", "players", "pending_choice", "result", "next_entity_id",
 	"hooks", "effects", "floor", "log", "rng_match",
+	# match-rules story 016: the action a pending choice paused (plain data)
+	"suspended_queue", "suspended_steps", "suspended_action",
 ]
 const EFFECT_RUNTIME_FIELDS: Array[String] = ["once_marks", "counters", "per_turn", "pending_choice"]
 

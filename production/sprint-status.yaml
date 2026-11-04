@@ -85,8 +85,8 @@ stories:
     name: "Choice phase and Discover"
     file: "production/epics/match-rules/story-016-choice-phase-and-discover.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 2)"
     estimate_days: 1
     lane: 2
     wave: 1
@@ -94,7 +94,7 @@ stories:
     contract: false
     blocker: ""
     note: "after-cast rule: a spell paused for Discover runs no after-cast step before choose (add AC via /quick-design or QA case); /code-review at M1"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-015"
     name: "Freeze, thaw and Silence"
     file: "production/epics/match-rules/story-015-freeze-thaw-silence.md"
