@@ -148,3 +148,4 @@ QL-STORY-READY skipped — Lean mode.
 - At Alpha-A, Decay deathrattle cards replace Rot Warden's neutrals; at VS, three walls replace three of Hollow King's neutrals (content Edge Cases).
 
 **Reviewed by**: self, no independent review (lean: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped). Game-designer sign-off NOT ASSESSED (no agent).
+**Owner sign-off (2026-11-04, DD-X24)**: Jacob accepts Rot Warden and Hollow King as shipped. This covers Rot Warden's 10 named neutrals and its two exclusions (`neutral_ogre_porter`, `neutral_smite_or_mend`), and both decks' Edge Cases fallbacks, which are superseded for Gravekeeper by DD-X20: content story 010 swaps them back. This replaces the NOT ASSESSED game-designer sign-off above.
