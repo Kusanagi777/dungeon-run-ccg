@@ -39,6 +39,20 @@ const COMBO: String = "war_test_combo"
 ## Battlecry: `conditional` — if the enemy has a minion, 1 damage to all
 ## enemy minions, else 3 Armor.
 const BRANCH: String = "war_test_branch"
+## Review S4: spells that `buff cost -1` the `{selector: hand, n}` picks.
+const HAND_ONE: String = "war_test_hand_one"
+const HAND_TWO: String = "war_test_hand_two"
+const HAND_NINE: String = "war_test_hand_nine"
+const HAND_ALL: String = "war_test_hand_all"
+## `buff` two `hand` picks, then Armor equal to `{count: {hand, n: 2}}`.
+const HAND_COUNTED: String = "war_test_hand_counted"
+## Cards beside the cast spell in the S4 fixture (review P11).
+const HAND_OTHERS: int = 3
+## Seeds whose first draw differs (the same seed repeats its pick).
+const HAND_SEED_A: int = 1
+const HAND_SEED_B: int = 2
+## How far the pick-order case looks for a seed that runs against hand order.
+const HAND_SEED_SEARCH: int = 30
 
 
 ## `has` / `card` / `hero_power` from a map (the engine and the resolver ask
@@ -115,15 +129,21 @@ func _db() -> FakeCardDatabase:
 	by_id[BRANCH] = CardFactory.make_minion(BRANCH, 1, 1, 1, ["battlecry"], {"set": "war", "effects": _fx(
 		'{"trigger":"battlecry","ops":[{"op":"conditional","if":{"exists":"all_enemy_minions"},'
 		+ '"then":[{"op":"damage","amount":1,"targets":"all_enemy_minions"}],"else":[{"op":"armor","targets":"owner","amount":3}]}]}')})
+	for pair: Array in [[HAND_ONE, ',"n":1'], [HAND_TWO, ',"n":2'], [HAND_NINE, ',"n":9'], [HAND_ALL, ""]]:
+		by_id[pair[0]] = CardFactory.make_spell(pair[0], 1, _fx(
+			'{"trigger":"cast","targets":{"selector":"hand"%s},"ops":[{"op":"buff","cost":-1}]}' % pair[1]), {"set": "war"})
+	by_id[HAND_COUNTED] = CardFactory.make_spell(HAND_COUNTED, 1, _fx(
+		'{"trigger":"cast","ops":[{"op":"buff","cost":-1,"targets":{"selector":"hand","n":2}},'
+		+ '{"op":"armor","targets":"owner","amount":{"count":{"selector":"hand","n":2}}}]}'), {"set": "war"})
 	return FakeCardDatabase.new(by_id)
 
 
 ## A started engine bound to a real `EffectResolver`, past a keep-all
 ## mulligan (player Main, turn 1), the hand replaced by [param hand], 10 mana.
-func _main_phase(hand: Array) -> RulesEngine:
+func _main_phase(hand: Array, seed_value: int = TestConstants.DEFAULT_TEST_SEED) -> RulesEngine:
 	var db: FakeCardDatabase = _db()
 	_log = TestEventLog.new()
-	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(), _log)
+	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(seed_value), _log)
 	_engine = RulesEngine.new(db, MatchFactory.make_rules_config(), EffectResolver.new(db, _effects_config()))
 	_engine.start(config)
 	assert_bool(_engine.submit(_engine.legal_commands()[0]).accepted).is_true()
@@ -400,3 +420,152 @@ func test_conditional_logs_the_branch_not_taken_as_skipped() -> void:
 	assert_array(ops.map(func(o: Dictionary) -> Array: return [str(o.op), str(o.outcome)])).is_equal([["damage", "applied"], ["armor", "skipped"]])
 	assert_array(ops[0].targets).is_equal([enemy])
 	assert_bool(bool(ops[0].values.condition)).is_true()
+
+
+# --- sprint-4 review S4: `hand` honours `n` (C3 "`n` (random) or `all`", F5) ---------
+
+## The cast spell's `{selector: hand, …}` host at hand index 0 and
+## [param others] vanilla cards after it. Returns the others' instance ids, in
+## hand order; they are what the selector's pool holds once the spell resolves.
+func _hand_fixture(spell: String, others: int = HAND_OTHERS, seed_value: int = TestConstants.DEFAULT_TEST_SEED) -> Array:
+	var hand: Array = [spell]
+	for _i: int in others:
+		hand.append(VANILLA)
+	_main_phase(hand, seed_value)
+	var ids: Array = (_engine.state().players[SIDE_PLAYER].hand as Array).map(func(c: Dictionary) -> int: return int(c.instance_id))
+	return ids.slice(1)
+
+
+func _cast_first() -> Array:
+	var before: int = _last_seq()
+	_submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null))
+	return _since(before)
+
+
+func _buff_entry(events: Array) -> Dictionary:
+	for event: Dictionary in _of_type(events, "effect_resolved"):
+		for entry: Dictionary in event.payload.ops:
+			if str(entry.op) == "buff":
+				return entry
+	return {}
+
+
+## The hand position of the one card seed [param seed_value] picks.
+func _picked_position(seed_value: int) -> int:
+	var ids: Array = _hand_fixture(HAND_ONE, HAND_OTHERS, seed_value)
+	var targets: Array = Array(_buff_entry(_cast_first()).get("targets", []))
+	assert_int(targets.size()).is_equal(1)
+	var position: int = ids.find(int(targets[0])) if targets.size() == 1 else -1
+	_engine.end_match()
+	return position
+
+
+func test_hand_with_n_1_targets_exactly_one_card_with_one_draw() -> void:
+	# Arrange — P11: three other cards in hand
+	var ids: Array = _hand_fixture(HAND_ONE)
+	var draws: int = _rng_draws()
+
+	# Act
+	var events: Array = _cast_first()
+
+	# Assert
+	var targets: Array = Array(_buff_entry(events).get("targets", []))
+	assert_int(targets.size()).is_equal(1)
+	assert_bool(ids.has(int(targets[0]) if targets.size() == 1 else -1)).is_true()
+	assert_int(_rng_draws() - draws).is_equal(1)
+
+
+func test_two_seeds_pick_different_hand_cards_and_one_seed_repeats_its_pick() -> void:
+	# Act
+	var first: int = _picked_position(HAND_SEED_A)
+	var second: int = _picked_position(HAND_SEED_B)
+	var repeat: int = _picked_position(HAND_SEED_A)
+
+	# Assert
+	assert_int(first).is_not_equal(second)
+	assert_int(repeat).is_equal(first)
+
+
+func test_hand_with_n_at_or_above_the_pool_takes_every_card_with_that_many_draws() -> void:
+	# Arrange
+	var ids: Array = _hand_fixture(HAND_NINE)
+	var draws: int = _rng_draws()
+
+	# Act
+	var events: Array = _cast_first()
+
+	# Assert — F5: k = min(n, |cands|) draws, so a whole-pool pick still draws
+	assert_array(Array(_buff_entry(events).get("targets", []))).contains_exactly_in_any_order(ids)
+	assert_int(_rng_draws() - draws).is_equal(ids.size())
+
+
+func test_hand_without_n_targets_the_whole_hand_in_order_and_draws_nothing() -> void:
+	# Arrange
+	var ids: Array = _hand_fixture(HAND_ALL)
+	var draws: int = _rng_draws()
+
+	# Act
+	var events: Array = _cast_first()
+
+	# Assert — C3 "default all"
+	assert_array(Array(_buff_entry(events).get("targets", []))).is_equal(ids)
+	assert_int(_rng_draws() - draws).is_equal(0)
+
+
+func test_hand_with_n_on_an_empty_hand_is_no_target_and_draws_nothing() -> void:
+	# Arrange — the cast spell is the only card, and it has left the hand
+	@warning_ignore("return_value_discarded")
+	_hand_fixture(HAND_ONE, 0)
+	var draws: int = _rng_draws()
+
+	# Act
+	var events: Array = _cast_first()
+
+	# Assert
+	assert_str(str(_buff_entry(events).get("outcome", ""))).is_equal(EffectOps.NO_TARGET)
+	assert_int(_rng_draws() - draws).is_equal(0)
+
+
+## F5 replayed on a copy of the match stream over [param ids]: two picks with
+## removal, in pick order.
+func _replayed_two_picks(ids: Array) -> Array:
+	var replay: RngStream = (_engine.rng_match() as RngStream).copy()
+	var cands: Array = ids.duplicate()
+	var picks: Array = []
+	for _i: int in 2:
+		var j: int = replay.randi_range(0, cands.size() - 1)
+		picks.append(cands[j])
+		cands.remove_at(j)
+	return picks
+
+
+func test_hand_picks_apply_in_pick_order_not_hand_order() -> void:
+	# Arrange — the first seed whose two draws run against hand order
+	var expected: Array = []
+	for seed_value: int in range(1, HAND_SEED_SEARCH):
+		var ids: Array = _hand_fixture(HAND_TWO, HAND_OTHERS, seed_value)
+		expected = _replayed_two_picks(ids)
+		if int(expected[0]) > int(expected[1]):
+			break
+		_engine.end_match()
+	assert_int(int(expected[0])).is_greater(int(expected[1]))
+
+	# Act
+	var events: Array = _cast_first()
+
+	# Assert — F5 output: the op applies in the order the dice fell
+	assert_array(Array(_buff_entry(events).get("targets", []))).is_equal(expected)
+
+
+func test_a_count_over_hand_with_n_agrees_with_what_the_selector_targets() -> void:
+	# Arrange
+	@warning_ignore("return_value_discarded")
+	_hand_fixture(HAND_COUNTED)
+
+	# Act
+	var events: Array = _cast_first()
+
+	# Assert — one spell, one selector: `pick_count` and `entities` say the same
+	var armor: int = int(_engine.state().players[SIDE_PLAYER].hero.armor)
+	assert_int(armor).is_equal(Array(_buff_entry(events).get("targets", [])).size())
+	assert_int(armor).is_equal(2)

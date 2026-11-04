@@ -121,7 +121,8 @@ static func selector_name(selector: Variant) -> String:
 ## spec the engine already checked at command time, C1 rule 1).
 ## Every other selector (story 007) is its [method pool] — area, neighbour,
 ## hand and deck selectors as listed; a **random** one ([constant
-## RANDOM_SELECTORS]) picks `k = min(n, |pool|)` of it by F5: `k` draws of
+## RANDOM_SELECTORS], or `hand` with an `n`) picks `k = min(n, |pool|)` of it by
+## F5: `k` draws of
 ## `engine.rng_match().randi_range(0, |pool| − 1)` with removal, in pick
 ## order, and no draw for an empty pool (ADR-0007 Decision 7). Those need
 ## `run.resolver`, the bound [EffectResolver].
@@ -136,7 +137,7 @@ static func entities(state: MatchState, selector: Variant, run: Dictionary) -> A
 			return out
 		var resolver: EffectResolver = run.resolver
 		var candidates: Array[int] = pool(resolver, selector, run)
-		if not RANDOM_SELECTORS.has(name):
+		if not _picks(selector):
 			return candidates
 		var k: int = pick_count(selector, candidates.size())
 		var stream: Variant = resolver.bound_engine().rng_match()
@@ -226,10 +227,16 @@ static func pool(resolver: EffectResolver, selector: Variant, run: Dictionary) -
 ## |pool|)` for a random one (`n` default 1, F5) or a `hand` with an `n`;
 ## the whole pool otherwise. Example: `EffectSelectors.pick_count("random_minion", 3) == 1`.
 static func pick_count(selector: Variant, pool_size: int) -> int:
-	var name: String = selector_name(selector)
-	if RANDOM_SELECTORS.has(name) or (name == "hand" and selector is Dictionary and (selector as Dictionary).has("n")):
+	if _picks(selector):
 		return mini(_n(selector), pool_size)
 	return pool_size
+
+
+## True when [param selector] makes F5 picks: a random one, or a `hand` with an
+## `n` (C3 "`n` (random) or `all`"; sprint-4 review S4).
+static func _picks(selector: Variant) -> bool:
+	var name: String = selector_name(selector)
+	return RANDOM_SELECTORS.has(name) or (name == "hand" and selector is Dictionary and (selector as Dictionary).has("n"))
 
 
 ## [param side]'s hand instance ids whose card matches [param filter] (C3
