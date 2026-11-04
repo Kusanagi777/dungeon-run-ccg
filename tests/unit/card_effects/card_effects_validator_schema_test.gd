@@ -222,6 +222,31 @@ func test_aura_op_outside_a_static_trigger_is_e_fx_op() -> void:
 	assert_array(_codes(report)).contains_exactly(["E_FX_OP"])
 
 
+func test_an_aura_granting_stealth_is_e_fx_op() -> void:
+	# DD-X16 (code review MR-014 S2): an aura re-grants Stealth on the step
+	# after an attack, so the attacker would stay untargetable — only a printed
+	# or one-shot Stealth is legal in MVP. Card host and treasure host alike.
+	var on_minion: Array = _run(&"card", MINION_HOST, '{"trigger":"aura","targets":{"selector":"all_friendly_minions","filter":{"not_self":true}},"ops":[{"op":"aura","keywords":["stealth"]}]}', ["aura"])
+	var on_treasure: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","attack":1,"keywords":["rush","stealth"]}]}')
+
+	assert_array(_codes(on_minion)).contains_exactly(["E_FX_OP"])
+	assert_str(str(_first(on_minion).get("path"))).is_equal("effects/0/ops/0/keywords/0")
+	assert_array(_codes(on_treasure)).contains_exactly(["E_FX_OP"])
+	assert_str(str(_first(on_treasure).get("path"))).is_equal("effects/0/ops/0/keywords/1")
+
+
+func test_a_one_shot_stealth_grant_and_a_non_stealth_aura_stay_legal() -> void:
+	# DD-X16 rejects the aura grant only: a buff / give_keyword Stealth is a
+	# one-shot enchantment that the declaration strips for good
+	var buff: Array = _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"buff","attack":1,"keywords":["stealth"]}]}')
+	var give: Array = _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"give_keyword","keyword":"stealth"}]}')
+	var rush_aura: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","keywords":["rush"]}]}')
+
+	_assert_clean(buff)
+	_assert_clean(give)
+	_assert_clean(rush_aura)
+
+
 func test_non_modify_value_op_under_a_value_trigger_is_e_fx_op() -> void:
 	var under_value: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"modify_damage","ops":[{"op":"draw","count":1}]}')
 	var nested_under_value: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"modify_cost","ops":[{"op":"conditional","if":{"is_owner_turn":true},"then":[{"op":"modify_value","delta":1}]}]}')
