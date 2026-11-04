@@ -320,7 +320,7 @@ produces runs that players want to immediately replay."
 
 ## Visual Identity Anchor
 
-**Direction: "Torchlit Ledger"** (owner to confirm during `/art-bible`; chosen without the
+**Direction: "Torchlit Ledger"** (**confirmed by the owner 2026-11-04**; originally chosen without the
 AD-CONCEPT-VISUAL gate in Lean mode).
 
 - **One-line visual rule**: everything the player must read is lit; everything decorative sits in

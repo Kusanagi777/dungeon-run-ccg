@@ -1,8 +1,8 @@
 # Art Bible: Deckdelve (working title)
 
-> **Status**: Draft
+> **Status**: Approved — §1–4 (owner Jacob, 2026-11-04: "approve the art direction"; sections 5–9 remain deferred stubs)
 > **Owned By**: art-director
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 > **Art Director Sign-Off (AD-ART-BIBLE)**: SKIPPED 2026-11-03 — lean mode
 > **Review notes**: `AD-ART-BIBLE skipped — Lean mode.` Authored at `workflow: standard`,
 > `docs.density: balanced`, `automation: guided`. Scope this run: sections 1–4 (the `standard`
