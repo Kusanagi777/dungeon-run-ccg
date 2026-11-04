@@ -125,7 +125,9 @@ func test_shipped_warnings_are_pool_size_and_pending_validators_only() -> void:
 				fail("unexpected warning %s" % str(w))
 	pool_files.sort()
 	pending_files.sort()
-	assert_array(pool_files).is_equal(["bundles.json", "cards_war.json", "treasures.json"])
+	# content story 002 (MVP-1 War set): the War collectible pool is 25 + the
+	# neutrals ≥ min_collectible_pool 30, so `cards_war.json` no longer warns.
+	assert_array(pool_files).is_equal(["bundles.json", "treasures.json"])
 	assert_array(pending_files).is_equal(_pending_files())
 
 
@@ -160,21 +162,22 @@ func test_power_whetstone_costs_2_and_carries_the_h3_effect() -> void:
 	assert_str(op["then"][0]["duration"]).is_equal("until_end_of_turn")
 
 
-func test_war_set_is_the_eight_cn2_cards_plus_the_whetstone_blade_token() -> void:
+func test_war_set_holds_the_eight_batch0_cn2_cards_and_the_whetstone_blade_token() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 
-	# Assert
+	# Assert — batch 0's rows stay in the set (content story 002 adds the
+	# other 17 MVP-1 War cards; `content_mvp1_data_test.gd` pins all 25)
 	var expected: Array[String] = WAR_COLLECTIBLE.duplicate()
 	expected.append(WAR_TOKEN)
-	expected.sort()
-	assert_array(_ids(db.cards_by_set("war"))).is_equal(expected)
+	assert_array(_ids(db.cards_by_set("war"))).contains(expected)
 	var blade: Dictionary = db.card(WAR_TOKEN)
 	assert_str(blade["type"]).is_equal("weapon")
 	assert_int(int(blade["attack"])).is_equal(1)
 	assert_int(int(blade["durability"])).is_equal(2)
 	assert_bool(blade["token"]).is_true()
-	assert_array(_ids(db.collectible_pool("war")).filter(func(id: String) -> bool: return id.begins_with("war_"))).is_equal(WAR_COLLECTIBLE)
+	assert_array(_ids(db.collectible_pool("war"))).contains(WAR_COLLECTIBLE)
+	assert_array(_ids(db.collectible_pool("war"))).not_contains([WAR_TOKEN])
 
 
 func test_neutral_set_is_the_batch0_rows() -> void:

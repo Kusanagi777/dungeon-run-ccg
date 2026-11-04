@@ -267,8 +267,8 @@ stories:
     name: "MVP-1 War set"
     file: "production/epics/content/story-002-mvp-1-war-set.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "game-designer (data), lane 5"
     estimate_days: 1
     lane: 5
     wave: 1
@@ -276,7 +276,7 @@ stories:
     contract: true
     blocker: ""
     note: "shipped data; merges last"
-    completed: ""
+    completed: "2026-11-04"
   - id: "content-003"
     name: "MVP-1 band-1 bosses: Rat King, Gatekeeper"
     file: "production/epics/content/story-003-mvp-1-band-1-bosses-rat-king-gatekeeper.md"
