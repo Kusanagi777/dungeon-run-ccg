@@ -1,0 +1,15 @@
+{
+  "name": "battlecry_no_target",
+  "description": "boss-ai Edge Cases 'effect requires a target but none is legal': a 2/2 whose Battlecry deals 2 to a chosen enemy minion, and a vanilla 2/2, with the player's board empty; legal_commands offers the Battlecry minion with target_id null, and it must score as a body. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_raider", "type": "minion", "cost": 2, "attack": 2, "health": 2, "keywords": ["battlecry"], "effects": [{"trigger": "battlecry", "targets": {"selector": "chosen", "filter": {"kind": "minion", "side": "enemy"}}, "ops": [{"op": "damage", "amount": 2}]}]},
+    {"id": "bai_squire", "type": "minion", "cost": 2, "attack": 2, "health": 2}
+  ],
+  "boss": {"mana": 2, "board": [], "hand": ["bai_raider", "bai_squire"]},
+  "player": {"health": 30, "board": []},
+  "expect": {}
+}

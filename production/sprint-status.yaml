@@ -127,7 +127,7 @@ stories:
     name: "Scorer features and board value"
     file: "production/epics/boss-ai-match-driver/story-004-scorer-features-and-board-value.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 4
@@ -135,8 +135,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "starts after MR-017 merges at M2 (one-ply clone() sandbox); sandbox Discover auto-answer (BAI-010) missing; /code-review at M3"
-    completed: ""
+    note: "starts after MR-017 merges at M2 (one-ply clone() sandbox); sandbox Discover: readiness option (a), option-0 placeholder flagged until BAI-010; F7 t_sim ~100x low per the MR-015/017 review (see Completion Notes); /code-review at M3"
+    completed: "2026-11-04"
   - id: "boss-ai-match-driver-005"
     name: "Candidates, hero-power rule and positions"
     file: "production/epics/boss-ai-match-driver/story-005-candidates-hero-power-rule-and-positions.md"
