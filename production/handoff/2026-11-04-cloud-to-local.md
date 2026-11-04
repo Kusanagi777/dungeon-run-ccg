@@ -70,7 +70,7 @@ The cloud session launched **wave 1** in its own container. These branches exist
 | Item | Status |
 |---|---|
 | **NC-5 Windows check** — launch the latest `deckdelve-windows-debug-<sha>` (Actions → Windows Export → artifacts), confirm the boot screen and main menu, and read the data fingerprint (known answer `4667ce6e5d01302f`; see `production/qa/qa-plan-sprint-004-2026-11-04.md` NC-5) | Owner said "later today" |
-| **S3 aura projection** — pick an option from the design proposal (aura keyword/cost changes are not logged; the match view ignores aura stat changes; Gatekeeper's Taunt passive needs it for First Playable) | Proposal being written in the cloud session; if it never arrives, re-run it from `production/reviews/2026-11-04/code-review-s4-unreviewed.md` S3 |
+| **S3 aura projection** — pick an option from the design proposal (aura keyword/cost changes are not logged; the match view ignores aura stat changes; Gatekeeper's Taunt passive needs it for First Playable) | Proposal ready: `production/reviews/2026-11-04/proposal-s3-aura-projection.md` — recommends option C (enrich the existing `auras_recomputed` event with each changed entity's full values). Awaiting Jacob's pick |
 | **Content 010 Torchbearer line** — Gravekeeper also returns to The Torchbearer's deck (consistent with DD-X20's intent) | Keep unless Jacob strikes it |
 | `planner_target_ms` source for match-ui 010 | Decided: runtime knob in `ai_profiles.json` (lane 2) |
 
