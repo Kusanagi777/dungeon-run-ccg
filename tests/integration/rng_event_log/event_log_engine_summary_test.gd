@@ -10,9 +10,9 @@
 ## spell) and `use_hero_power` commands, each play trigger's pass dealing
 ## damage through the `apply_damage` primitive with the engine's
 ## `ctx.source` — the summoned minion's / equipped weapon's `entity_id`, the
-## spell's instance, the hero. The `attack` command (match-rules 012/013) is
-## not on this base; when it lands, a reduction over engine attacks should
-## follow. No wall clock, no file I/O.
+## spell's instance, the hero — and, since match-rules 012/013 merged, real
+## `attack` commands (a minion, then the hero swinging its weapon: the
+## weapon's `entity_id` is the source, C8). No wall clock, no file I/O.
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchFactory.SIDE_PLAYER
@@ -94,3 +94,36 @@ func test_engine_summon_equip_spell_and_power_damage_attributes_to_each_card() -
 	assert_int(EventLogAssertions.count_type(events, &"damage_dealt")).is_equal(DAMAGE_BY_HOST.size())
 	assert_dict(summary.damage_by_card).is_equal(DAMAGE_BY_HOST)
 	assert_int(summary.cards_played).is_equal(3)
+
+
+func test_engine_minion_and_weapon_attacks_attribute_to_their_cards() -> void:
+	# Arrange — a resolver with no scripts: every damage_dealt is an attack's
+	var log: EventLog = EventLog.new(TestConstants.MAX_MATCH_EVENTS, EventLog.SCOPE_MATCH)
+	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(), null, {"log": log})
+	var engine: RulesEngine = RulesEngine.new(_db(), MatchFactory.make_rules_config(), TestEffectResolver.new())
+	engine.start(config)
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var state: MatchState = engine.state()
+	var player: Dictionary = state.players[SIDE_PLAYER]
+	player.hand.clear()
+	for def_id: String in [DEF_MINION, DEF_WEAPON]:
+		player.hand.append(MatchFactory.make_card_instance(MatchFactory.alloc_entity_id(state), def_id, "hand"))
+	player.mana_current = MANA_POOL
+	var boss_hero: int = int(state.players[SIDE_BOSS].hero.entity_id)
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, 0)).accepted).is_true()
+	var minion_id: int = int(player.board[0].entity_id)
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_BOSS)).accepted).is_true()
+	player.mana_current = MANA_POOL
+
+	# Act — the minion attacks, then the hero equips and swings
+	assert_bool(engine.submit(MatchRecords.attack(SIDE_PLAYER, minion_id, boss_hero)).accepted).is_true()
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
+	assert_bool(engine.submit(MatchRecords.attack(SIDE_PLAYER, int(player.hero.entity_id), boss_hero)).accepted).is_true()
+	assert_bool(engine.submit(MatchRecords.concede(SIDE_PLAYER)).accepted).is_true()
+	var summary: Dictionary = log.reduce_to_summary()
+
+	# Assert — minion 2/2 and weapon 2/2 (FixtureDb) each dealt their attack
+	var minion_attack: int = int(_db().card(DEF_MINION).attack)
+	var weapon_attack: int = int(_db().card(DEF_WEAPON).attack)
+	assert_dict(summary.damage_by_card).is_equal({DEF_MINION: minion_attack, DEF_WEAPON: weapon_attack})
