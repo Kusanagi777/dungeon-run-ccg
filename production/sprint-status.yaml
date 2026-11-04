@@ -141,7 +141,7 @@ stories:
     name: "Candidates, hero-power rule and positions"
     file: "production/epics/boss-ai-match-driver/story-005-candidates-hero-power-rule-and-positions.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 4
@@ -150,7 +150,7 @@ stories:
     contract: false
     blocker: ""
     note: "after BAI-004 in L4"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-018"
     name: "Performance budgets"
     file: "production/epics/match-rules/story-018-performance-budgets.md"

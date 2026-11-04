@@ -1,0 +1,15 @@
+{
+  "name": "hero_power_spare_mana",
+  "description": "boss-ai A12 / F9 hero_power: default profile (rules.hero_power = spare_mana), band 2. The boss's hero power deals 1 to the enemy hero (cost = match-rules hero_power_cost, 2); its hand holds one 3-cost vanilla 3/3. At 3 mana the card is playable and must be played; the test lowers the boss to expect.short_mana (2), where no card is playable and the hero power must be used. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_ping", "type": "hero_power", "effects": [{"trigger": "hero_power", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3}
+  ],
+  "boss": {"mana": 3, "hero_power": "bai_ping", "board": [], "hand": ["bai_brute"]},
+  "player": {"health": 30, "board": []},
+  "expect": {"short_mana": 2}
+}

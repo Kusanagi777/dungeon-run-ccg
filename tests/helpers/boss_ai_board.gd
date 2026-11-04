@@ -11,10 +11,11 @@
 ## cards first, so their `card_played` events are in the log), `end_turn`,
 ## then the boss's Main is laid out from the fixture — boards and hands
 ## replaced, heroes at the fixture health, the boss's mana set, both hero
-## powers marked used (no fixture is about the hero power), every minion
-## awake. The profile is the committed stub's (`profiles_stub.json`) resolved
-## for the fixture's archetype and band, with `weights` applied as a
-## `boss_overrides` entry — never `assets/data/`.
+## powers marked used unless the fixture names `boss.hero_power` (a card of
+## `type: hero_power`; then the boss's power is that one, unused), every
+## minion awake. The profile is the committed stub's (`profiles_stub.json`)
+## resolved for the fixture's archetype and band, with `weights` and `budgets`
+## applied as a `boss_overrides` entry — never `assets/data/`.
 ## [codeblock]
 ## var fixture: Dictionary = BossAiBoard.read("f1_worked_example")
 ## var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
@@ -77,8 +78,8 @@ static func stub_config() -> Dictionary:
 static func profile(fixture: Dictionary) -> Dictionary:
 	var config: Dictionary = stub_config()
 	var key: String = str(fixture.profile)
-	if fixture.has("weights"):
-		config.boss_overrides[OVERRIDE_KEY] = {"extends": key, "weights": fixture.weights}
+	if fixture.has("weights") or fixture.has("budgets"):
+		config.boss_overrides[OVERRIDE_KEY] = {"extends": key, "weights": fixture.get("weights", {}), "budgets": fixture.get("budgets", {})}
 		key = OVERRIDE_KEY
 	return ProfileResolver.resolve(config, CardFactory.make_boss_def("boss_test", int(fixture.band), {"ai_profile": key}), int(fixture.band))
 
@@ -101,6 +102,8 @@ static func database(fixture: Dictionary) -> FakeCardDatabase:
 				by_id[id] = CardFactory.make_spell(id, int(spec.cost), spec.get("effects", []), {"keywords": keywords})
 			"weapon":
 				by_id[id] = CardFactory.make_weapon(id, int(spec.cost), int(spec.attack), int(spec.health))
+			"hero_power":
+				by_id[id] = CardFactory.make_hero_power_def(id, spec.get("effects", []))
 	return FakeCardDatabase.new(by_id)
 
 
@@ -183,6 +186,8 @@ static func _lay_out(engine: RulesEngine, fixture: Dictionary, db: FakeCardDatab
 		add_to_hand(engine, MatchRecords.SIDE_BOSS, str(def_id))
 	state.players[MatchRecords.SIDE_BOSS].mana_current = int(boss.mana)
 	state.players[MatchRecords.SIDE_BOSS].mana_max = int(boss.mana)
+	if boss.has("hero_power"):
+		state.players[MatchRecords.SIDE_BOSS].hero_power = {"def_id": str(boss.hero_power), "used_this_turn": false}
 	var player_spec: Dictionary = fixture.player
 	for def_id: Variant in player_spec.board:
 		place(engine, db, MatchRecords.SIDE_PLAYER, str(def_id))

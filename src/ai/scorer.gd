@@ -35,8 +35,8 @@
 ## step and score the player's draw, not the boss's action).
 ##
 ## **Not here** (their stories): candidate enumeration, the `op_value`
-## pre-filter, position handling and the `hero_power` rule behind `f_hp`
-## (story 005 — `f_hp` is 0 until then); the tie-break and `ai_<floor>` draws
+## pre-filter and position handling ([CandidateSet], story 005, which also
+## owns the F9 `hero_power` rule this file applies as `f_hp`); the tie-break and `ai_<floor>` draws
 ## (story 006); DEFENSIVE weight multipliers (story 009 — the scorer takes the
 ## already-multiplied weights and branches on mode only for the Taunt BV bonus);
 ## `choose` scoring for a sandbox Discover (story 010 — until then a boss-side
@@ -59,6 +59,11 @@ extends RefCounted
 const MODE_NORMAL: StringName = &"NORMAL"
 const MODE_LETHAL: StringName = &"LETHAL"
 const MODE_DEFENSIVE: StringName = &"DEFENSIVE"
+
+## C9 `ai_decision.alternatives[≤3]` — a payload shape, not a tuning knob.
+const ALTERNATIVES_MAX: int = 3
+## The [method score] context key for the F9 `spare_mana` test.
+const CONTEXT_CARD_PLAYABLE: String = "card_playable"
 
 ## The eleven F1 features, in F1 order — the keys of every `features`
 ## Dictionary, so `ai_decision.features` can carry it verbatim.
@@ -135,9 +140,12 @@ func _init(db: Variant, keyword_values: Dictionary) -> void:
 ## var scored: Array = await scorer.score_all(base, cmds, profile, Scorer.MODE_NORMAL, {"aoe_seen": seen}, planner)
 ## [/codeblock]
 func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mode: StringName, context: Dictionary, planner: PlannerTask) -> Array:
+	var shared: Dictionary = context.duplicate()
+	if not shared.has(CONTEXT_CARD_PLAYABLE):
+		shared[CONTEXT_CARD_PLAYABLE] = card_playable(sandbox)
 	var scored: Array[Dictionary] = []
 	for index: int in candidates.size():
-		var entry: Dictionary = score(candidates[index], sandbox, profile, mode, context)
+		var entry: Dictionary = score(candidates[index], sandbox, profile, mode, shared)
 		entry["index"] = index
 		scored.append(entry)
 		await planner.checkpoint()
@@ -149,8 +157,11 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## clone; [param profile] the resolved profile (`weights` already multiplied
 ## for DEFENSIVE by story 009; `rules.BV_NORM`, `THREAT_NORM`, `trade_ratio`,
 ## `overextend_cap_aoe`, `assume_aoe` read from it); [param mode] one of the
-## `MODE_*` constants; [param context] `{aoe_seen: bool}` (C1.3, F5 — see
-## [method aoe_seen_in]). Returns `{command, score, features, sim_overflow,
+## `MODE_*` constants; [param context] `{aoe_seen: bool, card_playable:
+## bool}` (`aoe_seen`: C1.3, F5 — see [method aoe_seen_in]; `card_playable`:
+## whether a `play_card` is legal on the base, for the F9 `spare_mana` rule —
+## [method score_all] fills it once, else a `use_hero_power` candidate reads it
+## from the base's `legal_commands()`). Returns `{command, score, features, sim_overflow,
 ## sim_choice_placeholder}`: `features` has exactly [constant FEATURE_KEYS],
 ## each in [−1, 1] (C5); a trial that faults `resolution_overflow`, or is
 ## rejected, scores `-INF` with zero features (`sim_overflow` true for the
@@ -181,8 +192,27 @@ func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictiona
 		trial.end_match()
 	var features: Dictionary = _features(candidate, own, before, after, profile, context, sandbox_before)
 	entry.features = features
-	entry.score = weighted_sum(features, effective_weights(profile, before[_other(own)].board_size == sandbox_before.rule("board_size")))
+	entry.score = weighted_sum(features, effective_weights(profile, before[other_side(own)].board_size == sandbox_before.rule("board_size")))
 	return entry
+
+
+## Whether [param sandbox]'s `legal_commands()` hold a `play_card` (F9
+## `spare_mana`: "no card is playable with the remaining mana").
+static func card_playable(sandbox: RulesEngine) -> bool:
+	for command: Dictionary in sandbox.legal_commands():
+		if str(command.type) == MatchRecords.CMD_PLAY_CARD:
+			return true
+	return false
+
+
+## The `ai_decision.alternatives` of [param scored] (C9: at most
+## [constant ALTERNATIVES_MAX] of `{command, score, features}`, best first) —
+## [param scored] as [method score_all] returns it.
+static func alternatives(scored: Array) -> Array:
+	var out: Array = []
+	for entry: Dictionary in scored.slice(0, ALTERNATIVES_MAX):
+		out.append({"command": entry.command, "score": entry.score, "features": entry.features})
+	return out
 
 
 ## The weights a score uses: [param profile]'s `weights`, with `w_threat`
@@ -330,7 +360,7 @@ func _answer_choices(trial: RulesEngine, own: String) -> bool:
 ## The F1 features of [param candidate] from the two measurements.
 func _features(candidate: Dictionary, own: String, before: Dictionary, after: Dictionary, profile: Dictionary, context: Dictionary, base: RulesEngine) -> Dictionary:
 	var rules: Dictionary = profile.rules
-	var opp: String = _other(own)
+	var opp: String = other_side(own)
 	var b_own: Dictionary = before[own]
 	var a_own: Dictionary = after[own]
 	var b_opp: Dictionary = before[opp]
@@ -362,6 +392,9 @@ func _features(candidate: Dictionary, own: String, before: Dictionary, after: Di
 	var cap: int = int(rules.overextend_cap_aoe) if aoe_seen else board_size
 	features.f_over = -float(maxi(0, a_own.board_size - cap)) / float(board_size)
 	features.f_heal = float(maxi(0, a_own.health - b_own.health)) / float(maxi(1, b_own.max_health - b_own.health))
+	if type == MatchRecords.CMD_USE_HERO_POWER:
+		var playable: bool = bool(context[CONTEXT_CARD_PLAYABLE]) if context.has(CONTEXT_CARD_PLAYABLE) else card_playable(base)
+		features.f_hp = CandidateSet.hero_power_feature(str(rules.hero_power), playable)
 	if type == MatchRecords.CMD_PLAY_CARD:
 		var hand_index: int = int(candidate.get("hand_index", -1))
 		if hand_index >= 0 and hand_index < b_own.hand_defs.size():
@@ -454,7 +487,7 @@ static func _ops_aoe(ops: Array, inherited: Variant) -> bool:
 				elif _ops_aoe(inner, selector):
 					return true
 			continue
-		if not AOE_SELECTORS.has(_selector_name(selector)):
+		if not AOE_SELECTORS.has(selector_name(selector)):
 			continue
 		if AOE_OPS.has(op_name) or op_name == OP_SET_STATS:
 			return true
@@ -466,7 +499,9 @@ static func _ops_aoe(ops: Array, inherited: Variant) -> bool:
 	return false
 
 
-static func _selector_name(selector: Variant) -> String:
+## The Card Effects C3 selector name of [param selector] — a String, or the
+## `selector` of an object-form selector; "" for none.
+static func selector_name(selector: Variant) -> String:
 	if selector is Dictionary:
 		return str(selector.get("selector", ""))
 	return str(selector) if selector is String else ""
@@ -478,7 +513,8 @@ static func _definition(db: Variant, def_id: String) -> Variant:
 	return db.card(def_id)
 
 
-static func _other(side: String) -> String:
+## The opponent of [param side] (`player` ↔ `boss`).
+static func other_side(side: String) -> String:
 	return MatchRecords.SIDE_PLAYER if side == MatchRecords.SIDE_BOSS else MatchRecords.SIDE_BOSS
 
 
