@@ -1,12 +1,12 @@
 # Story 013: Attack resolution and simultaneous damage
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -66,15 +66,9 @@ Legality is evaluated once, at declaration. After `on_attack` triggers the engin
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (`attack` resolution steps 1–7)
-- `tests/helpers/test_effect_resolver.gd` (scripted `on_attack` destroy / summon-Taunt fixtures)
-- `tests/unit/match_rules/match_rules_attack_resolution_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` (`_do_attack` C8 steps 1–7 replacing story 012's acceptance stub: `_declare_attack_step`, the `on_attack` trigger step under `attack_declared`, the re-check with `_cancel_attack_step`, `_attack_damage_step` — snapshot, DD-X11, weapon as source, durability, `attacks_used`)
+- `tests/helpers/test_effect_resolver.gd` (additive: `attacker_is` guard, `add_on_attack_destroy`, `add_on_attack_summon` and their passes)
+- `tests/unit/match_rules/match_rules_attack_resolution_test.gd` (new, 8 tests)
 
 ## QA Test Cases
 
@@ -90,7 +84,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_attack_resolution_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (8 test functions)
 
 ---
 
@@ -98,3 +92,19 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-012-attack-legality.md`
 - Unlocks: `production/epics/match-rules/story-014-combat-keywords.md`, `production/epics/match-rules/story-015-freeze-thaw-silence.md`
+
+## Readiness
+**2026-11-04 — READY** (`/story-readiness` read by hand, sprint 4 lane 1). **Gate entry condition 3 (N-05) lifted:** `design/design-decisions.md` DD-X11 (owner, 2026-11-03) carries the decision (a defending hero never deals damage back) and C8 step 4 is worded to match. Design: C8 steps 1–7 / Edge Cases "Combat" cited, criteria testable. Architecture: ADR-0007, 0003 Accepted; TR-match-rules-005 / 006 active; Manifest Version 2026-11-03 = current. Scope: M, Out of Scope stated, dependency story 012 Complete (2f15237). No open markers; no asset references. DoD: 4 ACs, Type Logic, Test Evidence path, `submit()` ≤ 5 ms noted. QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:02:16 UTC, ended 03:06:26 UTC)
+**Criteria**: 4/4 passing — AC-16 (`test_simultaneous_damage_lands_both_hits_in_one_step_in_the_c8_order`: 3 / 2 `damage_taken`, consecutive `damage_dealt` A→D then D→A, `attacks_used 1`, order `attack_declared`, `trigger_resolved`, on_attack event, the hits, `attack_resolved` last), AC-19 (`test_a_hero_weapon_attack_takes_the_minions_strike_back_and_spends_durability`, `test_a_hero_weapon_attack_on_the_next_turn_kills_and_breaks_in_one_death_check` — `damage_dealt`, `damage_dealt`, `weapon_durability_changed`, `minion_died`, `weapon_destroyed` consecutive), AC-21 (`test_an_on_attack_trigger_that_destroys_the_defender_cancels_the_attack`, `test_an_on_attack_trigger_that_removes_the_attacker_cancels_the_attack`, `test_a_taunt_summoned_during_on_attack_does_not_redirect_the_declared_attack`), C8 step 4 / DD-X11 (`test_a_defending_hero_never_deals_damage_back_even_with_a_weapon`, `test_the_defender_strikes_back_with_its_attack_snapshotted_at_the_damage_step`). Watched fail: 8 of 8 against story 012's acceptance-only step. Mutants: re-reading `attack(D)` for the strike-back fails the snapshot test; dropping the "D is a minion" condition fails the DD-X11 test.
+**Decisions recorded**:
+- `on_attack` ctx: `{side: A.controller, candidates, attacker, defender, source: attacker, subject: defender}` (card-effects C2: `trigger_source` = attacker, `trigger_subject` = defender); the step runs under `attack_declared`'s `seq`. The damage step and `attack_cancelled` / `attack_resolved` are direct consequences of the command (`cause_seq` 0).
+- A hero with a weapon hits with the **weapon id** as `source`: F2 reads the weapon's Lifesteal / Poisonous, and `damage_dealt_by_card` is credited to the weapon's `def_id`. The story's "the hero as the damage dealer for stats" has no separate field to land in (`apply_damage` takes one source); flagged for review.
+- `attack_cancelled` with the attacker gone (destroyed by its own `on_attack`) increments nothing (there is no record left to count on).
+- The snapshot test drops the defender's attack from a *collecting* `on_damage` script on the resolver double, the only hook inside the step between the two hits; a real resolver only queues there, so in production the snapshot protects against the same mutation reached through any future in-step path.
+**Deviations** (advisory): Stealth removal at declaration (C8 step 1, listed in this story's notes) is left to story 014, whose Files and AC-26 own it.
+**Test Evidence**: `tests/unit/match_rules/match_rules_attack_resolution_test.gd` (8 tests); full suite 1102 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — headless rules code; no scene, node or screen renders an attack yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode); `/code-review` reserved for this story at M1 (sprint 4 plan)

@@ -1471,20 +1471,87 @@ func _append_attack_commands(legal: Array, side: String) -> void:
 				legal.append(MatchRecords.attack(side, int(attacker.entity_id), int(defender.entity_id)))
 
 
-## An accepted `attack` (C8). Story 012 records the acceptance as one step:
-## `attack_declared {attacker, defender}`, `attacks_used += 1`,
-## `attack_resolved {attacker, defender}`. Story 013 replaces it with C8
-## resolution steps 1–7.
+## An accepted `attack` (C8 resolution, story 013), each numbered step its
+## own engine step with its C10 loop:
+## 1. `attack_declared {attacker, defender}`.
+## 2. Trigger point `on_attack {side, candidates, attacker, defender, source:
+##    attacker, subject: defender}` under `attack_declared`; each response is
+##    a queued step with the full loop.
+## 3. Re-check: A or D no longer in play (died, bounced, transformed) →
+##    `attack_cancelled {attacker, defender}`, A's `attacks_used += 1` when A
+##    is still there; legality is **not** re-evaluated (a Taunt gained or lost
+##    in step 2 changes nothing).
+## 4.–5. [method _attack_damage_step]: both hits in one step, then
+##    `attacks_used += 1`.
+## 6. The C10 loop of that step (`on_damage` triggers, deaths, auras; a
+##    weapon at durability ≤ 0 breaks there).
+## 7. `attack_resolved {attacker, defender}`; [method submit] then runs
+##    `win_loss_check()`.
 func _do_attack(command: Dictionary) -> void:
-	_run_step(_attack_accepted_step.bind(int(command.attacker_id), int(command.target_id)))
-
-
-func _attack_accepted_step(attacker_id: int, defender_id: int) -> void:
+	var attacker_id: int = int(command.attacker_id)
+	var defender_id: int = int(command.target_id)
 	var payload: Dictionary = {"attacker": attacker_id, "defender": defender_id}
-	emit(&"attack_declared", payload)
-	var attacker: Dictionary = _character(attacker_id)
-	attacker.attacks_used = int(attacker.attacks_used) + 1
+	var side: String = str(_character(attacker_id).controller)
+	var declared: Dictionary = {"cause": 0}
+	_run_step(_declare_attack_step.bind(payload, declared))
+	if _halted():
+		return
+	var ctx: Dictionary = {
+		"side": side, "candidates": _candidates_in_order(), "attacker": attacker_id,
+		"defender": defender_id, "source": attacker_id, "subject": defender_id,
+	}
+	_run_step(_resolve_step.bind(&"on_attack", ctx), int(declared.cause))
+	if _halted():
+		return
+	if _character(attacker_id).is_empty() or _character(defender_id).is_empty():
+		_run_step(_cancel_attack_step.bind(payload))
+	else:
+		_run_step(_attack_damage_step.bind(attacker_id, defender_id))
+	if _halted():
+		return
 	emit(&"attack_resolved", payload)
+
+
+## C8 step 1: `attack_declared`; its `seq` goes into [param declared]`.cause`
+## (the `on_attack` step runs under it).
+func _declare_attack_step(payload: Dictionary, declared: Dictionary) -> void:
+	declared.cause = emit(&"attack_declared", payload)
+
+
+## C8 step 3, the attack cancelled: `attack_cancelled`, and the swing still
+## counts for an attacker that is still in play.
+func _cancel_attack_step(payload: Dictionary) -> void:
+	emit(&"attack_cancelled", payload)
+	var attacker: Dictionary = _character(int(payload.attacker))
+	if not attacker.is_empty():
+		attacker.attacks_used = int(attacker.attacks_used) + 1
+
+
+## C8 steps 4–5 as one step (DD-M11): `a_atk = attack(A)` and `d_atk =
+## attack(D)` are read once, before either hit (the snapshot); then
+## `apply_damage(D, a_atk, source)` and — only when `d_atk > 0` and D is a
+## **minion** — `apply_damage(A, d_atk, D)`: a defending hero never deals
+## damage back, weapon or not (DD-X11). No death check between the hits; F2
+## applies Divine Shield, Poisonous and Lifesteal inside each. A hero attacking
+## with a weapon hits with the weapon as the source (its keywords count, and
+## `damage_dealt_by_card` attributes to the weapon's `def_id`) and the weapon
+## loses 1 durability in this step. Then `A.attacks_used += 1`.
+func _attack_damage_step(attacker_id: int, defender_id: int) -> void:
+	var attacker: Dictionary = _character(attacker_id)
+	var defender: Dictionary = _character(defender_id)
+	var a_atk: int = attack(attacker)
+	var d_atk: int = attack(defender)
+	var defender_is_minion: bool = defender.kind == MatchRecords.KIND_MINION
+	var weapon: Variant = _weapon_of(attacker)
+	var source: int = int(weapon.entity_id) if weapon != null else attacker_id
+	@warning_ignore("return_value_discarded")
+	apply_damage(defender_id, a_atk, source)
+	if d_atk > 0 and defender_is_minion:
+		@warning_ignore("return_value_discarded")
+		apply_damage(attacker_id, d_atk, defender_id)
+	if weapon != null:
+		modify_durability(int(weapon.entity_id), -1)
+	attacker.attacks_used = int(attacker.attacks_used) + 1
 
 
 ## A value copy (`duplicate(true)`) of the record with [param entity_id] —

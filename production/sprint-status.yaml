@@ -43,7 +43,7 @@ stories:
     name: "Attack resolution"
     file: "production/epics/match-rules/story-013-attack-resolution.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 1
@@ -52,7 +52,7 @@ stories:
     contract: false
     blocker: ""
     note: "DD-X11 (defending hero deals no damage back); edits test_effect_resolver.gd; /code-review at M1"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-014"
     name: "Combat keywords"
     file: "production/epics/match-rules/story-014-combat-keywords.md"
