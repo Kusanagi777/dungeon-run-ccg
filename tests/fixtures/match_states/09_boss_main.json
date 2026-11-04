@@ -1,0 +1,12 @@
+{
+  "name": "boss_main",
+  "description": "Boss turn 2 Main facing one player minion: every legal command is the boss's; the player's commands are NOT_YOUR_TURN.",
+  "sample_seed": 109,
+  "decks": {"player": [["fx_grunt", 15]], "boss": [["fx_seer", 8], ["fx_grunt", 7]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"pick": "play_card", "issuer": "player", "card_id": "fx_grunt"},
+    {"type": "end_turn", "issuer": "player"}
+  ],
+  "expect": {"phase": "main", "active_side": "boss", "turn": 2, "boards": {"player": 1, "boss": 0}}
+}

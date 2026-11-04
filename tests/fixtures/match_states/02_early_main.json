@@ -1,0 +1,10 @@
+{
+  "name": "early_main",
+  "description": "Player turn 1 Main with 1 mana: 1-cost minions and a required-target spell in hand, empty boards.",
+  "sample_seed": 102,
+  "decks": {"player": [["fx_grunt", 8], ["fx_bolt", 7]], "boss": [["fx_grunt", 15]]},
+  "commands": [
+    {"pick": "mulligan"}
+  ],
+  "expect": {"phase": "main", "active_side": "player", "turn": 1}
+}

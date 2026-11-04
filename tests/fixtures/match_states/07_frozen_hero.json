@@ -1,0 +1,14 @@
+{
+  "name": "frozen_hero",
+  "description": "Player turn 3 Main: the player's hero holds a weapon but was frozen on the boss's turn, so it cannot attack.",
+  "sample_seed": 107,
+  "decks": {"player": [["fx_axe", 15]], "boss": [["fx_frost", 15]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"pick": "play_card", "issuer": "player", "card_id": "fx_axe"},
+    {"type": "end_turn", "issuer": "player"},
+    {"pick": "play_card", "issuer": "boss", "card_id": "fx_frost"},
+    {"type": "end_turn", "issuer": "boss"}
+  ],
+  "expect": {"phase": "main", "active_side": "player", "turn": 3, "weapon": "player", "frozen_hero": "player"}
+}

@@ -1,0 +1,12 @@
+{
+  "name": "empty_decks",
+  "description": "Player turn 3 Main with both decks empty from setup (every draw so far was fatigue) and empty hands.",
+  "sample_seed": 106,
+  "decks": {"player": [], "boss": []},
+  "commands": [
+    {"pick": "mulligan"},
+    {"type": "end_turn", "issuer": "player"},
+    {"type": "end_turn", "issuer": "boss"}
+  ],
+  "expect": {"phase": "main", "active_side": "player", "turn": 3, "decks": {"player": 0, "boss": 0}}
+}

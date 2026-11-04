@@ -39,6 +39,10 @@
 ##   `run` as `run.call(engine, ctx)` — one effect pass, one C10 step.
 ##   Fixture builders: [method add_deathrattle_summon], [method
 ##   add_heal_ping_pong] (AC-30), [member auras].
+## - **Silence** (match-rules story 015): a candidate whose record (or, for a
+##   Deathrattle, raise-time snapshot) is `silenced` answers no registered
+##   trigger, and a silenced [member auras] source emits nothing — so "no
+##   Deathrattle after Silence" is observable with no Card Effects code.
 ##
 ## Scripts are bound methods or lambdas that capture nothing mutable (lambdas
 ## capture locals by value — current-best-practices "GDScript (4.5+)").
@@ -109,6 +113,9 @@ var passes: Array[Dictionary] = []
 ## health_delta}` — each living source buffs every **other** minion on its
 ## own board, sources in board order, player side first.
 var auras: Dictionary = {}
+## The double [method clone_unbound] last built (match-rules story 017), as a
+## weak reference so the live double never keeps a clone alive; null before.
+var last_clone: WeakRef = null
 
 
 ## Registers an event-trigger responder: entity [param source_id] responds to
@@ -206,6 +213,8 @@ func resolve(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 		script.call(engine, ctx)
 	out.assign(queued.get(point, []))
 	for candidate: Variant in ctx.get("candidates", []):
+		if _silenced(ctx, int(candidate)):
+			continue
 		for trigger: Dictionary in triggers:
 			if trigger.point != point or int(trigger.source_id) != int(candidate):
 				continue
@@ -258,7 +267,7 @@ func recompute_auras() -> void:
 		var board: Array = engine.state().players[side].board
 		for source: Dictionary in board:
 			var aura: Variant = auras.get(int(source.entity_id))
-			if aura == null:
+			if aura == null or bool(source.get("silenced", false)):
 				continue
 			for other: Dictionary in board:
 				if other.entity_id == source.entity_id:
@@ -269,6 +278,65 @@ func recompute_auras() -> void:
 				})
 	for script: Callable in aura_scripts:
 		script.call(engine)
+
+
+## The fresh, unbound resolver `RulesEngine.clone()` binds to its clone
+## (match-rules story 017; ADR-0007 Decision 3 — never the live resolver; the
+## production engine builds `EffectResolver.new(db, effects_config)` instead).
+## The scripted configuration is copied — [member scripts], [member queued],
+## [member hook_scripts], [member targets_by_def], [member specs_by_def],
+## [member aura_scripts], [member auras], [member triggers],
+## [member resume_script] — so the clone resolves exactly as the live double
+## would; every record ([member bind_calls], [member resolve_calls],
+## [member hook_calls], [member passes], [member resume_calls], the counters)
+## starts empty and [member engine] is null until `bind`. A trigger's `run` /
+## `guard` that is a bound method of this double (the fixture builders) is
+## rebound to the new double; a test suite's Callables are shared (they take
+## the engine as their first argument). Recorded in [member last_clone].
+## [codeblock]
+## var sandbox: RulesEngine = engine.clone()
+## var clone_resolver: TestEffectResolver = resolver.last_clone.get_ref()
+## [/codeblock]
+func clone_unbound() -> TestEffectResolver:
+	var out: TestEffectResolver = TestEffectResolver.new()
+	out.scripts = scripts.duplicate(true)
+	out.queued = queued.duplicate(true)
+	out.hook_scripts = hook_scripts.duplicate()
+	out.targets_by_def = targets_by_def.duplicate(true)
+	out.specs_by_def = specs_by_def.duplicate(true)
+	out.aura_scripts = aura_scripts.duplicate()
+	out.auras = auras.duplicate(true)
+	out.resume_script = resume_script
+	for trigger: Dictionary in triggers:
+		var copy: Dictionary = trigger.duplicate()
+		copy.run = _rebound(trigger.run, out)
+		copy.guard = _rebound(trigger.guard, out)
+		out.triggers.append(copy)
+	last_clone = weakref(out)
+	return out
+
+
+## [param callable] re-targeted at [param target] when it is one of this
+## double's own (bound) methods, else [param callable] itself.
+func _rebound(callable: Callable, target: TestEffectResolver) -> Callable:
+	if not callable.is_valid() or callable.get_object() != self:
+		return callable
+	return Callable(target, callable.get_method()).bindv(callable.get_bound_arguments())
+
+
+## Whether the candidate [param entity_id] is Silenced (match-rules story 015,
+## C13 step 3: "Card Effects skips the definition's triggers for this
+## entity"): read from `ctx.snapshot` when it is that entity's (a Deathrattle
+## — the source has just left play), else from its live record. A silenced
+## candidate answers no registered trigger; scripted [member queued] entries
+## and [member scripts] are not entity triggers and still run.
+func _silenced(ctx: Dictionary, entity_id: int) -> bool:
+	var snapshot: Variant = ctx.get("snapshot")
+	if snapshot is Dictionary and int((snapshot as Dictionary).get("entity_id", RulesEngine.NO_ENTITY)) == entity_id:
+		return bool((snapshot as Dictionary).get("silenced", false))
+	if engine == null or engine.state() == null:
+		return false
+	return bool(engine.state_snapshot(entity_id).get("silenced", false))
 
 
 func _summon_from_snapshot(bound_engine: RulesEngine, ctx: Dictionary, def_id: String, count: int) -> void:
