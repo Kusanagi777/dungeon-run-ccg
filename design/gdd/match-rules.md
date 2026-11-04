@@ -507,7 +507,7 @@ the target (aura enchantments it *receives* from other sources are re-applied by
 (2) clear all keywords, Deathrattles and triggered effects granted by the definition or by
 enchantments; (3) set `silenced = true` so Card Effects skips the definition's triggers for this
 entity; (4) clamp damage with F6's Silence rule — `damage_taken = max(0, damage_taken −
-(old_max_health − new_max_health))` — so a buffed, damaged minion keeps its current health where
+max(0, old_max_health − new_max_health))` — so a buffed, damaged minion keeps its current health where
 possible but never exceeds its new maximum; (5) `frozen = false`; (6) emit `silenced`. Silence
 does **not** clear `summoning_sick`, `attacks_used` or `pending_destroy`, and does not restore
 health lost to damage.
@@ -838,7 +838,7 @@ The `health` formula is defined as:
 
 On **aura loss / enchantment removal**: `damage_taken` is unchanged, so `health` can fall to ≤ 0
 and the minion dies at the next death check. On **Silence**:
-`damage_taken' = max(0, damage_taken − (max_health_old − max_health_new))`.
+`damage_taken' = max(0, damage_taken − max(0, max_health_old − max_health_new))`. *(2026-11-04, sprint 4: MR-015 review S2 — removing a health **debuff** raises the maximum and must not add damage, so only a lost maximum is forgiven.)*
 
 **Variables:**
 | Variable | Type | Range | Source | Description |
