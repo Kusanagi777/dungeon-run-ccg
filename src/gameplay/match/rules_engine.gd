@@ -826,7 +826,10 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 ## min(mana_current + n, max_mana)`, `temporary_crystals += temp`, then
 ## `mana_added {side, n, temporary: true}`. `crystal_bonus` is untouched, so
 ## the next Start-step refill (F4) ignores them; the End step takes them back
-## ([method _expire_end_of_turn]). `mana_current ≤ mana_max` holds throughout.
+## ([method _expire_end_of_turn]). Crystals granted on the opponent's turn
+## last until [param side]'s next Start step, whose refill discards them
+## (`temporary_crystals = 0`), so no End step ever cuts `mana_max` below F4
+## (code review MR-011 S5). `mana_current ≤ mana_max` holds throughout.
 ## [codeblock]
 ## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
 ## engine.add_mana("player", 2, true)    # 1/3 → 3/5 this turn only
@@ -2275,8 +2278,13 @@ func _turn_begin(side: String) -> void:
 	emit(&"turn_started", {"turn": _state.turn, "side": side})
 	if _halted():
 		return
-	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill
+	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill.
+	#    F4 ignores temporary crystals, so the refill discards any still held —
+	#    ones granted on the opponent's turn outlive that turn's End step, and
+	#    a later own End step must not take them back below F4 (code review
+	#    MR-011 S5)
 	var old_max: int = int(player.mana_max)
+	player.temporary_crystals = 0
 	player.mana_max = mini(int(player.turns_taken) + int(player.crystal_bonus), rule("max_mana"))
 	if int(player.mana_max) > old_max:
 		emit(&"crystal_gained", {"side": side, "mana_max": player.mana_max, "gained": int(player.mana_max) - old_max})
