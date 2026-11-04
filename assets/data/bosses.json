@@ -192,6 +192,135 @@
         "key": "boss.boss_gatekeeper.intro",
         "en": "Every minion The Gatekeeper plays has Taunt."
       }
+    },
+    {
+      "id": "boss_rot_warden",
+      "name": "The Rot Warden",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "on_minion_died",
+        "scope": {
+          "who": "friendly_minion"
+        },
+        "targets": "enemy_hero",
+        "ops": [
+          {
+            "op": "damage",
+            "amount": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_rot_warden.passive",
+        "en": "Whenever a boss minion dies, deal 1 damage to the enemy hero."
+      },
+      "deck": [
+        "boss_rot_zombie",
+        "boss_rot_zombie",
+        "boss_rot_zombie",
+        "boss_mass_rites",
+        "boss_mass_rites",
+        "boss_mass_rites",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_spark_fiend",
+        "neutral_spark_fiend",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute"
+      ],
+      "ai_profile": "boss_rot_warden",
+      "tags": [
+        "deathrattle"
+      ],
+      "intro_text": {
+        "key": "boss.boss_rot_warden.intro",
+        "en": "Each time one of The Rot Warden's minions dies, it deals 1 damage to you."
+      }
+    },
+    {
+      "id": "boss_hollow_king",
+      "name": "The Hollow King",
+      "band": 3,
+      "health": 50,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": "all_friendly_minions",
+        "ops": [
+          {
+            "op": "buff",
+            "attack": 1,
+            "health": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_hollow_king.passive",
+        "en": "At the start of the boss's turn, give the boss's minions +1/+1."
+      },
+      "deck": [
+        "boss_hollow_knight",
+        "boss_hollow_knight",
+        "boss_hollow_knight",
+        "boss_crown_of_thorns",
+        "boss_crown_of_thorns",
+        "boss_crown_of_thorns",
+        "war_shield_maiden",
+        "war_shield_maiden",
+        "war_shieldwall_veteran",
+        "war_shieldwall_veteran",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_torch_imp",
+        "neutral_torch_imp"
+      ],
+      "ai_profile": "boss_hollow_king",
+      "tags": [
+        "wall"
+      ],
+      "intro_text": {
+        "key": "boss.boss_hollow_king.intro",
+        "en": "The Hollow King gives its minions +1/+1 at the start of each of its turns."
+      }
     }
   ]
 }

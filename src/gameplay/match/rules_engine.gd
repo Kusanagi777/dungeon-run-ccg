@@ -1504,7 +1504,9 @@ func health(character: Dictionary) -> int:
 
 
 ## C1: `attack = max(0, base_attack + Σ attack_delta + weapon.attack if hero)`.
-## A hero's weapon is its controller's `PlayerState.weapon` in the loaded state.
+## A hero's weapon is its controller's `PlayerState.weapon` in the loaded state;
+## its `attack` includes the weapon's own enchantments (card-effects C5 `buff`
+## on weapons, "attack only" — Whetstone, row 8; card-effects story 011).
 func attack(character: Dictionary) -> int:
 	var total: int = int(character.base_attack)
 	for enchantment: Dictionary in character.enchantments:
@@ -1512,6 +1514,8 @@ func attack(character: Dictionary) -> int:
 	var weapon: Variant = _weapon_of(character)
 	if weapon != null:
 		total += int(weapon.attack)
+		for enchantment: Dictionary in weapon.enchantments:
+			total += int(enchantment.attack_delta)
 	return maxi(0, total)
 
 
@@ -2618,6 +2622,9 @@ func _park() -> void:
 func _do_choose(option_index: int) -> void:
 	var choice: Dictionary = _state.pending_choice
 	var action: Dictionary = _state.suspended_action
+	# card-effects story 010 (DD-X04; rng-event-log catalogue): choice_requested,
+	# discover_offered, choice_made and discover_picked share one cause_seq.
+	_cause_seq = int(action.get("cause_seq", 0))
 	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
 	if _halted():
 		return

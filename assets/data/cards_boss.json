@@ -202,6 +202,113 @@
         "en": ""
       },
       "token": true
+    },
+    {
+      "id": "boss_rot_zombie",
+      "name": "Rot Zombie",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_rot_zombie.text",
+        "en": "Deathrattle: Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "boss_mass_rites",
+      "name": "Mass Rites",
+      "set": "boss",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "retrigger",
+              "trigger": "deathrattle"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_mass_rites.text",
+        "en": "Trigger the Deathrattles of all friendly minions."
+      }
+    },
+    {
+      "id": "boss_hollow_knight",
+      "name": "Hollow Knight",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_hollow_knight.text",
+        "en": "Divine Shield."
+      }
+    },
+    {
+      "id": "boss_crown_of_thorns",
+      "name": "Crown of Thorns",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            },
+            {
+              "op": "give_keyword",
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_crown_of_thorns.text",
+        "en": "Give your minions +1/+1 and Taunt."
+      }
     }
   ]
 }

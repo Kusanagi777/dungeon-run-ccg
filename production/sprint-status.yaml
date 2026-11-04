@@ -197,8 +197,8 @@ stories:
     name: "Hero powers"
     file: "production/epics/card-effects/story-011-hero-powers.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 3)"
     estimate_days: 1
     lane: 3
     wave: 2
@@ -206,7 +206,7 @@ stories:
     contract: false
     blocker: ""
     note: "HeroPowerDef from CE-005 fixture rows 8/16/25; unblocks MUI-005"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-012"
     name: "Auras and enchantments"
     file: "production/epics/card-effects/story-012-auras-enchantments.md"
@@ -225,21 +225,21 @@ stories:
     name: "Discover and Choose One"
     file: "production/epics/card-effects/story-010-discover-choose-one.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer"
     estimate_days: 3
     lane: 6
     wave: 2
     serialised: false
     contract: false
     blocker: ""
-    note: "needs CE-007 and MR-016 merged at M1; follows MR-016's after-cast rule"
-    completed: ""
+    note: "needs CE-007 and MR-016 merged at M1; follows MR-016's after-cast rule (NC-2 green)"
+    completed: "2026-11-04"
   - id: "card-database-009"
     name: "Load and memory budget"
     file: "production/epics/card-database/story-009-load-and-memory-budget.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -248,12 +248,12 @@ stories:
     contract: false
     blocker: ""
     note: "edits test_constants.gd"
-    completed: ""
+    completed: "2026-11-04"
   - id: "boot-composition-root-007"
     name: "Boot responsibilities in the control manifest"
     file: "production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -261,8 +261,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "after the L4 W1 fix buffer merges"
-    completed: ""
+    note: "after the L4 W1 fix buffer merges; condition 12 handed over, /create-control-manifest update pending"
+    completed: "2026-11-04"
   - id: "content-002"
     name: "MVP-1 War set"
     file: "production/epics/content/story-002-mvp-1-war-set.md"
@@ -295,30 +295,30 @@ stories:
     name: "MVP-1 bundles"
     file: "production/epics/content/story-005-mvp-1-bundles.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "game-designer (data), lane 5"
     estimate_days: 0.5
     lane: 5
     wave: 2
     serialised: false
     contract: true
     blocker: ""
-    note: "AC-3 Reward Draft bundle_pool_min not registered (reward_draft pending)"
-    completed: ""
+    note: "AC-3 checked against the reward-draft F5 GDD value 9 (option a; bundle_pool_min not registered, reward_draft pending); min_bundle_pool 10 unchanged"
+    completed: "2026-11-04"
   - id: "content-004"
     name: "MVP-1 bosses: Rot Warden, Hollow King"
     file: "production/epics/content/story-004-mvp-1-bosses-rot-warden-hollow-king.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "game-designer (data), lane 5"
     estimate_days: 1
     lane: 5
     wave: 2
     serialised: false
     contract: true
     blocker: ""
-    note: "same bosses.json/cards_boss.json as content 003"
-    completed: ""
+    note: "same bosses.json/cards_boss.json as content 003; zero E_AI_* through the load (7b registered); neutral_gravekeeper slots on the Edge-Cases fallback (Hollow King boss cards x3, Rot Warden crypt_brute x2)"
+    completed: "2026-11-04"
   - id: "content-008"
     name: "Content budget checks"
     file: "production/epics/content/story-008-content-budget-checks.md"
