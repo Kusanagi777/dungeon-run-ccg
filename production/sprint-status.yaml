@@ -239,7 +239,7 @@ stories:
     name: "Load and memory budget"
     file: "production/epics/card-database/story-009-load-and-memory-budget.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -248,7 +248,7 @@ stories:
     contract: false
     blocker: ""
     note: "edits test_constants.gd"
-    completed: ""
+    completed: "2026-11-04"
   - id: "boot-composition-root-007"
     name: "Boot responsibilities in the control manifest"
     file: "production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md"
