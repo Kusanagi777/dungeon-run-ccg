@@ -225,16 +225,16 @@ stories:
     name: "Discover and Choose One"
     file: "production/epics/card-effects/story-010-discover-choose-one.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer"
     estimate_days: 3
     lane: 6
     wave: 2
     serialised: false
     contract: false
     blocker: ""
-    note: "needs CE-007 and MR-016 merged at M1; follows MR-016's after-cast rule"
-    completed: ""
+    note: "needs CE-007 and MR-016 merged at M1; follows MR-016's after-cast rule (NC-2 green)"
+    completed: "2026-11-04"
   - id: "card-database-009"
     name: "Load and memory budget"
     file: "production/epics/card-database/story-009-load-and-memory-budget.md"

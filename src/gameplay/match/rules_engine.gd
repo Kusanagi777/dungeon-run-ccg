@@ -2562,6 +2562,9 @@ func _park() -> void:
 func _do_choose(option_index: int) -> void:
 	var choice: Dictionary = _state.pending_choice
 	var action: Dictionary = _state.suspended_action
+	# card-effects story 010 (DD-X04; rng-event-log catalogue): choice_requested,
+	# discover_offered, choice_made and discover_picked share one cause_seq.
+	_cause_seq = int(action.get("cause_seq", 0))
 	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
 	if _halted():
 		return
