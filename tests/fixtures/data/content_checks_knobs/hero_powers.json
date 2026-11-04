@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "power_test",
+      "name": "Test Power",
+      "cost": 2,
+      "effects": [],
+      "text": {
+        "key": "power.power_test.text",
+        "en": "Test power."
+      }
+    }
+  ]
+}

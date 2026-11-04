@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_war",
+      "name": "Test Hero",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_test",
+      "starter_deck": [
+        "war_m1",
+        "war_m1",
+        "neutral_n1",
+        "neutral_n1",
+        "war_m2",
+        "war_m2",
+        "neutral_n2",
+        "neutral_n2",
+        "war_m3",
+        "war_m3",
+        "neutral_n3",
+        "neutral_n3",
+        "neutral_n4",
+        "neutral_n4",
+        "war_m5"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_war.text",
+        "en": "Test hero."
+      }
+    }
+  ]
+}

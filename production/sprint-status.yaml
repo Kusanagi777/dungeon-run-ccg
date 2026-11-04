@@ -323,7 +323,8 @@ stories:
     name: "Content budget checks"
     file: "production/epics/content/story-008-content-budget-checks.md"
     priority: should-have
-    status: backlog
+    status: done
+    completed: "2026-11-04"
     owner: ""
     estimate_days: 1
     lane: 6

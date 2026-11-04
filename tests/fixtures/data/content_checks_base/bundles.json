@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_war_a",
+      "name": "War a",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_m1",
+        "war_m2",
+        "war_m3"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_a.text",
+        "en": "Test bundle."
+      }
+    },
+    {
+      "id": "bundle_war_b",
+      "name": "War b",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_w2",
+        "war_w4",
+        "war_s3"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_b.text",
+        "en": "Test bundle."
+      }
+    },
+    {
+      "id": "bundle_war_c",
+      "name": "War c",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_m5",
+        "war_long_text",
+        "war_m1"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_c.text",
+        "en": "Test bundle."
+      }
+    }
+  ]
+}

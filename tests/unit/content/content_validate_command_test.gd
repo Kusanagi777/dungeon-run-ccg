@@ -86,7 +86,11 @@ func test_run_ready_root_exits_0_with_the_report_text() -> void:
 	assert_str(out.state).is_equal("Ready")
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(READY_ROOT))
 	db.load(ValidatorStubs.accept_all())
-	assert_str(out.report_text).starts_with(db.report().to_text())
+	# The printed report is the load's plus the content story 008 checks, merged.
+	var expected: ValidationReport = ValidationReport.new()
+	for e: Dictionary in db.report().entries() + ContentValidator.run_checks(db, db.config("content_budgets"), db.config("heroes_balance")):
+		expected.add(e.severity, e.code, e.file, e.record_id, e.field, e.message)
+	assert_str(out.report_text).starts_with(expected.to_text())
 
 
 func test_run_missing_file_root_exits_1_and_prints_e_missing_file() -> void:
