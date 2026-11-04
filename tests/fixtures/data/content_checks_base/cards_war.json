@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_m1",
+      "name": "War M1",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_m1.text",
+        "en": "Test."
+      },
+      "attack": 1,
+      "health": 2
+    },
+    {
+      "id": "war_long_text",
+      "name": "War Long Text",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_long_text.text",
+        "en": "Deal 1 damage to a minion. If it survives, give it +1/+1 and draw a card for each all"
+      }
+    },
+    {
+      "id": "war_m2",
+      "name": "War M2",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_m2.text",
+        "en": "Test."
+      },
+      "attack": 2,
+      "health": 3
+    },
+    {
+      "id": "war_w2",
+      "name": "War W2",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_w2.text",
+        "en": "Test."
+      },
+      "attack": 2,
+      "durability": 2
+    },
+    {
+      "id": "war_m3",
+      "name": "War M3",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_m3.text",
+        "en": "Test."
+      },
+      "attack": 3,
+      "health": 4
+    },
+    {
+      "id": "war_s3",
+      "name": "War S3",
+      "set": "war",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_s3.text",
+        "en": "Test."
+      }
+    },
+    {
+      "id": "war_w4",
+      "name": "War W4",
+      "set": "war",
+      "type": "weapon",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_w4.text",
+        "en": "Test."
+      },
+      "attack": 3,
+      "durability": 3
+    },
+    {
+      "id": "war_m5",
+      "name": "War M5",
+      "set": "war",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_m5.text",
+        "en": "Test."
+      },
+      "attack": 5,
+      "health": 6
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_n1",
+      "name": "Neutral N1",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_n1.text",
+        "en": "Test."
+      },
+      "attack": 1,
+      "health": 2
+    },
+    {
+      "id": "neutral_n2",
+      "name": "Neutral N2",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_n2.text",
+        "en": "Test."
+      },
+      "attack": 2,
+      "health": 3
+    },
+    {
+      "id": "neutral_n3",
+      "name": "Neutral N3",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_n3.text",
+        "en": "Test."
+      },
+      "attack": 3,
+      "health": 4
+    },
+    {
+      "id": "neutral_n4",
+      "name": "Neutral N4",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_n4.text",
+        "en": "Test."
+      },
+      "attack": 4,
+      "health": 5
+    },
+    {
+      "id": "neutral_n4b",
+      "name": "Neutral N4B",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_n4b.text",
+        "en": "Test."
+      },
+      "attack": 4,
+      "health": 5
+    },
+    {
+      "id": "neutral_ns2",
+      "name": "Neutral Ns2",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_ns2.text",
+        "en": "Test."
+      }
+    }
+  ]
+}
