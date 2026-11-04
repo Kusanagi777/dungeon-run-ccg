@@ -301,6 +301,36 @@ func test_op_value_multiplies_by_targets_and_values_structural_ops() -> void:
 	base.end_match()
 
 
+func test_op_value_counts_two_adjacent_targets_and_adds_the_equip_row_for_a_weapon() -> void:
+	# Arrange — two boss minions on board (wide_hand_prefilter); a 2/3 weapon in hand (feature_terms)
+	var fixture: Dictionary = BossAiBoard.read("wide_hand_prefilter")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var op_values: Dictionary = BossAiBoard.stub_config().op_values
+	var base: RulesEngine = engine.clone()
+	var own_minions: int = engine.state().players[SIDE_BOSS].board.size()
+	var adjacent: Dictionary = CardFactory.make_spell("bai_test_rally_near", 1, [CardFactory.make_effect("cast", [CardFactory.make_op("buff", {"attack": 1})], {}, {"targets": "adjacent"})])
+	var armoury: Dictionary = BossAiBoard.read("feature_terms")
+	var armoury_db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(armoury)
+	var armed: RulesEngine = BossAiBoard.engine(armoury, armoury_db)
+	var armed_base: RulesEngine = armed.clone()
+	var weapon_play: Array = _plays_of(armed, armed_base.legal_commands(), str(armoury.expect.weapon))
+
+	# Act
+	var near: float = _candidate_set(db, profile).def_value(adjacent, base, SIDE_BOSS)
+	var weapon: float = _candidate_set(armoury_db, BossAiBoard.profile(armoury)).op_value(weapon_play[0], armed_base)
+
+	# Assert — `adjacent` yields up to 2 of the owner's minions (C6, F6
+	# max_targets); a weapon with no effects is its `equip` row alone (the stub
+	# has none: the Edge Cases' unvalued 1.0)
+	assert_int(own_minions).is_greater_equal(EffectSchema.F6_MAX_TARGETS_ADJACENT)
+	assert_float(near).is_equal_approx(float(op_values.buff) * EffectSchema.F6_MAX_TARGETS_ADJACENT, 1e-9)
+	assert_float(weapon).is_equal_approx(float(op_values.get("equip", CandidateSet.OP_UNVALUED)), 1e-9)
+	base.end_match()
+	armed_base.end_match()
+
+
 # --- C4 / C6: attacks under the pre-filter (code review 2026-11-04, BAI-005 S4) ---------------
 
 func test_prefilter_never_drops_a_lethal_face_attack_or_the_best_move() -> void:
