@@ -418,12 +418,15 @@ Serialisation ownership: Run Structure owns the `RunRecord` schema and `validate
 
 ```
 1. main.tscn _ready → Boot.boot()
-2.   CardDatabase.load({effects: EffectValidator.validate_effects, ai_profile: BossAI.validate_profile_key,
+2.   CardDatabase.load({effects: EffectValidator.validate_effects, ai_profile: BossAI.validate_ai_profile,
                         unlock: MetaProgression.validate_unlock_defs, treasure: Treasures.validate_treasure_defs,
                         configs: {match_rules: …, card_effects: …, ai_profiles: …, run_structure: …,
                                   reward_draft: …, treasures_balance: …, heroes_balance: …, match_ui: …,
                                   run_ui: …, profile_defaults: …, content_budgets: …, rng_event_log: …}})
         → Failed ⇒ RunShell opens data_error (CR-8); headless ⇒ print report, exit non-zero
+        ai_profile: Boot registers the stage-7b adapter BossAI.validate_ai_profile(host_kind, host_id,
+        value, db, configs), which reads configs["ai_profiles"] and wraps the pure core
+        BossAI.validate_profile_key(key, profiles) (2026-11-04, sprint 4: src/core/boot.gd, boss-ai code review)
 3.   ProfileStore.load_profile() → status (OK | RECOVERED_BAK | FRESH | FRESH_AFTER_CORRUPT | E_SCHEMA_NEWER | E_LOCKED)
        MVP: MetaStub instead (systems-index gate condition) — same MetaApi
 4.   SettingsBus created; ProfileStore publishes the settings record once
