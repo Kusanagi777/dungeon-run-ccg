@@ -430,8 +430,12 @@ func state() -> MatchState:
 ##    `resolver.bind(self, player.hook_installers + boss.hook_installers)`;
 ##    one `hook_install_skipped {host_id, reason: duplicate}` per installer
 ##    whose `host_id` an earlier one already installed (ADR-0005, ADR-0007).
-## 2. Heroes: player `base_health` = `starting_health_player`, boss
-##    `base_health = config.boss.health` (never the boss definition's).
+## 2. Heroes: the player's `HeroDef` (`player.hero_def_id`, read once and never
+##    written) gives `base_health = record.health` and `hero_power.def_id =
+##    record.hero_power`; a `hero_def_id` with no record is a logged error that
+##    seats C3's default, `starting_health_player`, with no hero power (heroes
+##    story 001). Boss `base_health = config.boss.health` (never the boss
+##    definition's).
 ## 3. Each deck to `CardInstance`s in list order, shuffled with `rng_match` —
 ##    player first; one `deck_shuffled {side, instance_ids}` per side.
 ## 4. `on_match_start` hooks, player side then boss side.
@@ -462,10 +466,17 @@ func start(config: Dictionary) -> void:
 	_resolver.bind(self, installers)
 	_bound = true
 	_log_skipped_installers(installers)
-	# C3 step 2: heroes
-	# TODO(card-database story 006): read the hero record's `health` (defaulting
-	# to this knob) and its hero power id once `CardDatabase` answers queries.
-	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, rule("starting_health_player"))
+	# C3 step 2: heroes. `has` first: `hero` asserts on an absent id (CR-6).
+	var hero_def_id: String = str(config.player.hero_def_id)
+	var hero_def: Variant = _db.hero(hero_def_id) if _db != null and _db.has(hero_def_id) else null
+	var player_health: int
+	if hero_def == null:
+		push_error("RulesEngine.start: no HeroDef \"%s\": seating starting_health_player, no hero power (match-rules C3 step 2)" % hero_def_id)
+		player_health = rule("starting_health_player")
+	else:
+		player_health = int(hero_def.health)
+		_state.players[MatchRecords.SIDE_PLAYER].hero_power.def_id = str(hero_def.hero_power)
+	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, player_health)
 	_state.players[MatchRecords.SIDE_BOSS].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_BOSS, int(config.boss.health))
 	# C3 step 3: decks, player first
 	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck)
