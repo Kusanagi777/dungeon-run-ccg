@@ -142,7 +142,7 @@ contract; DD-X15, DD-X16, DD-X17; performance budgets from `project.yaml`.
 
 - **Data load (`Boot.boot()` → `CardDatabase` `Unloaded → Ready`)**: ≤ `data_load_budget_ms` 200 (expected < 50 ms), synchronous at boot; frozen snapshot ≤ `data_memory_budget_mb` 4 — source: ADR-0002, ADR-0001
 - **`RngStream.restore`**: ≤ 5 ms per stream at 10,000 draws — source: ADR-0003
-- **`EventLog`**: 10,000 appends within the 50 ms AC; open match log ≤ `log_memory_budget_bytes` 2 MB (`max_match_events` 10,000 at defaults); typical 60–400 KB — source: ADR-0003
+- **`EventLog`**: 10,000 appends within the 80 ms AC (2026-11-04, DD-X19; was 50 ms); open match log ≤ `log_memory_budget_bytes` 2 MB (`max_match_events` 10,000 at defaults); typical 60–400 KB — source: ADR-0003
 - **Profile save**: synchronous ≤ 50 ms at `run_log_cap` 200 (≈ 1.7 MB file, ≤ 2 MB); measured at Vertical Slice; `run_log_cap` drops if it cannot hold — source: ADR-0004
 - **Evidence capture (offline tooling, not a frame budget)**: ~2.4 s for a simple scene on llvmpipe; a 60-frame full match scene expected in the 5–30 s range — source: ADR-0010
 

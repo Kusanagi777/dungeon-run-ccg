@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -35,7 +35,7 @@ This story closes the Verification table rows that span the two halves of the sy
 *From GDD `design/gdd/rng-event-log.md` (rule 9, F6; Acceptance Criteria "Performance"), scoped to this story:*
 
 - [ ] **F6 self-test (rule 9):** **GIVEN** two `RngService(42, "test")` + `EventLog` pairs, **WHEN** the same scripted sequence of `begin_command()` / draws on `match_1` and `ai_1` (including one `fork("sim_1")`) / appends with nested `cause_seq` / `end_command()` is executed on each, **THEN** `EventLogAssertions.assert_replay_equal(a, b)` holds, the two `to_json()` strings are byte-identical, and the two `snapshot()` Dictionaries are equal; changing one draw bound in the second sequence breaks `replay_equal`.
-- [ ] **Performance:** appending 10,000 events (payloads ~200 bytes) and reading `events_since(0)` completes in under 50 ms headless.
+- [ ] **Performance:** appending 10,000 events (payloads ~200 bytes) and reading `events_since(0)` completes in under 80 ms headless. *(2026-11-04, DD-X19: budget raised from 50 ms by owner decision; the test constant `APPEND_BUDGET_USEC` and the test name still say 50 ms — changed in sprint 5, see Completion Notes.)*
 - [ ] **Performance:** `restore()` of a stream with `draws = 10,000` completes in under 5 ms headless; the restored stream's next 20 outputs equal the original's.
 
 ---
@@ -115,4 +115,5 @@ This story closes the Verification table rows that span the two halves of the sy
 **Test Evidence**: `tests/unit/rng_event_log/rng_event_log_determinism_test.gd` — 5 tests. Seen failing: a non-deterministic generator (`_rng.randomize()` after seeding) failed 3 of them; the bound-change and mid-command tests assert the negative and pass against it by design. `tests/performance/rng_event_log/rng_event_log_perf_test.gd` — 2 tests, append test failing as reported. Full blocking suite 725/725, exit 0; 36 SCRIPT ERROR lines, all from existing negative tests (unchanged). Smoke exit 0, no SCRIPT ERROR. `tools/lint/gates.sh` PASS, `no_global_rng.sh` 0 hits, `parse-check.sh` 26/26.
 **Run result**: N/A — test-only story plus a log-internals fix; nothing is drawn or launched.
 **Engine check**: NOT ASSESSED — no specialist agent in this lane. `Time.get_ticks_usec()` is NOT SOURCEABLE (ADR-0006 claim 17), used as observed on 4.7.2. `Dictionary.duplicate(true)` / `is_typed()` / `make_read_only()` were observed on 4.7.2 by the event-log suites.
+**Owner decision (2026-11-04, DD-X19)**: the owner raised the AC-2 budget to **80 ms** ("raise it"; measured 33–47 ms CI, 51–60 ms debug, 43–65 ms release). The GDD Acceptance Criteria and ADR-0003 (erratum) now read 80 ms. AC-2 is expected to pass at 80 ms on every measured build, but is not re-run in this docs-only pass: it stays **FAILS** against the 50 ms constant until sprint 5 changes `APPEND_BUDGET_USEC` 50_000 → 80_000 and renames `test_ten_thousand_appends_and_events_since_zero_fit_in_50_ms` (and the file header comment) in `tests/performance/rng_event_log/rng_event_log_perf_test.gd`, then re-runs the perf job.
 **Reviewed by**: self, no independent review (`review_mode: lean` — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped; `/code-review` not run in this lane) · `/code-review 2026-11-04 (independent, sprint-4 carry): APPROVED WITH SUGGESTIONS (owner decision on the append budget)`
