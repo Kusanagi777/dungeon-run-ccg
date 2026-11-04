@@ -80,6 +80,23 @@ summary: read the timings there, not just the job colour. First suite:
 `tests/performance/rng_event_log/rng_event_log_perf_test.gd` (rng-event-log
 story 010).
 
+`tests/performance/match_rules/match_rules_perf_test.gd` (match-rules story
+018) times `submit()` on the 56-pass Deathrattle chain, `legal_commands()` on a
+7 v 7 full board, a 12-entry `hooks.fold`, and `clone()` + one `submit` on
+every `tests/fixtures/match_states/` state, against boss-ai F7's planner node
+budget. Each test asserts `median < 2 × budget` (AC-40's gate) and prints
+median / p95 / max. Results and the release-template comparison:
+`production/qa/perf-match-rules-<date>.md`. Two rules for timing a scripted
+match:
+- Build its fixtures with `tests/helpers/match_budget_fixtures.gd`. The
+  blocking `tests/unit/match_rules/match_rules_hook_fold_budget_test.gd` runs
+  the same fixtures for the deterministic half: step counts, list identity,
+  entry counts.
+- Set `TestEffectResolver.recording = false`, so a sample does not pay for the
+  double's deep-copied call records. Keep a reference to any resolver whose
+  evaluators a `HookRegistry` holds: a Callable does not keep its object
+  alive, and a freed evaluator turns `fold` into a silent no-op.
+
 ### Reports
 
 gdUnit4 writes `reports/report_<n>/` at the project root on every run
@@ -163,6 +180,7 @@ never a bare `assert()`.
 | `event_log_assertions.gd` | `EventLogAssertions` | `assert_order`, `assert_consecutive`, `assert_contains_type`, `assert_count`, `assert_last_type`, `assert_payload`, `assert_seq_contiguous`, `assert_cause_seq_valid`, `assert_envelopes_valid`, `assert_replay_equal` (F6). Accepts a `TestEventLog` or an Array of events. |
 | `card_factory.gd` | `CardFactory` | CR-3 records (`make_minion` / `make_spell` / `make_weapon` / `make_hero_def` / `make_boss_def` / `make_treasure_def` / `make_bundle_def`), C1 effects (`make_effect`, `make_op`), CR-1 envelopes, the match-rules fixture card set, `validate_card_def`. |
 | `match_factory.gd` | `MatchFactory` | C1 data model as Dictionaries: `make_match_state`, `make_player_state`, `summon` (ids from `next_entity_id`, board-full returns `{}`), `deal_deck`, `draw_top`, `make_match_config(floor, rng, log)`, `make_command_result`, `make_match_result`, derived `health_of` / `max_health_of` / `attack_of`, `REJECTION_CODES`. |
+| `match_budget_fixtures.gd` | `MatchBudgetFixtures` | Match-rules story 018 budget fixtures, as an instance: `make_chain_engine` + `chain_command` (the 56-pass Deathrattle chain), `make_full_board_engine` (7 v 7, a 10-card hand), `make_fold_registry` / `make_hooked_engine` (12 `modify_damage` entries), `engine_for(fixture)` (a `tests/fixtures/match_states/` state replayed from `start`, with story 017's pool and scripts), `deathrattle_passes(events)`. |
 | `run_factory.gd` | `RunFactory` | R1 `make_run_state` (invariants hold by default), `make_draft_record`, `apply_bundle_pick` / `apply_treasure_pick`, `make_offer`, `make_match_summary`, the 6/6/4 fixture boss pool, `band_of`, `deck_size_at_floor`, `effective_treasure_floors`, `validate_invariants` / `assert_invariants`. |
 | `scene_runner_helper.gd` | `SceneRunnerHelper` | `load_scene_and_wait(self, path_or_packed_scene)` for UI integration tests; wrap the result in `auto_free`. |
 
