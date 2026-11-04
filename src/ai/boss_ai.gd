@@ -87,6 +87,7 @@ const RANGES: Dictionary = {
 	"max_turn_playback_s": {"min": 6.0, "max": 20.0, "integral": false, "row": "Tuning Knobs presentation.max_turn_playback_s"},
 	"intent_banner_s": {"min": 0.2, "max": 0.6, "integral": false, "row": "Tuning Knobs presentation.intent_banner_s"},
 	"plan_changed_s": {"min": 0.6, "max": 2.0, "integral": false, "row": "Tuning Knobs presentation.plan_changed_s"},
+	"planner_target_ms": {"min": 50.0, "max": 1000.0, "integral": false, "row": "Tuning Knobs planner_target_ms"},
 }
 
 ## F9 top-level sections of the `config` body, in F9 order; all required.
@@ -126,6 +127,10 @@ const PLANNER_MODES: Array[String] = ["worker", "time_sliced", "immediate"]
 const RUNTIME_TIMING_KEYS: Array[String] = ["slice_ms", "replay_budget_ms"]
 ## The `runtime` enum key.
 const PLANNER_MODE_KEY: String = "planner_mode"
+## The `runtime` measurement target (Tuning Knobs, DD-X18): validated here and
+## read by perf gates and the UI's commit beat. Never a runtime clock: no
+## planner or rules code reads it.
+const PLANNER_TARGET_KEY: String = "planner_target_ms"
 ## Card Effects C5 structural ops, valued as the sum of their inner ops (C6):
 ## each maps to the param keys holding inner `op[]` arrays; `choose_one`
 ## holds them under `options[].ops`.
@@ -187,7 +192,7 @@ func choose(sandbox: RulesEngine, request: Dictionary, mode: StringName = Scorer
 ## closed key sets per section, enums, [constant RANGES], `hidden` only in
 ## `boss_overrides`, every override's `extends`, `profiles.default` carrying
 ## every weight, rule and `intent_mode`, every band carrying every budget, and
-## ADR-0006's `runtime {planner_mode, slice_ms, replay_budget_ms}` — then runs
+## `runtime {planner_mode, slice_ms, replay_budget_ms, planner_target_ms}` — then runs
 ## [method validate_op_coverage] over the cards [param db] can list.
 ## [param db] is the `CardDatabase` in `Loading` (stage-7 lookups, ADR-0002
 ## Decision 4) or `null`; it is asked only for `cards_by_type(type)` per
@@ -498,8 +503,8 @@ static func _check_runtime(rows: Array[Dictionary], body: Dictionary) -> void:
 		rows.append(_row(E_AI_UNKNOWN_FIELD, null, "runtime", "`runtime` must be an object (ADR-0006)"))
 		return
 	for key: Variant in block:
-		if key != PLANNER_MODE_KEY and not RUNTIME_TIMING_KEYS.has(key):
-			rows.append(_row(E_AI_UNKNOWN_FIELD, null, "runtime.%s" % key, "unknown runtime key `%s` (F9: %s, %s)" % [key, PLANNER_MODE_KEY, ", ".join(RUNTIME_TIMING_KEYS)]))
+		if key != PLANNER_MODE_KEY and key != PLANNER_TARGET_KEY and not RUNTIME_TIMING_KEYS.has(key):
+			rows.append(_row(E_AI_UNKNOWN_FIELD, null, "runtime.%s" % key, "unknown runtime key `%s` (F9: %s, %s, %s)" % [key, PLANNER_MODE_KEY, ", ".join(RUNTIME_TIMING_KEYS), PLANNER_TARGET_KEY]))
 	var mode: Variant = block.get(PLANNER_MODE_KEY)
 	if not mode is String or not PLANNER_MODES.has(mode):
 		var found: String = "missing" if mode == null else str(mode)
@@ -509,6 +514,7 @@ static func _check_runtime(rows: Array[Dictionary], body: Dictionary) -> void:
 		if not is_number(value) or not is_finite(float(value)) or float(value) <= 0.0:
 			var found: String = "missing" if value == null else str(value)
 			rows.append(_row(E_AI_WEIGHT_RANGE, null, "runtime.%s" % key, "`%s` is %s; it must be a positive finite number of milliseconds (ADR-0006)" % [key, found]))
+	_check_ranged(rows, null, "runtime.%s" % PLANNER_TARGET_KEY, PLANNER_TARGET_KEY, block.get(PLANNER_TARGET_KEY))
 
 
 static func _check_ranged(rows: Array[Dictionary], record_id: Variant, field: String, range_key: String, value: Variant) -> void:

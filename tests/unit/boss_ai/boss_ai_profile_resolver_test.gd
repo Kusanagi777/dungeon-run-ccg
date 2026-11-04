@@ -580,6 +580,53 @@ func test_validate_runtime_rejects_anything_else() -> void:
 	_only_code(_validate(no_runtime), BossAI.E_AI_UNKNOWN_FIELD)
 
 
+func test_validate_runtime_planner_target_accepts_its_range() -> void:
+	for value: Variant in [50, 500, 1000]:
+		# Arrange
+		var config: Dictionary = _stub()
+		config.runtime["planner_target_ms"] = value
+
+		# Act / Assert
+		assert_array(_validate(config)).override_failure_message(str(value)).is_empty()
+
+
+func test_validate_runtime_planner_target_rejects_a_value_out_of_range_or_not_a_number() -> void:
+	for value: Variant in [49, 1001, 49.9, 1000.1, 0, -500, "500", null, true, NAN, INF, -INF]:
+		# Arrange
+		var config: Dictionary = _stub()
+		config.runtime["planner_target_ms"] = value
+
+		# Act
+		var rows: Array = _validate(config)
+
+		# Assert
+		_only_code(rows, BossAI.E_AI_WEIGHT_RANGE)
+		assert_array(_fields(rows)).override_failure_message(str(value)).is_equal(["runtime.planner_target_ms"])
+
+
+func test_validate_runtime_planner_target_is_required_like_the_other_runtime_keys() -> void:
+	# Arrange
+	var config: Dictionary = _stub()
+	config.runtime.erase("planner_target_ms")
+
+	# Act
+	var rows: Array = _validate(config)
+
+	# Assert
+	_only_code(rows, BossAI.E_AI_WEIGHT_RANGE)
+	assert_array(_fields(rows)).is_equal(["runtime.planner_target_ms"])
+
+
+func test_planner_target_bounds_live_in_the_named_range_table() -> void:
+	# Act
+	var ranges: Dictionary = BossAI.RANGES
+	var bounds: Dictionary = ranges.get("planner_target_ms", {})
+
+	# Assert — boss-ai Tuning Knobs: safe range 50–1,000 (A29: no bare literal)
+	assert_float(float(bounds.get("min", 0.0))).is_equal(50.0)
+	assert_float(float(bounds.get("max", 0.0))).is_equal(1000.0)
+
+
 # --- E_AI_OP_UNVALUED (Edge Cases) --------------------------------------------
 
 func test_op_coverage_reports_each_unvalued_op_once_including_nested_ops() -> void:
