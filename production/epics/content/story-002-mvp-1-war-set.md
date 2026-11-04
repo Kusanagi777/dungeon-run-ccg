@@ -1,12 +1,12 @@
 # Story 002: MVP-1 — complete the War set (25 cards)
 
 > **Epic**: Content (MVP batch)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature (data)
 > **Type**: Config/Data
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -47,7 +47,9 @@ Batch 0 (story 001) shipped the 7 starters and `war_iron_resolve`. This story au
 - Append the 17 cards to `assets/data/cards_war.json`. Never edit or reorder the batch-0 records (ids are permanent; the loader sorts by id, so file order is irrelevant).
 - Write `effects` from each card's C11 row column. Patterns with a dedicated row (`2 + 4` for `war_blade_apprentice`, `armor, draw`, …) use exactly that row's op shape. Windfury on the hero via `buff keywords until_end_of_turn` for `war_pit_champion` is legal (content OQ resolved: Match Rules `has_windfury`).
 - `war_shield_maiden` and `war_shieldwall_veteran` must land here: story 004's Hollow King MVP deck uses them.
-- Accepted F3 deviations (fill in at implementation; an empty list is a valid outcome): —
+- Accepted F3 deviations (fill in at implementation; an empty list is a valid outcome), evaluated by hand 2026-11-04 (`production/qa/smoke-2026-11-04-content-mvp1-war.md`, F3 table):
+  - `war_cleave_through` (rare, +3.0 vs tol 2.0): 9.0 on the expected weapon branch (3 × AoE 3.0), 6.0 = budget without a weapon. Accepted: it is the sweeper CN-3 B2 names as War's answer to The Gatekeeper and The Hollow King, and the overshoot exists only while War holds a weapon (Pillar 1 plan payoff). Revisit at `/balance-check` (story 009).
+  - `war_duelists_edge` (rare, +3.0 vs tol 2.0): 3/3 = 9 plus 2 Armor on each of 3 swings (3.0). Accepted: the armour plan's signature payoff (Heroes H-5), and the value assumes the hero swings all three times into an open board. Revisit at `/balance-check` (story 009).
 - Use the CN-2 tags exactly. `war_iron_vanguard` keeps `armour` (Heroes OQ C-03, `PLAN_MAX` 7).
 
 ---
@@ -62,8 +64,10 @@ Batch 0 (story 001) shipped the 7 starters and `war_iron_resolve`. This story au
 
 ## Files
 
-- `assets/data/cards_war.json`
-- `production/qa/smoke-[date].md`
+- `assets/data/cards_war.json` — 17 MVP-1 War records appended (batch-0 records unchanged)
+- `production/qa/smoke-2026-11-04-content-mvp1-war.md` — Config/Data smoke record
+- `tests/integration/content/content_mvp1_data_test.gd` (+ `.uid`) — new, 8 tests (AC-1…AC-3)
+- `tests/integration/content/content_batch0_data_test.gd` — two shipped-data pins relaxed to the batch-0 subset (the War set and the `W_POOL_SIZE` file list)
 
 ---
 
@@ -81,7 +85,7 @@ Batch 0 (story 001) shipped the 7 starters and `war_iron_resolve`. This story au
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-[date].md`) with the load report and the F1–F3 figures.
 
-**Status**: [ ] Not yet created
+**Status**: [x] `production/qa/smoke-2026-11-04-content-mvp1-war.md` (PASS) + `tests/integration/content/content_mvp1_data_test.gd` (8 tests, passing)
 
 ---
 
@@ -89,3 +93,21 @@ Batch 0 (story 001) shipped the 7 starters and `war_iron_resolve`. This story au
 
 - Depends on: `production/epics/content/story-001-batch-0-first-playable-data-set.md`; `production/epics/card-effects/story-004-validator-step-bound-targeting.md` (full validator)
 - Unlocks: `production/epics/content/story-004-mvp-1-bosses-rot-warden-hollow-king.md`, `production/epics/content/story-005-mvp-1-bundles.md`
+
+---
+
+## Readiness
+
+**`/story-readiness` (by hand, 2026-11-04): READY.** Tier: workflow standard (content). Design: CN-2 War rows quoted in AC-1; criteria self-contained and testable. Architecture: ADR-0002 / ADR-0007 Accepted; TR-content-001 active; Manifest Version 2026-11-03 = current. Scope: estimate M, Out of Scope stated, dependencies (content 001, card-effects 004) Complete. No open markers (lint 0). Assets: no asset references. DoD: 3 criteria (balanced min 1), Config/Data type, Test Evidence names the smoke record. QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04
+**Started / ended (UTC)**: 2026-11-04T02:44:25Z – 2026-11-04T02:53:54Z (lane start, readiness and GDD reading included)
+**Criteria**: 3/3 passing — AC-1 and AC-2 by `content_mvp1_data_test.gd`; AC-3 F1/F2 by the same file, F3 by hand in the smoke record with the two accepted deviations above
+**Deviations**:
+- F3: `war_cleave_through` and `war_duelists_edge` are outside `BUDGET_TOL` (+3.0 each, rare tol 2.0); accepted with reasons in Implementation Notes. The F3 figures rest on stated modelling assumptions (expected weapon Attack 2, three friendly bodies), since story 008's checks are not on this branch.
+- `tests/integration/content/content_batch0_data_test.gd` edited (outside the story's Files list): it pinned the shipped War set to the 8 batch-0 cards and `W_POOL_SIZE` to three files; it now checks the batch-0 rows are still present and expects `W_POOL_SIZE` only for `bundles.json` and `treasures.json`. No `data_version` known-answer test depends on the shipped data.
+**Validate command**: `Ready — 0 errors, 10 warnings, 47 records` (before: 11 warnings, 30 records); `W_POOL_SIZE` 3 → 2 (the War collectible pool, 38 ≥ 30, no longer warns).
+**Test Evidence**: `production/qa/smoke-2026-11-04-content-mvp1-war.md` (PASS); `tests/integration/content/content_mvp1_data_test.gd` (8 tests; seen failing against the batch-0 data before the records were added). Full suite 1086 test cases, 0 failures, exit 0; smoke exit 0.
+**Run result**: N/A — data only; no scene loads these cards until match-ui stories, and the smoke run (main scene) stays clean.
+**Reviewed by**: self, no independent review (lean — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped); game-designer sign-off NOT ASSESSED (no agent)

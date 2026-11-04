@@ -64,6 +64,134 @@
         "key": "boss.boss_torchbearer.intro",
         "en": "The Torchbearer burns you for 1 at the end of each of its turns."
       }
+    },
+    {
+      "id": "boss_rat_king",
+      "name": "The Rat King",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "ops": [
+          {
+            "op": "summon",
+            "card_id": "boss_rat",
+            "count": 1,
+            "position": "end"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_rat_king.passive",
+        "en": "At the start of the boss's turn, summon a 1/1 Rat."
+      },
+      "deck": [
+        "boss_rat_pack",
+        "boss_rat_pack",
+        "boss_rat_matriarch",
+        "boss_rat_matriarch",
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_spark_fiend",
+        "neutral_spark_fiend",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter"
+      ],
+      "ai_profile": "boss_rat_king",
+      "tags": [
+        "swarm"
+      ],
+      "intro_text": {
+        "key": "boss.boss_rat_king.intro",
+        "en": "The Rat King summons a 1/1 Rat at the start of each of its turns."
+      }
+    },
+    {
+      "id": "boss_gatekeeper",
+      "name": "The Gatekeeper",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": {
+        "trigger": "aura",
+        "targets": "all_friendly_minions",
+        "ops": [
+          {
+            "op": "aura",
+            "keywords": [
+              "taunt"
+            ]
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_gatekeeper.passive",
+        "en": "The boss's minions have Taunt."
+      },
+      "deck": [
+        "boss_iron_gate",
+        "boss_iron_gate",
+        "boss_iron_gate",
+        "boss_gate_warden",
+        "boss_gate_warden",
+        "boss_gate_warden",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_smite_or_mend",
+        "neutral_smite_or_mend"
+      ],
+      "ai_profile": "boss_gatekeeper",
+      "tags": [
+        "wall"
+      ],
+      "intro_text": {
+        "key": "boss.boss_gatekeeper.intro",
+        "en": "Every minion The Gatekeeper plays has Taunt."
+      }
     }
   ]
 }
