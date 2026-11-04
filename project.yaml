@@ -67,8 +67,9 @@ commands:
   # `performance` job: the same command with `-a res://tests/performance` and no `-i`.
   test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode"
   run: "godot --path . --windowed --resolution 1280x720"
-  # smoke launches run/main_scene (res://src/scenes/boot.tscn since 2026-11-03;
-  # verified exit 0, no SCRIPT ERROR). Still run it under a timeout: with no
+  # smoke launches run/main_scene (res://src/scenes/main.tscn since 2026-11-04,
+  # boot-composition-root story 006: Boot.boot() on the shipped data; verified
+  # exit 0, no SCRIPT ERROR). Still run it under a timeout: with no
   # main scene it never exits, and it exits 0 even on a parse error — read its
   # output. Screenshot capture for run-and-observe: tools/capture.sh.
   smoke: "godot --headless --quit-after 5"

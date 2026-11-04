@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_ember_bolt",
+      "name": "Ember Bolt",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "enemy_hero",
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_ember_bolt.text",
+        "en": "Deal 1 damage to the enemy hero. Draw a card."
+      }
+    },
+    {
+      "id": "boss_tinder_imp",
+      "name": "Tinder Imp",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_tinder_imp.text",
+        "en": "At the end of your turn, deal 1 damage to the enemy hero."
+      }
+    }
+  ]
+}
