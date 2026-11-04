@@ -4,7 +4,7 @@
 
 > **Status**: In Design
 > **Author**: Jacob + ux-designer (`/ux-design targeting` followed by hand — the skill is not model-invocable; automation `guided` under the owner's standing approval, workflow `standard`, density `balanced` from `rigor: standard`; no `AskUserQuestion` used — the recommended option was taken at every decision point and is listed in §15; no Agent tool — `art-director` / `ui-programmer` / `game-designer` not spawned)
-> **Last Updated**: 2026-11-04
+> **Last Updated**: 2026-11-04 (revision 1 after `/ux-review` round 1 — B1 pointer click precedence per phase, §7.4; advisories A1 §11 unticked, A3 `A` + number defined, A4 double-click and `H` in session, A5 Phase T filtered by position, A6 150 % rule and fixture, A7 / A2 routed, A8 resolution criterion)
 > **Journey Phase(s)**: Moment-to-moment loop — "spend mana, choose attacks" (game-concept Core Loop); art bible §2 "Targeting / attack moment: commitment; a decision about to become irreversible". Match view states `Dragging` and `KeyTargeting` (match-ui States). `design/player-journey.md` does not exist — see §15.
 > **Screen / Flow Name**: `TargetingSession` — the one `InputRouter` session object (match-ui U1, U5) with `entered_by: drag | pointer | key`, drawn by `TargetingArrow` (`targeting_arrow.tscn`, ADR-0009) plus the hand, board and hero presenters' "lit" states. A flow on the match table, not a screen.
 > **Platform Target**: PC (Windows primary, Linux dev/CI); 1280x720 logical, `canvas_items` + `keep` (DD-T05); mouse primary, keyboard complete; gamepad `Partial` post-v1; touch none (`project.yaml` has no `platform` block — values from `.claude/docs/technical-preferences.md` via `design/accessibility-requirements.md`).
@@ -155,7 +155,7 @@ Match table (hud.md, view state Idle)
           (player portrait / boss portrait outlined when the filter admits heroes)
 ```
 
-**D — Untargeted spell, weapon or hero power, Phase C**: the **cast zone** — the table rect **301, 176, 678, 284** (both rows and the gap between them, *spec*) — draws a dashed 2 px `state_actionable` outline; drag: release inside it; click-to-select / key: a click inside it, a second click on the lifted source, or `Enter`. No arrow (Targeting Arrow "When NOT to Use").
+**D — Untargeted spell, weapon or hero power, Phase C**: the **cast zone** — the table rect **301, 176, 678, 284** (both rows and the gap between them, *spec*) — draws a dashed 2 px `state_actionable` outline; drag: release inside it; click-to-select / key: a click inside it, a second click on the lifted source, or `Enter` — a click on a friendly token that can attack re-selects instead, and a double-click never confirms (§7.4). No arrow (Targeting Arrow "When NOT to Use").
 
 ```
  176 ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ cast zone 301, 176, 678, 284 (dashed) ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
@@ -181,12 +181,12 @@ Match table (hud.md, view state Idle)
 |-----------|-------------|-----------------|-------------|-------------------|
 | Boss row (targets) | F6 301, 176, 678, 126; every token's full 90x126 is its drop / click rect | 678 x 126 | No | — |
 | Player row (targets, positions, attackers) | F6 301, 334, 678, 126; re-centres for m + 1 slots during Phase P | 678 x 126 | No | Board full (7) → minions are not playable, Phase P never opens (C6 `BOARD_FULL`) |
-| Position zone (Phase P drop area) | x 253–1027, y 310–484 (*spec*: the player row plus 48 px either side and 24 px above / below) — a release here picks the gap nearest the cursor | 774 x 174 | No | Release outside → cancel |
-| Cast zone (Phase C) | 301, 176, 678, 284 (*spec*) | 678 x 284 | No | — |
+| Position zone (Phase P drop area) | x 253–1027, y 310–484 (*spec*: the player row plus 48 px either side and 24 px above / below) — a release here picks the gap nearest the cursor | 774 x 174 | No | Release outside → cancel. It overlaps the player row's tokens and the top 22 px of the hand (y 462–484); which one a click means is fixed by §7.4 |
+| Cast zone (Phase C) | 301, 176, 678, 284 (*spec*). It contains both minion rows, so a click on a friendly token inside it is resolved by §7.4 (re-select outranks confirm) | 678 x 284 | No | — |
 | Hero targets | Portraits F6 24, 334, 120, 160 (player) / 1136, 96, 120, 160 (boss) — the whole panel is the rect | 120 x 160 each | No | — |
 | Arrow layer | Top `CanvasLayer` (`TargetingArrow`); drawn above tokens and cards, below `InspectLayer` 80 and `TooltipLayer` 90 | Full screen | No | Head stops at the current target's ring (never covers its stamps) |
 | Parked source (Phase T from a hand card) | The card at 1.0x upright, centred on its F1 x, top y 438 (*spec* — 24 px above the hand line so the arrow's foot is visible over the player row) | 150 x 210 | No | — |
-| "No target" chip (Phase T, `optional` targeting only) | Secondary button 120x44 centred above the parked source / ghost / hero power (`x_c − 60`, top 8 px above the source) (*spec*) | 120 x 44 | No | No v1 card uses `optional` (§15) |
+| "No target" chip (Phase T, `optional` targeting only) | Secondary button 120x44 centred above the parked source / ghost / hero power (`x_c − 60`, top 8 px above the source) (*spec*); at `text_scale` 125 / 150 % its width grows to the label width + 24 px, still centred (revision 1, review A6) | 120 x 44 (min) | No | No v1 card uses `optional` (§15) |
 | Rejection tooltip | §5.1 E | ≤ 300 x content | No | Wraps; 1.5 s |
 
 ### 5.3 Component Inventory
@@ -201,7 +201,7 @@ Match table (hud.md, view state Idle)
 | Ghost token | Token (60 %) | Player row gap | Holds the chosen position while a Battlecry target is chosen | Phase T after P | **New here** — §15 (a two-phase minion play is not in U5) |
 | Cast zone | Dashed outline | Table | Untargeted confirm area | Phase C | **New here** (Targeting Arrow names a "cast affordance" without a rect) |
 | Attacker "armed" state | Lift 4 px + outline | Player token / portrait | The attacking source | Attack sessions | Yes — Board Token "Can attack" outline |
-| `A` attacker badges | Numeral badges | Above legal attackers | While `A` waits for a number: "1"–"7" badges (14 px bold `text_light` on `ink` pills, 20x20, centred 6 px above each legal attacker) | Key path | **New here** (*spec*) |
+| `A` attacker badges | Numeral badges | Above legal attackers | While `A` waits for a number: each **legal attacker** shows its **slot position** counted 1–7 from the left of the player row (rules board index + 1). A token that cannot attack shows no badge, so the numerals may skip (e.g. "1", "3", "4"). 14 × `text_scale` px bold `text_light` on `ink` pills; the pill is square, 20 / 24 / 28 px at 100 / 125 / 150 %, centred 6 px above each legal attacker (the 28 px pill fits over a 90 px token with the 8 px row gap to spare) | Key path | **New here** (*spec*; mapping defined in revision 1, review A3) |
 | "No target" chip | Button (Secondary) | Above the source | Chooses `target_id = null` for `optional` targeting | Conditional | Yes — Button (Secondary) |
 | Rejection tooltip | Tooltip (rejection variant) | At cursor / above source | `reject.<code>` copy, 1.5 s | Yes | Yes — Rejection Feedback + Tooltip |
 | Source shake / related flash | Animation | Source / Taunts / mana bar | Rejection channels | Yes | Yes — Rejection Feedback |
@@ -220,7 +220,7 @@ Match table (hud.md, view state Idle)
 
 ## 6. States & Variants
 
-**Source → phases.** The session derives its phases only from the `legal_commands()` entries for the source (match-rules C2 expansion), never from card text: *positions* = distinct `position` values; *targets* = distinct non-null `target_id`s; *null allowed* = an entry with `target_id = null` exists alongside targeted ones (card-effects `optional`).
+**Source → phases.** The session derives its phases only from the `legal_commands()` entries for the source (match-rules C2 expansion), never from card text: *positions* = distinct `position` values; *targets* = distinct non-null `target_id`s; *null allowed* = an entry with `target_id = null` exists alongside targeted ones (card-effects `optional`). **After Phase P** (revision 1, review A5), targets, null-allowed and the "No target" chip are re-derived from **only the entries whose `position` equals the chosen one**. No v1 selector depends on position, but card-effects C3 `adjacent` selectors would, so the filter makes a later adjacency card light the right targets with no UI change. If the chosen position's only entry is `(p, null)` (C6: a Battlecry with no legal target is still playable), choosing the position submits it and Phase T never opens.
 
 | Source | Entries in `legal_commands()` | Phases |
 |---|---|---|
@@ -239,7 +239,7 @@ Match table (hud.md, view state Idle)
 | Dragging — card, Phase P | Pickup of a minion card | Card 1.0x under the cursor; row re-centres; nearest gap opens with the dashed slot outline | Release in the position zone → gap chosen (submit, or → Phase T); elsewhere → cancel | End Turn Disabled (hud.md §5) |
 | Dragging — card, Phase C | Pickup of an untargeted spell / weapon | Card under the cursor; cast zone dashed | Release inside → submit; outside → cancel | — |
 | Dragging — card / attacker / hero power, Phase T | Pickup of a targeted source | Source parked (card: §5.2) or lifted in place (token 4 px, button 2 px); arrow to the cursor; legal targets outlined | Release on a lit target → submit; elsewhere → cancel | match-ui U5 / U7 |
-| KeyTargeting — pointer, any phase | Click (< 8 px) on a source | Same visuals; the arrow points at the **current** target (initially the legal one nearest the cursor); hovering a lit target moves the ring | LMB on a lit target / gap / cast zone (or a second click on the source in Phase C) confirms; `Enter` confirms the current one; click on empty table / an unlit spot, RMB or `Esc` cancels | A single click never plays a card (U5) |
+| KeyTargeting — pointer, any phase | Click (< 8 px) on a source | Same visuals; the arrow points at the **current** target (initially the legal one nearest the cursor); hovering a lit target moves the ring | A click is resolved by the **§7.4 precedence table** (confirm / re-select / ignore / cancel, first matching rank wins); `Enter` confirms the current one; RMB or `Esc` cancels | A single click never plays a card (U5) |
 | KeyTargeting — key, any phase | Number key / `A`+n / `H` / `Enter` on a focused source | Same; arrow to the current target's centre (snap tween 80 ms, 0 under `reduce_motion` / `instant`) | `Tab` / `Shift+Tab` cycle; `Enter` confirms; `Esc` cancels | Initial picks §7.1 |
 | Phase P → T (Battlecry) | Position chosen | Ghost token in the gap; the card returns into the parked position, then the arrow starts from the ghost | `Esc` / RMB / empty click cancels **the whole play** (card back to hand, gap closes) — there is no "back to positions" step | *spec*, §15 |
 | Over a lit target / gap | Pointer over it, or current in the key cycle | 3 px ring / dashed slot outline; arrow head full opacity | Confirm here submits | — |
@@ -273,22 +273,19 @@ Mapping interactions for: **keyboard + mouse** (Phase 2h — no `platform` block
 | Target cycle order (*spec*) | — | **Enemy row left → right, enemy hero, friendly row left → right, friendly hero, "No target" chip** — legal entries only | — | — | Extends the pattern's "boss row left → right, then boss hero" to friendly targets |
 | Position cycle order | — | Gaps left → right (index 0 … m), wrapping | — | — | Pattern "player row slots left → right" |
 | Initial target / position (key entry) | — | Target: the first in the cycle order. Position: the **right-most** gap (index m — appending is the common play) (*spec*) | — | — | Pointer entry: the one nearest the cursor |
-| `A` | KB | Arm attacker selection: number badges appear over legal attackers | Badges | `ui_hover` | Any non-number key disarms it (consumed, no other effect) |
-| `A` then `1`–`7` | KB | Select the attacker at that board index → Phase T | Token lifts 4 px; arrow; outlines | `sfx.ui.card_lift` | Index of a non-attacker → ignored |
+| `A` | KB | Arm attacker selection: number badges appear over legal attackers | Badges | `ui_hover` | Any non-number key disarms it (consumed, no other effect); `Esc` disarms without reaching the Escape chain (§15 pattern row) |
+| `A` then a number | KB | Key `n` (`1`–`7`) selects the token in **slot position n** counted from the left — rules board index n − 1, the numeral its badge shows → Phase T | Token lifts 4 px; arrow; outlines | `sfx.ui.card_lift` | A number with **no badge** (a token that cannot attack, an empty slot, or `8` / `9` / `0`) is **ignored and the state stays armed**, so a mis-press costs nothing (revision 1, review A3) |
 | `1`–`9`, `0` during a session | KB | Re-select hand card n (cancels the current session) | Old source settles, new lifts | `sfx.ui.card_lift` | Click-to-Select "a different legal source re-selects" |
-| `H` | KB | Hero power → Phase T or C | Button lifts 2 px | `sfx.ui.card_lift` | Not `Ready` → ignored |
+| `H` | KB | Hero power → Phase T or C | Button lifts 2 px | `sfx.ui.card_lift` | Not `Ready` → ignored. **During a session** (revision 1, review A4): from any other source, `H` re-selects the hero power; during the hero power's own session, `H` is **ignored** (consumed). It never confirms; `Enter` does |
 | Gamepad (post-v1) | — | Shoulders = `Tab` cycle, `ui_accept` = confirm, `ui_cancel` = `Esc` | Same | Same | Not wired in v1 |
 
 ### 7.2 Action Inputs
 
 | Input | Platform | Context (What must be focused) | Action | Response | Animation | Audio Cue | Notes |
 |-------|----------|-------------------------------|--------|----------|-----------|-----------|-------|
-| LMB release over a lit gap / target / inside the cast zone | PC | Dragging | Confirm the phase (submit, or P → T) | Arrow / rings vanish; card travels / attacker lunges | `play_card` 0.25 s / `attack_lunge` 0.35 s (hud.md) | `sfx.ui.card_play` / `sfx.ui.attack_whoosh` | First visual ≤ 50 ms |
+| LMB release over a lit gap / target / inside the cast zone (§7.4 drag-release table) | PC | Dragging | Confirm the phase (submit, or P → T) | Arrow / rings vanish; card travels / attacker lunges | `play_card` 0.25 s / `attack_lunge` 0.35 s (hud.md) | `sfx.ui.card_play` / `sfx.ui.attack_whoosh` | First visual ≤ 50 ms |
 | LMB release elsewhere | PC | Dragging | Cancel | Source tweens back | 150 ms ease-out | `ui_select` cancel variant | No command, no event |
-| LMB on a lit target / gap / cast zone | PC | KeyTargeting | Confirm | As above | As above | As above | — |
-| LMB on the lifted source again | PC | KeyTargeting, Phase C | Confirm (untargeted play / hero power) | As above | — | `sfx.ui.card_play` | *spec* — the second click of U5's "still needs the second click" |
-| LMB on empty table / an unlit token | PC | KeyTargeting | Cancel | Source settles | 150 ms | cancel variant | U5 |
-| LMB on a different legal source | PC | Any session | Re-select | Old settles, new lifts | 150 ms / 0 | `sfx.ui.card_lift` | — |
+| LMB click (any spot) | PC | KeyTargeting (any `entered_by`) | Resolved by the **§7.4 precedence table**: confirm, re-select, ignore or cancel | Confirm: as above. Re-select: old settles, new lifts. Cancel: source settles | As above / 150 ms | As above / `sfx.ui.card_lift` / cancel variant | Replaces the four overlapping rows of the pre-revision table (review B1) |
 | LMB on the "No target" chip / `Enter` on it | PC / KB | Phase T, `optional` | Submit with `target_id = null` | As confirm | — | `sfx.ui.card_play` | — |
 | `Enter` | KB | Any session | Confirm the current gap / target / cast | As above | — | As above | `Space` is **not** confirm (it stays skip / End Turn, U5) |
 | `Esc` / RMB | KB / PC | Any session | Cancel (Escape / Cancel step 1) | Source back; nothing else in the chain runs | 150 ms | cancel variant | RMB never opens the pause menu |
@@ -303,6 +300,34 @@ Mapping interactions for: **keyboard + mouse** (Phase 2h — no `platform` block
 | Phase T after P (ghost in place) | Positions can no longer be changed except by cancelling the whole play | One-step cancel keeps the model shallow (*spec*) |
 | Source with no legal entry | Press / key ignored, no session | Never submit a command the snapshot does not contain |
 | Rejection tooltip showing | Input fully live; the tooltip takes no focus and no clicks (`MOUSE_FILTER_IGNORE`) | Rejection Feedback: "nothing happened" |
+
+### 7.4 Pointer precedence inside a session (*spec*, revision 1, review B1)
+
+The cast zone contains both minion rows. The position zone contains the player row and the top 22 px of the hand. A single pointer input could therefore match more than one rule. These tables fix the meaning: **the first matching rank wins**. The ranking principle is that a **reversible** outcome (re-select, ignore, cancel) outranks an **irreversible** one (confirm: mana is never refunded, match-rules C5; the hero power is once per turn). The single exception is a lit target in Phase T, which must win because it is the phase's whole purpose and is marked by its outline and ring before the click.
+
+**Click** (press and release moving < `CLICK_DRAG_PX`, resolved at the release point; the same table applies whatever the session's `entered_by`):
+
+| Rank | The click lands on… | Phase P (position) | Phase T (target) | Phase C (untargeted) |
+|---|---|---|---|---|
+| 1 | A **lit target** (outlined, in the session's target set) | — (no targets in P) | **Confirm** that target (submit) | — (no targets in C) |
+| 2 | The **lifted source itself**, or the ghost token | **Ignored** | **Ignored** | **Confirm**, unless the press is the second press of an OS double-click (`InputEventMouseButton.double_click == true`), which is **ignored**. A double-click on a source therefore only selects it (review A4) |
+| 3 | A **different legal source**: a playable hand card, a friendly token or the player hero with an `attack` entry, or the `Ready` hero power button | **Re-select**. Player-row tokens are never hit here in Phase P: the row is hit-tested against its m + 1 layout, where the slot under a pointer in the row band is always the open gap (rank 4). Rank 3 in Phase P therefore reaches only the hand (including the strip y 462–484), the hero power and the player portrait. To re-select an attacker from Phase P, cancel first, or press `A` + number | **Re-select** | **Re-select**, even inside the cast zone |
+| 4 | Inside the phase's own zone (any spot not taken by ranks 1–3) | **Place** at the current gap (§6 Phase P). The gap index comes from the pointer's x against the m + 1 layout the row is **moving to**, never from mid-tween token pixels. While the pointer is in the row band the open gap is the slot under it, so a click on the row means "here" | — (Phase T has no zone) | **Confirm** (submit) |
+| 5 | End Turn | Nothing (Disabled, hud.md §5) | Nothing | Nothing |
+| 6 | Anywhere else: empty table outside the zone, an unlit or Stealth token, a not-playable hand card, a portrait that is not a target | **Cancel** | **Cancel** | **Cancel** |
+
+**Hover tells the player the meaning before the click.** While the pointer is over a rank-3 source, the phase's own affordance is withdrawn:
+- **Phase C**: the cast-zone outline drops to 60 %, the existing "over an unlit spot" treatment.
+- **Phase P**: the gap stays at its last index and does not track onto the source. In practice this happens only over the hand strip y 462–484.
+- **Phase T**: the arrow head dims to 60 %, as over any unlit spot.
+
+**Drag release** (the pointer is held, so nothing can be re-selected; a release never selects a new source):
+
+| Phase | Release inside the zone / on a lit target | Release anywhere else |
+|---|---|---|
+| P | Inside the position zone → **place** at the current gap (or → Phase T for a Battlecry with targets) | **Cancel** — including over a hand card or the hero power |
+| T | On a lit target → **confirm** | **Cancel** — including over another legal source |
+| C | Inside the cast zone → **confirm**, including over a friendly token that can attack. The drag is a deliberate gesture carrying the card, and the dashed zone shows throughout | **Cancel** |
 
 ---
 
@@ -365,9 +390,9 @@ The targeting moment is a "brief spike, then release" (art bible §2) — no slo
 Platform Target is keyboard + mouse; **Touch** dropped (not supported); **Gamepad** kept unticked as the post-v1 mapping. Every untick has a §15 row.
 
 **Keyboard**
-- [x] All interactive elements are reachable using Tab and arrow keys alone (number keys / `A`+n / `H` / `Enter` open sessions; `Tab` cycles every legal target and gap) — except the player hero as an attacker, whose key path is proposed (§15 "Hero attack by key")
+- [ ] All interactive elements are reachable using Tab and arrow keys alone — **not met**: number keys / `A`+n / `H` / `Enter` open every session and `Tab` cycles every legal target and gap, but the player hero as an attacker has no key path. War is the only MVP hero (DD-H06) and weapons are its identity, so this fails the One-hand mode commitment (keyboard-only completes a run). §15 "Hero attack by key" (unticked in revision 1, review A1)
 - [x] Tab order follows visual reading order (enemy row left → right, enemy hero, friendly row, friendly hero)
-- [x] Every action achievable by mouse is also achievable by keyboard (pick, place, target, confirm, cancel, "No target") — same exception as above
+- [ ] Every action achievable by mouse is also achievable by keyboard (pick, place, target, confirm, cancel, "No target") — **not met** for the same reason: a hero weapon attack. §15 "Hero attack by key"
 - [x] Focus is visible at all times (the 3 px ring / dashed gap is the session's focus indicator; the ring is drawn at `instant`)
 - [x] Focus does not escape the screen while it is open (`Tab` is confined to the session's set)
 - [x] Esc key closes or cancels (Escape / Cancel step 1) and does not quit the game
@@ -485,12 +510,21 @@ Every observable criterion names a match-ui U11 fixture (`tests/fixtures/match_u
 - [ ] GIVEN *proposed* `targeting_battlecry` with *proposed* `--pose=place:<card id>:2`, WHEN captured, THEN a 90x126 ghost token at 60 % with a dashed outline holds gap index 2 of the re-centred player row, the arrow starts from the ghost, and the legal Battlecry targets (friendly and enemy as the filter allows; enemy Stealth excluded) are outlined
 - [ ] GIVEN *proposed* `targeting_spell_untargeted` with `--pose=select:<card id>`, WHEN captured, THEN the cast zone 301, 176, 678, 284 shows a dashed 2 px `state_actionable` outline, no arrow is drawn, and no token is outlined
 - [ ] GIVEN *proposed* `targeting_rush` (a Rush minion played this turn), WHEN the attack session opens, THEN enemy minions are outlined and the enemy hero is not
+- [ ] GIVEN any fixture above at 1280x720 windowed and at 3840x2160 fullscreen, THEN the session's arrow, rings, gaps, zones and badges are the 1280x720 layout scaled uniformly, and the §7.4 hit-tests resolve the same logical coordinates at both sizes (review A8)
 - [ ] GIVEN `--pose=reject:MUST_ATTACK_TAUNT`, WHEN captured, THEN the tooltip reads "A Taunt minion must be attacked first." on `parchment` inside the viewport, the Taunt frames are flashed, and the feed ticker holds a `feed.command_rejected` line (O10)
 
 **Input**
 - [ ] GIVEN a playable minion card and a 3-token player row, WHEN dragged into the position zone over the gap between tokens 2 and 3 and released, THEN exactly one `play_card(hand_index, 2, null)` is submitted; WHEN released below y 484 instead, THEN nothing is submitted and the card tweens back in 150 ms
 - [ ] GIVEN a playable card, WHEN a press-and-release moves < 8 px, THEN the view enters `KeyTargeting` (`entered_by = pointer`) and nothing is submitted; WHEN a second click lands on a lit gap / target / the cast zone, THEN exactly one command is submitted; WHEN `Esc`, RMB or a click on empty table follows instead, THEN nothing is submitted (match-ui L17)
-- [ ] GIVEN `targeting_taunt` and keys `A`, `2`, `Tab`, `Enter` with no mouse input, THEN the attacker at board index 2 attacks the second Taunt in cycle order and exactly one `attack` is submitted; GIVEN `A` then `Esc`, THEN nothing happens and the badges disappear
+- [ ] GIVEN `targeting_taunt` and keys `A`, `2`, `Tab`, `Enter` with no mouse input, THEN the token in **slot position 2 from the left** (rules board index 1, badge "2") attacks the second Taunt in cycle order and exactly one `attack` is submitted; GIVEN `A` then `Esc`, THEN nothing happens and the badges disappear
+- [ ] GIVEN `targeting_taunt` with a summoning-sick token in slot 1, WHEN `A` is pressed, THEN slot 1 shows no badge; WHEN `1`, then `8`, then `0` are pressed, THEN nothing is selected and the badges stay visible (still armed); WHEN the badge number of a legal attacker follows, THEN that token's session opens (review A3)
+- [ ] **Click precedence, Phase C** — GIVEN *proposed* `targeting_spell_untargeted` with the spell selected by click and a friendly token that can attack inside the cast zone: WHEN that token is clicked, THEN the session re-selects to that token's attack (nothing submitted, the spell settles); WHEN instead an empty spot inside the cast zone is clicked, THEN exactly one `play_card` is submitted; WHEN instead a spot outside the cast zone (not a source, not End Turn) is clicked, THEN nothing is submitted and the session cancels (review B1)
+- [ ] **Click precedence, Phase C double-click** — GIVEN an untargeted spell or the untargeted hero power, WHEN its source is double-clicked from `Idle`, THEN the session is open and nothing is submitted; WHEN a further single click lands on the source after the OS double-click interval, THEN exactly one command is submitted (review A4)
+- [ ] **Click precedence, Phase P** — GIVEN a minion selected by click and a 3-token player row in which every token can attack: WHEN a click lands on the row band at the x of the second token's resting position, THEN exactly one `play_card` is submitted at the gap under the pointer and no re-select occurs; WHEN instead a click lands on another playable hand card in the strip y 462–484, THEN the session re-selects to that card and nothing is submitted (review B1)
+- [ ] **Click precedence, Phase T** — GIVEN *proposed* `targeting_spell_friendly` with a friendly token that is both a legal target and a legal attacker, WHEN it is clicked, THEN the spell is submitted on it (rank 1 wins); GIVEN a friendly attacker that is **not** a target, WHEN it is clicked, THEN the session re-selects to its attack and nothing is submitted
+- [ ] **Drag release** — GIVEN an untargeted spell dragged into the cast zone and released over a friendly token that can attack, THEN exactly one `play_card` is submitted; GIVEN a minion dragged and released over another hand card, THEN nothing is submitted (cancel)
+- [ ] GIVEN *proposed* `targeting_battlecry` with a Battlecry whose entries differ by position (headless test with a stub `legal_commands()`), WHEN position p is chosen, THEN only the targets of entries with `position == p` are outlined (review A5)
+- [ ] `H` during the hero power's own session submits nothing and leaves the session open; `H` during a card session re-selects the hero power (review A4)
 - [ ] GIVEN a targeted spell and key `1` then `Tab` ×N, THEN the ring visits every legal target exactly once per cycle in the order enemy row → enemy hero → friendly row → friendly hero, skipping Stealth enemies
 - [ ] GIVEN a minion with a targeted Battlecry, WHEN a position is chosen and then `Esc` is pressed, THEN the whole play is cancelled: the ghost disappears, the gap closes, the card is back in its F1 slot and nothing was submitted
 - [ ] GIVEN an untargeted hero power, WHEN the button is clicked once, THEN nothing is submitted and the cast zone lights; WHEN clicked again (or `Enter`), THEN exactly one `use_hero_power(null)` is submitted (match-ui U5 "a single click never plays" — see §15 on story MUI-005)
@@ -505,7 +539,8 @@ Every observable criterion names a match-ui U11 fixture (`tests/fixtures/match_u
 **Accessibility**
 - [ ] `targeting_taunt` and `targeting_stealth` drag captures pass Coblis (protanopia, deuteranopia, tritanopia) with `high_contrast_states` off and on: legal vs not-legal is identifiable by outline + ring + arrow alone (test plan row "Colour-as-only-indicator" lists `targeting_taunt`)
 - [ ] GIVEN `reduce_motion`, THEN the key-cycle arrow snaps without tween and a rejection shows the 2-frame outline flash instead of the shake
-- [ ] A mouse-only tester and a keyboard-only tester each complete: a minion play into a chosen position, a targeted spell on a friendly minion, an attack into a Taunt, and a targeted hero power (accessibility-requirements Test Plan "Keyboard-only completion" / Motor "One-hand mode")
+- [ ] A mouse-only tester and a keyboard-only tester each complete: a minion play into a chosen position, a targeted spell on a friendly minion, an attack into a Taunt, a targeted hero power, **and a hero weapon attack** (accessibility-requirements Test Plan "Keyboard-only completion" / Motor "One-hand mode"). The keyboard-only hero weapon attack **cannot pass** until §15 "Hero attack by key" is resolved (review A1)
+- [ ] GIVEN *proposed* `targeting_taunt_ts150` (`targeting_taunt` at `text_scale` 150 %), WHEN captured with `--pose=reject:MUST_ATTACK_TAUNT` and with `A` armed, THEN the tooltip text is 21 px and wraps inside 300 px within the viewport clamp, each `A` badge is a 28 px pill holding a 21 px numeral, unclipped, with no two badges overlapping; the "No target" chip (when present) widens to its label + 24 px (review A6)
 
 **Localization**
 - [ ] Every `reject.<code>` in §12 exists as a key; GIVEN a missing key, THEN `??reject.<code>` renders and a debug warning fires (match-ui Edge Cases)
@@ -518,16 +553,19 @@ Every observable criterion names a match-ui U11 fixture (`tests/fixtures/match_u
 | Question | Owner | Deadline | Resolution |
 |----------|-------|----------|-----------|
 | Player journey map not yet created — author `design/player-journey.md` from `.claude/docs/templates/player-journey.md` so the "commitment" moment is sourced. | Jacob | Before Pre-Production gate | Open |
-| **Two-phase minion play (position, then Battlecry target)**: `play_card` needs both `position` and `target_id`, but match-ui U5 only says "for a targeted card the arrow appears from the card"; it does not say how a position is chosen first. This spec adds Phase P → T with a ghost token, and one-step cancel of the whole play. Record the sequence in U5 / States (`KeyTargeting` sub-phase). | Match UI GDD owner | Before story MUI-008 readiness | Proposed here |
+| **Two-phase minion play (position, then Battlecry target)**: `play_card` needs both `position` and `target_id`, but match-ui U5 only says "for a targeted card the arrow appears from the card"; it does not say how a position is chosen first. This spec adds Phase P → T with a ghost token, and one-step cancel of the whole play. Record the sequence in U5 / States (`KeyTargeting` sub-phase). **Story conflict** (revision 1, review A2): story MUI-008 (Ready) has the targeted card "follow the cursor" and only `Idle` / `Dragging` `InputRouter` states, while this spec parks targeted cards at top y 438 and turns a Battlecry drag release into Phase T, which needs `KeyTargeting` (MUI-017). GDD States also lists no `Dragging → KeyTargeting` transition. The story AC must change once the GDD records the sequence. | Match UI GDD owner + **producer** (MUI-008 AC) | Before MUI-008 implementation (MUI-008 is already Ready) | Proposed here — the targeting part of the MUI-008 AC is routed to the producer, not amended in this lane |
+| **Pointer click precedence** (§7.4, revision 1, review B1): a ranked table per phase. Reversible outcomes outrank confirm, except a lit target in Phase T. Player-row tokens are not hit-tested in Phase P. Drag release never re-selects. Record it in the Click-to-Select / Keyboard Targeting pattern (rule 2 "a different legal source re-selects" needs the ranking) and in match-ui U5. | ux-designer (`interaction-patterns.md`) + Match UI GDD owner | `/ux-review targeting` round 2 | **Decided in this spec**; neither document edited |
 | **Cast zone** rect 301, 176, 678, 284 and the position zone x 253–1027, y 310–484 are spec-owned; F6 has neither. Accept into F6 or leave to this spec. | Match UI GDD owner | Pre-Production | Proposed here (spec-owned) |
-| **Untargeted hero power needs a confirm** (match-ui U5 click-to-select, Hero Power Button "after confirm per rule 2"), but story MUI-005's AC says one click on War's untargeted power "submits exactly one `use_hero_power`". The two disagree; this spec follows the GDD. | producer (story MUI-005 owner) + Match UI GDD owner | Before story MUI-005 readiness | Open — conflict |
-| **Hero attack by key**: the player hero can attack with a weapon (DD-M08, F3), but match-ui U5's key list has `A` + board index only, and `hud.md` Focus Order stop 4 says `Enter` on the player portrait does "Nothing". Proposal: `Enter` on the focused portrait opens the attack session when the hero can attack (no new key). | Match UI GDD owner + ux-designer (`hud.md`, APPROVED — not edited here) | Before story MUI-017 readiness | Open — conflict; §11 keyboard rows are ticked with this exception stated |
+| **Untargeted hero power needs a confirm** (match-ui U5 click-to-select, Hero Power Button "after confirm per rule 2"), but story MUI-005's AC says one click on War's untargeted power "submits exactly one `use_hero_power`". The two disagree; this spec follows the GDD (review R2: does not block). | producer (story MUI-005 owner) + Match UI GDD owner | Before MUI-005 implementation | **MUI-005 AC amended** in the same lane (`prod(story)` commit, sprint-004 L7 round 1) to require the confirm click |
+| **Hero attack by key**: the player hero can attack with a weapon (DD-M08, F3), but match-ui U5's key list has `A` + board index only, and `hud.md` Focus Order stop 4 says `Enter` on the player portrait does "Nothing". Proposal: `Enter` on the focused portrait opens the attack session when the hero can attack (no new key). An alternative that needs no `hud.md` change is an `A` badge "0" on the player portrait when the hero can attack, since `0` is otherwise unused after `A` (§7.1). | Match UI GDD owner + ux-designer (`hud.md`, APPROVED — not edited here) | **Before MUI-017 implementation** (the story is already Ready; the readiness deadline has passed) — high priority: War is the only MVP hero (DD-H06) | Open — conflict. §11's two keyboard rows are **unticked** (revision 1, review A1), and the §14 completion AC includes a hero weapon attack |
+| **`A`-armed state in the Escape chain** (review A7): the armed state consumes `Esc` (§7.1) but Escape / Cancel step (1) lists sessions only. Add "`A` armed (attacker badges showing)" to step (1). | ux-designer (`interaction-patterns.md` Escape / Cancel) | `/ux-review targeting` round 2 | Proposed here |
+| **Double-click guard** (§7.4 rank 2, review A4) uses the OS double-click flag instead of a new knob. If playtests show tremor users still committing by a slow double-click, add a `CONFIRM_REPEAT_GUARD_MS` knob to match-ui Tuning Knobs. | Match UI GDD owner | After the first accessibility playtest | Proposed here |
 | **Target cycle order** (enemy row → enemy hero → friendly row → friendly hero → "No target") extends the Targeting Arrow pattern's enemy-only order; initial key position = right-most gap. Add both to the pattern. | ux-designer (`interaction-patterns.md`) | `/ux-review targeting` | Proposed here |
 | **`optional` targeting** (card-effects C1 rule 1) has no UI in match-ui U5. This spec adds a "No target" chip; no v1 card uses `optional: true` (grep of the GDDs and `assets/data/` found none). | Match UI GDD owner + Card Effects GDD owner | When the first `optional` card is authored | Proposed here — chip specified, not required for v1 |
-| `A` attacker badges (numerals over legal attackers while `A` waits) are new; add to the Click-to-Select pattern. | ux-designer (`interaction-patterns.md`) | `/ux-review targeting` | Proposed here |
+| `A` attacker badges (numerals over legal attackers while `A` waits) are new; add to the Click-to-Select pattern with the revision-1 mapping: slot position 1–7 from the left (rules index + 1), badges on legal attackers only, an unbadged number ignored while staying armed, and pill sizes 20 / 24 / 28 px. | ux-designer (`interaction-patterns.md`) | `/ux-review targeting` round 2 | Proposed here |
 | Rejection copy (§12) is final English copy for all 21 match-rules C2 codes; `NOT_ENOUGH_MANA` uses `{cost}` / `{mana}` only if `rejection.detail` carries them — match-rules C2 does not define `detail`'s shape. | Match Rules GDD owner | Before story MUI-016 | Open |
-| New fixtures / poses: `targeting_battlecry`, `targeting_spell_untargeted`, `targeting_spell_friendly` (a heal with friendly and enemy targets), `targeting_rush`, `targeting_hero_weapon`, and the pose `--pose=place:<instance_id>:<index>` (Phase T after a chosen position). Add to match-ui U11. | Match UI GDD owner / `/qa-plan` | Before story MUI-008 | Proposed |
-| Stories MUI-008 / MUI-016 / MUI-017 cite `hud.md` and the patterns because this file did not exist; once APPROVED they should cite `design/ux/targeting.md`. | producer | Sprint 5 readiness | Open |
+| New fixtures / poses: `targeting_battlecry`, `targeting_spell_untargeted`, `targeting_spell_friendly` (a heal with friendly and enemy targets), `targeting_rush`, `targeting_hero_weapon`, `targeting_taunt_ts150` (settings variant, revision 1), and the pose `--pose=place:<instance_id>:<index>` (Phase T after a chosen position). Add to match-ui U11. | Match UI GDD owner / `/qa-plan` | Before MUI-008 implementation | Proposed |
+| Stories MUI-008 / MUI-016 / MUI-017 cite `hud.md` and the patterns because this file did not exist; once APPROVED they should cite `design/ux/targeting.md`. | producer | Before `/dev-story` on each (the stories are already Ready) | Open |
 | Gamepad: target cycling (§11) — shoulders / d-pad over the §7.1 cycle; not wired in v1. | ux-designer | Before gamepad work (post-v1) | Open — post-v1 |
 | Gamepad: face buttons (§11) — `ui_accept` / `ui_cancel`; is an "attack mode" button (the `A` equivalent) wanted? | ux-designer | Before gamepad work (post-v1) | Open — post-v1 |
 | Gamepad: bumpers (§11) — library default; confirm. | ux-designer | Before gamepad work (post-v1) | Open — post-v1 |
