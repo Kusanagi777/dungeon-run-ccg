@@ -11,6 +11,7 @@ Accepted
 > `coordination-rules.md` escalates technical conflicts to.
 
 **Review record (this authoring run, 2026-11-03):**
+- **Erratum 2026-11-03 (code review of match-rules 009)**: rule 4 exception — `on_draw`, `on_hero_damaged` and `on_minion_summoned` are reached inside a primitive; their entries run synchronously within the current step with no C10 loop between them, and a re-entry of the same hook point within one entry faults `resolution_overflow` (a self-feeding hook must end the match as a fault, never overflow the call stack).
 - Engine validation (`godot-specialist`, Step 5.5): **NOT ASSESSED — not spawned.** The registry uses no engine API beyond `RefCounted`, `Dictionary`, `Array`, `StringName` and `Callable`; the two post-cutoff GDScript rules that touch it are sourced below.
 - TD-ADR (`technical-director`, Step 5.6): **skipped — Lean mode** (`review_mode: lean`; not a PHASE-GATE).
 - GDD sync (Step 5.7): checked 4 referenced GDDs (treasures, match-rules, card-effects, boss-ai). No renames. One arity difference carried from `architecture.md` §API Boundaries: treasures T3.1 writes `installers_for(treasure_ids)`; code is `installers_for(treasure_ids, treasure_state)` because T3.2 says each installer's `state` comes from `treasure_state.by_treasure[host_id]` and `Treasures` never reads `RunState` itself (T5.1).

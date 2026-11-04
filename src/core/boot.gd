@@ -151,8 +151,8 @@ func services() -> Services:
 ##   `caps = configs["card_effects"]`;
 ## - `unlock` → the Meta seam's `validate_unlock_defs` (the `meta` override's,
 ##   else [method _validate_unlock_defs_mvp]), through [method _unlock_adapter];
-## - `configs.card_effects` → `EffectValidator.validate_config` (interim,
-##   code review 2026-11-03; card-effects story 002 owns the final one);
+## - `configs.card_effects` → `EffectValidator.validate_config` (card-effects
+##   story 002; snake_case keys);
 ## - `configs.match_rules` → `RulesEngine.validate_rules_config`;
 ## - `configs.ai_profiles` → `BossAI.validate_profiles_config` (boss-ai 002);
 ## - `configs.rng_event_log` → `EventLog.validate_config` (rng-event-log 007);
