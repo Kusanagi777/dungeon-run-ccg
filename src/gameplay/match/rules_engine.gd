@@ -1609,7 +1609,7 @@ func _attack_rejection(attacker: Dictionary, target: Dictionary, taunters: Array
 	if _state.phase != MatchState.PHASE_MAIN:
 		return R_WRONG_PHASE
 	if attacker.is_empty():
-		return R_CANNOT_ATTACK
+		return R_CANNOT_ATTACK  # deviation (story 012): F3 has no term for an attacker not in play
 	if str(attacker.controller) != str(_state.active_side):
 		return R_NOT_YOUR_TURN
 	if attack(attacker) <= 0 or attacks_remaining(attacker) <= 0:
@@ -1620,6 +1620,7 @@ func _attack_rejection(attacker: Dictionary, target: Dictionary, taunters: Array
 	if attacker.kind == MatchRecords.KIND_MINION and bool(attacker.summoning_sick) and not _has_keyword(attacker, MatchRecords.KEYWORD_CHARGE):
 		var rush: bool = _has_keyword(attacker, MatchRecords.KEYWORD_RUSH)
 		if not (rush and target_kind == MatchRecords.KIND_MINION):
+			# deviation (story 012): Rush with an unknown target is the literal false term, SUMMONING_SICK
 			return R_RUSH_CANNOT_HIT_HERO if rush and target_kind == MatchRecords.KIND_HERO else R_SUMMONING_SICK
 	if target.is_empty() or str(target.controller) == str(attacker.controller):
 		return R_ILLEGAL_TARGET
@@ -1874,8 +1875,7 @@ func _validate(type: String, command: Dictionary) -> String:
 			if not _is_whole(index) or int(index) < 0 or int(index) >= count:
 				return R_INVALID_CHOICE
 			return ""
-	# TODO(story 012): the attack handler. Until it exists its command is not
-	# accepted in any phase.
+	# Unreachable for the C2 types (the phase guard rejects an unknown one).
 	return R_WRONG_PHASE
 
 

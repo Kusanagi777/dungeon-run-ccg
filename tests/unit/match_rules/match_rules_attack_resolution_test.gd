@@ -143,6 +143,7 @@ func test_simultaneous_damage_lands_both_hits_in_one_step_in_the_c8_order() -> v
 	# the order: declared, on_attack triggers, A→D, D→A, the loop, resolved
 	var events: Array = _since(log, before)
 	EventLogAssertions.assert_order(events, [&"attack_declared", &"trigger_resolved", MARKER, &"damage_dealt", &"damage_dealt", &"attack_resolved"])
+	# adjacent only in this bare fixture: an `on_damage` responder, Divine Shield, armour or Lifesteal lands events between the hits (C8 bars only a death check)
 	EventLogAssertions.assert_consecutive(events, [&"damage_dealt", &"damage_dealt"])
 	var hits: Array[Dictionary] = _of(events, &"damage_dealt")
 	assert_int(hits.size()).is_equal(2)
