@@ -32,6 +32,8 @@ const SAFE_HEALTH: int = 10
 ## The Taunt an `on_attack` trigger summons (AC-21).
 const DEF_TAUNT: String = "neutral_test_taunt_0_5"
 const TAUNT_COST: int = 1
+## The three options a Discover raised by an `on_attack` trigger offers.
+const DISCOVER_OPTIONS: Array[String] = ["neutral_test_pick_a", "neutral_test_pick_b", "neutral_test_pick_c"]
 
 
 class FixtureDb extends RefCounted:
@@ -101,6 +103,13 @@ func _of(events: Array, type: StringName) -> Array[Dictionary]:
 func _emit_marker(engine: RulesEngine, _ctx: Dictionary) -> void:
 	@warning_ignore("return_value_discarded")
 	engine.emit(MARKER, {})
+
+
+## `on_attack` pass: raises a Discover for the player (a real resolver would
+## then return and keep the rest of its effect as its continuation).
+func _discover_for_player(engine: RulesEngine, _ctx: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
+	engine.discover(SIDE_PLAYER, DISCOVER_OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "oa.discover")
 
 
 ## Collecting `on_damage` script: when the damaged character is
@@ -264,6 +273,43 @@ func test_a_taunt_summoned_during_on_attack_does_not_redirect_the_declared_attac
 	assert_int(board.size()).is_equal(1)
 	assert_int(int(board[0].damage_taken)).is_equal(0)
 	assert_str(str(_attack(engine, next_attacker, boss_hero).rejection.code)).is_equal("MUST_ATTACK_TAUNT")
+
+
+func test_a_discover_raised_by_an_on_attack_trigger_pauses_the_rest_of_the_attack_until_choose() -> void:
+	# Arrange: the attacker's on_attack trigger raises a Discover
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	var attacker: int = _minion(engine, SIDE_PLAYER, AC16_ATTACK, AC16_HEALTH)
+	var defender: int = _minion(engine, SIDE_BOSS, AC16_DEFENDER_ATTACK, AC16_DEFENDER_HEALTH)
+	resolver.add_trigger(&"on_attack", attacker, "oa.discover", _discover_for_player, resolver.attacker_is.bind(attacker))
+	var before: int = log.events.size()
+
+	# Act 1: the attack pauses in Choice
+	var paused: Dictionary = _attack(engine, attacker, defender)
+
+	# Assert: accepted, nothing after the trigger has run
+	assert_bool(paused.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_int(_of(_since(log, before), &"damage_dealt").size()).is_equal(0)
+	assert_int(_of(_since(log, before), &"attack_resolved").size()).is_equal(0)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(0)
+
+	# Act 2: the player picks; the parked attack steps run once
+	var chosen: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+
+	# Assert
+	assert_bool(chosen.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_int(resolver.resume_calls.size()).is_equal(1)
+	assert_int(int(_record(engine, defender).damage_taken)).is_equal(AC16_ATTACK)
+	assert_int(int(_record(engine, attacker).damage_taken)).is_equal(AC16_DEFENDER_ATTACK)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	var events: Array = _since(log, before)
+	assert_int(_of(events, &"damage_dealt").size()).is_equal(2)
+	assert_int(_of(events, &"attack_resolved").size()).is_equal(1)
+	EventLogAssertions.assert_order(events, [&"attack_declared", &"choice_requested", &"choice_made", &"damage_dealt", &"damage_dealt", &"attack_resolved"])
+	assert_str(String(log.last().type)).is_equal("attack_resolved")
 
 
 # --- C8 step 4 / DD-X11: the defending hero; the snapshot ------------------------

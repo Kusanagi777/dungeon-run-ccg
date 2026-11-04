@@ -1617,8 +1617,19 @@ func _append_attack_commands(legal: Array, side: String) -> void:
 				legal.append(MatchRecords.attack(side, int(attacker.entity_id), int(defender.entity_id)))
 
 
-## An accepted `attack` (C8 resolution, story 013), each numbered step its
-## own engine step with its C10 loop:
+## The attack's stage kinds (story 016's staged model, sprint 4 lane 1
+## merge): C8 steps 1, 2, 3–6 and 7, run by [method _attack_stage] over the
+## frame `{side, attacker, defender, cause}` (`cause` the `attack_declared`
+## seq), so a Discover raised by an `on_attack` trigger parks the rest of the
+## attack and `choose` runs it.
+const STAGE_ATTACK_DECLARE: String = "attack_declare"
+const STAGE_ATTACK_POINT: String = "attack_point"
+const STAGE_ATTACK_DAMAGE: String = "attack_damage"
+const STAGE_ATTACK_RESOLVED: String = "attack_resolved"
+
+
+## An accepted `attack` (C8 resolution, story 013) as four stages over one
+## frame, each numbered step its own engine step with its C10 loop:
 ## 1. `attack_declared {attacker, defender}`; a Stealth attacker loses it
 ##    (`stealth_lost`).
 ## 2. Trigger point `on_attack {side, candidates, attacker, defender, source:
@@ -1634,29 +1645,36 @@ func _append_attack_commands(legal: Array, side: String) -> void:
 ##    weapon at durability ≤ 0 breaks there).
 ## 7. `attack_resolved {attacker, defender}`; [method submit] then runs
 ##    `win_loss_check()`.
+## A Discover raised in step 2 parks steps 3–7 (see [method discover]).
 func _do_attack(command: Dictionary) -> void:
 	var attacker_id: int = int(command.attacker_id)
-	var defender_id: int = int(command.target_id)
-	var payload: Dictionary = {"attacker": attacker_id, "defender": defender_id}
 	var side: String = str(_character(attacker_id).controller)
-	var declared: Dictionary = {"cause": 0}
-	_run_step(_declare_attack_step.bind(payload, declared))
-	if _halted():
-		return
-	var ctx: Dictionary = {
-		"side": side, "candidates": _candidates_in_order(), "attacker": attacker_id,
-		"defender": defender_id, "source": attacker_id, "subject": defender_id,
-	}
-	_run_step(_resolve_step.bind(&"on_attack", ctx), int(declared.cause))
-	if _halted():
-		return
-	if _character(attacker_id).is_empty() or _character(defender_id).is_empty():
-		_run_step(_cancel_attack_step.bind(payload))
-	else:
-		_run_step(_attack_damage_step.bind(attacker_id, defender_id))
-	if _halted():
-		return
-	emit(&"attack_resolved", payload)
+	_frame = {"side": side, "attacker": attacker_id, "defender": int(command.target_id), "cause": 0}
+	for kind: String in [STAGE_ATTACK_DECLARE, STAGE_ATTACK_POINT, STAGE_ATTACK_DAMAGE, STAGE_ATTACK_RESOLVED]:
+		_stage({"stage": kind, "side": side})
+
+
+## Executes one attack stage of [method _do_attack] over [member _frame].
+func _attack_stage(stage: Dictionary) -> void:
+	var attacker_id: int = int(_frame.attacker)
+	var defender_id: int = int(_frame.defender)
+	var payload: Dictionary = {"attacker": attacker_id, "defender": defender_id}
+	match str(stage.stage):
+		STAGE_ATTACK_DECLARE:
+			_run_step(_declare_attack_step.bind(payload, _frame))
+		STAGE_ATTACK_POINT:
+			var ctx: Dictionary = {
+				"side": str(stage.side), "candidates": _candidates_in_order(), "attacker": attacker_id,
+				"defender": defender_id, "source": attacker_id, "subject": defender_id,
+			}
+			_run_step(_resolve_step.bind(&"on_attack", ctx), int(_frame.cause))
+		STAGE_ATTACK_DAMAGE:
+			if _character(attacker_id).is_empty() or _character(defender_id).is_empty():
+				_run_step(_cancel_attack_step.bind(payload))
+			else:
+				_run_step(_attack_damage_step.bind(attacker_id, defender_id))
+		STAGE_ATTACK_RESOLVED:
+			emit(&"attack_resolved", payload)
 
 
 ## C8 step 1: `attack_declared`; its `seq` goes into [param declared]`.cause`
@@ -2491,6 +2509,8 @@ func _run_stage(stage: Dictionary) -> void:
 			_fire_observers(StringName(str(stage.point)), side, int(_frame.id), str(_frame.def_id), cause, instance_id)
 		STAGE_SPELL_DONE:
 			_spell_done(stage)
+		STAGE_ATTACK_DECLARE, STAGE_ATTACK_POINT, STAGE_ATTACK_DAMAGE, STAGE_ATTACK_RESOLVED:
+			_attack_stage(stage)
 
 
 ## The acceptance step of a play: the hand card is found by the frame's

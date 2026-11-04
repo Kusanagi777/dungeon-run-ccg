@@ -68,7 +68,7 @@ Legality is evaluated once, at declaration. After `on_attack` triggers the engin
 
 - `src/gameplay/match/rules_engine.gd` (`_do_attack` C8 steps 1–7 replacing story 012's acceptance stub: `_declare_attack_step`, the `on_attack` trigger step under `attack_declared`, the re-check with `_cancel_attack_step`, `_attack_damage_step` — snapshot, DD-X11, weapon as source, durability, `attacks_used`)
 - `tests/helpers/test_effect_resolver.gd` (additive: `attacker_is` guard, `add_on_attack_destroy`, `add_on_attack_summon` and their passes)
-- `tests/unit/match_rules/match_rules_attack_resolution_test.gd` (new, 8 tests)
+- `tests/unit/match_rules/match_rules_attack_resolution_test.gd` (new, 8 tests; 9 after the staged-model follow-up below)
 
 ## QA Test Cases
 
@@ -108,3 +108,6 @@ Legality is evaluated once, at declaration. After `on_attack` triggers the engin
 **Test Evidence**: `tests/unit/match_rules/match_rules_attack_resolution_test.gd` (8 tests); full suite 1102 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
 **Run result**: N/A — headless rules code; no scene, node or screen renders an attack yet (Match UI is a later epic).
 **Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode); `/code-review` reserved for this story at M1 (sprint 4 plan)
+
+### Staged-model follow-up (2026-11-04, ended 03:24:16 UTC; lane 1 after merging lane 2's story 016)
+At the orchestrator's request the attack handler moved onto story 016's plain-data stages: `_do_attack` builds four stages (`attack_declare`, `attack_point`, `attack_damage` — re-check, then cancel or the damage step — and `attack_resolved`) over the frame `{side, attacker, defender, cause}`, run by `_attack_stage` from one new arm in `_run_stage`. A Discover raised by an `on_attack` trigger now parks steps 3–7 and `choose` runs them once. Test added: `test_a_discover_raised_by_an_on_attack_trigger_pauses_the_rest_of_the_attack_until_choose`, watched failing against the direct-step handler (it emitted `attack_resolved` during the pause and ran nothing after `choose`). Full suite 1198 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged); smoke exit 0, no SCRIPT ERROR.
