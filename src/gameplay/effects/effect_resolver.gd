@@ -259,8 +259,29 @@ func resolve(trigger_point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 	elif PLAY_TRIGGERS.has(trigger_point):
 		_run_play_point(PLAY_TRIGGERS[trigger_point], ctx)
 	elif EVENT_TRIGGERS.has(trigger_point):
+		_keep_tallies(trigger_point, ctx)
 		queued = _collect(trigger_point, ctx)
 	return queued
+
+
+## The C4 per-turn tallies, kept from the trigger points the resolver
+## already sees (C6.8, story 007; `EffectRuntime.per_turn`): `turn_start`
+## drops `ctx.side`'s tallies; `on_card_played` bumps the player's
+## `cards_played_this_turn` (and `spells_cast_this_turn` for a spell);
+## `on_minion_died` bumps the dead minion's side's `minions_died_this_turn`.
+## Bumped before the observers are collected; they read it when they resolve.
+func _keep_tallies(point: StringName, ctx: Dictionary) -> void:
+	var runtime: Dictionary = _engine.state().effects
+	var side: String = str(ctx.get("side", ""))
+	match point:
+		&"turn_start":
+			EffectRuntime.reset_turn(runtime, side)
+		&"on_card_played":
+			EffectRuntime.bump(runtime, side, "cards_played_this_turn")
+			if str(definition(str(ctx.get("card_id", ""))).get("type", "")) == EffectOps.HOST_TYPE_SPELL:
+				EffectRuntime.bump(runtime, side, "spells_cast_this_turn")
+		&"on_minion_died":
+			EffectRuntime.bump(runtime, side, "minions_died_this_turn")
 
 
 ## The engine's C10 loop calls this once per step (match-rules C10; the End
@@ -444,12 +465,13 @@ func _run_queued(ctx: Dictionary) -> void:
 ## step).
 func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
 	run_ctx["effect"] = effect
+	run_ctx["resolver"] = self
 	_depth = int(run_ctx.get(ENTRY_DEPTH, 0))
 	var fizzled: Variant = null
 	var ops: Array[Dictionary] = []
 	if _condition_holds(effect.get("condition"), run_ctx):
 		for op: Dictionary in effect.get("ops", []):
-			ops.append(_ops.run(_engine, op, run_ctx))
+			ops.append_array(_ops.run_all(_engine, op, run_ctx))
 	else:
 		fizzled = FIZZLED_CONDITION_FALSE
 		for op: Dictionary in effect.get("ops", []):
@@ -470,31 +492,11 @@ func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
 	_depth = 0
 
 
-## C4 condition, evaluated once when the pass starts (C1). Absent or `{}` is
-## true; `all` / `any` / `not` combine; `is_owner_turn` compares the engine's
-## active side with the owner.
-## TODO(story 007): `cmp`, `exists`, `test`, `holding` — until then they are
-## false, so such an effect fizzles rather than running on an unchecked
-## condition.
+## C4 condition, evaluated once when the pass starts (C1): `cmp`, `exists`,
+## `test`, `holding`, `is_owner_turn`, `all` / `any` / `not` through
+## `EffectValues.holds` (story 007). Absent or `{}` is true.
 func _condition_holds(condition: Variant, run_ctx: Dictionary) -> bool:
-	if not condition is Dictionary or (condition as Dictionary).is_empty():
-		return true
-	var c: Dictionary = condition
-	if c.has("all"):
-		for part: Variant in c.all:
-			if not _condition_holds(part, run_ctx):
-				return false
-		return true
-	if c.has("any"):
-		for part: Variant in c.any:
-			if _condition_holds(part, run_ctx):
-				return true
-		return false
-	if c.has("not"):
-		return not _condition_holds(c.get("not"), run_ctx)
-	if c.has("is_owner_turn"):
-		return (String(_engine.active_side()) == str(run_ctx.owner)) == bool(c.is_owner_turn)
-	return false
+	return EffectValues.holds(condition, run_ctx)
 
 
 ## The memo entry of [param def_id], built on first use. `has()` before the

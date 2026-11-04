@@ -1,12 +1,12 @@
 # Story 007: Value expressions, conditions, Spell Damage (F1) and area / random selectors (F5)
 
 > **Epic**: Card Effects
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -64,17 +64,13 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/effects/values.gd`
-- `src/gameplay/effects/selectors.gd` (all C3 selectors and predicates)
-- `src/gameplay/effects/ops.gd` (`conditional`, `repeat`, Spell Damage in `damage`)
-- `src/gameplay/effects/effect_runtime.gd` (`per_turn` tallies)
-- `tests/unit/card_effects/card_effects_values_selectors_test.gd`
-
----
+- `src/gameplay/effects/values.gd` — created (`EffectValues`: `eval`, `ref` over the C4 path set, `entity`, `holds` — `cmp`, `exists`, `test`, `holding`, `is_owner_turn`, `all` / `any` / `not`)
+- `src/gameplay/effects/selectors.gd` — modified (area, random F5, neighbour, hand and deck pools; `pool`, `pick_count`, `hand_cards`; value-expression predicates)
+- `src/gameplay/effects/ops.gd` — modified (value params evaluated in `run` with the non-negative clamp; `run_all` for `conditional` / `repeat`; F1 Spell Damage in `damage`; `_int` doc comment only)
+- `src/gameplay/effects/effect_runtime.gd` — modified (`per_turn` tallies: `tally`, `bump`, `reset_turn`)
+- `src/gameplay/effects/effect_resolver.gd` — modified (pass context carries the resolver; `run_all`; conditions through `EffectValues`; `_keep_tallies`)
+- `tests/unit/card_effects/card_effects_values_selectors_test.gd` — created (12 tests)
+- `tests/unit/card_effects/card_effects_play_triggers_test.gd` — modified (expected `ops` entries counted through `conditional` / `repeat`)
 
 ## QA Test Cases
 
@@ -90,7 +86,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/card_effects/card_effects_values_selectors_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 12 tests, passing in the full suite
 
 ---
 
@@ -98,3 +94,35 @@ checks scope against it.*
 
 - Depends on: `production/epics/card-effects/story-006-play-triggers-one-pass.md`; AC-23 and AC-24 also need `production/epics/card-effects/story-008-event-observers-queueing.md` (turn triggers are queued event triggers). Cross-epic: `production/epics/match-rules/` (F7 `spell_damage`, `turn_start` / `turn_end` trigger points), `production/epics/rng-event-log/` (the `match_<floor>` stream).
 - Unlocks: `production/epics/card-effects/story-009-deathrattle-snapshot-counters.md`, `story-011-hero-powers.md`, `story-012-auras-enchantments.md`
+
+## Readiness
+
+`/story-readiness` (by hand, 2026-11-04, Tier: workflow full, review lean): **READY**.
+Design Completeness: GDD C3/C4/C5/F1/F5 traced, ACs testable. Architecture Completeness:
+ADR-0007 Accepted (version 2026-11-03 = story); TR-card-effects-002 active; Manifest Version
+current. Scope Clarity: estimate M, Out of Scope and dependencies stated. Open Questions: no
+markers; story 006 Complete, story 008 Complete on this lane (71d7842). Asset References: none.
+Definition of Done: 4 ACs, Logic type, test evidence path, perf guardrail (story 016).
+QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:02:17 UTC, ended 03:10 UTC)
+**Criteria**: 4/4 passing (AC-13, AC-14, AC-23, AC-24), no deferred items
+- AC-13 — `test_a_hero_power_deal_1_does_not_scale_with_spell_damage`, `test_a_spell_deal_3_scales_with_two_spell_damage_minions_to_5` (`effect_resolved.ops[0].values {amount: 3, requested: 5}`).
+- AC-14 — `test_row_19_deals_3_to_each_enemy_minion_left_to_right_then_the_hero`.
+- AC-23 — `test_row_22_with_four_cards_fizzles_condition_false_and_deals_nothing`, `test_row_22_with_five_cards_hits_one_random_enemy_character_with_one_draw` (one recorded `randi_range` on the injected `TestRngStream`).
+- AC-24 — `test_row_34_repeat_kills_the_only_enemy_minion_then_finds_no_target` (`applied`, `no_target`; the hero never hit), `test_a_negative_computed_damage_amount_is_clamped_to_0_and_logged` (`clamped_from: -2`, `apply_damage(…, 0)` still called).
+- Beyond the ACs: `{count}` with `not_self`, `adjacent of: target`, `conditional` logging the branch not taken `skipped` with `values.condition`, per-turn tallies and their Start-step reset.
+- Watched fail: 10 of 12 failed before the code; the 2 that passed by construction were mutated, one mutation per run, each restored: `auto` always scales (hero-power test failed), `cmp >=` always true (four-card fizzle and tally tests failed).
+**Verification**: `godot --headless --path . --import` exit 0; full suite (`commands.test`) 1099/1099, exit 0, 85 SCRIPT ERROR lines (the story-006 baseline, all from other systems' negative tests); smoke exit 0, no SCRIPT ERROR; `tools/lint/gates.sh` PASS (G7 0 hits), `no_global_rng.sh` 0 hits; parse check of the 6 changed scripts ok.
+**Run result**: N/A — nothing renders: the real resolver is not yet composed into a playable match (no `MatchDriver`).
+**Engine edits**: none. F7 is read through `engine.spell_damage(owner)`; draws only through `engine.rng_match()`.
+**Deviations** (all ADVISORY):
+- **`damage_dealt.amount` in AC-13/14/23 is C15's `requested` / `dealt`** (DD-X04: match-rules C15 is authoritative; `damage_dealt` carries no `amount`). The tests assert both, and they are equal because no shield or armour is involved.
+- **ops.gd `_int` site (sprint-3 review note, Lane 4 concurrently)**: computed values are evaluated in `EffectOps.run` before dispatch, so no non-literal reaches `_int`. At that site only its two doc-comment lines changed, so the orchestrator can reconcile with Lane 4's `skipped` guard (now unreachable for computed values).
+- **`{count}` / `{exists}` over a random selector draw nothing**: they read the pool (`min(n, |pool|)`), keeping determinism independent of value reads.
+- **`conditional` / `repeat` log no entry of their own**: `ops` lists one entry per leaf op (C5 "one ops entry per inner op executed"), and story 006's every-play-row test now counts expected entries that way (rows 8, 15, 23).
+- **Hand / deck selectors yield card instance ids**, but ops still accept only in-play kinds (`LEGAL_KINDS`), so `buff cost` on hand or deck cards stays `skipped` until story 011. `summon position: chosen_slot` is not implemented (the engine passes no slot to the resolver).
+- **`source.*` / `trigger_*` refs read live**, and a departed `source` reads the queue snapshot. `trigger_subject` snapshots are story 009's.
+**Test Evidence**: `tests/unit/card_effects/card_effects_values_selectors_test.gd`
+**Reviewed by**: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)
