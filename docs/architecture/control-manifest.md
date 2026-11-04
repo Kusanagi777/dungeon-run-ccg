@@ -247,8 +247,8 @@ contract; DD-X15, DD-X16, DD-X17; performance budgets from `project.yaml`.
 - **`RulesEngine.submit()`**: ≤ 5 ms worst case (50-step Deathrattle chain, includes resolver passes); **`legal_commands()`**: ≤ 2 ms (`targeting_spec` memoised per `def_id`) — source: ADR-0007, ADR-0001
 - **Hook fold**: 12-entry fold < 0.05 ms; three treasures add < 2 ms per match; ≤ 12 entries per match (`entry_count()` asserted in debug); `copy()` ≤ 12 small `duplicate(true)` calls per Boss AI clone — source: ADR-0005
 - **Boss AI main thread**: ≤ 2 ms per frame — one `is_task_completed` per frame plus replay bounded by `replay_budget_ms` (ADR-0006 default **2**; ADR-0008's Performance section says 4 — the data value in `ai_profiles.json runtime` governs; see Unresolved) — source: ADR-0006, ADR-0008
-- **Boss AI worker**: 50 ms p95 target per turn (A22), ≈ 60–80 ms band-3 worst case; forecast doubles the per-round worker cost off-thread — source: ADR-0006
-- **`clone()` + empty resolver memo per look-ahead node**: measured by the sim harness against `planner_target_ms` 50 p95 — source: ADR-0007
+- **Boss AI worker**: 500 ms p95 target per planner run (A22), `play_turn` and `forecast` measured separately, off-thread; a run past the 300 ms banner beat shows "boss thinking"; budgets stay counts, never a runtime clock (boss-ai C9) (was 50 ms p95 per turn, ≈ 60–80 ms band-3 worst case — 2026-11-04, DD-X18) — source: ADR-0006
+- **`clone()` + empty resolver memo per look-ahead node**: measured by the sim harness against `planner_target_ms` 500 p95 per planner run (was 50 — 2026-11-04, DD-X18; measured `t_sim` ≈ 0.37 ms release) — source: ADR-0007
 - **Memory**: one extra `RulesEngine` clone per planned turn plus one `TurnPlan` (≤ 30 commands + ≤ 30 diagnostics); the per-def memo is bounded by the card pool (~120 + tokens); one driver graph per attempt, no event buffer — source: ADR-0006, ADR-0007, ADR-0008
 
 ---

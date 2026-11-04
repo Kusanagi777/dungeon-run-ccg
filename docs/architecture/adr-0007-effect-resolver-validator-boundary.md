@@ -36,6 +36,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 - **Erratum 2026-11-03 (DSL spike)** (`docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED; findings 3 and 9): (a) `resolve()` **returns the triggers it queues** — plain-data queue entries carrying the C6.5 raise-time snapshot — instead of `void`; the engine appends them to Q, so the queue stays engine-owned (Decision 1, Alternative 1 unchanged) and match-rules Interactions' `resolve(trigger_point, context) → steps` now agrees. Key Interfaces updated. (b) Gate G7 (Decision 9) gains the subscript forms `x["field"] = …`, `x["field"] += …` and `(x["enchantments"] as Array).append(…)` for the same field lists: the spike's stub engine held 7 such writes and the old pattern saw none of them. Two of the 7 (`pending_destroy`, a whole `enchantments` reassignment) are outside G7's field list in either form; typed state classes remain the stronger fix. No decision changes; status stays Accepted.
 - **Erratum (2026-11-04, sprint 4: card-effects 010, MR-016)**: (a) `EffectResolver._init(db, effects_config, player_hero_set = "")` takes an optional third argument, the run hero's set, which card-effects F4 `base(collectible)` needs and `MatchState` does not carry; composition (ADR-0008) passes it, Decision 3's `clone()` passes the live resolver's `player_hero_set()` to the clone's resolver, and without it `pool: collectible` logs an error and offers nothing. Key Interfaces updated. (b) `choice_made` is logged under the paused pass's `cause_seq` (the same `cause_seq` as its `choice_requested` / `discover_offered` / `discover_picked`), not cause 0. No decision changes; status stays Accepted.
+- **Erratum 2026-11-04 (DD-X18, `/propagate-design-change design/gdd/boss-ai.md`)**: the planner budget this ADR measures `clone()` against is now boss-ai `planner_target_ms` **500 ms p95 per planner run** (`play_turn` and `forecast` each; was 50 ms p95), and F7's `t_sim` is the measured ~0.37 ms release / ~0.45 ms debug (`production/qa/perf-match-rules-2026-11-04.md`), not 0.01 ms. Performance Implications and Engine Compatibility rows updated. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -424,7 +425,8 @@ static func derive_targeting_spec(effects: Array) -> Dictionary            # the
   engine's budget and includes resolver passes; `targeting_spec` memoised per
   `def_id` keeps C6 validation inside `legal_commands()` ≤ 2 ms. `clone()` +
   empty memo per look-ahead node: measured by the sim harness (A22) against
-  `planner_target_ms` 50 p95.
+  `planner_target_ms` 500 p95 per planner run (was 50 p95 — 2026-11-04, DD-X18;
+  measured `t_sim` ≈ 0.37 ms release, `production/qa/perf-match-rules-2026-11-04.md`).
 - **Memory**: `EffectRuntime` is a few Dictionaries per `MatchState`; the per-def
   memo is bounded by the card pool (~120 + tokens).
 - **Load Time**: `validate_effects` over ~900 O(1) checks fits
@@ -469,7 +471,7 @@ passing `MatchState` in `ctx` (one signature change in `resolve`).
 | `static func`, `Callable`, typed `Array[...]`/`Dictionary` behave as pre-4.3 | `breaking-changes.md` lists no change to them 4.4→4.7; `deprecated-apis.md` Patterns prefers typed containers | sourced (by absence of a breaking row — the reference is the pin) |
 | No post-cutoff API is needed | `breaking-changes.md` 4.6→4.7 Core/GDScript rows (typed-return override, packed-array setter, `is_class` `StringName`) — none used here | sourced |
 | `RefCounted` cycle is not auto-collected; `unbind()` needed | — | **NOT SOURCEABLE** from the reference; proven by `effect_resolver_teardown_test.gd` |
-| `clone()` + fresh resolver fits the planner budget | boss-ai F7 (≈60 ms band-3 worst case), A22 | to be measured by the sim harness; no claim made here |
+| `clone()` + fresh resolver fits the planner budget | boss-ai F7, A22 (500 ms p95 per planner run; was ≈60 ms band-3 worst case — 2026-11-04, DD-X18) | measured 2026-11-04: `t_sim` ≈ 0.37 ms release, so F7's band-3 counts do not fit yet; re-tuned after match-rules story 019 (`production/qa/perf-match-rules-2026-11-04.md`) |
 | Stage-7 Callable contract and `caps` availability | card-database CR-5 stage 7; ADR-0002 Key Interfaces (stage 7b: `call(host_kind, host_id, value, db, configs_bodies)`) | design-sourced; aligned with ADR-0002 on 2026-11-03 |
 
 ## Related

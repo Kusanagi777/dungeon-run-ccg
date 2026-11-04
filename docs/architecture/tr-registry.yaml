@@ -275,9 +275,9 @@ requirements:
 - id: TR-boss-ai-003
   system: boss-ai
   gdd: design/gdd/boss-ai.md
-  requirement: "C1.5, C9, F7: at most 2 ms main-thread time per frame; planner off-thread or time-sliced (mechanism by ADR); budgets are counts, 50 ms per turn is the p95 acceptance target"
+  requirement: "C1.5, C9, F7: at most 2 ms main-thread time per frame; planner off-thread or time-sliced (mechanism by ADR); budgets are counts, 500 ms per planner run (play_turn and forecast each) is the p95 acceptance target (was 50 ms per turn; DD-X18)"
   created: 2026-11-03
-  revised: ""
+  revised: 2026-11-04
   status: active
 
 - id: TR-boss-ai-004

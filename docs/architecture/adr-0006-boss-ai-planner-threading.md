@@ -43,6 +43,7 @@ Review record for this authoring run (2026-11-03, `review_mode: lean`,
   ADRs' dependency rows — not the reverse).
 - **Erratum 2026-11-03 (engine validation, `docs/architecture/engine-validation-2026-11-03.md`)**: on 4.7.2 `plan_turn` is a coroutine (it awaits `checkpoint()`), so the task Callable must be `func() -> Variant: return await boss_ai.plan_turn(sandbox)`; it is built inside `src/ai/` by `BossAI.plan_task(sandbox) -> Callable` so `match_driver.gd` stays `await`-free. Verified in all three task shapes (worker, immediate, time-sliced). Verification adds a parse-check test for the call shape.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
+- **Erratum 2026-11-04 (DD-X18, `/propagate-design-change design/gdd/boss-ai.md`)**: boss-ai `planner_target_ms` rose from 50 ms per round (forecast + play_turn together) to **500 ms per planner run**, `play_turn` and `forecast` each measured separately (A22); F7's `t_sim` is now the measured ~0.37 ms release / ~0.45 ms debug (`production/qa/perf-match-rules-2026-11-04.md`), not 0.01 ms, so F7's band-3 worst case at today's counts is ≈ 2,190 ms until the counts are re-tuned after match-rules story 019. **The Decision is unchanged and strengthened**: a run of up to 500 ms (and more before re-tuning) can only be off the main thread or sliced; the 2 ms main-thread rule (A30), `slice_ms` and `replay_budget_ms` are unchanged. A run longer than the 300 ms banner beat shows the existing "boss thinking" state (diagram below, U6.1). Text fixed in Summary, Constraints, Problem Statement, Negative, GDD Requirements Addressed, Performance Implications and Validation Criteria; Alternative 3's frame estimate (probe A based) is kept as historical reasoning — at 500 ms per run the time-sliced fallback shows "thinking" for ≥ 30 frames, which the same state covers. TD-CHANGE-IMPACT skipped — Lean mode.
 
 ## Date
 
@@ -63,7 +64,8 @@ the owner's confirmation). No director or specialist agent reviewed this draft
 ## Summary
 
 `.claude/rules/ai-code.md` caps AI main-thread time at 2 ms per frame while
-boss-ai F7's band-3 worst case is ≈ 60–80 ms of planning per boss turn, so the
+boss-ai F7 targets up to 500 ms of planning per planner run (`planner_target_ms`;
+was ≈ 60–80 ms band-3 worst case per turn — 2026-11-04, DD-X18), so the
 planner cannot run inline. This ADR fixes the `PlannerTask` seam that
 `MatchDriver` drives and chooses its default implementation: the Boss AI plans
 on a `RulesEngine.clone()` snapshot inside a `WorkerThreadPool` task (polled once
@@ -104,7 +106,9 @@ immediate implementation serves tests and the sim harness.
 
 Boss AI's `play_turn(engine)` decides and executes a whole boss turn in one
 synchronous call (boss-ai C1.4, C2). Its budgets are counts, not milliseconds
-(C9), and F7 puts the band-3 worst case at `(8·250 + 4000)·0.01 ms ≈ 60 ms`;
+(C9), and F7 puts the band-3 worst case at `(8·250 + 4000)·0.01 ms ≈ 60 ms`
+(2026-11-04, DD-X18: F7 now uses the measured `t_sim` ≈ 0.37 ms release, so the
+same counts take ≈ 2,190 ms and are re-tuned to the 500 ms per-run target);
 probe A measured a comparable 2 M-op workload at 70–80 ms on this machine. The
 project rule `.claude/rules/ai-code.md` ("AI update budget: 2 ms per frame
 maximum") and boss-ai C1.5 forbid holding the main thread for that long, and
@@ -134,7 +138,9 @@ Decision, "What the worker touches").
 - **`EventLog` subscribers run on the main thread only** (`architecture.md`
   §Data Flow 2; rng-event-log rule 13 subscriber contract).
 - **Budgets:** ≤ 2 ms main-thread AI per frame; `submit()` ≤ 5 ms worst case;
-  50 ms p95 planner per turn (A22, a count-tuning target, not a runtime switch).
+  500 ms p95 per planner run, `play_turn` and `forecast` each (A22, a
+  count-tuning target, not a runtime switch; was 50 ms p95 per turn —
+  2026-11-04, DD-X18).
 - **Engine reference has nothing on threading** — probe A is the only local
   evidence, single machine, 4 cores, Linux.
 - **The player keeps playing during `forecast`:** `forecast(engine)` runs at
@@ -435,7 +441,7 @@ the data owner prefers another home (ADR-0002 config loading), only the
 - A `TurnPlan` record and a replay step exist that boss-ai C2 did not describe; `BossAI` gains `plan_turn` and `checkpoint()` calls in its inner loops.
 - Replay correctness depends on `clone()` fidelity (hooks, continuation, `rng_match` position). A fidelity bug surfaces as `ai_fault {replay_divergence}` rather than a wrong move — visible, but a new failure mode to test (A20 covers hooks already).
 - Threading on 4.7.2 remains NOT SOURCEABLE from the engine reference; the evidence is one probe on one Linux machine until the Windows run in Verification.
-- `WorkerThreadPool` tasks cannot be cancelled: quitting a scene mid-plan blocks for up to one planner run (≤ ~150 ms observed cold).
+- `WorkerThreadPool` tasks cannot be cancelled: quitting a scene mid-plan blocks for up to one planner run (≤ ~150 ms observed cold; up to the 500 ms `planner_target_ms` per run, more at band 3 before story 019's re-tune — 2026-11-04, DD-X18).
 
 ### Neutral
 - `play_turn(engine)` keeps its C1.4 contract for the harness, implemented as `plan_turn(engine.clone())` + immediate replay; nothing outside the driver and the harness calls it.
@@ -457,7 +463,7 @@ the data owner prefers another home (ADR-0002 config loading), only the
 | boss-ai.md | TR-boss-ai-001 — C1: pure function of (observable state, profile, stream position); reads only `legal_commands()` / `clone()` | The planner is handed a clone and the `ai_<floor>` stream only; identical plan on and off the main thread, proven by the determinism test |
 | boss-ai.md | TR-boss-ai-002 — C1.4: `forecast`, `play_turn`, `choose` synchronous entry points | Kept; `plan_turn` is the task body; `play_turn` remains for the harness; `choose` is answered inside the plan loop and replayed as a `choose` command |
 | boss-ai.md | TR-boss-ai-006 — C11 headless sim harness | `ImmediatePlannerTask`; no thread in headless runs |
-| boss-ai.md | A22 (50 ms p95), A30 (2 ms frame budget, `ai_decision` present) | A30 is the acceptance test of this ADR; `ai_decision` appended on the main thread before each replayed command |
+| boss-ai.md | A22 (500 ms p95 per planner run, `play_turn` and `forecast` each; was 50 ms p95 per round — 2026-11-04, DD-X18), A30 (2 ms frame budget, `ai_decision` present) | A30 is the acceptance test of this ADR; `ai_decision` appended on the main thread before each replayed command |
 | match-rules.md | TR-match-rules-003 — C2/C3 `clone()` deep copy incl. hooks, continuation, scratch log, copied `rng_match` | The replay design depends on it and makes any gap observable (`replay_divergence`) |
 | match-rules.md | TR-match-rules-002 — `submit` synchronous; re-entrant → `ENGINE_BUSY` | Replay calls `submit` only from `tick()` on the main thread; driver rejects player `submit` while a task is live |
 | rng-event-log.md | TR-rng-event-log-005 — rule 12a diagnostic events on the same log | `ai_decision` / `ai_plan_aborted` / `ai_fault` appended by the driver with `diagnostic: true` |
@@ -489,7 +495,7 @@ driver's `submit()` replay on the main thread.
 | `clone()` carries hooks and continuation | Confirmed in boss-ai Open Questions (2026-11-03): `hooks` is a `MatchState` field, `clone()` is a deep copy | boss-ai A20 (passive doubling heal scored correctly from the sandbox) |
 
 ## Performance Implications
-- **CPU**: main thread — one `is_task_completed` per frame while planning (sub-microsecond), plus replay bounded by `replay_budget_ms` (2 ms default; typical turn ≪ 1 ms); worker — 50 ms p95 target per turn (A22), ≈ 60–80 ms band-3 worst case, on a pool thread. Forecast doubles the per-round worker cost (F7 note) — off-thread, so it costs frames nothing.
+- **CPU**: main thread — one `is_task_completed` per frame while planning (sub-microsecond), plus replay bounded by `replay_budget_ms` (2 ms default; typical turn ≪ 1 ms); worker — 500 ms p95 target per planner run (A22; `play_turn` and `forecast` each, measured separately), on a pool thread (was 50 ms p95 per turn, ≈ 60–80 ms band-3 worst case — 2026-11-04, DD-X18; at the measured `t_sim` the current band-3 counts take ≈ 2,190 ms until re-tuned). Forecast runs during the player's turn — off-thread, so it costs frames nothing. A run past the 300 ms banner beat shows "boss thinking".
 - **Memory**: one extra `RulesEngine` clone per planned turn (the planner's own sandboxes already clone per evaluation); one `TurnPlan` (≤ 30 commands + ≤ 30 diagnostics, a few KB). Released when replay ends.
 - **Load Time**: none.
 - **Network**: n/a.
@@ -513,9 +519,9 @@ supersede with an ADR adopting Alternative 1 and move the buffering rule into
 ## Validation Criteria
 
 - boss-ai A30 passes on Linux and Windows debug builds.
-- boss-ai A22: 50 ms p95 planner time at band 3 in the harness (off-thread time, measured inside the task).
+- boss-ai A22: 500 ms p95 planner time per planner run at band 3 in the harness, `play_turn` and `forecast` each (off-thread time, measured inside the task; was 50 ms p95 — 2026-11-04, DD-X18).
 - 1,000-match determinism run: zero `ai_fault`, identical logs across the three `PlannerTask` implementations.
-- match-ui Input Responsiveness: "End Turn → boss intent commit beat visible ≤ 300 ms" holds with the worker (the commit beat is view-state from `ai_intent_committed`, appended at replay start).
+- match-ui Input Responsiveness: "End Turn → boss intent commit beat visible ≤ 300 ms" holds with the worker (the commit beat is view-state from `ai_intent_committed`, appended at replay start). 2026-11-04, DD-X18: a `play_turn` run may now take up to 500 ms, so the 300 ms holds only for runs that finish within it; a longer run shows the existing "boss thinking" state until the plan arrives, and the commit beat follows planner completion (boss-ai Input Responsiveness). match-ui's "End Turn → boss intent commit beat visible ≤ 300 ms" row is flagged for re-check (change-impact report).
 - No `WorkerThreadPool` or `Thread` symbol appears outside `src/ai/*_planner_task.gd` (grep gate for `/create-control-manifest`).
 
 ## Related

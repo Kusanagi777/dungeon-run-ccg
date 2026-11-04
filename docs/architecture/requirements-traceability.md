@@ -94,3 +94,7 @@ None. The one gap of the prior index (`TR-accessibility-requirements-001`) is cl
 ## Superseded Requirements
 
 None superseded. Three registry entries were `revised` 2026-11-03 because their GDD wording changed after the ADR was written, with the same intent and no ADR change required: `TR-rng-event-log-003` (rule 10 snapshot carries `run_seed_hex`), `TR-run-structure-001` (R1 persists the seed as hex — the prior run's GDD revision flag, now applied), `TR-meta-progression-005` (M9 gains `bindings`). All three are consistent with ADR-0003 / ADR-0004 as accepted.
+
+| Date | GDD | Requirement | Changed To | ADRs Affected | Resolution |
+|------|-----|-------------|------------|---------------|------------|
+| 2026-11-04 | boss-ai.md | TR-boss-ai-003 — "budgets are counts, 50 ms per turn is the p95 acceptance target" (A22: one forecast + one play_turn per round) | "budgets are counts, 500 ms per planner run (`play_turn` and `forecast` each) is the p95 acceptance target" (DD-X18; F7 `t_sim` measured ≈ 0.37 ms release) | ADR-0006, ADR-0007 | Updated (errata 2026-11-04; same intent, `revised` in the registry; decisions unchanged) — `docs/architecture/change-impact-2026-11-04-boss-ai.md` |
