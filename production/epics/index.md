@@ -21,7 +21,7 @@ Review: PR-EPIC skipped — Lean mode
 | Heroes | Feature | Heroes | design/gdd/heroes.md | Not yet created | Ready |
 | Run UI | Presentation | Run UI | design/gdd/run-ui.md | Not yet created | Ready |
 | Meta Progression (persistence + seam) | Feature / Foundation code | Meta Progression | design/gdd/meta-progression.md | Not yet created | Ready |
-| Content (MVP batch) | Feature (data) | Content | design/gdd/content.md | 9 stories | Ready |
+| Content (MVP batch) | Feature (data) | Content | design/gdd/content.md | 10 stories (story 010 added 2026-11-04, DD-X20) | Ready |
 
 ## Build order and plan mapping (E1–E10)
 

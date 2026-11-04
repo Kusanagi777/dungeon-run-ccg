@@ -39,3 +39,27 @@ Still valid: ADR-0004, 0006, 0009 cite rng-event-log.md for other requirements (
 - Not edited: sprint plans and QA plans (dated records).
 
 **Sprint 5:** `tests/performance/rng_event_log/rng_event_log_perf_test.gd` — `APPEND_BUDGET_USEC` 50_000 → 80_000, rename `test_ten_thousand_appends_and_events_since_zero_fit_in_50_ms`, header comment; re-run the perf job.
+
+## DD-X20 — boss-ai.md and content.md: Boss AI values `add_counter`
+
+### Change Summary
+Changed sections:
+- boss-ai C6: `add_counter` joins the op list with the row `add_counter 0.5` and its rationale (the floor of the table, with `armor`; the reading `damage` op already carries the payoff). `set_counter` stays unvalued.
+- boss-ai F9: a note under the schema block. The decided row moves into the `op_values:` list together with `ai_profiles.json` (content story 010), because `boss_ai_profiles_data_test.gd` pins the shipped file to that list.
+- content Edge Cases ("If a boss deck recipe cannot reach 30 ids"): the Gravekeeper use of the fallback is superseded.
+
+Unchanged: every formula, weight, budget and every other op value. The CN-2 / CN-3 tables are unchanged, since they already list Gravekeeper.
+
+Key changes affecting architecture: none structural. The op value table is data (`ai_profiles.json`), and its keys are already open to Card Effects C5 names.
+
+Downstream GDDs to re-check: none in the registry (`op_values` has no entity). card-effects C11 row 45 is the reading op, unchanged.
+
+### ADRs in scope
+boss-ai.md (standard): 8 ADRs (Foundation 0001, 0002, 0003, 0004, 0010 plus 0005, 0006, 0007, 0008, which name boss-ai.md). content.md: ADR-0002 and 0003 name it. A search of `docs/architecture/` for `add_counter`, `op_values` values and `gravekeeper` finds `op_values` only as a constructor parameter name (ADR-0001, ADR-0008, architecture.md), with no row or value quoted.
+- All in-scope ADRs: **Still Valid**. None quotes an op value or the Gravekeeper deferral, so no erratum is needed.
+
+### Stories
+- New: `production/epics/content/story-010-gravekeeper-returns-to-the-boss-decks.md` (Config/Data, S). It covers the row, the card, the Gatekeeper / Hollow King / Rot Warden swaps, and The Torchbearer's swap (story 001 dropped Gravekeeper for the same reason; flagged for the owner to strike if unwanted).
+- Dated pointers added in content stories 001, 003 and 004. Story 009 now depends on 010. EPIC.md and `production/epics/index.md` show 10 stories.
+
+**Sprint 5:** content story 010 (data: `ai_profiles.json`, `cards_neutral.json`, `bosses.json`; tests: `boss_ai_profiles_data_test.gd` 19 → 20, `content_mvp1_data_test.gd`, `content_batch0_data_test.gd`; boss-ai F9 list).

@@ -172,13 +172,20 @@ emerges from scoring: "Fireball the 6/6, not the 1/1" is simply the candidate wi
 `f_threat`. The **op value table** (`op_values` in `ai_profiles.json`, keyed on the Card Effects
 C5 op names — `damage`, `heal`, `buff`, `set_stats`, `give_keyword`, `silence`, `freeze`,
 `destroy`, `summon`, `transform`, `draw`, `discover`, `add_to_hand`, `copy_to_hand`,
-`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`; the structural ops `conditional`,
+`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`, `add_counter` (added 2026-11-04, DD-X20); the structural ops `conditional`,
 `repeat` and `choose_one` are valued as the sum of their inner ops, `aura` and `modify_value` as
 `buff`) is used in two places only: as the pre-filter rank when candidates exceed the eval budget
 (C4), and to value options that cannot be simulated (C7). An op's value is multiplied by the
 number of targets its selector yields on the current board (`all_*` selectors, `n` picks), so a
 three-target `damage` outranks a one-target one without an AoE row of its own. It is a hint,
-never the decision. Three **derived annotations** are computed by Boss AI from the effect spec at
+never the decision. **`add_counter` row (2026-11-04, DD-X20): `add_counter 0.5`.** The op is
+source-scoped and has no selector, so its target count is 1. Its value sits at the floor of the
+table, with `armor` (0.5) and below `heal` (0.6): incrementing a counter changes nothing on the
+board when it resolves; the payoff is valued by the op that reads `counter.<key>` (Neutral
+Gravekeeper's Deathrattle is a `damage` op, 1.0 × its targets), so a higher row would count the
+same damage twice, and a zero row would rank a counter card as dead text in the pre-filter. The
+row lets `neutral_gravekeeper` load without `E_AI_OP_UNVALUED` (content CN-2). `set_counter` stays
+unvalued (no shipped card uses it). Three **derived annotations** are computed by Boss AI from the effect spec at
 load — Card Effects adds no AI-only fields: `position_sensitive` = any effect on the card uses an
 `adjacent`, `left_neighbour` or `right_neighbour` selector (Card Effects C3); `aoe` = any
 `damage`, `destroy`, `freeze`, `silence` or negative `buff`/`set_stats` op whose selector is
@@ -536,6 +543,12 @@ Profile = { extends?: key,
             choice_preference: {<tag>: float 0–1},
             synergy_tags: [string] }
 ```
+
+`add_counter 0.5` (2026-11-04, DD-X20; C6) is a decided row of the op value table that the list
+above does not yet carry. It moves into that list in the same change that adds it to
+`assets/data/ai_profiles.json`, because `boss_ai_profiles_data_test.gd` pins the shipped file to
+the list (content story 010, sprint 5). Until then the shipped file has the 19 rows above and a
+card using `add_counter` fails the load with `E_AI_OP_UNVALUED`.
 
 Archetype deltas from `default` (F1's table holds the default weights; default `rules` are
 `hero_power spare_mana`, `lethal_search full`, `defensive false`, `assume_aoe false`): **aggro** `w_face 3.0, w_board
