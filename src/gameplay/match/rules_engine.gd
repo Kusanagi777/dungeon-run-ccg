@@ -851,9 +851,10 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 
 
 ## Primitive (F2, C9): [param requested] damage to the character
-## [param target_id] from [param source] — an entity id (a minion, a hero, the
-## weapon a hero attacks with — its keywords then count for the attack — or a
-## card instance) or `null` (fatigue, DD-X14) — evaluated in one step:
+## [param target_id] from [param source] — an entity id (a minion, a hero —
+## also when it swings a weapon, DD-X15; the attack handler then adds the
+## weapon's keywords through [method _apply_damage] — or a card instance) or
+## `null` (fatigue, DD-X14) — evaluated in one step:
 ## 1. `amount = maxi(0, hooks.fold(&"modify_damage", source_side, requested,
 ##    {source, target}))` — the engine's one clamp, after the whole fold
 ##    (ADR-0005 rule 4). `source_side` is the source's side; a null source
@@ -878,6 +879,15 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 ## var dealt: int = engine.apply_damage(target_id, 3, attacker_id)
 ## [/codeblock]
 func apply_damage(target_id: int, requested: int, source: Variant) -> int:
+	return _apply_damage(target_id, requested, source, null)
+
+
+## [method apply_damage] with [param keyword_source]: an entity whose
+## Poisonous / Lifesteal also count for this hit (F2 step 5) without it being
+## the source. A hero's weapon swing passes the hero as `source` and its
+## weapon here (DD-X15: the hero is the damage source; the weapon's keywords
+## apply to that swing only). `null` for every other hit.
+func _apply_damage(target_id: int, requested: int, source: Variant, keyword_source: Variant) -> int:
 	if _halted():
 		return 0
 	var target: Dictionary = _character(target_id)
@@ -913,20 +923,22 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
 	})
 	if dealt > 0 and not _halted():
-		_after_damage_dealt(target, source, source_side, dealt, dealt_seq)
+		_after_damage_dealt(target, source, source_side, dealt, dealt_seq, keyword_source)
 	return dealt
 
 
 ## F2 step 5, once `dealt > 0`: stats, Poisonous, Lifesteal, the
 ## `on_hero_damaged` hooks and trigger point `on_damage` (in that order) —
 ## its triggers queue with `cause_seq` [param dealt_seq], the `damage_dealt`.
-func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int, dealt_seq: int) -> void:
+## Poisonous and Lifesteal read [param source] and [param keyword_source]
+## (see [method _apply_damage]).
+func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int, dealt_seq: int, keyword_source: Variant = null) -> void:
 	var target_id: int = int(target.entity_id)
 	var target_side: String = str(target.controller)
 	_record_damage_stats(target_side, source, source_side, dealt)
-	if target.kind == MatchRecords.KIND_MINION and _source_has(source, MatchRecords.KEYWORD_POISONOUS):
+	if target.kind == MatchRecords.KIND_MINION and _hit_has(source, keyword_source, MatchRecords.KEYWORD_POISONOUS):
 		target["pending_destroy"] = true
-	if source_side != "" and _source_has(source, MatchRecords.KEYWORD_LIFESTEAL):
+	if source_side != "" and _hit_has(source, keyword_source, MatchRecords.KEYWORD_LIFESTEAL):
 		@warning_ignore("return_value_discarded")
 		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
 	if target.kind == MatchRecords.KIND_HERO:
@@ -1739,10 +1751,13 @@ func _cancel_attack_step(payload: Dictionary) -> void:
 ## `apply_damage(D, a_atk, source)` and — only when `d_atk > 0` and D is a
 ## **minion** — `apply_damage(A, d_atk, D)`: a defending hero never deals
 ## damage back, weapon or not (DD-X11). No death check between the hits; F2
-## applies Divine Shield, Poisonous and Lifesteal inside each. A hero attacking
-## with a weapon hits with the weapon as the source (its keywords count, and
-## `damage_dealt_by_card` attributes to the weapon's `def_id`) and the weapon
-## loses 1 durability in this step. Then `A.attacks_used += 1`.
+## applies Divine Shield, Poisonous and Lifesteal inside each. The attacker is
+## always the source of its hit — a hero swinging a weapon too (DD-X15: for
+## `damage_dealt.source`, the `modify_damage` fold and `on_hero_damaged` /
+## `on_damage` contexts and the stats; a hero has no `def_id`, so
+## `damage_dealt_by_card` credits nothing) — while the weapon's Poisonous and
+## Lifesteal count for that swing ([method _apply_damage]); the weapon loses
+## 1 durability in this step. Then `A.attacks_used += 1`.
 func _attack_damage_step(attacker_id: int, defender_id: int) -> void:
 	var attacker: Dictionary = _character(attacker_id)
 	var defender: Dictionary = _character(defender_id)
@@ -1750,9 +1765,9 @@ func _attack_damage_step(attacker_id: int, defender_id: int) -> void:
 	var d_atk: int = attack(defender)
 	var defender_is_minion: bool = defender.kind == MatchRecords.KIND_MINION
 	var weapon: Variant = _weapon_of(attacker)
-	var source: int = int(weapon.entity_id) if weapon != null else attacker_id
+	var weapon_id: Variant = int(weapon.entity_id) if weapon != null else null
 	@warning_ignore("return_value_discarded")
-	apply_damage(defender_id, a_atk, source)
+	_apply_damage(defender_id, a_atk, attacker_id, weapon_id)
 	if d_atk > 0 and defender_is_minion:
 		@warning_ignore("return_value_discarded")
 		apply_damage(attacker_id, d_atk, defender_id)
@@ -3228,11 +3243,18 @@ func _record_damage_stats(target_side: String, source: Variant, source_side: Str
 	by_card[def_id] = int(by_card.get(def_id, 0)) + dealt
 
 
+## Whether one hit carries [param keyword] (F2 step 5): its [param source]
+## has it, or its [param keyword_source] does (a hero's weapon on its swing,
+## DD-X15).
+func _hit_has(source: Variant, keyword_source: Variant, keyword: String) -> bool:
+	return _source_has(source, keyword) or (keyword_source != null and _source_has(keyword_source, keyword))
+
+
 ## Whether damage [param source] has [param keyword] (C12, F2): a character's
-## or weapon's keywords (definition plus enchantments — a weapon's count for
-## the hero attacking with it, story 013 passes the weapon as the source), a
-## card instance's definition keywords. [constant SOURCE_FATIGUE], null and a
-## source that left every zone have none.
+## or weapon's keywords (definition plus enchantments), a card instance's
+## definition keywords. A hero has only its own: its weapon's count for its
+## swing alone, passed separately ([method _hit_has], DD-X15).
+## [constant SOURCE_FATIGUE], null and a source that left every zone have none.
 func _source_has(source: Variant, keyword: String) -> bool:
 	if typeof(source) != TYPE_INT:
 		return false
