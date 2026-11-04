@@ -1,12 +1,12 @@
 # Story 005: MVP-1 — the 10 MVP bundles (8 War + 2 neutral)
 
 > **Epic**: Content (MVP batch)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature (data)
 > **Type**: Config/Data
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -34,9 +34,9 @@ Batch 0 shipped `bundle_neutral_wall`, `bundle_neutral_tempo` and `bundle_war_ar
 
 *From GDD `design/gdd/content.md` (CN-4, AC-14, AC-15 MVP subset), card-database Formulas, scoped to this story:*
 
-- [ ] **AC-1 (Records — AC-14)** GIVEN `bundles.json`, WHEN loaded, THEN it holds the 10 CN-4 MVP bundles (8 `war`, 2 `neutral`), each with the CN-4 name, theme and three cards, `unlock` null and a one-line `text` pitch. Each bundle's cards share its set and carry its theme tag, and no `E_COUNT`, `E_TOKEN_IN_LIST` or `E_TAG_MISMATCH` is raised.
-- [ ] **AC-2 (Coverage and bands — AC-14, AC-15)** GIVEN the MVP pool, THEN every War signature card (`war_duelists_edge`, `war_pit_champion`, `war_cleave_through`) is in ≥ 1 bundle, every War plan tag (`weapons`, `aggro`, `armour`) has ≥ 2 bundles, and the F2 band split of War's bundles is 3 early / 3 mid / 2 late, as the CN-4 table lists.
-- [ ] **AC-3 (Pool threshold)** GIVEN `card_database.json`, THEN `min_bundle_pool` is ≥ Reward Draft's registered `bundle_pool_min` for MVP (9). The War bundle pool (8 + 2 = 10) raises no `W_POOL_SIZE`, and the smoke check records the load report.
+- [x] **AC-1 (Records — AC-14)** GIVEN `bundles.json`, WHEN loaded, THEN it holds the 10 CN-4 MVP bundles (8 `war`, 2 `neutral`), each with the CN-4 name, theme and three cards, `unlock` null and a one-line `text` pitch. Each bundle's cards share its set and carry its theme tag, and no `E_COUNT`, `E_TOKEN_IN_LIST` or `E_TAG_MISMATCH` is raised.
+- [x] **AC-2 (Coverage and bands — AC-14, AC-15)** GIVEN the MVP pool, THEN every War signature card (`war_duelists_edge`, `war_pit_champion`, `war_cleave_through`) is in ≥ 1 bundle, every War plan tag (`weapons`, `aggro`, `armour`) has ≥ 2 bundles, and the F2 band split of War's bundles is 3 early / 3 mid / 2 late, as the CN-4 table lists.
+- [x] **AC-3 (Pool threshold)** GIVEN `card_database.json`, THEN `min_bundle_pool` is ≥ Reward Draft's registered `bundle_pool_min` for MVP (9). The War bundle pool (8 + 2 = 10) raises no `W_POOL_SIZE`, and the smoke check records the load report.
 
 ---
 
@@ -58,8 +58,11 @@ Batch 0 shipped `bundle_neutral_wall`, `bundle_neutral_tempo` and `bundle_war_ar
 
 ## Files
 
-- `assets/data/bundles.json`, `assets/data/card_database.json`
-- `production/qa/smoke-[date].md`
+- `assets/data/bundles.json`: +7 CN-4 War bundles
+- `assets/data/card_database.json`: unchanged (`min_bundle_pool` 10 already ≥ 9)
+- `production/qa/smoke-2026-11-04-content-mvp1-bundles.md`: Config/Data smoke record
+- `tests/integration/content/content_mvp1_data_test.gd`: 4 tests added (AC-1…AC-3)
+- `tests/integration/content/content_batch0_data_test.gd`: two batch-0 pins relaxed (bundle ids; `W_POOL_SIZE` files)
 
 ---
 
@@ -77,7 +80,7 @@ Batch 0 shipped `bundle_neutral_wall`, `bundle_neutral_tempo` and `bundle_war_ar
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-[date].md`).
 
-**Status**: [ ] Not yet created
+**Status**: [x] `production/qa/smoke-2026-11-04-content-mvp1-bundles.md` (PASS) + `tests/integration/content/content_mvp1_data_test.gd` (4 story-005 tests, passing)
 
 ---
 
@@ -85,3 +88,30 @@ Batch 0 shipped `bundle_neutral_wall`, `bundle_neutral_tempo` and `bundle_war_ar
 
 - Depends on: `production/epics/content/story-002-mvp-1-war-set.md`; `production/epics/content/story-001-batch-0-first-playable-data-set.md`
 - Unlocks: `production/epics/content/story-009-mvp-1-batch-close-audit-and-balance.md`
+
+---
+
+## Readiness
+
+**`/story-readiness` (by hand, 2026-11-04): NEEDS WORK → resolved from the docs → READY.** Tier: workflow standard (content).
+- *Passing*: CN-4 rows and AC-14/15 quoted; ADR-0002 Accepted; TR-content-001 active; Manifest Version 2026-11-03 is current; estimate S; Out of Scope stated; dependencies (content 001, 002) Complete; no open markers; no asset references; 3 criteria; Config/Data with Test Evidence naming the smoke record.
+- *Gap found (testable as written)*: AC-3 compares against Reward Draft's **registered** `bundle_pool_min`, which does not exist. `reward_draft` is still a pending config owner, and its epic has no stories.
+- *How it was cleared*: sprint-004 Goal Prerequisites option (a), named by the orchestrator. AC-3 is checked in a test against the GDD value 9 (reward-draft F5 at `F = 4`, `W = 2`), and the smoke record says so. This is recorded as a deviation.
+
+QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04
+**Started / ended (UTC)**: 2026-11-04T03:45:46Z – 2026-11-04T03:51:18Z
+**Criteria**: 3/3 passing. AC-3 was checked against the GDD value (deviation below).
+**Deviations**:
+- **AC-3 "registered `bundle_pool_min`"**: Reward Draft has not registered the key. `reward_draft.json` is still `W_VALIDATOR_PENDING`. The test checks the GDD value 9 instead, in two ways: the constant `REWARD_DRAFT_MVP_BUNDLE_POOL_MIN`, and Reward Draft F5 evaluated over the shipped `floors_per_run` / `reoffer_after_floors`. When Reward Draft registers the key, swap the constant for the registered value.
+- `min_bundle_pool` is unchanged at 10, not raised. It already sits at or above 9, and the story allows the edit only "if it needs changing". A value of 10 = the MVP pool, so the loader warns as soon as one bundle goes missing.
+- The bundle `text.en` pitches are the lane's own one-liners. CN-4 gives the name as the "`text.en` pitch" column header but no pitch sentence.
+- `tests/integration/content/content_batch0_data_test.gd` was edited outside the Files list. Its exact bundle-id pin and its `W_POOL_SIZE` file list were relaxed to the batch-0 subset.
+**Validate command**: `Ready — 0 errors, 51 warnings (content checks 0 errors, 43 warnings), 62 records`. Before: 53 / 44, 55 records.
+- `W_POOL_SIZE` fell 2 → 1. Only the treasure row is left, for story 006.
+- Content story 008 (F1–F5): F5 War bundle coverage 0.06 → 0.94 clears its `W_COVERAGE` row. There is no new `W_BUDGET` or `W_CURVE` row, because F1–F3 do not read bundles.
+**Test Evidence**: `production/qa/smoke-2026-11-04-content-mvp1-bundles.md` (PASS). `content_mvp1_data_test.gd` gained 4 tests, all seen failing on the batch-0 bundles. Full suite: 1229 test cases, 0 failures, exit 0. Smoke exit 0.
+**Run result**: N/A, data only. No scene drafts bundles until the reward-draft and run-ui stories.
+**Reviewed by**: self, no independent review (lean: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped). Game-designer sign-off NOT ASSESSED (no agent).

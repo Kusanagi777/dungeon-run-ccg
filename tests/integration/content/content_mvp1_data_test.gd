@@ -499,3 +499,131 @@ func test_band_1_boss_passives_and_new_cards_pass_validate_effects_with_zero_row
 	# Assert — zero E_FX_* and W_FX_* (the matriarch's board `tag` filter included)
 	assert_array(rows).is_empty()
 	assert_int(db.cards_by_set("boss").size()).is_equal(7)
+
+
+# --- story 005: the 10 MVP bundles (CN-4, AC-14, AC-15) ------------------------------------
+
+## CN-4 MVP rows: id → [name, set, theme, cards].
+const MVP_BUNDLES: Dictionary = {
+	"bundle_war_weapons_1": ["Whetted Steel", "war", "weapons", ["war_sharpen", "war_rusted_axe", "war_blade_apprentice"]],
+	"bundle_war_weapons_2": ["Armoury", "war", "weapons", ["war_blade_strike", "war_heavy_maul", "war_quartermaster"]],
+	"bundle_war_weapons_3": ["Kingsguard", "war", "weapons", ["war_duelists_edge", "war_twin_hatchets", "war_kingsblade"]],
+	"bundle_war_aggro_1": ["First Blood", "war", "aggro", ["war_cellar_raider", "war_warcry", "war_pit_brawler"]],
+	"bundle_war_aggro_2": ["The Pit", "war", "aggro", ["war_berserker", "war_rally", "war_pit_champion"]],
+	"bundle_war_aggro_3": ["Warband", "war", "aggro", ["war_warlord", "war_headsman", "war_cleave_through"]],
+	"bundle_war_armour_1": ["Shield Wall", "war", "armour", ["war_shield_squire", "war_iron_resolve", "war_iron_vanguard"]],
+	"bundle_war_armour_2": ["Bulwark", "war", "armour", ["war_armorer", "war_shieldwall_veteran", "war_shield_maiden"]],
+	"bundle_neutral_wall": ["Hold the Line", "neutral", "wall", ["neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_shield_golem"]],
+	"bundle_neutral_tempo": ["Quick March", "neutral", "tempo", ["neutral_tunnel_rat", "neutral_wolf_rider", "neutral_banner_captain"]],
+}
+## Heroes H-5 War plan tags (Reward Draft's pity rule wants ≥ 2 bundles each).
+const WAR_PLAN_TAGS: Array[String] = ["weapons", "aggro", "armour"]
+## CN-4 / AC-15: War's F2 band split, 3 early / 3 mid / 2 late.
+const WAR_BAND_SPLIT: Dictionary = {"early": 3, "mid": 3, "late": 2}
+## Reward Draft F5 at MVP: `B_min = 9` for any `W ≥ 2` (reward-draft.md F5).
+## Reward Draft has no config validator yet, so `bundle_pool_min` is not
+## registered; story 005 AC-3 checks against this GDD value (sprint-004
+## Goal Prerequisites, option (a)).
+const REWARD_DRAFT_MVP_BUNDLE_POOL_MIN: int = 9
+
+
+func _band(bundle: Dictionary, db: CardDatabase, curve: Dictionary) -> String:
+	var total: int = 0
+	for id: String in bundle["cards"]:
+		total += int(db.card(id)["cost"])
+	var avg: float = float(total) / Array(bundle["cards"]).size()
+	if avg <= float(curve["early_max"]):
+		return "early"
+	return "mid" if avg <= float(curve["mid_max"]) else "late"
+
+
+func test_bundles_json_is_the_ten_cn4_mvp_bundles_with_set_theme_and_pitch() -> void:
+	# Arrange
+	var expected: Array = MVP_BUNDLES.keys()
+	expected.sort()
+
+	# Act
+	var db: CardDatabase = _loaded()
+	var pool: Array = db.bundle_pool("war")
+
+	# Assert — CN-4 rows verbatim; 8 war + 2 neutral; cards share set and theme
+	assert_array(_ids(pool)).is_equal(expected)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "war").size()).is_equal(8)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "neutral").size()).is_equal(2)
+	for b: Dictionary in pool:
+		var row: Array = MVP_BUNDLES[b["id"]]
+		var id: String = b["id"]
+		assert_str(b["name"]).override_failure_message(id).is_equal(row[0])
+		assert_str(b["set"]).override_failure_message(id).is_equal(row[1])
+		assert_str(b["theme"]).override_failure_message(id).is_equal(row[2])
+		assert_array(Array(b["cards"])).override_failure_message(id).is_equal(row[3])
+		assert_that(b["unlock"]).override_failure_message(id).is_null()
+		assert_str(b["text"]["key"]).override_failure_message(id).is_equal("bundle.%s.text" % id)
+		var en: String = b["text"]["en"]
+		assert_bool(en.is_empty() or en.contains("\n")).override_failure_message(id).is_false()
+		for card_id: String in b["cards"]:
+			var card: Dictionary = db.card(card_id)
+			assert_str(card["set"]).override_failure_message(card_id).is_equal(b["set"])
+			assert_bool(Array(card["tags"]).has(b["theme"])).override_failure_message(card_id).is_true()
+			assert_bool(card.get("token", false)).override_failure_message(card_id).is_false()
+	for e: Dictionary in db.report().entries():
+		assert_bool(["E_COUNT", "E_TOKEN_IN_LIST", "E_TAG_MISMATCH"].has(String(e.code))).override_failure_message(str(e)).is_false()
+
+
+func test_mvp_bundles_cover_every_war_signature_and_plan_tag_with_a_3_3_2_band_split() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var curve: Dictionary = db.config("content_budgets")["curve"]
+	var war: Array = db.bundle_pool("war").filter(func(b: Dictionary) -> bool: return b["set"] == "war")
+
+	# Act
+	var bundled: Dictionary = {}
+	var per_theme: Dictionary = {}
+	var per_band: Dictionary = {}
+	for b: Dictionary in war:
+		for id: String in b["cards"]:
+			bundled[id] = true
+		per_theme[b["theme"]] = int(per_theme.get(b["theme"], 0)) + 1
+		var band: String = _band(b, db, curve)
+		per_band[band] = int(per_band.get(band, 0)) + 1
+
+	# Assert — AC-14 coverage and plan tags; AC-15 F2 band split (cut-offs from content_budgets)
+	for id: String in WAR_SIGNATURES:
+		assert_bool(bundled.has(id)).override_failure_message(id).is_true()
+	for tag: String in WAR_PLAN_TAGS:
+		assert_int(int(per_theme.get(tag, 0))).override_failure_message(tag).is_greater_equal(2)
+	assert_that(per_band).is_equal(WAR_BAND_SPLIT)
+
+
+func test_mvp_bundles_clear_the_f5_war_bundle_coverage_floor() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+
+	# Act
+	var rows: Array[Dictionary] = ContentValidator.run_checks(db, db.config("content_budgets"), db.config("heroes_balance"))
+
+	# Assert — 17 / 18 non-starter War cards bundled (war_throwing_axe is the
+	# Edge Cases Discover-only card), above coverage.bundle_coverage_min 0.90
+	for r: Dictionary in rows:
+		assert_str(String(r.field)).override_failure_message(str(r)).is_not_equal("coverage.bundle_coverage_min.war")
+
+
+func test_min_bundle_pool_meets_the_mvp_bundle_pool_min_and_the_war_pool_raises_no_pool_size() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var min_bundle_pool: int = int(db.config("card_database")["min_bundle_pool"])
+	# Reward Draft F5 `B_min = 3 + (F − 2) + 2 × min(F − 2, W)` over the shipped knobs
+	var floors: int = int(db.config("run_structure")["floors_per_run"])
+	var reoffer: int = int(db.config("reward_draft")["reoffer_after_floors"])
+	var b_min: int = 3 + (floors - 2) + 2 * mini(floors - 2, reoffer)
+
+	# Act
+	var pool_size: int = db.bundle_pool("war").size()
+
+	# Assert — AC-3 against the GDD value (bundle_pool_min is not registered yet)
+	assert_int(b_min).is_equal(REWARD_DRAFT_MVP_BUNDLE_POOL_MIN)
+	assert_int(min_bundle_pool).is_greater_equal(REWARD_DRAFT_MVP_BUNDLE_POOL_MIN)
+	assert_int(pool_size).is_equal(10)
+	assert_int(pool_size).is_greater_equal(min_bundle_pool)
+	for w: Dictionary in db.report().warnings():
+		assert_bool(String(w.code) == "W_POOL_SIZE" and String(w.file) == "bundles.json").override_failure_message(str(w)).is_false()
