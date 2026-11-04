@@ -65,6 +65,9 @@ const DR_FOLLOWER: String = "neutral_test_dr_follower"
 ## Deathrattle: deal `source.attack` to the enemy hero: an op whose value reads
 ## the source, on a queued pass (so the pass holds a raise-time snapshot).
 const DR_AVENGER: String = "neutral_test_dr_avenger"
+## End of your turn: `[discover(list of 3), armor END_ARMOUR]` (review P5 shape).
+const END_SCOUT: String = "neutral_test_end_scout"
+const END_ARMOUR: int = 4
 ## `destroy` every friendly minion.
 const PURGE: String = "neutral_test_purge"
 ## `retrigger deathrattle` on every friendly minion: one op, several queue calls.
@@ -211,6 +214,8 @@ func _make_db() -> FakeCardDatabase:
 		'{"trigger":"deathrattle","ops":[{"op":"armor","targets":"owner","amount":%d}]}' % DR_FOLLOW_ARMOUR)})
 	by_id[DR_AVENGER] = CardFactory.make_minion(DR_AVENGER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
 		'{"trigger":"deathrattle","ops":[{"op":"damage","targets":"enemy_hero","amount":{"ref":"source.attack"}}]}')})
+	by_id[END_SCOUT] = CardFactory.make_minion(END_SCOUT, 1, 1, 3, [], {"effects": _fx(
+		'{"trigger":"turn_end","ops":[{"op":"discover","pool":"list","list":%s},{"op":"armor","targets":"owner","amount":%d}]}' % [list, END_ARMOUR])})
 	by_id[PURGE] = CardFactory.make_spell(PURGE, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"destroy"}]}'))
 	by_id[RITES] = CardFactory.make_spell(RITES, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"retrigger","trigger":"deathrattle"}]}'))
 	var pools: Dictionary = {HERO_SET: _war_pool(by_id)}
@@ -936,3 +941,80 @@ func test_event_cap_sweep_over_a_queued_deathrattle_discover_leaves_nothing_park
 
 	# Assert
 	assert_int(ended).is_greater(15)
+
+
+# --- sprint-4 review T1: a Discover on a queued pass, through the real resolver ------
+
+func test_a_deathrattle_discover_parks_the_rest_of_q_and_resumes_it_in_order() -> void:
+	# Arrange — review P2: a second Deathrattle queued behind the Discover's
+	_main_phase([PURGE])
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, DR_SCOUT, 1, 3)
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, DR_FOLLOWER, 1, 3)
+	var armor: int = int(_engine.state().players[SIDE_PLAYER].hero.armor)
+
+	# Act
+	_cast()
+
+	# Assert — suspended mid-pass, the follower parked
+	assert_str(_engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_int((_engine.state().suspended_queue as Array).size()).is_equal(1)
+	var before: int = _last_seq()
+
+	# Act
+	_choose(0)
+
+	# Assert — the pick, the rest of the pass, then the parked trigger
+	var order: Array = _types(_since(before)).filter(func(t: String) -> bool: return [
+		"discover_picked", "card_added_to_hand", "armor_gained", "effect_resolved", "trigger_resolved"].has(t))
+	assert_array(order.slice(0, 7)).is_equal([
+		"discover_picked", "card_added_to_hand", "armor_gained", "effect_resolved",
+		"trigger_resolved", "armor_gained", "effect_resolved"])
+	assert_int(int(_engine.state().players[SIDE_PLAYER].hero.armor) - armor).is_equal(DR_ARMOUR + DR_FOLLOW_ARMOUR)
+	assert_array(_engine.state().suspended_queue).is_empty()
+
+
+func test_a_resumed_deathrattle_pass_keeps_its_depth_one() -> void:
+	# Arrange
+	_main_phase([PURGE])
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, DR_SCOUT, 1, 3)
+	_cast()
+	var before: int = _last_seq()
+
+	# Act
+	_choose(0)
+
+	# Assert — the review's D4: depth comes back with the pass
+	var resolved: Array = _of_type(_since(before), "effect_resolved").filter(
+		func(e: Dictionary) -> bool: return str(e.payload.trigger) == "deathrattle")
+	assert_int(resolved.size()).is_equal(1)
+	assert_int(int(resolved[0].payload.depth)).is_equal(1)
+
+
+func test_an_end_step_observer_discover_resumes_the_end_step_once_then_the_boss_turn() -> void:
+	# Arrange — review P5
+	_main_phase([])
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, END_SCOUT, 1, 3)
+	var armor: int = int(_engine.state().players[SIDE_PLAYER].hero.armor)
+
+	# Act
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+
+	# Assert — paused inside the End step
+	assert_str(_engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	var before: int = _last_seq()
+
+	# Act
+	_choose(0)
+
+	# Assert — the pass finishes at depth 1, the End step closes once, the boss starts
+	var events: Array = _since(before)
+	var resolved: Array = _of_type(events, "effect_resolved")
+	assert_int(resolved.size()).is_equal(1)
+	assert_int(int(resolved[0].payload.depth)).is_equal(1)
+	assert_int(int(_engine.state().players[SIDE_PLAYER].hero.armor) - armor).is_equal(END_ARMOUR)
+	assert_int(_seq_of(events, "turn_ended")).is_greater(int(resolved[0].seq))
+	assert_str(str(_engine.active_side())).is_equal(SIDE_BOSS)
