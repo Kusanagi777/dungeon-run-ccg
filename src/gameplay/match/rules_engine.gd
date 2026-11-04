@@ -2555,12 +2555,14 @@ func _park() -> void:
 ## / stages restored, `resolver.resume(choice, option_index)` under the paused
 ## step's `cause_seq`, then that step's C10 loop. [method submit] runs the
 ## restored stages and closes the action.
+## The parked action is taken back **before** `choice_made` is emitted, so an
+## `event_cap` on that event (or on the `phase_changed` after it) leaves the
+## stages in [member _stages] for [method _abandon_stages]: a paused spell
+## still leaves `resolving` (code review MR-016 S4, keeping the 2026-11-03
+## fault guarantee) and nothing stays parked on the Ended state.
 func _do_choose(option_index: int) -> void:
 	var choice: Dictionary = _state.pending_choice
 	var action: Dictionary = _state.suspended_action
-	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
-	if _halted():
-		return
 	_state.pending_choice = null
 	_state.suspended_action = {}
 	_queue.assign(_state.suspended_queue)
@@ -2569,8 +2571,13 @@ func _do_choose(option_index: int) -> void:
 	_state.suspended_steps = 0
 	_frame = (action.get("frame", {}) as Dictionary).duplicate(true)
 	_stages.assign(action.get("stages", []))
+	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
+	if _halted():
+		_queue.clear()
+		return
 	_set_phase(str(action.origin_phase))
 	if _halted():
+		_queue.clear()
 		return
 	_cause_seq = int(action.cause_seq)
 	_resolver.resume(choice, option_index)

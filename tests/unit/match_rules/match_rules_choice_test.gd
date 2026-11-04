@@ -354,6 +354,36 @@ func test_concede_in_choice_ends_the_match_and_the_spell_leaves_resolving() -> v
 	assert_int(resolver.resume_calls.size()).is_zero()
 
 
+func test_an_event_cap_on_choice_made_still_moves_the_paused_spell_out_of_resolving() -> void:
+	# Arrange — a paused spell, and the log full right before `choose`
+	# (code review MR-016 S4; the 2026-11-03 guarantee: a fault still moves
+	# the card out of `resolving`)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	var spell_id: int = fixture[1]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	log.max_events = log.events.size()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+
+	# Assert — Ended by the cap, the spell in the graveyard, nothing left parked
+	assert_bool(result.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	assert_array(_player(engine).resolving).is_empty()
+	var graveyard_ids: Array[int] = []
+	for card: Dictionary in _player(engine).graveyard:
+		graveyard_ids.append(int(card.instance_id))
+	assert_array(graveyard_ids).contains([spell_id])
+	assert_dict(engine.state().suspended_action).is_empty()
+	assert_array(engine.state().suspended_queue).is_empty()
+	assert_object(engine.pending_choice()).is_null()
+	assert_int(resolver.resume_calls.size()).is_zero()
+
+
 # --- C2 / ADR-0007: the suspended queue and step count ------------------------------
 
 ## A Scout spell whose `on_cast` raises four queued triggers t1…t4 from the
