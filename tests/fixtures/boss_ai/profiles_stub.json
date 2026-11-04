@@ -64,6 +64,24 @@
           "weapon": 0.4
         }
       },
+      "control": {
+        "weights": {
+          "w_board": 2.5,
+          "w_face": 0.5,
+          "w_self": 2.0,
+          "w_threat": 3.0,
+          "w_card": 1.5,
+          "w_heal": 1.5
+        },
+        "rules": {
+          "trade_ratio": 0.8
+        },
+        "choice_preference": {
+          "taunt": 0.5,
+          "heal": 0.4,
+          "damage_all": 0.6
+        }
+      },
       "passive_driven": {
         "weights": {
           "w_passive": 2.5

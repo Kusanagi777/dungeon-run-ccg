@@ -1,0 +1,21 @@
+{
+  "name": "f1_worked_example",
+  "description": "boss-ai F1 worked example (A11): aggro, 6 mana, player hero at 20 with a 2/3 Taunt; the boss has a 3/3 that can attack and a 4-cost vanilla 4/4 in hand. No card here has a discover or choose_one op.",
+  "profile": "aggro",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_ogre", "type": "minion", "cost": 4, "attack": 4, "health": 4},
+    {"id": "bai_wall", "type": "minion", "cost": 2, "attack": 2, "health": 3, "keywords": ["taunt"]}
+  ],
+  "boss": {"mana": 6, "board": ["bai_brute"], "hand": ["bai_ogre"]},
+  "player": {"health": 20, "board": ["bai_wall"]},
+  "expect": {
+    "order": ["attack", "play_card", "end_turn"],
+    "scores": [2.45, 1.87],
+    "end_turn": [-1.0, -0.33],
+    "tolerance": 0.01
+  }
+}
