@@ -36,6 +36,26 @@
         "key": "power.power_whetstone.text",
         "en": "Equip a 1/2 Whetstone Blade. If you have a weapon, give it +1 Attack this turn instead."
       }
+    },
+    {
+      "id": "power_fixture_study",
+      "name": "Fixture Study",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_fixture_study.text",
+        "en": "Draw a card."
+      }
     }
   ]
 }

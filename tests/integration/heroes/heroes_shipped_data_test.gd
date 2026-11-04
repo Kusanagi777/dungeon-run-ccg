@@ -12,6 +12,8 @@ const SHIPPED_ROOT: String = "res://assets/data/"
 
 const HERO_WAR: String = "hero_war"
 const HERO_UNKNOWN: String = "hero_not_in_the_data"
+## A shipped id that is a CardDef and no HeroDef.
+const CARD_ID: String = "war_rusted_axe"
 ## Heroes H-5, War's theme tags, in `heroes_balance.json` order (AC-2).
 const WAR_PLAN_TAGS: Array = ["weapons", "aggro", "armour"]
 ## H-1: a starter is its hero's set or neutral.
@@ -47,6 +49,19 @@ func test_plan_tags_of_war_are_the_shipped_list() -> void:
 
 	# Assert
 	assert_array(tags).is_equal(WAR_PLAN_TAGS)
+
+
+func test_plan_tags_of_an_id_of_another_record_type_logs_and_returns_empty() -> void:
+	# Arrange — `has` is true for any record type; `hero` would assert on this one
+	var heroes: Heroes = Heroes.new(_loaded())
+	var box: Dictionary = {"value": ["untouched"]}
+
+	# Act
+	await assert_error(func() -> void: box.value = heroes.plan_tags(CARD_ID)) \
+		.is_push_error("Heroes.plan_tags(): no HeroDef \"%s\"" % CARD_ID)
+
+	# Assert
+	assert_array(box.value).is_empty()
 
 
 # --- AC-3 (GDD AC-1, MVP-0 batch) ----------------------------------------------------

@@ -105,10 +105,13 @@ func launch_heroes() -> Array:
 ## heroes.plan_tags("hero_war")   # ["weapons", "aggro", "armour"] with the shipped data
 ## [/codeblock]
 func plan_tags(hero_id: String) -> Array:
-	if not _db.has(hero_id):
+	# `heroes`, not `has` and `hero`: `has` answers for any record type, and `hero`
+	# asserts on an id that is no HeroDef (CR-6).
+	var found: Array = _db.heroes().filter(func(record: Dictionary) -> bool: return record.id == hero_id)
+	if found.is_empty():
 		push_error("Heroes.plan_tags(): no HeroDef \"%s\"" % hero_id)
 		return []
-	var hero_set: String = str(_db.hero(hero_id).set)
+	var hero_set: String = str(found[0].set)
 	var by_set: Dictionary = _balance.plan_tags
 	if not by_set.has(hero_set):
 		push_error("Heroes.plan_tags(): heroes_balance has no plan_tags row for set \"%s\"" % hero_set)

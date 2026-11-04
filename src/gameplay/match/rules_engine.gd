@@ -466,9 +466,14 @@ func start(config: Dictionary) -> void:
 	_resolver.bind(self, installers)
 	_bound = true
 	_log_skipped_installers(installers)
-	# C3 step 2: heroes. `has` first: `hero` asserts on an absent id (CR-6).
+	# C3 step 2: heroes. `hero` asserts on anything but a HeroDef id (CR-6) and `has`
+	# answers for any record type, so the record comes from the `heroes` list.
 	var hero_def_id: String = str(config.player.hero_def_id)
-	var hero_def: Variant = _db.hero(hero_def_id) if _db != null and _db.has(hero_def_id) else null
+	var hero_def: Variant = null
+	if _db != null and _db.has(hero_def_id):
+		for record: Dictionary in _db.heroes():
+			if record.id == hero_def_id:
+				hero_def = record
 	var player_health: int
 	if hero_def == null:
 		push_error("RulesEngine.start: no HeroDef \"%s\": seating starting_health_player, no hero power (match-rules C3 step 2)" % hero_def_id)

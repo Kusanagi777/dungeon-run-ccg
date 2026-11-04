@@ -13,7 +13,9 @@
 ## equals the knob, so only this hero tells the record from the knob) and
 ## `hero_fixture_fourth` (a `fortune` set of its own and the existing
 ## `power_whetstone`, AC-19's data-only fourth hero). Its `power_whetstone` and
-## `war_whetstone_blade` are the shipped records verbatim.
+## `war_whetstone_blade` are the shipped records verbatim. `hero_fixture_scholar`
+## holds the root's other power, `power_fixture_study`: every other hero here uses
+## Whetstone, so only this hero tells the record from a literal (code review T1).
 ##
 ## The player has 1 mana on turn 1 and Whetstone costs 2, so every power below is
 ## used on the player's second turn, reached by real `end_turn` commands.
@@ -29,8 +31,10 @@ const SIDE_BOSS: String = MatchRecords.SIDE_BOSS
 const HERO_WAR: String = "hero_war"
 const HERO_WOUNDED: String = "hero_fixture_wounded"
 const HERO_FOURTH: String = "hero_fixture_fourth"
+const HERO_SCHOLAR: String = "hero_fixture_scholar"
 const HERO_UNKNOWN: String = "hero_not_in_the_data"
 const POWER_WHETSTONE: String = "power_whetstone"
+const POWER_STUDY: String = "power_fixture_study"
 const BLADE: String = "war_whetstone_blade"
 const AXE: String = "war_rusted_axe"
 ## Heroes Edge Cases "Whetstone": the held Windfury weapon (`war_twin_hatchets`,
@@ -188,6 +192,23 @@ func test_the_record_outranks_the_starting_health_knob() -> void:
 	assert_int(int(_player().hero.base_health)).is_equal(WOUNDED_HEALTH)
 
 
+func test_a_hero_seats_the_power_its_record_names_and_uses_it() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded(FIXTURE_ROOT)
+
+	# Act
+	_started(db, HERO_SCHOLAR)
+
+	# Assert — seated from the record, and it is the power that then resolves
+	assert_str(str(_player().hero_power.def_id)).is_equal(POWER_STUDY)
+	_to_second_turn()
+	var before: int = _last_seq()
+	_submit(MatchRecords.use_hero_power(SIDE_PLAYER))
+	var events: Array = _since(before)
+	assert_str(str(_of_type(events, "hero_power_used")[0].payload.power_id)).is_equal(POWER_STUDY)
+	assert_array(_of_type(events, "weapon_equipped")).is_empty()
+
+
 func test_the_boss_hero_still_seats_from_the_config_health() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded(SHIPPED_ROOT)
@@ -218,6 +239,21 @@ func test_an_unknown_hero_def_id_seats_the_knob_and_logs_the_error() -> void:
 
 	# Assert — C3 defaults the health. It names no hero power, so none is
 	# invented: `def_id` keeps `make_player_state`'s empty value (GDD gap)
+	assert_int(int(_player().hero.base_health)).is_equal(KNOB_HEALTH)
+	assert_str(str(_player().hero_power.def_id)).is_empty()
+
+
+func test_a_hero_def_id_naming_another_record_type_seats_the_knob_and_logs_the_error() -> void:
+	# Arrange — `has` is true for any record type; `hero` would assert on this one
+	var db: CardDatabase = _loaded(SHIPPED_ROOT)
+	var config: Dictionary = _config(AXE, Array(db.hero(HERO_WAR).starter_deck))
+	_engine = _engine_over(db, "war", {"starting_health_player": KNOB_HEALTH})
+	var engine: RulesEngine = _engine
+
+	# Act
+	await assert_error(func() -> void: engine.start(config)).is_push_error(NO_RECORD_MESSAGE % AXE)
+
+	# Assert
 	assert_int(int(_player().hero.base_health)).is_equal(KNOB_HEALTH)
 	assert_str(str(_player().hero_power.def_id)).is_empty()
 
