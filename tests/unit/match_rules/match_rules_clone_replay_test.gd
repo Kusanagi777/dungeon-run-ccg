@@ -351,46 +351,19 @@ static func _maybe(stream: TestRngStream, value: int) -> Variant:
 	return null if stream.randi_range(1, SAMPLE_NULL_ONE_IN) == 1 else value
 
 
-## Whether [param command] should be accepted: listed in [param legal] once
-## its don't-care arguments are dropped (C2: `position` is for minions only,
-## and a `target_id` given to a card or power whose targeting is `none` — or
-## to a Battlecry body whose `required` target has no legal choice — is
-## ignored, so `legal_commands()` lists them as null), or one of C2's
-## accepted-but-unlisted shapes: a Mulligan mask other than "keep all" (only
-## keep-all is listed; `concede` is not sampled).
+## Whether [param command] should be accepted: listed in [param legal] as
+## sampled — no argument is dropped first (DD-X17: a stray `position` on a
+## spell or weapon, or a `target_id` on an untargeted card, power or
+## target-less Battlecry, is rejected; code review 2026-11-04, MR-017 S6) —
+## or C2's one accepted-but-unlisted shape: a Mulligan mask other than "keep
+## all" (only keep-all is listed; C3 step 7 accepts any mask of hand length;
+## `concede` is not sampled).
 func _expected_accepted(engine: RulesEngine, command: Dictionary, legal: Array) -> bool:
-	if legal.has(_canonical(engine, command)):
+	if legal.has(command):
 		return true
 	if command.type == MatchRecords.CMD_MULLIGAN and engine.phase() == MatchState.PHASE_MULLIGAN and command.issuer == SIDE_PLAYER:
 		return (command.keep_mask as Array).size() == engine.state().players[SIDE_PLAYER].hand.size()
 	return false
-
-
-## [param command] with the arguments C2 ignores set to null (see
-## [method _expected_accepted]); a copy, unchanged when its hand index names
-## no card of the issuer.
-func _canonical(engine: RulesEngine, command: Dictionary) -> Dictionary:
-	var out: Dictionary = command.duplicate(true)
-	var lookup: TestEffectResolver = _resolver()
-	match str(command.type):
-		MatchRecords.CMD_PLAY_CARD:
-			var hand: Array = engine.state().players[str(command.issuer)].hand
-			var index: int = int(command.hand_index)
-			if index < 0 or index >= hand.size():
-				return out
-			var def_id: String = str(hand[index].def_id)
-			var type: String = str(_db().card(def_id).type)
-			if type != RulesEngine.CARD_MINION:
-				out.erase("position")   # `MatchRecords.play_card` omits a null position
-			var mode: String = str(lookup.targeting_spec(def_id).mode)
-			var no_target: bool = type != RulesEngine.CARD_SPELL and lookup.legal_targets(def_id, {}).is_empty()
-			if mode == RulesEngine.TARGETING_NONE or (mode == RulesEngine.TARGETING_REQUIRED and no_target):
-				out.target_id = null
-		MatchRecords.CMD_USE_HERO_POWER:
-			var power_id: String = str(engine.state().players[str(command.issuer)].hero_power.def_id)
-			if str(lookup.targeting_spec(power_id).mode) == RulesEngine.TARGETING_NONE:
-				out.target_id = null
-	return out
 
 
 # --- AC-38: replay policy ------------------------------------------------------------

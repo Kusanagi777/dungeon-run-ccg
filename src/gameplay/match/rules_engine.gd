@@ -1921,7 +1921,9 @@ func _validate(type: String, command: Dictionary) -> String:
 ## C6 validation after the phase guard, in row order: `hand_index` in range
 ## (`INVALID_INDEX`) → a minion / spell / weapon definition (else
 ## `INVALID_INDEX`) → `effective_cost ≤ mana_current` (`NOT_ENOUGH_MANA`) →
-## minions: `BOARD_FULL`, then `0 ≤ position ≤ board.size` (`INVALID_POSITION`)
+## minions: `BOARD_FULL`, then `0 ≤ position ≤ board.size` (`INVALID_POSITION`);
+## spells and weapons: any non-null `position` is `INVALID_POSITION` (DD-X17 —
+## `legal_commands()` never lists one; code review 2026-11-04, MR-017 S6)
 ## → targeting ([method _target_rejection], spells by the spell rule).
 func _validate_play_card(command: Dictionary) -> String:
 	var side: String = str(command.issuer)
@@ -1941,6 +1943,8 @@ func _validate_play_card(command: Dictionary) -> String:
 		var position: Variant = command.get("position")
 		if not _is_whole(position) or int(position) < 0 or int(position) > player.board.size():
 			return R_INVALID_POSITION
+	elif command.get("position") != null:
+		return R_INVALID_POSITION
 	return _target_rejection(str(card.def_id), _card_source(side, card), command.get("target_id"), type == CARD_SPELL)
 
 
@@ -1958,19 +1962,25 @@ func _validate_hero_power(command: Dictionary) -> String:
 
 
 ## C6 targeting against `resolver.targeting_spec(def_id).mode` and
-## `resolver.legal_targets(def_id, source)`: `none` ignores [param target_id];
-## `optional` accepts null or a legal target; `required` with ≥ 1 legal target
-## needs one (`TARGET_REQUIRED` / `ILLEGAL_TARGET`); `required` with none is
-## `NO_LEGAL_TARGET` under [param spell_rule] (spells, the hero power) and
-## playable otherwise (a Battlecry body — its Battlecry will not resolve).
+## `resolver.legal_targets(def_id, source)`: `none` needs a null
+## [param target_id]; `optional` accepts null or a legal target; `required`
+## with ≥ 1 legal target needs one (`TARGET_REQUIRED` / `ILLEGAL_TARGET`);
+## `required` with none is `NO_LEGAL_TARGET` under [param spell_rule] (spells,
+## the hero power) and playable otherwise, with a null target only (a
+## Battlecry body — its Battlecry will not resolve). A `target_id` on a `none`
+## card or power, or on that target-less Battlecry body, is `ILLEGAL_TARGET`:
+## `legal_commands()` lists only null there (DD-X17; code review 2026-11-04,
+## MR-017 S6).
 func _target_rejection(def_id: String, source: Dictionary, target_id: Variant, spell_rule: bool) -> String:
 	var mode: String = _targeting_mode(def_id)
 	if mode == TARGETING_NONE:
-		return ""
+		return "" if target_id == null else R_ILLEGAL_TARGET
 	var legal: Array[int] = _resolver.legal_targets(def_id, source)
 	if mode == TARGETING_REQUIRED:
 		if legal.is_empty():
-			return R_NO_LEGAL_TARGET if spell_rule else ""
+			if spell_rule:
+				return R_NO_LEGAL_TARGET
+			return "" if target_id == null else R_ILLEGAL_TARGET
 		if target_id == null:
 			return R_TARGET_REQUIRED
 	if target_id == null:
