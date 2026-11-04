@@ -95,9 +95,15 @@ references a Node (DD-T02). Every field below is observable by tests.
   `ChoiceRequest`), `result` (null until Ended), `next_entity_id`, `hooks` (the HookRegistry
   installed by Treasures and the boss passive), `floor`, and references to the match log and to
   the `rng_match` stream handed over in `MatchConfig` (DD-T03; the engine never creates or seeds a
-  stream — RNG & Event Log rule 3).
+  stream — RNG & Event Log rule 3). The action a pending choice paused is held as plain data in
+  `suspended_queue` (the C10 trigger queue at the pause, step records `{point, ctx, cause_seq}`,
+  front first), `suspended_steps` (the action's step count so far, so `RESOLUTION_STEP_CAP`
+  counts across the pause) and `suspended_action` (`{}` when nothing is paused, else
+  `{origin_phase, cause_seq, frame, stages}`) (2026-11-04, sprint 4: MR-016).
 - **PlayerState**: `hero`, `mana_current`, `mana_max`, `crystal_bonus` (int, 0 by default; raised
-  only by `add_mana(side, n, temporary=false)` from an `on_match_start` hook — C5, F4), `deck`
+  only by `add_mana(side, n, temporary=false)` from an `on_match_start` hook — C5, F4),
+  `temporary_crystals` (int, 0 by default; crystals from `add_mana(side, n, temporary=true)` not
+  yet expired — C5) (2026-11-04, sprint 4: MR-011), `deck`
   (ordered list, index 0 is the top),
   `hand` (≤ `HAND_SIZE`), `board` (≤ `BOARD_SIZE`, index 0 is leftmost), `weapon` (null or
   Weapon), `hero_power {def_id, used_this_turn}`, `fatigue_counter` (starts 0), `graveyard`,
@@ -183,7 +189,11 @@ appends to the live log or advances the live stream.
    `rng_match` — player deck first, then boss deck (order matters for determinism).
    `deck_shuffled` is emitted per side with the resulting instance order.
 4. `on_match_start` hooks run (Treasures, boss passive) **before** any card is drawn, so a hook
-   may alter starting health, armour, mana or hand size (hook list in Interactions).
+   may alter starting health, armour, mana or hand size (hook list in Interactions). A Discover
+   raised here (or anywhere in Setup / Mulligan) is refused with a logged reason and the
+   requesting effect's later operations do not run: there is no `Setup → Choice` transition and
+   no command can answer a choice before Mulligan (2026-11-04, sprint 4: MR-016 review fix
+   f6d3d5f).
 5. Starting hands: the player draws `STARTING_HAND_PLAYER` (3), then the boss draws Starting-hand draws do **not** fire `on_draw` hooks (DD-X13).
    `STARTING_HAND_BOSS` (4). The fourth boss card is DD-M03's compensation for the player always
    acting first; there is no Coin.
@@ -259,7 +269,10 @@ There is no action limit and no timer.
   crystals expire at that side's End step (C4 End step 5, alongside `end_of_turn` enchantments):
   `mana_max` drops back by the temporary amount and `mana_current` is reduced by the same amount,
   floored at 0; the next Start step refill (C4 step 2, F4) ignores them. Both forms clamp to
-  `MAX_MANA`.
+  `MAX_MANA`. Temporary crystals granted on the **opponent's** turn last until their owner's next
+  Start-step refill, which discards them (`temporary_crystals = 0`); the refill therefore never
+  leaves `mana_max` below the normal F4 value for that turn, and no later End step takes them
+  back from the refilled pool (2026-11-04, sprint 4: 3c13408).
 - The hero power's cost is `HERO_POWER_COST` (2, DD-M13) and goes through the same F1 pipeline.
 
 #### C6. Playing cards
@@ -345,7 +358,10 @@ Resolution of an accepted `attack(A, D)`, in order:
    in that order; no death check runs between them. Divine Shield, Poisonous and Lifesteal are
    applied per F2 inside this step. If A is a hero with a weapon, `weapon.durability −= 1`
    (`weapon_durability_changed`) in the same step.
-5. `A.attacks_used += 1`.
+5. `A.attacks_used += 1`. **DD-X15**: on a weapon swing the **hero** is the source of the
+   `damage_dealt` (and of the `modify_damage` and `on_damage` / `on_hero_damaged` contexts); the
+   weapon's Poisonous and Lifesteal apply to that swing only, and the swing credits no
+   `stats.damage_dealt_by_card` entry (a hero has no `def_id`) (2026-11-04, sprint 4: 8dcccf6).
 6. Run the resolution loop (C10): `on_damage` triggers, deaths, deathrattles, auras. A weapon at
    durability ≤ 0 is destroyed in the death check.
 7. Emit `attack_resolved`; win/loss check.
@@ -369,6 +385,9 @@ its first target died, the second attack simply needs a new legal target (see Ed
   Heroes are immune to Poisonous.
 - **Lifesteal**: after damage is dealt, the source's controller's hero is healed by the amount
   dealt (armour absorbed counts as dealt). Lifesteal on a weapon applies to hero attacks with it.
+- **Weapon swings (DD-X15)**: the hero, not the weapon, is the damage source; the weapon's
+  Poisonous / Lifesteal are applied to that swing and never to the hero's other damage, and the
+  swing adds nothing to `stats.damage_dealt_by_card` (2026-11-04, sprint 4: 8dcccf6).
 - **Healing** (`apply_heal`): for heroes and minions alike, `restored = min(amount,
   damage_taken)` and `damage_taken −= restored` (a hero's health therefore never exceeds its
   `max_health`, C1). `modify_heal` hooks run first and the engine floors their result at 0 — a
@@ -557,6 +576,8 @@ hand, or is burned when the hand is full (`burned: true`, no separate `card_burn
 `card_added_to_hand`, so add-to-hand observers do not fire on a bounce.
 `minion_transformed {side, entity_id, from_card_id, to_card_id}` (added 2026-11-03) is the event of
 `transform`.
+`silenced {entity_id, removed_enchantments, removed_keywords}` is the Silence event (C13)
+(2026-11-04, sprint 4: MR-015).
 
 ### States and Transitions
 
@@ -577,7 +598,7 @@ handler calling `submit` from inside an event callback) is rejected rather than 
 | `BossTurn.Main` | Start step finished | Boss AI `end_turn`, player `concede`, or match ended | Accepts the same command set from BOSS; `concede` from PLAYER |
 | `BossTurn.End` | `end_turn` accepted | End step finished | No commands |
 | `Resolving` | Any accepted command or engine step begins | The C10 loop reaches stable | Any nested `submit` → `ENGINE_BUSY`; returns to the phase it came from |
-| `Choice` | Card Effects raises a `ChoiceRequest` (Discover) during resolution | `choose` with a valid index | Accepts `choose` from the side named in `pending_choice` and `concede`; everything else → `CHOICE_PENDING` |
+| `Choice` | Card Effects raises a `ChoiceRequest` (Discover) during resolution | `choose` with a valid index | Accepts `choose` from the side named in `pending_choice` and `concede`; everything else → `CHOICE_PENDING`. A Discover raised in `Setup` / `Mulligan` (e.g. an `on_match_start` hook) never enters `Choice`: it is refused with a logged reason (2026-11-04, sprint 4: MR-016 review fix f6d3d5f) |
 | `Ended` | `win_loss_check` finds a dead hero, `concede`, `turn_cap`, or a fault (`resolution_overflow`, `event_cap`) | Never (terminal) | Every command → `MATCH_ENDED`; `result` is populated |
 
 **Transition table** (explicit, per `.claude/rules/gameplay-code.md`):
@@ -751,6 +772,11 @@ where taunters(side) = { m ∈ side.board : m.taunt ∧ ¬m.stealth }
       max_attacks(A) = clamp(hooks.modify_max_attacks(A, 2 if has_windfury(A) else 1), 0, MAX_ATTACKS_CAP)
       has_windfury(A) = Windfury ∈ A.keywords ∨ (A is hero ∧ A.weapon ≠ null ∧ Windfury ∈ A.weapon.keywords)
 ```
+
+An `attacker_id` that names no character in play is `CANNOT_ATTACK` (checked right after the
+phase term); a summoning-sick Rush minion aimed at a `target_id` that names neither a minion nor
+a hero is `SUMMONING_SICK` (`RUSH_CANNOT_HIT_HERO` only when the target is a hero)
+(2026-11-04, sprint 4: MR-012).
 
 **Variables:**
 | Variable | Type | Range | Source | Description |
