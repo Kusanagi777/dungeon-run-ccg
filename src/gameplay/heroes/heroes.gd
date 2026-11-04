@@ -13,6 +13,59 @@
 class_name Heroes
 extends RefCounted
 
+## A number lies outside its range, or a min / max pair is inverted. The same code
+## `ContentValidator` reports, so the load report reads the same across owners.
+const E_RANGE: StringName = &"E_RANGE"
+
+## [constant CONFIG_SPEC] kinds.
+const K_OBJECT: StringName = &"object"          # nested `fields`, exactly those keys
+const K_NUMBER: StringName = &"number"          # a JSON number in `range`, or above `above`
+const K_INT: StringName = &"int"                # a whole JSON number in `range`
+const K_COUNT_PAIR: StringName = &"count_pair"  # [low, high] whole numbers in `range`, low <= high
+const K_TAG_LIST: StringName = &"tag_list"      # a non-empty list of non-empty strings
+const K_SET_MAP: StringName = &"set_map"        # {<hero set>: `entry`}, non-empty
+
+const BUCKET_ROW: Dictionary = {"kind": K_COUNT_PAIR, "range": [0, 15], "row": "BUCKET[k], counts in a 15-card starter, no safe range stated"}
+const SHARE_ROW: Dictionary = {"kind": K_NUMBER, "range": [0.0, 1.0], "row": "a share, 0-1, no safe range stated"}
+
+## The `heroes_balance.json` body, field to spec: format knowledge, the key list and
+## each key's range and never a knob's value, which is the file's (ADR-0002). `range`
+## is `[min, max]` inclusive, `null` meaning unbounded on that side. `row` names the
+## source: a heroes.md Tuning Knobs safe range, or for a key with none the type and
+## bound its meaning implies, and says so.
+const CONFIG_SPEC: Dictionary = {
+	"starter_curve": {"kind": K_OBJECT, "row": "F1", "fields": {
+		"avg_min": {"kind": K_NUMBER, "range": [2.2, 3.2], "row": "AVG_MIN, safe 2.2-3.2"},
+		"avg_max": {"kind": K_NUMBER, "range": [2.2, 3.2], "row": "AVG_MAX, safe 2.2-3.2"},
+		"max_cost": {"kind": K_INT, "range": [4, 6], "row": "STARTER_MAX_COST, safe 4-6"},
+		"bucket": {"kind": K_OBJECT, "row": "F1 BUCKET[k]", "fields": {
+			"0": BUCKET_ROW, "1": BUCKET_ROW, "2": BUCKET_ROW, "3": BUCKET_ROW,
+			"4": BUCKET_ROW, "5": BUCKET_ROW, "6_plus": BUCKET_ROW,
+		}},
+	}},
+	"plan_min": {"kind": K_INT, "range": [3, 8], "row": "PLAN_MIN, safe 3-8"},
+	"plan_max": {"kind": K_INT, "range": [3, 8], "row": "PLAN_MAX, safe 3-8"},
+	"plan_tags": {"kind": K_SET_MAP, "entry": {"kind": K_TAG_LIST}, "row": "F2 PLAN_TAGS, per-set lists, no safe range stated"},
+	"hp_value_min": {"kind": K_NUMBER, "range": [1.0, 3.0], "row": "HP_VALUE_MIN, safe 1.0-3.0"},
+	"hp_value_max": {"kind": K_NUMBER, "range": [1.0, 3.0], "row": "HP_VALUE_MAX, safe 1.0-3.0"},
+	"vanilla_2drop": {"kind": K_NUMBER, "above": 0.0, "row": "F3 VANILLA_2DROP, above 0, no safe range stated"},
+	"p_kill": {"kind": K_NUMBER, "range": [0.3, 0.6], "row": "F3 p_kill, the variable's range 0.3-0.6"},
+	"hero_set_size": {"kind": K_INT, "range": [1, null], "row": "F4 HERO_SET_SIZE, above 0, no safe range stated"},
+	"hero_set_size_tol": {"kind": K_INT, "range": [1, null], "row": "F4 set size tolerance, above 0, no safe range stated"},
+	"set_share": {"kind": K_SET_MAP, "row": "F4 SET_SHARE, no safe range stated", "entry": {"kind": K_OBJECT, "fields": {
+		"minion": SHARE_ROW, "spell": SHARE_ROW, "weapon": SHARE_ROW,
+	}}},
+	"set_share_tol": {"kind": K_NUMBER, "range": [0.04, 0.15], "row": "SET_SHARE tolerance, safe 0.04-0.15"},
+	"synergy_min": {"kind": K_INT, "range": [3, 8], "row": "SYNERGY_MIN, safe 3-8"},
+}
+
+## min / max pairs that must not be inverted: `[low path, high path]`.
+const ORDERED_PAIRS: Array = [
+	["starter_curve.avg_min", "starter_curve.avg_max"],
+	["plan_min", "plan_max"],
+	["hp_value_min", "hp_value_max"],
+]
+
 var _db: CardDatabase
 ## The frozen `heroes_balance` body, read once here (ADR-0002).
 var _balance: Dictionary
@@ -129,3 +182,140 @@ static func synergy_in_band(score: int, body: Dictionary) -> bool:
 
 static func _shares_a_tag(card: Dictionary, tags: Array) -> bool:
 	return Array(card.tags).any(func(tag: Variant) -> bool: return tags.has(tag))
+
+
+# --- Story 004: the `heroes_balance.json` stage-7a validator --------------------
+
+
+## The stage-7a validator of `heroes_balance.json` (card-database CR-5 stage 7;
+## ADR-0002 Decision 4: `call(body, db) -> Array`), registered by `Boot` as
+## `configs.heroes_balance`. Static and pure, so the content validate command
+## composes it without `Boot`; [param _db] is the calling convention and is unused.
+## Returns `[]` for a body holding exactly the [constant CONFIG_SPEC] keys, of the
+## right type and inside their ranges; otherwise one `{code, host_id: null, field,
+## message}` entry per fault, `field` the dotted key path. Every fault is reported,
+## not only the first. A min / max pair is compared only when neither end already
+## has an entry, so a key outside its range is one entry, not two.
+## [codeblock]
+## Heroes.validate_config({"synergy_min": 9.0}, null)[0].code   # &"E_MISSING_FIELD"
+## [/codeblock]
+static func validate_config(body: Dictionary, _db: Variant) -> Array:
+	var rows: Array[Dictionary] = []
+	_check_object(rows, body, CONFIG_SPEC, "")
+	for pair: Array in ORDERED_PAIRS:
+		var low_path: String = pair[0]
+		var high_path: String = pair[1]
+		var low: Variant = _at(body, low_path)
+		var high: Variant = _at(body, high_path)
+		if not _is_number(low) or not _is_number(high):
+			continue
+		if rows.any(func(row: Dictionary) -> bool: return row.field == low_path or row.field == high_path):
+			continue
+		if float(low) > float(high):
+			rows.append(_row(E_RANGE, low_path, "`%s` is %s, above `%s` %s (min must not exceed max)" % [low_path, str(low), high_path, str(high)]))
+	return rows
+
+
+## The value at the dotted [param path], or `null` when any step of it is absent or
+## not an object: the body is unvalidated here.
+static func _at(body: Dictionary, path: String) -> Variant:
+	var value: Variant = body
+	for key: String in path.split("."):
+		if not value is Dictionary:
+			return null
+		value = (value as Dictionary).get(key)
+	return value
+
+
+static func _is_number(value: Variant) -> bool:
+	return value is int or value is float
+
+
+static func _row(code: StringName, field: String, message: String) -> Dictionary:
+	return {"code": code, "host_id": null, "field": field, "message": message}
+
+
+static func _check_object(rows: Array[Dictionary], body: Dictionary, fields: Dictionary, prefix: String) -> void:
+	for key: Variant in body:
+		if not fields.has(key):
+			var path: String = prefix + str(key)
+			rows.append(_row(ValidationReport.E_UNKNOWN_FIELD, path, "`%s` is not a heroes_balance key" % path))
+	for key: String in fields:
+		var path: String = prefix + key
+		if not body.has(key):
+			rows.append(_row(ValidationReport.E_MISSING_FIELD, path, "missing `%s` (%s)" % [path, fields[key].row]))
+			continue
+		_check_value(rows, body[key], fields[key], path)
+
+
+static func _check_value(rows: Array[Dictionary], value: Variant, spec: Dictionary, path: String) -> void:
+	match spec.kind:
+		K_OBJECT:
+			if not value is Dictionary:
+				rows.append(_row(ValidationReport.E_SCHEMA, path, "`%s` must be an object, found %s" % [path, type_string(typeof(value))]))
+				return
+			_check_object(rows, value, spec.fields, path + ".")
+		K_NUMBER, K_INT:
+			_check_number(rows, value, spec, path)
+		K_COUNT_PAIR:
+			_check_count_pair(rows, value, spec, path)
+		K_TAG_LIST:
+			_check_tag_list(rows, value, path)
+		K_SET_MAP:
+			_check_set_map(rows, value, spec, path)
+
+
+static func _check_number(rows: Array[Dictionary], value: Variant, spec: Dictionary, path: String) -> void:
+	if not _is_number(value):
+		rows.append(_row(ValidationReport.E_SCHEMA, path, "`%s` must be a number, found %s (%s)" % [path, str(value), type_string(typeof(value))]))
+		return
+	var number: float = float(value)
+	if spec.kind == K_INT and number != floorf(number):
+		rows.append(_row(ValidationReport.E_SCHEMA, path, "`%s` must be a whole number, found %s" % [path, str(value)]))
+		return
+	var above: Variant = spec.get("above")
+	var bounds: Array = spec.get("range", [null, null])
+	var too_low: bool = (above != null and number <= float(above)) or (bounds[0] != null and number < float(bounds[0]))
+	var too_high: bool = bounds[1] != null and number > float(bounds[1])
+	if too_low or too_high:
+		rows.append(_row(E_RANGE, path, "`%s` is %s, outside %s" % [path, str(value), spec.row]))
+
+
+## One row for the whole pair, whichever end is at fault: a bucket is one knob.
+static func _check_count_pair(rows: Array[Dictionary], value: Variant, spec: Dictionary, path: String) -> void:
+	var shaped: bool = value is Array and (value as Array).size() == 2
+	if shaped:
+		for count: Variant in value:
+			shaped = shaped and _is_number(count) and float(count) == floorf(float(count))
+	if not shaped:
+		rows.append(_row(ValidationReport.E_SCHEMA, path, "`%s` must be a [low, high] pair of whole numbers, found %s" % [path, str(value)]))
+		return
+	var low: int = int(value[0])
+	var high: int = int(value[1])
+	if low < int(spec.range[0]) or high > int(spec.range[1]) or low > high:
+		rows.append(_row(E_RANGE, path, "`%s` is %s, outside %s" % [path, str(value), spec.row]))
+
+
+static func _check_tag_list(rows: Array[Dictionary], value: Variant, path: String) -> void:
+	if not value is Array or (value as Array).is_empty():
+		rows.append(_row(ValidationReport.E_SCHEMA, path, "`%s` must be a non-empty list of tags, found %s" % [path, str(value)]))
+		return
+	var tags: Array = value
+	for i: int in tags.size():
+		if not tags[i] is String or String(tags[i]).is_empty():
+			var item: String = "%s[%d]" % [path, i]
+			rows.append(_row(ValidationReport.E_SCHEMA, item, "`%s` must be a tag, found %s" % [item, str(tags[i])]))
+
+
+## An object keyed by hero set. Which sets hold a row is data, so that a later
+## hero's rows ship with its records (H-1); a key that is no hero set is a fault.
+static func _check_set_map(rows: Array[Dictionary], value: Variant, spec: Dictionary, path: String) -> void:
+	if not value is Dictionary or (value as Dictionary).is_empty():
+		rows.append(_row(ValidationReport.E_SCHEMA, path, "`%s` must be a non-empty object keyed by hero set, found %s" % [path, str(value)]))
+		return
+	for key: Variant in value:
+		var entry: String = "%s.%s" % [path, str(key)]
+		if not RecordSchemas.HERO_SETS.has(key):
+			rows.append(_row(ValidationReport.E_UNKNOWN_FIELD, entry, "`%s` names no hero set (card-database CR-3)" % entry))
+			continue
+		_check_value(rows, value[key], spec.entry, entry)

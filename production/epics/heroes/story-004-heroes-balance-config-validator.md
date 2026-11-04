@@ -1,12 +1,12 @@
 # Story 004: `Heroes.validate_config` — the `heroes_balance.json` stage-7a validator, registered at Boot
 
 > **Epic**: Heroes
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 > **First Playable path**: no — a debug build reports the pending validator as a warning. It is required before any **exported release** build, where a pending validator is an error and the load fails
 
 ## Context
@@ -35,8 +35,8 @@ Boot still registers `heroes_balance` as a pending config validator (`Boot.PENDI
 
 *From GDD `design/gdd/heroes.md` (Formulas variable tables, Tuning Knobs safe ranges) and `card-database.md` CR-5 stage 7, scoped to this story:*
 
-- [ ] **AC-1** GIVEN the shipped `heroes_balance.json` body, WHEN `Heroes.validate_config(body, null)` is called, THEN it returns `[]`.
-- [ ] **AC-2 (Tuning Knobs safe ranges)** GIVEN a fixture body with each knob set outside its Tuning Knobs safe range in turn — `avg_min`–`avg_max` outside 2.2–3.2 (or `avg_min > avg_max`), `max_cost` outside 4–6, `plan_min`–`plan_max` outside 3–8, `hp_value_min`–`hp_value_max` outside 1.0–3.0, `set_share_tol` outside 0.04–0.15, `synergy_min` outside 3–8 — THEN exactly one `E_RANGE` entry naming that key is returned; GIVEN a required key removed, THEN one `E_MISSING_FIELD`; GIVEN an extra key, THEN one `E_UNKNOWN_FIELD`.
+- [x] **AC-1** GIVEN the shipped `heroes_balance.json` body, WHEN `Heroes.validate_config(body, null)` is called, THEN it returns `[]`.
+- [x] **AC-2 (Tuning Knobs safe ranges)** GIVEN a fixture body with each knob set outside its Tuning Knobs safe range in turn — `avg_min`–`avg_max` outside 2.2–3.2 (or `avg_min > avg_max`), `max_cost` outside 4–6, `plan_min`–`plan_max` outside 3–8, `hp_value_min`–`hp_value_max` outside 1.0–3.0, `set_share_tol` outside 0.04–0.15, `synergy_min` outside 3–8 — THEN exactly one `E_RANGE` entry naming that key is returned; GIVEN a required key removed, THEN one `E_MISSING_FIELD`; GIVEN an extra key, THEN one `E_UNKNOWN_FIELD`.
 - [ ] **AC-3 (registration)** GIVEN `Boot._collect_validators`, THEN `configs.heroes_balance` is `Heroes.validate_config` and `Boot.PENDING_CONFIG_OWNERS` no longer lists `heroes_balance` (the pinned lists in `tests/integration/boot/boot_validator_map_test.gd` are updated); a full load of the shipped data reports no `W_VALIDATOR_PENDING` for `heroes_balance.json`.
 
 ---
@@ -64,14 +64,10 @@ Boot still registers `heroes_balance` as a pending config validator (`Boot.PENDI
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/heroes/heroes.gd` — `validate_config`
-- `src/core/boot.gd` — register `heroes_balance`; drop it from `PENDING_CONFIG_OWNERS`
+- `src/gameplay/heroes/heroes.gd`: `validate_config`, `CONFIG_SPEC`, `ORDERED_PAIRS`
 - `tests/unit/heroes/heroes_validate_config_test.gd`
-- `tests/integration/boot/boot_validator_map_test.gd` — pinned pending list updated
+- `tests/fixtures/data/minimal/heroes_balance.json`, `tests/fixtures/data/heroes_fixture_hero/heroes_balance.json`: the shipped body, which a real validator needs (see Completion Notes)
+- Orchestrator, at merge, not on the lane branch: `src/core/boot.gd`, `tests/integration/boot/boot_validator_map_test.gd`
 
 ---
 
@@ -89,7 +85,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/heroes/heroes_validate_config_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created, 13 tests, passing
 
 ---
 
@@ -97,3 +93,26 @@ checks scope against it.*
 
 - Depends on: `production/epics/heroes/story-002-heroes-accessor.md` (the `Heroes` class). Cross-epic (Complete): `production/epics/boot-composition-root/story-004-boot-composition-root.md`, `production/epics/card-database/story-004-delegated-validators.md`
 - Unlocks: the release guardrail (empty `PENDING_CONFIG_OWNERS`), together with the other owners' validators
+
+---
+
+## Completion Notes
+**Implemented**: 2026-11-04. Status stays In Review until AC-3's line lands; the orchestrator sets Complete at merge.
+**Start / end (UTC)**: 2026-11-04T19:57:11Z to 2026-11-04T20:08:52Z
+**Readiness**: READY (2026-11-04). ADR-0002 Accepted at the story's version, manifest 2026-11-04 matches, dependencies Complete. The sprint plan's readiness note applies: AC-3 is met by the orchestrator's line.
+**Criteria**: 2/3 passing. AC-3 NOT ASSESSED on this branch: `src/core/boot.gd` is orchestrator-owned.
+**AC-3 lines for the orchestrator, one commit**:
+- `src/core/boot.gd` `_collect_validators()`: `configs["heroes_balance"] = Heroes.validate_config`
+- `src/core/boot.gd` `PENDING_CONFIG_OWNERS`: remove `"heroes_balance"`
+- `tests/integration/boot/boot_validator_map_test.gd`, after the `configs.card_effects` assert: `assert_array((configs.heroes_balance as Callable).call({}, null)).is_equal(Heroes.validate_config({}, null))`
+**AC-3 dry run (2026-11-04, applied locally, restored, not committed)**: full suite 1471 cases, 0 failures; `validate.gd` exit 0; `W_VALIDATOR_PENDING` rows 7 to 6, the only changed row being `heroes_balance.json`.
+**Test Evidence**: `tests/unit/heroes/heroes_validate_config_test.gd`, 13 tests. Full suite 1471 cases, 0 failures.
+**Seen failing**: 8 tests against a stub returning `[]`. The 5 accept-cases against deliberate mutants: a tightened `avg_min` range (edges), `synergy_min` range excluding the shipped value (AC-1 and the rest built on the shipped body), set keys limited to the launch sets (the fourth-hero row). A further mutant removed the pair-check skip, which double-reported an out-of-range key. The tests also caught a real crash in the first version: the pair check walked into a missing or non-object `starter_curve`.
+**Run result**: N/A: a load-time validator with no screen.
+**Deviations**:
+- ADVISORY, fixtures outside the story's Files: the real validator fails any load whose `heroes_balance.json` is the empty `config: {}`. An earlier dry run gave 7 failing tests, all on `minimal` and `heroes_fixture_hero`, so both now hold the shipped body. The other empty roots stay as they are, and the second dry run is green with them. `fingerprint/` and its pinned hash are unchanged.
+- ADVISORY, "pinned list": `boot_validator_map_test.gd` has no hard-coded config list; it derives `pending` from `PENDING_CONFIG_OWNERS`. The line above is the matching `card_effects` assert.
+- ADVISORY, beyond the AC's `avg_min > avg_max`: `plan_min > plan_max` and `hp_value_min > hp_value_max` are also `E_RANGE`, following `ContentValidator`'s ordered pairs.
+- ADVISORY, a difference from that precedent: a pair is not compared when either end already has an entry, because AC-2 asks for exactly one.
+- ADVISORY, key choices the story leaves open: `starter_curve.bucket` is the fixed key list of the file and F1 (`0`-`5`, `6_plus`). `plan_tags` and `set_share` take any `RecordSchemas.HERO_SETS` key, so a later hero's rows stay data only (AC-19), and any other key is `E_UNKNOWN_FIELD`.
+**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
