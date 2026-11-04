@@ -93,3 +93,4 @@ Escalation: two CONCERNS, no NOT READY → CONCERNS. Full assessments retained i
 ### Owner decisions recorded after the gate
 - 2026-11-04 — **First Playable date accepted:** sprint 6 (ends 2026-12-08), fallback sprint 7 (re-dated from measured lane throughput, retro sprint 3).
 - 2026-11-04 — **Owner capacity:** 12 hours per week for review and playtesting (entry condition 3 closed).
+- 2026-11-04 — **Entry condition 12 closed** (technical-director, owner standing approval): `docs/architecture/control-manifest.md` Manifest Version **2026-11-04** lists `Boot`'s responsibilities — Foundation Required "Boot responsibilities" and Forbidden "Never give `Boot` game state, …" rows, lifted from `production/epics/boot-composition-root/boot-responsibilities.md` (boot-composition-root story 007).

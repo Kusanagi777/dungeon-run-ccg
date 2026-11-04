@@ -101,16 +101,16 @@ checks scope against it.*
 
 ## Completion Notes
 **Completed**: 2026-11-04 (started 03:54:00 UTC, ended 03:58:15 UTC; lane 4 W2, branch `lane/s4-l4-w2`)
-**Criteria**: 3/3 — AC-1 and AC-2 passing; AC-3 passing for the hand-over, its Manifest Version clause **pending** by the story's own Out of Scope (see below).
+**Criteria**: 3/3 — AC-1, AC-2 and AC-3 passing (AC-3's Manifest Version clause closed 2026-11-04: Manifest Version 2026-11-04).
 
 | Criterion | Covered by | Status |
 |---|---|---|
 | AC-1 every does / never-does row from architecture.md, ADR-0001 D4, ADR-0004 D6/D8/addendum step 4, ADR-0011 D4, each with ADR + decision and `MVP` / `later (<epic>)` | `boot-responsibilities.md` §Boot does (17 rows), §Boot never does (8 rows) | COVERED (doc read against the sources) |
 | AC-2 matches `boot.gd`: every public member (`boot`, `services`, `booted`, `_collect_validators`, the override keys) appears; no `MVP` row absent from code; TD-001 / TD-009 named | §Member list, derived with `rg -n "^func \|^var \|^signal \|^const \|^static func " src/core/boot.gd` at trunk `c9cd55b` — all 20 members mapped; each `MVP` row names a member and an existing test in `tests/integration/boot/`; Guards column names TD-001 / TD-009 (also TD-006, TD-008) | COVERED |
-| AC-3 handed to `/create-control-manifest update`; resulting Manifest Version recorded | Hand-over: `EPIC.md` condition 12 row (2026-11-04) and the proposed Required / Forbidden rows at the end of the list. Manifest Version: **pending — still 2026-11-03**; the technical-director's update run (separate approval, Out of Scope here) records the new version in this story | COVERED (hand-over); version DEFERRED to the update run |
+| AC-3 handed to `/create-control-manifest update`; resulting Manifest Version recorded | Hand-over: `EPIC.md` condition 12 row (2026-11-04) and the proposed Required / Forbidden rows at the end of the list. Manifest Version: **2026-11-04** — the technical-director's update run (2026-11-04, branch `docs/s4-control-manifest`) lifted both rows into Foundation Required / Forbidden | COVERED |
 
 **Deviations**:
-- ADVISORY — Manifest Version not recorded: the update run has not happened (this story does not run it, per Implementation Notes). Condition 12 is handed over, not closed. Stories stamped 2026-11-03 stay current until it runs.
+- ~~ADVISORY — Manifest Version not recorded~~ **Closed 2026-11-04**: `/create-control-manifest update` ran (technical-director, owner standing approval); `control-manifest.md` is Manifest Version **2026-11-04** with the Boot responsibilities rows; gate condition 12 closed in `production/gate-checks/gate-pre-production-2026-11-03.md` (Owner decisions recorded after the gate). Stories stamped 2026-11-03 are now one version behind and are re-stamped by `/story-readiness` / `/story-done`.
 - ADVISORY — Config/Data evidence pending: no `production/qa/smoke-*.md` after the hand-over yet; the lane ran `commands.test` (1234/1234), `commands.smoke` (exit 0) and `tools/lint/gates.sh` (G1–G6 0 hits) instead.
 - Observation for architecture.md (not changed here): §Data Flow 5 names the `ai_profile` validator `BossAI.validate_profile_key`; the code registers `BossAI.validate_ai_profile`. Recorded in the list's Observations section.
 - `boot.gd` not edited (orchestrator-owned).
