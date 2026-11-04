@@ -76,7 +76,7 @@ Escalation: two CONCERNS, no NOT READY → CONCERNS. Full assessments retained i
 ## Pre-Production entry conditions (owners, deadlines)
 1. `/create-epics` E1–E10 covers MVP systems only (DD-H06 cut); Vertical Slice / Alpha items go on a deferred list — producer, at `/create-epics`
 2. Epic order follows the ADR implementation order, riskiest first: Foundation → Match Rules → Card Effects → Match driver + Boss AI → Match UI → Run, Draft, Treasures → Run UI — producer
-3. Owner decisions with deadlines: **weekly hours** before `/sprint-plan`; ~~N-05~~ **decided 2026-11-03** (defending hero deals no damage back — DD-X11); ~~D-03~~ **decided 2026-11-03** (any-hero treasure: Living Armory → `first_victory` — DD-X12); **Torchlit Ledger** confirmation before `/asset-spec` — Jacob
+3. Owner decisions with deadlines: ~~**weekly hours**~~ **decided 2026-11-04: 12 hours/week** for review and playtesting; ~~N-05~~ **decided 2026-11-03** (defending hero deals no damage back — DD-X11); ~~D-03~~ **decided 2026-11-03** (any-hero treasure: Living Armory → `first_victory` — DD-X12); **Torchlit Ledger** confirmation before `/asset-spec` — Jacob
 4. Sprint 1 = one-week calibration sprint; sprint 2 planned from measured velocity — producer
 5. **First playable**: Windows export, one War match vs one band-1 boss, mouse-played, within sprints 1–2; the owner plays it = playtest #1 — producer / Jacob
 6. Sprint 1 spikes: five hardest DSL effect types; Boss AI planner on the Windows export; headless AI-vs-AI harness deterministic per seed — lead-programmer
@@ -89,3 +89,7 @@ Escalation: two CONCERNS, no NOT READY → CONCERNS. Full assessments retained i
 
 ## Next
 `/create-epics` → `/create-stories <epic>` (riskiest first) → `/qa-plan sprint` → `/sprint-plan new` (calibration sprint) → `/gate-check production` after the Vertical Slice.
+
+### Owner decisions recorded after the gate
+- 2026-11-04 — **First Playable date accepted:** sprint 6 (ends 2026-12-08), fallback sprint 7 (re-dated from measured lane throughput, retro sprint 3).
+- 2026-11-04 — **Owner capacity:** 12 hours per week for review and playtesting (entry condition 3 closed).
