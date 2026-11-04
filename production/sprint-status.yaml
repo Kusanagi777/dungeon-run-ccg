@@ -71,8 +71,8 @@ stories:
     name: "Effective cost, mana payment and temporary crystals"
     file: "production/epics/match-rules/story-011-effective-cost-and-temporary-mana.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 2)"
     estimate_days: 0.5
     lane: 2
     wave: 1
@@ -80,7 +80,7 @@ stories:
     contract: false
     blocker: ""
     note: "L2 critical lane opener; edits match_factory.gd, match_state.gd"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-016"
     name: "Choice phase and Discover"
     file: "production/epics/match-rules/story-016-choice-phase-and-discover.md"

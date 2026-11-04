@@ -39,7 +39,9 @@
 ## sub-step and step-boundary hook entry run as its own step; story 010 the
 ## `play_card` (minions, spells, weapons) and `use_hero_power` handlers in
 ## C6 / C7 check order, the `legal_commands()` expansion, the F1 base
-## [method effective_cost] and the F7 [method spell_damage] total.
+## [method effective_cost] and the F7 [method spell_damage] total; story 011
+## the F1 `modify_cost` fold ([method effective_cost], [method hero_power_cost])
+## and temporary crystals ([method add_mana], End step 5).
 ## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
@@ -190,6 +192,13 @@ const R_ILLEGAL_TARGET: String = "ILLEGAL_TARGET"
 const R_HERO_POWER_USED: String = "HERO_POWER_USED"
 ## The keyword whose magnitude (`CardDef.spell_damage`) F7 sums.
 const KEYWORD_SPELL_DAMAGE: String = "spell_damage"
+## `ctx.kind` of a `modify_cost` fold (story 011; card-effects C2 `modify_cost`
+## row, Treasures R-13): `card` — `ctx.card` is the hand `CardInstance`;
+## `hero_power` — `ctx.card` is the side's `PlayerState.hero_power` record
+## `{def_id, used_this_turn}`. A scope `card` filter without `kind` matches the
+## first only, `kind: hero_power` the second, `kind: any` both.
+const COST_KIND_CARD: String = "card"
+const COST_KIND_HERO_POWER: String = "hero_power"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
 ## start at `MatchState.FIRST_ENTITY_ID`).
 const NO_ENTITY: int = -1
@@ -252,6 +261,10 @@ var _recomputing_auras: bool = false
 ## engine does not build a context per hit either).
 var _damage_ctx: Dictionary = {"source": null, "target": 0}
 var _heal_ctx: Dictionary = {"source": null, "target": 0}
+## The `{card, kind}` context of the `modify_cost` fold, reused on every F1
+## evaluation for the same reason (story 011: `effective_cost` runs per hand
+## card on every `legal_commands()` call).
+var _cost_ctx: Dictionary = {"card": null, "kind": COST_KIND_CARD}
 ## True from `resolver.bind` in [method start] until `resolver.unbind()`
 ## (at `Ended`, or [method end_match]) — unbind runs exactly once.
 var _bound: bool = false
@@ -545,7 +558,7 @@ func legal_commands() -> Array:
 			var player: Dictionary = _state.players[side]
 			for index: int in player.hand.size():
 				_append_play_commands(legal, side, index)
-			if not player.hero_power.used_this_turn and rule("hero_power_cost") <= int(player.mana_current):
+			if not player.hero_power.used_this_turn and hero_power_cost(side) <= int(player.mana_current):
 				var power_id: String = str(player.hero_power.def_id)
 				for target: Variant in _listed_targets(power_id, _power_source(side), true):
 					legal.append(MatchRecords.use_hero_power(side, target))
@@ -553,17 +566,51 @@ func legal_commands() -> Array:
 	return legal
 
 
-## C5 / F1 (story 010 base): `max(0, base cost + Σ cost_modifiers.cost_delta)`
-## for the hand card [param card] (a CardInstance). The hand-aura and
-## `modify_cost` hook terms are match-rules story 011.
+## C5 / F1 (stories 010, 011): the effective cost of the hand card
+## [param card] (a CardInstance) held by [param side], used for display
+## (`legal_commands`) and for payment alike. A fixed-order sum, floored once:
+## 1. the definition's printed `cost`;
+## 2. `+ Σ cost_modifiers[].cost_delta` — the card's own enchantments **and**
+##    the hand-scoped aura deltas: `recompute_auras` writes those into
+##    `cost_modifiers` tagged `is_aura`, so this one sum counts each exactly
+##    once (there is no separate aura pass);
+## 3. the `modify_cost` hook fold over the result, entries in installation
+##    order, `ctx {card, kind: COST_KIND_CARD}` (ADR-0005 Decision 4);
+## 4. `maxi(0, …)` — the one clamp, after the whole chain, never inside it.
+## Pure and allocation-free: the fold context is the reused `_cost_ctx`.
+## [param side] "" reads the card's holder from the state.
 ## [codeblock]
-## if engine.effective_cost(card) <= mana: highlight(card)
+## if engine.effective_cost(card, "player") <= mana: highlight(card)
 ## [/codeblock]
-func effective_cost(card: Dictionary) -> int:
+func effective_cost(card: Dictionary, side: String = "") -> int:
 	var total: int = int(_lookup_def(str(card.def_id)).get("cost", 0))
 	for modifier: Dictionary in card.cost_modifiers:
 		total += int(modifier.get("cost_delta", 0))
-	return maxi(0, total)
+	var holder: String = side if side != "" else _owner_of(int(card.instance_id))
+	return _fold_cost(holder, total, card, COST_KIND_CARD)
+
+
+## C5 / C7 (story 011): [param side]'s hero power cost — `hero_power_cost`
+## (`rules_config`) through the same F1 pipeline: the `modify_cost` fold with
+## `ctx {card: players[side].hero_power, kind: COST_KIND_HERO_POWER}`, then
+## the one clamp at 0. A power at 0 is still once per turn (C7).
+## [codeblock]
+## var cost: int = engine.hero_power_cost("player")   # 2, or 0 with a "set 0" treasure
+## [/codeblock]
+func hero_power_cost(side: String) -> int:
+	return _fold_cost(side, rule("hero_power_cost"), _state.players[side].hero_power, COST_KIND_HERO_POWER)
+
+
+## F1 steps 3–4: `maxi(0, hooks.fold(&"modify_cost", side, cost_so_far,
+## {card, kind}))`. A state without a registry (a bare fixture) folds nothing.
+func _fold_cost(side: String, cost_so_far: int, card: Dictionary, kind: String) -> int:
+	var folded: int = cost_so_far
+	if _state.hooks != null:
+		_cost_ctx.card = card
+		_cost_ctx.kind = kind
+		folded = _state.hooks.fold(&"modify_cost", StringName(side), cost_so_far, _cost_ctx)
+		_cost_ctx.card = null
+	return maxi(0, folded)
 
 
 ## F7: [param side]'s Spell Damage total — `Σ CardDef.spell_damage` over its
@@ -710,18 +757,29 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 ## Hollow Crown): raises `crystal_bonus`, which every later Start step reads
 ## (F4) — mana itself moves at the next Start step — and emits
 ## `mana_added {side, n, temporary: false}`.
-## TODO(story 011): the temporary branch (this-turn crystals, End-step
-## expiry); until then it logs an error and changes nothing.
+## Temporary (`temporary = true`, the card-effects `mana` op with `duration:
+## this_turn`; story 011): `n` crystals until [param side]'s End step —
+## `temp = min(n, max_mana − mana_max)`, `mana_max += temp`, `mana_current =
+## min(mana_current + n, max_mana)`, `temporary_crystals += temp`, then
+## `mana_added {side, n, temporary: true}`. `crystal_bonus` is untouched, so
+## the next Start-step refill (F4) ignores them; the End step takes them back
+## ([method _expire_end_of_turn]). `mana_current ≤ mana_max` holds throughout.
 ## [codeblock]
 ## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
+## engine.add_mana("player", 2, true)    # 1/3 → 3/5 this turn only
 ## [/codeblock]
 func add_mana(side: String, n: int, temporary: bool = false) -> void:
 	if _halted():
 		return
-	if temporary:
-		push_error("RulesEngine.add_mana: temporary crystals are match-rules story 011")
-		return
 	var player: Dictionary = _state.players[side]
+	if temporary:
+		var cap: int = rule("max_mana")
+		var gained: int = mini(n, cap - int(player.mana_max))
+		player.mana_max = int(player.mana_max) + gained
+		player.mana_current = mini(int(player.mana_current) + n, cap)
+		player.temporary_crystals = int(player.temporary_crystals) + gained
+		emit(&"mana_added", {"side": side, "n": n, "temporary": true})
+		return
 	player.crystal_bonus = int(player.crystal_bonus) + n
 	emit(&"mana_added", {"side": side, "n": n, "temporary": false})
 
@@ -1468,7 +1526,7 @@ func _validate_play_card(command: Dictionary) -> String:
 	var type: String = _card_type(card)
 	if type == "":
 		return R_INVALID_INDEX
-	if effective_cost(card) > int(player.mana_current):
+	if effective_cost(card, side) > int(player.mana_current):
 		return R_NOT_ENOUGH_MANA
 	if type == CARD_MINION:
 		if player.board.size() >= rule("board_size"):
@@ -1487,7 +1545,7 @@ func _validate_hero_power(command: Dictionary) -> String:
 	var player: Dictionary = _state.players[side]
 	if player.hero_power.used_this_turn:
 		return R_HERO_POWER_USED
-	if rule("hero_power_cost") > int(player.mana_current):
+	if hero_power_cost(side) > int(player.mana_current):
 		return R_NOT_ENOUGH_MANA
 	return _target_rejection(str(player.hero_power.def_id), _power_source(side), command.get("target_id"), true)
 
@@ -1548,7 +1606,7 @@ func _append_play_commands(legal: Array, side: String, index: int) -> void:
 	var player: Dictionary = _state.players[side]
 	var card: Dictionary = player.hand[index]
 	var type: String = _card_type(card)
-	if type == "" or effective_cost(card) > int(player.mana_current):
+	if type == "" or effective_cost(card, side) > int(player.mana_current):
 		return
 	if type == CARD_MINION and player.board.size() >= rule("board_size"):
 		return
@@ -1722,7 +1780,7 @@ func _equip_step(side: String, def_id: String, played: Dictionary) -> void:
 ## trigger steps, card-effects C6.6).
 func _accept_card(side: String, card: Dictionary, type: String, target: Variant) -> int:
 	var player: Dictionary = _state.players[side]
-	var cost: int = effective_cost(card)
+	var cost: int = effective_cost(card, side)
 	var index: int = player.hand.find(card)
 	player.mana_current = int(player.mana_current) - cost
 	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
@@ -1753,7 +1811,7 @@ func _do_hero_power(command: Dictionary) -> void:
 
 func _accept_hero_power(side: String, target: Variant, used: Dictionary) -> void:
 	var player: Dictionary = _state.players[side]
-	var cost: int = rule("hero_power_cost")
+	var cost: int = hero_power_cost(side)
 	player.mana_current = int(player.mana_current) - cost
 	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
 	player.hero_power.used_this_turn = true
@@ -1906,8 +1964,8 @@ func _end_step(side: String) -> void:
 		return
 	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
 	# 5. end_of_turn enchantments on everything `side` owns — one step, whose
-	#    C10 loop recomputes the auras (and kills what lost its health buff)
-	#    TODO(story 011): temporary crystals expire here too.
+	#    C10 loop recomputes the auras (and kills what lost its health buff);
+	#    the side's temporary crystals expire in the same step (story 011)
 	_run_step(_expire_end_of_turn.bind(side))
 	if _halted():
 		return
@@ -2006,7 +2064,10 @@ func _candidates_in_order() -> Array[int]:
 ## C4 End step 5: removes every `expires = end_of_turn` enchantment on what
 ## [param side] owns — its hero and minions, its weapon, and the
 ## `cost_modifiers` of its hand and deck cards — one `enchantment_removed`
-## each, in that order.
+## each, in that order. Then its temporary crystals expire (C5, story 011):
+## `mana_max −= temporary_crystals`, `mana_current = max(0, mana_current −
+## temporary_crystals)`, `temporary_crystals = 0` — no event of its own (the
+## GDD names none; the `turn_ending` / `turn_ended` pair brackets it).
 func _expire_end_of_turn(side: String) -> void:
 	var player: Dictionary = _state.players[side]
 	for character: Dictionary in _characters_of(side):
@@ -2016,6 +2077,11 @@ func _expire_end_of_turn(side: String) -> void:
 	for zone: String in ["hand", "deck"]:
 		for card: Dictionary in player[zone]:
 			_expire_in(card.cost_modifiers, int(card.instance_id))
+	var temporary: int = int(player.temporary_crystals)
+	if temporary > 0:
+		player.mana_max = int(player.mana_max) - temporary
+		player.mana_current = maxi(0, int(player.mana_current) - temporary)
+		player.temporary_crystals = 0
 
 
 func _expire_in(enchantments: Array, owner_id: int) -> void:

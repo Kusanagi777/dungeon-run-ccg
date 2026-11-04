@@ -99,7 +99,9 @@ static func from_config(config: Dictionary) -> MatchState:
 ## [method MatchRecords.hero], or null before step 2), `mana_current` 0,
 ## `mana_max` 0, `crystal_bonus` 0 (raised only by
 ## `add_mana(side, n, temporary=false)` from an `on_match_start` hook — C5, F4),
-## `deck` (index 0 is the top), `hand`, `board` (index 0 is leftmost),
+## `temporary_crystals` 0 (this turn's crystals from `add_mana(side, n,
+## temporary=true)`, removed again at the side's End step — C5; match-rules
+## story 011), `deck` (index 0 is the top), `hand`, `board` (index 0 is leftmost),
 ## `weapon` (null or a Weapon), `hero_power {def_id, used_this_turn}`,
 ## `fatigue_counter` 0, `graveyard`, `resolving` (the CardInstance of a spell
 ## being cast — zone `resolving`, C6 spells step 2 — between `spell_cast` and
@@ -114,6 +116,7 @@ static func make_player_state(hero: Variant = null, hero_power_def_id: String = 
 		"mana_current": 0,
 		"mana_max": 0,
 		"crystal_bonus": 0,
+		"temporary_crystals": 0,
 		"deck": [] as Array[Dictionary],
 		"hand": [] as Array[Dictionary],
 		"board": [] as Array[Dictionary],
