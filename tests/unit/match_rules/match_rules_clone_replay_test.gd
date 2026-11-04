@@ -741,6 +741,26 @@ func test_the_clones_first_rng_draw_is_the_live_streams_next_draw() -> void:
 	sandbox.end_match()
 
 
+func test_a_clone_of_a_forked_stream_reuses_the_fork_and_stays_in_step_with_live() -> void:
+	# Arrange: the live rng_match has already forked "x" (code review
+	# 2026-11-04, MR-017 S7 / probe P3: the memo used to be dropped)
+	var started: Array = _boss_discover_fixture(TestEventLog.new())
+	var live: RulesEngine = started[0]
+	var live_child: RngStream = live.rng_match().fork("x")
+	var draws: int = live.rng_match().draws
+
+	# Act
+	var sandbox: RulesEngine = live.clone()
+	var clone_child: RngStream = sandbox.rng_match().fork("x")
+
+	# Assert: no parent draw on the clone, and both streams keep agreeing
+	assert_int(sandbox.rng_match().draws).is_equal(draws)
+	assert_object(clone_child).is_not_same(live_child)
+	assert_int(clone_child.randi_range(0, RngStream.MAX_RANGE_SPAN - 1)).is_equal(live_child.randi_range(0, RngStream.MAX_RANGE_SPAN - 1))
+	assert_int(sandbox.rng_match().randi_range(0, RngStream.MAX_RANGE_SPAN - 1)).is_equal(live.rng_match().randi_range(0, RngStream.MAX_RANGE_SPAN - 1))
+	sandbox.end_match()
+
+
 func test_the_clones_scratch_log_is_detached_and_discarded_with_the_clone() -> void:
 	# Arrange: a live subscriber counts deliveries
 	var log: TestEventLog = TestEventLog.new()

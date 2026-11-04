@@ -3445,10 +3445,12 @@ func _find_record(entity_id: int) -> Dictionary:
 ##   room so an `event_cap` fault lands where it would live). The planner reads
 ##   it (`state().log.events_since(0)`, the `TurnPlan` checksum); the UI never
 ##   sees it; nothing the clone does reaches the live log.
-## - **RNG:** `rng_match` is a fresh stream rebuilt from `{name, draws}` by
-##   reseed-and-discard (ADR-0003 F5) — its next draw is the live stream's
-##   next draw, and drawing from it never advances the live stream. The
-##   live stream's fork memo is not carried (the engine never forks, DD-T03).
+## - **RNG:** `rng_match` is `RngStream.copy()` of the live stream — rebuilt
+##   from `{name, draws}` by reseed-and-discard (ADR-0003 F5): its next draw
+##   is the live stream's next draw, and drawing from it never advances the
+##   live stream. The fork memo is carried as copies of each child, so a
+##   fork the live stream already took costs the clone no parent draw
+##   (code review 2026-11-04, MR-017 S7).
 ## - **Ended:** a clone of an Ended (or torn-down) match is Ended (torn down)
 ##   too and binds no resolver: every `submit` is `MATCH_ENDED`.
 ## - **Lifetime:** the clone and its resolver reference each other (a
@@ -3509,19 +3511,11 @@ func _scratch_log() -> EventLog:
 	return scratch
 
 
-## A fresh copy of [param stream] at the same position: the stream's own
-## `copy()` when it has one, else a stream of its kind with the same name and
-## seed, `restore(draws)` (reseed-and-discard, ADR-0003 F5 — never a shared
-## generator or a copied generator state) and the same `forked_at`.
-## TODO(rng-event-log): call `RngStream.copy()` once that epic ships it (the
-## story's Out of Scope); this reads the stream's seed and construction seam.
+## A fresh copy of [param stream] at the same position, by the public
+## [method RngStream.copy] (reseed-and-discard, ADR-0003 F5 — never a shared
+## generator or a copied generator state — with the fork memo carried as
+## copies of each child; code review 2026-11-04, MR-017 S7). Null for none.
 static func _copy_stream(stream: Variant) -> RefCounted:
 	if stream == null:
 		return null
-	if stream.has_method(&"copy"):
-		return stream.copy()
-	var source: RngStream = stream
-	var out: RngStream = source._make_child(source.name, source._stream_seed)
-	out.forked_at = source.forked_at
-	out.restore(source.draws)
-	return out
+	return (stream as RngStream).copy()

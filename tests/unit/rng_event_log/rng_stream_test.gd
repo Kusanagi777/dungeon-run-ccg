@@ -481,3 +481,81 @@ func test_fork_of_fork_names_full_path() -> void:
 	# Assert
 	assert_str(grandchild.name).is_equal("ai_1/sim_3/leaf")
 	assert_int(parent.draws).is_equal(1)
+
+
+
+# --- copy (ADR-0003 F5; code review 2026-11-04, MR-017 S7) -----------------------
+
+## Draws taken before a copy, so the copy restores to a non-zero position.
+const COPY_AFTER_DRAWS: int = 5
+## Draws compared between the original and the copy.
+const COPY_COMPARE_DRAWS: int = 8
+
+
+func _next_draws(stream: RngStream, count: int) -> Array[int]:
+	var out: Array[int] = []
+	for _i: int in count:
+		out.append(stream.randi32())
+	return out
+
+
+func test_copy_draws_the_same_sequence_from_the_same_position_independently() -> void:
+	# Arrange: a stream part-way through its sequence
+	var original: RngStream = _seeded("match_1")
+	original.forked_at = 3
+	for _i: int in COPY_AFTER_DRAWS:
+		@warning_ignore("return_value_discarded")
+		original.randi32()
+
+	# Act
+	var copy: RngStream = original.copy()
+	var from_copy: Array[int] = _next_draws(copy, COPY_COMPARE_DRAWS)
+	var from_original: Array[int] = _next_draws(original, COPY_COMPARE_DRAWS)
+
+	# Assert: same name, position and forked_at; same draws; separate generators
+	assert_object(copy).is_not_same(original)
+	assert_str(copy.name).is_equal(original.name)
+	assert_int(copy.forked_at).is_equal(3)
+	assert_array(from_copy).is_equal(from_original)
+	assert_int(copy.draws).is_equal(COPY_AFTER_DRAWS + COPY_COMPARE_DRAWS)
+	assert_int(original.draws).is_equal(COPY_AFTER_DRAWS + COPY_COMPARE_DRAWS)
+
+
+func test_copy_carries_the_fork_memo_as_copies_of_each_child() -> void:
+	# Arrange: the original has forked "x" and drawn from the child
+	var original: RngStream = _seeded("match_1")
+	var child: RngStream = original.fork("x")
+	@warning_ignore("return_value_discarded")
+	child.randi32()
+	var parent_draws: int = original.draws
+
+	# Act: the copy forks the same label
+	var copy: RngStream = original.copy()
+	var copy_child: RngStream = copy.fork("x")
+
+	# Assert: memoised (no parent draw), a copy of the child at its position
+	assert_int(copy.draws).is_equal(parent_draws)
+	assert_object(copy_child).is_not_same(child)
+	assert_str(copy_child.name).is_equal(child.name)
+	assert_int(copy_child.forked_at).is_equal(child.forked_at)
+	assert_int(copy_child.draws).is_equal(child.draws)
+	assert_array(_next_draws(copy_child, COPY_COMPARE_DRAWS)).is_equal(_next_draws(child, COPY_COMPARE_DRAWS))
+	# and the parents still agree after the fork
+	assert_int(copy.randi32()).is_equal(original.randi32())
+
+
+func test_forking_a_copy_does_not_touch_the_originals_memo() -> void:
+	# Arrange
+	var original: RngStream = _seeded("match_1")
+	var copy: RngStream = original.copy()
+
+	# Act: only the copy forks "y"
+	var copy_child: RngStream = copy.fork("y")
+
+	# Assert: the original still takes its parent draw for "y" and seeds the
+	# same child; nothing the copy did reached it
+	assert_int(original.draws).is_equal(0)
+	var original_child: RngStream = original.fork("y")
+	assert_int(original.draws).is_equal(1)
+	assert_object(original_child).is_not_same(copy_child)
+	assert_array(_next_draws(original_child, COPY_COMPARE_DRAWS)).is_equal(_next_draws(copy_child, COPY_COMPARE_DRAWS))
