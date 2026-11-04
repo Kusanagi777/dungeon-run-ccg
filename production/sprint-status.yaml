@@ -352,7 +352,7 @@ stories:
     name: "Tie-break and stream draws"
     file: "production/epics/boss-ai-match-driver/story-006-tie-break-and-stream-draws.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -360,8 +360,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "stretch; after BAI-004"
-    completed: ""
+    note: "stretch; after BAI-004; ACs amended 2026-11-04 per QA plan (A2 rewritten, A3/A5 moved to BAI-008 — add them to story 008)"
+    completed: "2026-11-04"
   - id: "card-effects-014"
     name: "Value-hook folds"
     file: "production/epics/card-effects/story-014-value-hook-folds.md"
