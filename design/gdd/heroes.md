@@ -73,7 +73,7 @@ Specialist note: `game-designer` / `systems-designer` / `art-director` / `narrat
 spawned — Lean mode (no Agent tool in this session). Review manually before production.
 
 **H-1 — A hero is a `HeroDef`.** Fields and validation are owned by Card Database CR-3: `id`
-(`hero_<name>`), `name`, `set`, `health` (30 for every launch hero — `player_starting_health`,
+(`hero_<name>`), `name`, `set`, `health` (30 for every launch hero — `starting_health_player`,
 DD-M02), `hero_power` (a `HeroPowerDef` id), `starter_deck` (exactly 15 ids, `starter_deck_size`,
 DD-R03; own set or `neutral`; duplicates allowed; no tokens), `text` (identity line), `art`. This
 GDD owns *which* values go in those fields; Match Rules C3 reads `health`, `hero_power` and the
@@ -367,7 +367,7 @@ cases (no legal target, Frozen hero, cost 0); they are restated only where this 
   match-rules API (Interactions, added 2026-11-03); no v1 treasure uses it (treasures.md agrees).
 - **If the hero's `health` in data is not 30**: loaded as written (CR-3 says data-driven); the
   Content validator warns `W_HERO_HEALTH` so an accidental deviation is visible. Launch heroes
-  are 30 (`player_starting_health`).
+  are 30 (`starting_health_player`).
 
 **Whetstone**
 - **If a weapon is held**: always the +1 branch; the power never destroys a weapon. The +1 is one
@@ -518,7 +518,7 @@ GDD directly.
 | Hero power rule: cost 2, once per turn, spell targeting, `hero_power` trigger point; Start-step reset; End-step expiry of `end_of_turn` enchantments | `design/gdd/match-rules.md` | C7, C5, C4 (Start 3, End 5), F1, F9 `HERO_POWER_COST` | Rule dependency |
 | Weapon replace-on-equip; hero attack from weapon; Windfury; death check between steps; `summon_failed`; Divine Shield; draw into empty deck / full hand | `design/gdd/match-rules.md` | C6, C8, C9, C10, C11, C12 | Rule dependency |
 | Frozen hero may still use its power; cost 0 still once per turn | `design/gdd/match-rules.md` | Edge Cases | Rule dependency |
-| Player starting health 30; boss health by band; match length model for F1 pacing; primitive API (`equip_weapon`, `summon_minion`, `draw`, `apply_enchantment`) | `design/gdd/match-rules.md` | `player_starting_health`, `boss_starting_health_by_band`, F8, Interactions | Data dependency |
+| Player starting health 30; boss health by band; match length model for F1 pacing; primitive API (`equip_weapon`, `summon_minion`, `draw`, `apply_enchantment`) | `design/gdd/match-rules.md` | `starting_health_player`, `boss_starting_health_by_band`, F8, Interactions | Data dependency |
 | DSL ops `conditional`, `buff` (incl. `cost` on deck cards), `equip`, `damage`, `summon`, `draw`; selectors `owner_weapon`, `chosen`, `deck_top`; conditions `exists`, `test` + `is_dying`; one-pass step unit; C11 rows 8, 16, 25 | `design/gdd/card-effects.md` | C3, C4, C5, C6.0, C6.4, C11 | Rule dependency |
 | Hero identification colours | `design/art/art-bible.md` | §4 Hero and boss identification colours | Data dependency |
 | `HeroDef.unlock {key, condition}`; keys `unlock.hero_fortune/order/shadow`; `is_hero_unlocked` | `design/gdd/meta-progression.md` | M2.1, M2 condition grammar, M10 | Ownership handoff (resolved) |
