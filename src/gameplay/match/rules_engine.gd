@@ -285,6 +285,10 @@ var _frame: Dictionary = {}
 ## recursing (a self-feeding `on_hero_damaged` hook must not overflow the call
 ## stack). See [method _enter_hook_point].
 var _hook_points_running: Dictionary[StringName, bool] = {}
+## How many in-primitive hook points ([method _run_inline_hooks]) are running
+## right now (nested when one entry's primitive reaches another). While it is
+## above 0, [method discover] refuses (code review MR-016 S2).
+var _inline_hook_depth: int = 0
 ## True while `resolver.recompute_auras()` runs: the aura enchantments it
 ## re-applies are silent (one `auras_recomputed` lists the net changes).
 var _recomputing_auras: bool = false
@@ -1252,6 +1256,14 @@ func equip_weapon(side: String, def_id: String) -> int:
 ## Choice` transition and no command can answer before `Mulligan`, so a
 ## pending request there would block every later `choose` and Discover. The
 ## resolver treats `{}` as "no choice": the effect's later ops do not run.
+## A request raised inside a primitive — by an in-primitive hook entry
+## (`on_draw`, `on_hero_damaged`, `on_minion_summoned`; ADR-0005 rule-4
+## exception, erratum 2026-11-03) — is refused too (code review MR-016 S2):
+## those entries run synchronously inside the current step with no C10 loop,
+## so the rest of the primitive (the next entries, the next card of a
+## `draw(n)`, the caller's later ops) has no plain-data stage to park.
+## Step-boundary hooks (`on_match_start` aside, `on_turn_start`,
+## `on_turn_end`, `on_card_played`) and every effect pass still pause.
 ##
 ## **The pause** (ADR-0007 Decision 1; the contract card-effects story 010's
 ## pass suspension builds on). After this call the resolver must **return
@@ -1287,6 +1299,9 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 		return {}
 	if _state.phase == MatchState.PHASE_SETUP:
 		push_error("RulesEngine.discover: refused in Setup (an on_match_start hook, C3 step 4): States has no Setup → Choice transition and no command can answer before Mulligan")
+		return {}
+	if _inline_hook_depth > 0:
+		push_error("RulesEngine.discover: refused inside a primitive (an on_draw / on_hero_damaged / on_minion_summoned hook entry): ADR-0005's rule-4 exception runs those entries synchronously within the step, which cannot pause")
 		return {}
 	var request: Dictionary = MatchRecords.choice_request(side, kind, options.duplicate(true), source_id, effect_id)
 	_state.pending_choice = request
@@ -2362,10 +2377,16 @@ func _run_hook_entry(point: StringName, index: int, side: String, ctx: Dictionar
 ## back to back, with no C10 loop between them. A primitive one of them calls
 ## that reaches [param point] again faults `resolution_overflow`
 ## ([method _enter_hook_point]); any other point may still be reached.
+## These entries cannot pause: a Discover raised by one is refused
+## ([method discover], code review MR-016 S2), so the later entries and the
+## rest of the primitive (the next card of a `draw(n)`) never run behind a
+## pending `Choice`.
 func _run_inline_hooks(point: StringName, side: String, ctx: Dictionary) -> void:
 	if _halted() or not _enter_hook_point(point):
 		return
+	_inline_hook_depth += 1
 	_state.hooks.run_triggers(point, StringName(side), ctx)
+	_inline_hook_depth -= 1
 	_hook_points_running[point] = false
 
 
