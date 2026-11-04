@@ -1,0 +1,17 @@
+{
+  "name": "lethal_pruned_root",
+  "description": "boss-ai F4 worked example: attackers 5 + 4, a 3-damage spell, 4 mana: potential 12; a player 2/5 Taunt: taunt_hp 5; player at 8: 12 - 5 = 7 < 8, pruned at the root. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 3,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_five", "type": "minion", "cost": 5, "attack": 5, "health": 5},
+    {"id": "bai_four", "type": "minion", "cost": 4, "attack": 4, "health": 4},
+    {"id": "bai_bolt", "type": "spell", "cost": 3, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"kind": "any", "side": "enemy"}}, "ops": [{"op": "damage", "amount": 3}]}]},
+    {"id": "bai_wall", "type": "minion", "cost": 4, "attack": 2, "health": 5, "keywords": ["taunt"]}
+  ],
+  "boss": {"mana": 4, "board": ["bai_five", "bai_four"], "hand": ["bai_bolt"]},
+  "player": {"health": 8, "board": ["bai_wall"]},
+  "expect": {"potential": 12, "taunt_hp": 5}
+}

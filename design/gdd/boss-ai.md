@@ -570,8 +570,10 @@ profiles:       {<key>: Profile}            default, aggro, control, tempo, pass
 bands:          {"1"|"2"|"3": Profile overlay}
 boss_overrides: {<boss id>: Profile overlay with required "extends"}
 presentation:   {action_delay_s 0.6, max_turn_playback_s 10, intent_banner_s 0.3, plan_changed_s 1.2}
-runtime:        {planner_mode worker|time_sliced|immediate (default worker), slice_ms 2, replay_budget_ms 2}
-                (owned here, consumed by the match driver's PlannerTask seam — ADR-0006; added 2026-11-03)
+runtime:        {planner_mode worker|time_sliced|immediate (default worker), slice_ms 2, replay_budget_ms 2, planner_target_ms 500}
+                (owned here, consumed by the match driver's PlannerTask seam — ADR-0006; added 2026-11-03.
+                planner_target_ms 50–1,000: a measurement target, read-only for the UI, never a runtime clock —
+                added 2026-11-04, DD-X18, handoff 2026-11-04 section 4)
 
 Profile = { extends?: key,
             weights:  {w_board, w_face, w_self, w_trade, w_threat, w_mana, w_card, w_over, w_heal, w_hp, w_passive},
@@ -739,7 +741,7 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `lethal_max_nodes` | 50 / 500 / 4000 | 10–20,000 | Finds deeper lethals; planner time up | Misses multi-step lethals | `planner_target_ms` |
 | `max_evals_per_action` | 40 / 120 / 250 | 10–1,000 | Better target choice on wide boards; time up | Pre-filter decides more; weaker play | `op_values`, `planner_target_ms` |
 | `max_actions_per_turn` | 30 | 10–100 | Longer degenerate turns possible | Legit token turns cut short | Match Rules `TURN_CAP` |
-| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; the commit beat stretches over the run up to this cap (match-ui U6.2, 2026-11-04, DD-X23), and runs past it show "boss thinking" | Forces smaller budgets | F7 (measurement only; never a runtime switch), `intent_banner_s` |
+| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; the commit beat stretches over the run up to this cap (match-ui U6.2, 2026-11-04, DD-X23), and runs past it show "boss thinking" | Forces smaller budgets | F7 (measurement only; never a runtime switch; ships as `runtime.planner_target_ms`, F9 — 2026-11-04, DD-X18), `intent_banner_s` |
 | `presentation.action_delay_s` | 0.6 | 0.3–1.2 | Boss turns read slower; risk "long opponent turns" | Actions blur together | `max_turn_playback_s` |
 | `presentation.max_turn_playback_s` | 10 | 6–20 | Long turns play in full | Delay compresses on busy turns | `action_delay_s` |
 | `presentation.intent_banner_s` / `plan_changed_s` | 0.3 / 1.2 | 0.2–0.6 / 0.6–2.0 | Longer commit beat / longer "plan changed" label; the first boss action starts later | Beat unreadable / label missed | Match UI `boss_turn_gap` (reads `intent_banner_s`) |

@@ -174,6 +174,9 @@ const WEAPON_REPLACED: String = "replaced"
 ## `weapon_destroyed.reason` when the death check breaks a weapon at
 ## durability ≤ 0 (or marked `pending_destroy`, C10).
 const WEAPON_BROKEN: String = "broken"
+## The keyword a `pending_destroy` minion keeps through Silence (C13 step 2;
+## 2026-11-04, DD-X21).
+const KEYWORD_DEATHRATTLE: String = "deathrattle"
 ## The `ctx` key the engine sets to `true` when it executes a queued trigger:
 ## `resolver.resolve(point, ctx)` with it runs that one effect pass (one C10
 ## step) instead of collecting responders (story 009; card-effects C6.6).
@@ -430,8 +433,12 @@ func state() -> MatchState:
 ##    `resolver.bind(self, player.hook_installers + boss.hook_installers)`;
 ##    one `hook_install_skipped {host_id, reason: duplicate}` per installer
 ##    whose `host_id` an earlier one already installed (ADR-0005, ADR-0007).
-## 2. Heroes: player `base_health` = `starting_health_player`, boss
-##    `base_health = config.boss.health` (never the boss definition's).
+## 2. Heroes: the player's `HeroDef` (`player.hero_def_id`, read once and never
+##    written) gives `base_health = record.health` and `hero_power.def_id =
+##    record.hero_power`; a `hero_def_id` with no record is a logged error that
+##    seats C3's default, `starting_health_player`, with no hero power (heroes
+##    story 001). Boss `base_health = config.boss.health` (never the boss
+##    definition's).
 ## 3. Each deck to `CardInstance`s in list order, shuffled with `rng_match` —
 ##    player first; one `deck_shuffled {side, instance_ids}` per side.
 ## 4. `on_match_start` hooks, player side then boss side.
@@ -462,10 +469,22 @@ func start(config: Dictionary) -> void:
 	_resolver.bind(self, installers)
 	_bound = true
 	_log_skipped_installers(installers)
-	# C3 step 2: heroes
-	# TODO(card-database story 006): read the hero record's `health` (defaulting
-	# to this knob) and its hero power id once `CardDatabase` answers queries.
-	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, rule("starting_health_player"))
+	# C3 step 2: heroes. `hero` asserts on anything but a HeroDef id (CR-6) and `has`
+	# answers for any record type, so the record comes from the `heroes` list.
+	var hero_def_id: String = str(config.player.hero_def_id)
+	var hero_def: Variant = null
+	if _db != null and _db.has(hero_def_id):
+		for record: Dictionary in _db.heroes():
+			if record.id == hero_def_id:
+				hero_def = record
+	var player_health: int
+	if hero_def == null:
+		push_error("RulesEngine.start: no HeroDef \"%s\": seating starting_health_player, no hero power (match-rules C3 step 2)" % hero_def_id)
+		player_health = rule("starting_health_player")
+	else:
+		player_health = int(hero_def.health)
+		_state.players[MatchRecords.SIDE_PLAYER].hero_power.def_id = str(hero_def.hero_power)
+	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, player_health)
 	_state.players[MatchRecords.SIDE_BOSS].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_BOSS, int(config.boss.health))
 	# C3 step 3: decks, player first
 	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck)
@@ -1115,7 +1134,13 @@ func destroy(target_id: int) -> void:
 ##    aura enchantments it *receives* stay for the loop's `recompute_auras()`
 ##    to strip and re-apply, so received auras are net unchanged);
 ## 2. `keywords.clear()` — the definition's keywords (Divine Shield, Taunt,
-##    Deathrattle…), the enchantment-granted ones having left in 1;
+##    Deathrattle…), the enchantment-granted ones having left in 1. **Except**
+##    (2026-11-04, DD-X21) a minion already `pending_destroy` and not Silenced
+##    before it was marked keeps the Deathrattles it held at the mark, printed
+##    or granted: it keeps the `deathrattle` keyword (not in `removed_keywords`)
+##    and gets `deathrattles_kept = true`, which the resolver reads to answer
+##    `deathrattle` despite 3. A minion at `health ≤ 0` without the mark, or
+##    Silenced first, gets neither;
 ## 3. `silenced = true`: the resolver skips this entity's own triggers,
 ##    Deathrattles and aura emission from now on (ADR-0007);
 ## 4. F6: `damage_taken = max(0, damage_taken − max(0, old_max − max_health))`
@@ -1139,6 +1164,7 @@ func silence(target_id: int) -> void:
 	if minion.is_empty():
 		return
 	var old_max: int = max_health(minion)
+	var keeps_deathrattles: bool = bool(minion.get("pending_destroy", false)) and not bool(minion.silenced)
 	var removed_keywords: Array[String] = []
 	removed_keywords.append_array(minion.keywords)
 	var removed: Array[Dictionary] = []
@@ -1153,6 +1179,11 @@ func silence(target_id: int) -> void:
 				removed_keywords.append(keyword)
 	(minion.enchantments as Array).assign(kept)
 	(minion.keywords as Array).clear()
+	if keeps_deathrattles:
+		minion["deathrattles_kept"] = true
+		if removed_keywords.has(KEYWORD_DEATHRATTLE):
+			removed_keywords.erase(KEYWORD_DEATHRATTLE)
+			(minion.keywords as Array).append(KEYWORD_DEATHRATTLE)
 	minion.silenced = true
 	minion.damage_taken = maxi(0, int(minion.damage_taken) - maxi(0, old_max - max_health(minion)))
 	minion.frozen = false

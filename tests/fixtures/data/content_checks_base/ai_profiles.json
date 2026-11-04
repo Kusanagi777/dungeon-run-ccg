@@ -187,7 +187,8 @@
     "runtime": {
       "planner_mode": "worker",
       "slice_ms": 2,
-      "replay_budget_ms": 2
+      "replay_budget_ms": 2,
+      "planner_target_ms": 500
     }
   }
 }

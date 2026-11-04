@@ -281,6 +281,63 @@ func test_presentation_and_runtime_are_f9s_lines() -> void:
 	assert_str(body.runtime.planner_mode).is_equal("worker")
 
 
+# --- runtime.planner_target_ms (handoff 2026-11-04 section 4, DD-X18; QA NC-8) ---------
+
+## The `.gd` paths under [param dir], recursively.
+func _scripts_under(dir: String) -> Array[String]:
+	var paths: Array[String] = []
+	for file_name: String in DirAccess.get_files_at(dir):
+		if file_name.get_extension() == "gd":
+			paths.append(dir.path_join(file_name))
+	for child: String in DirAccess.get_directories_at(dir):
+		paths.append_array(_scripts_under(dir.path_join(child)))
+	return paths
+
+
+func test_shipped_planner_target_is_the_500_of_the_registry() -> void:
+	# Arrange — the registry key is `ai_planner_target_ms`, the data key `planner_target_ms`
+	var registry: PackedStringArray = FileAccess.get_file_as_string(REGISTRY).split("\n")
+	var row: int = registry.find("  - name: ai_planner_target_ms")
+	var value_line: String = ""
+	for line: String in registry.slice(row):
+		if line.strip_edges().begins_with("value: "):
+			value_line = line.strip_edges()
+			break
+
+	# Act
+	var shipped: Variant = _body().runtime.planner_target_ms
+
+	# Assert
+	assert_float(float(shipped)).is_equal(500.0)
+	assert_str(value_line).is_equal("value: %d" % int(shipped))
+
+
+func test_planner_target_reads_through_the_database_and_refuses_a_write() -> void:
+	# Arrange — `make_read_only()` is shallow: this proves the nested block is frozen
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(STAGE_ROOT))
+	db.load(ValidatorStubs.accept_all())
+	var runtime: Dictionary = db.config(BossAI.CONFIG_NAME).runtime
+
+	# Act / Assert
+	assert_bool(runtime.is_read_only()).is_true()
+	await assert_error(func() -> void: runtime["planner_target_ms"] = 1).is_runtime_error("Invalid assignment on read-only value (on base: 'Dictionary').")
+	assert_float(float(db.config(BossAI.CONFIG_NAME).runtime.planner_target_ms)).is_equal(500.0)
+
+
+func test_planner_target_is_never_a_runtime_clock() -> void:
+	# Arrange — a measurement target: the validator names it, no planner or rules code reads it
+	var readers: Array[String] = []
+
+	# Act
+	for root: String in ["res://src/ai", "res://src/gameplay"]:
+		for path: String in _scripts_under(root):
+			if path != "res://src/ai/boss_ai.gd" and FileAccess.get_file_as_string(path).contains("planner_target_ms"):
+				readers.append(path)
+
+	# Assert
+	assert_array(readers).is_empty()
+
+
 # --- boss overrides (AC-3) ---------------------------------------------------------
 
 func test_boss_overrides_are_the_five_mvp_bosses_of_content_b1() -> void:

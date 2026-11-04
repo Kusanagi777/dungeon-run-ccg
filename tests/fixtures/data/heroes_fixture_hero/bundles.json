@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_neutral_fixture_1",
+      "name": "Fixture Bundle 1",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_fixture_a",
+        "neutral_fixture_b",
+        "neutral_fixture_c"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fixture_1.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_fixture_2",
+      "name": "Fixture Bundle 2",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_fixture_a",
+        "neutral_fixture_b",
+        "neutral_fixture_c"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fixture_2.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_fixture_3",
+      "name": "Fixture Bundle 3",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_fixture_a",
+        "neutral_fixture_b",
+        "neutral_fixture_c"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fixture_3.text",
+        "en": ""
+      }
+    }
+  ]
+}

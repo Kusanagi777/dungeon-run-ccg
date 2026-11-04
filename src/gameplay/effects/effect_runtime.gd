@@ -13,8 +13,11 @@
 ## A factory and a shape check, not a class with instances:
 ## `MatchState.make_effect_runtime()` (match-rules) builds the same empty
 ## record at C3 step 1, and the unit suite pins the two together.
-## - `once_marks`: `once_per_turn` marks, `effect_id → turn` (C1).
-## - `counters`: `str(entity_id) → {key: int}` (C5 `add_counter`).
+## - `once_marks`: `once_per_turn` marks, `effect_id:source_id:turn → true`
+##   ([method once_key]; C6.7, story 009). No reset: the turn moves on.
+## - `counters`: `str(entity_id) → {key: int}` (C5 `add_counter` / `set_counter`;
+##   story 009): [method counter], [method write_counter]. A bucket lives as
+##   long as its `entity_id`, so a replayed minion starts at 0.
 ## - `per_turn`: per-turn tallies, `side → {key → int}` (C4, C6.8; story
 ##   007): `cards_played_this_turn`, `spells_cast_this_turn`,
 ##   `minions_died_this_turn`, kept by the resolver from the trigger points
@@ -82,6 +85,53 @@ static func bump(runtime: Dictionary, side: String, key: String) -> void:
 ## Example: `EffectRuntime.reset_turn(state.effects, "player")`.
 static func reset_turn(runtime: Dictionary, side: String) -> void:
 	(runtime.per_turn as Dictionary).erase(side)
+
+
+## The `once_per_turn` mark key of effect [param effect_id] on source
+## [param source_id] in [param turn] (C6.7: `effect_id:source_id:turn`; a
+## treasure or passive id is the source of a hook host, story 015). A mark
+## needs no reset: the next turn's key is another key.
+## Example: `EffectRuntime.once_key("row_11.0", 12, 3) == "row_11.0:12:3"`.
+static func once_key(effect_id: String, source_id: Variant, turn: int) -> String:
+	return "%s:%s:%d" % [effect_id, str(source_id), turn]
+
+
+## True when [param key] ([method once_key]) is marked in [param runtime].
+## Example: `EffectRuntime.once_marked(state.effects, key)`.
+static func once_marked(runtime: Dictionary, key: String) -> bool:
+	return (runtime.once_marks as Dictionary).has(key)
+
+
+## Sets the mark [param key] — the resolver's own data; a mark is derivable
+## from the log and emits nothing (ADR-0007 Decision 5's exception).
+## Example: `EffectRuntime.mark_once(state.effects, key)`.
+static func mark_once(runtime: Dictionary, key: String) -> void:
+	(runtime.once_marks as Dictionary)[key] = true
+
+
+## The live counter [param key] of [param source_id] in [param runtime]: 0 when
+## never set (C5). Example: `EffectRuntime.counter(state.effects, 12, "seen")`.
+static func counter(runtime: Dictionary, source_id: Variant, key: String) -> int:
+	return int(counters_of(runtime, source_id).get(key, 0))
+
+
+## A value copy of [param source_id]'s counters (`{}` when it has none): what a
+## raise-time snapshot stores (C6.5).
+## Example: `EffectRuntime.counters_of(state.effects, 12)`.
+static func counters_of(runtime: Dictionary, source_id: Variant) -> Dictionary:
+	var bucket: Variant = (runtime.counters as Dictionary).get(str(source_id))
+	return (bucket as Dictionary).duplicate() if bucket is Dictionary else {}
+
+
+## Sets [param source_id]'s counter [param key] to [param value]. The op
+## handlers call this, then emit `counter_changed` (C5, ADR-0007 Decision 5).
+## Example: `EffectRuntime.write_counter(state.effects, 12, "seen", 3)`.
+static func write_counter(runtime: Dictionary, source_id: Variant, key: String, value: int) -> void:
+	var counters: Dictionary = runtime.counters
+	var bucket_key: String = str(source_id)
+	if not counters.get(bucket_key) is Dictionary:
+		counters[bucket_key] = {}
+	(counters[bucket_key] as Dictionary)[key] = value
 
 
 static func _is_plain(value: Variant) -> bool:

@@ -1,0 +1,19 @@
+{
+  "name": "deathrattle_taunt_divergence",
+  "description": "boss-ai A10. The player's 1/1 Taunt must die first; its Deathrattle deals 1 damage to a random friendly minion. On the bomb, the bomb's Deathrattle summons a 0/9 Taunt; on the 1/5, nothing. Two 3/2s then go face for 6 against a player at 6. The search draws from the sim fork, the sandbox from its rng_match copy: expect.ai_seed makes the fork spare the bomb and expect.live_offset makes the sandbox hit it, so the plan's second step is no longer legal. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_raider", "type": "minion", "cost": 2, "attack": 3, "health": 2},
+    {"id": "bai_fuse", "type": "minion", "cost": 1, "attack": 1, "health": 1, "keywords": ["taunt"], "effects": [{"trigger": "deathrattle", "targets": "random_friendly_minion", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_bomb", "type": "minion", "cost": 1, "attack": 1, "health": 1, "effects": [{"trigger": "deathrattle", "ops": [{"op": "summon", "card_id": "bai_bulwark"}]}]},
+    {"id": "bai_block", "type": "minion", "cost": 2, "attack": 1, "health": 5},
+    {"id": "bai_bulwark", "type": "minion", "cost": 4, "attack": 0, "health": 9, "keywords": ["taunt"]}
+  ],
+  "boss": {"mana": 0, "board": ["bai_brute", "bai_raider", "bai_raider"], "hand": []},
+  "player": {"health": 6, "board": ["bai_fuse", "bai_bomb", "bai_block"]},
+  "expect": {"ai_stream": "ai_1", "ai_seed": 2, "live_offset": 0}
+}

@@ -1,10 +1,30 @@
 ## The Boss AI (design/gdd/boss-ai.md; ADR-0006, ADR-0002 Decision 4).
 ##
-## This story (boss-ai-match-driver 002) adds only the load-time half: the
-## `ai_profiles.json` schema knowledge and the two static, pure validators that
-## Card Database runs at CR-5 stage 7. The planner itself (`plan_turn`,
-## `forecast`, `choose`, the constructor C1.1 names) arrives with stories
-## 004-011; [ProfileResolver] builds the profile it will be handed.
+## Two halves. The load-time half (story 002): the `ai_profiles.json` schema
+## knowledge and the two static, pure validators Card Database runs at CR-5 stage
+## 7; [ProfileResolver] builds the profile. The planner (story 008): one instance
+## per match, whose [method plan_turn] runs the C2 action loop on a
+## `RulesEngine.clone()` and returns a [TurnPlan] for the driver to replay.
+## `forecast` and `choose` arrive with stories 011 and 010.
+##
+## **The planner** reads the sandbox through `legal_commands()`, its derived
+## values and, like [Scorer], its `state()`, and mutates only through `submit` on
+## that sandbox: no live engine, no live log, no signal, no Node (ADR-0006). Per
+## loop pass (C2): `[end_turn]` or the action cap ends the turn; then the lethal
+## search, then one action through `collect → score_all → pick`. Modes are
+## `NORMAL` and `LETHAL` here; story 009 adds `DEFENSIVE` after the search.
+##
+## **One search per turn, plus one after an abort.** C2's pseudocode calls
+## `lethal_search` on every pass, but C3 allows "one more search per turn", F7
+## counts `lethal_nodes` once per run, and A7 needs band 1 to record no `LETHAL`
+## even when scoring opens the way; C3's "the AI may still stumble into lethal"
+## says the same. So a pass searches only while a search is due: the first, and
+## one more after `ai_plan_aborted`.
+##
+## **`alternatives`** (C9, review N4): what was scored, best first, at most
+## [constant Scorer.ALTERNATIVES_MAX], the pick always among them (A16, Edge
+## Cases "one alternative"); `[]` when nothing was scored: a forced `end_turn`
+## and every `LETHAL` step (A24, C2).
 ##
 ## Validators (ADR-0002 stage-7 calling convention; both registered by `Boot`):
 ## - [method validate_profiles_config] — **7a**, `call(body, db)`, the config
@@ -87,6 +107,7 @@ const RANGES: Dictionary = {
 	"max_turn_playback_s": {"min": 6.0, "max": 20.0, "integral": false, "row": "Tuning Knobs presentation.max_turn_playback_s"},
 	"intent_banner_s": {"min": 0.2, "max": 0.6, "integral": false, "row": "Tuning Knobs presentation.intent_banner_s"},
 	"plan_changed_s": {"min": 0.6, "max": 2.0, "integral": false, "row": "Tuning Knobs presentation.plan_changed_s"},
+	"planner_target_ms": {"min": 50.0, "max": 1000.0, "integral": false, "row": "Tuning Knobs planner_target_ms"},
 }
 
 ## F9 top-level sections of the `config` body, in F9 order; all required.
@@ -126,6 +147,10 @@ const PLANNER_MODES: Array[String] = ["worker", "time_sliced", "immediate"]
 const RUNTIME_TIMING_KEYS: Array[String] = ["slice_ms", "replay_budget_ms"]
 ## The `runtime` enum key.
 const PLANNER_MODE_KEY: String = "planner_mode"
+## The `runtime` measurement target (Tuning Knobs, DD-X18): validated here and
+## read by perf gates and the UI's commit beat. Never a runtime clock: no
+## planner or rules code reads it.
+const PLANNER_TARGET_KEY: String = "planner_target_ms"
 ## Card Effects C5 structural ops, valued as the sum of their inner ops (C6):
 ## each maps to the param keys holding inner `op[]` arrays; `choose_one`
 ## holds them under `options[].ops`.
@@ -141,8 +166,108 @@ const CARD_TYPES: Array[String] = ["minion", "spell", "weapon"]
 ## The stage-7 `configs` key of this file's parsed body.
 const CONFIG_NAME: String = "ai_profiles"
 
+## The diagnostic events of a [TurnPlan] (rng-event-log rule 12a).
+const EVENT_DECISION: String = "ai_decision"
+const EVENT_PLAN_ABORTED: String = "ai_plan_aborted"
+const EVENT_FAULT: String = "ai_fault"
+## C9 `ai_decision.kind`.
+const KIND_ACTION: String = "action"
+const KIND_CHOICE: String = "choice"
+## `ai_decision.reason` of a forced `end_turn` (C2; A24, A27).
+const REASON_ONLY_MOVE: String = "only_move"
+const REASON_ACTION_CAP: String = "action_cap"
+## `ai_fault.reason` (Edge Cases "Legality and the command loop", States `Faulted`).
+const FAULT_NO_LEGAL_COMMANDS: String = "no_legal_commands"
+const FAULT_END_TURN_REJECTED: String = "end_turn_rejected"
+## `ai_plan_aborted.reason` (C3): a step no longer legal, one the sandbox
+## rejected, or a plan that ran out with the player alive.
+const ABORT_DIVERGED: String = "diverged"
+const ABORT_REJECTED: String = "rejected"
+const ABORT_NOT_LETHAL: String = "not_lethal"
+## C2: rejected commands in one turn before `end_turn` is forced. A guard on a
+## state that cannot arise single-threaded (A23), not a tuning knob.
+const MAX_REJECTIONS: int = 3
+
 # Profile-entry contexts for `_check_profile`.
 enum _Context { PROFILE, BAND, OVERRIDE }
+
+## The [PlannerTask] of a [method plan_turn] called with none: never yields.
+class _NoYield:
+	extends PlannerTask
+
+	func start(work: Callable) -> void:
+		_result = work.call()
+		return
+
+	func poll() -> bool:
+		return true
+
+
+## The working state of one [method plan_turn]: C2's locals, and the keys the next
+## `ai_decision` picks up.
+class _Turn:
+	var sandbox: RulesEngine
+	var planner: PlannerTask
+	var side: String
+	## The turn's `sim_<turn>` fork (C4), shared by every sandbox of the turn.
+	var sim: RngStream = null
+	var plan: TurnPlan = TurnPlan.new()
+	var mode: StringName = Scorer.MODE_NORMAL
+	var actions: int = 0
+	var rejections: int = 0
+	## The exact commands rejected this turn (Edge Cases).
+	var excluded: Array = []
+	var searches_due: int = 1
+	var aborted: bool = false
+	var finished: bool = false
+	## Keys for the next `ai_decision`: the last search's result, a mode change.
+	var note: Dictionary = {}
+
+	func _init(engine: RulesEngine, task: PlannerTask) -> void:
+		sandbox = engine
+		planner = task
+		side = String(engine.active_side())
+
+
+## The `ai_decision {kind: choice}` of the last [method choose], for the choose
+## task to hand on (ADR-0008 Decision 3): `choose` itself returns the index alone
+## (C1.4), and [method plan_turn] folds it into its own diagnostics.
+var last_choice: Dictionary = {}
+
+var _boss_def: Dictionary = {}
+var _profile: Dictionary = {}
+var _band: int = 0
+var _ai_stream: RngStream = null
+var _log: Variant = null
+var _db: Variant = null
+var _op_values: Dictionary = {}
+var _picker: CandidateSet = null
+var _scorer: Scorer = null
+var _lethal: LethalSearch = null
+## C1.3: the one thing the AI remembers across turns, and how far it has read.
+var _aoe_seen: bool = false
+var _log_cursor: int = 0
+
+
+## C1.1, built once per match. [param ai_stream] is the injected `ai_<floor>`
+## stream; [param log] the match log, read on the main thread for `card_played`
+## alone (C1.3) and never handed to a worker; [param db] and
+## [param keyword_values] (`ai_profiles.keyword_values`) serve the [Scorer] and
+## [CandidateSet], which the C1.1 list leaves out.
+## [codeblock]
+## var ai := BossAI.new(boss_def, profile, band, config.rng_ai, body.op_values, config.log, db, body.keyword_values)
+## [/codeblock]
+func _init(boss_def: Dictionary, resolved_profile: Dictionary, band: int, ai_stream: RngStream, op_values: Dictionary, log: Variant, db: Variant, keyword_values: Dictionary) -> void:
+	_boss_def = boss_def
+	_profile = resolved_profile
+	_band = band
+	_ai_stream = ai_stream
+	_log = log
+	_db = db
+	_op_values = op_values
+	_picker = CandidateSet.new(db, op_values, resolved_profile.synergy_tags)
+	_scorer = Scorer.new(db, keyword_values, op_values)
+	_lethal = LethalSearch.new(db, _picker)
 
 
 ## The `ai_profiles` config validator (CR-5 stage **7a**, `call(body, db)`;
@@ -151,7 +276,7 @@ enum _Context { PROFILE, BAND, OVERRIDE }
 ## closed key sets per section, enums, [constant RANGES], `hidden` only in
 ## `boss_overrides`, every override's `extends`, `profiles.default` carrying
 ## every weight, rule and `intent_mode`, every band carrying every budget, and
-## ADR-0006's `runtime {planner_mode, slice_ms, replay_budget_ms}` — then runs
+## `runtime {planner_mode, slice_ms, replay_budget_ms, planner_target_ms}` — then runs
 ## [method validate_op_coverage] over the cards [param db] can list.
 ## [param db] is the `CardDatabase` in `Loading` (stage-7 lookups, ADR-0002
 ## Decision 4) or `null`; it is asked only for `cards_by_type(type)` per
@@ -296,6 +421,314 @@ static func range_problem(range_key: String, value: Variant) -> String:
 	if number < bounds.min or number > bounds.max:
 		return "out_of_range"
 	return ""
+
+
+# --- the planner (story 008) ------------------------------------------------------
+
+## The task body for one boss turn (ADR-0006 erratum 2026-11-03: built here so
+## `match_driver.gd` stays `await`-free; `work.call()` is the dynamic path). Called
+## on the main thread, it first reads the public log, so the worker never touches
+## it. Pass the running [param planner] for `checkpoint()` to yield on, or a
+## time-sliced task would never slice. The caller owns [param sandbox] and ends
+## it once the plan is back.
+## [codeblock]
+## task.start(boss_ai.plan_task(sandbox, task))
+## [/codeblock]
+func plan_task(sandbox: RulesEngine, planner: PlannerTask = null) -> Callable:
+	_read_public_log(sandbox)
+	return func() -> Variant: return await plan_turn(sandbox, planner)
+
+
+## The C2 action loop on [param sandbox] (a `RulesEngine.clone()`, never the live
+## engine) at its own Main: returns the [TurnPlan]. A **coroutine** (ADR-0006
+## erratum): every caller awaits it. Forks `sim_<turn>` once, for every sandbox of
+## the turn (C4), and leaves the root's `rng_match` to move only by what it accepts,
+## or the replay would diverge. Outside the side-to-move's Main it returns an empty
+## plan. The caller owns [param sandbox] and ends it with `end_match()`.
+## [codeblock]
+## var plan: TurnPlan = await boss_ai.plan_turn(sandbox)
+## [/codeblock]
+func plan_turn(sandbox: RulesEngine, planner: PlannerTask = null) -> TurnPlan:
+	var turn: _Turn = _Turn.new(sandbox, planner if planner != null else _NoYield.new())
+	turn.plan.mode_trace.append(turn.mode)
+	if not _is_own_main(turn):
+		return turn.plan
+	var scratch: Variant = sandbox.state().log
+	var scratch_start: int = int(scratch.size())
+	var draws_before: int = _ai_stream.draws
+	turn.sim = _ai_stream.fork(TieBreak.sim_label(int(sandbox.state().turn)))
+	turn.plan.ai_draws = _ai_stream.draws - draws_before
+	while _is_own_main(turn) and not turn.finished:
+		await _plan_pass(turn)
+	var outcome: Variant = sandbox.result()
+	if outcome is Dictionary and str(outcome.get("result")) == MatchRecords.RESULT_FAULT:
+		_record(turn, _fault(str(outcome.get("reason"))))
+	turn.plan.expected_checksum = TurnPlan.checksum(scratch.events_since(scratch_start))
+	return turn.plan
+
+
+## C1.4 for the sim harness only, on the calling thread: [method plan_turn] on a
+## clone of [param engine], then the immediate replay through `submit`, each
+## diagnostic ahead of its command through `engine.emit`. Production replays in
+## `MatchDriver.tick()`. A coroutine; never hand it a live engine on a worker.
+## [codeblock]
+## await boss_ai.play_turn(engine)
+## [/codeblock]
+func play_turn(engine: RulesEngine, planner: PlannerTask = null) -> void:
+	_read_public_log(engine)
+	var sandbox: RulesEngine = engine.clone()
+	var plan: TurnPlan = await plan_turn(sandbox, planner)
+	sandbox.end_match()
+	for index: int in plan.commands.size() + 1:
+		for diagnostic: Dictionary in plan.diagnostics_before(index):
+			@warning_ignore("return_value_discarded")
+			engine.emit(StringName(str(diagnostic[TurnPlan.EVENT_KEY])), TurnPlan.event_payload(diagnostic))
+		if index < plan.commands.size():
+			@warning_ignore("return_value_discarded")
+			engine.submit(plan.commands[index])
+
+
+## C1.4 / C7: the option the boss takes for the `ChoiceRequest` [param request]
+## on [param sandbox], a clone (ADR-0006: a task body like the others). Pure over
+## the clone; a tie takes one draw from the `ai_<floor>` stream. The caller submits
+## `choose{issuer: boss, option_index}`. [param mode] is logged in
+## [member last_choice]. Returns [constant Chooser.NO_OPTION] for a request it
+## must not answer.
+## [codeblock]
+## var index: int = boss_ai.choose(sandbox, sandbox.pending_choice())
+## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, index))
+## [/codeblock]
+func choose(sandbox: RulesEngine, request: Dictionary, mode: StringName = Scorer.MODE_NORMAL) -> int:
+	var decision: Dictionary = Chooser.choose(sandbox, request, _profile, _op_values, _ai_stream, _db, mode)
+	last_choice = decision.diagnostic
+	return int(decision.index)
+
+
+## One pass of the C2 loop. A coroutine.
+func _plan_pass(turn: _Turn) -> void:
+	var cmds: Array = _open(turn, turn.sandbox.legal_commands())
+	if cmds.is_empty():
+		_record(turn, _fault(FAULT_NO_LEGAL_COMMANDS))
+		_end_turn(turn)
+		return
+	var cap: int = int(_profile.budgets.max_actions_per_turn)
+	var only_move: bool = cmds.size() == 1 and str(cmds[0].type) == MatchRecords.CMD_END_TURN
+	if only_move or turn.actions >= cap:
+		_decide_end_turn(turn, REASON_ONLY_MOVE if only_move else REASON_ACTION_CAP)
+		return
+	_enter_mode(turn, Scorer.MODE_NORMAL)
+	if turn.searches_due > 0:
+		turn.searches_due -= 1
+		var budgets: Dictionary = (_profile.budgets as Dictionary).duplicate()
+		budgets.max_actions_per_turn = cap - turn.actions
+		var steps: Variant = await _lethal.search(turn.sandbox, _profile, budgets, turn.planner, turn.sim)
+		_note_search(turn)
+		if steps != null:
+			_enter_mode(turn, Scorer.MODE_LETHAL)
+			_execute_lethal(turn, steps)
+			return
+	var candidates: Array = _open(turn, _picker.collect(turn.sandbox, _profile, _profile.budgets))
+	var context: Dictionary = {"aoe_seen": _aoe_seen, Scorer.CONTEXT_SIM_STREAM: turn.sim}
+	var scored: Array = await _scorer.score_all(turn.sandbox, candidates, _profile, turn.mode, context, turn.planner)
+	var picked: Dictionary = TieBreak.pick(scored, float(_profile.rules.tie_epsilon), _ai_stream)
+	turn.plan.ai_draws += int(picked.draws)
+	var decision: Dictionary = _decision(turn, picked.chosen.command, _alternatives(scored, picked.chosen))
+	decision["tie_set_size"] = (picked.ties as Array).size()
+	if scored.any(func(entry: Dictionary) -> bool: return bool(entry.sim_overflow)):
+		decision["sim_overflow"] = true
+	_submit_action(turn, picked.chosen.command, decision)
+
+
+## Submits the scored [param command]. A rejection is logged on [param decision],
+## excludes that exact command, and after [constant MAX_REJECTIONS] forces
+## `end_turn` (C2); a rejected `end_turn` is `Faulted`.
+func _submit_action(turn: _Turn, command: Dictionary, decision: Dictionary) -> void:
+	var result: Dictionary = turn.sandbox.submit(command.duplicate(true))
+	turn.actions += 1
+	if result.accepted:
+		_accept(turn, command, decision)
+		_answer_choices(turn)
+		return
+	decision["rejection"] = str(result.rejection.code)
+	_record(turn, decision)
+	if str(command.type) == MatchRecords.CMD_END_TURN:
+		_record(turn, _fault(FAULT_END_TURN_REJECTED))
+		turn.finished = true
+		return
+	turn.excluded.append(command)
+	turn.rejections += 1
+	if turn.rejections >= MAX_REJECTIONS:
+		_decide_end_turn(turn, "")
+
+
+## The forced `end_turn` of C2 with its decision ([param reason] empty for the
+## rejection cap, which C2's closed `reason` set does not name).
+func _decide_end_turn(turn: _Turn, reason: String) -> void:
+	var decision: Dictionary = _decision(turn, MatchRecords.end_turn(turn.side), [])
+	if not reason.is_empty():
+		decision["reason"] = reason
+	_record(turn, decision)
+	_end_turn(turn)
+
+
+## Submits `end_turn` once and stops the loop whatever came of it: the planner
+## never spins (Edge Cases).
+func _end_turn(turn: _Turn) -> void:
+	var command: Dictionary = MatchRecords.end_turn(turn.side)
+	turn.finished = true
+	if turn.sandbox.submit(command.duplicate(true)).accepted:
+		turn.plan.commands.append(command)
+		_answer_choices(turn)
+	else:
+		_record(turn, _fault(FAULT_END_TURN_REJECTED))
+
+
+## C3: runs [param steps] on the sandbox, one `ai_decision` each. A step
+## `legal_commands()` no longer lists (a Taunt appeared, the target is gone) or the
+## sandbox rejects, or a plan that ends with the player alive, is a divergence: the
+## search's randomness is only an estimate of the sandbox's.
+func _execute_lethal(turn: _Turn, steps: Array) -> void:
+	for index: int in steps.size():
+		if not _is_own_main(turn):
+			return
+		var step: Dictionary = steps[index]
+		if not turn.sandbox.legal_commands().has(step):
+			_abort_plan(turn, ABORT_DIVERGED, index)
+			return
+		var decision: Dictionary = _decision(turn, step, [])
+		var result: Dictionary = turn.sandbox.submit(step.duplicate(true))
+		turn.actions += 1
+		if not result.accepted:
+			decision["rejection"] = str(result.rejection.code)
+			_record(turn, decision)
+			turn.excluded.append(step)
+			turn.rejections += 1
+			_abort_plan(turn, ABORT_REJECTED, index)
+			return
+		_accept(turn, step, decision)
+		_answer_choices(turn)
+	if _is_own_main(turn):
+		_abort_plan(turn, ABORT_NOT_LETHAL, steps.size())
+
+
+## Discards the plan: `ai_plan_aborted`, and the one more search C3 allows.
+func _abort_plan(turn: _Turn, reason: String, step: int) -> void:
+	_record(turn, {
+		TurnPlan.EVENT_KEY: EVENT_PLAN_ABORTED,
+		"reason": reason,
+		"at_step": step,
+		TurnPlan.DIAGNOSTIC_KEY: true,
+	})
+	if not turn.aborted:
+		turn.aborted = true
+		turn.searches_due += 1
+
+
+## Answers boss-side Choices on the sandbox with [method choose] (C2's inner
+## `while`): the root sandbox, so a tie draws from the live `ai_<floor>` stream and
+## counts in `TurnPlan.ai_draws` (C9), and the command is replayed like any other.
+func _answer_choices(turn: _Turn) -> void:
+	while turn.sandbox.phase() == MatchState.PHASE_CHOICE:
+		var pending: Variant = turn.sandbox.pending_choice()
+		if not pending is Dictionary or str(pending.side) != turn.side:
+			return
+		var index: int = choose(turn.sandbox, pending, turn.mode)
+		if index == Chooser.NO_OPTION:
+			return
+		var command: Dictionary = MatchRecords.choose(turn.side, index)
+		var decision: Dictionary = _decision(turn, command, last_choice.alternatives)
+		decision["kind"] = KIND_CHOICE
+		decision["draws"] = int(last_choice.draws)
+		turn.plan.ai_draws += int(last_choice.draws)
+		var result: Dictionary = turn.sandbox.submit(command.duplicate(true))
+		if not result.accepted:
+			decision["rejection"] = str(result.rejection.code)
+			_record(turn, decision)
+			return
+		_accept(turn, command, decision)
+
+
+func _accept(turn: _Turn, command: Dictionary, decision: Dictionary) -> void:
+	_record(turn, decision)
+	turn.plan.commands.append(command.duplicate(true))
+
+
+## An `ai_decision` payload (C9). Takes the pending `_Turn.note`.
+func _decision(turn: _Turn, chosen: Dictionary, alternatives: Array) -> Dictionary:
+	var decision: Dictionary = {
+		TurnPlan.EVENT_KEY: EVENT_DECISION,
+		"kind": KIND_ACTION,
+		"chosen": chosen.duplicate(true),
+		"mode": String(turn.mode),
+		"alternatives": alternatives,
+		TurnPlan.DIAGNOSTIC_KEY: true,
+	}
+	decision.merge(turn.note, true)
+	turn.note = {}
+	return decision
+
+
+## An `ai_fault` payload.
+func _fault(reason: String) -> Dictionary:
+	return {TurnPlan.EVENT_KEY: EVENT_FAULT, "reason": reason, TurnPlan.DIAGNOSTIC_KEY: true}
+
+
+## Routes [param diagnostic] before the next command.
+func _record(turn: _Turn, diagnostic: Dictionary) -> void:
+	diagnostic[TurnPlan.COMMAND_INDEX_KEY] = turn.plan.commands.size()
+	turn.plan.diagnostics.append(diagnostic)
+
+
+## C9's alternatives of the pick, JSON-safe: a `-INF` overflow is dropped, and the
+## decision carries `sim_overflow` instead (Edge Cases).
+func _alternatives(scored: Array, chosen: Dictionary) -> Array:
+	var kept: Array = []
+	for alternative: Dictionary in Scorer.alternatives(scored, chosen):
+		if not is_inf(float(alternative.score)):
+			kept.append(alternative.duplicate(true))
+	return kept
+
+
+## What the search leaves for the next decision: its node count, and A7's and A9's
+## records. An exhausted search is written into `mode` as the Edge Cases say; the
+## mode played stays in `mode_trace`.
+func _note_search(turn: _Turn) -> void:
+	turn.note["lethal_nodes"] = _lethal.nodes
+	match _lethal.outcome:
+		LethalSearch.OUTCOME_SHALLOW_NONE:
+			turn.note["lethal_search"] = String(LethalSearch.OUTCOME_SHALLOW_NONE)
+		LethalSearch.OUTCOME_EXHAUSTED:
+			turn.note["mode"] = String(LethalSearch.OUTCOME_EXHAUSTED)
+
+
+## Enters [param mode], logging a transition on the next decision (C9).
+func _enter_mode(turn: _Turn, mode: StringName) -> void:
+	if turn.mode == mode:
+		return
+	turn.note["mode_transition"] = {"from": String(turn.mode), "to": String(mode)}
+	turn.mode = mode
+	turn.plan.mode_trace.append(mode)
+
+
+## [param commands] minus the turn's excluded ones.
+func _open(turn: _Turn, commands: Array) -> Array:
+	return commands.filter(func(command: Dictionary) -> bool: return not turn.excluded.has(command))
+
+
+func _is_own_main(turn: _Turn) -> bool:
+	return turn.sandbox.phase() == MatchState.PHASE_MAIN and String(turn.sandbox.active_side()) == turn.side
+
+
+## C1.3 / F5: folds the `card_played` events the live log gained since the last
+## turn into `aoe_seen`. Main thread only; [param engine] names the opponent.
+func _read_public_log(engine: RulesEngine) -> void:
+	if _log == null:
+		return
+	var events: Array = _log.events_since(_log_cursor)
+	if events.is_empty():
+		return
+	_log_cursor = int((events.back() as Dictionary).seq)
+	_aoe_seen = _aoe_seen or Scorer.aoe_seen_in(events, _db, Scorer.other_side(String(engine.active_side())))
 
 
 # --- schema walk ---------------------------------------------------------------
@@ -462,8 +895,8 @@ static func _check_runtime(rows: Array[Dictionary], body: Dictionary) -> void:
 		rows.append(_row(E_AI_UNKNOWN_FIELD, null, "runtime", "`runtime` must be an object (ADR-0006)"))
 		return
 	for key: Variant in block:
-		if key != PLANNER_MODE_KEY and not RUNTIME_TIMING_KEYS.has(key):
-			rows.append(_row(E_AI_UNKNOWN_FIELD, null, "runtime.%s" % key, "unknown runtime key `%s` (F9: %s, %s)" % [key, PLANNER_MODE_KEY, ", ".join(RUNTIME_TIMING_KEYS)]))
+		if key != PLANNER_MODE_KEY and key != PLANNER_TARGET_KEY and not RUNTIME_TIMING_KEYS.has(key):
+			rows.append(_row(E_AI_UNKNOWN_FIELD, null, "runtime.%s" % key, "unknown runtime key `%s` (F9: %s, %s, %s)" % [key, PLANNER_MODE_KEY, ", ".join(RUNTIME_TIMING_KEYS), PLANNER_TARGET_KEY]))
 	var mode: Variant = block.get(PLANNER_MODE_KEY)
 	if not mode is String or not PLANNER_MODES.has(mode):
 		var found: String = "missing" if mode == null else str(mode)
@@ -473,6 +906,7 @@ static func _check_runtime(rows: Array[Dictionary], body: Dictionary) -> void:
 		if not is_number(value) or not is_finite(float(value)) or float(value) <= 0.0:
 			var found: String = "missing" if value == null else str(value)
 			rows.append(_row(E_AI_WEIGHT_RANGE, null, "runtime.%s" % key, "`%s` is %s; it must be a positive finite number of milliseconds (ADR-0006)" % [key, found]))
+	_check_ranged(rows, null, "runtime.%s" % PLANNER_TARGET_KEY, PLANNER_TARGET_KEY, block.get(PLANNER_TARGET_KEY))
 
 
 static func _check_ranged(rows: Array[Dictionary], record_id: Variant, field: String, range_key: String, value: Variant) -> void:
