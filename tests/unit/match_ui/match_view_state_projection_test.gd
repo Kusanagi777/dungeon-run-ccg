@@ -387,6 +387,43 @@ func test_mana_and_aura_events_produce_zero_steps() -> void:
 	assert_dict(view.side(SIDE_PLAYER).mana).is_equal({"available": 1, "max": 3, "temporary": 0})
 
 
+## An `effect_resolved` payload in the shape `EffectResolver._run_pass` emits
+## (card-effects Interactions): `fizzled` is `null` or the reason String.
+func _effect_resolved(seq: int, source_id: int, fizzled: Variant) -> Dictionary:
+	return _event(seq, "effect_resolved", {
+		"effect_id": "neutral_test_vanilla_2_2.0", "host_id": "neutral_test_vanilla_2_2", "host_kind": "card",
+		"source_id": source_id, "owner": "player", "trigger": "battlecry", "depth": 0,
+		"fizzled": fizzled, "ops": [{"op": "damage", "targets": [], "values": {}, "outcome": "skipped"}],
+	}, 4)
+
+
+func test_effect_resolved_with_a_fizzle_reason_yields_one_fizzle_step_keeping_the_reason() -> void:
+	# Arrange — code review 2026-11-03: the engine never sends `fizzled: true`
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+
+	# Act
+	var steps: Array[AnimStep] = view.apply(_effect_resolved(6, MINION_IDS[0], EffectResolver.FIZZLED_CONDITION_FALSE))
+
+	# Assert — one wisp on the source, the reason kept for display
+	assert_int(steps.size()).is_equal(1)
+	assert_str(String(steps[0].kind)).is_equal(String(AnimStep.FIZZLE))
+	assert_array(steps[0].entity_ids).is_equal([MINION_IDS[0]])
+	assert_dict(steps[0].data).is_equal({"reason": EffectResolver.FIZZLED_CONDITION_FALSE})
+
+
+func test_effect_resolved_with_null_fizzled_yields_no_step() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+
+	# Act
+	var steps: Array[AnimStep] = view.apply(_effect_resolved(6, MINION_IDS[0], null))
+
+	# Assert
+	assert_array(steps).is_empty()
+
+
 func test_step_durations_come_from_the_config_body() -> void:
 	# Arrange: a config whose draw duration differs from the shipped body
 	var config: Dictionary = MatchUiTestConfig.body()

@@ -233,7 +233,7 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "boss-ai slot (BAI-004 needs clone()/MR-017); needs CDB-006 at M1; match_ui.json fixture body until content-001 merges"
+    note: "boss-ai slot (BAI-004 needs clone()/MR-017); needs CDB-006 at M1; match_ui.json fixture body until content-001 merges; 2026-11-04 fizzle fix on fix/review-s3w2 (non-null fizzled is a fizzle)"
     completed: "2026-11-03"
   - id: "match-ui-002"
     name: "AnimStep and AnimationQueue — command groups, coalescing, F3 speed, skip-all and the idle invariant"
