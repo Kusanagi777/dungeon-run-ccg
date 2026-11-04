@@ -1,0 +1,15 @@
+{
+  "name": "lethal_through_taunt",
+  "description": "boss-ai A7: a 3/3 must kill the player's 2/3 Taunt, then two 3/2s go face for 6 against a player at 5. Band 2 and 3 take it; band 1's shallow search has no legal face attack. The tests set `band`. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_raider", "type": "minion", "cost": 2, "attack": 3, "health": 2},
+    {"id": "bai_wall", "type": "minion", "cost": 2, "attack": 2, "health": 3, "keywords": ["taunt"]}
+  ],
+  "boss": {"mana": 0, "board": ["bai_brute", "bai_raider", "bai_raider"], "hand": []},
+  "player": {"health": 5, "board": ["bai_wall"]}
+}
