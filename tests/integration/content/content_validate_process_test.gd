@@ -107,7 +107,11 @@ func test_in_process_run_matches_boot_map_load_of_shipped_data() -> void:
 
 	# Assert
 	assert_int(out.exit_code).is_equal(0)
-	assert_str(out.report_text).starts_with(db.report().to_text())
+	# The printed report is the load's plus the content story 008 checks, merged.
+	var expected: ValidationReport = ValidationReport.new()
+	for e: Dictionary in db.report().entries() + ContentValidator.run_checks(db, db.config("content_budgets"), db.config("heroes_balance")):
+		expected.add(e.severity, e.code, e.file, e.record_id, e.field, e.message)
+	assert_str(out.report_text).starts_with(expected.to_text())
 
 
 func test_release_map_makes_pending_validators_errors_and_exits_1() -> void:

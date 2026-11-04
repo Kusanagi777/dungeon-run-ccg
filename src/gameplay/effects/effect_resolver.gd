@@ -56,6 +56,42 @@ const PLAY_TRIGGERS: Dictionary[StringName, String] = {
 	&"on_cast": "cast",
 	&"hero_power": "hero_power",
 }
+## Engine event point → the DSL event triggers bound to it (card-effects C2;
+## `on_damage` splits into `on_damage_taken` / `on_damage_dealt`, both bound
+## to the one engine point). A candidate's effects are walked in `effects[]`
+## order, so two triggers on one point keep their authored order.
+const EVENT_TRIGGERS: Dictionary[StringName, Array] = {
+	&"deathrattle": ["deathrattle"],
+	&"turn_start": ["turn_start"],
+	&"turn_end": ["turn_end"],
+	&"on_play": ["on_play"],
+	&"on_summon": ["on_summon"],
+	&"on_card_played": ["on_card_played"],
+	&"after_cast": ["after_cast"],
+	&"on_attack": ["on_attack"],
+	&"on_damage": ["on_damage_taken", "on_damage_dealt"],
+	&"on_heal": ["on_heal"],
+	&"on_minion_died": ["on_minion_died"],
+	&"on_draw": ["on_draw"],
+	&"on_hero_power": ["on_hero_power"],
+	&"on_weapon_equipped": ["on_weapon_equipped"],
+}
+## Event points whose `subject` entered play with the raising event: that
+## entity does not observe its own entry (Edge Cases "a summoned minion's
+## `on_summon` observer is the minion itself" — a source must have been in
+## play *before* the raising event).
+const ENTRY_POINTS: Array[StringName] = [&"on_play", &"on_summon", &"on_card_played", &"on_weapon_equipped"]
+## Queue-entry fields (ADR-0007 erratum 2026-11-03: `{source_id, effect_id,
+## point?, snapshot?}` — the engine fills `snapshot`; the rest is the
+## resolver's own plain data, read back by the queued pass).
+const ENTRY_DEF_ID: String = "def_id"
+const ENTRY_EFFECT_INDEX: String = "effect_index"
+const ENTRY_OWNER: String = "owner"
+const ENTRY_TRIGGER: String = "trigger"
+const ENTRY_SUBJECT: String = "trigger_subject"
+const ENTRY_TRIGGER_SOURCE: String = "trigger_source"
+const ENTRY_AMOUNT: String = "amount"
+const ENTRY_DEPTH: String = "depth"
 ## The resolver's own event, one per effect pass (card-effects C6.6).
 const EVENT_EFFECT_RESOLVED: StringName = &"effect_resolved"
 ## `effect_resolved.host_kind` values (card-effects Interactions).
@@ -74,6 +110,10 @@ var _engine: RulesEngine = null
 var _memo: Dictionary[String, Dictionary] = {}
 ## The C5 op dispatch table (stateless; story 006).
 var _ops: EffectOps = EffectOps.new()
+## `effect_resolved.depth` of the pass running now (0 between passes): a
+## trigger raised inside a pass queues with `depth + 1` (story 008). Passes
+## never nest — a raise inside one only collects — so one field suffices.
+var _depth: int = 0
 
 
 ## Keeps [param db] (the frozen `CardDatabase`; lookups by `card(def_id)`)
@@ -201,14 +241,47 @@ func legal_targets(def_id: String, source: Dictionary) -> Array[int]:
 ## ([method _run_pass]); a play point queues nothing. A Battlecry whose
 ## `required` `chosen` has no legal target never reaches here: the engine does
 ## not raise it (`RulesEngine._play_plan` `fizzles`; card-effects AC-08).
-## TODO(story 008): event points (observers, queueing, `ctx.queued` passes);
-## until then they queue nothing.
+##
+## **Event points** ([constant EVENT_TRIGGERS] — C2 event class, C6.2, story
+## 008): walks `ctx.candidates` in the engine's order (never re-sorted) and,
+## per candidate, its definition effects in `effects[]` order; each effect
+## whose trigger binds to the point and that [method _responds] is returned
+## as one queue entry (`{source_id, effect_id, def_id, effect_index, owner,
+## trigger, trigger_subject, trigger_source, amount, depth}`) — the engine
+## appends them to Q; nothing runs now (C10: triggers queue, never nest).
+## **A queued entry** (`ctx.queued`, the engine popping it) runs as that one
+## pass ([method _run_queued]) and queues nothing itself.
 ## Example: `var queued: Array[Dictionary] = resolver.resolve(&"on_draw", ctx)`.
 func resolve(trigger_point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 	var queued: Array[Dictionary] = []
-	if PLAY_TRIGGERS.has(trigger_point) and not bool(ctx.get(RulesEngine.CTX_QUEUED, false)):
+	if bool(ctx.get(RulesEngine.CTX_QUEUED, false)):
+		_run_queued(ctx)
+	elif PLAY_TRIGGERS.has(trigger_point):
 		_run_play_point(PLAY_TRIGGERS[trigger_point], ctx)
+	elif EVENT_TRIGGERS.has(trigger_point):
+		_keep_tallies(trigger_point, ctx)
+		queued = _collect(trigger_point, ctx)
 	return queued
+
+
+## The C4 per-turn tallies, kept from the trigger points the resolver
+## already sees (C6.8, story 007; `EffectRuntime.per_turn`): `turn_start`
+## drops `ctx.side`'s tallies; `on_card_played` bumps the player's
+## `cards_played_this_turn` (and `spells_cast_this_turn` for a spell);
+## `on_minion_died` bumps the dead minion's side's `minions_died_this_turn`.
+## Bumped before the observers are collected; they read it when they resolve.
+func _keep_tallies(point: StringName, ctx: Dictionary) -> void:
+	var runtime: Dictionary = _engine.state().effects
+	var side: String = str(ctx.get("side", ""))
+	match point:
+		&"turn_start":
+			EffectRuntime.reset_turn(runtime, side)
+		&"on_card_played":
+			EffectRuntime.bump(runtime, side, "cards_played_this_turn")
+			if str(definition(str(ctx.get("card_id", ""))).get("type", "")) == EffectOps.HOST_TYPE_SPELL:
+				EffectRuntime.bump(runtime, side, "spells_cast_this_turn")
+		&"on_minion_died":
+			EffectRuntime.bump(runtime, side, "minions_died_this_turn")
 
 
 ## The engine's C10 loop calls this once per step (match-rules C10; the End
@@ -254,6 +327,127 @@ func _run_play_point(trigger: String, ctx: Dictionary) -> void:
 		})
 
 
+## C6.2 "who responds" for event point [param point]: the queue entries of
+## every candidate effect that responds, in candidate order, then
+## `effects[]` order within one candidate (definition effects; the
+## enchantment-granted ones after them arrive with story 012). The engine
+## decides candidates and their order; this never re-sorts them.
+func _collect(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
+	assert(_engine != null, "EffectResolver.resolve: not bound to an engine")
+	var queued: Array[Dictionary] = []
+	var triggers: Array = EVENT_TRIGGERS[point]
+	var subject: Variant = ctx.get("subject")
+	for candidate: Variant in ctx.get("candidates", []):
+		var source_id: int = int(candidate)
+		if ENTRY_POINTS.has(point) and subject != null and int(subject) == source_id:
+			continue
+		var host: Dictionary = _candidate_host(point, source_id, ctx)
+		if host.is_empty():
+			continue
+		var def_id: String = str(host.def_id)
+		var effects: Array = effects_of(def_id)
+		for index: int in effects.size():
+			var effect: Dictionary = effects[index]
+			var trigger: String = str(effect.get("trigger", ""))
+			if not triggers.has(trigger) or not _responds(trigger, effect, ctx, source_id, str(host.owner)):
+				continue
+			queued.append(_queue_entry(point, ctx, source_id, def_id, index, effect, str(host.owner), trigger))
+	return queued
+
+
+## The candidate's host `{def_id, owner}`, or `{}` when it cannot respond:
+## a Silenced source responds to nothing (C6.2; story 009 keeps a trigger
+## already queued). A Deathrattle's candidate has just left play, so it is
+## read from the death snapshot `ctx.snapshot` (match-rules C10); every other
+## candidate is a minion or weapon in play. Heroes host no definition
+## effects (hero-slot observers — hero power, treasures, passive — are story
+## 015).
+func _candidate_host(point: StringName, source_id: int, ctx: Dictionary) -> Dictionary:
+	var record: Dictionary = {}
+	var owner: String = ""
+	if point == &"deathrattle":
+		var snapshot: Variant = ctx.get("snapshot")
+		if snapshot is Dictionary and int((snapshot as Dictionary).get("entity_id", -1)) == source_id:
+			record = snapshot
+			owner = str(record.get("controller", ctx.get("side", "")))
+	else:
+		var state: MatchState = _engine.state()
+		var kind: String = EffectSelectors.kind_of(state, source_id)
+		if kind == MatchRecords.KIND_MINION or kind == EffectSelectors.KIND_WEAPON:
+			record = EffectSelectors.find(state, source_id)
+			owner = EffectScope.controller_of(state, source_id)
+	if record.is_empty() or not record.has("def_id") or bool(record.get("silenced", false)):
+		return {}
+	return {"def_id": str(record.def_id), "owner": owner}
+
+
+## Whether [param effect] (DSL [param trigger], source [param source_id],
+## owned by [param owner]) responds to this occurrence [param ctx]: its
+## `scope` matches (C2, [EffectScope]). The trigger binding, liveness and
+## Silence are checked by the caller. TODO(story 009): the `once_per_turn`
+## mark (C6.7) — until marks exist every occurrence responds.
+func _responds(trigger: String, effect: Dictionary, ctx: Dictionary, source_id: int, owner: String) -> bool:
+	return EffectScope.matches(self, trigger, effect.get("scope"), ctx, source_id, owner)
+
+
+## One queue entry (ADR-0007 erratum shape plus this resolver's fields):
+## plain data only — the engine copies it into Q and back into `ctx`.
+## `trigger_subject` is the card instance for `on_card_played` (C2), the
+## defender for `on_attack`, else `ctx.subject`; `trigger_source` is the
+## damager / healer (`ctx.source`) or the attacker.
+func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: String, index: int, effect: Dictionary, owner: String, trigger: String) -> Dictionary:
+	var subject: Variant = ctx.get("subject")
+	var trigger_source: Variant = null
+	match point:
+		&"on_card_played":
+			subject = ctx.get("instance_id", subject)
+		&"on_attack":
+			subject = ctx.get("defender")
+			trigger_source = ctx.get("attacker")
+		&"on_damage", &"on_heal":
+			trigger_source = ctx.get("source")
+	return {
+		"source_id": source_id,
+		"effect_id": str(effect.get("id", "%s.%d" % [def_id, index])),
+		ENTRY_DEF_ID: def_id,
+		ENTRY_EFFECT_INDEX: index,
+		ENTRY_OWNER: owner,
+		ENTRY_TRIGGER: trigger,
+		ENTRY_SUBJECT: subject,
+		ENTRY_TRIGGER_SOURCE: trigger_source,
+		ENTRY_AMOUNT: ctx.get("amount"),
+		ENTRY_DEPTH: _depth + 1,
+	}
+
+
+## The engine popped one of this resolver's queue entries (`ctx` is the
+## entry plus the engine's `snapshot` and `queued`): run that effect as one
+## pass, whether or not its source is still in play (C6.5: queued = earned).
+## The engine emitted `trigger_resolved` first; this pass runs under it.
+func _run_queued(ctx: Dictionary) -> void:
+	assert(_engine != null, "EffectResolver.resolve: not bound to an engine")
+	var def_id: String = str(ctx.get(ENTRY_DEF_ID, ""))
+	var effects: Array = effects_of(def_id)
+	var index: int = int(ctx.get(ENTRY_EFFECT_INDEX, -1))
+	assert(index >= 0 and index < effects.size(), "EffectResolver: queued entry %s names no effect of %s" % [ctx.get("effect_id"), def_id])
+	if index < 0 or index >= effects.size():
+		return
+	_run_pass(effects[index], {
+		"effect_id": str(ctx.effect_id),
+		"host_id": def_id,
+		"host_kind": HOST_KIND_CARD,
+		"source_id": int(ctx.source_id),
+		"owner": str(ctx.get(ENTRY_OWNER, "")),
+		"trigger": str(ctx.get(ENTRY_TRIGGER, "")),
+		"target_id": null,
+		ENTRY_SUBJECT: ctx.get(ENTRY_SUBJECT),
+		ENTRY_TRIGGER_SOURCE: ctx.get(ENTRY_TRIGGER_SOURCE),
+		ENTRY_AMOUNT: ctx.get(ENTRY_AMOUNT),
+		ENTRY_DEPTH: int(ctx.get(ENTRY_DEPTH, 1)),
+		"snapshot": ctx.get("snapshot", {}),
+	})
+
+
 ## One effect pass — one C10 step (card-effects C6.0, C6.4; ADR-0007
 ## Decision 1): `condition` once (false → `fizzled: condition_false`, every op
 ## `skipped`, nothing called) → each op in order through [EffectOps] (its
@@ -264,15 +458,20 @@ func _run_play_point(trigger: String, ctx: Dictionary) -> void:
 ## `hero_power_used` for a play trigger, C6.6). Never runs the death check or
 ## `recompute_auras()`: the engine's C10 loop does, after the pass, so a minion
 ## an op destroys is still in play — dying — for the ops after it.
-## `depth` is 0: a play effect is the command's own (TODO(story 008): the
-## `cause_seq` chain length for queued passes).
+## `depth` (Interactions: the length of the `cause_seq` chain to the
+## command) is 0 for a play effect — the command's own — and, for a queued
+## pass, the depth of the pass that raised it plus one (1 when raised outside
+## any pass: a command's own primitive, a combat hit, a death check, a turn
+## step).
 func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
 	run_ctx["effect"] = effect
+	run_ctx["resolver"] = self
+	_depth = int(run_ctx.get(ENTRY_DEPTH, 0))
 	var fizzled: Variant = null
 	var ops: Array[Dictionary] = []
 	if _condition_holds(effect.get("condition"), run_ctx):
 		for op: Dictionary in effect.get("ops", []):
-			ops.append(_ops.run(_engine, op, run_ctx))
+			ops.append_array(_ops.run_all(_engine, op, run_ctx))
 	else:
 		fizzled = FIZZLED_CONDITION_FALSE
 		for op: Dictionary in effect.get("ops", []):
@@ -286,37 +485,18 @@ func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
 		"source_id": run_ctx.source_id,
 		"owner": run_ctx.owner,
 		"trigger": run_ctx.trigger,
-		"depth": 0,
+		"depth": _depth,
 		"fizzled": fizzled,
 		"ops": ops,
 	})
+	_depth = 0
 
 
-## C4 condition, evaluated once when the pass starts (C1). Absent or `{}` is
-## true; `all` / `any` / `not` combine; `is_owner_turn` compares the engine's
-## active side with the owner.
-## TODO(story 007): `cmp`, `exists`, `test`, `holding` — until then they are
-## false, so such an effect fizzles rather than running on an unchecked
-## condition.
+## C4 condition, evaluated once when the pass starts (C1): `cmp`, `exists`,
+## `test`, `holding`, `is_owner_turn`, `all` / `any` / `not` through
+## `EffectValues.holds` (story 007). Absent or `{}` is true.
 func _condition_holds(condition: Variant, run_ctx: Dictionary) -> bool:
-	if not condition is Dictionary or (condition as Dictionary).is_empty():
-		return true
-	var c: Dictionary = condition
-	if c.has("all"):
-		for part: Variant in c.all:
-			if not _condition_holds(part, run_ctx):
-				return false
-		return true
-	if c.has("any"):
-		for part: Variant in c.any:
-			if _condition_holds(part, run_ctx):
-				return true
-		return false
-	if c.has("not"):
-		return not _condition_holds(c.get("not"), run_ctx)
-	if c.has("is_owner_turn"):
-		return (String(_engine.active_side()) == str(run_ctx.owner)) == bool(c.is_owner_turn)
-	return false
+	return EffectValues.holds(condition, run_ctx)
 
 
 ## The memo entry of [param def_id], built on first use. `has()` before the

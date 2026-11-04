@@ -39,7 +39,11 @@
 ## sub-step and step-boundary hook entry run as its own step; story 010 the
 ## `play_card` (minions, spells, weapons) and `use_hero_power` handlers in
 ## C6 / C7 check order, the `legal_commands()` expansion, the F1 base
-## [method effective_cost] and the F7 [method spell_damage] total.
+## [method effective_cost] and the F7 [method spell_damage] total; story 011
+## the F1 `modify_cost` fold ([method effective_cost], [method hero_power_cost])
+## and temporary crystals ([method add_mana], End step 5); story 016 the
+## `Choice` phase — every command handler as plain-data stages, [method
+## discover] pausing them, `choose` resuming them (contract on [method discover]).
 ## [method load_state] remains the seam for `clone()` and fixture states.
 ## [codeblock]
 ## var engine: RulesEngine = RulesEngine.new(db, db.config("match_rules"), resolver)
@@ -132,6 +136,7 @@ const R_WRONG_PHASE: String = "WRONG_PHASE"
 const R_CHOICE_PENDING: String = "CHOICE_PENDING"
 const R_ENGINE_BUSY: String = "ENGINE_BUSY"
 const R_INVALID_MASK: String = "INVALID_MASK"
+const R_INVALID_CHOICE: String = "INVALID_CHOICE"
 ## Emitted once, after `match_ended` reached the log's subscribers and the
 ## resolver was unbound, with the `MatchResult`. A unit-test convenience only:
 ## never connected in production (ADR-0008 — `MatchDriver` emits its own).
@@ -190,9 +195,38 @@ const R_ILLEGAL_TARGET: String = "ILLEGAL_TARGET"
 const R_HERO_POWER_USED: String = "HERO_POWER_USED"
 ## The keyword whose magnitude (`CardDef.spell_damage`) F7 sums.
 const KEYWORD_SPELL_DAMAGE: String = "spell_damage"
+## `ctx.kind` of a `modify_cost` fold (story 011; card-effects C2 `modify_cost`
+## row, Treasures R-13): `card` — `ctx.card` is the hand `CardInstance`;
+## `hero_power` — `ctx.card` is the side's `PlayerState.hero_power` record
+## `{def_id, used_this_turn}`. A scope `card` filter without `kind` matches the
+## first only, `kind: hero_power` the second, `kind: any` both.
+const COST_KIND_CARD: String = "card"
+const COST_KIND_HERO_POWER: String = "hero_power"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
 ## start at `MatchState.FIRST_ENTITY_ID`).
 const NO_ENTITY: int = -1
+## Stage kinds (story 016): every command handler builds its steps as a list
+## of plain-data stages `{stage, side, …}` over one frame, run in order by
+## [method _run_stages], so a `Choice` can park the rest of the command on
+## `MatchState.suspended_action` and `choose` can run it later. See
+## [method discover].
+const STAGE_MULLIGAN: String = "mulligan"
+const STAGE_TURN_BEGIN: String = "turn_begin"
+const STAGE_HOOK: String = "hook"
+const STAGE_TURN_POINT: String = "turn_point"
+const STAGE_TURN_DRAW: String = "turn_draw"
+const STAGE_TURN_MAIN: String = "turn_main"
+const STAGE_TURN_ENDING: String = "turn_ending"
+const STAGE_TURN_EXPIRE: String = "turn_expire"
+const STAGE_TURN_ENDED: String = "turn_ended"
+const STAGE_ACCEPT: String = "accept"
+const STAGE_EQUIP: String = "equip"
+const STAGE_PLAY_POINT: String = "play_point"
+const STAGE_PLAY_HOOK: String = "play_hook"
+const STAGE_OBSERVERS: String = "observers"
+const STAGE_SPELL_DONE: String = "spell_done"
+## `STAGE_ACCEPT.type` of the hero power's acceptance step.
+const STAGE_TYPE_HERO_POWER: String = "hero_power"
 ## The phase guard (match-rules States and Transitions): per phase, the
 ## command types it accepts and from whom — `"active"` (the issuer must be
 ## the active side, else `NOT_YOUR_TURN`), `"player"` (PLAYER only) or
@@ -238,6 +272,13 @@ var _queue: Array[Dictionary] = []
 ## reset only when the next action begins (code review 2026-11-03: a reset per
 ## sub-step gave one command `cap × sub-steps`).
 var _steps: int = 0
+## The current command's remaining stages, front first, and the frame they
+## share — `{side, instance_id, def_id, target, cause, id}` for a play
+## (`cause` the `card_played` / `spell_cast` / `hero_power_used` seq, `id` the
+## played entity: the minion, the spell instance, the weapon, the hero), `{}`
+## otherwise. Plain data only (story 016): parked as is in `Choice`.
+var _stages: Array[Dictionary] = []
+var _frame: Dictionary = {}
 ## The trigger hook points whose entries are running right now (ADR-0005
 ## rule-4 exception, erratum 2026-11-03): a primitive that reaches the same
 ## point again inside one of them faults `resolution_overflow` instead of
@@ -252,6 +293,10 @@ var _recomputing_auras: bool = false
 ## engine does not build a context per hit either).
 var _damage_ctx: Dictionary = {"source": null, "target": 0}
 var _heal_ctx: Dictionary = {"source": null, "target": 0}
+## The `{card, kind}` context of the `modify_cost` fold, reused on every F1
+## evaluation for the same reason (story 011: `effective_cost` runs per hand
+## card on every `legal_commands()` call).
+var _cost_ctx: Dictionary = {"card": null, "kind": COST_KIND_CARD}
 ## True from `resolver.bind` in [method start] until `resolver.unbind()`
 ## (at `Ended`, or [method end_match]) — unbind runs exactly once.
 var _bound: bool = false
@@ -469,6 +514,8 @@ func submit(command: Dictionary) -> Dictionary:
 	_steps = 0
 	_call_first_seq = 0
 	_call_last_seq = 0
+	_stages.clear()
+	_frame = {}
 	match type:
 		MatchRecords.CMD_MULLIGAN:
 			_do_mulligan(command.keep_mask)
@@ -479,15 +526,24 @@ func submit(command: Dictionary) -> Dictionary:
 		MatchRecords.CMD_USE_HERO_POWER:
 			_do_hero_power(command)
 		MatchRecords.CMD_END_TURN:
-			_end_step(_state.active_side)
+			_stages.append_array(_end_stages(_state.active_side))
+		MatchRecords.CMD_CHOOSE:
+			_do_choose(int(command.option_index))
 		MatchRecords.CMD_CONCEDE:
+			_abandon_choice()
 			_end_match(MatchRecords.SIDE_BOSS, MatchRecords.REASON_CONCEDE)
-	# The end of every action: its C10 loop drained (the handlers run their
-	# steps through _run_step, so this is normally already stable), then C14.
-	if not _halted():
+	_run_stages()
+	# The end of every action: its C10 loop drained (the stages run their
+	# steps through _run_step, so this is normally already stable), then C14 —
+	# unless a Discover paused it: then the rest waits on MatchState (Choice).
+	if _suspended():
+		_park()
+	elif not _halted():
 		_drain()
 		@warning_ignore("return_value_discarded")
 		_win_loss_check()
+	if _halted():
+		_abandon_stages()
 	_resolving = false
 	return MatchRecords.command_result(true, "", "", _call_first_seq, _call_last_seq)
 
@@ -515,9 +571,14 @@ func run_action(initial_step: Callable) -> void:
 	_resolving = true
 	_cause_seq = 0
 	_steps = 0
+	_stages.clear()
+	_frame = {}
 	_run_step(initial_step)
-	@warning_ignore("return_value_discarded")
-	_win_loss_check()
+	if _suspended():
+		_park()
+	else:
+		@warning_ignore("return_value_discarded")
+		_win_loss_check()
 	_resolving = false
 
 
@@ -549,25 +610,66 @@ func legal_commands() -> Array:
 			for index: int in player.hand.size():
 				_append_play_commands(legal, side, index)
 			_append_attack_commands(legal, side)
-			if not player.hero_power.used_this_turn and rule("hero_power_cost") <= int(player.mana_current):
+			if not player.hero_power.used_this_turn and hero_power_cost(side) <= int(player.mana_current):
 				var power_id: String = str(player.hero_power.def_id)
 				for target: Variant in _listed_targets(power_id, _power_source(side), true):
 					legal.append(MatchRecords.use_hero_power(side, target))
 			legal.append(MatchRecords.end_turn(side))
+		MatchState.PHASE_CHOICE:
+			# States `Choice` (story 016): one `choose` per option for the side
+			# the request names, then the player's `concede`.
+			var choice: Dictionary = _state.pending_choice
+			for index: int in (choice.options as Array).size():
+				legal.append(MatchRecords.choose(str(choice.side), index))
+			legal.append(MatchRecords.concede(MatchRecords.SIDE_PLAYER))
 	return legal
 
 
-## C5 / F1 (story 010 base): `max(0, base cost + Σ cost_modifiers.cost_delta)`
-## for the hand card [param card] (a CardInstance). The hand-aura and
-## `modify_cost` hook terms are match-rules story 011.
+## C5 / F1 (stories 010, 011): the effective cost of the hand card
+## [param card] (a CardInstance) held by [param side], used for display
+## (`legal_commands`) and for payment alike. A fixed-order sum, floored once:
+## 1. the definition's printed `cost`;
+## 2. `+ Σ cost_modifiers[].cost_delta` — the card's own enchantments **and**
+##    the hand-scoped aura deltas: `recompute_auras` writes those into
+##    `cost_modifiers` tagged `is_aura`, so this one sum counts each exactly
+##    once (there is no separate aura pass);
+## 3. the `modify_cost` hook fold over the result, entries in installation
+##    order, `ctx {card, kind: COST_KIND_CARD}` (ADR-0005 Decision 4);
+## 4. `maxi(0, …)` — the one clamp, after the whole chain, never inside it.
+## Pure and allocation-free: the fold context is the reused `_cost_ctx`.
+## [param side] "" reads the card's holder from the state.
 ## [codeblock]
-## if engine.effective_cost(card) <= mana: highlight(card)
+## if engine.effective_cost(card, "player") <= mana: highlight(card)
 ## [/codeblock]
-func effective_cost(card: Dictionary) -> int:
+func effective_cost(card: Dictionary, side: String = "") -> int:
 	var total: int = int(_lookup_def(str(card.def_id)).get("cost", 0))
 	for modifier: Dictionary in card.cost_modifiers:
 		total += int(modifier.get("cost_delta", 0))
-	return maxi(0, total)
+	var holder: String = side if side != "" else _owner_of(int(card.instance_id))
+	return _fold_cost(holder, total, card, COST_KIND_CARD)
+
+
+## C5 / C7 (story 011): [param side]'s hero power cost — `hero_power_cost`
+## (`rules_config`) through the same F1 pipeline: the `modify_cost` fold with
+## `ctx {card: players[side].hero_power, kind: COST_KIND_HERO_POWER}`, then
+## the one clamp at 0. A power at 0 is still once per turn (C7).
+## [codeblock]
+## var cost: int = engine.hero_power_cost("player")   # 2, or 0 with a "set 0" treasure
+## [/codeblock]
+func hero_power_cost(side: String) -> int:
+	return _fold_cost(side, rule("hero_power_cost"), _state.players[side].hero_power, COST_KIND_HERO_POWER)
+
+
+## F1 steps 3–4: `maxi(0, hooks.fold(&"modify_cost", side, cost_so_far,
+## {card, kind}))`. A state without a registry (a bare fixture) folds nothing.
+func _fold_cost(side: String, cost_so_far: int, card: Dictionary, kind: String) -> int:
+	var folded: int = cost_so_far
+	if _state.hooks != null:
+		_cost_ctx.card = card
+		_cost_ctx.kind = kind
+		folded = _state.hooks.fold(&"modify_cost", StringName(side), cost_so_far, _cost_ctx)
+		_cost_ctx.card = null
+	return maxi(0, folded)
 
 
 ## F7: [param side]'s Spell Damage total — `Σ CardDef.spell_damage` over its
@@ -714,18 +816,29 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 ## Hollow Crown): raises `crystal_bonus`, which every later Start step reads
 ## (F4) — mana itself moves at the next Start step — and emits
 ## `mana_added {side, n, temporary: false}`.
-## TODO(story 011): the temporary branch (this-turn crystals, End-step
-## expiry); until then it logs an error and changes nothing.
+## Temporary (`temporary = true`, the card-effects `mana` op with `duration:
+## this_turn`; story 011): `n` crystals until [param side]'s End step —
+## `temp = min(n, max_mana − mana_max)`, `mana_max += temp`, `mana_current =
+## min(mana_current + n, max_mana)`, `temporary_crystals += temp`, then
+## `mana_added {side, n, temporary: true}`. `crystal_bonus` is untouched, so
+## the next Start-step refill (F4) ignores them; the End step takes them back
+## ([method _expire_end_of_turn]). `mana_current ≤ mana_max` holds throughout.
 ## [codeblock]
 ## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
+## engine.add_mana("player", 2, true)    # 1/3 → 3/5 this turn only
 ## [/codeblock]
 func add_mana(side: String, n: int, temporary: bool = false) -> void:
 	if _halted():
 		return
-	if temporary:
-		push_error("RulesEngine.add_mana: temporary crystals are match-rules story 011")
-		return
 	var player: Dictionary = _state.players[side]
+	if temporary:
+		var cap: int = rule("max_mana")
+		var gained: int = mini(n, cap - int(player.mana_max))
+		player.mana_max = int(player.mana_max) + gained
+		player.mana_current = mini(int(player.mana_current) + n, cap)
+		player.temporary_crystals = int(player.temporary_crystals) + gained
+		emit(&"mana_added", {"side": side, "n": n, "temporary": true})
+		return
 	player.crystal_bonus = int(player.crystal_bonus) + n
 	emit(&"mana_added", {"side": side, "n": n, "temporary": false})
 
@@ -1127,19 +1240,52 @@ func equip_weapon(side: String, def_id: String) -> int:
 
 ## Primitive (C2 `Choice`, Discover): creates the `ChoiceRequest {side, kind,
 ## options, source_id, effect_id}` ([method MatchRecords.choice_request]),
-## stores it as `pending_choice`, emits `choice_requested` with it and
-## returns it. The resolver keeps the continuation (ADR-0007).
-## TODO(story 016): enter the `Choice` phase and resume on `choose`.
+## stores it as `pending_choice`, records the paused step
+## (`suspended_action {origin_phase, cause_seq}` — the phase it was raised in
+## and the `cause_seq` its primitives ran under), enters `Choice`
+## (`phase_changed {phase: choice}`), emits `choice_requested` with the request
+## (DD-X04: not Card Effects' `discover_offered`) and returns it (story 016).
+## A second request while one is pending is a resolver defect (card-effects
+## C8: exactly one outstanding): logged, nothing changes, `{}` returned.
+##
+## **The pause** (ADR-0007 Decision 1; the contract card-effects story 010's
+## pass suspension builds on). After this call the resolver must **return
+## from its pass without running the effect's later ops**, keeping them as
+## its own continuation in `state().effects.pending_choice` (plain data: no
+## Callable, Node or object — `clone()` copies it by value). The engine then:
+## - runs no death check, `recompute_auras` or queue pop after that pass —
+##   the pass is one C10 step and is not finished;
+## - skips every later step of the command: the rest of its stages (the
+##   play's hooks and observers, `after_cast`, the spell's move out of
+##   `resolving`, the Start step's draw…) and the C14 check;
+## - parks, as plain data on `MatchState`: Q (`suspended_queue`), the step
+##   count (`suspended_steps`), and the stages and their frame
+##   (`suspended_action.stages` / `.frame`); `submit` returns accepted.
+## On `choose{option_index}` (validated: `NOT_YOUR_TURN`, `INVALID_CHOICE`)
+## the engine emits `choice_made {side, option_index}`, clears
+## `pending_choice`, restores the origin phase, Q and the step count, and calls
+## `resolver.resume(choice, option_index)` **under the paused step's
+## `cause_seq`**: the resolver adds the pick (`add_card_to_hand`) and runs the
+## rest of that same pass. Then that step's C10 loop drains the restored Q, the
+## parked stages run in order — each exactly once — and C14 closes the action.
+## `resume` may raise the next request (a second Discover in the same effect):
+## the engine pauses again the same way. `concede` in `Choice` abandons it.
 ## [codeblock]
 ## var req: Dictionary = engine.discover("player", ["a_01", "b_02", "c_03"], MatchRecords.CHOICE_DISCOVER, source_id, "scout.0")
+## engine.state().effects.pending_choice = {"effect_id": "scout.0", "next_op": 1}   # the resolver's own data
 ## [/codeblock]
 func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_DISCOVER, source_id: Variant = null, effect_id: String = "") -> Dictionary:
 	if _halted():
 		return {}
-	var request: Dictionary = MatchRecords.choice_request(side, kind, options, source_id, effect_id)
+	if _state.pending_choice != null:
+		push_error("RulesEngine.discover: a ChoiceRequest is already pending (card-effects C8: exactly one outstanding)")
+		return {}
+	var request: Dictionary = MatchRecords.choice_request(side, kind, options.duplicate(true), source_id, effect_id)
 	_state.pending_choice = request
-	emit(&"choice_requested", request)
-	return request
+	_state.suspended_action = {"origin_phase": _state.phase, "cause_seq": _cause_seq, "frame": {}, "stages": []}
+	_set_phase(MatchState.PHASE_CHOICE)
+	emit(&"choice_requested", request.duplicate(true))
+	return request.duplicate(true)
 
 
 ## Primitive (C15 `card_added_to_hand`): a fresh card instance of
@@ -1654,8 +1800,16 @@ func _validate(type: String, command: Dictionary) -> String:
 			return _validate_attack(command)
 		MatchRecords.CMD_END_TURN, MatchRecords.CMD_CONCEDE:
 			return ""
-	# TODO(stories 012, 016): attack and choose handlers. Until one exists its
-	# command is not accepted in any phase.
+		MatchRecords.CMD_CHOOSE:
+			# C2 `choose` (story 016): the phase guard already matched the issuer
+			# to `pending_choice.side`; the index must name an option.
+			var index: Variant = command.get("option_index")
+			var count: int = ((_state.pending_choice as Dictionary).options as Array).size()
+			if not _is_whole(index) or int(index) < 0 or int(index) >= count:
+				return R_INVALID_CHOICE
+			return ""
+	# TODO(story 012): the attack handler. Until it exists its command is not
+	# accepted in any phase.
 	return R_WRONG_PHASE
 
 
@@ -1676,7 +1830,7 @@ func _validate_play_card(command: Dictionary) -> String:
 	var type: String = _card_type(card)
 	if type == "":
 		return R_INVALID_INDEX
-	if effective_cost(card) > int(player.mana_current):
+	if effective_cost(card, side) > int(player.mana_current):
 		return R_NOT_ENOUGH_MANA
 	if type == CARD_MINION:
 		if player.board.size() >= rule("board_size"):
@@ -1695,7 +1849,7 @@ func _validate_hero_power(command: Dictionary) -> String:
 	var player: Dictionary = _state.players[side]
 	if player.hero_power.used_this_turn:
 		return R_HERO_POWER_USED
-	if rule("hero_power_cost") > int(player.mana_current):
+	if hero_power_cost(side) > int(player.mana_current):
 		return R_NOT_ENOUGH_MANA
 	return _target_rejection(str(player.hero_power.def_id), _power_source(side), command.get("target_id"), true)
 
@@ -1756,7 +1910,7 @@ func _append_play_commands(legal: Array, side: String, index: int) -> void:
 	var player: Dictionary = _state.players[side]
 	var card: Dictionary = player.hand[index]
 	var type: String = _card_type(card)
-	if type == "" or effective_cost(card) > int(player.mana_current):
+	if type == "" or effective_cost(card, side) > int(player.mana_current):
 		return
 	if type == CARD_MINION and player.board.size() >= rule("board_size"):
 		return
@@ -1799,18 +1953,23 @@ static func _is_whole(value: Variant) -> bool:
 
 ## An accepted `play_card` (validated in full): the acceptance step — mana
 ## paid (`mana_spent`), the card leaves the hand (`stats.cards_played`),
-## `card_played` — then the type's play steps, each with its C10 loop.
+## `card_played` — then the type's play steps, each with its C10 loop. Built
+## as stages over one frame (story 016) so a Discover can pause it anywhere.
 func _do_play_card(command: Dictionary) -> void:
 	var side: String = str(command.issuer)
 	var card: Dictionary = _state.players[side].hand[int(command.hand_index)]
-	var plan: Dictionary = _play_plan(str(card.def_id), _card_source(side, card), command.get("target_id"))
+	var def_id: String = str(card.def_id)
+	var plan: Dictionary = _play_plan(def_id, _card_source(side, card), command.get("target_id"))
+	var instance_id: int = int(card.instance_id)
+	_frame = {"side": side, "instance_id": instance_id, "def_id": def_id, "target": plan.target, "cause": 0, "id": NO_ENTITY}
 	match _card_type(card):
 		CARD_MINION:
-			_play_minion(side, card, int(command.position), plan)
+			_play_minion(side, int(command.position), plan)
 		CARD_SPELL:
-			_cast_spell(side, card, plan)
+			_frame.id = instance_id
+			_cast_spell(side, plan)
 		CARD_WEAPON:
-			_play_weapon(side, card, plan)
+			_play_weapon(side, plan)
 
 
 ## C6 minions: accept and place the minion at `board[position]` (sick,
@@ -1818,19 +1977,15 @@ func _do_play_card(command: Dictionary) -> void:
 ## card-effects C6.3 steps: (1) `battlecry` (unless it fizzles), (2)
 ## `on_card_played` hooks, (3) `on_card_played` observers, (4) `on_play`, (5)
 ## `on_minion_summoned` hooks, (6) `on_summon` — each its own step.
-func _play_minion(side: String, card: Dictionary, position: int, plan: Dictionary) -> void:
-	var played: Dictionary = {"cause": 0, "id": NO_ENTITY}
-	_run_step(_accept_minion.bind(side, card, position, plan.target, played))
-	var id: int = int(played.id)
-	var cause: int = int(played.cause)
-	var def_id: String = str(card.def_id)
+func _play_minion(side: String, position: int, plan: Dictionary) -> void:
+	_stage({"stage": STAGE_ACCEPT, "side": side, "type": CARD_MINION, "position": position})
 	if not plan.fizzles:
-		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
-	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause, int(card.instance_id))
-	_fire_observers(&"on_play", side, id, def_id, cause)
-	_run_hook_steps(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id}, cause)
-	_fire_observers(&"on_summon", side, id, def_id, cause)
+		_stage({"stage": STAGE_PLAY_POINT, "side": side, "point": "battlecry"})
+	_stages.append_array(_hook_stages(&"on_card_played", side, STAGE_PLAY_HOOK))
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_card_played", "instance": true})
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_play", "instance": false})
+	_stages.append_array(_hook_stages(&"on_minion_summoned", side, STAGE_PLAY_HOOK))
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_summon", "instance": false})
 
 
 func _accept_minion(side: String, card: Dictionary, position: int, target: Variant, played: Dictionary) -> void:
@@ -1856,27 +2011,41 @@ func _accept_minion(side: String, card: Dictionary, position: int, target: Varia
 ## `on_card_played` observers, (4) `after_cast`; then `card_to_graveyard`.
 ## A fault or `event_cap` that stops the match mid-resolution still moves the
 ## card out of `resolving` into the graveyard — with no event, the log being
-## sealed (code review 2026-11-03: it was left in `resolving`).
-func _cast_spell(side: String, card: Dictionary, plan: Dictionary) -> void:
-	var cast: Dictionary = {"cause": 0}
-	_run_step(_accept_spell.bind(side, card, plan.target, cast))
-	var id: int = int(card.instance_id)
-	var cause: int = int(cast.cause)
-	var def_id: String = str(card.def_id)
-	_play_point(&"on_cast", side, id, plan.target, def_id, cause)
-	_run_hook_steps(&"on_card_played", side, {"instance_id": id, "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause, id)
-	_fire_observers(&"after_cast", side, id, def_id, cause)
+## sealed (code review 2026-11-03: it was left in `resolving`). A Discover in
+## `on_cast` pauses everything after it, the card staying in `resolving`
+## (story 016; quick-design 2026-11-04): the later ops of the spell's own
+## effect are the resolver's continuation, the steps (2)–(4) and the move to
+## the graveyard are parked stages, and both run once, in this order, after
+## `choose`.
+func _cast_spell(side: String, plan: Dictionary) -> void:
+	_stage({"stage": STAGE_ACCEPT, "side": side, "type": CARD_SPELL})
+	_stage({"stage": STAGE_PLAY_POINT, "side": side, "point": "on_cast"})
+	_stages.append_array(_hook_stages(&"on_card_played", side, STAGE_PLAY_HOOK))
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_card_played", "instance": true})
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "after_cast", "instance": false})
+	_stage({"stage": STAGE_SPELL_DONE, "side": side, "instance_id": int(_frame.instance_id), "def_id": str(_frame.def_id)})
+
+
+## The move out of `resolving` that ends a cast (the stage after `after_cast`,
+## and the cleanup of a cast a fault, an `event_cap` or a concede in `Choice`
+## stopped): the card to the graveyard, `card_to_graveyard` while the match
+## runs (none once Ended: the log is sealed).
+func _spell_done(stage: Dictionary) -> void:
+	var side: String = str(stage.side)
 	var player: Dictionary = _state.players[side]
-	var was_resolving: bool = player.resolving.has(card)
-	player.resolving.erase(card)
-	if not was_resolving:
+	var id: int = int(stage.instance_id)
+	var card: Dictionary = {}
+	for held: Dictionary in player.resolving:
+		if int(held.instance_id) == id:
+			card = held
+	if card.is_empty():
 		return
+	player.resolving.erase(card)
 	card.zone = "graveyard"
 	player.graveyard.append(card)
 	if _halted():
 		return
-	emit(&"card_to_graveyard", {"side": side, "instance_id": id, "card_id": def_id})
+	emit(&"card_to_graveyard", {"side": side, "instance_id": id, "card_id": str(stage.def_id)})
 
 
 func _accept_spell(side: String, card: Dictionary, target: Variant, cast: Dictionary) -> void:
@@ -1899,18 +2068,14 @@ func _accept_spell(side: String, card: Dictionary, target: Variant, cast: Dictio
 ## step (`weapon_equipped`; `attacks_used` untouched), then (1) `battlecry`
 ## (unless it fizzles), (2) `on_card_played` hooks, (3) `on_card_played`
 ## observers, (4) `on_weapon_equipped`.
-func _play_weapon(side: String, card: Dictionary, plan: Dictionary) -> void:
-	var played: Dictionary = {"cause": 0, "id": NO_ENTITY}
-	_run_step(_accept_weapon.bind(side, card, plan.target, played))
-	var cause: int = int(played.cause)
-	var def_id: String = str(card.def_id)
-	_run_step(_equip_step.bind(side, def_id, played), cause)
-	var id: int = int(played.id)
+func _play_weapon(side: String, plan: Dictionary) -> void:
+	_stage({"stage": STAGE_ACCEPT, "side": side, "type": CARD_WEAPON})
+	_stage({"stage": STAGE_EQUIP, "side": side})
 	if not plan.fizzles:
-		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
-	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause, int(card.instance_id))
-	_fire_observers(&"on_weapon_equipped", side, id, def_id, cause)
+		_stage({"stage": STAGE_PLAY_POINT, "side": side, "point": "battlecry"})
+	_stages.append_array(_hook_stages(&"on_card_played", side, STAGE_PLAY_HOOK))
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_card_played", "instance": true})
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_weapon_equipped", "instance": false})
 
 
 func _accept_weapon(side: String, card: Dictionary, target: Variant, played: Dictionary) -> void:
@@ -1930,7 +2095,7 @@ func _equip_step(side: String, def_id: String, played: Dictionary) -> void:
 ## trigger steps, card-effects C6.6).
 func _accept_card(side: String, card: Dictionary, type: String, target: Variant) -> int:
 	var player: Dictionary = _state.players[side]
-	var cost: int = effective_cost(card)
+	var cost: int = effective_cost(card, side)
 	var index: int = player.hand.find(card)
 	player.mana_current = int(player.mana_current) - cost
 	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
@@ -1952,16 +2117,15 @@ func _do_hero_power(command: Dictionary) -> void:
 	var player: Dictionary = _state.players[side]
 	var power_id: String = str(player.hero_power.def_id)
 	var plan: Dictionary = _play_plan(power_id, _power_source(side), command.get("target_id"))
-	var used: Dictionary = {"cause": 0}
-	_run_step(_accept_hero_power.bind(side, plan.target, used))
-	var hero_id: int = int(player.hero.entity_id)
-	_play_point(&"hero_power", side, hero_id, plan.target, power_id, int(used.cause))
-	_fire_observers(&"on_hero_power", side, hero_id, power_id, int(used.cause))
+	_frame = {"side": side, "instance_id": NO_ENTITY, "def_id": power_id, "target": plan.target, "cause": 0, "id": int(player.hero.entity_id)}
+	_stage({"stage": STAGE_ACCEPT, "side": side, "type": STAGE_TYPE_HERO_POWER})
+	_stage({"stage": STAGE_PLAY_POINT, "side": side, "point": "hero_power"})
+	_stage({"stage": STAGE_OBSERVERS, "side": side, "point": "on_hero_power", "instance": false})
 
 
 func _accept_hero_power(side: String, target: Variant, used: Dictionary) -> void:
 	var player: Dictionary = _state.players[side]
-	var cost: int = rule("hero_power_cost")
+	var cost: int = hero_power_cost(side)
 	player.mana_current = int(player.mana_current) - cost
 	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
 	player.hero_power.used_this_turn = true
@@ -2002,10 +2166,8 @@ func _fire_observers(point: StringName, side: String, subject: int, card_id: Str
 ## `match_started` (C3 step 8) is one step with its C10 loop; then the
 ## player's first Start step (DD-M03).
 func _do_mulligan(keep_mask: Array) -> void:
-	_run_step(_mulligan_step.bind(keep_mask))
-	if _halted():
-		return
-	_start_step(MatchRecords.SIDE_PLAYER)
+	_stage({"stage": STAGE_MULLIGAN, "side": MatchRecords.SIDE_PLAYER, "keep_mask": keep_mask.duplicate()})
+	_stages.append_array(_start_stages(MatchRecords.SIDE_PLAYER))
 
 
 func _mulligan_step(keep_mask: Array) -> void:
@@ -2041,10 +2203,24 @@ func _mulligan_step(keep_mask: Array) -> void:
 
 
 ## C4 Start step for [param side] (engine-driven; no command is accepted
-## until Main). Step 0 is the States guard `*Turn.Start` with
-## `turn > TURN_CAP`: the match ends for the boss, reason `turn_cap` (C14).
-## Stops at the first event the log refuses (`event_cap`, [method emit]).
-func _start_step(side: String) -> void:
+## until Main) as stages (story 016): steps 0–3 ([method _turn_begin]), one
+## stage per `on_turn_start` hook entry (4), the `turn_start` triggers (5),
+## the draw (6), win/loss then Main (7). A Discover in steps 4–5 pauses the
+## rest; `choose` runs the draw and Main after the pick.
+func _start_stages(side: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = [{"stage": STAGE_TURN_BEGIN, "side": side}]
+	out.append_array(_hook_stages(&"on_turn_start", side, STAGE_HOOK))
+	out.append({"stage": STAGE_TURN_POINT, "side": side, "point": "turn_start"})
+	out.append({"stage": STAGE_TURN_DRAW, "side": side})
+	out.append({"stage": STAGE_TURN_MAIN, "side": side})
+	return out
+
+
+## C4 Start steps 0–3 for [param side]. Step 0 is the States guard
+## `*Turn.Start` with `turn > TURN_CAP`: the match ends for the boss, reason
+## `turn_cap` (C14). Stops at the first event the log refuses (`event_cap`,
+## [method emit]).
+func _turn_begin(side: String) -> void:
 	if _state.turn + 1 > rule("turn_cap"):
 		_end_match(MatchRecords.SIDE_BOSS, REASON_TURN_CAP)
 		return
@@ -2078,54 +2254,40 @@ func _start_step(side: String) -> void:
 		reset_ids.append(int(character.entity_id))
 	player.hero_power.used_this_turn = false
 	emit(&"turn_reset", {"side": side, "entity_ids": reset_ids})
-	if _halted():
-		return
 	# 4. on_turn_start hooks, each entry a step; 5. turn_start triggers in
-	#    engine candidate order (one step); each followed by its C10 loop
-	_run_hook_steps(&"on_turn_start", side, {})
-	if _halted():
-		return
-	_fire_trigger_point(&"turn_start", side)
-	if _halted():
-		return
-	# 6. draw one, turn 1 included (a step); 7. win/loss, then Main
-	_run_step(draw.bind(side, 1))
-	if _win_loss_check():
-		return
-	_set_phase(MatchState.PHASE_MAIN)
+	#    engine candidate order (one step); each followed by its C10 loop;
+	#    6. draw one, turn 1 included (a step); 7. win/loss, then Main — the
+	#    stages after this one ([method _start_stages]).
 
 
-## C4 End step for the active [param side], entered by `end_turn`; runs the
-## other side's Start step when the match goes on. Stops at the first event
-## the log refuses (`event_cap`, [method emit]).
-func _end_step(side: String) -> void:
-	# 1.
-	_state.phase = MatchState.PHASE_END
-	emit(&"turn_ending", {"turn": _state.turn, "side": side})
-	if _halted():
-		return
-	# 2. turn_end triggers (same candidate order); 3. on_turn_end hooks, each
-	#    entry a step; each followed by its C10 loop
-	_fire_trigger_point(&"turn_end", side)
-	if _halted():
-		return
-	_run_hook_steps(&"on_turn_end", side, {})
-	if _halted():
-		return
+## C4 End step for the active [param side], entered by `end_turn`, as stages
+## (story 016): (1) `phase = end`, `turn_ending`; (2) the `turn_end` triggers
+## (same candidate order); (3) one stage per `on_turn_end` hook entry, each a
+## step with its C10 loop; (4)–(5) [method _expire_end_of_turn] as one step;
+## (6) win/loss, `turn_ended`, then the other side's Start stages. Stops at
+## the first event the log refuses (`event_cap`, [method emit]).
+func _end_stages(side: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = [{"stage": STAGE_TURN_ENDING, "side": side}]
+	out.append({"stage": STAGE_TURN_POINT, "side": side, "point": "turn_end"})
+	out.append_array(_hook_stages(&"on_turn_end", side, STAGE_HOOK))
 	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
 	# 5. end_of_turn enchantments on everything `side` owns — one step, whose
-	#    C10 loop recomputes the auras (and kills what lost its health buff)
-	#    TODO(story 011): temporary crystals expire here too.
-	_run_step(_expire_end_of_turn.bind(side))
-	if _halted():
-		return
-	# 6.
+	#    C10 loop recomputes the auras (and kills what lost its health buff);
+	#    the side's temporary crystals expire in the same step (story 011)
+	out.append({"stage": STAGE_TURN_EXPIRE, "side": side})
+	out.append({"stage": STAGE_TURN_ENDED, "side": side})
+	return out
+
+
+## C4 End step 6: win/loss, `turn_ended`, then queue the other side's Start
+## stages behind this one.
+func _turn_ended(side: String) -> void:
 	if _win_loss_check():
 		return
 	emit(&"turn_ended", {"turn": _state.turn, "side": side})
 	if _halted():
 		return
-	_start_step(MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER)
+	_stages.append_array(_start_stages(MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER))
 
 
 ## Fires trigger point [param point] for [param side] as one step (ADR-0007
@@ -2214,7 +2376,10 @@ func _candidates_in_order() -> Array[int]:
 ## C4 End step 5: removes every `expires = end_of_turn` enchantment on what
 ## [param side] owns — its hero and minions, its weapon, and the
 ## `cost_modifiers` of its hand and deck cards — one `enchantment_removed`
-## each, in that order.
+## each, in that order. Then its temporary crystals expire (C5, story 011):
+## `mana_max −= temporary_crystals`, `mana_current = max(0, mana_current −
+## temporary_crystals)`, `temporary_crystals = 0` — no event of its own (the
+## GDD names none; the `turn_ending` / `turn_ended` pair brackets it).
 func _expire_end_of_turn(side: String) -> void:
 	var player: Dictionary = _state.players[side]
 	for character: Dictionary in _characters_of(side):
@@ -2224,6 +2389,11 @@ func _expire_end_of_turn(side: String) -> void:
 	for zone: String in ["hand", "deck"]:
 		for card: Dictionary in player[zone]:
 			_expire_in(card.cost_modifiers, int(card.instance_id))
+	var temporary: int = int(player.temporary_crystals)
+	if temporary > 0:
+		player.mana_max = int(player.mana_max) - temporary
+		player.mana_current = maxi(0, int(player.mana_current) - temporary)
+		player.temporary_crystals = 0
 
 
 func _expire_in(enchantments: Array, owner_id: int) -> void:
@@ -2253,6 +2423,168 @@ func _characters_of(side: String) -> Array[Dictionary]:
 	return out
 
 
+# --- Stages and the Choice continuation (story 016) ------------------------
+
+## Appends [param stage] to the current command's stages.
+func _stage(stage: Dictionary) -> void:
+	_stages.append(stage)
+
+
+## One stage of [param kind] (`STAGE_HOOK` / `STAGE_PLAY_HOOK`) per entry on
+## hook point [param point], in installation order — each runs as its own
+## step (ADR-0005 rule 4), so a pause after entry *i* parks entries *i + 1…*.
+func _hook_stages(point: StringName, side: String, kind: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for index: int in _state.hooks.entries(point).size():
+		out.append({"stage": kind, "side": side, "point": String(point), "index": index})
+	return out
+
+
+## Runs the current command's stages front first until none is left, the
+## match ends, or a stage raises a `ChoiceRequest` (the rest then stays in
+## [member _stages] for [method _park]).
+func _run_stages() -> void:
+	while not _stages.is_empty() and not _halted() and not _suspended():
+		_run_stage(_stages.pop_front())
+
+
+## Executes one stage (see the `STAGE_*` constants); each step it runs is a
+## C10 step with its loop, exactly as the handlers ran them before story 016.
+func _run_stage(stage: Dictionary) -> void:
+	var side: String = str(stage.side)
+	var cause: int = int(_frame.get("cause", -1))
+	match str(stage.stage):
+		STAGE_MULLIGAN:
+			_run_step(_mulligan_step.bind(stage.keep_mask))
+		STAGE_TURN_BEGIN:
+			_turn_begin(side)
+		STAGE_HOOK:
+			_run_step(_run_hook_entry.bind(StringName(str(stage.point)), int(stage.index), side, {}))
+		STAGE_TURN_POINT:
+			_fire_trigger_point(StringName(str(stage.point)), side)
+		STAGE_TURN_DRAW:
+			_run_step(draw.bind(side, 1))
+		STAGE_TURN_MAIN:
+			if not _win_loss_check():
+				_set_phase(MatchState.PHASE_MAIN)
+		STAGE_TURN_ENDING:
+			_state.phase = MatchState.PHASE_END
+			emit(&"turn_ending", {"turn": _state.turn, "side": side})
+		STAGE_TURN_EXPIRE:
+			_run_step(_expire_end_of_turn.bind(side))
+		STAGE_TURN_ENDED:
+			_turn_ended(side)
+		STAGE_ACCEPT:
+			_accept_stage(side, str(stage.type), stage)
+		STAGE_EQUIP:
+			_run_step(_equip_step.bind(side, str(_frame.def_id), _frame), cause)
+		STAGE_PLAY_POINT:
+			_play_point(StringName(str(stage.point)), side, int(_frame.id), _frame.target, str(_frame.def_id), cause)
+		STAGE_PLAY_HOOK:
+			var point: StringName = StringName(str(stage.point))
+			var ctx: Dictionary = {"entity_id": int(_frame.id), "card_id": str(_frame.def_id)}
+			if point == &"on_card_played":
+				ctx["instance_id"] = int(_frame.instance_id)
+			_run_step(_run_hook_entry.bind(point, int(stage.index), side, ctx), cause)
+		STAGE_OBSERVERS:
+			var instance_id: int = int(_frame.instance_id) if bool(stage.instance) else NO_ENTITY
+			_fire_observers(StringName(str(stage.point)), side, int(_frame.id), str(_frame.def_id), cause, instance_id)
+		STAGE_SPELL_DONE:
+			_spell_done(stage)
+
+
+## The acceptance step of a play: the hand card is found by the frame's
+## `instance_id` (stages hold ids, never records), and the `_accept_*` step
+## writes `cause` / `id` into the frame.
+func _accept_stage(side: String, type: String, stage: Dictionary) -> void:
+	if type == STAGE_TYPE_HERO_POWER:
+		_run_step(_accept_hero_power.bind(side, _frame.target, _frame))
+		return
+	var card: Dictionary = {}
+	for held: Dictionary in _state.players[side].hand:
+		if int(held.instance_id) == int(_frame.instance_id):
+			card = held
+	match type:
+		CARD_MINION:
+			_run_step(_accept_minion.bind(side, card, int(stage.position), _frame.target, _frame))
+		CARD_SPELL:
+			_run_step(_accept_spell.bind(side, card, _frame.target, _frame))
+		CARD_WEAPON:
+			_run_step(_accept_weapon.bind(side, card, _frame.target, _frame))
+
+
+## True while a `ChoiceRequest` is pending (`phase == choice`).
+func _suspended() -> bool:
+	return _state.phase == MatchState.PHASE_CHOICE
+
+
+## Parks the paused action on `MatchState` as plain data: Q, the step count,
+## and the remaining stages with their frame (added to the
+## `suspended_action {origin_phase, cause_seq}` that [method discover] began).
+func _park() -> void:
+	_state.suspended_queue.assign(_queue)
+	_queue.clear()
+	_state.suspended_steps = _steps
+	_state.suspended_action["frame"] = _frame.duplicate(true)
+	_state.suspended_action["stages"] = _stages.duplicate(true)
+	_stages.clear()
+
+
+## `choose{option_index}`, validated (see [method discover] for the whole
+## contract): `choice_made`, the origin phase back, the parked Q / step count
+## / stages restored, `resolver.resume(choice, option_index)` under the paused
+## step's `cause_seq`, then that step's C10 loop. [method submit] runs the
+## restored stages and closes the action.
+func _do_choose(option_index: int) -> void:
+	var choice: Dictionary = _state.pending_choice
+	var action: Dictionary = _state.suspended_action
+	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
+	if _halted():
+		return
+	_state.pending_choice = null
+	_state.suspended_action = {}
+	_queue.assign(_state.suspended_queue)
+	_state.suspended_queue.clear()
+	_steps = _state.suspended_steps
+	_state.suspended_steps = 0
+	_frame = (action.get("frame", {}) as Dictionary).duplicate(true)
+	_stages.assign(action.get("stages", []))
+	_set_phase(str(action.origin_phase))
+	if _halted():
+		return
+	_cause_seq = int(action.cause_seq)
+	_resolver.resume(choice, option_index)
+	if not _suspended():
+		_drain()
+	_cause_seq = 0
+
+
+## `concede` in `Choice` abandons the pending choice (card-effects C8): the
+## request and the parked action are dropped; the parked stages come back
+## to [member _stages] so the Ended cleanup ([method _abandon_stages]) still
+## moves a paused spell out of `resolving`. A no-op in any other phase.
+func _abandon_choice() -> void:
+	if not _suspended():
+		return
+	var action: Dictionary = _state.suspended_action
+	_stages.assign(action.get("stages", []))
+	_frame = action.get("frame", {})
+	_state.pending_choice = null
+	_state.suspended_action = {}
+	_state.suspended_queue.clear()
+	_state.suspended_steps = 0
+
+
+## The cleanup of a command the match ended in the middle of (a fault, the
+## event cap, a concede in `Choice`): a cast spell still leaves `resolving`
+## (silently — the log is sealed); every other stage is dropped.
+func _abandon_stages() -> void:
+	for stage: Dictionary in _stages:
+		if str(stage.stage) == STAGE_SPELL_DONE:
+			_spell_done(stage)
+	_stages.clear()
+
+
 ## One action of the C10 loop without the closing `win_loss_check` (the
 ## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed and
 ## counted as one step of the current action's count (reset by
@@ -2262,16 +2594,19 @@ func _characters_of(side: String) -> Array[Dictionary]:
 ## under its `card_played` / `spell_cast` / `hero_power_used` (card-effects
 ## C6.6); the default keeps the current one. The `cause_seq` from before is
 ## restored afterwards, so the next step of the same command is again a
-## direct consequence of it.
+## direct consequence of it. A step that raised a `ChoiceRequest` is counted
+## but not drained — its pass resumes at `choose` (story 016) — and while
+## `Choice` is pending no further step runs.
 func _run_step(step: Callable, step_cause: int = -1) -> void:
-	if _halted():
+	if _halted() or _suspended():
 		return
 	var cause: int = _cause_seq
 	if step_cause >= 0:
 		_cause_seq = step_cause
 	step.call()
 	_steps += 1
-	_drain()
+	if not _suspended():
+		_drain()
 	_cause_seq = cause
 
 
@@ -2280,9 +2615,11 @@ func _run_step(step: Callable, step_cause: int = -1) -> void:
 ## again (aura loss may have killed something); else pop the front of Q and
 ## execute it as the next step. Before a step past `resolution_step_cap` the
 ## match ends with `fault(resolution_overflow, steps)`. No recursion: what a
-## step raises is appended to Q.
+## step raises is appended to Q. A queued pass that raises a `ChoiceRequest`
+## stops the loop where it is — no death check after the unfinished pass —
+## leaving the rest of Q for [method _park] (story 016).
 func _drain() -> void:
-	while not _halted():
+	while not _halted() and not _suspended():
 		var dead: Array[int] = _death_check()
 		if _halted():
 			break

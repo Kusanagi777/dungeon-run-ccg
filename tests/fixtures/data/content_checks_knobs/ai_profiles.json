@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "config": {
+    "op_values": {
+      "damage": 1.0,
+      "destroy": 2.0,
+      "heal": 0.6,
+      "buff": 0.8,
+      "set_stats": 1.0,
+      "give_keyword": 0.8,
+      "summon": 1.0,
+      "draw": 1.2,
+      "silence": 1.2,
+      "freeze": 0.7,
+      "discover": 1.0,
+      "add_to_hand": 1.0,
+      "copy_to_hand": 1.0,
+      "armor": 0.5,
+      "return_to_hand": 1.0,
+      "transform": 1.2,
+      "mana": 1.5,
+      "equip": 1.2,
+      "retrigger": 1.5
+    },
+    "keyword_values": {
+      "taunt": 1.2,
+      "divine_shield": 1.3,
+      "windfury": 1.3,
+      "lifesteal": 1.15,
+      "poisonous": 1.25,
+      "stealth": 1.1
+    },
+    "profiles": {
+      "default": {
+        "weights": {
+          "w_board": 2.0,
+          "w_face": 1.5,
+          "w_self": 1.0,
+          "w_trade": 1.0,
+          "w_threat": 2.0,
+          "w_mana": 1.0,
+          "w_card": 0.8,
+          "w_over": 1.0,
+          "w_heal": 0.6,
+          "w_hp": 0.5,
+          "w_passive": 0.0
+        },
+        "rules": {
+          "hero_power": "spare_mana",
+          "trade_ratio": 1.0,
+          "tie_epsilon": 0.05,
+          "overextend_cap_aoe": 4,
+          "assume_aoe": false,
+          "defensive": false,
+          "defensive_margin": 3,
+          "burn_per_mana": 1.0,
+          "defensive_multipliers": {
+            "w_face": 0.25,
+            "w_self": 2.0,
+            "w_heal": 2.0,
+            "w_threat": 1.5
+          },
+          "lethal_search": "full",
+          "BV_NORM": 10.0,
+          "THREAT_NORM": 12.0
+        },
+        "intent_mode": "full",
+        "choice_preference": {},
+        "synergy_tags": []
+      },
+      "aggro": {
+        "weights": {
+          "w_board": 1.5,
+          "w_face": 3.0
+        },
+        "rules": {
+          "hero_power": "always",
+          "trade_ratio": 1.3
+        },
+        "choice_preference": {
+          "charge": 0.5,
+          "weapon": 0.4
+        }
+      },
+      "control": {
+        "weights": {
+          "w_board": 2.5,
+          "w_face": 0.5,
+          "w_self": 2.0,
+          "w_threat": 3.0,
+          "w_card": 1.5,
+          "w_heal": 1.5
+        },
+        "rules": {
+          "trade_ratio": 0.8
+        },
+        "choice_preference": {
+          "taunt": 0.5,
+          "heal": 0.4,
+          "damage_all": 0.6
+        }
+      },
+      "tempo": {
+        "weights": {
+          "w_board": 2.5,
+          "w_mana": 1.5
+        },
+        "choice_preference": {
+          "low_cost": 0.5
+        }
+      },
+      "passive_driven": {
+        "weights": {
+          "w_passive": 2.5
+        }
+      }
+    },
+    "bands": {
+      "1": {
+        "weights": {
+          "w_trade": 0.2,
+          "w_over": 0.0
+        },
+        "rules": {
+          "hero_power": "always",
+          "defensive": false,
+          "lethal_search": "shallow"
+        },
+        "budgets": {
+          "lethal_max_nodes": 50,
+          "max_evals_per_action": 40,
+          "max_actions_per_turn": 30
+        },
+        "intent_mode": "full"
+      },
+      "2": {
+        "rules": {
+          "defensive": false
+        },
+        "budgets": {
+          "lethal_max_nodes": 500,
+          "max_evals_per_action": 120,
+          "max_actions_per_turn": 30
+        }
+      },
+      "3": {
+        "rules": {
+          "defensive": true
+        },
+        "budgets": {
+          "lethal_max_nodes": 4000,
+          "max_evals_per_action": 250,
+          "max_actions_per_turn": 30
+        }
+      }
+    },
+    "boss_overrides": {
+      "boss_rat_king": {
+        "extends": "aggro"
+      },
+      "boss_gatekeeper": {
+        "extends": "control"
+      },
+      "boss_torchbearer": {
+        "extends": "aggro"
+      },
+      "boss_rot_warden": {
+        "extends": "passive_driven",
+        "weights": {
+          "w_self": 1.5
+        },
+        "synergy_tags": ["deathrattle"]
+      },
+      "boss_hollow_king": {
+        "extends": "control",
+        "weights": {
+          "w_board": 3.0
+        }
+      }
+    },
+    "presentation": {
+      "action_delay_s": 0.6,
+      "max_turn_playback_s": 10,
+      "intent_banner_s": 0.3,
+      "plan_changed_s": 1.2
+    },
+    "runtime": {
+      "planner_mode": "worker",
+      "slice_ms": 2,
+      "replay_budget_ms": 2
+    }
+  }
+}

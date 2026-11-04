@@ -61,17 +61,41 @@ static func run(data_root: String, validators: Dictionary) -> Dictionary:
 	var state: String = "Ready" if ready else "Failed"
 	var budget: String = "unknown (card_database.json did not load)"
 	var records: String = "no snapshot"
+	var checks: String = "content checks not run (load Failed)"
 	if ready:
 		budget = "%d" % int((db.config("card_database") as Dictionary).data_load_budget_ms)
 		records = "%d records" % report.record_count()
-	var summary: String = "validate: %s — %d errors, %d warnings, %s; load ms %.2f (data_load_budget_ms %s) — root %s" % [
-		state, report.errors().size(), report.warnings().size(), records, load_ms, budget, data_root]
+		var rows: Array[Dictionary] = _content_checks(db)
+		report = _merged(report, rows)
+		var check_errors: int = rows.filter(func(r: Dictionary) -> bool: return r.severity == ValidationReport.SEVERITY_ERROR).size()
+		checks = "content checks %d errors, %d warnings" % [check_errors, rows.size() - check_errors]
+	var summary: String = "validate: %s — %d errors, %d warnings (%s), %s; load ms %.2f (data_load_budget_ms %s) — root %s" % [
+		state, report.errors().size(), report.warnings().size(), checks, records, load_ms, budget, data_root]
 	var text: String = report.to_text()
 	return {
-		"exit_code": EXIT_READY if ready else EXIT_FAILED,
+		"exit_code": EXIT_READY if ready and not report.has_errors() else EXIT_FAILED,
 		"state": state,
 		"report_text": (text + "\n" + summary) if not text.is_empty() else summary,
 	}
+
+
+## The content story 008 F1-F5 checks over a `Ready` [param db], with its
+## `content_budgets` and `heroes_balance` bodies (`{}` when a body is absent,
+## which the checks report as "not checked").
+static func _content_checks(db: CardDatabase) -> Array[Dictionary]:
+	var budgets: Variant = db.config("content_budgets")
+	var balance: Variant = db.config("heroes_balance")
+	return ContentValidator.run_checks(db, budgets if budgets is Dictionary else {}, balance if balance is Dictionary else {})
+
+
+## A new report holding [param report]'s entries and [param rows]; the
+## database's own report is left untouched.
+static func _merged(report: ValidationReport, rows: Array[Dictionary]) -> ValidationReport:
+	var out: ValidationReport = ValidationReport.new()
+	for e: Dictionary in report.entries() + rows:
+		out.add(e.severity, e.code, e.file, e.record_id, e.field, e.message)
+	out.set_record_count(report.record_count())
+	return out
 
 
 ## Parses the user arguments (`OS.get_cmdline_user_args()`): `--data-root

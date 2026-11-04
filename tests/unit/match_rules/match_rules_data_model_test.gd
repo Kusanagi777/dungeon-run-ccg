@@ -25,7 +25,7 @@ const CHARACTER_FIELDS: Array[String] = [
 const HERO_EXTRA_FIELDS: Array[String] = ["kind", "armor"]
 const MINION_EXTRA_FIELDS: Array[String] = ["kind", "def_id", "summoning_sick", "summoned_on_turn"]
 const PLAYER_STATE_FIELDS: Array[String] = [
-	"hero", "mana_current", "mana_max", "crystal_bonus", "deck", "hand", "board", "weapon",
+	"hero", "mana_current", "mana_max", "crystal_bonus", "temporary_crystals", "deck", "hand", "board", "weapon",
 	"hero_power", "fatigue_counter", "graveyard", "resolving", "turns_taken", "stats",
 ]
 const ENCHANTMENT_FIELDS: Array[String] = ["source_entity_id", "attack_delta", "health_delta", "keywords_added", "is_aura", "expires"]
@@ -36,6 +36,8 @@ const MATCH_RESULT_FIELDS: Array[String] = ["result", "winner", "reason", "floor
 const MATCH_STATE_FIELDS: Array[String] = [
 	"turn", "active_side", "phase", "players", "pending_choice", "result", "next_entity_id",
 	"hooks", "effects", "floor", "log", "rng_match",
+	# match-rules story 016: the action a pending choice paused (plain data)
+	"suspended_queue", "suspended_steps", "suspended_action",
 ]
 const EFFECT_RUNTIME_FIELDS: Array[String] = ["once_marks", "counters", "per_turn", "pending_choice"]
 

@@ -729,7 +729,10 @@ func test_discover_creates_the_choice_request_and_emits_choice_requested() -> vo
 	# Assert
 	var expected: Dictionary = {"side": SIDE_PLAYER, "kind": "discover", "options": options, "source_id": 7, "effect_id": "c_scout.0"}
 	assert_dict(request).is_equal(expected)
-	var event: Dictionary = _assert_one(_since(log, before), "choice_requested")
+	# match-rules story 016: raising the request also enters Choice first
+	var events: Array[Dictionary] = _since(log, before)
+	assert_array(_types(events)).is_equal(["phase_changed", "choice_requested"])
+	var event: Dictionary = events[events.size() - 1]
 	assert_dict(event.payload).is_equal(expected)
 	assert_dict(engine.pending_choice()).is_equal(expected)
 

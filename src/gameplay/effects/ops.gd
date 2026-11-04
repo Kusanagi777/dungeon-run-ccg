@@ -12,13 +12,17 @@
 ## Story 006 ships `damage`, `heal`, `buff`, `destroy`, `draw`, `armor`,
 ## `equip`, `summon`, `silence`, `freeze`, `give_keyword` and `mana`; every
 ## other C5 op is recorded `skipped` until its story lands
-## (TODO: `conditional` / `repeat` story 007, `discover` / `choose_one` 010,
-## counters 009, `transform` / `copy_to_hand` / keyword removal 013, the
-## rest with the stories that own them). Values are int literals here; value
-## expressions and Spell Damage (F1) are story 007.
+## (TODO: `discover` / `choose_one` 010, counters 009, `transform` /
+## `copy_to_hand` / keyword removal 013, the rest with the stories that own
+## them). Story 007 adds `conditional` / `repeat` ([method run_all]), value
+## expressions — every value param ([constant VALUE_PARAMS]) is evaluated by
+## `EffectValues.eval` in [method run] before the handler sees it, a negative
+## result for a [constant NON_NEGATIVE] param clamped to 0 with
+## `values.clamped_from` — and Spell Damage (F1) in `damage`. The pass
+## context `run` carries `resolver`, the bound [EffectResolver].
 ## [codeblock]
 ## var ops := EffectOps.new()
-## var entry: Dictionary = ops.run(engine, {"op": "draw", "count": 2}, run)
+## var entries: Array[Dictionary] = ops.run_all(engine, {"op": "draw", "count": 2}, run)
 ## [/codeblock]
 class_name EffectOps
 extends RefCounted
@@ -37,6 +41,19 @@ const BURNED: String = "burned"
 const FATIGUE: String = "fatigue"
 const SKIPPED: String = "skipped"
 const ALREADY_HAS: String = "already_has"
+## The op params that take a C4 value expression (story 007).
+const VALUE_PARAMS: Array[String] = ["amount", "count", "attack", "health", "cost", "value", "delta", "set"]
+## The param each op needs non-negative: a negative computed value is clamped
+## to 0 and logged `values.clamped_from` (Edge Cases; `apply_damage(…, 0)`
+## is still called).
+const NON_NEGATIVE: Dictionary[String, String] = {"damage": "amount", "heal": "amount", "armor": "amount", "draw": "count"}
+## C5 `damage.spell_damage` values (F1); an absent field is the
+## `spell_damage_default` knob.
+const SPELL_DAMAGE_AUTO: String = "auto"
+const KNOB_SPELL_DAMAGE_DEFAULT: String = "spell_damage_default"
+const KNOB_MAX_REPEAT: String = "max_repeat"
+## The host card type `auto` scales for (F1).
+const HOST_TYPE_SPELL: String = "spell"
 ## C5 `buff.duration` value that expires at the End step (F3).
 const DURATION_END_OF_TURN: String = "until_end_of_turn"
 ## C5 `mana.duration` value for temporary crystals.
@@ -95,7 +112,64 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	var name: String = str(op.get("op", ""))
 	if not _table.has(name):
 		return entry(name, [], {}, SKIPPED)
-	return _table[name].call(engine, op, run_ctx)
+	var evaluated: Dictionary = op
+	if run_ctx.get("resolver") is EffectResolver:
+		evaluated = op.duplicate()
+		for key: String in VALUE_PARAMS:
+			if op.get(key) is Dictionary:
+				evaluated[key] = EffectValues.eval(op[key], run_ctx)
+	var clamped: Variant = null
+	var key: String = NON_NEGATIVE.get(name, "")
+	if key != "" and typeof(evaluated.get(key)) in [TYPE_INT, TYPE_FLOAT] and int(evaluated[key]) < 0:
+		if evaluated == op:
+			evaluated = op.duplicate()
+		clamped = int(evaluated[key])
+		evaluated[key] = 0
+	var result: Dictionary = _table[name].call(engine, evaluated, run_ctx)
+	if clamped != null:
+		(result.values as Dictionary)["clamped_from"] = clamped
+	return result
+
+
+## Runs [param op] and returns its `effect_resolved.ops` entries — one per
+## leaf op executed (C5, story 007):
+## - `conditional {if, then, else}`: `if` (a C4 condition) evaluated now; the
+##   branch taken runs, each of the other branch's ops is one `skipped`
+##   entry; every entry of both carries `values.condition` (Edge Cases: the
+##   log carries the evaluated condition);
+## - `repeat {times, ops}`: `times` (a value, clamped to 0 …
+##   `max_repeat`) iterations, each re-resolving its selectors against the
+##   live board (C6.0: a minion an iteration kills is dying, so the next
+##   finds no target);
+## - any other op: [method run], one entry.
+## Example: `entries.append_array(ops.run_all(engine, op, run))`.
+func run_all(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	match str(op.get("op", "")):
+		"conditional":
+			var taken: bool = EffectValues.holds(op.get("if"), run_ctx)
+			for branch: String in ["then", "else"]:
+				var runs: bool = taken == (branch == "then")
+				for inner: Variant in op.get(branch, []):
+					var entries: Array[Dictionary] = []
+					if runs:
+						entries = run_all(engine, inner, run_ctx)
+					else:
+						var none: Array[int] = []
+						entries.append(entry(str((inner as Dictionary).get("op", "")), none, {}, SKIPPED))
+					for e: Dictionary in entries:
+						(e.values as Dictionary)["condition"] = taken
+						out.append(e)
+		"repeat":
+			var times: int = EffectValues.eval(op.get("times", 1), run_ctx)
+			var resolver: EffectResolver = run_ctx.resolver
+			times = clampi(times, 0, resolver.knob_int(KNOB_MAX_REPEAT))
+			for _i: int in times:
+				for inner: Variant in op.get("ops", []):
+					out.append_array(run_all(engine, inner, run_ctx))
+		_:
+			out.append(run(engine, op, run_ctx))
+	return out
 
 
 ## One `ops[]` entry (card-effects Interactions payload).
@@ -116,12 +190,34 @@ static func fold_outcomes(outcomes: Array[String]) -> String:
 
 # --- targeted ops -----------------------------------------------------------------
 
+## C5 `damage` with F1: `requested = amount + (scales ? spell_damage(owner) :
+## 0)`, `scales = spell_damage == true ∨ (spell_damage == auto ∧ host.type
+## == spell)`; an absent `spell_damage` is the `spell_damage_default` knob.
+## `spell_damage(owner)` is match-rules F7, read through the engine once per
+## op (re-read per op, added once — not per target).
 func _op_damage(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var amount: int = _int(op.get("amount", 0))
-	return _per_target(engine, op, run_ctx, {"amount": amount, "requested": amount}, func(id: int) -> String:
+	var requested: int = amount
+	if _scales(op, run_ctx):
+		requested += engine.spell_damage(str(run_ctx.owner))
+	return _per_target(engine, op, run_ctx, {"amount": amount, "requested": requested}, func(id: int) -> String:
 		@warning_ignore("return_value_discarded")
-		engine.apply_damage(id, amount, run_ctx.source_id)
+		engine.apply_damage(id, requested, run_ctx.source_id)
 		return APPLIED)
+
+
+## F1 `scales` for a `damage` op of the pass [param run_ctx] (no resolver in
+## the context → no scaling).
+static func _scales(op: Dictionary, run_ctx: Dictionary) -> bool:
+	if not run_ctx.get("resolver") is EffectResolver:
+		return false
+	var resolver: EffectResolver = run_ctx.resolver
+	var flag: Variant = op.get("spell_damage", resolver.knob(KNOB_SPELL_DAMAGE_DEFAULT))
+	if typeof(flag) == TYPE_BOOL:
+		return bool(flag)
+	if str(flag) == SPELL_DAMAGE_AUTO:
+		return str(resolver.definition(str(run_ctx.get("host_id", ""))).get("type", "")) == HOST_TYPE_SPELL
+	return false
 
 
 func _op_heal(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
@@ -311,8 +407,8 @@ static func _side(op: Dictionary, run_ctx: Dictionary) -> String:
 
 
 ## An int-literal value (JSON numbers arrive as floats).
-## TODO(story 007): value expressions (`{ref}`, `{count}`, `{add}`, …) — until
-## then a non-literal value is 0 (nothing rather than a wrong amount).
+## Value expressions never reach here: [method run] evaluates them first
+## (story 007); a non-literal at this point is 0.
 static func _int(value: Variant) -> int:
 	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
 		return int(value)

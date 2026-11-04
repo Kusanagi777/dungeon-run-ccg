@@ -161,6 +161,24 @@ func _last_seq() -> int:
 	return int(_log.events.back().seq) if not _log.events.is_empty() else 0
 
 
+## The `effect_resolved.ops` entries one op yields (story 007: a
+## `conditional` logs one entry per op of both branches — the branch not
+## taken `skipped` — and a literal `repeat` its inner ops × `times`).
+func _entry_count(op: Dictionary) -> int:
+	match str(op.get("op", "")):
+		"conditional":
+			var n: int = 0
+			for inner: Dictionary in op.get("then", []) + op.get("else", []):
+				n += _entry_count(inner)
+			return n
+		"repeat":
+			var per: int = 0
+			for inner: Dictionary in op.get("ops", []):
+				per += _entry_count(inner)
+			return per * int(op.get("times", 1))
+	return 1
+
+
 func _one_resolved(events: Array) -> Dictionary:
 	var resolved: Array = _of_type(events, "effect_resolved")
 	assert_int(resolved.size()).override_failure_message(str(_types(events))).is_equal(1)
@@ -404,7 +422,9 @@ func test_every_play_row_of_the_fixture_emits_one_well_formed_effect_resolved() 
 		var command_event: Array = events.filter(func(e: Dictionary) -> bool: return COMMAND_EVENTS.has(str(e.type)))
 		var cause: int = int(command_event.back().seq) if not command_event.is_empty() else -1
 		var plays: Array = (record.effects as Array).filter(func(e: Dictionary) -> bool: return PLAY_TRIGGERS.has(str(e.trigger)))
-		var resolved: Array = _of_type(events, "effect_resolved")
+		# Only the play passes: a queued pass the play raised (row 10 destroys
+		# row 9, whose Deathrattle resolves since story 008) is not the host's.
+		var resolved: Array = _of_type(events, "effect_resolved").filter(func(e: Dictionary) -> bool: return PLAY_TRIGGERS.has(str(e.payload.trigger)))
 		assert_int(resolved.size()).override_failure_message("%s: %s" % [id, str(_types(events))]).is_equal(plays.size())
 		for i: int in resolved.size():
 			var payload: Dictionary = resolved[i].payload
@@ -418,7 +438,10 @@ func test_every_play_row_of_the_fixture_emits_one_well_formed_effect_resolved() 
 			assert_str(str(payload.host_kind)).is_equal("hero_power" if is_power else "card")
 			assert_str(str(payload.owner)).is_equal(SIDE_PLAYER)
 			assert_int(int(payload.depth)).is_equal(0)
-			assert_int((payload.ops as Array).size()).override_failure_message(id).is_equal((plays[i].ops as Array).size())
+			var expected_entries: int = 0
+			for op: Dictionary in plays[i].ops:
+				expected_entries += _entry_count(op)
+			assert_int((payload.ops as Array).size()).override_failure_message(id).is_equal(expected_entries)
 			for entry: Dictionary in payload.ops:
 				var entry_keys: Array = entry.keys()
 				entry_keys.sort()

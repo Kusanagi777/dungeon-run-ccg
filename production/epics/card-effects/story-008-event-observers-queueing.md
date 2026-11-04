@@ -1,12 +1,12 @@
 # Story 008: Event triggers — responder selection, scope and queueing order
 
 > **Epic**: Card Effects
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -62,15 +62,11 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/effects/effect_resolver.gd` (`resolve` for event points, `_responds`, scope matching)
-- `src/gameplay/effects/scope.gd` (C2 scope-key matcher, shared with story 014's value hooks)
-- `tests/unit/card_effects/card_effects_observers_test.gd`
-
----
+- `src/gameplay/effects/effect_resolver.gd` — modified (`resolve` for event points: `_collect`, `_candidate_host`, `_responds`, `_queue_entry`, `_run_queued`; `effect_resolved.depth`)
+- `src/gameplay/effects/scope.gd` — created (`EffectScope`: C2 scope-key matcher, `controller_of`, `subject_view`)
+- `src/gameplay/effects/selectors.gd` — modified (`trigger_subject` / `trigger_source` references)
+- `tests/unit/card_effects/card_effects_observers_test.gd` — created (9 tests)
+- `tests/unit/card_effects/card_effects_play_triggers_test.gd` — modified (the every-play-row test counts play passes only)
 
 ## QA Test Cases
 
@@ -86,11 +82,40 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/card_effects/card_effects_observers_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 9 tests, passing in the full suite
 
 ---
+
+## Readiness
+
+`/story-readiness` (by hand, 2026-11-04, Tier: workflow full, review lean): **READY**.
+Design Completeness: GDD C2/C6.2/C6.3/Edge Cases traced, ACs self-contained and testable.
+Architecture Completeness: ADR-0007 Accepted (version 2026-11-03 = story); TR-card-effects-002
+active; Manifest Version 2026-11-03 current; engine notes and layer rules present. Scope Clarity:
+estimate M, Out of Scope and dependencies stated. Open Questions: no markers; story 006 Complete.
+Asset References: none. Definition of Done: 3 ACs (balanced min 2), Logic type, test evidence
+path named, perf guardrail stated. QL-STORY-READY skipped — Lean mode.
 
 ## Dependencies
 
 - Depends on: `production/epics/card-effects/story-006-play-triggers-one-pass.md`. Cross-epic: `production/epics/match-rules/` (trigger points with `ctx.candidates`, the C10 queue, `trigger_resolved`).
 - Unlocks: `production/epics/card-effects/story-007-values-selectors-spell-damage.md` (AC-23/24), `story-009-deathrattle-snapshot-counters.md`, `story-015-hook-trigger-steps-hero-slot-observers.md`
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 02:46:18 UTC, ended 02:55 UTC; the lane's first worktree vanished mid-run with no work in it — re-attached as `.claude/worktrees/l3-ce-a`)
+**Criteria**: 3/3 passing (AC-17, AC-18, AC-22), no deferred items
+- AC-17 — `test_a_minion_played_from_hand_gets_both_observer_buffs_in_c6_3_order` (two `trigger_queued`, `trigger_resolved` `on_play` then `on_summon`, two `enchantment_applied` on the played minion, +2/+2), `test_husks_summoned_by_a_deathrattle_get_the_on_summon_buff_only` (row 9's Deathrattle, then one `on_summon` per Husk, each Husk +1/+1 with one enchantment), `test_a_summoned_observer_does_not_observe_its_own_entry` (Edge Cases).
+- AC-18 — `test_on_damage_taken_draw_precedes_the_deathrattle_of_the_same_hit` (`trigger_queued` `on_damage` before `minion_died`, `card_drawn` before `trigger_resolved{deathrattle}`); scope: `test_on_damage_taken_below_min_amount_queues_nothing`, `test_a_silenced_observer_does_not_respond`.
+- AC-22 — `test_row_21_draws_after_spell_cast_and_after_the_spells_own_effect_resolved` (`spell_cast` < host `effect_resolved{cast}` < `card_drawn`; the observer pass is caused by its `trigger_resolved`, `depth` 1), `test_row_21_does_not_draw_when_the_opponent_casts_a_spell`, `test_a_boss_side_opponent_turn_start_observer_resolves_in_its_candidate_position` (player-side `side: owner` observer, then the boss-side `side: opponent` one, at the player's Start step; neither at the boss's).
+- Watched fail: 6 of 9 failed against the story-006 `resolve()` (event points queued nothing); the 4 negative tests pass there by construction, so each was mutated, one mutation per run, each restored: no self-entry check (self-entry test failed), Silence ignored (silenced test failed), `min_amount` ignored (min-amount test failed), `side`/`by: owner` always true (opponent-spell and turn-start tests failed).
+**Verification**: `godot --headless --path . --import` exit 0; full suite (`commands.test`) 1087/1087, exit 0; smoke exit 0, no SCRIPT ERROR; `tools/lint/gates.sh` PASS (G7 0 hits), `no_global_rng.sh` 0 hits; parse check of the changed scripts ok. Every SCRIPT ERROR line in the suite comes from other systems' negative tests (event log, RNG, meta).
+**Run result**: N/A — nothing renders: the real resolver is not yet composed into a playable match (no `MatchDriver`), and the match UI's playback is match-ui's.
+**Engine edits**: none (`rules_engine.gd` unchanged; the C10 queue, `trigger_queued` / `trigger_resolved` and the death snapshot are the engine's, as the story requires).
+**Deviations** (all ADVISORY):
+- **Unstated C2 defaults chosen**: `by` on `on_play` / `after_cast` defaults to `owner` (C2 states `owner` for `on_card_played` / `on_hero_power` only), `side` on `on_weapon_equipped` defaults to `owner`, and `attacker` on `on_attack` defaults to `self` (C2 gives none). Recorded in `EffectScope`'s doc comment for game-designer to confirm.
+- **Deathrattle responders supplied here**: the engine already raised `deathrattle` with the death snapshot; this story answers it (definition effects of the snapshot's `def_id`, unless the snapshot is Silenced) because AC-17 needs row 9's Husks. Story 009 still owns the full snapshot, `once_per_turn` and Silence-after-queue; `summon position: source_slot` still falls back to `end` (ops TODO(story 009)).
+- **Hero candidates respond to nothing yet**: hero-slot observers (hero power, treasures, passive) are story 015; `_candidate_host` answers `{}` for a hero.
+- **`depth`** = the raising pass's depth + 1 (1 when raised outside a pass — a turn step, a combat hit, a death check). It approximates "length of the `cause_seq` chain to the command" without walking the log.
+- **Story 006's test adjusted**: `test_every_play_row_of_the_fixture_emits_one_well_formed_effect_resolved` now counts only play-trigger passes, because row 10's destroy of row 9 now resolves row 9's Deathrattle as an extra queued pass.
+**Test Evidence**: `tests/unit/card_effects/card_effects_observers_test.gd`
+**Reviewed by**: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)

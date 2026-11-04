@@ -41,6 +41,43 @@ const SELECTOR_OWNER_WEAPON: String = "owner_weapon"
 const SELECTOR_ENEMY_WEAPON: String = "enemy_weapon"
 const SELECTOR_OWNER: String = "owner"
 const SELECTOR_OPPONENT: String = "opponent"
+## The trigger-context references (C3; story 008): the entity the trigger
+## context names, a reference like `self` (a dying one is still yielded).
+const SELECTOR_TRIGGER_SUBJECT: String = "trigger_subject"
+const SELECTOR_TRIGGER_SOURCE: String = "trigger_source"
+## The selectors [method entities] resolves as references or single slots
+## (no pool, no draw).
+const REFERENCE_SELECTORS: Array[String] = [
+	"self", "chosen", "owner_hero", "enemy_hero", "owner_weapon", "enemy_weapon",
+	"trigger_subject", "trigger_source", "owner", "opponent",
+]
+## Area and random character selectors (C3) → `[minions?, heroes?, side]`,
+## `side` relative to the owner: `friendly`, `enemy` or `any`.
+const CHARACTER_POOLS: Dictionary[String, Array] = {
+	"all_friendly_minions": [true, false, SIDE_FRIENDLY],
+	"all_enemy_minions": [true, false, SIDE_ENEMY],
+	"all_minions": [true, false, SIDE_ANY],
+	"all_friendly_characters": [true, true, SIDE_FRIENDLY],
+	"all_enemy_characters": [true, true, SIDE_ENEMY],
+	"all_characters": [true, true, SIDE_ANY],
+	"random_friendly_minion": [true, false, SIDE_FRIENDLY],
+	"random_enemy_minion": [true, false, SIDE_ENEMY],
+	"random_minion": [true, false, SIDE_ANY],
+	"random_friendly_character": [true, true, SIDE_FRIENDLY],
+	"random_enemy_character": [true, true, SIDE_ENEMY],
+	"random_character": [true, true, SIDE_ANY],
+}
+## The selectors that draw from the stream (F5). `hand` draws only with an `n`.
+const RANDOM_SELECTORS: Array[String] = [
+	"random_friendly_minion", "random_enemy_minion", "random_minion",
+	"random_friendly_character", "random_enemy_character", "random_character",
+	"enemy_hand_random", "deck_random",
+]
+## The board-neighbour selectors (C3) and their `of` default.
+const NEIGHBOUR_SELECTORS: Array[String] = ["adjacent", "left_neighbour", "right_neighbour"]
+const OF_SELF: String = "self"
+const OF_TARGET: String = "target"
+const OF_TRIGGER_SUBJECT: String = "trigger_subject"
 
 
 ## The selector name of [param selector] — a bare string or `{selector, …}`
@@ -62,17 +99,41 @@ static func selector_name(selector: Variant) -> String:
 ##   **dying** entity is still yielded (C3, DSL spike finding 5); an entity no
 ##   longer in play is not;
 ## - `owner_hero` / `enemy_hero` → that hero; `owner_weapon` /
-##   `enemy_weapon` → that weapon, or nothing.
+##   `enemy_weapon` → that weapon, or nothing;
+## - `trigger_subject` / `trigger_source` → the entity the queued trigger's
+##   context names (`run.trigger_subject` / `run.trigger_source`, story 008)
+##   while it is in play — one that has left play yields nothing, so the op
+##   is `no_target` (Edge Cases: refs read the snapshot, ops need a live
+##   target).
 ## A reference's `filter` is not re-applied (for `chosen` it is the legality
 ## spec the engine already checked at command time, C1 rule 1).
-## TODO(stories 007–009): area, random, neighbour, hand/deck and
-## `trigger_*` selectors — until then they yield nothing (`no_target`).
+## Every other selector (story 007) is its [method pool] — area, neighbour,
+## hand and deck selectors as listed; a **random** one ([constant
+## RANDOM_SELECTORS]) picks `k = min(n, |pool|)` of it by F5: `k` draws of
+## `engine.rng_match().randi_range(0, |pool| − 1)` with removal, in pick
+## order, and no draw for an empty pool (ADR-0007 Decision 7). Those need
+## `run.resolver`, the bound [EffectResolver].
 ## Example: `EffectSelectors.entities(state, "enemy_hero", {"owner": "player", "source_id": 7, "target_id": null})`.
 static func entities(state: MatchState, selector: Variant, run: Dictionary) -> Array[int]:
 	var out: Array[int] = []
 	var owner: String = str(run.owner)
 	var id: Variant = null
-	match selector_name(selector):
+	var name: String = selector_name(selector)
+	if not REFERENCE_SELECTORS.has(name):
+		if not run.get("resolver") is EffectResolver:
+			return out
+		var resolver: EffectResolver = run.resolver
+		var candidates: Array[int] = pool(resolver, selector, run)
+		if not RANDOM_SELECTORS.has(name):
+			return candidates
+		var k: int = pick_count(selector, candidates.size())
+		var stream: Variant = resolver.bound_engine().rng_match()
+		for _i: int in k:
+			var j: int = stream.randi_range(0, candidates.size() - 1)
+			out.append(candidates[j])
+			candidates.remove_at(j)
+		return out
+	match name:
 		SELECTOR_SELF:
 			id = run.source_id
 		SELECTOR_CHOSEN:
@@ -85,8 +146,132 @@ static func entities(state: MatchState, selector: Variant, run: Dictionary) -> A
 			id = _entity_id(state.players[owner].weapon)
 		SELECTOR_ENEMY_WEAPON:
 			id = _entity_id(state.players[other_side(owner)].weapon)
+		SELECTOR_TRIGGER_SUBJECT, SELECTOR_TRIGGER_SOURCE:
+			var named: Variant = run.get(selector_name(selector))
+			id = int(named) if typeof(named) == TYPE_INT or typeof(named) == TYPE_FLOAT else null
 	if id != null and kind_of(state, int(id)) != "":
 		out.append(int(id))
+	return out
+
+
+## The candidates of a pool selector [param selector] before any random
+## pick (C3, story 007), in canonical order, with the selector's `filter`
+## (AND, [method matches] — value-expression predicates evaluated in
+## [param run]) applied and dying characters left out:
+## - [constant CHARACTER_POOLS]: minions (player board L→R, boss board L→R)
+##   then heroes (player, boss), on the pool's side relative to the owner;
+## - `adjacent` (left then right) / `left_neighbour` / `right_neighbour` of
+##   `of` — `self` (default), `target` or `trigger_subject` — empty unless
+##   that is a minion in play;
+## - `hand` / `enemy_hand_random` → that side's hand instance ids; `deck_top`
+##   → the owner's top `n` (default 1) deck instances, index 0 first, no
+##   filter; `deck_random` → the owner's deck instances.
+## A reference or side selector has no pool (`[]`). Draws nothing.
+## Example: `EffectSelectors.pool(resolver, {"selector": "all_enemy_minions"}, run)`.
+static func pool(resolver: EffectResolver, selector: Variant, run: Dictionary) -> Array[int]:
+	var out: Array[int] = []
+	var engine: RulesEngine = resolver.bound_engine()
+	var state: MatchState = engine.state()
+	var name: String = selector_name(selector)
+	var owner: String = str(run.owner)
+	var source_id: int = int(run.get("source_id", -1))
+	var filter: Dictionary = {}
+	if selector is Dictionary and (selector as Dictionary).get("filter") is Dictionary:
+		filter = selector.filter
+	if CHARACTER_POOLS.has(name):
+		var shape: Array = CHARACTER_POOLS[name]
+		var records: Array[Dictionary] = []
+		for side: String in MatchRecords.SIDES:
+			if bool(shape[0]) and _side_wanted(str(shape[2]), side, owner):
+				records.append_array(state.players[side].board)
+		for side: String in MatchRecords.SIDES:
+			if bool(shape[1]) and _side_wanted(str(shape[2]), side, owner) and state.players[side].hero != null:
+				records.append(state.players[side].hero)
+		for record: Dictionary in records:
+			if not is_dying(engine, record) and matches(resolver, record, filter, owner, source_id, run):
+				out.append(int(record.entity_id))
+		return out
+	if NEIGHBOUR_SELECTORS.has(name):
+		return _neighbours(resolver, name, selector, filter, run)
+	match name:
+		"hand":
+			return hand_cards(resolver, owner, filter, run)
+		"enemy_hand_random":
+			return hand_cards(resolver, other_side(owner), filter, run)
+		"deck_top":
+			var deck: Array = state.players[owner].deck
+			var n: int = _n(selector)
+			for i: int in mini(n, deck.size()):
+				out.append(int(deck[i].instance_id))
+		"deck_random":
+			for card: Dictionary in state.players[owner].deck:
+				if matches(resolver, _card_view(card, owner), filter, owner, source_id, run):
+					out.append(int(card.instance_id))
+	return out
+
+
+## How many picks a selector makes from a pool of [param pool_size]: `min(n,
+## |pool|)` for a random one (`n` default 1, F5) or a `hand` with an `n`;
+## the whole pool otherwise. Example: `EffectSelectors.pick_count("random_minion", 3) == 1`.
+static func pick_count(selector: Variant, pool_size: int) -> int:
+	var name: String = selector_name(selector)
+	if RANDOM_SELECTORS.has(name) or (name == "hand" and selector is Dictionary and (selector as Dictionary).has("n")):
+		return mini(_n(selector), pool_size)
+	return pool_size
+
+
+## [param side]'s hand instance ids whose card matches [param filter] (C3
+## `hand`; C4 `holding`), in hand order. A card is filtered as `{entity_id:
+## instance_id, def_id, controller: side}` (definition predicates read its
+## `def_id`). Example: `EffectSelectors.hand_cards(resolver, "player", {"type": "spell"}, run)`.
+static func hand_cards(resolver: EffectResolver, side: String, filter: Dictionary, run: Dictionary) -> Array[int]:
+	var out: Array[int] = []
+	var owner: String = str(run.get("owner", side))
+	for card: Dictionary in resolver.bound_engine().state().players[side].hand:
+		if matches(resolver, _card_view(card, side), filter, owner, int(run.get("source_id", -1)), run):
+			out.append(int(card.instance_id))
+	return out
+
+
+static func _card_view(card: Dictionary, side: String) -> Dictionary:
+	return {"entity_id": int(card.instance_id), "def_id": str(card.def_id), "controller": side}
+
+
+## `n` of a selector (C3; default 1).
+static func _n(selector: Variant) -> int:
+	if selector is Dictionary and typeof((selector as Dictionary).get("n")) in [TYPE_INT, TYPE_FLOAT]:
+		return int(selector.n)
+	return 1
+
+
+static func _side_wanted(want: String, side: String, owner: String) -> bool:
+	return want == SIDE_ANY or (side == owner) == (want == SIDE_FRIENDLY)
+
+
+## The board neighbours (C3) of the selector's `of` entity, not dying, filtered.
+static func _neighbours(resolver: EffectResolver, name: String, selector: Variant, filter: Dictionary, run: Dictionary) -> Array[int]:
+	var out: Array[int] = []
+	var engine: RulesEngine = resolver.bound_engine()
+	var state: MatchState = engine.state()
+	var of: String = str((selector as Dictionary).get("of", OF_SELF)) if selector is Dictionary else OF_SELF
+	var anchor: Variant = {OF_SELF: run.get("source_id"), OF_TARGET: run.get("target_id"), OF_TRIGGER_SUBJECT: run.get("trigger_subject")}.get(of)
+	if typeof(anchor) != TYPE_INT and typeof(anchor) != TYPE_FLOAT:
+		return out
+	for side: String in MatchRecords.SIDES:
+		var board: Array = state.players[side].board
+		for index: int in board.size():
+			if int(board[index].entity_id) != int(anchor):
+				continue
+			var picks: Array[int] = []
+			if name != "right_neighbour" and index > 0:
+				picks.append(index - 1)
+			if name != "left_neighbour" and index + 1 < board.size():
+				picks.append(index + 1)
+			for pick: int in picks:
+				var minion: Dictionary = board[pick]
+				if not is_dying(engine, minion) and matches(resolver, minion, filter, str(run.owner), int(run.get("source_id", -1)), run):
+					out.append(int(minion.entity_id))
+			return out
 	return out
 
 
@@ -195,11 +380,12 @@ static func chosen_candidates(resolver: EffectResolver, filter: Dictionary, owne
 ## to [param owner], `not_self` against [param source_id]. Definition fields
 ## (`cost`, `set`, `type`, `tag`, `rarity`, `token`, `has_trigger`) are read
 ## from the entity's `def_id` through the resolver's memo; a hero has no
-## definition, so they never match it. Value predicates take int literals.
-## TODO(story 007): value-expression predicates (`attack_le: {ref: …}`) — until
-## then a non-literal value never matches (no target rather than a wrong one).
+## definition, so they never match it. Value predicates take an int or a C4
+## value expression, evaluated in pass context [param run] (story 007);
+## without a pass context (`legal_targets` at command time) a non-literal
+## never matches. Stat predicates need a character (`base_attack`).
 ## Example: `EffectSelectors.matches(resolver, minion, {"kind": "minion"}, "player", 7)`.
-static func matches(resolver: EffectResolver, entity: Dictionary, filter: Dictionary, owner: String, source_id: int) -> bool:
+static func matches(resolver: EffectResolver, entity: Dictionary, filter: Dictionary, owner: String, source_id: int, run: Dictionary = {}) -> bool:
 	var engine: RulesEngine = resolver.bound_engine()
 	for key: Variant in filter:
 		var want: Variant = filter[key]
@@ -241,12 +427,14 @@ static func matches(resolver: EffectResolver, entity: Dictionary, filter: Dictio
 				if bool(want) and int(entity.get("entity_id", -1)) == source_id:
 					return false
 			"attack_le", "attack_ge", "health_le", "health_ge":
+				if not entity.has("base_attack"):
+					return false
 				var stat: int = engine.attack(entity) if str(key).begins_with("attack") else engine.health(entity)
-				if not _compare(stat, str(key), want):
+				if not _compare(stat, str(key), want, run):
 					return false
 			"cost_le", "cost_ge", "cost_eq":
 				var def: Dictionary = resolver.definition(str(entity.get("def_id", "")))
-				if def.is_empty() or not _compare(int(def.get("cost", 0)), str(key), want):
+				if def.is_empty() or not _compare(int(def.get("cost", 0)), str(key), want, run):
 					return false
 			"type", "set", "rarity":
 				var def: Dictionary = resolver.definition(str(entity.get("def_id", "")))
@@ -277,11 +465,16 @@ static func _has_live_trigger(resolver: EffectResolver, entity: Dictionary, trig
 	return false
 
 
-## `<stat>_le` / `_ge` / `_eq` against an int literal (JSON numbers are floats).
-static func _compare(stat: int, predicate: String, want: Variant) -> bool:
-	if typeof(want) != TYPE_INT and typeof(want) != TYPE_FLOAT:
+## `<stat>_le` / `_ge` / `_eq` against an int literal (JSON numbers are
+## floats) or a value expression evaluated in [param run].
+static func _compare(stat: int, predicate: String, want: Variant, run: Dictionary = {}) -> bool:
+	var bound: int = 0
+	if typeof(want) == TYPE_INT or typeof(want) == TYPE_FLOAT:
+		bound = int(want)
+	elif want is Dictionary and run.get("resolver") is EffectResolver:
+		bound = EffectValues.eval(want, run)
+	else:
 		return false
-	var bound: int = int(want)
 	if predicate.ends_with("_le"):
 		return stat <= bound
 	if predicate.ends_with("_ge"):

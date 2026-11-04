@@ -138,6 +138,16 @@ static func attack(issuer: String, attacker_id: Variant, target_id: Variant) -> 
 	return command(CMD_ATTACK, issuer, {"attacker_id": attacker_id, "target_id": target_id})
 
 
+## The C2 `choose` command from [param issuer] (the side the pending
+## `ChoiceRequest` names) picking option [param option_index] (match-rules
+## story 016).
+## [codeblock]
+## engine.submit(MatchRecords.choose("boss", 1))
+## [/codeblock]
+static func choose(issuer: String, option_index: int) -> Dictionary:
+	return command(CMD_CHOOSE, issuer, {"option_index": option_index})
+
+
 ## The C2 `end_turn` command from [param issuer].
 static func end_turn(issuer: String) -> Dictionary:
 	return command(CMD_END_TURN, issuer)
