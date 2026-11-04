@@ -154,8 +154,10 @@ const UNGRANTABLE_KEYWORDS: PackedStringArray = ["battlecry", "deathrattle", "di
 ## an aura re-applies Stealth on the step after the declaration stripped it,
 ## so the attacker would stay untargetable (match-rules C12; code review
 ## MR-014 S2). Lifted when a card needs it and the engine tracks a broken
-## Stealth.
-const AURA_UNGRANTABLE_KEYWORDS: PackedStringArray = ["stealth"]
+## Stealth. `divine_shield` likewise (DD-X25): the recompute re-grants the shield
+## after every hit, so the recipient could never be damaged (code review
+## card-effects 012 S2).
+const AURA_UNGRANTABLE_KEYWORDS: PackedStringArray = ["stealth", "divine_shield"]
 
 ## Display keywords (C1 rule 2) and what in the effects backs each one: a
 ## trigger name (`trigger`) or an op anywhere in the ops tree (`op`).

@@ -210,6 +210,7 @@ contract; DD-X15, DD-X16, DD-X17; performance budgets from `project.yaml`.
 - **Never raise a Discover from an in-primitive hook or `on_match_start`** — it is refused; a card that needs one is a match-rules GDD change — source: ADR-0005 (erratum 2026-11-04)
 - **Never accept and ignore an argument `legal_commands()` does not list; never add a C2 rejection code** (e.g. `INVALID_COMMAND`) — source: DD-X17
 - **Never let an `aura` grant `stealth`** — the aura re-grants it after an attack and the attacker stays untargetable; `EffectValidator` rejects it (`E_FX_OP`); Stealth is printed or a one-shot grant only — source: DD-X16 (match-rules keywords, card-effects auras; MR-014 code review S2)
+- **Never let an `aura` grant `divine_shield`** — the recompute re-grants it after every hit and the minion can never be damaged; `EffectValidator` rejects it (`E_FX_OP`); Divine Shield is printed or a one-shot grant only — source: DD-X25 (card-effects C5 `aura`, C10; card-effects 012 code review S2)
 - **`EffectRuntime` never holds a Callable, a Node or an object reference** — source: ADR-0007
 - **Never re-sort candidates across entities in the resolver; never call the death check or `recompute_auras()` between ops** — source: ADR-0007
 - **Never add an `E_FX_*` / `W_FX_*` code without a card-effects GDD change; never read `targeting` from a stored field** (Card Database rejects it, CR-3) — source: ADR-0007
