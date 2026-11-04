@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 2, 2026-11-04)
 > **Author**: Jacob + ux-designer (`/ux-design targeting` followed by hand — the skill is not model-invocable; automation `guided` under the owner's standing approval, workflow `standard`, density `balanced` from `rigor: standard`; no `AskUserQuestion` used — the recommended option was taken at every decision point and is listed in §15; no Agent tool — `art-director` / `ui-programmer` / `game-designer` not spawned)
 > **Last Updated**: 2026-11-04 (revision 1 after `/ux-review` round 1 — B1 pointer click precedence per phase, §7.4; advisories A1 §11 unticked, A3 `A` + number defined, A4 double-click and `H` in session, A5 Phase T filtered by position, A6 150 % rule and fixture, A7 / A2 routed, A8 resolution criterion)
 > **Journey Phase(s)**: Moment-to-moment loop — "spend mana, choose attacks" (game-concept Core Loop); art bible §2 "Targeting / attack moment: commitment; a decision about to become irreversible". Match view states `Dragging` and `KeyTargeting` (match-ui States). `design/player-journey.md` does not exist — see §15.

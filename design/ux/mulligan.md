@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 2, 2026-11-04)
 > **Author**: Jacob + ux-designer (`/ux-design mulligan` followed by hand — the skill is not model-invocable; automation `guided` under the owner's standing approval, workflow `standard`, density `balanced` from `rigor: standard`; no `AskUserQuestion` used — the recommended option was taken at every decision point and is listed in §15; no Agent tool — `art-director` / `ui-programmer` / `game-designer` not spawned)
 > **Last Updated**: 2026-11-04 (revision 1 after `/ux-review` round 1. Blocking: B1 safe band x 208–1072 and the card-scale rule, so a 5-card row is 1.0x and covers no base element; B2 top-anchored header stack per `text_scale`; B3 effective cost read from `hand(player)`. Advisories: A1 pill gap, A2 keep-all press count, A3 / A5 routed and copy added, A4 n = 4 fixed by the rule, A6 resolution criterion)
 > **Journey Phase(s)**: The first beat of every match — between the boss intro ("Fight") and the player's turn 1 (game-concept Core Loop "One match (3–6 minutes)"). Engine phase `Mulligan` (match-rules States); view state `Mulligan` (match-ui States). `design/player-journey.md` does not exist — see §15.

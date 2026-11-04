@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 2, 2026-11-04)
 > **Author**: Jacob + ux-designer (`/ux-design hand` followed by hand — the skill is not model-invocable; automation `guided` under the owner's standing approval, workflow `standard`, density `balanced` from `rigor: standard`; no `AskUserQuestion` used — the recommended option was taken at every decision point and is listed in §15; no Agent tool — `art-director` / `ui-programmer` / `game-designer` not spawned)
 > **Last Updated**: 2026-11-04 (revision 1 after `/ux-review` round 1 — B1 dim compositing and contrast; advisories A2 dashed-ring notches, A3 cost-freshness lag, A4 Spell Damage band re-fit, A5 new keys flagged; A1 and A6 routed in §15)
 > **Journey Phase(s)**: Moment-to-moment loop — "read the board, spend mana, choose attacks, end turn, watch the boss act" (game-concept Core Loop). Match view states `Idle`, `Dragging`, `KeyTargeting`, `Playback`, `BossTurn` (match-ui States). `design/player-journey.md` does not exist — see §15.
