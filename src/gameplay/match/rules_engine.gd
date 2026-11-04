@@ -211,8 +211,18 @@ var _call_last_seq: int = 0
 ## (`source_id`, `effect_id`, …) carrying the source's raise-time `snapshot`,
 ## `cause_seq` the event that raised it. Drained by [method _drain].
 var _queue: Array[Dictionary] = []
-## Steps executed by the current action ([method run_action]); reset per action.
+## Steps executed by the current action — one [method submit], one
+## [method run_action] or the setup of [method start] — counted across every
+## sub-step of it (a play's trigger steps, the C4 Start and End sub-steps) and
+## reset only when the next action begins (code review 2026-11-03: a reset per
+## sub-step gave one command `cap × sub-steps`).
 var _steps: int = 0
+## The trigger hook points whose entries are running right now (ADR-0005
+## rule-4 exception, erratum 2026-11-03): a primitive that reaches the same
+## point again inside one of them faults `resolution_overflow` instead of
+## recursing (a self-feeding `on_hero_damaged` hook must not overflow the call
+## stack). See [method _enter_hook_point].
+var _hook_points_running: Dictionary[StringName, bool] = {}
 ## True while `resolver.recompute_auras()` runs: the aura enchantments it
 ## re-applies are silent (one `auras_recomputed` lists the net changes).
 var _recomputing_auras: bool = false
@@ -339,6 +349,7 @@ func start(config: Dictionary) -> void:
 	assert(_state == null, "RulesEngine.start: a match was already started on this engine")
 	_state = MatchState.from_config(config)
 	_cause_seq = 0
+	_steps = 0
 	_resolving = true
 	# C3 step 1: the registry, then bind (installs entries, registers evaluators)
 	_state.hooks = HookRegistry.new()
@@ -405,6 +416,7 @@ func submit(command: Dictionary) -> Dictionary:
 		return _reject(command, invalid, "")
 	_resolving = true
 	_cause_seq = 0
+	_steps = 0
 	_call_first_seq = 0
 	_call_last_seq = 0
 	match type:
@@ -433,7 +445,8 @@ func submit(command: Dictionary) -> Dictionary:
 ## primitives) is executed as step 1, then the loop drains: death check →
 ## `recompute_auras()` → pop queue Q → execute, until no one died and Q is
 ## empty; a step past `resolution_step_cap` is `fault(resolution_overflow)`.
-## Then `win_loss_check()` (C14). The step counter starts at 0 per action.
+## Then `win_loss_check()` (C14). The step counter starts at 0 per action —
+## per `run_action` and per [method submit], never per sub-step.
 ## Every command handler and engine step runs this way internally; this
 ## public entry drives an engine-initiated fixture step (tests, the card-
 ## effects suites). Called while the engine is resolving it does nothing and
@@ -449,6 +462,7 @@ func run_action(initial_step: Callable) -> void:
 		return
 	_resolving = true
 	_cause_seq = 0
+	_steps = 0
 	_run_step(initial_step)
 	@warning_ignore("return_value_discarded")
 	_win_loss_check()
@@ -637,7 +651,7 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 			return
 		if not fire_on_draw:
 			continue
-		_state.hooks.run_triggers(&"on_draw", StringName(side), {"instance_id": instance_id, "card_id": def_id})
+		_run_inline_hooks(&"on_draw", side, {"instance_id": instance_id, "card_id": def_id})
 		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id}, drawn_seq)
 
 
@@ -742,7 +756,7 @@ func _after_damage_dealt(target: Dictionary, source: Variant, source_side: Strin
 		@warning_ignore("return_value_discarded")
 		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
 	if target.kind == MatchRecords.KIND_HERO:
-		_state.hooks.run_triggers(&"on_hero_damaged", StringName(target_side), {"amount_dealt": dealt, "source": source})
+		_run_inline_hooks(&"on_hero_damaged", target_side, {"amount_dealt": dealt, "source": source})
 	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source}, dealt_seq)
 
 
@@ -878,7 +892,7 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": index,
 		"attack": attack(minion), "health": health(minion),
 	})
-	_state.hooks.run_triggers(&"on_minion_summoned", StringName(side), {"entity_id": int(minion.entity_id), "card_id": def_id})
+	_run_inline_hooks(&"on_minion_summoned", side, {"entity_id": int(minion.entity_id), "card_id": def_id})
 	return int(minion.entity_id)
 
 
@@ -1851,13 +1865,51 @@ func _resolve_step(point: StringName, ctx: Dictionary) -> void:
 ## [param side] runs as its own step followed by the full C10 loop (ADR-0005
 ## rule 4). Hook points reached inside a primitive (`on_draw`,
 ## `on_hero_damaged`, `on_minion_summoned`) run synchronously within the
-## current step instead — a C10 loop there would run a death check between
-## the ops of one effect pass (ADR-0007, card-effects C6.0).
+## current step instead ([method _run_inline_hooks]) — a C10 loop there would
+## run a death check between the ops of one effect pass (ADR-0007,
+## card-effects C6.0).
 func _run_hook_steps(point: StringName, side: String, ctx: Dictionary, cause: int = -1) -> void:
 	for index: int in _state.hooks.entries(point).size():
 		if _halted():
 			return
-		_run_step(_state.hooks.run_trigger_entry.bind(point, index, StringName(side), ctx), cause)
+		_run_step(_run_hook_entry.bind(point, index, side, ctx), cause)
+
+
+## One step-boundary hook entry (the step [method _run_hook_steps] runs):
+## the entry at [param index] on [param point], with [param point] marked
+## running for the entry itself — not for the C10 loop after it, whose queued
+## triggers may reach the point again legitimately.
+func _run_hook_entry(point: StringName, index: int, side: String, ctx: Dictionary) -> void:
+	if not _enter_hook_point(point):
+		return
+	_state.hooks.run_trigger_entry(point, index, StringName(side), ctx)
+	_hook_points_running[point] = false
+
+
+## A trigger hook point reached inside a primitive (`on_draw`,
+## `on_hero_damaged`, `on_minion_summoned` — ADR-0005 rule-4 exception,
+## erratum 2026-11-03): its entries run synchronously within the current step,
+## back to back, with no C10 loop between them. A primitive one of them calls
+## that reaches [param point] again faults `resolution_overflow`
+## ([method _enter_hook_point]); any other point may still be reached.
+func _run_inline_hooks(point: StringName, side: String, ctx: Dictionary) -> void:
+	if _halted() or not _enter_hook_point(point):
+		return
+	_state.hooks.run_triggers(point, StringName(side), ctx)
+	_hook_points_running[point] = false
+
+
+## Marks [param point] running and returns `true`; when it is already running
+## — a re-entry within one of its entries — ends the match with
+## `fault(resolution_overflow, steps)` (ADR-0005 erratum 2026-11-03: a
+## self-feeding hook ends the match as a fault, never overflows the call
+## stack) and returns `false`. The caller clears the mark after the entries.
+func _enter_hook_point(point: StringName) -> bool:
+	if _hook_points_running.get(point, false):
+		fault(MatchRecords.REASON_RESOLUTION_OVERFLOW, _steps)
+		return false
+	_hook_points_running[point] = true
+	return true
 
 
 ## The one observer order (C4 step 5, C10; cross-review C-16c): player board
@@ -1920,8 +1972,10 @@ func _characters_of(side: String) -> Array[Dictionary]:
 
 
 ## One action of the C10 loop without the closing `win_loss_check` (the
-## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed as
-## step 1 of a fresh step count, then [method _drain]. [param step_cause]
+## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed and
+## counted as one step of the current action's count (reset by
+## [method submit] / [method run_action] / [method start], never here), then
+## [method _drain]. [param step_cause]
 ## (≥ 0) is the `cause_seq` the step runs under — a play's trigger steps run
 ## under its `card_played` / `spell_cast` / `hero_power_used` (card-effects
 ## C6.6); the default keeps the current one. The `cause_seq` from before is
@@ -1933,7 +1987,6 @@ func _run_step(step: Callable, step_cause: int = -1) -> void:
 	var cause: int = _cause_seq
 	if step_cause >= 0:
 		_cause_seq = step_cause
-	_steps = 0
 	step.call()
 	_steps += 1
 	_drain()
@@ -1992,11 +2045,17 @@ func _execute_queued(step: Dictionary) -> void:
 ## optional `point` overrides [param point]); it keeps its own `snapshot` or
 ## gets one — [param dead_snapshot] for a Deathrattle (the source has just
 ## left play), else a value copy of the source now. Nothing is queued for a
-## source that is not in play (or in hand) at raise time (C10).
+## source that is not in play (or in hand) at raise time (C10). An entry
+## without a whole-number `source_id` is a resolver defect: it is logged
+## (`push_error`) and skipped, and the entries after it still queue (code
+## review 2026-11-03).
 func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}) -> void:
 	for entry: Dictionary in entries:
 		if _halted():
 			return
+		if not _is_whole(entry.get("source_id")):
+			push_error("RulesEngine: skipped a malformed trigger entry from resolve(%s) (no integer source_id): %s" % [point, entry])
+			continue
 		var source_id: int = int(entry.source_id)
 		var snapshot: Dictionary = dead_snapshot
 		if snapshot.is_empty():

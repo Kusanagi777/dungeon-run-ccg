@@ -439,3 +439,158 @@ func test_each_hook_trigger_entry_is_followed_by_the_full_loop() -> void:
 	assert_array(_types(events)).is_equal(["minion_died", "trigger_resolved", String(MARKER), String(MARKER)])
 	assert_str(str(events[2].payload.effect_id)).is_equal("dr.0")
 	assert_str(str(events[3].payload.effect_id)).is_equal("t_dusk.1")
+
+
+# --- Code review 2026-11-03 (fix pass 2026-11-04) ------------------------------
+# ADR-0005 rule-4 exception (erratum 2026-11-03): a hook point reached inside a
+# primitive that is re-entered within one entry faults `resolution_overflow`;
+# the step counter counts every step of one command; a malformed queue entry is
+# logged and skipped.
+
+## Hook: 1 sourceless damage to the hook owner's own hero (a self-feeding
+## `on_hero_damaged` entry — "when your hero is damaged, damage your hero").
+func _damage_own_hero(engine: RulesEngine, _entry: Dictionary, side: StringName, _ctx: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
+	engine.apply_damage(int(engine.state().players[String(side)].hero.entity_id), 1, null)
+
+
+## Hook: gains 1 armour (no re-entry — Thornhide Cloak's shape).
+func _gain_armor(engine: RulesEngine, _entry: Dictionary, side: StringName, _ctx: Dictionary) -> void:
+	engine.apply_armor(String(side), 1)
+
+
+## Hook: draws one card for the hook owner (a self-feeding `on_draw` entry).
+func _draw_for_owner(engine: RulesEngine, _entry: Dictionary, side: StringName, _ctx: Dictionary) -> void:
+	engine.draw(String(side), 1)
+
+
+## Hook: summons a token for the hook owner (a self-feeding `on_minion_summoned` entry).
+func _summon_for_owner(engine: RulesEngine, _entry: Dictionary, side: StringName, _ctx: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
+	engine.summon_minion(String(side), DEF_TOKEN, -1)
+
+
+func _assert_resolution_overflow_fault(engine: RulesEngine, log: TestEventLog) -> void:
+	var outcome: Dictionary = engine.result()
+	assert_array([outcome.result, outcome.winner, outcome.reason]).is_equal([MatchRecords.RESULT_FAULT, null, MatchRecords.REASON_RESOLUTION_OVERFLOW])
+	assert_int(log.count(&"resolution_overflow")).is_equal(1)
+	EventLogAssertions.assert_last_type(log, &"match_ended")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+
+
+func test_self_feeding_on_hero_damaged_hook_faults_resolution_overflow_not_the_call_stack() -> void:
+	# Arrange: a player treasure "whenever your hero is damaged, deal 1 damage to your hero"
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.hook_scripts["t_ouroboros.0"] = _damage_own_hero
+	var ouroboros: HookInstaller = MatchFactory.make_hook_installer("t_ouroboros", SIDE_PLAYER, [&"on_hero_damaged"])
+	var engine: RulesEngine = _engine(log, resolver, {"player": {"hook_installers": [ouroboros]}})
+	var hero: int = int(engine.state().players[SIDE_PLAYER].hero.entity_id)
+	var before: int = log.events.size()
+
+	# Act: the hero takes 1 damage
+	engine.run_action(func() -> void: engine.apply_damage(hero, 1, null))
+
+	# Assert: the entry ran once; its own damage re-entered on_hero_damaged and faulted
+	_assert_resolution_overflow_fault(engine, log)
+	assert_int(resolver.run_contexts(&"on_hero_damaged").size()).is_equal(1)
+	assert_int(_of(log, before, ["damage_dealt"]).size()).is_equal(2)
+
+
+func test_self_feeding_on_draw_hook_faults_resolution_overflow() -> void:
+	# Arrange: "whenever you draw a card, draw a card"
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.hook_scripts["t_greed.0"] = _draw_for_owner
+	var greed: HookInstaller = MatchFactory.make_hook_installer("t_greed", SIDE_PLAYER, [&"on_draw"])
+	var engine: RulesEngine = _engine(log, resolver, {"player": {"hook_installers": [greed]}})
+
+	# Act
+	engine.run_action(func() -> void: engine.draw(SIDE_PLAYER, 1))
+
+	# Assert
+	_assert_resolution_overflow_fault(engine, log)
+	assert_int(resolver.run_contexts(&"on_draw").size()).is_equal(1)
+
+
+func test_self_feeding_on_minion_summoned_hook_faults_resolution_overflow() -> void:
+	# Arrange: "whenever you summon a minion, summon a 2/2"
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.hook_scripts["t_brood.0"] = _summon_for_owner
+	var brood: HookInstaller = MatchFactory.make_hook_installer("t_brood", SIDE_PLAYER, [&"on_minion_summoned"])
+	var engine: RulesEngine = _engine(log, resolver, {"player": {"hook_installers": [brood]}})
+
+	# Act
+	engine.run_action(func() -> void: engine.summon_minion(SIDE_PLAYER, DEF_TOKEN, -1))
+
+	# Assert: the first summon's entry summons once; that summon's hooks re-enter → fault
+	_assert_resolution_overflow_fault(engine, log)
+	assert_int(log.count(&"minion_summoned")).is_equal(2)
+
+
+func test_an_in_primitive_hook_that_does_not_re_enter_runs_on_every_hit() -> void:
+	# Arrange: "whenever your hero is damaged, gain 1 armour" (Thornhide Cloak's shape)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.hook_scripts["t_cloak.0"] = _gain_armor
+	var cloak: HookInstaller = MatchFactory.make_hook_installer("t_cloak", SIDE_PLAYER, [&"on_hero_damaged"])
+	var engine: RulesEngine = _engine(log, resolver, {"player": {"hook_installers": [cloak]}})
+	var hero: int = int(engine.state().players[SIDE_PLAYER].hero.entity_id)
+
+	# Act: two hits in one step, then one more action
+	engine.run_action(func() -> void:
+		engine.apply_damage(hero, 1, null)
+		engine.apply_damage(hero, 1, null))
+	engine.run_action(func() -> void: engine.apply_damage(hero, 1, null))
+
+	# Assert: the guard is per entry, not per step or per match
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_int(log.count(&"armor_gained")).is_equal(3)
+	assert_int(log.count(&"resolution_overflow")).is_equal(0)
+
+
+func test_the_step_cap_counts_every_step_of_one_command() -> void:
+	# Arrange: a minion whose turn_end and turn_start responses each start a
+	# self-heal chain of STEPS_PER_ACTION steps; one end_turn runs both (60 > cap 50)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, {}, {"resolution_step_cap": TEST_STEP_CAP})
+	var id: int = int(MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1).entity_id)
+	var budget: Dictionary = {"left": 0}
+	var start_chain: Callable = func(e: RulesEngine, _ctx: Dictionary) -> void:
+		budget.left = STEPS_PER_ACTION - 1
+		e.apply_heal(id, 1, id)
+	var self_heal: Callable = func(e: RulesEngine, _ctx: Dictionary) -> void:
+		budget.left -= 1
+		e.apply_heal(id, 1, id)
+	var still_going: Callable = func(_e: RulesEngine, ctx: Dictionary) -> bool:
+		return ctx.get("subject") == id and budget.left > 0
+	resolver.add_trigger(&"turn_end", id, "dusk.0", start_chain)
+	resolver.add_trigger(&"turn_start", id, "dawn.0", start_chain)
+	resolver.add_trigger(&"on_heal", id, "loop.0", self_heal, still_going)
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+
+	# Assert: one command, one step count — the cap is reached in the turn_start chain
+	_assert_resolution_overflow_fault(engine, log)
+	assert_dict(log.first(&"resolution_overflow").payload).is_equal({"steps": TEST_STEP_CAP})
+	assert_int(log.count(&"turn_started")).is_equal(2)
+
+
+func test_a_malformed_queue_entry_is_logged_and_skipped() -> void:
+	# Arrange: the resolver answers on_damage with one entry lacking source_id, then a good one
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	var target: int = int(MatchFactory.summon(engine.state(), SIDE_BOSS, 1, STURDY_HEALTH).entity_id)
+	resolver.queued[&"on_damage"] = [{"effect_id": "broken.0"}, {"source_id": target, "effect_id": "good.0"}]
+
+	# Act / Assert: logged, not a crash
+	await assert_error(func() -> void: engine.run_action(func() -> void: engine.apply_damage(target, 1, null))) \
+		.is_push_error("RulesEngine: skipped a malformed trigger entry from resolve(on_damage) (no integer source_id): { \"effect_id\": \"broken.0\" }")
+
+	# Assert: the good entry still queued and resolved; the match goes on
+	assert_array(resolver.pass_ids(&"on_damage")).is_equal(["good.0"])
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
