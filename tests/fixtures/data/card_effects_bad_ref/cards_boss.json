@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_fx_grave_rat",
+      "name": "Test Card",
+      "set": "boss",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_fx_grave_rat.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/boss_fx_grave_rat"
+    }
+  ]
+}

@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_fx_row_01_weapon_buff",
+      "name": "Test Card",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner_weapon",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_01_weapon_buff.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_01_weapon_buff"
+    },
+    {
+      "id": "war_fx_row_02_axe_equip",
+      "name": "Test Card",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "equip",
+              "card_id": "war_token_axe"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_02_axe_equip.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_02_axe_equip"
+    },
+    {
+      "id": "war_fx_row_03_charge_sweep",
+      "name": "Test Card",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "charge",
+        "battlecry"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_03_charge_sweep.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_03_charge_sweep"
+    },
+    {
+      "id": "war_fx_row_04_armed_taunt",
+      "name": "Test Card",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": "owner_weapon"
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_04_armed_taunt.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_04_armed_taunt"
+    },
+    {
+      "id": "war_fx_row_05_hero_armor",
+      "name": "Test Card",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_05_hero_armor.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_05_hero_armor"
+    },
+    {
+      "id": "war_fx_row_06_weapon_strike",
+      "name": "Test Card",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "owner.weapon_attack"
+              },
+              "spell_damage": false
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_06_weapon_strike.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_06_weapon_strike"
+    },
+    {
+      "id": "war_fx_row_07_deathrattle_axe",
+      "name": "Test Card",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.war_fx_row_07_deathrattle_axe.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/war_fx_row_07_deathrattle_axe"
+    },
+    {
+      "id": "war_token_axe",
+      "name": "Test Card",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 3,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_token_axe.text",
+        "en": ""
+      },
+      "token": true,
+      "art": "cards/war_token_axe"
+    },
+    {
+      "id": "war_whetstone_blade",
+      "name": "Test Card",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_whetstone_blade.text",
+        "en": ""
+      },
+      "token": true,
+      "art": "cards/war_whetstone_blade"
+    }
+  ]
+}
