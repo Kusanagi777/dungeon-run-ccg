@@ -283,16 +283,28 @@ static func _summon_index(board: Array, position: String, source_id: int, placed
 	return POSITION_END
 
 
+## `values.reason` of a `mana` op with `duration: this_turn` until temporary
+## crystals exist (code review 2026-11-04).
+const REASON_TEMPORARY_MANA: String = "temporary_unsupported: this-turn crystals are match-rules story 011"
+
+
 ## C5 `mana`: `add_mana(side, amount, temporary)` with `temporary =
 ## (duration == this_turn)` — an absent `duration` is permanent; the engine
-## clamps and logs.
+## clamps and logs. TODO(match-rules story 011): `add_mana` refuses temporary
+## crystals until then, so a `this_turn` op calls nothing and is `skipped`
+## with `values.reason` [constant REASON_TEMPORARY_MANA] — never `applied`
+## for crystals that were not granted (code review 2026-11-04).
 func _op_mana(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var side: String = _side(op, run_ctx)
 	var amount: int = _int(op.get("amount", 0))
 	var duration: String = str(op.get("duration", DURATION_PERMANENT))
-	engine.add_mana(side, amount, duration == DURATION_THIS_TURN)
+	var values: Dictionary = {"amount": amount, "duration": duration, "side": side}
 	var none: Array[int] = []
-	return entry("mana", none, {"amount": amount, "duration": duration, "side": side}, APPLIED)
+	if duration == DURATION_THIS_TURN:
+		values["reason"] = REASON_TEMPORARY_MANA
+		return entry("mana", none, values, SKIPPED)
+	engine.add_mana(side, amount, false)
+	return entry("mana", none, values, APPLIED)
 
 
 # --- helpers ----------------------------------------------------------------------
