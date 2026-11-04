@@ -6,7 +6,7 @@
 > **Control Manifest**: Core Layer Rules (Manifest Version 2026-11-03)
 > **Build Order**: 6 of 14 — plan E4, ADR-0008 then ADR-0006
 > **Status**: Ready
-> **Stories**: 18 (see the table below) — created 2026-11-03 by `/create-stories boss-ai-match-driver`
+> **Stories**: 19 (see the table below) — created 2026-11-03 by `/create-stories boss-ai-match-driver`; 019 added 2026-11-04 (gap found by the card-database 007/008 lane)
 
 ## Stories
 
@@ -30,8 +30,9 @@
 | 016 | Headless AI-vs-AI simulation harness (gate condition 6) | Integration | Ready | ADR-0006, ADR-0008 |
 | 017 | Worker-vs-main-thread determinism and forecast concurrency (gate condition 9, Linux half) | Integration | Ready | ADR-0006 |
 | 018 | Windows export — planner running, A30 frame budget and determinism on Windows (gate conditions 6 and 9) | Integration | Ready | ADR-0006 |
+| 019 | CardDatabase.reload() refuses with E_BUSY while a PlannerTask is live | Integration | Ready | ADR-0006, ADR-0008, ADR-0002 |
 
-Dependency order: 001, 002 → 003 → 004 → 005, 006 → 007 → 008 → 009, 010, 011 → 012 · 013 (needs 001, 002, 008) → 014 (needs 010, 011), 015 → 016 → 017 → 018. Logic tests live under `tests/unit/boss_ai/` and `tests/unit/match_driver/`; Integration under `tests/integration/boss_ai/` and `tests/integration/match_driver/`. QL-STORY-READY skipped — Lean mode.
+Dependency order: 001, 002 → 003 → 004 → 005, 006 → 007 → 008 → 009, 010, 011 → 012 · 013 (needs 001, 002, 008) → 014 (needs 010, 011), 015 → 016 → 017 → 018 · 019 (needs 001, 013–015 and card-database 008) → 017's `E_BUSY` assertion. Logic tests live under `tests/unit/boss_ai/` and `tests/unit/match_driver/`; Integration under `tests/integration/boss_ai/` and `tests/integration/match_driver/`. QL-STORY-READY skipped — Lean mode.
 
 ## Overview
 

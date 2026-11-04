@@ -13,7 +13,7 @@ Review: PR-EPIC skipped — Lean mode
 | Card Database | Foundation | Card Database | design/gdd/card-database.md | 10 stories | Ready |
 | Match Rules | Core | Match Rules | design/gdd/match-rules.md | 18 stories | Ready |
 | Card Effects | Core | Card Effects | design/gdd/card-effects.md | 16 stories | Ready |
-| Boss AI + Match Driver | Core | Boss AI (+ Run Structure's `MatchDriver`) | design/gdd/boss-ai.md | 18 stories | Ready |
+| Boss AI + Match Driver | Core | Boss AI (+ Run Structure's `MatchDriver`) | design/gdd/boss-ai.md | 19 stories | Ready |
 | Match UI | Presentation | Match UI | design/gdd/match-ui.md | 24 stories | Ready |
 | Run Structure | Feature | Run Structure | design/gdd/run-structure.md | Not yet created | Ready |
 | Reward Draft | Feature | Reward Draft | design/gdd/reward-draft.md | Not yet created | Ready |
