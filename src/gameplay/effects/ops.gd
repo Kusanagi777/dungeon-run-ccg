@@ -4,7 +4,8 @@
 ## the effect's), calls the engine **primitive** per target in canonical
 ## order and returns the op's `effect_resolved.ops[i]` entry
 ## `{op, targets: Array[int], values: Dictionary, outcome}` with `outcome`
-## from [constant OUTCOMES]. Handlers never write match state and never emit:
+## from [constant OUTCOMES]. Handlers never write match state and, but for the
+## counter ops' `counter_changed` (the resolver's own data, C5), never emit:
 ## the primitive emits the mutation event (C5 "the resolver never
 ## double-emits"; gate G7). They never run the death check or
 ## `recompute_auras()` — that is the engine's C10 loop after the pass (C6.0).
@@ -12,7 +13,7 @@
 ## Story 006 ships `damage`, `heal`, `buff`, `destroy`, `draw`, `armor`,
 ## `equip`, `summon`, `silence`, `freeze`, `give_keyword` and `mana`; every
 ## other C5 op is recorded `skipped` until its story lands
-## (TODO: counters 009, `transform` /
+## (TODO: `transform` /
 ## `copy_to_hand` / keyword removal 013, the rest with the stories that own
 ## them). Story 007 adds `conditional` / `repeat` ([method step]), value
 ## expressions — every value param ([constant VALUE_PARAMS]) is evaluated by
@@ -23,7 +24,9 @@
 ## turns a pass into a plain-data **work list** ([method work], [method step])
 ## so a `discover` / `choose_one` can suspend it mid-effect, and adds
 ## `add_to_hand` and the F4 pool ([method pool_candidates],
-## [method draw_options]); the pause itself is the resolver's.
+## [method draw_options]); the pause itself is the resolver's. Story 009 adds
+## `add_counter` / `set_counter`, `values.read_from` on an op whose value read
+## `source.*` or `counter.*`, and `source_slot` from the raise-time snapshot.
 ## [codeblock]
 ## var ops := EffectOps.new()
 ## var todo: Array[Dictionary] = EffectOps.work([{"op": "draw", "count": 2}])
@@ -67,6 +70,8 @@ const DURATION_PERMANENT: String = "permanent"
 ## C5 `summon.position` values.
 const POSITION_SOURCE_SLOT: String = "source_slot"
 const POSITION_RIGHT_OF_SOURCE: String = "right_of_source"
+## The DSL trigger whose `summon` defaults to `source_slot` (C5).
+const TRIGGER_DEATHRATTLE: String = "deathrattle"
 ## `summon_minion`'s "rightmost slot" position (match-rules Interactions).
 const POSITION_END: int = -1
 ## C5 `summon.position: end`, and what `source_slot` / `right_of_source`
@@ -122,6 +127,8 @@ func _init() -> void:
 		"mana": _op_mana,
 	}
 	_table["add_to_hand"] = _op_add_to_hand
+	_table["add_counter"] = _op_add_counter
+	_table["set_counter"] = _op_set_counter
 
 
 ## True when this story's table runs [param op_name] (else [method run]
@@ -155,6 +162,11 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	var result: Dictionary = _table[name].call(engine, evaluated, run_ctx)
 	if clamped != null:
 		(result.values as Dictionary)["clamped_from"] = clamped
+	if run_ctx.get("resolver") is EffectResolver:
+		for key_name: String in VALUE_PARAMS:
+			var origin: String = EffectValues.read_origin(op.get(key_name), run_ctx)
+			if origin != "":
+				(result.values as Dictionary)["read_from"] = origin
 	return result
 
 
@@ -436,6 +448,42 @@ static func _target_kind(state: MatchState, name: String, op: Dictionary, id: in
 	return kind
 
 
+# --- source-scoped ops --------------------------------------------------------------
+
+## C5 `add_counter`: `counters[source][key] += amount`, on the live bucket even
+## for a source that has left play (Edge Cases row 45: a late write the queued
+## Deathrattle's snapshot does not see). Never fails.
+func _op_add_counter(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var key: String = str(op.get("key", ""))
+	var amount: int = _int(op.get("amount", 0))
+	var value: int = EffectRuntime.counter(engine.state().effects, run_ctx.source_id, key) + amount
+	return _write_counter(engine, "add_counter", key, value, run_ctx, {"amount": amount})
+
+
+## C5 `set_counter`: `counters[source][key] = value`; a `{count: selector}`
+## value was evaluated against the live board by [method run] (row 46: before
+## the following `destroy`). Never fails.
+func _op_set_counter(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	return _write_counter(engine, "set_counter", str(op.get("key", "")), _int(op.get("value", 0)), run_ctx, {})
+
+
+## Stores [param value] and emits `counter_changed {source_id, key, value}` for
+## a real change (ADR-0007: one per counter change; a write of the same value
+## changes nothing and emits nothing). The op is `applied` either way.
+static func _write_counter(engine: RulesEngine, op_name: String, key: String, value: int, run_ctx: Dictionary, values: Dictionary) -> Dictionary:
+	var runtime: Dictionary = engine.state().effects
+	var source_id: int = int(run_ctx.source_id)
+	var changed: bool = EffectRuntime.counter(runtime, source_id, key) != value
+	EffectRuntime.write_counter(runtime, source_id, key, value)
+	if changed:
+		@warning_ignore("return_value_discarded")
+		engine.emit(&"counter_changed", {"source_id": source_id, "key": key, "value": value})
+	values["key"] = key
+	values["value"] = value
+	var none: Array[int] = []
+	return entry(op_name, none, values, APPLIED)
+
+
 # --- side-scoped ops ----------------------------------------------------------------
 
 ## C5 `draw`: `draw(side, 1)` × count. Each call's outcome is read before it:
@@ -488,20 +536,21 @@ func _op_equip(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dict
 ## [constant POSITION_NAME_END] after that fallback. A full board is
 ## `board_full` per copy (the engine emits `summon_failed`). `targets` are
 ## the summoned entity ids.
-## TODO(story 009): `source_slot` from the Deathrattle snapshot's
-## `board_index`; TODO(story 007): `chosen_slot`.
+## A source that has left play keeps its `source_slot`: the raise-time snapshot's
+## `board_index` on that side (C5, match-rules C10 "at the dead minion's former
+## index"; story 009), and a Deathrattle defaults to it. TODO(story 007): `chosen_slot`.
 func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var side: String = _side(op, run_ctx)
 	var card_id: String = str(op.get("card_id", ""))
 	var count: int = _int(op.get("count", 1))
-	var position: String = str(op.get("position", POSITION_RIGHT_OF_SOURCE))
+	var position: String = str(op.get("position", POSITION_SOURCE_SLOT if str(run_ctx.get("trigger", "")) == TRIGGER_DEATHRATTLE else POSITION_RIGHT_OF_SOURCE))
 	var board: Array = engine.state().players[side].board
 	var summoned: Array[int] = []
 	var outcomes: Array[String] = []
 	for _i: int in count:
 		if board.size() >= engine.rule("board_size"):
 			outcomes.append(BOARD_FULL)
-		var index: int = _summon_index(board, position, int(run_ctx.source_id), summoned.size())
+		var index: int = _summon_index(board, position, side, run_ctx, summoned.size())
 		var id: int = engine.summon_minion(side, card_id, index)
 		if id != RulesEngine.NO_ENTITY:
 			summoned.append(id)
@@ -509,20 +558,32 @@ func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dic
 		elif board.size() < engine.rule("board_size"):
 			outcomes.append(SKIPPED)
 	var resolved: String = position
-	if _source_index(board, int(run_ctx.source_id)) < 0:
+	if _source_index(board, int(run_ctx.source_id)) < 0 and _former_slot(position, side, run_ctx) < 0:
 		resolved = POSITION_NAME_END
 	return entry("summon", summoned, {"card_id": card_id, "count": count, "side": side, "position": resolved}, fold_outcomes(outcomes) if count > 0 else APPLIED)
 
 
 ## The board index of the next copy: after the source and the copies already
-## placed by this op, or [constant POSITION_END].
-static func _summon_index(board: Array, position: String, source_id: int, placed: int) -> int:
+## placed by this op, from the source's former slot when it has left play
+## ([method _former_slot]), or [constant POSITION_END].
+static func _summon_index(board: Array, position: String, side: String, run_ctx: Dictionary, placed: int) -> int:
 	if position != POSITION_RIGHT_OF_SOURCE and position != POSITION_SOURCE_SLOT:
 		return POSITION_END
-	var index: int = _source_index(board, source_id)
+	var index: int = _source_index(board, int(run_ctx.source_id))
 	if index < 0:
-		return POSITION_END
+		var former: int = _former_slot(position, side, run_ctx)
+		return former + placed if former >= 0 else POSITION_END
 	return index + placed + (1 if position == POSITION_RIGHT_OF_SOURCE else 0)
+
+
+## The `board_index` of the pass's raise-time snapshot when [param position] is
+## `source_slot` and the copies land on the side the source stood on; else −1
+## (no snapshot, a weapon source, `right_of_source`, the other side).
+static func _former_slot(position: String, side: String, run_ctx: Dictionary) -> int:
+	var snapshot: Variant = run_ctx.get("snapshot")
+	if position != POSITION_SOURCE_SLOT or not snapshot is Dictionary or str((snapshot as Dictionary).get("owner", "")) != side:
+		return -1
+	return int((snapshot as Dictionary).get("board_index", -1))
 
 
 ## The source's index on [param board], or -1 when it is not a minion there

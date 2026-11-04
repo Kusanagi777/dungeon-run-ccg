@@ -27,6 +27,9 @@ const ENTITY_ROOTS: Array[String] = ["source", "target", "trigger_subject", "tri
 const SIDE_ROOTS: Array[String] = ["owner", "opponent"]
 ## The per-turn tallies C4 names, kept in `EffectRuntime.per_turn[side]`.
 const TALLIES: Array[String] = ["cards_played_this_turn", "minions_died_this_turn", "spells_cast_this_turn"]
+## `effect_resolved.ops[i].values.read_from` (Edge Cases row 45).
+const READ_LIVE: String = "live"
+const READ_SNAPSHOT: String = "snapshot"
 
 
 ## The int value of [param expr] in pass context [param run] (see the class
@@ -69,7 +72,8 @@ static func eval(expr: Variant, run: Dictionary) -> int:
 ## The C4 reference [param path] (closed set; the validator rejected any
 ## other at load, so an unknown path asserts in a debug build and reads 0).
 ## `source.*` / `counter.*` read live while the source is in play, else the
-## raise-time snapshot `run.snapshot` (story 009 fills it with counters);
+## raise-time snapshot `run.snapshot` ([method reads_snapshot]; a late write to
+## the live bucket of a departed source never reaches it, Edge Cases row 45);
 ## `target` / `trigger_*` read the entity in play — a dying one included —
 ## else 0. Example: `EffectValues.ref("owner.hand_size", run)`.
 static func ref(path: String, run: Dictionary) -> int:
@@ -92,18 +96,17 @@ static func ref(path: String, run: Dictionary) -> int:
 		"match.turn":
 			return int(state.turn)
 	if root == "counter":
-		var bucket: Variant = (state.effects.counters as Dictionary).get(str(run.source_id))
-		if bucket == null and run.get("snapshot") is Dictionary:
-			bucket = (run.snapshot as Dictionary).get("counters")
-		return _int((bucket as Dictionary).get(field)) if bucket is Dictionary else 0
+		if reads_snapshot(run):
+			return _int((run.snapshot.counters as Dictionary).get(field))
+		return EffectRuntime.counter(state.effects, run.source_id, field)
 	assert(false, "EffectValues.ref: unknown path '%s' (E_FX_REF_PATH at load)" % path)
 	return 0
 
 
 ## The record entity reference [param root] (`source`, `target`,
 ## `trigger_subject`, `trigger_source`) names: the entity in play (a dying
-## one included — C3 references), the source's raise-time snapshot for a
-## `source` no longer in play, else `{}`.
+## one included — C3 references), a character view of the source's raise-time
+## snapshot for a `source` no longer in play ([method _snapshot_view]), else `{}`.
 static func entity(root: String, run: Dictionary) -> Dictionary:
 	var resolver: EffectResolver = run.resolver
 	var state: MatchState = resolver.bound_engine().state()
@@ -111,11 +114,94 @@ static func entity(root: String, run: Dictionary) -> Dictionary:
 	if typeof(id) != TYPE_INT and typeof(id) != TYPE_FLOAT:
 		return {}
 	var found: Dictionary = EffectSelectors.find(state, int(id))
-	if found.is_empty() and root == "source" and run.get("snapshot") is Dictionary:
-		var snapshot: Dictionary = run.snapshot
-		if int(snapshot.get("entity_id", -1)) == int(id):
-			return snapshot
+	if found.is_empty() and root == "source" and reads_snapshot(run):
+		return _snapshot_view(run.snapshot)
 	return found
+
+
+## The C6.5 [param snapshot] in a Character record's shape, so stat refs and
+## `test` filters read a departed source the way they read a live one:
+## `base_attack` / `base_health` hold the snapshot's derived values with no
+## enchantments, and `damage_taken` is `max_health − health` (C4 allows
+## `source.damage_taken`; C6.5 has no such field). A field C6.5 does not keep
+## (`silenced`, `frozen`, …) reads as its default.
+static func _snapshot_view(snapshot: Dictionary) -> Dictionary:
+	var max_health: int = _int(snapshot.get("max_health"))
+	return {
+		"entity_id": int(snapshot.source_id),
+		"def_id": str(snapshot.def_id),
+		"controller": str(snapshot.owner),
+		"kind": MatchRecords.KIND_MINION if int(snapshot.board_index) >= 0 else "",
+		"base_attack": _int(snapshot.get("attack")),
+		"base_health": max_health,
+		"damage_taken": max_health - _int(snapshot.get("health")),
+		"enchantments": [],
+		"keywords": snapshot.keywords,
+	}
+
+
+## The C6.5 raise-time snapshot of the source [param record] (a live minion or
+## weapon, or a death record), `{source_id, def_id, owner, attack, health,
+## max_health, board_index, keywords, counters}` and nothing more: plain value
+## copies, so it survives the source and rides in the queue entry. `board_index`
+## is the slot it stood in (−1 for a weapon); `keywords` holds the printed and
+## the enchantment-granted ones; `counters` is the live bucket now.
+## Example: `EffectValues.source_snapshot(resolver, minion, 12, "war_scout", "player")`.
+static func source_snapshot(resolver: EffectResolver, record: Dictionary, source_id: int, def_id: String, owner: String) -> Dictionary:
+	var state: MatchState = resolver.bound_engine().state()
+	var keywords: Array = []
+	keywords.append_array(record.get("keywords", []))
+	for enchantment: Dictionary in record.get("enchantments", []):
+		for keyword: String in enchantment.keywords_added:
+			if not keywords.has(keyword):
+				keywords.append(keyword)
+	return {
+		"source_id": source_id,
+		"def_id": def_id,
+		"owner": owner,
+		"attack": _entity_stat(resolver, record, "attack"),
+		"health": _entity_stat(resolver, record, "health"),
+		"max_health": _entity_stat(resolver, record, "max_health"),
+		"board_index": int(record.get("position", (state.players[owner].board as Array).find(record))),
+		"keywords": keywords,
+		"counters": EffectRuntime.counters_of(state.effects, source_id),
+	}
+
+
+## True when pass [param run] reads `source.*` / `counter.*` from its raise-time
+## snapshot: it has one and the source is no longer the same `entity_id` in
+## play (C4, C6.5). A play pass has none: its counters are always live, its
+## source being a spell in `resolving` included (row 46).
+## Example: `if EffectValues.reads_snapshot(run): …`.
+static func reads_snapshot(run: Dictionary) -> bool:
+	var snapshot: Variant = run.get("snapshot")
+	if not snapshot is Dictionary or (snapshot as Dictionary).is_empty():
+		return false
+	var resolver: EffectResolver = run.resolver
+	return EffectSelectors.find(resolver.bound_engine().state(), int(run.get("source_id", -1))).is_empty()
+
+
+## `live` or `snapshot` when the value expression [param expr] holds a
+## `source.*` or `counter.*` ref, else "": the `values.read_from` of an op that
+## read one (Edge Cases: the late-counter case is legible from the log).
+## Example: `EffectValues.read_origin({"ref": "counter.seen"}, run)`.
+static func read_origin(expr: Variant, run: Dictionary) -> String:
+	if not _reads_source(expr):
+		return ""
+	return READ_SNAPSHOT if reads_snapshot(run) else READ_LIVE
+
+
+static func _reads_source(expr: Variant) -> bool:
+	if expr is Array:
+		for part: Variant in expr:
+			if _reads_source(part):
+				return true
+	elif expr is Dictionary:
+		var ref_path: String = str((expr as Dictionary).get("ref", ""))
+		if ref_path.begins_with("source.") or ref_path.begins_with("counter."):
+			return true
+		return _reads_source((expr as Dictionary).values())
+	return false
 
 
 ## The C4 condition [param condition] in pass context [param run] (see the
@@ -183,7 +269,7 @@ static func _entity_stat(resolver: EffectResolver, record: Dictionary, field: St
 	var engine: RulesEngine = resolver.bound_engine()
 	match field:
 		"attack":
-			return engine.attack(record) if record.has("base_attack") else _int(record.get("attack"))
+			return engine.attack(record) if record.has("base_attack") else _weapon_attack(record)
 		"health":
 			return engine.health(record) if record.has("base_health") else _int(record.get("health"))
 		"max_health":
@@ -217,14 +303,19 @@ static func _side_stat(engine: RulesEngine, state: MatchState, side: String, fie
 		"weapon_attack":
 			if player.weapon == null:
 				return 0
-			var weapon_attack: int = _int(player.weapon.get("attack"))
-			for enchantment: Variant in player.weapon.get("enchantments", []):
-				weapon_attack += _int((enchantment as Dictionary).get("attack_delta"))
-			return maxi(0, weapon_attack)
+			return _weapon_attack(player.weapon)
 		"weapon_durability":
 			return _int(player.weapon.durability) if player.weapon != null else 0
 	assert(false, "EffectValues: unknown side field '%s'" % field)
 	return 0
+
+
+## A weapon's Attack with its enchantments (card-effects story 011: Whetstone).
+static func _weapon_attack(weapon: Dictionary) -> int:
+	var total: int = _int(weapon.get("attack"))
+	for enchantment: Variant in weapon.get("enchantments", []):
+		total += _int((enchantment as Dictionary).get("attack_delta"))
+	return maxi(0, total)
 
 
 static func _int(value: Variant) -> int:

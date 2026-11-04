@@ -9,7 +9,9 @@
 ## (`MatchFactory.summon`), mutated through the engine primitives inside
 ## `run_action` so each action runs its C10 loop. The resolver is the
 ## `TestEffectResolver` double: it skips a silenced candidate's triggers and a
-## silenced source's aura, as Card Effects will.
+## silenced source's aura, as Card Effects will. The match-rules AC-46 cases run
+## on the real `EffectResolver` over inline hosts: the double answers no kept
+## Deathrattle (C13 step 2; 2026-11-04, DD-X21).
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchFactory.SIDE_PLAYER
@@ -25,6 +27,51 @@ const DAMAGE_AFTER_SILENCE: int = 1
 const ATK: int = 1
 const SAFE_HEALTH: int = 10
 const MARKER: StringName = &"test_deathrattle_marker"
+## Match-rules AC-46 hosts (real resolver). "Deathrattle: deal 2 damage to the
+## enemy hero"; the same plus "whenever this takes damage, gain 1 Armor";
+## `chosen` spells whose op order their names give.
+const DR_TWO: String = "neutral_test_dr_two"
+const DR_AND_WINCE: String = "neutral_test_dr_and_wince"
+const DESTROY_SILENCE: String = "neutral_test_destroy_silence"
+const SILENCE_DESTROY: String = "neutral_test_silence_destroy"
+const DAMAGE_SILENCE: String = "neutral_test_damage_silence"
+const DR_JSON: String = '{"trigger":"deathrattle","targets":"enemy_hero","ops":[{"op":"damage","amount":2}]}'
+const WINCE_JSON: String = '{"trigger":"on_damage_taken","ops":[{"op":"armor","targets":"owner","amount":1}]}'
+const DR_DAMAGE: int = 2
+const AC46_HEALTH: int = 4
+## The log of AC-46's first clause, in order.
+const AC46_ORDER: Array[String] = ["silenced", "minion_died", "trigger_queued", "damage_dealt"]
+
+
+## `has` / `card` / `hero_power` from a map (the engine and the resolver ask
+## nothing else in a match).
+class FakeCardDatabase:
+	extends CardDatabase
+
+	var records: Dictionary = {}
+
+	func _init(by_id: Dictionary) -> void:
+		records = by_id
+
+	func has(id: String) -> bool:
+		return records.has(id)
+
+	func card(id: String) -> Variant:
+		return records.get(id)
+
+	func hero_power(id: String) -> Variant:
+		return records.get(id)
+
+
+## The match of a [method _real_engine] test: `end_match()` breaks its
+## engine↔resolver cycle.
+var _real: RulesEngine = null
+
+
+func after_test() -> void:
+	if _real != null:
+		_real.end_match()
+	_real = null
 
 
 # --- helpers -----------------------------------------------------------------
@@ -33,6 +80,55 @@ func _engine(log: TestEventLog, resolver: TestEffectResolver = null) -> RulesEng
 	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {}, {}, resolver)
 	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
 	return engine
+
+
+func _parsed(json_text: String) -> Dictionary:
+	var parsed: Variant = JSON.parse_string(json_text)
+	assert_bool(parsed is Dictionary).override_failure_message("fixture JSON: %s" % json_text).is_true()
+	return parsed if parsed is Dictionary else {}
+
+
+func _chosen_spell(id: String, ops: String) -> Dictionary:
+	return CardFactory.make_spell(id, 1, [_parsed('{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":%s}' % ops)])
+
+
+## A started engine on the real `EffectResolver`, past a keep-all mulligan
+## (player Main, turn 1), the player's hand exactly [param hand], 10 mana.
+func _real_engine(log: TestEventLog, hand: Array = []) -> RulesEngine:
+	var by_id: Dictionary = {}
+	for record: Dictionary in CardFactory.make_fixture_card_set():
+		by_id[record.id] = record
+	by_id[DR_TWO] = CardFactory.make_minion(DR_TWO, 1, 1, AC46_HEALTH, ["deathrattle"], {"effects": [_parsed(DR_JSON)]})
+	by_id[DR_AND_WINCE] = CardFactory.make_minion(DR_AND_WINCE, 1, 1, AC46_HEALTH, ["deathrattle"], {"effects": [_parsed(WINCE_JSON), _parsed(DR_JSON)]})
+	by_id[DESTROY_SILENCE] = _chosen_spell(DESTROY_SILENCE, '[{"op":"destroy"},{"op":"silence"}]')
+	by_id[SILENCE_DESTROY] = _chosen_spell(SILENCE_DESTROY, '[{"op":"silence"},{"op":"destroy"}]')
+	by_id[DAMAGE_SILENCE] = _chosen_spell(DAMAGE_SILENCE, '[{"op":"damage","amount":%d},{"op":"silence"}]' % AC46_HEALTH)
+	var db: FakeCardDatabase = FakeCardDatabase.new(by_id)
+	var effects_config: Dictionary = {
+		"discover_count": float(TestConstants.DISCOVER_COUNT),
+		"discover_exclude_hand": false,
+		"max_ops_per_effect": float(TestConstants.MAX_OPS_PER_EFFECT),
+		"max_repeat": float(TestConstants.MAX_REPEAT),
+		"max_summon_count": float(TestConstants.BOARD_SIZE),
+		"effect_static_step_limit": float(TestConstants.EFFECT_STATIC_STEP_LIMIT),
+		"spell_damage_default": "auto",
+		"hooks_before_triggers": true,
+	}
+	_real = RulesEngine.new(db, MatchFactory.make_rules_config(), EffectResolver.new(db, effects_config))
+	_real.start(MatchFactory.make_started_config(TestRngService.new(), log))
+	assert_bool(_real.submit(_real.legal_commands()[0]).accepted).is_true()
+	var state: MatchState = _real.state()
+	var cards: Array = state.players[SIDE_PLAYER].hand
+	cards.clear()
+	for def_id: Variant in hand:
+		cards.append(MatchFactory.make_card_instance(MatchFactory.alloc_entity_id(state), str(def_id), "hand"))
+	state.players[SIDE_PLAYER].mana_current = 10
+	return _real
+
+
+## A [param def_id] minion with [param keywords] on the player's board; its id.
+func _put(engine: RulesEngine, def_id: String, keywords: Array) -> int:
+	return int(MatchFactory.summon(engine.state(), SIDE_PLAYER, BASE_ATTACK, AC46_HEALTH, -1, keywords, def_id).entity_id)
 
 
 ## A ready (not summoning-sick) minion on [param side]'s board; its record.
@@ -412,3 +508,144 @@ func test_a_silenced_minion_keeps_received_auras_and_stops_emitting_its_own() ->
 	assert_int(engine.max_health(b)).is_equal(SAFE_HEALTH + 1)
 	assert_int(engine.attack(a)).is_equal(ATK)
 	assert_int(engine.max_health(a)).is_equal(SAFE_HEALTH)
+
+
+# --- match-rules AC-46 (C12 Deathrattle row, C13 step 2; 2026-11-04, DD-X21) --------
+#
+# These run on the real `EffectResolver`: the `silenced` flag is the trap (C13
+# step 3 sets it and C6.2 skips silenced sources), and the double cannot show
+# whether the production resolver still answers for a kept Deathrattle.
+
+func test_ac46_destroy_then_silence_through_chosen_logs_silenced_died_queued_then_two_damage() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log, [DESTROY_SILENCE])
+	var host: int = _put(engine, DR_TWO, ["deathrattle"])
+	var before: int = log.events.size()
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, host)).accepted).is_true()
+
+	# Assert
+	var order: Array = _types(log, before).filter(func(type: String) -> bool: return AC46_ORDER.has(type))
+	assert_array(order).is_equal(AC46_ORDER)
+	assert_int(int(_of(log, before, "trigger_queued")[0].payload.source_id)).is_equal(host)
+	var hit: Dictionary = _of(log, before, "damage_dealt")[0].payload
+	assert_int(int(hit.target)).is_equal(_hero_id(engine, SIDE_BOSS))
+	assert_int(int(hit.dealt)).is_equal(DR_DAMAGE)
+
+
+func test_ac46_silence_then_destroy_logs_the_death_and_queues_nothing_for_it() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log, [SILENCE_DESTROY])
+	var host: int = _put(engine, DR_TWO, ["deathrattle"])
+	var before: int = log.events.size()
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, host)).accepted).is_true()
+
+	# Assert
+	assert_array(_of(log, before, "minion_died")).has_size(1)
+	assert_array(_of(log, before, "trigger_queued")).is_empty()
+	assert_array(_of(log, before, "damage_dealt")).is_empty()
+
+
+func test_ac46_lethal_damage_then_silence_queues_nothing_for_it() -> void:
+	# Arrange — dying at `health ≤ 0` with no `pending_destroy`
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log, [DAMAGE_SILENCE])
+	var host: int = _put(engine, DR_TWO, ["deathrattle"])
+	var before: int = log.events.size()
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, host)).accepted).is_true()
+
+	# Assert — one `damage_dealt`: the spell's own, on the minion
+	assert_array(_of(log, before, "minion_died")).has_size(1)
+	assert_array(_of(log, before, "trigger_queued")).is_empty()
+	assert_array(_of(log, before, "damage_dealt")).has_size(1)
+	assert_int(int(_of(log, before, "damage_dealt")[0].payload.target)).is_equal(host)
+
+
+func test_ac46_a_deathrattle_granted_by_an_enchantment_is_kept_and_the_enchantment_goes() -> void:
+	# Arrange — no printed Deathrattle keyword: the enchantment grants it, with Attack
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log)
+	var host: int = _put(engine, DR_TWO, ["taunt"])
+	engine.run_action(func() -> void: engine.apply_enchantment(host, {"attack_delta": 1, "keywords_added": ["deathrattle"]}))
+	var before: int = log.events.size()
+	var held: Array = []
+
+	# Act
+	engine.run_action(func() -> void:
+		engine.destroy(host)
+		engine.silence(host)
+		held.assign(MatchFactory.find_entity(engine.state(), host).keywords))
+
+	# Assert — the Deathrattle stays; Taunt and the enchantment leave
+	var payload: Dictionary = _of(log, before, "silenced")[0].payload
+	assert_array(held).is_equal(["deathrattle"])
+	assert_array(payload.removed_keywords).is_equal(["taunt"])
+	assert_array(payload.removed_enchantments).has_size(1)
+	assert_array(_of(log, before, "trigger_queued")).has_size(1)
+	assert_array(_of(log, before, "damage_dealt")).has_size(1)
+
+
+func test_ac46_a_pending_destroy_minion_keeps_only_its_deathrattle_when_silenced() -> void:
+	# Arrange — a printed Deathrattle, other keywords, an enchantment and a damage trigger
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log)
+	var host: int = _put(engine, DR_AND_WINCE, ["divine_shield", "deathrattle", "taunt"])
+	engine.run_action(func() -> void: engine.apply_enchantment(host, {"attack_delta": 1}))
+	var before: int = log.events.size()
+	var held: Array = []
+
+	# Act — the hit after the Silence would raise `on_damage_taken` were it kept
+	engine.run_action(func() -> void:
+		engine.destroy(host)
+		engine.silence(host)
+		held.assign(MatchFactory.find_entity(engine.state(), host).keywords)
+		engine.apply_damage(host, 1, null))
+
+	# Assert
+	var payload: Dictionary = _of(log, before, "silenced")[0].payload
+	assert_array(held).is_equal(["deathrattle"])
+	assert_array(payload.removed_keywords).is_equal(["divine_shield", "taunt"])
+	assert_array(payload.removed_enchantments).has_size(1)
+	var queued: Array[Dictionary] = _of(log, before, "trigger_queued")
+	assert_array(queued).has_size(1)
+	assert_str(str(queued[0].payload.point)).is_equal("deathrattle")
+
+
+func test_ac46_silence_on_a_living_minion_still_strips_the_deathrattle_keyword() -> void:
+	# Arrange — not `pending_destroy`: the exception does not apply
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log)
+	var host: int = _put(engine, DR_TWO, ["deathrattle"])
+	var before: int = log.events.size()
+
+	# Act
+	engine.run_action(func() -> void: engine.silence(host))
+
+	# Assert
+	assert_array(MatchFactory.find_entity(engine.state(), host).keywords).is_empty()
+	assert_array(_of(log, before, "silenced")[0].payload.removed_keywords).is_equal(["deathrattle"])
+
+
+func test_ac46_silence_destroy_silence_does_not_restore_the_stripped_deathrattle() -> void:
+	# Arrange — it held nothing when it was marked
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _real_engine(log)
+	var host: int = _put(engine, DR_TWO, ["deathrattle"])
+	var before: int = log.events.size()
+
+	# Act
+	engine.run_action(func() -> void:
+		engine.silence(host)
+		engine.destroy(host)
+		engine.silence(host))
+
+	# Assert
+	assert_array(_of(log, before, "minion_died")).has_size(1)
+	assert_array(_of(log, before, "trigger_queued")).is_empty()
