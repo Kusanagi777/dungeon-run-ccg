@@ -12,7 +12,24 @@
     "allow": [
       "Bash(dir *)",
       "Bash(python -m pytest *)",
-      "Bash(py -m pytest *)"
+      "Bash(py -m pytest *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git merge *)",
+      "Bash(git push -u origin *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git filter-branch *)",
+      "Bash(godot *)",
+      "Bash(timeout 60 godot *)",
+      "Bash(bash tools/lint/*)",
+      "Bash(python3 *)",
+      "Bash(grep *)",
+      "Bash(sed *)",
+      "Bash(cd *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
