@@ -6,7 +6,7 @@
 > **Control Manifest**: Feature Layer Rules (Manifest Version 2026-11-03); the registry it installs into is Core (ADR-0005)
 > **Build Order**: 10 of 14 — plan E6, ADR-0005
 > **Status**: Ready
-> **Stories**: Not yet created — run `/create-stories treasures`
+> **Stories**: 13 stories (2026-11-04; 12 Ready, 1 Blocked) — see Stories below
 
 ## Overview
 
@@ -48,6 +48,28 @@ Requirements covered by Accepted ADRs: 5 / 5. Untraced Requirements: None.
 ## Gate Entry Conditions Carried
 
 - None named directly. Carries the TD-009 retirement (`TR-tech-debt-001` half) that the Technical Setup gate closed against ADR-0005.
+
+## Stories
+
+| # | Story | Type | Status | ADR |
+|---|-------|------|--------|-----|
+| 001 | [Installers — `installers_for`, `passive_installer`, `collect_state`](story-001-installers-passive-and-collect-state.md) | Logic | Ready | ADR-0005 |
+| 002 | [Live match — installation order, duplicate skip, no back-reference, clone](story-002-installation-order-duplicates-and-clone.md) | Integration | Ready | ADR-0005, ADR-0007 |
+| 003 | [`TreasureValidator` — T7 codes at stage 7b, registered at Boot](story-003-treasure-validator-at-stage-7b.md) | Logic | Ready | ADR-0005, ADR-0002 |
+| 004 | [F5 hook-chain cost bound and the Node-free treasures tree](story-004-hook-chain-cost-bound-and-purity.md) | Logic | Ready | ADR-0005 |
+| 005 | [Cost-fold treasures — Worn Signet, Vanguard's Banner, stacking](story-005-cost-fold-treasures.md) | Integration | Ready | ADR-0005, ADR-0007 |
+| 006 | [Hand-size and attack folds — Bottomless Satchel, Twin Grip](story-006-hand-size-and-attack-fold-treasures.md) | Integration | Ready | ADR-0005, ADR-0007 |
+| 007 | [Trigger-hook treasures — Crown, Candle, Iron Constitution, Cloak](story-007-trigger-hook-treasures.md) | Integration | Ready | ADR-0005, ADR-0007 |
+| 008 | [Aura treasures — Whetstone Wheel, Stampede Horn](story-008-aura-treasures.md) | Integration | Ready | ADR-0007, ADR-0005 |
+| 009 | [`pool(unlocked_keys, exclude_ids)` — the one membership predicate](story-009-pool-membership-predicate.md) | Logic | Ready | ADR-0005 |
+| 010 | [`Treasures.validate_config` and data-driven magnitudes](story-010-treasures-balance-validator-and-data-driven-magnitudes.md) | Logic | Ready | ADR-0002, ADR-0005 |
+| 011 | [Restart and resume re-install — the caller's `run_warning`s](story-011-restart-and-resume-reinstall.md) | Integration | Ready | ADR-0005 |
+| 012 | [Non-MVP spot checks — Grave Tithe, Living Armory, Focusing Prism, Mending Charm](story-012-non-mvp-treasure-spot-checks.md) | Integration | Ready | ADR-0005, ADR-0007 |
+| 013 | [`W_TR_POWER` — F1 power-band warning](story-013-power-band-warning.md) | Logic | Blocked | ADR-0005 |
+
+Blocked: 013 on a treasures GDD gap (T7 asks for a load-time F1 check; F1 is never computed and has no effect→value mapping) — not on an ADR. Scheduling: 011 waits on the Run Structure epic's `begin_match` / resume stories (none yet). Cross-epic unblocks: 001 → card-effects 014 (its "`HookInstaller` / `passive_installer`" need) and the First Playable boss passive (all three band-1 bosses carry one); 003 → content 006 and Boot's pending `treasure` record validator; 010 → Boot's pending `treasures_balance` config validator.
+
+GDD acceptance-criteria coverage (30 lines): AC-1, AC-4, AC-10 → 001 (caller halves of AC-4 / AC-10 → 011) · AC-2, AC-3, AC-6, AC-7 → 002 · AC-5 → 003 · AC-8, AC-16, AC-17 → 005 · AC-9 → 011 · AC-11, AC-12 → 009 · AC-13, AC-19, AC-23 → 006 · AC-14 → 004 · AC-15, AC-18, AC-20, AC-21 → 007 · AC-22, AC-24 → 008 · AC-25–AC-28 → 012 · AC-29 → 013 · AC-30 → 010 (first half), 013 (second half). Story creation: QL-STORY-READY skipped — Lean mode.
 
 ## Definition of Done
 

@@ -1,6 +1,6 @@
 # Epics Index
 
-Last Updated: 2026-11-03
+Last Updated: 2026-11-04
 Engine: Godot 4.7.2
 Scope: MVP only (DD-H06) — War hero, 5 bosses (3/1/1), ~40 cards + ~10 boss cards, 10 treasures, 10 bundles
 Order: riskiest first, following the ADR implementation order (gate `gate-pre-production-2026-11-03.md` entry conditions 1 and 2)
@@ -17,8 +17,8 @@ Review: PR-EPIC skipped — Lean mode
 | Match UI | Presentation | Match UI | design/gdd/match-ui.md | 24 stories | Ready |
 | Run Structure | Feature | Run Structure | design/gdd/run-structure.md | Not yet created | Ready |
 | Reward Draft | Feature | Reward Draft | design/gdd/reward-draft.md | Not yet created | Ready |
-| Treasures | Feature | Treasures | design/gdd/treasures.md | Not yet created | Ready |
-| Heroes | Feature | Heroes | design/gdd/heroes.md | Not yet created | Ready |
+| Treasures | Feature | Treasures | design/gdd/treasures.md | 13 stories | Ready |
+| Heroes | Feature | Heroes | design/gdd/heroes.md | 4 stories | Ready |
 | Run UI | Presentation | Run UI | design/gdd/run-ui.md | Not yet created | Ready |
 | Meta Progression (persistence + seam) | Feature / Foundation code | Meta Progression | design/gdd/meta-progression.md | Not yet created | Ready |
 | Content (MVP batch) | Feature (data) | Content | design/gdd/content.md | 9 stories | Ready |

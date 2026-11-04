@@ -1,0 +1,103 @@
+# Story 001: War hero seated from its `HeroDef` — Whetstone on shipped data
+
+> **Epic**: Heroes
+> **Status**: Ready
+> **Layer**: Feature
+> **Type**: Integration
+> **Estimate**: M
+> **Manifest Version**: 2026-11-04
+> **Last Updated**: [set by /dev-story when implementation begins]
+> **First Playable path**: yes — the War match needs the hero's health and Whetstone from data, not from a test setting
+
+## Context
+
+**GDD**: `design/gdd/heroes.md` (H-1, H-3, Edge Cases "Whetstone", AC-7, AC-8, AC-19) · `design/gdd/match-rules.md` C3 step 2
+**Requirement**: `TR-heroes-001`
+*(Requirement text lives in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
+
+**ADR Governing Implementation**: ADR-0002: Data format, effect schema/DSL and `config()` loading (most direct); ADR-0007: Effect Resolver / Validator Boundary
+**ADR Decision Summary**: A hero is a `HeroDef` record read through `CardDatabase`; nothing hero-specific lives in code (ADR-0002). The hero power is a `hero_power`-trigger effect on its `HeroPowerDef`, resolved by `EffectResolver` through engine primitives only (ADR-0007).
+**ADR Version**: 2026-11-03 (ADR-0002); 2026-11-03 (ADR-0007)
+
+**Engine**: Godot 4.7.2 | **Risk**: HIGH (by version; the APIs used — `RefCounted`, `Dictionary`, `Array` — predate 4.3 and are LOW)
+**Engine Notes**: ADR-0002 / ADR-0007 Engine Compatibility — no post-cutoff API. An override of a typed method returns explicitly (4.7) if a test double is written.
+
+**Control Manifest Rules (this layer)**:
+- Required: `MatchConfig` is the engine's only input (`player {hero_def_id, deck, hook_installers}`); config bodies are read once at construction; every gameplay value comes from data
+- Forbidden: never a numeric gameplay literal in run code; never write match state from `src/gameplay/effects/**` (gate G7)
+- Guardrail: `RulesEngine.submit()` ≤ 5 ms; `legal_commands()` ≤ 2 ms
+
+The engine still seats the player hero from the knob `starting_health_player` and leaves `PlayerState.hero_power.def_id` empty (`TODO(card-database story 006)` in `RulesEngine.start`, noted open by match-rules stories 003 and 010; every hero-power test so far sets `def_id` itself). Match-rules C3 step 2 says player health is the hero record's `health`. No story owns that line, and the First Playable War match cannot use Whetstone until it is closed, so this epic takes it.
+
+---
+
+## Acceptance Criteria
+
+*From GDD `design/gdd/heroes.md` (H-1, H-3, AC-7, AC-8, AC-19) and `design/gdd/match-rules.md` C3 step 2, scoped to this story:*
+
+- [ ] **AC-1 (H-1, match-rules C3.2)** GIVEN the shipped `assets/data/` and a `MatchConfig` with `player.hero_def_id = "hero_war"`, WHEN `RulesEngine.start` runs, THEN the player hero's `base_health` equals `db.hero("hero_war").health` (30) and `PlayerState.hero_power.def_id == "power_whetstone"`, read from the record and not set by the test; GIVEN a fixture `HeroDef` with `health: 27`, THEN the hero seats at 27/27 with no code change.
+- [ ] **AC-7** GIVEN War on shipped data with no weapon and 2 mana, WHEN `use_hero_power`, THEN the events are `hero_power_used`, `weapon_equipped(war_whetstone_blade)`; hero attack = 1, durability 2, mana 0.
+- [ ] **AC-8** GIVEN War on shipped data holding a 2/2 weapon (`war_rusted_axe`), WHEN `use_hero_power`, THEN no `weapon_destroyed`; weapon attack = 3 until the End step, 2 afterwards (`enchantment_removed`).
+- [ ] **AC-19** No hero value (health, power cost, blade stats, Husk stats, tax, curve bounds) is a literal in `src/`; all come from `heroes.json`, `hero_powers.json`, `cards_*.json` or `heroes_balance.json`. Adding a fourth hero is data only: a fixture hero whose `hero_power` is an existing power (`power_whetstone`) loads and plays a scripted turn (mulligan, use the power, end turn) with no code change.
+
+---
+
+## Implementation Notes
+
+*Derived from ADR-0002 Decision 6 / Implementation Guidelines, ADR-0007 Decision 1, match-rules C3:*
+
+- C3 step 2 reads `db.hero(config.player.hero_def_id)`: `base_health = record.health`, and `players.player.hero_power = {def_id: record.hero_power, used_this_turn: false}`. CR-3 makes `health` required, so the `starting_health_player` fallback C3 names is reached only by a config whose `hero_def_id` has no record. Keep that branch and log it (`push_error`); do not invent another default.
+- The engine already holds `db` (`RulesEngine._init(db, rules_config, resolver)`). Read the record once in `start`, never per command. Treat the record as read-only (ADR-0002: take `duplicate(true)` before any mutation).
+- Whetstone's resolution (`conditional` / `exists: owner_weapon`, `equip`, `buff` until end of turn) is done (card-effects 011, match-rules 010). This story proves it on the **shipped** records instead of fixture rows 8/16/25, so AC-7 and AC-8 are integration tests over `assets/data/` through a real `EffectResolver`.
+- The power cost stays `rule("hero_power_cost")` through the `modify_cost` fold (match-rules C7 / F1): `HeroPowerDef.cost` is not read by the engine. This matches the shipped data, where both are 2.
+- AC-19's literal check is a review item plus the fixture-hero test. The fixture hero lives in a fixture root or a `tests/helpers/card_factory.gd` record set, never in `assets/data/`.
+- **Cross-epic edit.** `src/gameplay/match/rules_engine.gd` belongs to the match-rules epic. The producer assigns this one C3 step 2 change here, because no match-rules story is left to own it. Match-rules story 019 (performance pass, its own [S] lane, byte-identical event logs) edits the same file, so do not schedule the two in one wave, or rebase this change onto 019's.
+- The boss's hero power is out of scope: no MVP boss has one (`bosses.json`: `hero_power` null on all five).
+
+---
+
+## Out of Scope
+
+*Handled by neighbouring stories — do not implement here:*
+
+- Story 002: the `Heroes` accessor (`hero`, `launch_heroes`, `plan_tags`) and the shipped-data checks AC-1 / AC-6
+- Run Structure epic: copying the starter deck into the run deck and building `MatchConfig` at `begin_match` (R2, R3)
+- Card-effects 011 / match-rules 010: the power's resolution and the `use_hero_power` command (both Complete)
+- Decay (Rot) and Knowledge (Insight) on shipped data: AC-9 to AC-14 are deferred to Alpha with their heroes (DD-H06)
+
+---
+
+## Files
+
+*The code and test files this story creates or changes. `/create-stories` lists the
+planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
+checks scope against it.*
+
+- `src/gameplay/match/rules_engine.gd` — C3 step 2 reads the `HeroDef` (cross-epic edit, see Implementation Notes)
+- `tests/integration/heroes/heroes_war_match_seating_test.gd`
+- `tests/fixtures/data/heroes_fixture_hero/` (or a `card_factory` record set) — the 27-health and fourth-hero fixtures
+
+---
+
+## QA Test Cases
+
+*N/A — no qa-lead specs at this tier; implement against the Acceptance Criteria above*
+
+---
+
+## Test Evidence
+
+*Governed by `qa.level: standard`.*
+
+**Story Type**: Integration
+**Required evidence**:
+- Integration: `tests/integration/heroes/heroes_war_match_seating_test.gd` — must exist and pass
+
+**Status**: [ ] Not yet created
+
+---
+
+## Dependencies
+
+- Depends on: None in this epic. Cross-epic (all Complete): `production/epics/match-rules/story-003-match-setup.md`, `production/epics/match-rules/story-010-play-card-and-hero-power.md`, `production/epics/card-effects/story-011-hero-powers.md`, `production/epics/card-database/story-006-freeze-and-queries.md`, `production/epics/content/story-001-batch-0-first-playable-data-set.md`
+- Unlocks: `production/epics/boss-ai-match-driver/story-016-sim-harness.md` (real-data War runs, together with story 002); the First Playable War match (gate entry condition 5)
