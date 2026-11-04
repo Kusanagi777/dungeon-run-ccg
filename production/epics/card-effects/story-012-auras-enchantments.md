@@ -32,10 +32,10 @@
 
 *From GDD `design/gdd/card-effects.md` (C7, F1 `hand_aura_delta`, F2, F3, Edge Cases "Buffs, auras and Silence"; AC-26, AC-27, AC-28, AC-29), scoped to this story:*
 
-- [ ] **AC-26** GIVEN the friendly board `[row 26, row 26, vanilla 1/1, row 27]` left to right, WHEN auras are recomputed, THEN the 1/1 reads 5/3 (`+1 +1` attack from the two lords `+2` from adjacency = `+4`; health `+2`), each lord reads +1/+1 from the other only (row 27 is adjacent to neither), and row 27 reads +2/+2; one source never applies the same aura twice to one target.
-- [ ] **AC-27** GIVEN row 26 buffing a damaged 2/2 (now 3/1 after 2 damage), WHEN row 26 is Silenced, THEN at the next recompute the 2/2 has `health ≤ 0` and dies in the following loop pass, with `silenced` → `auras_recomputed` → `minion_died` in the log (Silence on a recipient strips and re-applies — net no change).
-- [ ] **AC-28** GIVEN a "+4/+4 until end of turn" on a 1/1 that then takes 4 damage, WHEN the owner's End step runs, THEN `enchantment_removed` then `minion_died` (F3: `damage_taken` unchanged, health `1 + 0 − 4`); a negative `buff` (`health: −2`) on a 3/3 with 2 damage kills the same way.
-- [ ] **AC-29** GIVEN row 24 ("Your spells cost (1) less", `aura` with `zone: hand`) on board and a 3-cost spell in hand, WHEN `effective_cost` is read, THEN 2; with two copies of row 24 → 1; with a 1-cost spell and two copies → 0, never negative (F1 clamps once).
+- [x] **AC-26** GIVEN the friendly board `[row 26, row 26, vanilla 1/1, row 27]` left to right, WHEN auras are recomputed, THEN the 1/1 reads 5/3 (`+1 +1` attack from the two lords `+2` from adjacency = `+4`; health `+2`), each lord reads +1/+1 from the other only (row 27 is adjacent to neither), and row 27 reads +2/+2; one source never applies the same aura twice to one target.
+- [x] **AC-27** GIVEN row 26 buffing a damaged 2/2 (now 3/1 after 2 damage), WHEN row 26 is Silenced, THEN at the next recompute the 2/2 has `health ≤ 0` and dies in the following loop pass, with `silenced` → `auras_recomputed` → `minion_died` in the log (Silence on a recipient strips and re-applies — net no change).
+- [x] **AC-28** GIVEN a "+4/+4 until end of turn" on a 1/1 that then takes 4 damage, WHEN the owner's End step runs, THEN `enchantment_removed` then `minion_died` (F3: `damage_taken` unchanged, health `1 + 0 − 4`); a negative `buff` (`health: −2`) on a 3/3 with 2 damage kills the same way.
+- [x] **AC-29** GIVEN row 24 ("Your spells cost (1) less", `aura` with `zone: hand`) on board and a 3-cost spell in hand, WHEN `effective_cost` is read, THEN 2; with two copies of row 24 → 1; with a 1-cost spell and two copies → 0, never negative (F1 clamps once).
 
 ---
 
@@ -126,4 +126,4 @@ QL-STORY-READY skipped — Lean mode.
 - **Weapons as aura sources** come after both boards (C7 names boards then treasures; C2 lets weapons host `aura`; C3 orders weapons after the boards). No fixture weapon has an aura yet.
 - **`zone: hand`** defaults the effect's targets to `hand` when it names none; row 24 names `hand` itself.
 **Test Evidence**: `tests/unit/card_effects/card_effects_auras_enchantments_test.gd`
-**Reviewed by**: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`): **NOT ASSESSED** [otherwise APPROVED WITH SUGGESTIONS; the engine-specialist and qa-tester passes could not be spawned]. 0 blocking. Should-fix S2 (DD-X25) and T2: fixed in the L7 W1 fix buffer. S3 awaits the owner's design call. Nit N5: boxes ticked. Lane record before that review: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)

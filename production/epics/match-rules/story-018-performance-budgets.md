@@ -143,3 +143,5 @@ Per story-done ("never fix a failing criterion yourself") and this story's Out o
 - (b) re-budget the 5 ms worst case for GDScript.
 
 Separately, boss-ai F7 and ADR-0006 need `/propagate-design-change` (R5) before BAI tuning. The CI `performance` job will report exit 100 as a warning until then.
+
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`), harness only: **NOT ASSESSED** [otherwise APPROVED WITH SUGGESTIONS; the engine-specialist and qa-tester passes could not be spawned]. 0 blocking. Should-fix S6 and S7: lane 6's W1 perf-harness buffer. Nit N12 open. The story stays In Progress: AC-40 is unmet.

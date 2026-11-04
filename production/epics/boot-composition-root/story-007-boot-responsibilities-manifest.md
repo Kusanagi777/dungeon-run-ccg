@@ -33,9 +33,9 @@
 
 *From `production/gate-checks/gate-pre-production-2026-11-03.md` condition 12 and `docs/architecture/architecture.md` §Dependency injection, scoped to this story:*
 
-- [ ] `production/epics/boot-composition-root/boot-responsibilities.md` lists every `Boot` "does" and "never does" row from architecture.md §Dependency injection, ADR-0001 Decision 4 (construct `CardDatabase` + `load(validators)`, the `MetaApi` implementation, `SettingsBus`; `services()` to scene roots and debug loaders only; idle `_ready()`; the single `[autoload]` entry; no game state, no tick), ADR-0004 Decision 6 / 8 (`Timer` children for the lock heartbeat and the settings debounce; `NOTIFICATION_WM_CLOSE_REQUEST` / `_exit_tree` → `release_lock()`; timers start in `boot()`), ADR-0004 addendum step 4 (apply `settings.bindings` to `InputMap` after the profile loads; re-apply on `settings_changed{bindings}` — Alpha) and ADR-0011 Decision 4 (the `MetaStub` → `MetaFacade` one-line switch; `RunDebugLoader` uses the same `boot(overrides)` seam) — each row citing its ADR and decision number and tagged `MVP` or `later (<epic>)`.
-- [ ] The list matches the implemented `src/core/boot.gd` from stories 004–006: every public member of `Boot` (`boot`, `services`, `booted`, `_collect_validators`, the override keys) appears in it, nothing in the `MVP` rows is absent from the code, and TD-001 / TD-009 are named as the regressions the rows guard (architecture.md §Tech-debt retirement mapping).
-- [ ] The file is handed to `/create-control-manifest update` as the input for a Foundation Required Patterns "Boot responsibilities" row (and the matching Forbidden rows), closing gate condition 12 for the technical-director; the story records the resulting `Manifest Version` so that stories stamped `2026-11-03` can be re-stamped by `/story-done`'s staleness check rather than surprised by it.
+- [x] `production/epics/boot-composition-root/boot-responsibilities.md` lists every `Boot` "does" and "never does" row from architecture.md §Dependency injection, ADR-0001 Decision 4 (construct `CardDatabase` + `load(validators)`, the `MetaApi` implementation, `SettingsBus`; `services()` to scene roots and debug loaders only; idle `_ready()`; the single `[autoload]` entry; no game state, no tick), ADR-0004 Decision 6 / 8 (`Timer` children for the lock heartbeat and the settings debounce; `NOTIFICATION_WM_CLOSE_REQUEST` / `_exit_tree` → `release_lock()`; timers start in `boot()`), ADR-0004 addendum step 4 (apply `settings.bindings` to `InputMap` after the profile loads; re-apply on `settings_changed{bindings}` — Alpha) and ADR-0011 Decision 4 (the `MetaStub` → `MetaFacade` one-line switch; `RunDebugLoader` uses the same `boot(overrides)` seam) — each row citing its ADR and decision number and tagged `MVP` or `later (<epic>)`.
+- [x] The list matches the implemented `src/core/boot.gd` from stories 004–006: every public member of `Boot` (`boot`, `services`, `booted`, `_collect_validators`, the override keys) appears in it, nothing in the `MVP` rows is absent from the code, and TD-001 / TD-009 are named as the regressions the rows guard (architecture.md §Tech-debt retirement mapping).
+- [x] The file is handed to `/create-control-manifest update` as the input for a Foundation Required Patterns "Boot responsibilities" row (and the matching Forbidden rows), closing gate condition 12 for the technical-director; the story records the resulting `Manifest Version` so that stories stamped `2026-11-03` can be re-stamped by `/story-done`'s staleness check rather than surprised by it.
 
 ---
 
@@ -88,7 +88,7 @@ checks scope against it.*
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-*.md`) — the first `/smoke-check` after the hand-over
 
-**Status**: [~] Pending — no `production/qa/smoke-*.md` after the hand-over yet (the next `/smoke-check sprint` is the evidence). Verified in the lane 2026-11-04: `commands.test` 1234/1234 exit 0, `commands.smoke` exit 0 with no `SCRIPT ERROR`, `tools/lint/gates.sh` G1–G6 0 hits
+**Status**: [x] Closed 2026-11-04 (sprint-4 review N9): `production/qa/smoke-2026-11-04-sprint-004.md` (PASS) is the first smoke check after the hand-over. Previously: [~] Pending; the lane verified `commands.test` 1234/1234 and `commands.smoke` exit 0.
 
 ---
 
@@ -111,9 +111,9 @@ checks scope against it.*
 
 **Deviations**:
 - ~~ADVISORY — Manifest Version not recorded~~ **Closed 2026-11-04**: `/create-control-manifest update` ran (technical-director, owner standing approval); `control-manifest.md` is Manifest Version **2026-11-04** with the Boot responsibilities rows; gate condition 12 closed in `production/gate-checks/gate-pre-production-2026-11-03.md` (Owner decisions recorded after the gate). Stories stamped 2026-11-03 are now one version behind and are re-stamped by `/story-readiness` / `/story-done`.
-- ADVISORY — Config/Data evidence pending: no `production/qa/smoke-*.md` after the hand-over yet; the lane ran `commands.test` (1234/1234), `commands.smoke` (exit 0) and `tools/lint/gates.sh` (G1–G6 0 hits) instead.
+- ~~ADVISORY — Config/Data evidence pending~~ **Closed 2026-11-04** (review N9): `production/qa/smoke-2026-11-04-sprint-004.md` (PASS).
 - Observation for architecture.md (not changed here): §Data Flow 5 names the `ai_profile` validator `BossAI.validate_profile_key`; the code registers `BossAI.validate_ai_profile`. Recorded in the list's Observations section.
 - `boot.gd` not edited (orchestrator-owned).
-**Test Evidence**: none required beyond the smoke check (Config/Data); see Test Evidence above
+**Test Evidence**: `production/qa/smoke-2026-11-04-sprint-004.md` (PASS); see Test Evidence above
 **Run result**: N/A — a documentation deliverable; no code, scene or data file changed.
-**Reviewed by**: self, no independent review (lean)
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`): **APPROVED WITH SUGGESTIONS** (documentation; specialist pass N/A). 0 blocking, no should-fix. Nits N5 and N9: closed in the L7 W1 fix buffer. Lane record before that review: self, no independent review (lean)

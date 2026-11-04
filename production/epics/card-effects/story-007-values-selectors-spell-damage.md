@@ -32,10 +32,10 @@
 
 *From GDD `design/gdd/card-effects.md` (C3 selectors and filter grammar, C4, C5 `conditional` / `repeat`, F1, F5; AC-13, AC-14, AC-23, AC-24), scoped to this story:*
 
-- [ ] **AC-13** GIVEN row 44 (hero power "Deal 1") and two Spell Damage +1 minions, WHEN used on the enemy hero, THEN `damage_dealt.amount == 1`; GIVEN row 18 (spell "Deal 3") cast instead, THEN `amount == 5` and `effect_resolved.ops[0].values.requested == 5` (F1: `auto` scales iff the host is a `spell`; re-read per op).
-- [ ] **AC-14** GIVEN row 19 ("Deal 2 to all enemies") with +1 Spell Damage and an enemy board of 3 plus hero, WHEN cast, THEN four `damage_dealt{amount: 3}` in canonical order (board left to right, then hero).
-- [ ] **AC-23** GIVEN row 22 (turn_end, `condition: owner.hand_size >= 5`, `random_enemy_character`) with 4 cards in hand, WHEN the owner's End step runs, THEN `effect_resolved{fizzled: condition_false}` and no damage; with 5 cards, THEN one `damage_dealt{amount: 3}` on a random enemy character chosen with exactly one stream draw (`TestRngStream.draws`).
-- [ ] **AC-24** GIVEN row 34 (`repeat` ×2 of `damage` on `random_enemy_minion`) and a single enemy minion at 1 health, WHEN the Start step runs, THEN `effect_resolved.ops` has two entries: the first `applied` (minion dies), the second `no_target` (the dying minion is no longer selectable, C6.0); the hero is never hit; and a value expression yielding a negative `damage` amount is clamped to 0 with `values.clamped_from` logged.
+- [x] **AC-13** GIVEN row 44 (hero power "Deal 1") and two Spell Damage +1 minions, WHEN used on the enemy hero, THEN `damage_dealt.amount == 1`; GIVEN row 18 (spell "Deal 3") cast instead, THEN `amount == 5` and `effect_resolved.ops[0].values.requested == 5` (F1: `auto` scales iff the host is a `spell`; re-read per op).
+- [x] **AC-14** GIVEN row 19 ("Deal 2 to all enemies") with +1 Spell Damage and an enemy board of 3 plus hero, WHEN cast, THEN four `damage_dealt{amount: 3}` in canonical order (board left to right, then hero).
+- [x] **AC-23** GIVEN row 22 (turn_end, `condition: owner.hand_size >= 5`, `random_enemy_character`) with 4 cards in hand, WHEN the owner's End step runs, THEN `effect_resolved{fizzled: condition_false}` and no damage; with 5 cards, THEN one `damage_dealt{amount: 3}` on a random enemy character chosen with exactly one stream draw (`TestRngStream.draws`).
+- [x] **AC-24** GIVEN row 34 (`repeat` ×2 of `damage` on `random_enemy_minion`) and a single enemy minion at 1 health, WHEN the Start step runs, THEN `effect_resolved.ops` has two entries: the first `applied` (minion dies), the second `no_target` (the dying minion is no longer selectable, C6.0); the hero is never hit; and a value expression yielding a negative `damage` amount is clamped to 0 with `values.clamped_from` logged.
 
 ---
 
@@ -125,4 +125,4 @@ QL-STORY-READY skipped — Lean mode.
 - **Hand / deck selectors yield card instance ids**, but ops still accept only in-play kinds (`LEGAL_KINDS`), so `buff cost` on hand or deck cards stays `skipped` until story 011. `summon position: chosen_slot` is not implemented (the engine passes no slot to the resolver).
 - **`source.*` / `trigger_*` refs read live**, and a departed `source` reads the queue snapshot. `trigger_subject` snapshots are story 009's.
 **Test Evidence**: `tests/unit/card_effects/card_effects_values_selectors_test.gd`
-**Reviewed by**: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`): **NOT ASSESSED** [otherwise APPROVED WITH SUGGESTIONS; the engine-specialist and qa-tester passes could not be spawned]. 0 blocking. Should-fix S4 and X1: fixed in the L7 W1 fix buffer. Nit N5: boxes ticked. Nit N6 open. Lane record before that review: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)

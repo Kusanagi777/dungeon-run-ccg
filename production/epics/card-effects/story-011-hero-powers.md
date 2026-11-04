@@ -124,4 +124,4 @@ guardrail stated (perf is story 016's). QL-STORY-READY skipped — Lean mode.
 - **The `hero_power` host lookup, `equip` and `deck_top` needed no change**: stories 006/007 shipped them. The C5 summon fallback already placed the copy at `end`; this story logs it as `values.position` and tests it.
 - **`values.branch` is on every entry of a `conditional`**, the skipped ones included, beside story 007's `values.condition`. So `ops[0].values.branch` reads the branch taken, whichever branch `ops[0]` belongs to (`then` is listed first).
 **Test Evidence**: `tests/unit/card_effects/card_effects_hero_powers_test.gd`
-**Reviewed by**: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`): **NOT ASSESSED** [otherwise APPROVED WITH SUGGESTIONS; the engine-specialist and qa-tester passes could not be spawned]. 0 blocking, no should-fix. Nit N6 open. Lane record before that review: not reviewed — `/code-review` NOT ASSESSED (agent-requiring gate, lean lane run)
