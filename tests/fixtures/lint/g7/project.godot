@@ -1,0 +1,6 @@
+; Lint fixture (sprint-4 review X1): one autoload, so G4 passes.
+config_version=5
+
+[autoload]
+
+Boot="*res://src/core/boot.gd"
