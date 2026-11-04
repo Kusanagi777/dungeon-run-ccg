@@ -11,8 +11,8 @@
 ## Story: production/epics/rng-event-log/story-010-determinism-contract-and-performance-budgets.md
 ## GDD: design/gdd/rng-event-log.md Acceptance Criteria "Performance"; F5, F7.
 ## Control manifest Foundation guardrail: `EventLog` 10,000 appends within
-## 50 ms. A budget that fails is reported, never silently raised (story 010
-## Engine Notes).
+## 80 ms (was 50 ms; 2026-11-04, DD-X19). A budget that fails is reported,
+## never silently raised (story 010 Engine Notes).
 ## Fixtures are built outside the timed window; each measured block runs once
 ## (the AC is per call, so no warm-up). `Time.get_ticks_usec()` is NOT
 ## SOURCEABLE against `docs/engine-reference/godot/` (ADR-0006 claim 17).
@@ -20,7 +20,7 @@ extends GdUnitTestSuite
 
 ## GDD AC "Performance": events appended, and the append + read budget.
 const APPEND_COUNT: int = TestConstants.MAX_MATCH_EVENTS
-const APPEND_BUDGET_USEC: int = 50_000
+const APPEND_BUDGET_USEC: int = 80_000
 ## GDD AC: "payloads ~200 bytes" (F7 `avg_event_bytes` estimate 200).
 const PAYLOAD_BYTES: int = 200
 
@@ -44,7 +44,7 @@ func _payload() -> Dictionary:
 	return payload
 
 
-func test_ten_thousand_appends_and_events_since_zero_fit_in_50_ms() -> void:
+func test_ten_thousand_appends_and_events_since_zero_fit_in_80_ms() -> void:
 	# Arrange
 	var log: EventLog = EventLog.new(APPEND_COUNT, EventLog.SCOPE_MATCH)
 	var payload: Dictionary = _payload()
