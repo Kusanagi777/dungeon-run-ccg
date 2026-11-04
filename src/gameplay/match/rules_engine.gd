@@ -1511,13 +1511,16 @@ func attack(character: Dictionary) -> int:
 
 ## C1: `has_windfury = Windfury ∈ keywords ∨ (hero ∧ weapon ≠ null ∧ Windfury ∈
 ## weapon.keywords)`. `keywords` covers the definition's set and keywords
-## granted by enchantments (`keywords_added`), so a hero gains Windfury from
-## its weapon or from an enchantment.
+## granted by enchantments (`keywords_added`) — on the character and on the
+## weapon alike — so a hero gains Windfury from its weapon (printed or
+## enchanted) or from an enchantment.
 func has_windfury(character: Dictionary) -> bool:
 	if _has_keyword(character, MatchRecords.KEYWORD_WINDFURY):
 		return true
+	# the weapon's printed keywords and its enchantments alike ("give your
+	# weapon Windfury"; code review MR-012 S1), as `_source_has` reads them
 	var weapon: Variant = _weapon_of(character)
-	return weapon != null and weapon.keywords.has(MatchRecords.KEYWORD_WINDFURY)
+	return weapon != null and _has_keyword(weapon, MatchRecords.KEYWORD_WINDFURY)
 
 
 ## C1 / F3: `max_attacks = clampi(hooks.fold(&"modify_max_attacks",

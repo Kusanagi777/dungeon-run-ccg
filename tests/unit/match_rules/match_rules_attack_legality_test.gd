@@ -278,6 +278,23 @@ func test_windfury_from_a_keyword_an_enchantment_or_the_hero_weapon_gives_two_at
 	assert_int(engine.max_attacks(hero)).is_equal(TestConstants.MAX_ATTACKS_WINDFURY)
 
 
+func test_windfury_granted_to_the_hero_weapon_by_an_enchantment_gives_two_attacks() -> void:
+	# Arrange — a plain weapon, then "give your weapon Windfury" (card-effects
+	# `give_keyword`: characters and weapons) lands in its enchantments (code
+	# review MR-012 S1, probe P1)
+	var engine: RulesEngine = _engine()
+	var weapon: Dictionary = _equip(engine, SIDE_PLAYER)
+	var hero: Dictionary = _record(engine, _hero_id(engine, SIDE_PLAYER))
+	assert_int(engine.max_attacks(hero)).is_equal(1)
+
+	# Act
+	engine.add_keyword(int(weapon.entity_id), "windfury")
+
+	# Assert
+	assert_bool(engine.has_windfury(hero)).is_true()
+	assert_int(engine.max_attacks(hero)).is_equal(TestConstants.MAX_ATTACKS_WINDFURY)
+
+
 func test_keywords_from_enchantments_and_remove_keyword_are_read_at_the_next_evaluation() -> void:
 	# Arrange: a Taunt granted by an enchantment; Charge granted to a sick minion
 	var engine: RulesEngine = _engine()
