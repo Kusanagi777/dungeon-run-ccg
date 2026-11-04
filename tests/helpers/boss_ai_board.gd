@@ -150,6 +150,22 @@ static func engine(fixture: Dictionary, db: FakeCardDatabase, player_casts: Arra
 	return engine
 
 
+## A real match from `[param run_seed]` over [param fixture]'s `player_deck` and
+## `boss_deck` (card ids, cycled to [constant DECK_SIZE]), past the keep-all
+## mulligan: `{engine, config}`; `config.rng_ai` is the `ai_<floor>` stream and
+## [param log] receives every event (boss-ai A1, A3).
+static func started_match(fixture: Dictionary, db: FakeCardDatabase, run_seed: int, log: TestEventLog) -> Dictionary:
+	var decks: Dictionary = {"player_deck": [], "boss_deck": []}
+	for key: String in decks:
+		for index: int in DECK_SIZE:
+			decks[key].append(str(fixture[key][index % (fixture[key] as Array).size()]))
+	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(run_seed), log, {"player": {"deck": decks.player_deck}, "boss": {"deck": decks.boss_deck}})
+	var engine: RulesEngine = RulesEngine.new(db, MatchFactory.make_rules_config(), EffectResolver.new(db, effects_config(), ""))
+	engine.start(config)
+	GameAssertions.fail_if(not engine.submit(engine.legal_commands()[0]).accepted, "mulligan rejected")
+	return {"engine": engine, "config": config}
+
+
 ## A [param double_class] engine (a `RulesEngine` subclass taking the base's
 ## `_init` arguments) holding a value copy of [param engine]'s state, bound to
 ## its own resolver, with its own log and `rng_match` copy: a planner sandbox
