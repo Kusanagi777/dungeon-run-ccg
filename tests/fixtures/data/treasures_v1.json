@@ -1,0 +1,668 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_hollow_crown",
+      "name": "Hollow Crown",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "economy"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "mana",
+              "amount": 1,
+              "duration": "permanent"
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_hollow_crown.text",
+        "en": "Start each match with an extra Mana Crystal."
+      }
+    },
+    {
+      "id": "treasure_worn_signet",
+      "name": "Worn Signet",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "economy"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_cost",
+          "scope": {
+            "card": {
+              "side": "friendly",
+              "kind": "hero_power"
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "set": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_worn_signet.text",
+        "en": "Your hero power costs (1)."
+      }
+    },
+    {
+      "id": "treasure_quartermasters_ledger",
+      "name": "Quartermaster's Ledger",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "economy"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_cost",
+          "scope": {
+            "card": {
+              "side": "friendly",
+              "cost_ge": 5
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": -1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_quartermasters_ledger.text",
+        "en": "Your cards that cost (5) or more cost (1) less."
+      }
+    },
+    {
+      "id": "treasure_vanguards_banner",
+      "name": "Vanguard's Banner",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "tempo"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_cost",
+          "scope": {
+            "card": {
+              "side": "friendly"
+            }
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.cards_played_this_turn"
+              },
+              "==",
+              0
+            ]
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": -1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_vanguards_banner.text",
+        "en": "The first card you play each turn costs (1) less."
+      }
+    },
+    {
+      "id": "treasure_sprinters_boots",
+      "name": "Sprinter's Boots",
+      "rarity": "common",
+      "tags": [
+        "war",
+        "aggro",
+        "tempo"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "scope": {
+            "zone": "board"
+          },
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "cost_le": 3
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "keywords": [
+                "rush"
+              ]
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_sprinters_boots.text",
+        "en": "Your minions that cost (3) or less have Rush."
+      }
+    },
+    {
+      "id": "treasure_scholars_candle",
+      "name": "Scholar's Candle",
+      "rarity": "common",
+      "tags": [
+        "knowledge",
+        "draw",
+        "value"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_start",
+          "scope": {
+            "side": "owner"
+          },
+          "condition": {
+            "any": [
+              {
+                "cmp": [
+                  {
+                    "ref": "match.turn"
+                  },
+                  "==",
+                  3
+                ]
+              },
+              {
+                "cmp": [
+                  {
+                    "ref": "match.turn"
+                  },
+                  "==",
+                  7
+                ]
+              }
+            ]
+          },
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_scholars_candle.text",
+        "en": "At the start of your 2nd and 4th turns, draw a card."
+      }
+    },
+    {
+      "id": "treasure_bottomless_satchel",
+      "name": "Bottomless Satchel",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "value"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_starting_hand_size",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": 2
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_bottomless_satchel.text",
+        "en": "Your opening hand has 2 extra cards."
+      }
+    },
+    {
+      "id": "treasure_iron_constitution",
+      "name": "Iron Constitution",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "defensive",
+        "armour"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "buff",
+              "health": 10,
+              "duration": "permanent"
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_iron_constitution.text",
+        "en": "Your hero has +10 Health."
+      }
+    },
+    {
+      "id": "treasure_thornhide_cloak",
+      "name": "Thornhide Cloak",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "defensive",
+        "armour"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "owner_hero",
+            "min_amount": 1
+          },
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_thornhide_cloak.text",
+        "en": "Whenever your hero takes damage, gain 1 Armour."
+      }
+    },
+    {
+      "id": "treasure_mending_charm",
+      "name": "Mending Charm",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "defensive"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_mending_charm.text",
+        "en": "At the end of your turn, restore 2 Health to your hero."
+      }
+    },
+    {
+      "id": "treasure_whetstone_wheel",
+      "name": "Whetstone Wheel",
+      "rarity": "common",
+      "tags": [
+        "war",
+        "weapons"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": "owner_weapon",
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_whetstone_wheel.text",
+        "en": "Your weapons have +1 Attack."
+      }
+    },
+    {
+      "id": "treasure_twin_grip",
+      "name": "Twin Grip",
+      "rarity": "rare",
+      "tags": [
+        "war",
+        "weapons",
+        "aggro"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_max_attacks",
+          "scope": {
+            "who": "owner_hero"
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "set": 2
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_twin_grip.text",
+        "en": "Your hero can attack twice each turn."
+      }
+    },
+    {
+      "id": "treasure_grave_tithe",
+      "name": "Grave Tithe",
+      "rarity": "rare",
+      "tags": [
+        "decay",
+        "husk",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly_minion"
+          },
+          "once_per_turn": true,
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "unlock": {
+        "key": "hero_decay_first_win",
+        "condition": {
+          "type": "runs_won",
+          "n": 1,
+          "hero": "hero_decay"
+        }
+      },
+      "text": {
+        "key": "treasure.treasure_grave_tithe.text",
+        "en": "Whenever a friendly minion dies, summon a 1/1 Husk. (Once per turn.)"
+      }
+    },
+    {
+      "id": "treasure_rotting_bargain",
+      "name": "Rotting Bargain",
+      "rarity": "common",
+      "tags": [
+        "decay",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_cost",
+          "scope": {
+            "card": {
+              "side": "friendly",
+              "type": "minion",
+              "has_trigger": "deathrattle"
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": -1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_rotting_bargain.text",
+        "en": "Your Deathrattle minions cost (1) less."
+      }
+    },
+    {
+      "id": "treasure_plague_bell",
+      "name": "Plague Bell",
+      "rarity": "common",
+      "tags": [
+        "decay",
+        "husk",
+        "sacrifice"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "tag": "husk"
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "unlock": {
+        "key": "hero_decay_floor_5",
+        "condition": {
+          "type": "floor_reached",
+          "n": 5,
+          "hero": "hero_decay"
+        }
+      },
+      "text": {
+        "key": "treasure.treasure_plague_bell.text",
+        "en": "Your Husks have +1 Attack."
+      }
+    },
+    {
+      "id": "treasure_focusing_prism",
+      "name": "Focusing Prism",
+      "rarity": "common",
+      "tags": [
+        "knowledge",
+        "spell_damage",
+        "spells"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_damage",
+          "scope": {
+            "source": {
+              "side": "friendly",
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_focusing_prism.text",
+        "en": "Your spells deal 1 more damage."
+      }
+    },
+    {
+      "id": "treasure_dogeared_grimoire",
+      "name": "Dog-eared Grimoire",
+      "rarity": "rare",
+      "tags": [
+        "knowledge",
+        "spells"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_cost",
+          "scope": {
+            "card": {
+              "side": "friendly",
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": -1
+            }
+          ]
+        }
+      ],
+      "unlock": {
+        "key": "hero_knowledge_first_win",
+        "condition": {
+          "type": "runs_won",
+          "n": 1,
+          "hero": "hero_knowledge"
+        }
+      },
+      "text": {
+        "key": "treasure.treasure_dogeared_grimoire.text",
+        "en": "Your spells cost (1) less."
+      }
+    },
+    {
+      "id": "treasure_living_armory",
+      "name": "Living Armory",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "wild"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "from": {
+                "pool": "collectible",
+                "filter": {
+                  "type": "minion",
+                  "rarity": "legendary"
+                }
+              },
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "unlock": {
+        "key": "first_victory",
+        "condition": {
+          "type": "runs_won",
+          "n": 1
+        }
+      },
+      "text": {
+        "key": "treasure.treasure_living_armory.text",
+        "en": "Start each match with a random Legendary minion in your hand."
+      }
+    },
+    {
+      "id": "treasure_stampede_horn",
+      "name": "Stampede Horn",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "wild",
+        "aggro"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "aura",
+              "keywords": [
+                "rush"
+              ]
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_stampede_horn.text",
+        "en": "Your minions have Rush."
+      }
+    },
+    {
+      "id": "treasure_captured_standard",
+      "name": "Captured Standard",
+      "rarity": "rare",
+      "tags": [
+        "war",
+        "aggro"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_captured_standard.text",
+        "en": "Your minions have +1 Attack."
+      }
+    }
+  ]
+}

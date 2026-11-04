@@ -1,0 +1,17 @@
+{
+  "name": "zero_cost_loop",
+  "description": "boss-ai A27: a 0-cost spell that gives the boss's 0/1 +1 health and returns a copy of itself to hand. It always beats end_turn on f_board and never runs out, so only max_actions_per_turn stops the turn. No attacker, no burn: the lethal search prunes at the root. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_idol", "type": "minion", "cost": 1, "attack": 0, "health": 1},
+    {"id": "bai_loop", "type": "spell", "cost": 0, "effects": [
+      {"trigger": "cast", "targets": "all_friendly_minions", "ops": [{"op": "buff", "health": 1}]},
+      {"trigger": "cast", "ops": [{"op": "add_to_hand", "card_id": "bai_loop"}]}
+    ]}
+  ],
+  "boss": {"mana": 0, "board": ["bai_idol"], "hand": ["bai_loop"]},
+  "player": {"health": 30, "board": []}
+}

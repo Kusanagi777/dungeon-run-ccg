@@ -58,6 +58,7 @@ func test_every_manifest_config_maps_to_a_validator_and_the_pending_ones_are_the
 	assert_array(pending).contains_exactly_in_any_order(Array(BOOT_SCRIPT.PENDING_CONFIG_OWNERS))
 	assert_bool(BOOT_SCRIPT.PENDING_CONFIG_OWNERS.has("card_effects")).is_false()
 	assert_array((configs.card_effects as Callable).call({}, null)).is_equal(EffectValidator.validate_config({}, null))
+	assert_array((configs.heroes_balance as Callable).call({}, null)).is_equal(Heroes.validate_config({}, null))
 
 
 func test_every_record_key_maps_to_a_validator_and_the_pending_ones_are_the_list() -> void:

@@ -230,10 +230,16 @@ static func card_playable(sandbox: RulesEngine) -> bool:
 
 ## The `ai_decision.alternatives` of [param scored] (C9: at most
 ## [constant ALTERNATIVES_MAX] of `{command, score, features}`, best first) —
-## [param scored] as [method score_all] returns it.
-static func alternatives(scored: Array) -> Array:
+## [param scored] as [method score_all] returns it. [param chosen], the entry the
+## tie-break picked, is always listed (review N4; A16 counts the pick among the
+## alternatives): one the top slots miss takes the last of them, so the order
+## stays best first.
+static func alternatives(scored: Array, chosen: Variant = null) -> Array:
+	var top: Array = scored.slice(0, ALTERNATIVES_MAX)
+	if chosen is Dictionary and not top.has(chosen):
+		top[top.size() - 1] = chosen
 	var out: Array = []
-	for entry: Dictionary in scored.slice(0, ALTERNATIVES_MAX):
+	for entry: Dictionary in top:
 		out.append({"command": entry.command, "score": entry.score, "features": entry.features})
 	return out
 

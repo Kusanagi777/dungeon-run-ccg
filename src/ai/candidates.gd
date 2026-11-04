@@ -100,16 +100,7 @@ func _init(db: Variant, op_values: Dictionary, synergy_tags: Array = []) -> void
 ## the resolved profile (reserved for the band-specific pre-filter, F7
 ## `prefilter`, which is `op_value` in every band).
 func collect(sandbox: RulesEngine, _profile: Dictionary, budgets: Dictionary) -> Array:
-	var own: String = String(sandbox.active_side())
-	var player: Dictionary = sandbox.state().players[own]
-	var rightmost: int = (player.board as Array).size()
-	var filtered: Array = []
-	for command: Dictionary in sandbox.legal_commands():
-		if str(command.type) == MatchRecords.CMD_PLAY_CARD and command.has("position") and int(command.position) != rightmost:
-			var def: Variant = _card(str(player.hand[int(command.hand_index)].def_id))
-			if not (def is Dictionary and bool(derive_annotations(def).position_sensitive)):
-				continue
-		filtered.append(command)
+	var filtered: Array = positions(sandbox)
 	var cap: int = int(budgets.max_evals_per_action)
 	if filtered.size() <= cap:
 		return filtered
@@ -127,6 +118,23 @@ func collect(sandbox: RulesEngine, _profile: Dictionary, budgets: Dictionary) ->
 		if keep.has(index) or str(filtered[index].type) == MatchRecords.CMD_END_TURN:
 			kept.append(filtered[index])
 	return kept
+
+
+## [param sandbox]'s `legal_commands()` with the C6 position rule applied (step 1
+## of the class doc): a minion play keeps every offered position only when its
+## card is `position_sensitive`. The lethal search enumerates from this too
+## (Edge Cases "a Charge minion is lethal only at an exact position").
+func positions(sandbox: RulesEngine) -> Array:
+	var player: Dictionary = sandbox.state().players[String(sandbox.active_side())]
+	var rightmost: int = (player.board as Array).size()
+	var filtered: Array = []
+	for command: Dictionary in sandbox.legal_commands():
+		if str(command.type) == MatchRecords.CMD_PLAY_CARD and command.has("position") and int(command.position) != rightmost:
+			var def: Variant = _card(str(player.hand[int(command.hand_index)].def_id))
+			if not (def is Dictionary and bool(derive_annotations(def).position_sensitive)):
+				continue
+		filtered.append(command)
+	return filtered
 
 
 ## C6 cheap estimate of [param command] on [param sandbox]: a card play is its
