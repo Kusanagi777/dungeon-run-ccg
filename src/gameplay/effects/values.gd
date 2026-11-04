@@ -143,6 +143,11 @@ static func holds(condition: Variant, run: Dictionary) -> bool:
 	if c.get("cmp") is Array and (c.cmp as Array).size() == 3:
 		return _cmp(eval(c.cmp[0], run), str(c.cmp[1]), eval(c.cmp[2], run))
 	if c.has("exists"):
+		# A reference selector (`owner_weapon`, `self`, …) has no pool: it
+		# exists when it names something in play (row 8 `{exists:
+		# owner_weapon}`; story 011). References draw nothing.
+		if EffectSelectors.REFERENCE_SELECTORS.has(EffectSelectors.selector_name(c.exists)):
+			return not EffectSelectors.entities(resolver.bound_engine().state(), c.exists, run).is_empty()
 		return not EffectSelectors.pool(resolver, c.exists, run).is_empty()
 	if c.get("test") is Array and (c.test as Array).size() == 2:
 		var record: Dictionary = entity(str(c.test[0]), run)
