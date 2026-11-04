@@ -112,7 +112,7 @@ stories:
     name: "Batch-0 first-playable data set"
     file: "production/epics/content/story-001-batch-0-first-playable-data-set.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 3
     lane: 6
@@ -120,8 +120,8 @@ stories:
     serialised: false
     contract: true
     blocker: ""
-    note: "needs CDB-006 (M1) and CE-002 card_effects.json (M2); [C] real data set changes Boot.boot()/commands.smoke; re-read boot.gd pending-validator policy after the fix pass"
-    completed: ""
+    note: "needs CDB-006 (M1) and CE-002 card_effects.json (M2); [C] real data set changes Boot.boot()/commands.smoke; re-read boot.gd pending-validator policy after the fix pass. Closed: Ready, 0 errors; neutral_gravekeeper deferred to MVP-1 (ai_profiles op_values has no add_counter row → E_AI_OP_UNVALUED error; Boss AI to decide)"
+    completed: "2026-11-04"
   - id: "card-database-007"
     name: "data_version fingerprint (CR-9)"
     file: "production/epics/card-database/story-007-data-version-fingerprint.md"
