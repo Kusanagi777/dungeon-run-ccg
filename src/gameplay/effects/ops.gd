@@ -152,10 +152,17 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	if not _table.has(name):
 		return entry(name, [], {}, SKIPPED)
 	var evaluated: Dictionary = op
+	# `values.read_from` is worked out with the value, before the handler: that
+	# is the state the value was read in, and a handler that hits the event cap
+	# unbinds the resolver (sprint-4 review S1; M1 review R1).
+	var read_from: String = ""
 	if run_ctx.get("resolver") is EffectResolver:
 		evaluated = op.duplicate()
 		for key: String in VALUE_PARAMS:
 			if op.get(key) is Dictionary:
+				var origin: String = EffectValues.read_origin(op[key], run_ctx)
+				if origin != "":
+					read_from = origin
 				evaluated[key] = EffectValues.eval(op[key], run_ctx)
 	var clamped: Variant = null
 	var key: String = NON_NEGATIVE.get(name, "")
@@ -167,11 +174,8 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	var result: Dictionary = _table[name].call(engine, evaluated, run_ctx)
 	if clamped != null:
 		(result.values as Dictionary)["clamped_from"] = clamped
-	if run_ctx.get("resolver") is EffectResolver:
-		for key_name: String in VALUE_PARAMS:
-			var origin: String = EffectValues.read_origin(op.get(key_name), run_ctx)
-			if origin != "":
-				(result.values as Dictionary)["read_from"] = origin
+	if read_from != "":
+		(result.values as Dictionary)["read_from"] = read_from
 	return result
 
 

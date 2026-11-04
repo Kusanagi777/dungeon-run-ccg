@@ -68,6 +68,8 @@ const DR_AVENGER: String = "neutral_test_dr_avenger"
 ## End of your turn: `[discover(list of 3), armor END_ARMOUR]` (review P5 shape).
 const END_SCOUT: String = "neutral_test_end_scout"
 const END_ARMOUR: int = 4
+## Deathrattle: `add_counter` by `source.attack`: the counter op emits for itself.
+const DR_COUNTER: String = "neutral_test_dr_counter"
 ## `destroy` every friendly minion.
 const PURGE: String = "neutral_test_purge"
 ## `retrigger deathrattle` on every friendly minion: one op, several queue calls.
@@ -216,6 +218,8 @@ func _make_db() -> FakeCardDatabase:
 		'{"trigger":"deathrattle","ops":[{"op":"damage","targets":"enemy_hero","amount":{"ref":"source.attack"}}]}')})
 	by_id[END_SCOUT] = CardFactory.make_minion(END_SCOUT, 1, 1, 3, [], {"effects": _fx(
 		'{"trigger":"turn_end","ops":[{"op":"discover","pool":"list","list":%s},{"op":"armor","targets":"owner","amount":%d}]}' % [list, END_ARMOUR])})
+	by_id[DR_COUNTER] = CardFactory.make_minion(DR_COUNTER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
+		'{"trigger":"deathrattle","ops":[{"op":"add_counter","key":"seen","amount":{"ref":"source.attack"}}]}')})
 	by_id[PURGE] = CardFactory.make_spell(PURGE, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"destroy"}]}'))
 	by_id[RITES] = CardFactory.make_spell(RITES, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"retrigger","trigger":"deathrattle"}]}'))
 	var pools: Dictionary = {HERO_SET: _war_pool(by_id)}
@@ -884,6 +888,14 @@ func test_event_cap_sweep_over_a_queued_source_ref_op_touches_nothing_after_the_
 	# Act — the op's own `damage_dealt` ends the match: nothing after the handler
 	# may read through the resolver, which has just been unbound
 	var ended: int = _sweep([PURGE], [DR_AVENGER, DR_FOLLOWER])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_queued_counter_op_touches_nothing_after_the_cap() -> void:
+	# Act — the op's own `counter_changed` ends the match (review R1)
+	var ended: int = _sweep([PURGE], [DR_COUNTER, DR_FOLLOWER])
 
 	# Assert
 	assert_int(ended).is_greater(10)
