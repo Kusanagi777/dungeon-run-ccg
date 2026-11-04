@@ -1,12 +1,12 @@
 # Story 002: `Heroes` accessor — `hero`, `launch_heroes`, `plan_tags` over `CardDatabase`
 
 > **Epic**: Heroes
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 > **First Playable path**: yes — boss-ai story 016 builds the War `MatchConfig.player.deck` from `hero("hero_war").starter_deck`
 
 ## Context
@@ -35,10 +35,10 @@ The run and the UI read heroes through this accessor: Run Structure (R2) copies 
 
 *From GDD `design/gdd/heroes.md` (H-2, H-5, H-7, AC-1, AC-6, AC-16), scoped to this story:*
 
-- [ ] **AC-1 (H-2, H-7; AC-16 data half)** GIVEN a `CardDatabase` built from `tests/helpers/` factory records with two `HeroDef`s whose `unlock` is null and one fixture hero with a non-null `unlock {key, condition}`, WHEN `launch_heroes()` is called, THEN it returns the two unlock-null heroes in id-ascending order and not the fixture hero; `hero(id)` returns the same frozen record as `db.hero(id)`, and an unknown id returns `null` as `db.hero` does.
-- [ ] **AC-2 (H-5; reward-draft F3)** GIVEN the shipped `heroes_balance.json`, WHEN `plan_tags("hero_war")` is called, THEN it returns `["weapons", "aggro", "armour"]`, read from `config("heroes_balance").plan_tags[hero.set]`; GIVEN a fixture body with a different `plan_tags.war` list, THEN that list is returned with no code change.
-- [ ] **AC-3 (GDD AC-1, MVP-0 batch)** GIVEN the shipped `assets/data/` (Content CN-6: MVP-0 ships `hero_war` only, DD-H06), WHEN the Card Database loads and the accessor is built over it, THEN `launch_heroes()` returns exactly `[hero_war]` with `health = 30`, a `hero_power` id that `db.hero_power()` resolves, and a `starter_deck` of exactly 15 ids, all `token == false` and each with `set ∈ {war, neutral}`; `report()` holds zero `E_*` entries.
-- [ ] **AC-4 (GDD AC-6)** GIVEN the tokens `decay_husk` and `war_whetstone_blade`, WHEN `collectible_pool(set)` and `bundle_pool(set)` are queried for every set present (`war`, `neutral`, `decay`, `boss`), THEN neither token appears.
+- [x] **AC-1 (H-2, H-7; AC-16 data half)** GIVEN a `CardDatabase` built from `tests/helpers/` factory records with two `HeroDef`s whose `unlock` is null and one fixture hero with a non-null `unlock {key, condition}`, WHEN `launch_heroes()` is called, THEN it returns the two unlock-null heroes in id-ascending order and not the fixture hero; `hero(id)` returns the same frozen record as `db.hero(id)`, and an unknown id returns `null` as `db.hero` does.
+- [x] **AC-2 (H-5; reward-draft F3)** GIVEN the shipped `heroes_balance.json`, WHEN `plan_tags("hero_war")` is called, THEN it returns `["weapons", "aggro", "armour"]`, read from `config("heroes_balance").plan_tags[hero.set]`; GIVEN a fixture body with a different `plan_tags.war` list, THEN that list is returned with no code change.
+- [x] **AC-3 (GDD AC-1, MVP-0 batch)** GIVEN the shipped `assets/data/` (Content CN-6: MVP-0 ships `hero_war` only, DD-H06), WHEN the Card Database loads and the accessor is built over it, THEN `launch_heroes()` returns exactly `[hero_war]` with `health = 30`, a `hero_power` id that `db.hero_power()` resolves, and a `starter_deck` of exactly 15 ids, all `token == false` and each with `set ∈ {war, neutral}`; `report()` holds zero `E_*` entries.
+- [x] **AC-4 (GDD AC-6)** GIVEN the tokens `decay_husk` and `war_whetstone_blade`, WHEN `collectible_pool(set)` and `bundle_pool(set)` are queried for every set present (`war`, `neutral`, `decay`, `boss`), THEN neither token appears.
 
 ---
 
@@ -66,13 +66,10 @@ The run and the UI read heroes through this accessor: Run Structure (R2) copies 
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/heroes/heroes.gd` — created (`Heroes`)
+- `src/gameplay/heroes/heroes.gd`: created (`Heroes`)
 - `tests/unit/heroes/heroes_accessor_test.gd`
 - `tests/integration/heroes/heroes_shipped_data_test.gd`
+- `.godot/global_script_class_cache.cfg`: regenerated for `Heroes`
 
 ---
 
@@ -90,7 +87,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/heroes/heroes_accessor_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later); AC-3 / AC-4 in `tests/integration/heroes/heroes_shipped_data_test.gd`
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created, 17 tests, passing
 
 ---
 
@@ -98,3 +95,19 @@ checks scope against it.*
 
 - Depends on: None in this epic. Cross-epic (Complete): `production/epics/card-database/story-006-freeze-and-queries.md`, `production/epics/content/story-001-batch-0-first-playable-data-set.md`
 - Unlocks: `production/epics/heroes/story-003-plan-card-and-synergy-checks.md`; `production/epics/boss-ai-match-driver/story-016-sim-harness.md` (War starter deck, with story 001); the Run Structure, Reward Draft and Run UI epics' hero reads
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-04
+**Start / end (UTC)**: 2026-11-04T19:45:05Z to 2026-11-04T19:50:55Z
+**Readiness**: READY (2026-11-04). ADR-0002 Accepted at the story's version, manifest 2026-11-04 matches, dependencies Complete.
+**Criteria**: 4/4 passing
+**Test Evidence**: `tests/unit/heroes/heroes_accessor_test.gd` (8), `tests/integration/heroes/heroes_shipped_data_test.gd` (9). Full suite 1441 cases, 0 failures.
+**Seen failing**: every test first against the missing `Heroes` class (a parse failure of both files, which proves little per test), then against deliberate mutants: `launch_heroes` without its filter, `plan_tags` returning the frozen list, `plan_tags` re-reading `config`, `TOKENS` pointed at a pooled card (the three AC-4 tests; a real token cannot reach a pool, because the loader rejects it first), a token in War's shipped starter (the load test).
+**Run result**: N/A: `Heroes` is data access with no screen; Run UI reads it in a later epic.
+**Deviations**:
+- ADVISORY: AC-3's "zero `E_*` entries" is asserted as error severity (`report().errors()`), the sprint-3 lane rule. Read literally it cannot pass in a debug build: a pending validator is code `E_DELEGATED` at warning severity, and six stay pending after story 004.
+- ADVISORY: `plan_tags` also logs and returns `[]` for a hero whose set has no `plan_tags` row, the same convention the notes give for an unknown hero. The row is otherwise undefined, for example a `fortune` hero before its row ships.
+- The QA plan's "does not re-parse JSON, does not consult `MetaApi`" has no test of its own: the constructor takes only `db`, and the lint gates cover the data read.
+**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
