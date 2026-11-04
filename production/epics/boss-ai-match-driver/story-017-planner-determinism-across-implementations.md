@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: Default `WorkerPoolPlannerTask` protocol (one `is_task_completed` per `tick()`, `wait_for_task_completion` exactly once). `CardDatabase.reload()` returns `E_BUSY` while any `PlannerTask` is live (debug builds).
 - Forbidden: `tests/unit/**` and the sim harness never start a worker. Never call `is_task_completed` after `wait_for_task_completion`. The worker is never handed the live engine, live log, driver, view, `Boot` or a `Node`.
-- Guardrail: Boss AI main thread ≤ 2 ms per frame; worker 50 ms p95 per turn.
+- Guardrail: Boss AI main thread ≤ 2 ms per frame; worker 500 ms p95 per planner run, `play_turn` and `forecast` each (2026-11-04, DD-X18); was 50 ms p95 per turn.
 
 ---
 

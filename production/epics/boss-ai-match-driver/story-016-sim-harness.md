@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: `MatchDebugLoader` and the boss-ai sim harness build their driver through the same `driver_factory` with `ImmediatePlannerTask`, submit through `driver.submit`, and `tick()` until `is_planning()` is false. `tests/unit/**` and the sim harness never start a worker.
 - Forbidden: Never a second driver shape or hand-built state; never run `play_turn` against the live engine on a worker.
-- Guardrail: Boss AI worker 50 ms p95 target per turn (A22); `clone()` + empty resolver memo per look-ahead node measured by the sim harness against `planner_target_ms` 50 p95.
+- Guardrail: Boss AI worker 500 ms p95 target per planner run (A22; `play_turn` and `forecast` each); `clone()` + empty resolver memo per look-ahead node measured by the sim harness against `planner_target_ms` 500 p95 (2026-11-04, DD-X18); was 50 ms p95 per turn.
 
 ---
 
@@ -34,7 +34,7 @@
 
 - [ ] **A28** GIVEN the harness, WHEN run with `--boss boss_x --seeds 100`, THEN it writes `production/qa/sim/boss_x_<date>.json` with `win_rate`, `mean_turns`, `mean_final_health`, `decision_count`, `p50_planner_ms`, `p95_planner_ms`, `rejections = 0` and the per-floor boss win rate (C11 / content AC-13 basis), and a second run with the same seeds produces an identical file (timestamp field excluded from the comparison or fixed by seed); on divergence it prints the first differing `ai_decision` payload (Edge Cases).
 - [ ] **A23** GIVEN 1,000 seeded matches (mixed bands, boss vs hero-script), WHEN complete, THEN zero `command_rejected` events have `side = boss`, zero `ai_fault`, zero `resolution_overflow`, and every match ends by `hero_dead` or `turn_cap`.
-- [ ] **A22** GIVEN the harness at band 3 budgets on the target machine (headless, release template), WHEN 200 seeded matches run, THEN planner time per round (one `forecast` plus one `play_turn`, measured inside the task) is p95 ≤ 50 ms and the match's total `ai_decision` events are ≤ 400; a miss is reported with the F7 note that `lethal_max_nodes` at band 3 is the first knob to lower.
+- [ ] **A22** GIVEN the harness at band 3 budgets on the target machine (headless, release template), WHEN 200 seeded matches run, THEN planner time per planner run (measured inside the task, reported separately for `play_turn` and for `forecast`) is p95 ≤ 500 ms for each, and the match's total `ai_decision` events are ≤ 400; a miss is reported with the F7 note that band 3's counts are lowered until A22 passes (2026-11-04, DD-X18); was p95 ≤ 50 ms per round of one `forecast` plus one `play_turn`.
 - [ ] GIVEN the harness, WHEN it builds a match, THEN both sides' drivers come from the injected `driver_factory` with `ImmediatePlannerTask`, every command goes through `driver.submit`, `tick()` is called until `is_planning()` is false and no plan is pending, no `WorkerThreadPool` task is ever started, and the retained outputs for the five MVP bosses exist under `production/qa/sim/` (Definition of Done).
 
 ---

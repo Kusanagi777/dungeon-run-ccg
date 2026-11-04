@@ -240,8 +240,9 @@ consume no RNG. The decision is logged as an `ai_decision` with `kind = choice`.
 #### C9. Budgets, determinism and logging
 
 - All budgets are **counts** (nodes, evaluations, actions), never milliseconds. A wall-clock
-  budget would make play differ between machines and break DD-R09/Pillar 4. The 50 ms per turn
-  target is an acceptance measurement (A22) and a knob that tunes the counts, not a runtime switch.
+  budget would make play differ between machines and break DD-R09/Pillar 4. The 500 ms per
+  planner run target (`play_turn` and `forecast` each; was 50 ms per round — 2026-11-04, DD-X18) is
+  an acceptance measurement (A22) and a knob that tunes the counts, not a runtime switch.
 - Tie-breaks: candidates within `rules.tie_epsilon` of the best score form the tie set, sorted by
   canonical command order (command type, then `hand_index`, `attacker_id`, `target_id`,
   `position`); one `ai_stream.randi_range` picks among them (F8). A tie set of size 1 consumes
@@ -479,15 +480,26 @@ board 4/4 + 3/2 Windfury, 6 mana next turn → `4 + 6 + 6 = 16`; boss at 18 → 
 | `max_actions_per_turn` | 30 | 30 | 30 | submitted commands |
 | `prefilter` | op_value | op_value | op_value | ranking when candidates exceed the eval cap |
 
-`planner_time ≈ (actions · evals + lethal_nodes) · t_sim`, with `t_sim` = clone + one `submit`
-(Match Rules budgets `submit` at ≤ 5 ms worst case, typically ≪ 0.1 ms for a 2-step action). At
-band 3 worst case `(8·250 + 4000)·0.01 ms ≈ 60 ms`; the 50 ms target (`planner_target_ms`, Tuning
-Knobs) is met by lowering `lethal_max_nodes` if A22 fails — the knob changes counts, never the
-clock. `TURN_CAP` (100 global turns, Match Rules C14 — 50 boss turns) and `max_actions_per_turn`
-together bound a match at 1,500 AI commands. `forecast` (C8) runs the same planner once per
-player turn under the same count budgets; A22 measures it together with `play_turn` (one forecast
-plus one real turn per round ≈ 2× the worst case above, which is why band 3's `lethal_max_nodes`
-is the first knob to lower).
+`planner_time ≈ (actions · evals + lethal_nodes) · t_sim`, with `t_sim` = clone + one `submit`.
+`t_sim` is **measured**, not assumed (2026-11-04, DD-X18): median ~0.37 ms (365 µs) on the release
+template and ~0.45 ms (450 µs) on the debug editor (`production/qa/perf-match-rules-2026-11-04.md`;
+the earlier 0.01 ms assumption was 36–45× low). The target is 500 ms **per planner run**
+(`planner_target_ms`, Tuning Knobs; was 50 ms per round — 2026-11-04, DD-X18), measured separately
+for `play_turn` and for `forecast`. With 8 actions at the release `t_sim`:
+
+| Band | Nodes per run `8·evals + lethal` | Run time at 0.365 ms | Against 500 ms |
+|---|---|---|---|
+| 1 | `8·40 + 50` = 370 | ≈ 135 ms | fits (0.27×) |
+| 2 | `8·120 + 500` = 1,460 | ≈ 533 ms | 1.07× over; fits once `t_sim` ≤ 0.34 ms (Match Rules story 019 AC-4) |
+| 3 | `8·250 + 4000` = 6,000 | ≈ 2,190 ms | 4.4× over |
+
+The target is met by tuning counts if A22 fails — the knob changes counts, never the clock. The
+counts above stand until Match Rules story 019 re-measures `t_sim`; band 3's counts will then be
+lowered until A22 passes if needed (2026-11-04, DD-X18). `TURN_CAP` (100 global turns, Match Rules
+C14 — 50 boss turns) and `max_actions_per_turn` together bound a match at 1,500 AI commands.
+`forecast` (C8) runs the same planner once per player turn under the same count budgets; it runs
+during the player's turn, so A22 measures it as its own planner run, not summed with `play_turn`
+(2026-11-04, DD-X18; the per-round 2× sum no longer applies).
 
 ### F8. Tie-break
 
@@ -669,7 +681,7 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `lethal_max_nodes` | 50 / 500 / 4000 | 10–20,000 | Finds deeper lethals; planner time up | Misses multi-step lethals | `planner_target_ms` |
 | `max_evals_per_action` | 40 / 120 / 250 | 10–1,000 | Better target choice on wide boards; time up | Pre-filter decides more; weaker play | `op_values`, `planner_target_ms` |
 | `max_actions_per_turn` | 30 | 10–100 | Longer degenerate turns possible | Legit token turns cut short | Match Rules `TURN_CAP` |
-| `planner_target_ms` | 50 | 20–200 | Allows larger budgets | Forces smaller budgets | F7 (measurement only; never a runtime switch) |
+| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; runs past 300 ms show "boss thinking" more often | Forces smaller budgets | F7 (measurement only; never a runtime switch), `intent_banner_s` |
 | `presentation.action_delay_s` | 0.6 | 0.3–1.2 | Boss turns read slower; risk "long opponent turns" | Actions blur together | `max_turn_playback_s` |
 | `presentation.max_turn_playback_s` | 10 | 6–20 | Long turns play in full | Delay compresses on busy turns | `action_delay_s` |
 | `presentation.intent_banner_s` / `plan_changed_s` | 0.3 / 1.2 | 0.2–0.6 / 0.6–2.0 | Longer commit beat / longer "plan changed" label; the first boss action starts later | Beat unreadable / label missed | Match UI `boss_turn_gap` (reads `intent_banner_s`) |
@@ -703,12 +715,14 @@ prompts from this section (11 intent icons, banner frame, "plan changed" label).
 ### Feel Reference
 Slay the Spire's enemy intent icons — the boss's plan is public, so a loss is "I saw it and
 could not stop it", never "where did that come from". Anti-reference: Hearthstone's AI opponents
-pausing with a "thinking" emote; the boss here never thinks on screen.
+pausing with a "thinking" emote; the boss here does not stall on screen — a short "boss thinking"
+beat (ADR-0006) appears only when a planner run outlasts the 300 ms banner beat (2026-11-04,
+DD-X18).
 
 ### Input Responsiveness
 | Action | Max latency (ms) | Frame budget (60 fps) | Notes |
 |---|---|---|---|
-| Player `end_turn` → boss planner complete | 50 | 3 frames | F7 target, measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30) |
+| Player `end_turn` → boss planner complete | 500 | 30 frames | F7 target per planner run (was 50 ms / 3 frames — 2026-11-04, DD-X18), measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30). A run longer than the 300 ms banner beat shows the existing "boss thinking" state (ADR-0006) |
 | Planner complete → first boss action on screen | 300 | 18 frames | Banner commit beat, then playback |
 | Each subsequent boss action | `action_delay_s` = 600 | 36 frames | Compressed to fit `max_turn_playback_s` on busy turns |
 | Player click "skip" during playback | 100 | 6 frames | Playback jumps to the final state (events already logged) |
@@ -860,8 +874,10 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
 
 **Robustness and performance**
 - [ ] **A22 GIVEN** the harness at band 3 budgets on the target machine (headless, release
-  template), **WHEN** 200 seeded matches run, **THEN** planner time per round (one `forecast` plus
-  one `play_turn`) is p95 ≤ 50 ms and the match's total `ai_decision` events are ≤ 400.
+  template), **WHEN** 200 seeded matches run, **THEN** planner time per planner run is p95 ≤ 500 ms,
+  measured separately for `play_turn` and for `forecast` (each must pass; was p95 ≤ 50 ms per round
+  of one `forecast` plus one `play_turn` — 2026-11-04, DD-X18), and the match's total `ai_decision`
+  events are ≤ 400.
 - [ ] **A23 GIVEN** 1,000 seeded matches (mixed bands, boss vs hero-script), **WHEN** complete,
   **THEN** zero `command_rejected` events have `side = boss`, zero `ai_fault`, zero
   `resolution_overflow`, and every match ends by `hero_dead` or `turn_cap`.

@@ -1495,10 +1495,10 @@ constants:
     source: design/gdd/boss-ai.md
     referenced_by:
       - design/gdd/boss-ai.md
-    value: 50
-    unit: ms per boss turn (p95, measurement only)
+    value: 500
+    unit: ms per planner run, play_turn and forecast each (p95, measurement only; was 50 ms per boss turn, DD-X18)
     added: 2026-11-03
-    revised: ""
+    revised: 2026-11-04
   - name: ai_action_delay_s
     status: active
     source: design/gdd/boss-ai.md

@@ -15,8 +15,8 @@
 **Requirement**: `TR-match-rules-008`, also `TR-match-rules-003` (`clone()`) and `TR-match-rules-006` (the C10 loop, unchanged in behaviour)
 *(Requirement text lives in `docs/architecture/tr-registry.yaml`. Read it fresh at review time.)*
 
-**ADR Governing Implementation**: ADR-0007: Effect Resolver / Validator Boundary (Performance Implications: `submit()` ≤ 5 ms worst case including resolver passes; `clone()` + empty memo per look-ahead node against `planner_target_ms` 50 p95). Also ADR-0006: Boss AI Planner Threading (Constraints and Performance: a 50 ms p95 planner target, a count-tuning target and not a runtime switch); ADR-0003: Seeded RNG Service and Event Log (Decision 3 and Alternative 3: a stream is copied by reseed-and-discard); ADR-0005: Owner-scoped hook registry (no allocation in the fold; `copy()` by value).
-**ADR Decision Summary**: `RulesEngine` owns `MatchState`, the primitives, candidate order and the C10 loop (death check, then `recompute_auras()`, then queue pop). The resolver writes only through primitives, and one effect pass is one C10 step. The engine budget is ≤ 5 ms for a worst-case `submit` and ≤ 2 ms for `legal_commands()`. `clone()` deep-copies state, hooks and a scratch log and binds a fresh resolver. Its per-node cost is measured against the planner's 50 ms p95.
+**ADR Governing Implementation**: ADR-0007: Effect Resolver / Validator Boundary (Performance Implications: `submit()` ≤ 5 ms worst case including resolver passes; `clone()` + empty memo per look-ahead node against `planner_target_ms` 500 p95 per planner run — was 50, 2026-11-04, DD-X18). Also ADR-0006: Boss AI Planner Threading (Constraints and Performance: a 500 ms p95 target per planner run, `play_turn` and `forecast` each, a count-tuning target and not a runtime switch — was 50 ms per turn, 2026-11-04, DD-X18); ADR-0003: Seeded RNG Service and Event Log (Decision 3 and Alternative 3: a stream is copied by reseed-and-discard); ADR-0005: Owner-scoped hook registry (no allocation in the fold; `copy()` by value).
+**ADR Decision Summary**: `RulesEngine` owns `MatchState`, the primitives, candidate order and the C10 loop (death check, then `recompute_auras()`, then queue pop). The resolver writes only through primitives, and one effect pass is one C10 step. The engine budget is ≤ 5 ms for a worst-case `submit` and ≤ 2 ms for `legal_commands()`. `clone()` deep-copies state, hooks and a scratch log and binds a fresh resolver. Its per-node cost is measured against the planner's 500 ms p95 per planner run (was 50 ms — 2026-11-04, DD-X18).
 **ADR Version**: 2026-11-03 (ADR-0007; ADR-0006, ADR-0003 and ADR-0005 are also 2026-11-03)
 
 **Engine**: Godot 4.7.2 | **Risk**: HIGH
@@ -29,7 +29,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 - Required: the `clone()` contract. It deep-copies `MatchState`, including `state.effects`, `suspended_queue` and `state.hooks.copy()`. It binds a fresh resolver with no installers, sets `rng_match = RngStream.copy()` of the live stream and gives the clone a detached scratch log. Every clone is ended with `end_match()` on every path (ADR-0007 Decision 3, ADR-0006).
 - Forbidden: never call the death check or `recompute_auras()` between ops; never let the resolver own the loop or the queue (ADR-0007).
 - Forbidden: never allocate in the fold; never fork `rng_match` on a clone; never drop a clone without `end_match()`; `tests/unit/**` never starts a worker (ADR-0005, ADR-0003, ADR-0006).
-- Guardrail: `submit()` ≤ 5 ms worst case (Deathrattle chain, resolver passes included); `legal_commands()` ≤ 2 ms; a 12-entry fold < 0.05 ms, with `copy()` ≤ 12 small `duplicate(true)` calls per clone; `clone()` + empty resolver memo per look-ahead node against `planner_target_ms` 50 p95 (ADR-0007, ADR-0005).
+- Guardrail: `submit()` ≤ 5 ms worst case (Deathrattle chain, resolver passes included); `legal_commands()` ≤ 2 ms; a 12-entry fold < 0.05 ms, with `copy()` ≤ 12 small `duplicate(true)` calls per clone; `clone()` + empty resolver memo per look-ahead node against `planner_target_ms` 500 p95 per planner run (was 50 — 2026-11-04, DD-X18) (ADR-0007, ADR-0005).
 - GDD C1 (story 018 Implementation Notes): never fix a cost by caching derived values on the records.
 
 ---
@@ -41,7 +41,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 | **R1** | `_recompute_auras`: skip both `_stat_map` passes when the strip removed no `is_aura` enchantment **and** no primitive ran during `resolver.recompute_auras()`. This is about 60 % of a plain command. | **Core** |
 | **R2** | An `entity_id → {side, zone}` location index for `_find_record`, `_live_record` and `_character`, kept up to date by the zone moves. It holds no derived values, so C1 holds. | **Core** |
 | **R3** | One reused candidate buffer per drain iteration instead of a new `Array[int]` per trigger point. | **Core** (small) |
-| **R4** | A cheaper `clone()`: do not deep-copy data that is never mutated once created. The `RngStream` copy is unchanged (see Out of Scope). | **Stretch**. AC-4 cannot be met without it: `clone()` alone is 72–153 µs on release, above AC-4's whole 67 µs target. |
+| **R4** | A cheaper `clone()`: do not deep-copy data that is never mutated once created. The `RngStream` copy is unchanged (see Out of Scope). | **Stretch**. Headroom for AC-4, no longer a precondition (2026-11-04, DD-X18): AC-4's target is now 340 µs, a ≈ 7 % cut from today's 365 µs, and `clone()` alone (72–153 µs on release) is under half of it. R1 (≈ 60 % of a plain command's `submit`) is expected to carry AC-4; R4 matters if R1–R3 land short. |
 | **R5** | Re-derive boss-ai F7 `t_sim` and re-budget the band counts. | **Not this story.** It is the follow-up below. |
 | **R6** | Decide whether 5 ms is realistic in GDScript for the 56-pass chain. | **Not this story.** The owner decides it only if AC-3 still misses after R1–R4 (see Close rule). |
 
@@ -76,16 +76,17 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 - [ ] **AC-4: Planner node cost `t_sim` = `clone()` + one `submit` (performance job; boss-ai F7, A22).**
   - **GIVEN** the 12 fixture states of `test_clone_and_one_command_node_cost_per_fixture_state_against_the_f7_planner_budget`.
   - **WHEN** `clone()` plus one `submit` is timed over 100 samples per state.
-  - **THEN** the median of the state medians is ≤ **67 µs** on the release template. Above 135 µs (2×) the job fails.
-  - **The arithmetic:**
-    - Band-1 F7 nodes per turn = 8 actions × `max_evals_per_action` 40 + `lethal_max_nodes` 50 = 370.
-    - A22 measures a round (one `forecast` plus one `play_turn`), so 2 × 370 = 740 nodes per round.
-    - `planner_target_ms` 50 ms / 740 = 67.6 µs per node. The target is 67 µs.
-    - ADR-0006 reads the same target per turn, which would allow 135 µs. A22's per-round reading is the stricter one, and it governs.
-    - Today's release figure is 365 µs, so this needs a 5.4× cut.
-  - The perf test's gate band changes from 3 to 1, with the per-round factor, and the test prints all three bands as it does now.
+  - **THEN** the median of the state medians is ≤ **340 µs** on the release template. Above 680 µs (2×) the job fails.
+  - **The arithmetic (retargeted 2026-11-04, DD-X18; was ≤ 67 µs = 50 ms / 740 nodes per round):**
+    - DD-X18 sets `planner_target_ms` to 500 ms **per planner run**; A22 measures `play_turn` and `forecast` separately, so there is no per-round 2× factor.
+    - Band-2 F7 nodes per run = 8 actions × `max_evals_per_action` 120 + `lethal_max_nodes` 500 = 1,460.
+    - 500 ms / 1,460 = 342.5 µs per node. The target is 340 µs (1,460 × 340 µs = 496 ms).
+    - Band 1 (370 nodes) already fits: 370 × 365 µs ≈ 135 ms.
+    - Today's release figure is 365 µs, so this needs a ≈ 7 % cut (1.07×).
+    - Band 3 (6,000 nodes, ≈ 2,190 ms at 365 µs; it would need ≈ 83 µs) is **not** targeted here: boss-ai F7 lowers band 3's counts after the follow-up re-measure, until A22 passes.
+  - The perf test's gate band changes from 3 to 2, per planner run (no per-round factor), and the test prints all three bands as it does now.
 
-**Close rule.** AC-1 and AC-2 close the implementation. If AC-3 or AC-4 still misses after R1–R4, `/story-done` records the measured figures and returns BLOCKED, as story 018 did. The fix is not widened inside this story. Instead, R6 (the owner re-budgets the 5 ms) and the follow-up below decide. R6 already expects the chain at about 8–12 ms after R1–R3. The perf record also expects AC-4 to land well above 67 µs even with R4, because `submit` dominates a node.
+**Close rule.** AC-1 and AC-2 close the implementation. If AC-3 or AC-4 still misses after R1–R4, `/story-done` records the measured figures and returns BLOCKED, as story 018 did. The fix is not widened inside this story. Instead, R6 (the owner re-budgets the 5 ms) and the follow-up below decide. R6 already expects the chain at about 8–12 ms after R1–R3. Against the DD-X18 target of 340 µs (2026-11-04), AC-4 is expected to pass after R1 alone: it asks for a ≈ 7 % cut and R1 removes about 60 % of a plain command; the perf record's warning that `submit` dominates a node now bears on band 3, which is re-budgeted by counts, not by this story.
 
 ---
 
@@ -110,7 +111,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 
 *Handled elsewhere. Do not implement here:*
 
-- **R5, the follow-up below**: boss-ai F7 counts and `t_sim`, and ADR-0006's budget text.
+- **R5, the follow-up below**: boss-ai F7 counts. (F7's `t_sim`, `planner_target_ms` and ADR-0006's budget text were already updated by DD-X18 on 2026-11-04.)
 - **R6**: the owner's decision on the 5 ms budget.
 - **An O(1) `RngStream.copy()`**: rng-event-log owns `src/core/rng/rng_stream.gd`. ADR-0003 Alternative 3 allows an in-memory state copy only with a test proving identical next outputs. Raise it as an rng-event-log story if R4 measurements show the stream copy matters. It is ≈ 30–40 µs at ≤ 300 draws (review S8).
 - **Hot spot 3** (`_enqueue`'s `duplicate(true)` snapshot per queued trigger): not ranked in R1–R6. Re-rank it after this story's re-measure.
@@ -123,7 +124,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 ## Follow-up (a separate step after this story, not part of it)
 
 1. Re-measure: run the CI `performance` job and the release template (and the reference machine when available), and write a new `production/qa/perf-match-rules-<date>.md`. Story 018's AC-40 row is re-taken from it.
-2. Run `/propagate-design-change design/gdd/boss-ai.md` on F7: replace `t_sim ≈ 0.01 ms` with the measured figure and re-budget `max_evals_per_action` and `lethal_max_nodes` per band. Consider the `op_value` prefilter, do/undo on one sandbox, or `planner_target_ms`, as the design owners choose. Then resolve the ADR-0006 rows it flags. This must happen before BAI-004/005 tune weights against the current counts.
+2. (Revised 2026-11-04, DD-X18.) F7 already carries the measured `t_sim` (~0.37 ms release / ~0.45 ms debug) and the 500 ms per-run target. After re-measuring, update F7's `t_sim` to the new figure and re-budget the counts against 500 ms per run: band 3's `max_evals_per_action` and `lethal_max_nodes` are lowered until A22 passes (≈ 2,190 ms today), and band 2's too if AC-4 missed 340 µs. Consider the `op_value` prefilter or do/undo on one sandbox, as the design owners choose. Then run `/propagate-design-change design/gdd/boss-ai.md` on the F7 counts and resolve the ADR rows it flags. This must happen before BAI-004/005 tune weights against the current counts.
 
 ---
 
@@ -137,7 +138,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 - `tests/unit/match_rules/match_rules_golden_log_test.gd` (new: AC-2 golden comparisons)
 - `tests/fixtures/match_rules/golden_logs/` (new: recorded on the unchanged engine, committed before any `src/` edit)
 - `tests/helpers/match_budget_fixtures.gd` (additive: the aura fixture)
-- `tests/performance/match_rules/match_rules_perf_test.gd` (AC-4 gate on band 1 per round; target and gate printed)
+- `tests/performance/match_rules/match_rules_perf_test.gd` (AC-4 gate on band 2 per planner run — was band 1 per round, 2026-11-04, DD-X18; target and gate printed)
 - `tests/README.md` (new suites, golden-log rule)
 - `production/qa/perf-match-rules-<date>.md` (new record)
 

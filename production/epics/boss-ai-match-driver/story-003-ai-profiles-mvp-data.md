@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: `slice_ms`, `replay_budget_ms`, `planner_mode` come from the `ai_profiles.json` `runtime` block (ADR-0006 default `replay_budget_ms` **2**; ADR-0008's Performance section says 4 — the data value governs).
 - Forbidden: No hardcoded weights, budgets or delays in `src/ai/**` (A29) — every F1–F9 value lives in this file.
-- Guardrail: Boss AI worker 50 ms p95 per turn (A22) — `lethal_max_nodes` at band 3 is the first knob to lower if A22 fails (F7).
+- Guardrail: Boss AI worker 50 ms p95 per turn (A22) — `lethal_max_nodes` at band 3 is the first knob to lower if A22 fails (F7). **Note 2026-11-04, DD-X18:** now 500 ms p95 per planner run (`play_turn` and `forecast` each); band 3's counts (`max_evals_per_action` and `lethal_max_nodes`) are lowered if A22 fails after match-rules story 019 re-measures. This story's data is unchanged.
 
 ---
 
