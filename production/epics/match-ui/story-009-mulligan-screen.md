@@ -33,14 +33,16 @@
 *From match-ui U8, O6 and States:*
 
 - [ ] **O6** GIVEN `--fixture=mulligan`, WHEN captured, THEN three 225x315 cards are centred in 278,202,723,315 over a table dimmed to `table_dark`, each with a keep / replace toggle, and the Confirm button is enabled.
-- [ ] GIVEN the mulligan screen, WHEN each of the 8 keep / replace subsets is chosen by click or `1`–`3` and Confirm is pressed, THEN exactly one `mulligan(keep_mask)` with that mask is submitted and accepted (replacing none and replacing all included); the boss is never offered a mulligan.
+- [ ] GIVEN the mulligan screen with the default opening hand (n = 3, fixture `mulligan`), WHEN each of the 8 keep / replace subsets is chosen by click or `1`–`3` and Confirm is pressed, THEN exactly one `mulligan(keep_mask)` with that mask is submitted and accepted (replacing none and replacing all included). GIVEN an opening hand of **5** (Bottomless Satchel, `modify_starting_hand_size` +2 — v1 content; fixture *proposed* `mulligan_satchel`), THEN the mask has length 5 for all 32 subsets (headless), and keys `1`–`5` toggle cards 1–5. The boss is never offered a mulligan. *(amended 2026-11-04 to match design/ux/mulligan.md, ux-review round 1)*
+- [ ] GIVEN `mulligan_satchel` (n = 5), WHEN captured, THEN five 150x210 cards sit at x 233 + 166·i, y 202 (±2 px), inside the safe band x 208–1072. The boss passive plate, the boss hand count, End Turn, both portraits, the hero power / weapon slot and the tray are fully unobstructed (`design/ux/mulligan.md` §5.1 card-scale rule, §14). *(amended 2026-11-04 to match design/ux/mulligan.md, ux-review round 1)*
+- [ ] GIVEN a held `modify_cost` treasure that discounts an opening-hand card (fixture *proposed* `mulligan_discount`, Quartermaster's Ledger + a printed-5 card), WHEN the screen opens, THEN that card's cost stamp shows the **effective** cost from `MatchQuery.hand(player)` (match-rules F1 `hook_delta`) with `hand.md`'s modified-cost stamp (`ink` fill, `state_buff` numeral), and focusing it shows "Printed cost 5". After Confirm and the drain, the fan shows the same number. *(amended 2026-11-04 to match design/ux/mulligan.md, ux-review round 1)*
 - [ ] GIVEN `mulligan_resolved`, WHEN projected, THEN the replaced cards flip (0.3 s) into the hand, the view moves `Mulligan → Playback → Idle`, and the screen has no cancel (`Esc` handling is Story 019).
 
 ---
 
 ## Implementation Notes
 
-- `src/ui/match/mulligan_presenter.gd` on `mulligan_screen.tscn`; the 3 starting cards come from `MatchViewState.pending_mulligan` (`starting_hand_player` from config).
+- `src/ui/match/mulligan_presenter.gd` on `mulligan_screen.tscn`; the starting cards (3 by default, up to 5 with Bottomless Satchel) come from `MatchViewState.pending_mulligan` (`starting_hand_player` from config, modified by `modify_starting_hand_size`); effective costs come from one `MatchQuery.hand(player)` read when the screen opens (`design/ux/mulligan.md` §8). *(amended 2026-11-04 to match design/ux/mulligan.md, ux-review round 1)*
 - Fixture `mulligan.json`: `MatchConfig` only, empty command list (the match rests at `mulligan_offered`).
 - Focus ring visuals are Story 018; this story wires `1`–`3` toggles and Enter/Confirm.
 
@@ -70,7 +72,7 @@
 
 **Story Type**: UI
 **Required evidence**:
-- UI: retained screenshot `01-mulligan.png` in `production/qa/evidence/story-009-mulligan-screen/` via `tools/capture.sh`
+- UI: retained screenshot `01-mulligan.png` in `production/qa/evidence/story-009-mulligan-screen/` via `tools/capture.sh`; also `02-mulligan_satchel.png` and `03-mulligan_discount.png` for the amended ACs *(amended 2026-11-04 to match design/ux/mulligan.md, ux-review round 1)*
 
 **Status**: [ ] Not yet created
 
