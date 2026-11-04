@@ -7,9 +7,11 @@
 ## cites its GDD row. When the shipped file lands, re-run L7 against it and keep
 ## this body in step (QA plan "Rebase").
 ##
-## Key names are the GDD's own handles: `d_base.<step kind>` (F3 table plus the
-## U3 table's extra step kinds), `SPEED_DIV`, `COALESCE_THRESHOLD`,
-## `silent_types` (U3), `FEED_MAX_LINES` (F5) and `impact_ms` (F3 "Impact
+## Key names are snake_case file keys (DD-T01; code review 2026-11-04 renamed
+## the three that were UPPER_CASE): `d_base.<step kind>` (F3 table plus the
+## U3 table's extra step kinds), `speed_div` (GDD knob `SPEED_DIV`),
+## `coalesce_threshold` (`COALESCE_THRESHOLD`), `silent_types` (U3),
+## `feed_max_lines` (`FEED_MAX_LINES`, F5) and `impact_ms` (F3 "Impact
 ## extras", match-rules Game Feel).
 ## [codeblock]
 ## var view: MatchViewState = MatchViewState.new(MatchUiTestConfig.body())
@@ -37,13 +39,13 @@ static func body() -> Dictionary:
 			"intent_commit": 0.3,
 		},
 		# F3 / Tuning Knobs `SPEED_DIV`: normal 1.0, fast 2.0 (`instant` never divides)
-		"SPEED_DIV": {"normal": 1.0, "fast": 2.0},
+		"speed_div": {"normal": 1.0, "fast": 2.0},
 		# U4.3 / Tuning Knobs `COALESCE_THRESHOLD`
-		"COALESCE_THRESHOLD": 8,
+		"coalesce_threshold": 8,
 		# U3 "Silent set"
 		"silent_types": ["turn_reset", "card_to_graveyard"],
 		# F5 / Tuning Knobs `FEED_MAX_LINES`
-		"FEED_MAX_LINES": 200,
+		"feed_max_lines": 200,
 		# F3 "Impact extras (hit-stop 60/90 ms, shake 120 ms, lethal slow-down 400 ms)"
 		"impact_ms": {"hit_stop": 60, "hit_stop_heavy": 90, "shake": 120, "slow": 400},
 	}

@@ -80,17 +80,18 @@ var _bucket_group: int = -1
 var _busy: bool = false
 
 
-## A queue over the `config("match_ui")` body [param ui_config] (`SPEED_DIV`,
-## `COALESCE_THRESHOLD`) and the settings [param settings] (`anim_speed`,
+## A queue over the `config("match_ui")` body [param ui_config] (file keys
+## `speed_div` and `coalesce_threshold` — the GDD's `SPEED_DIV` /
+## `COALESCE_THRESHOLD` knobs, snake_case per DD-T01) and the settings [param settings] (`anim_speed`,
 ## `reduce_motion`; DD-X07 labels).
 ## [codeblock]
 ## var queue := AnimationQueue.new(db.config("match_ui"), {"anim_speed": "normal", "reduce_motion": false})
 ## [/codeblock]
 func _init(ui_config: Dictionary, settings: Dictionary) -> void:
-	_speed_div = (ui_config.get("SPEED_DIV", {}) as Dictionary).duplicate(true)
-	_threshold = int(ui_config.get("COALESCE_THRESHOLD", 0))
+	_speed_div = (ui_config.get("speed_div", {}) as Dictionary).duplicate(true)
+	_threshold = int(ui_config.get("coalesce_threshold", 0))
 	if _threshold <= 0:
-		push_error("AnimationQueue: config(\"match_ui\").COALESCE_THRESHOLD is missing or not positive")
+		push_error("AnimationQueue: config(\"match_ui\").coalesce_threshold is missing or not positive")
 	set_speed(StringName(str(settings.get("anim_speed", ""))))
 	set_reduce_motion(settings.get("reduce_motion", false) == true)
 
@@ -178,7 +179,7 @@ func is_idle() -> bool:
 func set_speed(anim_speed: StringName) -> void:
 	_anim_speed = String(anim_speed)
 	if _anim_speed != SPEED_INSTANT and not _speed_div.has(_anim_speed):
-		push_error("AnimationQueue: anim_speed '%s' is neither '%s' nor a SPEED_DIV key %s" % [_anim_speed, SPEED_INSTANT, _speed_div.keys()])
+		push_error("AnimationQueue: anim_speed '%s' is neither '%s' nor a speed_div key %s" % [_anim_speed, SPEED_INSTANT, _speed_div.keys()])
 
 
 ## [param on] drops every impact extra at every speed; base durations are
