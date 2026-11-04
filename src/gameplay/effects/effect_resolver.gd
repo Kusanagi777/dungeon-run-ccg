@@ -42,13 +42,22 @@ extends RefCounted
 const KNOB_HOOKS_BEFORE_TRIGGERS: String = "hooks_before_triggers"
 ## Memo field: the definition's `effects[]`.
 const MEMO_EFFECTS: String = "effects"
+## Memo field: the definition record itself (`{}` when the database has none).
+const MEMO_RECORD: String = "record"
+## Memo field: the derived C1 rule 1 targeting spec (`EffectValidator.derive_targeting_spec`).
+const MEMO_TARGETING: String = "targeting_spec"
+## The record type whose CR-2 id prefix (`RecordSchemas.SCHEMAS`, `power_`)
+## sends the memo to `hero_power(id)` instead of `card(id)` — a lookup of the
+## wrong type logs an error and asserts in a debug build.
+const HERO_POWER_RECORD: String = "HeroPowerDef"
 
 var _db: CardDatabase
 var _config: Dictionary
 ## The bound engine: set by [method bind], cleared by [method unbind].
 var _engine: RulesEngine = null
-## `def_id → {effects: Array}` — derived from `db.card(def_id)`, filled on
-## first use. Story 004 adds the memoised `targeting_spec` to the same entry.
+## `def_id → {effects: Array, record: Dictionary, targeting_spec: Dictionary}`
+## — derived from the definition, filled on first use (story 002's memo;
+## story 004 adds the record and the memoised targeting spec).
 var _memo: Dictionary[String, Dictionary] = {}
 
 
@@ -126,6 +135,43 @@ func effects_of(def_id: String) -> Array:
 	return _memo_entry(def_id)[MEMO_EFFECTS]
 
 
+## The frozen definition record of [param def_id] (a CardDef, or a
+## HeroPowerDef for a `power_` id — CR-2), memoised; `{}` when the database
+## has no such id. Read it, never write it.
+## Example: `int(resolver.definition("war_scout").cost)`.
+func definition(def_id: String) -> Dictionary:
+	return _memo_entry(def_id)[MEMO_RECORD]
+
+
+## The targeting spec of [param def_id] (card-effects C1 rule 1; ADR-0007 Key
+## Interfaces): `{mode: none | optional | required, filter}`, derived from its
+## one play-trigger `chosen` selector by `EffectValidator.derive_targeting_spec`
+## — never read from a stored field (Card Database CR-3 rejects one) — and
+## memoised per `def_id`, so match-rules' C6 validation and
+## `legal_commands()` pay one derivation per definition. The same Dictionary
+## on every call; read it, never write it. A def_id the database lacks is
+## `none`. Example: `if resolver.targeting_spec(def_id).mode == "required": …`.
+func targeting_spec(def_id: String) -> Dictionary:
+	return _memo_entry(def_id)[MEMO_TARGETING]
+
+
+## The entity ids [param def_id]'s `chosen` may name when played from
+## [param source] (`{side, source_id, card_id}` — the engine's hand-card or
+## hero-power source): `[]` for a `none` spec; else every character in
+## canonical order (player board, boss board, player hero, boss hero) that is
+## not dying, is not an **enemy** Stealth minion (match-rules C12 — the only
+## runtime rule beyond the filter) and matches the spec's filter, "friendly"
+## relative to `source.side`. Reads the bound engine's live state; never
+## writes. Example: `var ids: Array[int] = resolver.legal_targets("knowledge_bolt", source)`.
+func legal_targets(def_id: String, source: Dictionary) -> Array[int]:
+	var spec: Dictionary = targeting_spec(def_id)
+	if str(spec.mode) == EffectSchema.TARGETING_NONE:
+		var none: Array[int] = []
+		return none
+	assert(_engine != null, "EffectResolver.legal_targets: not bound to an engine")
+	return EffectSelectors.chosen_candidates(self, spec.filter, str(source.side), int(source.get("source_id", -1)))
+
+
 ## Trigger point [param trigger_point] fired by the engine with
 ## [param ctx] (`{candidates: Array[int], side, …}` in engine order); returns
 ## the triggers this pass queues, which the engine appends to Q (ADR-0007 Key
@@ -159,11 +205,23 @@ func run_hook_effect(_entry: Dictionary, _side: StringName, _ctx: Dictionary) ->
 	pass
 
 
+## The memo entry of [param def_id], built on first use. `has()` before the
+## typed lookup (an unknown id is not an error — card-database story 006); a
+## `power_` id (CR-2, `RecordSchemas`) is a HeroPowerDef, anything else a
+## CardDef.
 func _memo_entry(def_id: String) -> Dictionary:
 	if not _memo.has(def_id):
-		var def: Variant = _db.card(def_id)
+		var def: Variant = null
+		if _db.has(def_id):
+			var power_prefix: String = str(RecordSchemas.SCHEMAS[HERO_POWER_RECORD].prefix)
+			def = _db.hero_power(def_id) if def_id.begins_with(power_prefix) else _db.card(def_id)
+		var record: Dictionary = def if def is Dictionary else {}
 		var effects: Array = []
-		if def is Dictionary and (def as Dictionary).get(MEMO_EFFECTS) is Array:
-			effects = def[MEMO_EFFECTS]
-		_memo[def_id] = {MEMO_EFFECTS: effects}
+		if record.get(MEMO_EFFECTS) is Array:
+			effects = record[MEMO_EFFECTS]
+		_memo[def_id] = {
+			MEMO_EFFECTS: effects,
+			MEMO_RECORD: record,
+			MEMO_TARGETING: EffectValidator.derive_targeting_spec(effects),
+		}
 	return _memo[def_id]

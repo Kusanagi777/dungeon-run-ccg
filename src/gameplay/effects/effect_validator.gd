@@ -15,13 +15,15 @@
 ## or `passive/0/…` for a boss passive). `W_FX_*` codes are warnings and never
 ## fail the host; Card Database's merge maps them by prefix.
 ##
-## Story 003 covers every code except `E_FX_BUDGET` and `E_FX_OP_TARGET`
-## (story 004, with `step_bound` and `derive_targeting_spec`); both are in the
-## closed set already.
+## Story 003 covers every code except `E_FX_BUDGET` and `E_FX_OP_TARGET`;
+## story 004 adds those two with [method step_bound] (F6) and
+## [method derive_targeting_spec] (C1 rule 1 — the one derivation: the
+## validator calls it for `discover` `then: cast` candidates, the resolver
+## memoises it per `def_id`).
 ##
 ## [codeblock]
-## # Boot's stage-7b adapter (ADR-0002 Decision 4):
-## func(kind, id, fx, db, configs): return EffectValidator.validate_effects(kind, id, fx, db, configs["card_effects"])
+## # Boot's stage-7b adapter (ADR-0002 Decision 4; F6 needs match-rules' HAND_SIZE too):
+## func(kind, id, fx, db, configs): return EffectValidator.validate_effects(kind, id, fx, db, EffectValidator.stage7_caps(configs))
 ##
 ## var report: Array = EffectValidator.validate_effects(&"card", "war_raise_dead", effects, db, caps)
 ## report[0].code    # &"E_FX_REF"
@@ -77,6 +79,17 @@ const CODES: Array[StringName] = [
 const CAP_MAX_OPS_PER_EFFECT: String = "max_ops_per_effect"
 const CAP_MAX_REPEAT: String = "max_repeat"
 const CAP_MAX_SUMMON_COUNT: String = "max_summon_count"
+const CAP_EFFECT_STATIC_STEP_LIMIT: String = "effect_static_step_limit"
+## Match-rules' `HAND_SIZE` (F6: `max_targets(hand)` and the ceiling of a
+## non-literal `count` / `n`). Not a `card_effects` knob — [method stage7_caps]
+## folds it in from the `match_rules` body; a bound that needs it and finds it
+## absent is reported (`E_FX_BUDGET`), never passed.
+const CAP_HAND_SIZE: String = "hand_size"
+## The config bodies [method stage7_caps] reads (stage 7b `configs` keys).
+const CONFIG_CARD_EFFECTS: String = "card_effects"
+const CONFIG_MATCH_RULES: String = "match_rules"
+## What [method step_bound] returns when a ceiling it needs is not in `caps`.
+const BOUND_UNKNOWN: int = -1
 
 ## Host kinds Card Database stage 7b passes (card-database story 004), plus the
 ## C2 spellings. `card` resolves to the record `type` through `db.card(host_id)`;
@@ -143,6 +156,7 @@ static func validate_effects(host_kind: StringName, host_id: String, effects: Ar
 			"host": host, "db": db, "caps": caps, "primitives": primitives,
 			"trigger_known": false, "trigger_class": &"", "context": [],
 			"has_chosen": false, "chosen_play": false, "in_option": false,
+			"effect_targets": null,
 		}
 		if not effects[i] is Dictionary:
 			_add(ctx, E_FX_SCHEMA, path, "an effect is a JSON object, found %s" % type_string(typeof(effects[i])))
@@ -157,6 +171,7 @@ static func validate_effects(host_kind: StringName, host_id: String, effects: Ar
 			_add(ctx, E_FX_SCHEMA, path, "effect id `%s` is used twice in host `%s`" % [ctx.effect_id, host_id])
 		seen_ids[ctx.effect_id] = true
 		_check_effect(effect, path, ctx)
+		_check_budget(effect, path, ctx)
 		if ctx.chosen_play:
 			chosen_play_effects += 1
 			if chosen_play_effects > 1:
@@ -213,6 +228,84 @@ static func _config_error(knob: String, message: String) -> Dictionary:
 	return {"code": E_FX_SCHEMA, "host_id": null, "field": knob, "message": message}
 
 
+## The caps [method validate_effects] needs at Card Database stage 7b, from
+## the parsed config [param bodies] (the fifth stage-7b argument): a new
+## Dictionary holding every key of `bodies.card_effects` plus
+## [constant CAP_HAND_SIZE] from `bodies.match_rules` (F6 — the 10 for
+## `HAND_SIZE` is match-rules' knob, never a literal here). A missing body
+## contributes nothing: an absent `match_rules` leaves `hand_size` out, so a
+## bound that needs it is reported, not passed. The bodies (frozen) are not
+## changed. Static and pure.
+## [codeblock]
+## var caps: Dictionary = EffectValidator.stage7_caps(configs)
+## caps.hand_size   # 10 with the shipped match_rules.json
+## [/codeblock]
+static func stage7_caps(bodies: Dictionary) -> Dictionary:
+	var caps: Dictionary = {}
+	var effects_body: Variant = bodies.get(CONFIG_CARD_EFFECTS)
+	if effects_body is Dictionary:
+		caps.merge(effects_body)
+	var rules_body: Variant = bodies.get(CONFIG_MATCH_RULES)
+	if rules_body is Dictionary and (rules_body as Dictionary).has(CAP_HAND_SIZE):
+		caps[CAP_HAND_SIZE] = rules_body[CAP_HAND_SIZE]
+	return caps
+
+
+## F6 `effect_step_bound` of one effect object: the most primitive calls
+## (mutations) one pass of [param effect] can make — `1 + Σ steps(op)` with
+## `steps(leaf) = max_targets(op.targets, else the effect's) × count(op)`
+## (`count` 1 when absent), `steps(repeat) = times × Σ steps(inner)`,
+## `steps(conditional) = max(Σ then, Σ else)`, `steps(choose_one) = max over
+## options`; `max_targets` per [constant EffectSchema.F6_MAX_TARGETS_ALL] and
+## its neighbours (a side-scoped op, or no selector, is 1 — a side-scoped op
+## ignores an inherited effect-level selector). A non-literal `count`, `n` or
+## `times` is taken at its ceiling from [param caps]: `max_summon_count` for
+## `summon`, `max_repeat` for `repeat`, [constant CAP_HAND_SIZE] otherwise.
+## Returns [constant BOUND_UNKNOWN] when a ceiling it needs is absent from
+## [param caps]. Exposed for tests and `/balance-check` (ADR-0007 Key
+## Interfaces). Static and pure.
+## [codeblock]
+## EffectValidator.step_bound(row_34, caps)   # 1 + 2 × 1 = 3
+## [/codeblock]
+static func step_bound(effect: Dictionary, caps: Dictionary) -> int:
+	var missing: Array[String] = []
+	var bound: int = _bound(effect, caps, missing)
+	return BOUND_UNKNOWN if not missing.is_empty() else bound
+
+
+## The C1 rule 1 targeting spec of a host's [param effects]: the first effect
+## whose trigger is a play trigger (`battlecry`, `cast`, `hero_power`) and
+## whose effect-level `targets` is `chosen` gives `{mode: required, filter}`
+## (`optional` when the selector says `optional: true`; `filter` is the
+## selector's, `{}` when it has none — the same Dictionary as in
+## [param effects], so read it, never write it); no such effect gives
+## `{mode: none, filter: {}}`. More than one such effect is `E_FX_CHOSEN`
+## at load, so a loaded host has at most one. The one derivation (ADR-0007
+## Decision 8): this validator calls it for `discover` `then: cast`
+## candidates, `EffectResolver.targeting_spec` memoises it per `def_id`; no
+## stored `targeting` field exists (Card Database CR-3). Static and pure.
+## [codeblock]
+## EffectValidator.derive_targeting_spec(db.card("knowledge_bolt").effects)   # {mode: required, filter: {kind: any}}
+## [/codeblock]
+static func derive_targeting_spec(effects: Array) -> Dictionary:
+	for effect: Variant in effects:
+		if not effect is Dictionary:
+			continue
+		var trigger: Variant = (effect as Dictionary).get("trigger")
+		if not trigger is String or not EffectSchema.TRIGGERS.has(trigger) or EffectSchema.TRIGGERS[trigger].class != EffectSchema.CLASS_PLAY:
+			continue
+		var targets: Variant = (effect as Dictionary).get("targets")
+		if _selector_name(targets) != EffectSchema.CHOSEN:
+			continue
+		var filter: Variant = targets.get("filter", {}) if targets is Dictionary else {}
+		var optional: bool = targets is Dictionary and (targets as Dictionary).get("optional") == true
+		return {
+			"mode": EffectSchema.TARGETING_OPTIONAL if optional else EffectSchema.TARGETING_REQUIRED,
+			"filter": filter if filter is Dictionary else {},
+		}
+	return {"mode": EffectSchema.TARGETING_NONE, "filter": {}}
+
+
 # --- Host ------------------------------------------------------------------------
 
 static func _host_record(host_kind: StringName, host_id: String, db: Variant) -> Dictionary:
@@ -262,6 +355,7 @@ static func _check_effect(effect: Dictionary, path: String, ctx: Dictionary) -> 
 			if _check_condition(effect.condition, path + "/condition", ctx) == false:
 				_add(ctx, W_FX_UNREACHABLE, path + "/condition", "`condition` is always false; the effect never runs")
 	if effect.has("targets"):
+		ctx.effect_targets = effect.targets
 		_check_selector(effect.targets, path + "/targets", ctx, true)
 	if effect.has("once_per_turn") and not effect.once_per_turn is bool:
 		_add(ctx, E_FX_SCHEMA, path + "/once_per_turn", "`once_per_turn` is a bool")
@@ -616,8 +710,11 @@ static func _check_op(op: Variant, path: String, ctx: Dictionary) -> void:
 			_add(ctx, E_FX_SCHEMA, path, "op `%s` takes exactly one of %s (C5)" % [name, ", ".join(row.one_of)])
 	if name == "discover" and op.get("pool") == "list" and not op.has("list"):
 		_add(ctx, E_FX_SCHEMA, path, "`discover` with `pool: list` needs `list` (C5)")
+	if name == "discover" and op.get("then") == "cast":
+		_check_discover_cast(op, path, ctx)
 	if op.has("targets"):
 		_check_selector(op.targets, path + "/targets", ctx, false)
+	_check_op_target(name, op, path, ctx)
 	for key: Variant in (op as Dictionary).keys():
 		if params.has(key):
 			_check_param(name, key, params[key], op[key], "%s/%s" % [path, key], ctx)
@@ -809,6 +906,205 @@ static func _check_options(value: Variant, path: String, ctx: Dictionary) -> voi
 		else:
 			_check_ops_list(option.ops, where + "/ops", ctx, false)
 	ctx.in_option = was_in_option
+
+
+# --- Target kinds (C5 "Legal targets", C10 `E_FX_OP_TARGET`) -------------------
+
+## A targeted op ([constant EffectSchema.OP_TARGET_KINDS]) whose selector — its
+## own `targets`, else the effect's — can never yield a kind the op accepts
+## (`freeze` on `hand`), or that has no selector at all.
+static func _check_op_target(name: String, op: Dictionary, path: String, ctx: Dictionary) -> void:
+	if not EffectSchema.OP_TARGET_KINDS.has(name):
+		return
+	if name == "shuffle_into_deck" and op.has("card_id"):
+		return
+	var own: bool = op.has("targets")
+	var selector: Variant = op.targets if own else ctx.effect_targets
+	var where: String = path + "/targets" if own else path
+	var wanted: Array = EffectSchema.OP_TARGET_KINDS[name]
+	if selector == null:
+		_add(ctx, E_FX_OP_TARGET, where, "op `%s` has no `targets` (op or effect level), so it can never reach a %s (C5)" % [name, " / ".join(wanted)])
+		return
+	var yields: Array = _selector_kinds(selector, ctx)
+	for kind: String in yields:
+		if wanted.has(kind):
+			return
+	_add(ctx, E_FX_OP_TARGET, where, "op `%s` needs a %s, and selector `%s` can only yield %s (C5 Legal targets)" % [
+		name, " / ".join(wanted), _selector_name(selector), " / ".join(yields) if not yields.is_empty() else "nothing"])
+
+
+## The kinds [param selector] can yield (C3), narrowed by its filter's `kind`.
+## An unknown selector (already `E_FX_SELECTOR`) yields anything, so it is
+## reported once.
+static func _selector_kinds(selector: Variant, ctx: Dictionary) -> Array:
+	var name: String = _selector_name(selector)
+	if name == EffectSchema.SELF:
+		return EffectSchema.SELF_KINDS.get(str(ctx.host), EffectSchema.KINDS_ANY)
+	if not EffectSchema.SELECTOR_KINDS.has(name):
+		return EffectSchema.KINDS_ANY
+	var kinds: Array = EffectSchema.SELECTOR_KINDS[name]
+	var filter: Variant = selector.get("filter") if selector is Dictionary else null
+	if filter is Dictionary and EffectSchema.FILTER_KIND_NARROWS.has(str((filter as Dictionary).get("kind"))):
+		var narrowed: Array = EffectSchema.FILTER_KIND_NARROWS[str(filter.kind)]
+		return kinds.filter(func(kind: String) -> bool: return narrowed.has(kind) or (kind != EffectSchema.KIND_MINION and kind != EffectSchema.KIND_HERO))
+	return kinds
+
+
+## `discover` `then: cast` (C10 `E_FX_OP_TARGET`): no candidate may be a spell
+## whose derived targeting mode is not `none` — there is no target source at
+## resume time. Candidates: `list` (ids `has()` knows), else the load-time pool
+## after `filter` — every spell for `collectible` (tokens and the `boss` set
+## excluded, F4) and, since any spell may sit in a deck or hand, every spell
+## for `deck` / `hand`. The host itself is never offered (F4).
+static func _check_discover_cast(op: Dictionary, path: String, ctx: Dictionary) -> void:
+	var db: Variant = ctx.db
+	if db == null:
+		return
+	var candidates: Array = []
+	if op.get("pool") == "list":
+		for id: Variant in (op.get("list") if op.get("list") is Array else []):
+			if id is String and db.has(id):
+				candidates.append(db.card(id))
+	else:
+		var collectible: bool = op.get("pool") == "collectible"
+		for record: Variant in db.cards_by_type(EffectSchema.HOST_SPELL):
+			if not collectible or (not bool(record.get("token", false)) and str(record.get("set", "")) != "boss"):
+				candidates.append(record)
+	var filter: Dictionary = op.filter if op.get("filter") is Dictionary else {}
+	var targeted: PackedStringArray = []
+	for record: Variant in candidates:
+		if not record is Dictionary or str(record.get("type", "")) != EffectSchema.HOST_SPELL or str(record.get("id", "")) == ctx.host_id:
+			continue
+		if not _card_matches(record, filter):
+			continue
+		var effects: Variant = record.get("effects", [])
+		if effects is Array and derive_targeting_spec(effects).mode != EffectSchema.TARGETING_NONE:
+			targeted.append(str(record.id))
+	if not targeted.is_empty():
+		_add(ctx, E_FX_OP_TARGET, path + "/then", "`discover` `then: cast` can offer spells that need a target (%s); a cast on resume has no target source (C10)" % ", ".join(targeted))
+
+
+## Whether the card definition [param record] matches the pool [param filter]
+## (C3 predicates that apply to cards and pools). A predicate that applies only
+## to characters, or a non-literal value, does not narrow — so the candidate
+## set is never smaller than the runtime one.
+static func _card_matches(record: Dictionary, filter: Dictionary) -> bool:
+	for key: Variant in filter:
+		var want: Variant = filter[key]
+		match str(key):
+			"type", "set", "rarity":
+				if str(record.get(str(key), "")) != str(want):
+					return false
+			"tag":
+				if not (record.get("tags", []) as Array).has(want):
+					return false
+			"token":
+				if bool(record.get("token", false)) != bool(want):
+					return false
+			"has_keyword", "lacks_keyword":
+				var wanted: Array = want if want is Array else [want]
+				var held: Array = record.get("keywords", [])
+				for kw: Variant in wanted:
+					if held.has(kw) != (str(key) == "has_keyword"):
+						return false
+			"cost_le", "cost_ge", "cost_eq":
+				var bound: Variant = _literal_int(want)
+				if bound != null:
+					var cost: int = int(record.get("cost", 0))
+					if (str(key) == "cost_le" and cost > int(bound)) or (str(key) == "cost_ge" and cost < int(bound)) or (str(key) == "cost_eq" and cost != int(bound)):
+						return false
+	return true
+
+
+# --- F6 static step bound (E_FX_BUDGET) --------------------------------------------
+
+## `E_FX_BUDGET` when [param effect]'s F6 bound exceeds
+## `effect_static_step_limit`, or cannot be computed because a ceiling is
+## absent from the caps. A missing limit skips the check: stage 7a
+## ([method validate_config]) reports that knob.
+static func _check_budget(effect: Dictionary, path: String, ctx: Dictionary) -> void:
+	var limit: Variant = _cap(ctx.caps, CAP_EFFECT_STATIC_STEP_LIMIT)
+	if limit == null or not effect.get("ops") is Array:
+		return
+	var missing: Array[String] = []
+	var bound: int = _bound(effect, ctx.caps, missing)
+	if not missing.is_empty():
+		_add(ctx, E_FX_BUDGET, path, "F6 static step bound cannot be computed: caps lack %s (card-effects F6; the stage-7b caller folds `hand_size` in through EffectValidator.stage7_caps)" % ", ".join(missing))
+	elif bound > int(limit):
+		_add(ctx, E_FX_BUDGET, path, "F6 static step bound %d exceeds EFFECT_STATIC_STEP_LIMIT %d (card-effects F6)" % [bound, int(limit)])
+
+
+## [method step_bound] with the absent ceilings collected in [param missing].
+static func _bound(effect: Dictionary, caps: Dictionary, missing: Array[String]) -> int:
+	return 1 + _ops_steps(effect.get("ops", []), effect.get("targets"), caps, missing)
+
+
+static func _ops_steps(ops: Variant, inherited: Variant, caps: Dictionary, missing: Array[String]) -> int:
+	var total: int = 0
+	if ops is Array:
+		for op: Variant in ops:
+			if op is Dictionary:
+				total += _op_steps(op, inherited, caps, missing)
+	return total
+
+
+static func _op_steps(op: Dictionary, inherited: Variant, caps: Dictionary, missing: Array[String]) -> int:
+	var name: String = str(op.get("op", ""))
+	match name:
+		"conditional":
+			return maxi(_ops_steps(op.get("then"), inherited, caps, missing), _ops_steps(op.get("else"), inherited, caps, missing))
+		"repeat":
+			return _ceiling(op.get("times", 1), CAP_MAX_REPEAT, caps, missing) * _ops_steps(op.get("ops"), inherited, caps, missing)
+		"choose_one":
+			var best: int = 0
+			for option: Variant in (op.get("options") if op.get("options") is Array else []):
+				if option is Dictionary:
+					best = maxi(best, _ops_steps((option as Dictionary).get("ops"), inherited, caps, missing))
+			return best
+	var targeted: bool = EffectSchema.OP_TARGET_KINDS.has(name) and not (name == "shuffle_into_deck" and op.has("card_id"))
+	var selector: Variant = op.get("targets", inherited if targeted else null)
+	var count_cap: String = CAP_MAX_SUMMON_COUNT if name == "summon" else CAP_HAND_SIZE
+	return _max_targets(selector, caps, missing) * _ceiling(op.get("count", 1), count_cap, caps, missing)
+
+
+## F6 `max_targets` of [param selector] (see [constant EffectSchema.F6_MAX_TARGETS_ALL]).
+static func _max_targets(selector: Variant, caps: Dictionary, missing: Array[String]) -> int:
+	var name: String = _selector_name(selector)
+	if name.begins_with("all_"):
+		return EffectSchema.F6_MAX_TARGETS_ALL
+	if name == "adjacent":
+		return EffectSchema.F6_MAX_TARGETS_ADJACENT
+	var fields: Dictionary = selector if selector is Dictionary else {}
+	if EffectSchema.N_SELECTORS.has(name):
+		return _ceiling(fields.get("n", 1), CAP_HAND_SIZE, caps, missing)
+	if name == "hand":
+		return _ceiling(fields.n, CAP_HAND_SIZE, caps, missing) if fields.has("n") else _need_cap(caps, CAP_HAND_SIZE, missing)
+	return EffectSchema.F6_MAX_TARGETS_SINGLE
+
+
+## A literal [param value] as an int (never below 0), else the ceiling
+## `caps[cap]` (F6: a value expression is taken at its ceiling).
+static func _ceiling(value: Variant, cap: String, caps: Dictionary, missing: Array[String]) -> int:
+	var literal: Variant = _literal_int(value)
+	if literal != null:
+		return maxi(0, int(literal))
+	return _need_cap(caps, cap, missing)
+
+
+static func _need_cap(caps: Dictionary, cap: String, missing: Array[String]) -> int:
+	if caps.has(cap):
+		return int(caps[cap])
+	if not missing.has(cap):
+		missing.append(cap)
+	return 0
+
+
+## [param value] as an int when it is a whole-number literal (JSON numbers are
+## floats), else `null`.
+static func _literal_int(value: Variant) -> Variant:
+	if (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and float(value) == floorf(float(value)):
+		return int(value)
+	return null
 
 
 # --- Display keywords (C1 rule 2) -----------------------------------------------

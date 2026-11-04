@@ -98,6 +98,11 @@ const NEIGHBOUR_SELECTORS: PackedStringArray = ["adjacent", "left_neighbour", "r
 const NEIGHBOUR_ANCHORS: PackedStringArray = ["self", "target", "trigger_subject"]
 ## The C3 selector that names the command's `target_id` (C1 rule 1).
 const CHOSEN: String = "chosen"
+## `targeting_spec(def_id).mode` values (C1 rule 1; ADR-0007 Key Interfaces) —
+## the spellings `RulesEngine.TARGETING_*` validates `target_id` against.
+const TARGETING_NONE: String = "none"
+const TARGETING_OPTIONAL: String = "optional"
+const TARGETING_REQUIRED: String = "required"
 ## The C3 selector illegal on treasure / passive hosts.
 const SELF: String = "self"
 
@@ -263,6 +268,86 @@ const VALUE_ONLY_OP: String = "modify_value"
 ## Ops whose `card_id` must name a minion / a weapon (C10 `E_FX_REF`).
 const MINION_CARD_OPS: PackedStringArray = ["summon", "transform"]
 const WEAPON_CARD_OPS: PackedStringArray = ["equip"]
+
+# --- Target kinds (C5 "Legal targets", C10 `E_FX_OP_TARGET`) --------------------
+
+## What a selector can yield: a minion, a hero, a weapon, a card instance (hand
+## or deck), or a side. "Characters" are minions and heroes.
+const KIND_MINION: String = "minion"
+const KIND_HERO: String = "hero"
+const KIND_WEAPON: String = "weapon"
+const KIND_CARD: String = "card"
+const KIND_SIDE: String = "side"
+## Every kind — what `trigger_subject` / `trigger_source` (and a `self` whose
+## host type is unknown) may be.
+const KINDS_ANY: Array = [KIND_MINION, KIND_HERO, KIND_WEAPON, KIND_CARD, KIND_SIDE]
+## The kinds each C3 selector can yield. `chosen` and the character selectors
+## are narrowed further by their filter's `kind`; `self` depends on the host
+## ([constant SELF_KINDS]). Absent from this table: `trigger_subject`,
+## `trigger_source`, `self` (see there).
+const SELECTOR_KINDS: Dictionary = {
+	"owner_hero": [KIND_HERO], "enemy_hero": [KIND_HERO],
+	"owner_weapon": [KIND_WEAPON], "enemy_weapon": [KIND_WEAPON],
+	"chosen": [KIND_MINION, KIND_HERO],
+	"all_friendly_minions": [KIND_MINION], "all_enemy_minions": [KIND_MINION], "all_minions": [KIND_MINION],
+	"all_friendly_characters": [KIND_MINION, KIND_HERO], "all_enemy_characters": [KIND_MINION, KIND_HERO],
+	"all_characters": [KIND_MINION, KIND_HERO],
+	"random_friendly_minion": [KIND_MINION], "random_enemy_minion": [KIND_MINION], "random_minion": [KIND_MINION],
+	"random_enemy_character": [KIND_MINION, KIND_HERO], "random_friendly_character": [KIND_MINION, KIND_HERO],
+	"random_character": [KIND_MINION, KIND_HERO],
+	"adjacent": [KIND_MINION], "left_neighbour": [KIND_MINION], "right_neighbour": [KIND_MINION],
+	"hand": [KIND_CARD], "enemy_hand_random": [KIND_CARD], "deck_top": [KIND_CARD], "deck_random": [KIND_CARD],
+	"owner": [KIND_SIDE], "opponent": [KIND_SIDE],
+}
+## What `self` is, by host type (C3 `self`): a minion or weapon in play — or the
+## card instance itself under `passive_hand` — a spell's resolving card
+## instance. A hero power, treasure or passive host is left to `KINDS_ANY`
+## (`self` on the last two is already `E_FX_SELECTOR`).
+const SELF_KINDS: Dictionary = {
+	"minion": [KIND_MINION, KIND_CARD], "weapon": [KIND_WEAPON, KIND_CARD], "spell": [KIND_CARD],
+}
+## The kinds each **targeted** op accepts (C5 "Legal targets" column). An op
+## not listed here is side-scoped (`summon`, `draw`, `armor`, …), resolver-owned
+## (`add_counter`, …) or control (`conditional`, `repeat`, `choose_one`): it
+## ignores an inherited effect-level `targets`, and its own `targets`, if any,
+## picks a side. `shuffle_into_deck` targets only without its `card_id`.
+const OP_TARGET_KINDS: Dictionary = {
+	"damage": [KIND_MINION, KIND_HERO], "heal": [KIND_MINION, KIND_HERO], "freeze": [KIND_MINION, KIND_HERO],
+	"buff": [KIND_MINION, KIND_HERO, KIND_WEAPON, KIND_CARD],
+	"aura": [KIND_MINION, KIND_HERO, KIND_WEAPON, KIND_CARD],
+	"set_stats": [KIND_MINION],
+	"give_keyword": [KIND_MINION, KIND_HERO, KIND_WEAPON],
+	"remove_keyword": [KIND_MINION, KIND_HERO],
+	"silence": [KIND_MINION], "transform": [KIND_MINION], "return_to_hand": [KIND_MINION],
+	"destroy": [KIND_MINION, KIND_WEAPON],
+	"copy_to_hand": [KIND_MINION, KIND_CARD],
+	"shuffle_into_deck": [KIND_MINION, KIND_CARD],
+	"weapon_durability": [KIND_WEAPON],
+	"retrigger": [KIND_MINION, KIND_WEAPON],
+}
+## Filter `kind` values that narrow a character selector (C3 filter grammar).
+const FILTER_KIND_NARROWS: Dictionary = {"minion": [KIND_MINION], "hero": [KIND_HERO]}
+
+# --- F6: static step bound ---------------------------------------------------------
+
+## F6 `max_targets` by selector shape: `all_*` 16 (both boards and both
+## heroes), `adjacent` 2; a single entity, a side, or no selector 1; a
+## selector that takes `n` (`random_*`, `deck_top`, `deck_random`,
+## `enemy_hand_random`) takes `n` (default 1); `hand` takes `n` when given,
+## else `HAND_SIZE` (match-rules' knob, passed in `caps`). F6 formula
+## constants, not tuning knobs.
+const F6_MAX_TARGETS_ALL: int = 16
+const F6_MAX_TARGETS_ADJACENT: int = 2
+const F6_MAX_TARGETS_SINGLE: int = 1
+## Selectors whose size is their `n` (default 1, C3).
+const N_SELECTORS: PackedStringArray = [
+	"random_friendly_minion", "random_enemy_minion", "random_minion",
+	"random_enemy_character", "random_friendly_character", "random_character",
+	"deck_top", "deck_random", "enemy_hand_random",
+]
+## The control ops F6 recurses into (`conditional`: max of the branches,
+## `repeat`: times × body, `choose_one`: max over the options).
+const CONTROL_OPS: PackedStringArray = ["conditional", "repeat", "choose_one"]
 
 ## The match-rules primitive API (match-rules Interactions "Engine primitive
 ## API"; architecture.md §Core — Match Rules), the default primitive table the
