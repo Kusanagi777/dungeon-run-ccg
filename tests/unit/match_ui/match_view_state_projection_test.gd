@@ -451,3 +451,91 @@ func test_side_returns_value_copies() -> void:
 	# Assert
 	assert_int(int(view.side(SIDE_PLAYER).board[0].attack)).is_equal(2)
 	assert_int(int(view.side(SIDE_PLAYER).hero.armor)).is_equal(0)
+
+
+# --- U3 `silenced`: stats, keywords, flags (code review 2026-11-04, MR-015 S1) ---
+
+## A `silenced` envelope as match-rules C13 step 6 emits it: value copies of
+## the removed (non-aura) enchantments and the keywords lost.
+func _silenced(seq: int, id: int, removed: Array, keywords: Array) -> Dictionary:
+	return _event(seq, "silenced", {"entity_id": id, "removed_enchantments": removed, "removed_keywords": keywords})
+
+
+## An enchantment record in the MatchRecords shape (also the
+## `enchantment_applied` payload, less `instance_id`).
+func _buff(attack_delta: int, health_delta: int, keywords_added: Array = []) -> Dictionary:
+	return {"source_entity_id": null, "attack_delta": attack_delta, "health_delta": health_delta,
+		"keywords_added": keywords_added, "is_aura": false, "expires": null}
+
+
+## The opening plus a boss minion [param id] of [param attack]/[param health].
+func _with_boss_minion(id: int, attack: int, health: int, keywords: Array = []) -> Array:
+	var events: Array = _opening()
+	events.append(_event(6, "minion_summoned", {"side": "boss", "entity_id": id, "card_id": "boss_test_minion",
+		"position": 1, "attack": attack, "health": health, "keywords": keywords}))
+	return events
+
+
+func test_a_silenced_buffed_taunt_shows_its_base_stats_and_no_taunt() -> void:
+	# Arrange: a 2/2 Taunt buffed +2/+2 (shows 4/4)
+	var view: MatchViewState = _view()
+	var id: int = MINION_IDS[2]
+	var buff: Dictionary = _buff(2, 2)
+	var events: Array = _with_boss_minion(id, 2, 2, ["taunt"])
+	events.append(_event(7, "enchantment_applied", {"instance_id": id}.merged(buff)))
+	_project(view, events)
+	assert_int(int(view.side(SIDE_BOSS).board[1].attack)).is_equal(4)
+
+	# Act
+	var steps: Array[AnimStep] = view.apply(_silenced(8, id, [buff], ["taunt"]))
+
+	# Assert: the engine's post-Silence 2/2, no keywords, flagged silenced
+	var token: Dictionary = view.side(SIDE_BOSS).board[1]
+	assert_int(int(token.attack)).is_equal(2)
+	assert_int(int(token.health)).is_equal(2)
+	assert_int(int(token.max_health)).is_equal(2)
+	assert_array(token.keywords).is_empty()
+	assert_bool(token.silenced).is_true()
+	assert_int(steps.size()).is_equal(1)
+
+
+func test_a_silenced_damaged_frozen_minion_keeps_its_health_by_f6_and_thaws() -> void:
+	# Arrange: the F6 worked example — a 2/2 Taunt with +2 health and a granted
+	# Windfury, 3 damage (2/1), then frozen
+	var view: MatchViewState = _view()
+	var id: int = MINION_IDS[2]
+	var buff: Dictionary = _buff(0, 2, ["windfury"])
+	var events: Array = _with_boss_minion(id, 2, 2, ["taunt"])
+	events.append(_event(7, "enchantment_applied", {"instance_id": id}.merged(buff)))
+	events.append(_event(8, "damage_dealt", {"target": id, "dealt": 3, "health_after": 1, "source": null}))
+	events.append(_event(9, "frozen", {"entity_id": id, "frozen_on_turn": 1}))
+	_project(view, events)
+
+	# Act
+	view.apply(_silenced(10, id, [buff], ["taunt", "windfury"]))
+
+	# Assert: max 2, damage max(0, 3 − (4 − 2)) = 1 → health 1; thawed, no keywords
+	var token: Dictionary = view.side(SIDE_BOSS).board[1]
+	assert_int(int(token.max_health)).is_equal(2)
+	assert_int(int(token.health)).is_equal(1)
+	assert_array(token.keywords).is_empty()
+	assert_bool(token.frozen).is_false()
+
+
+func test_silencing_a_debuffed_damaged_minion_restores_its_maximum_and_keeps_the_damage() -> void:
+	# Arrange: a 2/5 with a −2 health debuff (max 3), then 1 damage (health 2)
+	var view: MatchViewState = _view()
+	var id: int = MINION_IDS[2]
+	var debuff: Dictionary = _buff(0, -2)
+	var events: Array = _with_boss_minion(id, 2, 5)
+	events.append(_event(7, "enchantment_applied", {"instance_id": id}.merged(debuff)))
+	events.append(_event(8, "damage_dealt", {"target": id, "dealt": 1, "health_after": 2, "source": null}))
+	_project(view, events)
+
+	# Act
+	view.apply(_silenced(9, id, [debuff], []))
+
+	# Assert: max back to 5 and the 1 damage kept (match-rules F6; MR-015 S2)
+	var token: Dictionary = view.side(SIDE_BOSS).board[1]
+	assert_int(int(token.max_health)).is_equal(5)
+	assert_int(int(token.health)).is_equal(4)
