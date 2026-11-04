@@ -26,6 +26,12 @@
 ## [/codeblock]
 @abstract class_name MetaApi extends RefCounted
 
+## Keeps this script alive through engine shutdown (TD-013): the engine clears it
+## when its shutdown walk reaches this script, so a subclass's release cannot free
+## this script mid-walk. `load()`, not the class name: naming the class here leaks
+## the script at exit. Remove with the move to Godot 4.8 (godotengine/godot#117991).
+static var _teardown_anchor: Script = load("res://src/gameplay/meta/meta_api.gd")
+
 
 ## Emitted when an unlock is granted (M3), live or retroactive (M3.5).
 ## `ToastLayer` and `RunController` subscribe (ADR-0011 Decisions 2–3); both

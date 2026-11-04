@@ -18,10 +18,6 @@ const FAILED_ROOT: String = "res://tests/fixtures/data/refs_unknown/"
 const NO_ROOT: String = "res://tests/fixtures/data/content_validate_no_such_root/"
 const VALIDATE_SCRIPT: String = "res://tools/content/validate.gd"
 const SCHEMAS: String = "res://tools/content/schemas/"
-## `0xC0000005` as `OS.execute` returns it on Windows (TD-013).
-const EXIT_WINDOWS_ACCESS_VIOLATION: int = -1073741819
-## Runs of validate.gd allowed per case when the child dies in shutdown.
-const MAX_RUNS: int = 5
 ## Schema file → the CR-3 record type the loader enforces for it. One
 ## `cards.schema.json` serves every `cards_<set>.json` (the set ↔ file rule
 ## is the loader's stage 4, `E_SET_MISMATCH`).
@@ -31,21 +27,14 @@ const RECORD_SCHEMAS: Dictionary = {
 }
 
 
-## Runs validate.gd in a child Godot; returns `{exit_code, output}`. A child that
-## dies in engine shutdown (TD-013) says nothing about validate.gd's own exit
-## code, so only that exact code is run again, at most [constant MAX_RUNS] times.
+## Runs validate.gd in a child Godot; returns `{exit_code, output}`.
 func _validate(user_args: Array[String]) -> Dictionary:
 	var args: Array[String] = ["--headless", "--path", ProjectSettings.globalize_path("res://"), "-s", VALIDATE_SCRIPT]
 	if not user_args.is_empty():
 		args.append("--")
 		args.append_array(user_args)
 	var output: Array = []
-	var code: int = EXIT_WINDOWS_ACCESS_VIOLATION
-	var runs: int = 0
-	while code == EXIT_WINDOWS_ACCESS_VIOLATION and runs < MAX_RUNS:
-		output.clear()
-		code = OS.execute(OS.get_executable_path(), args, output, true, false)
-		runs += 1
+	var code: int = OS.execute(OS.get_executable_path(), args, output, true, false)
 	return {"exit_code": code, "output": "\n".join(output)}
 
 
