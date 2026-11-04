@@ -94,13 +94,16 @@ need a main scene: it checks the project settings load, the gdUnit4 plugin is
 enabled, and a Node can be added to the tree and freed headlessly. The
 launch-based smoke in `project.yaml` (`commands.smoke`: `godot --headless
 --quit-after 5`) launches `run/main_scene`, which is
-`res://src/scenes/boot.tscn` (the display-only boot screen, set 2026-11-03 by
-the test-rig exit item). Verified the same day: `timeout 30 godot --headless
---quit-after 5` exits 0 and prints no `SCRIPT ERROR`. Keep the `timeout`: the
-command exits 0 even on a parse error, so read its output, and a missing main
-scene makes it hang. `tests/integration/boot/boot_scene_test.gd` is the
-automated counterpart — it loads the boot scene and asserts the main-scene
-setting.
+`res://src/scenes/main.tscn` since 2026-11-04 (boot-composition-root story 006):
+its root calls `Boot.boot()` on the shipped data and shows the `RunShell`
+stub (`main_menu`, or `data_error` on a `Failed` load). `boot.tscn` (the
+display-only boot screen, main scene from 2026-11-03) stays as the capture-rig
+scene. Verified 2026-11-04: `timeout 60 godot --headless --quit-after 5` exits
+0 and prints no `SCRIPT ERROR`. Keep the `timeout`: the command exits 0 even on
+a parse error, so read its output, and a missing main scene makes it hang.
+`tests/integration/boot/boot_scene_test.gd` asserts the main-scene setting and
+loads the boot scene; `main_scene_test.gd` covers the `RunShell` states and
+the debug `--boot-fail-fixture=<name>` override without booting the autoload.
 
 ## Run and observe (Linux/CI)
 
@@ -111,6 +114,8 @@ Linux/CI implementation of its Godot row:
 bash tools/capture.sh <scene-res-path> <out-dir> [frames]
 bash tools/capture.sh res://src/scenes/boot.tscn production/qa/evidence/<story-slug>
 # → prints production/qa/evidence/<story-slug>/01-<scene-basename>.png
+CAPTURE_LABEL=02-data_error bash tools/capture.sh res://src/scenes/main.tscn <out-dir> 60 -- --boot-fail-fixture=boot_data_error
+# → <out-dir>/02-data_error.png; the arguments after `--` reach the scene's OS.get_cmdline_user_args()
 ```
 
 It runs the command observed to work on this container
@@ -208,6 +213,28 @@ log as the `gdunit4-report` artifact. If you protect `main`, require the
 `Run GdUnit4 Tests` job — never the `Performance budgets (non-blocking)` job,
 which runs `tests/performance/` with `continue-on-error` and uploads
 `gdunit4-perf-report`.
+
+### Content validate command
+
+After gdUnit4 the same job runs the content validate command (content CN-6.3,
+story 007):
+
+```bash
+godot --headless --path . -s res://tools/content/validate.gd [-- --data-root res://assets/data/]
+```
+
+It loads the data root through `DataLoader` + `CardDatabase` with the
+validator map `Boot` registers (read from a fresh, never-booted `boot.gd`
+instance), prints `ValidationReport.to_text()` and a summary line (load ms
+next to `data_load_budget_ms`, an observation), and exits **0** `Ready`
+(warnings printed), **1** `Failed`, **2** could not run (no such root, a bad
+argument). It runs the editor binary, a debug build, so a pending owner's
+`W_VALIDATOR_PENDING` row is a **warning** and the shipped data exits 0. A
+release binary makes those rows errors: the same data would exit 1 until
+`Boot.PENDING_CONFIG_OWNERS` / `PENDING_RECORD_OWNERS` are empty.
+`tests/unit/content/` covers the command core in process;
+`tests/integration/content/content_validate_process_test.gd` observes the
+exit codes as a child process.
 
 ### Export is not run in CI (yet)
 

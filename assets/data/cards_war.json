@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_shield_squire",
+      "name": "Shield Squire",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_shield_squire.text",
+        "en": "Battlecry: Gain 2 Armor."
+      }
+    },
+    {
+      "id": "war_sharpen",
+      "name": "Sharpen",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "owner_weapon",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_sharpen.text",
+        "en": "Give your weapon +2 Attack this turn."
+      }
+    },
+    {
+      "id": "war_rusted_axe",
+      "name": "Rusted Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_rusted_axe.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_warcry",
+      "name": "Warcry",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_warcry.text",
+        "en": "Give your minions +1 Attack this turn."
+      }
+    },
+    {
+      "id": "war_iron_resolve",
+      "name": "Iron Resolve",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "armor",
+              "targets": "owner",
+              "amount": 4
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_iron_resolve.text",
+        "en": "Gain 4 Armor. Draw a card."
+      }
+    },
+    {
+      "id": "war_iron_vanguard",
+      "name": "Iron Vanguard",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_iron_vanguard.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "war_quartermaster",
+      "name": "Quartermaster",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": "owner_weapon"
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_quartermaster.text",
+        "en": "Battlecry: If you have a weapon, draw a card."
+      }
+    },
+    {
+      "id": "war_pit_brawler",
+      "name": "Pit Brawler",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_pit_brawler.text",
+        "en": "Charge."
+      }
+    },
+    {
+      "id": "war_whetstone_blade",
+      "name": "Whetstone Blade",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_whetstone_blade.text",
+        "en": ""
+      },
+      "token": true
+    }
+  ]
+}

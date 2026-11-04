@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_war",
+      "name": "Halvard, the Whetted",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_whetstone",
+      "starter_deck": [
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "war_shield_squire",
+        "war_sharpen",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "war_rusted_axe",
+        "war_warcry",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "war_iron_vanguard",
+        "war_quartermaster",
+        "neutral_crypt_brute",
+        "war_pit_brawler",
+        "neutral_ghost"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_war.text",
+        "en": "Every turn, the blade. The rest is footwork."
+      }
+    }
+  ]
+}

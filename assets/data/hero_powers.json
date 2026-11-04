@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "power_whetstone",
+      "name": "Whetstone",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "exists": "owner_weapon"
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "owner_weapon",
+                  "attack": 1,
+                  "duration": "until_end_of_turn"
+                }
+              ],
+              "else": [
+                {
+                  "op": "equip",
+                  "card_id": "war_whetstone_blade"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_whetstone.text",
+        "en": "Equip a 1/2 Whetstone Blade. If you have a weapon, give it +1 Attack this turn instead."
+      }
+    }
+  ]
+}

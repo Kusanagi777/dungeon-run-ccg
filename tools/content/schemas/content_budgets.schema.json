@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "content_budgets.schema.json",
+  "title": "content_budgets.json — Content validator and /balance-check constants (content CN-6 step 2)",
+  "description": "Agrees with ContentValidator.BUDGETS_SPEC (src/tools/content/content_validator.gd); ranges are content.md Tuning Knobs safe ranges.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "config"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "curve",
+        "budget",
+        "pressure",
+        "coverage",
+        "text_max_chars",
+        "pick_rate",
+        "time",
+        "neutral_set_size",
+        "set_share",
+        "share_tol"
+      ],
+      "properties": {
+        "curve": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "avg_min",
+            "avg_max",
+            "bucket",
+            "bucket_tol",
+            "early_max",
+            "mid_max"
+          ],
+          "properties": {
+            "avg_min": {
+              "type": "number",
+              "minimum": 2.6,
+              "maximum": 3.8,
+              "description": "CURVE_AVG_MIN, safe 2.6-3.8"
+            },
+            "avg_max": {
+              "type": "number",
+              "minimum": 2.6,
+              "maximum": 3.8,
+              "description": "CURVE_AVG_MAX, safe 2.6-3.8"
+            },
+            "bucket": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              },
+              "description": "CURVE_BUCKET[k1..k6_plus], a share 0-1"
+            },
+            "bucket_tol": {
+              "type": "number",
+              "minimum": 0.04,
+              "maximum": 0.15,
+              "description": "BUCKET_TOL, safe 0.04-0.15"
+            },
+            "early_max": {
+              "type": "number",
+              "minimum": 2.0,
+              "maximum": 3.0,
+              "description": "EARLY_MAX, safe 2-3"
+            },
+            "mid_max": {
+              "type": "number",
+              "minimum": 3.5,
+              "maximum": 5.0,
+              "description": "MID_MAX, safe 3.5-5"
+            }
+          },
+          "description": "F2 / Tuning Knobs"
+        },
+        "budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tol",
+            "keyword_tax",
+            "effect_points"
+          ],
+          "properties": {
+            "tol": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "common",
+                "rare",
+                "legendary"
+              ],
+              "properties": {
+                "common": {
+                  "type": "number",
+                  "minimum": 1.0,
+                  "maximum": 4.0,
+                  "description": "BUDGET_TOL common, safe 1-4"
+                },
+                "rare": {
+                  "type": "number",
+                  "minimum": 1.0,
+                  "maximum": 4.0,
+                  "description": "BUDGET_TOL rare, safe 1-4"
+                },
+                "legendary": {
+                  "type": "number",
+                  "minimum": 1.0,
+                  "maximum": 4.0,
+                  "description": "BUDGET_TOL legendary, safe 1-4"
+                }
+              },
+              "description": "BUDGET_TOL"
+            },
+            "keyword_tax": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "minimum": 0.0
+              },
+              "propertyNames": {
+                "enum": [
+                  "taunt",
+                  "charge",
+                  "rush",
+                  "divine_shield",
+                  "windfury",
+                  "stealth",
+                  "lifesteal",
+                  "poisonous",
+                  "freeze",
+                  "silence",
+                  "battlecry",
+                  "deathrattle",
+                  "spell_damage",
+                  "discover",
+                  "aura"
+                ]
+              },
+              "description": "F3 keyword_tax (±50 % per entry is a review range, not a bound)"
+            },
+            "effect_points": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number"
+              },
+              "description": "F3 effect_points (self-cost is negative)"
+            }
+          },
+          "description": "F3 / Tuning Knobs"
+        },
+        "pressure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "band",
+            "tol",
+            "passive_cap"
+          ],
+          "properties": {
+            "band": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "minimum": 5.0,
+                "maximum": 14.0
+              },
+              "description": "PRESSURE_BAND[band], safe 5-14"
+            },
+            "tol": {
+              "type": "number",
+              "minimum": 0.0,
+              "description": "PRESSURE_TOL (no safe range stated; ≥ 0)"
+            },
+            "passive_cap": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "type": "number",
+                "minimum": 1.0,
+                "maximum": 8.0
+              },
+              "description": "PASSIVE_CAP[band], safe 1-8"
+            }
+          },
+          "description": "F4 / Tuning Knobs"
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kw_min",
+            "bundle_coverage_min",
+            "ops_exempt"
+          ],
+          "properties": {
+            "kw_min": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4,
+              "description": "KW_MIN, safe 1-4"
+            },
+            "bundle_coverage_min": {
+              "type": "number",
+              "minimum": 0.7,
+              "maximum": 1.0,
+              "description": "BUNDLE_COVERAGE_MIN, safe 0.7-1.0"
+            },
+            "ops_exempt": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "add_counter",
+                  "add_to_hand",
+                  "armor",
+                  "aura",
+                  "buff",
+                  "choose_one",
+                  "conditional",
+                  "copy_to_hand",
+                  "damage",
+                  "destroy",
+                  "discard",
+                  "discover",
+                  "draw",
+                  "equip",
+                  "freeze",
+                  "give_keyword",
+                  "heal",
+                  "hero_power_refresh",
+                  "mana",
+                  "modify_value",
+                  "remove_keyword",
+                  "repeat",
+                  "retrigger",
+                  "return_to_hand",
+                  "set_counter",
+                  "set_stats",
+                  "shuffle_into_deck",
+                  "silence",
+                  "summon",
+                  "transform",
+                  "weapon_durability"
+                ]
+              },
+              "description": "F5 OPS_EXEMPT (card-effects C5 op names)"
+            }
+          },
+          "description": "F5 / Tuning Knobs"
+        },
+        "text_max_chars": {
+          "type": "integer",
+          "minimum": 70,
+          "maximum": 110,
+          "description": "TEXT_MAX_CHARS, safe 70-110"
+        },
+        "pick_rate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max",
+            "min_sample"
+          ],
+          "properties": {
+            "min": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 0.25,
+              "description": "PICK_RATE_MIN, safe 0.05-0.25"
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0.4,
+              "maximum": 0.7,
+              "description": "PICK_RATE_MAX, safe 0.4-0.7"
+            },
+            "min_sample": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 200,
+              "description": "min_sample (run-structure Tuning Knobs, safe 20-200)"
+            }
+          },
+          "description": "Tuning Knobs PICK_RATE_MIN / MAX"
+        },
+        "time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "t_card",
+            "t_boss_card",
+            "t_boss",
+            "t_bundle",
+            "t_balance"
+          ],
+          "properties": {
+            "t_card": {
+              "type": "number",
+              "minimum": 0.3,
+              "maximum": 0.6,
+              "description": "T_CARD, F6 0.3-0.6 h"
+            },
+            "t_boss_card": {
+              "type": "number",
+              "minimum": 0.2,
+              "maximum": 0.4,
+              "description": "T_BOSS_CARD, F6 0.2-0.4 h"
+            },
+            "t_boss": {
+              "type": "number",
+              "minimum": 1.5,
+              "maximum": 4.0,
+              "description": "T_BOSS, F6 1.5-4 h"
+            },
+            "t_bundle": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 0.3,
+              "description": "T_BUNDLE, F6 0.1-0.3 h"
+            },
+            "t_balance": {
+              "type": "number",
+              "minimum": 2.0,
+              "maximum": 6.0,
+              "description": "T_BALANCE, F6 2-6 h"
+            }
+          },
+          "description": "F6"
+        },
+        "neutral_set_size": {
+          "type": "integer",
+          "minimum": 35,
+          "maximum": 60,
+          "description": "NEUTRAL_SET_SIZE, safe 35-60"
+        },
+        "set_share": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "neutral",
+            "boss"
+          ],
+          "properties": {
+            "neutral": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minion",
+                "spell",
+                "weapon"
+              ],
+              "properties": {
+                "minion": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "a share 0-1"
+                },
+                "spell": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "a share 0-1"
+                },
+                "weapon": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "a share 0-1"
+                }
+              },
+              "description": "SET_SHARE[neutral]"
+            },
+            "boss": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minion",
+                "spell",
+                "weapon"
+              ],
+              "properties": {
+                "minion": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "a share 0-1"
+                },
+                "spell": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "a share 0-1"
+                },
+                "weapon": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "description": "a share 0-1"
+                }
+              },
+              "description": "SET_SHARE[boss]"
+            }
+          },
+          "description": "F1 SET_SHARE (neutral and boss rows)"
+        },
+        "share_tol": {
+          "type": "number",
+          "minimum": 0.04,
+          "maximum": 0.15,
+          "description": "SHARE_TOL (heroes Tuning Knobs SET_SHARE tolerance, safe 0.04-0.15)"
+        }
+      }
+    }
+  }
+}

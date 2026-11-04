@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_torch_imp",
+      "name": "Torch Imp",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_torch_imp.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_tunnel_rat",
+      "name": "Tunnel Rat",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_tunnel_rat.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_cellar_guard",
+      "name": "Cellar Guard",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_cellar_guard.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_lantern_bearer",
+      "name": "Lantern Bearer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_lantern_bearer.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "neutral_bulwark_smith",
+      "name": "Bulwark Smith",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_bulwark_smith.text",
+        "en": "Battlecry: Give a friendly minion Taunt."
+      }
+    },
+    {
+      "id": "neutral_dungeon_delver",
+      "name": "Dungeon Delver",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_dungeon_delver.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_hush_owl",
+      "name": "Hush Owl",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "silence"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tricks"
+      ],
+      "text": {
+        "key": "card.neutral_hush_owl.text",
+        "en": "Battlecry: Silence a minion."
+      }
+    },
+    {
+      "id": "neutral_spark_fiend",
+      "name": "Spark Fiend",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 1,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_start",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 2,
+              "ops": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_minion",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pings"
+      ],
+      "text": {
+        "key": "card.neutral_spark_fiend.text",
+        "en": "At the start of your turn, deal 1 damage to a random enemy minion, twice."
+      }
+    },
+    {
+      "id": "neutral_banner_captain",
+      "name": "Banner Captain",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_banner_captain.text",
+        "en": "Your other minions have +1/+1."
+      }
+    },
+    {
+      "id": "neutral_wolf_rider",
+      "name": "Wolf Rider",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_wolf_rider.text",
+        "en": "Charge."
+      }
+    },
+    {
+      "id": "neutral_shield_golem",
+      "name": "Shield Golem",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_shield_golem.text",
+        "en": "Taunt. Divine Shield."
+      }
+    },
+    {
+      "id": "neutral_crypt_brute",
+      "name": "Crypt Brute",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_crypt_brute.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_ogre_porter",
+      "name": "Ogre Porter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 5,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "big"
+      ],
+      "text": {
+        "key": "card.neutral_ogre_porter.text",
+        "en": ""
+      }
+    }
+  ]
+}
