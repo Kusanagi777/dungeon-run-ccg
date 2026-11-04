@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "config": {
+    "max_effects_per_treasure": 3,
+    "common_band": [
+      1.5,
+      3.5
+    ],
+    "rare_band": [
+      3.5,
+      6.5
+    ],
+    "v_card": 1.5,
+    "v_dmg": 0.5,
+    "v_hp": 0.35,
+    "v_stat": 0.5,
+    "v_token": 1.0,
+    "v_rush": 0.5,
+    "eta_mana": 0.7,
+    "eta_crystal": 0.6,
+    "eta_first": 0.8,
+    "eta_overheal": 0.5
+  }
+}

@@ -92,6 +92,17 @@ jobs:
             exit 1
           fi
 
+      # Blocking: the content validate command (content CN-6.3, story 007;
+      # ADR-0002 Key Interfaces) loads assets/data/ with Boot's validator map
+      # and prints the report. Exit 0 Ready, 1 Failed, 2 could not run; any
+      # non-zero exit fails the job. This runs the editor binary (a debug
+      # build), so pending owners' W_VALIDATOR_PENDING rows are warnings here;
+      # a release binary would make them errors (tests/README.md).
+      - name: Content validate command
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          godot --headless --path . -s res://tools/content/validate.gd -- --data-root res://assets/data/
+
       # gdUnit4 writes reports/report_<n>/ (HTML + JUnit results.xml) at the
       # project root; reports/ is gitignored.
       - name: Upload gdUnit4 report

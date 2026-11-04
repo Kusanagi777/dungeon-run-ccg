@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "config": {
+    "base_weight": 100,
+    "affinity_step": 25,
+    "affinity_cap": 6,
+    "band_cost_curve": {
+      "1": [
+        120,
+        100,
+        70
+      ],
+      "2": [
+        100,
+        110,
+        100
+      ],
+      "3": [
+        80,
+        100,
+        130
+      ]
+    },
+    "cost_low": 2.5,
+    "cost_high": 4.0,
+    "pity_window": 2,
+    "reoffer_after_floors": 2,
+    "universal_slot": true,
+    "treasure_rarity_weights": {
+      "common": 70,
+      "rare": 30
+    },
+    "treasure_affinity": 50,
+    "treasure_short_policy": "fewer",
+    "allow_skip": false,
+    "bundle_offers_per_draft": 3,
+    "treasure_offers_per_draft": 3
+  }
+}

@@ -209,6 +209,28 @@ log as the `gdunit4-report` artifact. If you protect `main`, require the
 which runs `tests/performance/` with `continue-on-error` and uploads
 `gdunit4-perf-report`.
 
+### Content validate command
+
+After gdUnit4 the same job runs the content validate command (content CN-6.3,
+story 007):
+
+```bash
+godot --headless --path . -s res://tools/content/validate.gd [-- --data-root res://assets/data/]
+```
+
+It loads the data root through `DataLoader` + `CardDatabase` with the
+validator map `Boot` registers (read from a fresh, never-booted `boot.gd`
+instance), prints `ValidationReport.to_text()` and a summary line (load ms
+next to `data_load_budget_ms`, an observation), and exits **0** `Ready`
+(warnings printed), **1** `Failed`, **2** could not run (no such root, a bad
+argument). It runs the editor binary, a debug build, so a pending owner's
+`W_VALIDATOR_PENDING` row is a **warning** and the shipped data exits 0. A
+release binary makes those rows errors: the same data would exit 1 until
+`Boot.PENDING_CONFIG_OWNERS` / `PENDING_RECORD_OWNERS` are empty.
+`tests/unit/content/` covers the command core in process;
+`tests/integration/content/content_validate_process_test.gd` observes the
+exit codes as a child process.
+
 ### Export is not run in CI (yet)
 
 The Windows export (`commands.build` in `project.yaml`: `godot --headless

@@ -1,12 +1,12 @@
 # Story 007: `tools/content/validate.gd` headless command, exit contract and `content_budgets` validator
 
 > **Epic**: Content (MVP batch)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature (tooling)
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -34,9 +34,9 @@ This is the CN-6.3 gate every batch closes on, and the CI hook the TD-008 retire
 
 *From GDD `design/gdd/content.md` CN-6.2/6.3, ADR-0002 Key Interfaces, scoped to this story:*
 
-- [ ] **AC-1 (Exit contract)** GIVEN a data root, WHEN `validate.gd` runs headless, THEN it composes `DataLoader` + `CardDatabase` with the static validator map `Boot` registers (no `Boot`, no second parser), prints `ValidationReport.to_text()`, and returns **0** for a fixture root that loads `Ready` (warnings printed), **1** for a fixture root with any error (e.g. `E_MISSING_FILE`, `E_UNKNOWN_REF`), and **2** for a non-existent root.
-- [ ] **AC-2 (`content_budgets` validator)** GIVEN `ContentValidator.validate_config(body, db)` (static, registered under `configs.content_budgets`), WHEN it receives the shipped `content_budgets.json` body, THEN it returns `[]`. WHEN a CN-6 step 2 key is missing, has the wrong type or is out of its Tuning Knobs safe range, or an unknown key is present, THEN it returns one entry `{code, host_id: null, field, message}` naming the key.
-- [ ] **AC-3 (Schemas agree with the loader)** GIVEN `tools/content/schemas/<file>.schema.json` for every DD-T01 definition file and for `content_budgets.json`, THEN each record schema's `required` and `properties` lists equal the CR-3 field list the loader enforces for that record type (the test compares them), and every shipped `assets/data/*.json` conforms to its schema.
+- [x] **AC-1 (Exit contract)** GIVEN a data root, WHEN `validate.gd` runs headless, THEN it composes `DataLoader` + `CardDatabase` with the static validator map `Boot` registers (no `Boot`, no second parser), prints `ValidationReport.to_text()`, and returns **0** for a fixture root that loads `Ready` (warnings printed), **1** for a fixture root with any error (e.g. `E_MISSING_FILE`, `E_UNKNOWN_REF`), and **2** for a non-existent root.
+- [x] **AC-2 (`content_budgets` validator)** GIVEN `ContentValidator.validate_config(body, db)` (static, registered under `configs.content_budgets`), WHEN it receives the shipped `content_budgets.json` body, THEN it returns `[]`. WHEN a CN-6 step 2 key is missing, has the wrong type or is out of its Tuning Knobs safe range, or an unknown key is present, THEN it returns one entry `{code, host_id: null, field, message}` naming the key.
+- [x] **AC-3 (Schemas agree with the loader)** GIVEN `tools/content/schemas/<file>.schema.json` for every DD-T01 definition file and for `content_budgets.json`, THEN each record schema's `required` and `properties` lists equal the CR-3 field list the loader enforces for that record type (the test compares them), and every shipped `assets/data/*.json` conforms to its schema.
 
 ---
 
@@ -60,11 +60,14 @@ This is the CN-6.3 gate every batch closes on, and the CI hook the TD-008 retire
 
 ## Files
 
-- `tools/content/validate.gd`, `tools/content/content_validate_command.gd`, `tools/content/content_validator.gd`
-- `tools/content/schemas/*.schema.json`
-- `tests/unit/content/content_validate_command_test.gd`
-- `tests/fixtures/data/content_validate_*/` (ready, failed, schema cases)
-- `.github/workflows/tests.yml` (validate step)
+- `tools/content/validate.gd`, `tools/content/content_validate_command.gd`
+- `src/tools/content/content_validator.gd` (moved from `tools/content/`: `export_presets.cfg` excludes `tools/*`, and `Boot` registers the validator in the exported game — Implementation Notes' own alternative)
+- `tools/content/schemas/{cards,heroes,hero_powers,bosses,treasures,bundles,content_budgets}.schema.json` (one `cards.schema.json` for every `cards_<set>.json`)
+- `tests/unit/content/content_validate_command_test.gd` (in-process `run()` over fixture roots + `validate_config`)
+- `tests/integration/content/content_validate_process_test.gd` (subprocess exit codes, shipped `content_budgets.json`, schemas vs loader — QA plan placement finding)
+- `tests/integration/content/content_batch0_data_test.gd` (pending list now derived from `Boot`)
+- `tests/fixtures/data/minimal/content_budgets.json` (a valid body, so `Boot`'s map stays green once `content_budgets` is registered); no `content_validate_*` fixture roots — the existing `minimal/`, `missing_config/` and `refs_unknown/` roots cover ready / `E_MISSING_FILE` / `E_UNKNOWN_REF`
+- `.github/workflows/tests.yml` (validate step), `tests/README.md` ("Content validate command")
 
 ---
 
@@ -82,7 +85,7 @@ This is the CN-6.3 gate every batch closes on, and the CI hook the TD-008 retire
 **Required evidence**:
 - Logic: `tests/unit/content/content_validate_command_test.gd` — must exist and pass.
 
-**Status**: [ ] Not yet created
+**Status**: [x] `tests/unit/content/content_validate_command_test.gd` (25 tests) + `tests/integration/content/content_validate_process_test.gd` (14 tests), passing
 
 ---
 
@@ -90,3 +93,18 @@ This is the CN-6.3 gate every batch closes on, and the CI hook the TD-008 retire
 
 - Depends on: `production/epics/card-database/story-008-state-machine-and-debug-reload.md` (`to_text()`, `state()`); `production/epics/card-database/story-004-delegated-validators.md`; `production/epics/content/story-001-batch-0-first-playable-data-set.md` (the shipped `content_budgets.json`)
 - Unlocks: `production/epics/content/story-008-content-budget-checks.md`, `production/epics/content/story-009-mvp-1-batch-close-audit-and-balance.md`
+
+## Completion Notes
+**Completed**: 2026-11-04
+**Started / ended (UTC)**: 2026-11-04T00:08:06Z – 2026-11-04T00:16:30Z
+**Criteria**: 3/3 passing
+**Deviations**:
+- `ContentValidator` lives at `src/tools/content/content_validator.gd`, not `tools/content/`: `export_presets.cfg` excludes `tools/*`, and `Boot` (exported) must reference the class (the story's own alternative). The command and its core stay in `tools/content/` (editor-only).
+- The command's validator map is `Boot`'s own: `ContentValidateCommand.boot_validators()` calls `_collect_validators(null, debug_build)` on a fresh, never-booted, immediately freed instance of `boot.gd` — the pattern `boot_validator_map_test.gd` uses. No `boot()`, no autoload, and no second map to drift; it does call an underscore method from outside the script (`boot.gd` is orchestrator-owned and exposes no public map builder).
+- Missing validators follow the code-review pending policy, not the Implementation Notes' "exit 1 and `E_DELEGATED`": a pending owner is a `W_VALIDATOR_PENDING` warning in a debug binary (exit 0) and an error in a release one (exit 1). A validator absent from the map is still `E_DELEGATED` → exit 1 (unit test).
+- One `cards.schema.json` covers every `cards_<set>.json`, instead of one file per set; the set ↔ file rule stays the loader's (`E_SET_MISMATCH`). Schemas were generated once from `RecordSchemas` / `BUDGETS_SPEC` by a scratch script and are pinned by the agreement tests (seen failing on a dropped `required` entry).
+- No `tests/fixtures/data/content_validate_*` roots: the existing `minimal/`, `missing_config/` and `refs_unknown/` roots cover the cases. `minimal/content_budgets.json` now holds a valid body (was `{}`), so the suites that load `minimal/` with `Boot`'s real map stay green once `content_budgets` is registered.
+- Keys with no Tuning Knobs safe range are checked by type and the bound their meaning implies (shares 0–1, `pressure.tol` ≥ 0, `keyword_tax` ≥ 0 with DD-M09 keys only, `effect_points` any number); each spec row says so. Inverted min/max pairs (`curve.avg_*`, `curve.early_max`/`mid_max`, `pick_rate.*`) are `E_RANGE`.
+**Boot registration line (for the orchestrator)**: in `_collect_validators`, `configs["content_budgets"] = ContentValidator.validate_config`, and remove `"content_budgets"` from `PENDING_CONFIG_OWNERS`. Trialled on the lane and reverted: full suite 999 test cases, 0 failures, with the line; `validate.gd` on the shipped data then reports 12 warnings. `boot_validator_map_test.gd` derives its expectations from `PENDING_CONFIG_OWNERS` and passed unchanged.
+**Test Evidence**: `tests/unit/content/content_validate_command_test.gd` (25 tests; seen failing to parse before the classes existed), `tests/integration/content/content_validate_process_test.gd` (14 tests; seen failing with `validate.gd` forced to `quit(0)`, with a schema missing `cost`, and with the shipped `text_max_chars` at 200). Exit codes observed on 4.7.2 headless: 0 shipped data, 1 `refs_unknown/`, 2 non-existent root, 2 unknown argument. Full suite 999 test cases, 0 failures, exit 0; smoke exit 0; `validate.gd` on `assets/data/` exit 0, recorded in `production/qa/smoke-2026-11-04-content-batch0.md`.
+**Reviewed by**: lean — review gates skipped

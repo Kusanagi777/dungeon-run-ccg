@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hero_powers.schema.json",
+  "title": "hero_powers.json — HeroPowerDef records (card-database CR-3)",
+  "description": "Agrees with the loader (src/core/data/record_schemas.gd), never replaces it (ADR-0002 Decision 9). tests/integration/content/content_validate_process_test.gd compares required/properties with RecordSchemas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "cost",
+          "effects",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,47}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "en"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
+          "art": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
