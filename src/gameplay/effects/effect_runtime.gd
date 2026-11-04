@@ -37,7 +37,9 @@ static func make() -> Dictionary:
 ## True when [param value] is an `EffectRuntime`: a Dictionary with exactly
 ## [constant FIELDS], `once_marks` / `counters` / `per_turn` Dictionaries, and
 ## nothing but plain data anywhere inside (no Object, Callable, Signal, RID or
-## other engine type, no non-String key).
+## other engine type, no non-String key). Text is `String` only: a
+## `StringName` value or key does not survive JSON (it reads back as a
+## `String`), so it is not plain data here (code review 2026-11-03).
 ## Example: `assert(EffectRuntime.is_runtime(clone.state().effects))`.
 static func is_runtime(value: Variant) -> bool:
 	if not value is Dictionary:
@@ -56,7 +58,7 @@ static func is_runtime(value: Variant) -> bool:
 
 static func _is_plain(value: Variant) -> bool:
 	match typeof(value):
-		TYPE_NIL, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING, TYPE_STRING_NAME:
+		TYPE_NIL, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING:
 			return true
 		TYPE_ARRAY:
 			for item: Variant in value:
@@ -65,7 +67,7 @@ static func _is_plain(value: Variant) -> bool:
 			return true
 		TYPE_DICTIONARY:
 			for key: Variant in value:
-				if typeof(key) != TYPE_STRING and typeof(key) != TYPE_STRING_NAME:
+				if typeof(key) != TYPE_STRING:
 					return false
 				if not _is_plain(value[key]):
 					return false

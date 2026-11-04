@@ -106,7 +106,7 @@ stories:
     serialised: false
     contract: true
     blocker: ""
-    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config (name unchanged; final snake_case keys)"
+    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config (name unchanged; final snake_case keys); 2026-11-04 code-review fix pass on fix/review-s3w2 (_is_plain String only)"
     completed: "2026-11-03"
   - id: "content-001"
     name: "Batch-0 first-playable data set"

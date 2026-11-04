@@ -146,6 +146,22 @@ func test_effect_runtime_is_runtime_rejects_extra_missing_and_object_fields() ->
 	assert_bool(EffectRuntime.is_runtime(used)).is_true()
 
 
+func test_effect_runtime_is_runtime_rejects_string_names_which_do_not_survive_json() -> void:
+	# Arrange: a StringName value and a StringName key (JSON reads both back as
+	# String, so a runtime holding one does not round-trip — rng-event-log rule 14)
+	var name_value: Dictionary = EffectRuntime.make()
+	name_value.once_marks["treasure_signet.0"] = &"turn_3"
+	var name_key: Dictionary = EffectRuntime.make()
+	name_key.counters[&"7"] = {"seen": 2}
+	var nested_name: Dictionary = EffectRuntime.make()
+	nested_name.counters["7"] = {"tags": [&"spent"]}
+
+	# Act / Assert (code review 2026-11-03: String only)
+	assert_bool(EffectRuntime.is_runtime(name_value)).is_false()
+	assert_bool(EffectRuntime.is_runtime(name_key)).is_false()
+	assert_bool(EffectRuntime.is_runtime(nested_name)).is_false()
+
+
 func test_choice_request_make_has_the_adr_shape_and_matches_the_engine_record() -> void:
 	# Act
 	var request: Dictionary = ChoiceRequest.make("player", ChoiceRequest.KIND_CHOOSE_ONE, [{"index": 0}, {"index": 1}], 9, "druid.0")
