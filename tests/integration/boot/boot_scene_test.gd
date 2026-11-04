@@ -1,22 +1,30 @@
-## Integration: the boot scene (`run/main_scene`, test-rig exit item
-## 2026-11-03) instantiates, shows its two labels with the expected text, and
-## frees with no orphans. Loads the real `.tscn` through `SceneRunnerHelper`,
-## so a broken hand-authored scene file fails here before CI's smoke does.
+## Integration: the main-scene setting and the boot scene. Since
+## boot-composition-root story 006 (2026-11-04) `run/main_scene` is
+## `res://src/scenes/main.tscn` (the one composition entry, ADR-0001 Decision
+## 4); `boot.tscn` stays as the capture-rig scene and still instantiates, shows
+## its two labels with the expected text, and frees with no orphans. Loads the
+## real `.tscn` through `SceneRunnerHelper`, so a broken hand-authored scene
+## file fails here before CI's smoke does. `main.tscn` itself is not
+## instantiated here (its `_ready()` boots the shared autoload); see
+## `main_scene_test.gd`.
 extends GdUnitTestSuite
 
 const BOOT_SCENE := "res://src/scenes/boot.tscn"
+const MAIN_SCENE := "res://src/scenes/main.tscn"
 const EXPECTED_TITLE := "Deckdelve — boot"
 const EXPECTED_PROJECT_NAME := "Dungeon Run CCG"
 const TITLE_PATH := NodePath("TitleLabel")
 const BUILD_STAMP_PATH := NodePath("BuildStampLabel")
 
 
-func test_project_main_scene_is_boot_scene() -> void:
+func test_project_main_scene_is_main_scene_and_boot_scene_remains() -> void:
 	# Arrange / Act
 	var main_scene: String = ProjectSettings.get_setting("application/run/main_scene", "")
 
 	# Assert
-	assert_str(main_scene).is_equal(BOOT_SCENE)
+	assert_str(main_scene).is_equal(MAIN_SCENE)
+	assert_bool(ResourceLoader.exists(MAIN_SCENE)).is_true()
+	assert_bool(ResourceLoader.exists(BOOT_SCENE)).is_true()
 
 
 func test_boot_scene_loads_with_both_labels() -> void:

@@ -60,10 +60,12 @@ static func run(data_root: String, validators: Dictionary) -> Dictionary:
 	var ready: bool = db.state() == CardDatabase.State.READY
 	var state: String = "Ready" if ready else "Failed"
 	var budget: String = "unknown (card_database.json did not load)"
+	var records: String = "no snapshot"
 	if ready:
 		budget = "%d" % int((db.config("card_database") as Dictionary).data_load_budget_ms)
-	var summary: String = "validate: %s — %d errors, %d warnings, %d records; load ms %.2f (data_load_budget_ms %s) — root %s" % [
-		state, report.errors().size(), report.warnings().size(), report.record_count(), load_ms, budget, data_root]
+		records = "%d records" % report.record_count()
+	var summary: String = "validate: %s — %d errors, %d warnings, %s; load ms %.2f (data_load_budget_ms %s) — root %s" % [
+		state, report.errors().size(), report.warnings().size(), records, load_ms, budget, data_root]
 	var text: String = report.to_text()
 	return {
 		"exit_code": EXIT_READY if ready else EXIT_FAILED,

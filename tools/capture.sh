@@ -3,7 +3,17 @@
 #
 # Usage:
 #   bash tools/capture.sh <scene-res-path> <out-dir> [frames]
+#   bash tools/capture.sh <scene-res-path> <out-dir> <frames> -- <godot user args...>
+#   CAPTURE_LABEL=<nn>-<what> bash tools/capture.sh ...
 #   bash tools/capture.sh res://src/scenes/boot.tscn production/qa/evidence/<story-slug>
+#
+# Arguments after a literal `--` (the 4th argument) are passed to Godot after
+# the scene, behind its own `--`, so the scene reads them with
+# OS.get_cmdline_user_args() (boot-composition-root story 006; match-ui
+# story 004's spec). CAPTURE_LABEL (optional, `<nn>-<what>`, e.g.
+# `02-data_error`) names the kept frame `<out-dir>/<label>.png`, so several
+# states of one scene can be retained in one folder; without it the name is
+# `01-<scene-basename>.png` as before.
 #
 # Launches the scene windowed under Xvfb with the Compatibility (OpenGL 3)
 # renderer, records <frames> frames (default 60) with Movie Maker mode, keeps
@@ -21,18 +31,33 @@
 # Output is Compatibility/llvmpipe rendering, not the project's Forward+
 # renderer: Forward+-only effects will not appear in CI evidence.
 #
-# Exit codes: 0 kept a non-blank PNG; 2 usage; 3 Godot failed or wrote no
+# Exit codes: 0 kept a non-blank PNG; 2 usage (incl. a bad CAPTURE_LABEL); 3 Godot failed or wrote no
 # PNG; 4 the PNG is all one colour or could not be decoded.
 set -euo pipefail
 
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-	echo "usage: $0 <scene-res-path> <out-dir> [frames]" >&2
+usage="usage: $0 <scene-res-path> <out-dir> [frames] | <scene-res-path> <out-dir> <frames> -- <args...>"
+if [ "$#" -lt 2 ] || { [ "$#" -gt 3 ] && [ "$4" != "--" ]; }; then
+	echo "$usage" >&2
 	exit 2
 fi
 
 scene="$1"
 out_dir="$2"
 frames="${3:-60}"
+user_args=()
+if [ "$#" -ge 4 ]; then
+	user_args=("${@:5}")
+fi
+label="${CAPTURE_LABEL:-}"
+if [ -n "$label" ]; then
+	case "$label" in
+		[0-9][0-9]-*) ;;
+		*) echo "capture.sh: CAPTURE_LABEL must be <nn>-<what>, got '$label'" >&2; exit 2 ;;
+	esac
+	case "$label" in
+		*[!A-Za-z0-9_-]*) echo "capture.sh: CAPTURE_LABEL may hold only letters, digits, '_' and '-', got '$label'" >&2; exit 2 ;;
+	esac
+fi
 
 case "$scene" in
 	res://*.tscn) ;;
@@ -46,7 +71,7 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$out_dir"
 out_dir="$(cd "$out_dir" && pwd)"
 scene_base="$(basename "$scene" .tscn)"
-kept="$out_dir/01-$scene_base.png"
+kept="$out_dir/${label:-01-$scene_base}.png"
 
 # Record into a scratch dir inside out-dir so only the kept frame remains.
 tmp_dir="$(mktemp -d "$out_dir/.capture-XXXXXX")"
@@ -56,7 +81,8 @@ set +e
 xvfb-run -a -s "-screen 0 1280x720x24" \
 	godot --path "$repo_root" --windowed --resolution 1280x720 \
 	--rendering-driver opengl3 \
-	--write-movie "$tmp_dir/f.png" --quit-after "$frames" "$scene"
+	--write-movie "$tmp_dir/f.png" --quit-after "$frames" "$scene" \
+	${user_args[@]+-- "${user_args[@]}"}
 godot_exit=$?
 set -e
 

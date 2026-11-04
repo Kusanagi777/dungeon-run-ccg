@@ -292,16 +292,16 @@ stories:
     name: "main.tscn composition entry and the RunShell stub"
     file: "production/epics/boot-composition-root/story-006-main-scene-composition-entry.md"
     priority: nice-to-have
-    status: blocked
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 6
     wave: 3
     serialised: false
     contract: true
-    blocker: "carried from sprint 2: needs CDB-006 (M1) and the shipped data set (content-001, same lane, earlier slot); tools/capture.sh [-- <args>] pass-through is in its scope; main_menu capture needs real-data Boot.boot() ok==true (pending-config policy after the fix pass). Story file still says Ready."
-    note: "stretch; merges last overall (changes run/main_scene)"
-    completed: ""
+    blocker: ""
+    note: "stretch; merges last overall (changes run/main_scene). 2026-11-04: blocked status and blocker removed (CDB-006 and content-001 merged; capture.sh -- pass-through added here). Done 2026-11-04: main.tscn is run/main_scene; main_menu (debug build) and data_error frames retained and stamped; a release export opens on data_error by design while pending validators remain (tested); Windows row 'not yet run'; owner frame review pending"
+    completed: "2026-11-04"
 
 # Previous sprints — kept for history; not part of the current sprint's story list.
 previous_sprints:

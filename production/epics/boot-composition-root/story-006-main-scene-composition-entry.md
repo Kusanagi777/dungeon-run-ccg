@@ -1,12 +1,12 @@
 # Story 006: main.tscn composition entry and the RunShell stub
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Presentation (scene root of the Foundation epic — the one composition entry)
 > **Type**: UI
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -34,10 +34,10 @@
 
 *From `docs/architecture/architecture.md` §Data Flow 5 and ADR-0001 Decision 4 / ADR-0011 Decision 1, scoped to this story:*
 
-- [ ] `src/scenes/main.tscn` is `application/run/main_scene`; its root script calls `Boot.boot()` exactly once in `_ready()`, then instantiates the `RunShell` stub (`src/ui/run/run_shell.tscn`, `class_name RunShell extends Control`) and hands it the `Services` bag by argument before adding it to the tree; `main.tscn`'s root and `run_shell.gd` are the only `Boot` references under `src/scenes/` and `src/ui/` (gate G3 scope note in ADR-0001 Decision 4); `src/scenes/boot.tscn` stays as the capture-rig scene and is no longer the main scene.
-- [ ] With `BootResult.ok == true` the stub shows a placeholder `main_menu` state (title and a "Run UI pending" line, every string a `tr()` key, art-bible §4 tokens as theme overrides in the `.tscn` as `boot.tscn` does); with `ok == false` it shows a `data_error` state listing the `ValidationReport` rows (CR-8 shape; ADR-0011 Decision 1 S1/S2). Both states are captured with `tools/capture.sh` to `production/qa/evidence/story-006-main-scene-composition-entry/` — the `Failed` state reached through a `Boot` override selected by a debug command-line arg (`OS.get_cmdline_user_args()`, the seam `RunDebugLoader` will reuse), never a hand-built view-state — and the frames are stamped with `review-receipts.sh hash`.
-- [ ] `tests/integration/boot/boot_scene_test.gd` `test_project_main_scene_is_boot_scene` is updated to assert the new main scene (and renamed to say so); `timeout 30 godot --headless --quit-after 5` (`commands.smoke`) exits 0 with no `SCRIPT ERROR`; the stub holds no game state, stores the `Services` reference only on the shell root, and calls no `Boot.services()` deeper in the tree.
-- [ ] A Windows playtest row is recorded in the evidence folder's `README.md` ("matches CI evidence / differs" against the Forward+ build, ADR-0010) — advisory until the Windows export job exists (gate condition 8), but the row must be present and honest (`not yet run` is an acceptable value).
+- [x] `src/scenes/main.tscn` is `application/run/main_scene`; its root script calls `Boot.boot()` exactly once in `_ready()`, then instantiates the `RunShell` stub (`src/ui/run/run_shell.tscn`, `class_name RunShell extends Control`) and hands it the `Services` bag by argument before adding it to the tree; `main.tscn`'s root and `run_shell.gd` are the only `Boot` references under `src/scenes/` and `src/ui/` (gate G3 scope note in ADR-0001 Decision 4); `src/scenes/boot.tscn` stays as the capture-rig scene and is no longer the main scene.
+- [x] With `BootResult.ok == true` the stub shows a placeholder `main_menu` state (title and a "Run UI pending" line, every string a `tr()` key, art-bible §4 tokens as theme overrides in the `.tscn` as `boot.tscn` does); with `ok == false` it shows a `data_error` state listing the `ValidationReport` rows (CR-8 shape; ADR-0011 Decision 1 S1/S2). Both states are captured with `tools/capture.sh` to `production/qa/evidence/story-006-main-scene-composition-entry/` — the `Failed` state reached through a `Boot` override selected by a debug command-line arg (`OS.get_cmdline_user_args()`, the seam `RunDebugLoader` will reuse), never a hand-built view-state — and the frames are stamped with `review-receipts.sh hash`.
+- [x] `tests/integration/boot/boot_scene_test.gd` `test_project_main_scene_is_boot_scene` is updated to assert the new main scene (and renamed to say so); `timeout 30 godot --headless --quit-after 5` (`commands.smoke`) exits 0 with no `SCRIPT ERROR`; the stub holds no game state, stores the `Services` reference only on the shell root, and calls no `Boot.services()` deeper in the tree.
+- [x] A Windows playtest row is recorded in the evidence folder's `README.md` ("matches CI evidence / differs" against the Forward+ build, ADR-0010) — advisory until the Windows export job exists (gate condition 8), but the row must be present and honest (`not yet run` is an acceptable value).
 
 ---
 
@@ -80,6 +80,11 @@ checks scope against it.*
 - `tests/integration/boot/boot_scene_test.gd` (main-scene assertion updated)
 - `tests/README.md` (smoke paragraph: main scene name)
 - `production/qa/evidence/story-006-main-scene-composition-entry/` (frames + `README.md` with the Windows row)
+- `tests/integration/boot/main_scene_test.gd` (RunShell states, `Main.boot_overrides`)
+- `tests/fixtures/data/boot_data_error/` (the batch-0 data set with one fault, for the `data_error` capture)
+- `tools/capture.sh` (`--` pass-through and `CAPTURE_LABEL`, QA plan sprint 3)
+- `project.yaml` (comment only: `commands.smoke` main scene name)
+- `tools/content/content_validate_command.gd` (summary line prints "no snapshot" instead of `-1 records` on a `Failed` load — found while choosing the fixture)
 
 ---
 
@@ -97,7 +102,7 @@ checks scope against it.*
 **Required evidence**:
 - UI: a retained screenshot of each screen touched (`main_menu` placeholder and `data_error` placeholder), in `production/qa/evidence/story-006-main-scene-composition-entry/`, produced by `tools/capture.sh`, stamped with `review-receipts.sh hash`; plus the Windows playtest row
 
-**Status**: [ ] Not yet created
+**Status**: [x] `production/qa/evidence/story-006-main-scene-composition-entry/` (`01-main_menu.png`, `02-data_error.png`, `README.md` with stamps and the Windows row) + `tests/integration/boot/main_scene_test.gd`, `boot_scene_test.gd` passing
 
 ---
 
@@ -106,4 +111,19 @@ checks scope against it.*
 - Depends on: `production/epics/boot-composition-root/story-004-boot-composition-root.md`
 - Unlocks: `production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md`; the Run UI epic's `RunShell` stories (they replace the stub body)
 
-> **Blocker (2026-11-03, sprint-2 lane `lane/boot-005-rng-004-boot-006`, not started):** AC-2's `main_menu` state (`BootResult.ok == true`) cannot be reached through the real composition today, so its required capture cannot be produced without a hand-built stand-in. Probed on Godot 4.7.2 with a headless script on a fresh `boot.gd` instance: (1) `Boot.boot()` over the shipped data ends `Failed` — `assets/data/` holds only `match_rules.json`, so the report is 20 `E_MISSING_FILE` errors (the `data_error` half is reachable and is what a launch would show); (2) `Boot.boot({"card_database": <minimal fixture, Ready>})` builds `MetaStub.new(card_database)`, which calls `db.config("profile_defaults")` and fails with `SCRIPT ERROR: Invalid call. Nonexistent function 'config' in base 'RefCounted (CardDatabase)'` (`meta_stub.gd:84`). `CardDatabase.config()` / `heroes()` / `treasure_pool()` arrive with **card-database story 006**, which is not in sprint 2; until then the only stand-in is a `CardDatabase` subclass of the kind `tests/integration/boot/boot_composition_test.gd` keeps in tests (`ConfigCardDatabase`), which this story may not ship in `src/`. Unblocks when card-database story 006 is Complete. Second gap to fix with this story: `tools/capture.sh` takes `<scene> <out-dir> [frames]` only — the `[-- <args>]` pass-through the control manifest (Foundation Required, ADR-0010) documents and the `--boot-fail-fixture` capture needs is not implemented yet.
+> **Blocker removed 2026-11-04 (sprint-3 lane `lane/s3-content-001-007`):** the 2026-11-03 blocker (no `main_menu` reachable through the real composition; `capture.sh` lacked `[-- <args>]`) is resolved. Card-database story 006 merged (`CardDatabase.config()`), content story 001 ships the data set (a debug `Boot.boot()` ends `Ready`), and this story added the `capture.sh` `--` pass-through and `CAPTURE_LABEL`.
+
+## Completion Notes
+**Completed**: 2026-11-04
+**Started / ended (UTC)**: 2026-11-04T00:18:19Z – 2026-11-04T00:24:36Z (first pass, interrupted by a container restart before commit); resumed 2026-11-04T01:33:58Z – 2026-11-04T01:37:40Z
+**Criteria**: 4/4 passing (AC-4's Windows row is `not yet run`, which the AC allows)
+**Deviations**:
+- The debug argument is `--boot-fail-fixture=<name>` over `res://tests/fixtures/data/<name>/` (name limited to `^[a-z0-9_]+$`); the capture uses a new `boot_data_error/` fixture (batch-0 data + one `E_UNKNOWN_REF`) because the existing card-database fixture roots carry stub config bodies that the real validators flood with 60+ errors. `tests/*` is not exported, so an exported debug build given the argument shows `E_MISSING_FILE` rows (still `data_error`).
+- `RunShell.bind(services)` is the by-argument handoff; the `data_error` read model is the Card Database's `report().to_text()` rows (one `Label` each, inside a `ScrollContainer`). `RunShell._ready()` falls back to `Boot.services()` only when nothing was bound (direct scene launch), as the Implementation Notes allow.
+- `main.tscn` is not instantiated in any test: its `_ready()` boots the shared autoload, which `boot_composition_test.gd` requires to stay un-booted. The seam is tested piecewise (`Main.boot_overrides`, `RunShell` bound to fixture services); the composed launch is proven by the two captures and by `commands.smoke`.
+- Copy strings use English source strings as `tr()` keys, as `boot_screen.gd` does (no catalogue yet); report rows are data and are shown verbatim.
+- **Release exports open on `data_error`, by design.** Boot's validator map files every pending validator (`PENDING_CONFIG_OWNERS`, `PENDING_RECORD_OWNERS`) as an error when `OS.is_debug_build()` is false, so the shipped data loads `Failed` in a release export, and the `RunShell` opens `data_error` listing those rows (`[error] E_DELEGATED <file> — W_VALIDATOR_PENDING: …`). The stub needs no special case: it branches on `CardDatabase.state()` alone. Pinned by `main_scene_test.gd` over the shipped `assets/data/` with a fresh Boot instance's debug map (`main_menu`) and release map (`data_error`, every error row a pending validator). The `main_menu` frame is therefore a debug-build frame; a release frame would show `data_error` until the pending lists are empty (release guardrail, control manifest Foundation). No release capture was taken (the export needs templates and is gate condition 8's job).
+- The `data_error` fixture shows only the warnings a `Failed` load still reaches (e.g. `W_BAND_HEALTH`, one `W_POOL_SIZE`); it is the shipped set with one changed id, but checks that need a loaded hero set are skipped, so its warning list differs from the shipped data's.
+- AC-3 names `timeout 30`; the lane ran `timeout 60 godot --headless --quit-after 5` (same command, longer guard).
+**Test Evidence**: `production/qa/evidence/story-006-main-scene-composition-entry/` (2 frames, content-stamped; read by eye; rig-check re-run recorded); `tests/integration/boot/main_scene_test.gd` (10 tests, seen failing to parse before `Main`/`RunShell` existed; the 2 shipped-data tests added on resume were seen failing against a `RunShell` mutated to always show `main_menu` and to always show `data_error`) and `boot_scene_test.gd` (renamed main-scene test, seen failing on the old main scene). Full suite (`-c`) 1009 test cases, 0 failures, 0 orphans; `commands.smoke` exit 0, no `SCRIPT ERROR`; `tools/lint/` gates, no_global_rng and parse-check exit 0.
+**Reviewed by**: lean — owner review of the frames pending (UI)
