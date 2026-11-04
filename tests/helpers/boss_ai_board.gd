@@ -150,6 +150,25 @@ static func engine(fixture: Dictionary, db: FakeCardDatabase, player_casts: Arra
 	return engine
 
 
+## A [param double_class] engine (a `RulesEngine` subclass taking the base's
+## `_init` arguments) holding a value copy of [param engine]'s state, bound to
+## its own resolver, with its own log and `rng_match` copy: a planner sandbox
+## whose `submit`, `legal_commands` or `clone` a test can override.
+## [param rules_overrides] replaces `match_rules` knobs (the frozen body cannot
+## be edited), and its clones inherit them. Call `end_match()` on it when done,
+## like any clone (boss-ai stories 007, 008).
+static func adopt(double_class: GDScript, engine: RulesEngine, db: FakeCardDatabase, rules_overrides: Dictionary = {}) -> RulesEngine:
+	var resolver: EffectResolver = EffectResolver.new(db, effects_config(), "")
+	var rules: Dictionary = engine.rules_config().duplicate()
+	rules.merge(rules_overrides, true)
+	var double: RulesEngine = double_class.new(db, rules, resolver)
+	double.load_state(engine.state().clone(EventLog.new(TestConstants.MAX_MATCH_EVENTS, EventLog.SCOPE_MATCH), (engine.rng_match() as RngStream).copy()))
+	var no_installers: Array[HookInstaller] = []
+	resolver.bind(double, no_installers)
+	double._bound = true
+	return double
+
+
 ## Places [param def_id] on [param side]'s board of [param engine]'s state,
 ## awake, and returns the minion.
 static func place(engine: RulesEngine, db: FakeCardDatabase, side: String, def_id: String) -> Dictionary:

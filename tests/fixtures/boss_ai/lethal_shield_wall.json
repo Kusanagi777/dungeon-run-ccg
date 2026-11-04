@@ -1,0 +1,14 @@
+{
+  "name": "lethal_shield_wall",
+  "description": "boss-ai A9 exhaustion: seven 2/2 attackers against three 1/1 Divine Shield Taunts and a player at 9. F4 passes at the root (14 - 3 = 11) and one ply down (12 - 3 = 9), but no line is lethal: two hits per Taunt spend six of the seven attacks. The tree is about 400 nodes: `budgets.lethal_max_nodes` below that exhausts, the band 3 budget ends it with no leaf. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 3,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_cub", "type": "minion", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_shell", "type": "minion", "cost": 1, "attack": 1, "health": 1, "keywords": ["taunt", "divine_shield"]}
+  ],
+  "boss": {"mana": 0, "board": ["bai_cub", "bai_cub", "bai_cub", "bai_cub", "bai_cub", "bai_cub", "bai_cub"], "hand": []},
+  "player": {"health": 9, "board": ["bai_shell", "bai_shell", "bai_shell"]}
+}
