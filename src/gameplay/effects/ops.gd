@@ -23,7 +23,8 @@
 ## turns a pass into a plain-data **work list** ([method work], [method step])
 ## so a `discover` / `choose_one` can suspend it mid-effect, and adds
 ## `add_to_hand` and the F4 pool ([method pool_candidates],
-## [method draw_options]); the pause itself is the resolver's.
+## [method draw_options]); the pause itself is the resolver's. `retrigger`
+## (sprint-4 review S5) queues through the engine ([method _op_retrigger]).
 ## [codeblock]
 ## var ops := EffectOps.new()
 ## var todo: Array[Dictionary] = EffectOps.work([{"op": "draw", "count": 2}])
@@ -46,6 +47,9 @@ const BURNED: String = "burned"
 const FATIGUE: String = "fatigue"
 const SKIPPED: String = "skipped"
 const ALREADY_HAS: String = "already_has"
+const NO_SUCH_TRIGGER: String = "no_such_trigger"
+## `trigger_queued.reason` of a C5 `retrigger`.
+const REASON_RETRIGGER: String = "retrigger"
 ## The op params that take a C4 value expression (story 007).
 const VALUE_PARAMS: Array[String] = ["amount", "count", "attack", "health", "cost", "value", "delta", "set"]
 ## The param each op needs non-negative: a negative computed value is clamped
@@ -89,6 +93,7 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 	"silence": ["minion"],
 	"freeze": ["minion", "hero"],
 	"give_keyword": ["minion", "hero", "weapon"],
+	"retrigger": ["minion", "weapon"],
 }
 ## The ops that may target a card instance in hand or deck, and the param
 ## such a target needs (C5 `buff`: "card instances in hand **or deck**
@@ -122,6 +127,7 @@ func _init() -> void:
 		"mana": _op_mana,
 	}
 	_table["add_to_hand"] = _op_add_to_hand
+	_table["retrigger"] = _op_retrigger
 
 
 ## True when this story's table runs [param op_name] (else [method run]
@@ -399,6 +405,26 @@ func _op_give_keyword(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) 
 		if EffectSelectors.has_keyword(EffectSelectors.find(state, id), keyword):
 			return ALREADY_HAS
 		engine.add_keyword(id, keyword)
+		return APPLIED)
+
+
+## C5 `retrigger` (sprint-4 review S5): queues each target's live effects with
+## the op's `trigger` as if raised now, through the engine's
+## [method RulesEngine.queue_triggers] (`trigger_queued{reason: retrigger}`) —
+## the C10 loop resolves them after this pass, each as its own step (C6.0). The
+## source stays in play, so nothing dies and a `source.*` read is live (C6.5).
+## A target with no live effect for the trigger (none printed, or Silenced) is
+## `no_such_trigger`; no target at all is `no_target`. A board with both folds
+## through [method fold_outcomes] like any targeted op: C5 does not name that
+## case, so no test pins it (open question, content story 004's notes).
+func _op_retrigger(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var trigger: String = str(op.get("trigger", ""))
+	var resolver: EffectResolver = run_ctx.resolver
+	return _per_target(engine, op, run_ctx, {"trigger": trigger}, func(id: int) -> String:
+		var entries: Array[Dictionary] = resolver.retrigger_entries(trigger, id)
+		if entries.is_empty():
+			return NO_SUCH_TRIGGER
+		engine.queue_triggers(StringName(trigger), entries, REASON_RETRIGGER)
 		return APPLIED)
 
 

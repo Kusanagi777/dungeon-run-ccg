@@ -2834,6 +2834,23 @@ func _execute_queued(step: Dictionary) -> void:
 	_steps += 1
 
 
+## The queue call of card-effects C5 `retrigger` (sprint-4 review S5; ADR-0007
+## erratum 2026-11-04, not one of the match-rules primitives): appends
+## [param entries] (the resolver's plain-data queue entries for [param point])
+## to Q as if raised now, under the current `cause_seq`, each with
+## `trigger_queued {…, reason: [param reason]}`. Each takes a snapshot of its
+## source, which stays in play. They resolve in the C10 loop after the running
+## step, each as its own step: Q stays the engine's (ADR-0007 Alt 1). A no-op
+## once Ended.
+## [codeblock]
+## engine.queue_triggers(&"deathrattle", resolver.retrigger_entries("deathrattle", id), "retrigger")
+## [/codeblock]
+func queue_triggers(point: StringName, entries: Array[Dictionary], reason: String) -> void:
+	if _halted():
+		return
+	_enqueue(point, entries, _cause_seq, {}, reason)
+
+
 ## Appends the triggers [param entries] the resolver returned for
 ## [param point] to Q as steps `{point, ctx, cause_seq: raise_seq}`, each
 ## with `trigger_queued {point, source_id, effect_id}` (`cause_seq`
@@ -2844,8 +2861,9 @@ func _execute_queued(step: Dictionary) -> void:
 ## source that is not in play (or in hand) at raise time (C10). An entry
 ## without a whole-number `source_id` is a resolver defect: it is logged
 ## (`push_error`) and skipped, and the entries after it still queue (code
-## review 2026-11-03).
-func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}) -> void:
+## review 2026-11-03). A non-empty [param reason] rides on each `trigger_queued`
+## ([method queue_triggers]).
+func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}, reason: String = "") -> void:
 	for entry: Dictionary in entries:
 		if _halted():
 			return
@@ -2866,7 +2884,10 @@ func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dea
 		_queue.append({"point": step_point, "ctx": ctx, "cause_seq": raise_seq})
 		var cause: int = _cause_seq
 		_cause_seq = raise_seq
-		emit(&"trigger_queued", {"point": String(step_point), "source_id": source_id, "effect_id": str(entry.get("effect_id", ""))})
+		var queued: Dictionary = {"point": String(step_point), "source_id": source_id, "effect_id": str(entry.get("effect_id", ""))}
+		if reason != "":
+			queued["reason"] = reason
+		emit(&"trigger_queued", queued)
 		_cause_seq = cause
 
 
