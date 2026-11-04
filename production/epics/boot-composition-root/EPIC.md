@@ -3,7 +3,7 @@
 > **Layer**: Foundation
 > **GDD**: — (no system GDD; `docs/architecture/architecture.md` §Dependency injection and the composition root, §Data Flow 5 Initialisation order, §Module Ownership Foundation rows `Boot`, `SettingsBus`)
 > **Architecture Module**: `Boot` (`src/core/boot.gd`, the one autoload) + `Services` bag + `SettingsBus` + the `@abstract MetaApi` seam with the MVP `MetaStub`
-> **Control Manifest**: Foundation Layer Rules (Manifest Version 2026-11-03)
+> **Control Manifest**: Foundation Layer Rules (Manifest Version 2026-11-04)
 > **Build Order**: 1 of 14 — plan E1 (Foundation), riskiest-first per ADR order 0001
 > **Status**: Ready
 > **Stories**: 8 (001-007 created 2026-11-03 by `/create-stories boot-composition-root`; see the Stories table below)

@@ -45,6 +45,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   Accepted first.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 - **Erratum 2026-11-03 (match-ui story authoring)**: `MatchQuery` is a rules-tier read model — `class_name MatchQuery extends RefCounted` in `src/gameplay/match/match_query.gd`, Node-free, built by `MatchDriver.query()` over the live engine and returning value copies. `MatchController` (in `src/ui/match/`) only forwards it. This keeps ADR-0001's one-way dependency (rules never import `src/ui/**`); architecture.md's module table listing `MatchQuery` under Match UI is corrected to Match Rules / driver accordingly.
+- **Erratum 2026-11-04 (card-effects story 010)**: the resolver is built as `EffectResolver.new(db, db.config("card_effects"), player_hero_set)` — the third argument is the run hero's set, which Discover's collectible pool needs (ADR-0007 erratum 2026-11-04). The two-argument form in Decision 1 below predates it; `RulesEngine.clone()` passes the same set to the clone's resolver.
 - **Post-review fixes 2026-11-03** (`/architecture-review` report
   `architecture-review-2026-11-03.md`, verdict CONCERNS): §Performance
   Implications `replay_budget_ms` default corrected 4 → **2 ms** (matches
