@@ -4,7 +4,7 @@
 
 > **Status**: Designed
 > **Author**: owner + Claude (`/design-system`, guided automation, Lean review — no specialist agents consulted)
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 4 (Readable, deterministic rules); supports Pillar 3 (Lose fast, learn fast)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `systems-designer` / `qa-lead` not consulted on Formulas and Acceptance Criteria — Lean mode and no Agent tool in this run; review manually before production.
@@ -15,6 +15,7 @@
 > **REVISED 2026-11-03 (housekeeping)**: §D `match_summary.result` defined as match-rules C14 `win | loss | fault` with `winner` and `reason` added; `draft_offered.flags[]` enum re-mirrored to reward-draft D11 (`pity_forced | coverage_forced | universal_forced | universal_missing | reoffer | short`); F7 `run_total_events` reported in the run log summary (Run Structure R10), not `run_ended`; rule 12a states explicitly that the player's own `command_rejected` events are diagnostic (`payload.diagnostic = true`).
 > **REVISED 2026-11-03 (cross-review b)**: N-02 — §D `run_ended` row adopts Run Structure's nested `result` Dictionary (`result.outcome: victory | defeat | abandoned`, `result.abandon_reason`, …) with `run_seed_hex` beside it, matching run-structure R1/R6 and the path meta-progression F2 reads; the previous flat `result` enum would not have parsed in Meta's fold.
 > **REVISED 2026-11-03 (DSL spike follow-up)**: §D adds `card_added_to_hand {side, instance_id, card_id, hand_size}`, mirroring the event match-rules C15 added for the `add_card_to_hand` primitive (DD-X04; `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` finding 2).
+> **REVISED 2026-11-04 (code review of rng-event-log story 008, sprint 4)**: §D `minion_summoned`, `weapon_equipped` and `weapon_destroyed` name the minion / weapon `entity_id`, not `instance_id` — match-rules C15 is the authoritative catalogue (DD-X04: "payloads always carry the acting `entity_id`s") and the engine emits `entity_id`; rule 14 distinguishes `entity_id` (characters and weapons, match-rules C1) from `instance_id` (card instances); rule 19's attribution map and its AC read `entity_id` from those two events. Only the id field was reconciled: the engine's `minion_summoned` also says `position` where this row says `board_index`, and carries no `keywords[]` (open).
 
 ## Summary
 
@@ -135,8 +136,9 @@ boss AI is untestable.
     block plus the full array.
 14. Payload values are JSON-representable only: `int`, `float`, `bool`, `String`, `StringName`
     (serialised as `String`), `null`, and `Array`/`Dictionary` of those. Entities are referenced by
-    id — `instance_id` (int, unique per match, assigned by Match Rules to minions, weapons and both
-    heroes) and `card_id` (String, Card Database) — never by object.
+    id — `entity_id` (int, unique per match, assigned by Match Rules to minions, weapons and both
+    heroes, match-rules C1), `instance_id` (int, a card instance in a zone) and `card_id` (String,
+    Card Database) — never by object.
 15. A match log is **sealed** by `match_ended`, a run log by `run_ended`. Appending to a sealed
     log is an error (asserted in debug; dropped with a console warning in release).
 16. Size bounds (F7): a typical match emits under 2,000 events and a run under 20,000.
@@ -168,8 +170,8 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `card_added_to_hand` | Match Rules | `side, instance_id, card_id, hand_size` (match-rules C15, added 2026-11-03 from the DSL spike; the `add_card_to_hand` primitive — Discover pick, `add_to_hand`, `copy_to_hand`; a full hand emits `card_burned` instead) |
 | `fatigue_damage` | Match Rules | `side, amount` (DD-M07; followed by `damage_dealt`) |
 | `card_played` | Match Rules | `side, instance_id, card_id, cost_paid, target_id, board_index` |
-| `minion_summoned` | Match Rules | `side, instance_id, card_id, board_index, attack, health, keywords[]` |
-| `weapon_equipped` / `weapon_destroyed` | Match Rules | `side, instance_id, card_id, attack, durability` / `side, instance_id` |
+| `minion_summoned` | Match Rules | `side, entity_id, card_id, board_index, attack, health, keywords[]` |
+| `weapon_equipped` / `weapon_destroyed` | Match Rules | `side, entity_id, card_id, attack, durability` / `side, entity_id` |
 | `hero_power_used` | Match Rules | `side, power_id, target_id` (DD-M13) |
 | `attack_declared` / `attack_resolved` | Match Rules | `attacker_id, defender_id` / `attacker_id, defender_id` |
 | `damage_dealt` | Match Rules | `source, target, requested, prevented, armor_absorbed, dealt, health_after` (match-rules C15; rule 19 reads `source` and `dealt`) |
@@ -216,8 +218,8 @@ the UI needs a distinct animation hook.
     C15 payload (`source`, `target`, `requested`, `prevented`, `armor_absorbed`, `dealt`,
     `health_after`): for each event whose `source` is an instance owned by the player, add
     `dealt` (damage actually applied, after prevention and armour) under that instance's
-    `card_id`, resolved through the `instance_id → card_id` map built from `minion_summoned`,
-    `weapon_equipped`, `card_played` and `hero_power_used`. Hero power and weapon damage
+    `card_id`, resolved through the `id → card_id` map built from `minion_summoned` and
+    `weapon_equipped` (their `entity_id`), `card_played` (its `instance_id`) and `hero_power_used`. Hero power and weapon damage
     attribute to the power's or weapon's `card_id`; fatigue to nothing.
 
 ### States and Transitions
@@ -583,7 +585,7 @@ Each criterion is a gdUnit4 test unless marked *manual*; all run headless with l
   `_coerced` lists the key.
 - [ ] **GIVEN** a match log, **WHEN** `to_json()` then `from_json()`, **THEN** `replay_equal` holds
   between the original and the round-tripped log (F6).
-- [ ] **GIVEN** a sealed match log with a `minion_summoned{instance_id: 7, card_id: "card_a"}`,
+- [ ] **GIVEN** a sealed match log with a `minion_summoned{entity_id: 7, card_id: "card_a"}`,
   three player `damage_dealt` events with `source: 7` and `dealt` 3, 4, 5 (one with `requested:
   6, prevented: 1`), and one `damage_dealt` whose `source` is a boss instance, **WHEN** reduced
   to `match_summary`, **THEN** `damage_by_card == {"card_a": 12}` (rule 19).
