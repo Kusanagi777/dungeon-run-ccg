@@ -329,6 +329,45 @@ func test_a_frozen_minion_silenced_thaws_at_once_and_may_attack_this_turn() -> v
 	assert_bool(engine.submit(MatchRecords.attack(SIDE_PLAYER, id, boss_hero)).accepted).is_true()
 
 
+func test_silencing_an_undamaged_minion_with_a_health_debuff_adds_no_damage() -> void:
+	# Arrange: a 2/10 with a −2 health debuff (max 8) and no damage
+	# (code review 2026-11-04, MR-015 S2: F6's subtracted term is clamped at 0)
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _engine(log)
+	var minion: Dictionary = _minion(engine, SIDE_BOSS, BASE_ATTACK, SAFE_HEALTH)
+	var id: int = int(minion.entity_id)
+	minion.enchantments.append(MatchFactory.make_enchantment(0, -HEALTH_BUFF))
+	assert_int(engine.max_health(minion)).is_equal(SAFE_HEALTH - HEALTH_BUFF)
+
+	# Act
+	engine.run_action(func() -> void: engine.silence(id))
+
+	# Assert: back to printed health, still undamaged
+	assert_int(engine.max_health(minion)).is_equal(SAFE_HEALTH)
+	assert_int(int(minion.damage_taken)).is_equal(0)
+	assert_int(engine.health(minion)).is_equal(SAFE_HEALTH)
+
+
+func test_silencing_a_damaged_minion_after_set_stats_health_restores_its_printed_health() -> void:
+	# Arrange: a damaged 2/10 has its health set to 1 (Hunter's Mark shape:
+	# damage cleared, max 1), then is Silenced (MR-015 S2)
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _engine(log)
+	var minion: Dictionary = _minion(engine, SIDE_BOSS, BASE_ATTACK, SAFE_HEALTH)
+	var id: int = int(minion.entity_id)
+	minion.damage_taken = DAMAGE_TAKEN
+	engine.run_action(func() -> void: engine.set_stats(id, null, 1))
+	assert_int(engine.max_health(minion)).is_equal(1)
+
+	# Act
+	engine.run_action(func() -> void: engine.silence(id))
+
+	# Assert: the set-health enchantment is gone and no damage was created
+	assert_int(engine.max_health(minion)).is_equal(SAFE_HEALTH)
+	assert_int(int(minion.damage_taken)).is_equal(0)
+	assert_int(engine.health(minion)).is_equal(SAFE_HEALTH)
+
+
 func test_silence_keeps_sickness_attacks_used_pending_destroy_base_stats_and_damage() -> void:
 	# Arrange: a sick minion that has attacked (fixture), marked for destruction
 	var log: TestEventLog = TestEventLog.new()

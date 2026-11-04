@@ -301,7 +301,7 @@ func test_required_target_rules_target_required_and_illegal_target() -> void:
 	assert_int(int(_calls(resolver, &"on_cast")[0].target_id)).is_equal(_hero_id(engine, SIDE_BOSS))
 
 
-func test_optional_target_accepts_null_and_none_ignores_target_id() -> void:
+func test_optional_target_accepts_null_and_none_rejects_a_target_id() -> void:
 	# Arrange: flare is optional, study is none
 	var resolver: TestEffectResolver = TestEffectResolver.new()
 	resolver.specs_by_def[DEF_FLARE] = {"mode": RulesEngine.TARGETING_OPTIONAL, "filter": {}}
@@ -309,14 +309,70 @@ func test_optional_target_accepts_null_and_none_ignores_target_id() -> void:
 
 	# Act
 	var flare: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0))
-	var study: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, NO_SUCH_ID))
+	var stray: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, _hero_id(engine, SIDE_BOSS)))
+	var study: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0))
 
-	# Assert
+	# Assert: a target on a `none` card is never listed, so it is rejected (DD-X17)
 	assert_bool(flare.accepted).is_true()
+	_assert_rejected(stray, "ILLEGAL_TARGET")
 	assert_bool(study.accepted).is_true()
 	var casts: Array[Dictionary] = _calls(resolver, &"on_cast")
+	assert_int(casts.size()).is_equal(2)
 	assert_that(casts[0].target_id).is_null()
 	assert_that(casts[1].target_id).is_null()
+
+
+# --- DD-X17: `submit` accepts only what `legal_commands()` lists (MR-017 S6) ----
+
+func test_a_spell_or_weapon_play_carrying_a_position_is_invalid_position() -> void:
+	# Arrange: an untargeted spell and a weapon, both affordable
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _engine(log, TestEffectResolver.new(), [DEF_STUDY, DEF_OLD_BLADE], MANA_POOL)
+	var before: int = log.events.size()
+
+	# Act
+	var spell: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, 0))
+	var weapon: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 1, 0))
+
+	# Assert: both rejected with nothing played; neither row is in legal_commands()
+	_assert_rejected(spell, "INVALID_POSITION")
+	_assert_rejected(weapon, "INVALID_POSITION")
+	assert_int(_player(engine).hand.size()).is_equal(2)
+	assert_int(int(_player(engine).mana_current)).is_equal(MANA_POOL)
+	assert_array(_types(log.events.slice(before))).is_equal(["command_rejected", "command_rejected"])
+	var legal: Array = engine.legal_commands()
+	assert_bool(legal.has(MatchRecords.play_card(SIDE_PLAYER, 0, 0))).is_false()
+	assert_bool(legal.has(MatchRecords.play_card(SIDE_PLAYER, 1))).is_true()
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 1)).accepted).is_true()
+
+
+func test_a_target_on_an_untargeted_hero_power_is_illegal_target() -> void:
+	# Arrange: the fixture power has no targeting spec (`none`)
+	var engine: RulesEngine = _engine(TestEventLog.new(), TestEffectResolver.new(), [], MANA_POOL)
+
+	# Act
+	var stray: Dictionary = engine.submit(MatchRecords.use_hero_power(SIDE_PLAYER, _hero_id(engine, SIDE_BOSS)))
+
+	# Assert: rejected and unused; the listed (target-less) command is accepted
+	_assert_rejected(stray, "ILLEGAL_TARGET")
+	assert_bool(_player(engine).hero_power.used_this_turn).is_false()
+	assert_bool(engine.submit(MatchRecords.use_hero_power(SIDE_PLAYER)).accepted).is_true()
+
+
+func test_a_target_on_a_required_battlecry_with_no_legal_target_is_illegal_target() -> void:
+	# Arrange: the Seeker's Battlecry needs a target and none exists, so
+	# legal_commands() lists its body with a null target only
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	_required(resolver, DEF_SEEKER, [])
+	var engine: RulesEngine = _engine(TestEventLog.new(), resolver, [DEF_SEEKER], MANA_POOL)
+
+	# Act
+	var stray: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, 0, _hero_id(engine, SIDE_BOSS)))
+
+	# Assert
+	_assert_rejected(stray, "ILLEGAL_TARGET")
+	assert_array(_player(engine).board).is_empty()
+	assert_int(_player(engine).hand.size()).is_equal(1)
 
 
 func test_accepted_spell_resolves_from_the_resolving_zone_then_goes_to_the_graveyard() -> void:

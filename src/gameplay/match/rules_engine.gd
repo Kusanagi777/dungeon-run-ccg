@@ -1118,7 +1118,10 @@ func destroy(target_id: int) -> void:
 ##    Deathrattle…), the enchantment-granted ones having left in 1;
 ## 3. `silenced = true`: the resolver skips this entity's own triggers,
 ##    Deathrattles and aura emission from now on (ADR-0007);
-## 4. F6: `damage_taken = max(0, damage_taken − (old_max − max_health))`;
+## 4. F6: `damage_taken = max(0, damage_taken − max(0, old_max − max_health))`
+##    — only lost maximum health is forgiven: removing a health *debuff* (or a
+##    `set_stats` health) raises the maximum and adds no damage (code review
+##    2026-11-04, MR-015 S2);
 ## 5. `frozen = false` (it thaws at once, no `thawed`);
 ## 6. `silenced {entity_id, removed_enchantments, removed_keywords}` —
 ##    value copies of the removed enchantments, and the keywords it lost
@@ -1151,7 +1154,7 @@ func silence(target_id: int) -> void:
 	(minion.enchantments as Array).assign(kept)
 	(minion.keywords as Array).clear()
 	minion.silenced = true
-	minion.damage_taken = maxi(0, int(minion.damage_taken) - (old_max - max_health(minion)))
+	minion.damage_taken = maxi(0, int(minion.damage_taken) - maxi(0, old_max - max_health(minion)))
 	minion.frozen = false
 	emit(&"silenced", {"entity_id": target_id, "removed_enchantments": removed, "removed_keywords": removed_keywords})
 
@@ -1918,7 +1921,9 @@ func _validate(type: String, command: Dictionary) -> String:
 ## C6 validation after the phase guard, in row order: `hand_index` in range
 ## (`INVALID_INDEX`) → a minion / spell / weapon definition (else
 ## `INVALID_INDEX`) → `effective_cost ≤ mana_current` (`NOT_ENOUGH_MANA`) →
-## minions: `BOARD_FULL`, then `0 ≤ position ≤ board.size` (`INVALID_POSITION`)
+## minions: `BOARD_FULL`, then `0 ≤ position ≤ board.size` (`INVALID_POSITION`);
+## spells and weapons: any non-null `position` is `INVALID_POSITION` (DD-X17 —
+## `legal_commands()` never lists one; code review 2026-11-04, MR-017 S6)
 ## → targeting ([method _target_rejection], spells by the spell rule).
 func _validate_play_card(command: Dictionary) -> String:
 	var side: String = str(command.issuer)
@@ -1938,6 +1943,8 @@ func _validate_play_card(command: Dictionary) -> String:
 		var position: Variant = command.get("position")
 		if not _is_whole(position) or int(position) < 0 or int(position) > player.board.size():
 			return R_INVALID_POSITION
+	elif command.get("position") != null:
+		return R_INVALID_POSITION
 	return _target_rejection(str(card.def_id), _card_source(side, card), command.get("target_id"), type == CARD_SPELL)
 
 
@@ -1955,19 +1962,25 @@ func _validate_hero_power(command: Dictionary) -> String:
 
 
 ## C6 targeting against `resolver.targeting_spec(def_id).mode` and
-## `resolver.legal_targets(def_id, source)`: `none` ignores [param target_id];
-## `optional` accepts null or a legal target; `required` with ≥ 1 legal target
-## needs one (`TARGET_REQUIRED` / `ILLEGAL_TARGET`); `required` with none is
-## `NO_LEGAL_TARGET` under [param spell_rule] (spells, the hero power) and
-## playable otherwise (a Battlecry body — its Battlecry will not resolve).
+## `resolver.legal_targets(def_id, source)`: `none` needs a null
+## [param target_id]; `optional` accepts null or a legal target; `required`
+## with ≥ 1 legal target needs one (`TARGET_REQUIRED` / `ILLEGAL_TARGET`);
+## `required` with none is `NO_LEGAL_TARGET` under [param spell_rule] (spells,
+## the hero power) and playable otherwise, with a null target only (a
+## Battlecry body — its Battlecry will not resolve). A `target_id` on a `none`
+## card or power, or on that target-less Battlecry body, is `ILLEGAL_TARGET`:
+## `legal_commands()` lists only null there (DD-X17; code review 2026-11-04,
+## MR-017 S6).
 func _target_rejection(def_id: String, source: Dictionary, target_id: Variant, spell_rule: bool) -> String:
 	var mode: String = _targeting_mode(def_id)
 	if mode == TARGETING_NONE:
-		return ""
+		return "" if target_id == null else R_ILLEGAL_TARGET
 	var legal: Array[int] = _resolver.legal_targets(def_id, source)
 	if mode == TARGETING_REQUIRED:
 		if legal.is_empty():
-			return R_NO_LEGAL_TARGET if spell_rule else ""
+			if spell_rule:
+				return R_NO_LEGAL_TARGET
+			return "" if target_id == null else R_ILLEGAL_TARGET
 		if target_id == null:
 			return R_TARGET_REQUIRED
 	if target_id == null:
@@ -3432,10 +3445,12 @@ func _find_record(entity_id: int) -> Dictionary:
 ##   room so an `event_cap` fault lands where it would live). The planner reads
 ##   it (`state().log.events_since(0)`, the `TurnPlan` checksum); the UI never
 ##   sees it; nothing the clone does reaches the live log.
-## - **RNG:** `rng_match` is a fresh stream rebuilt from `{name, draws}` by
-##   reseed-and-discard (ADR-0003 F5) — its next draw is the live stream's
-##   next draw, and drawing from it never advances the live stream. The
-##   live stream's fork memo is not carried (the engine never forks, DD-T03).
+## - **RNG:** `rng_match` is `RngStream.copy()` of the live stream — rebuilt
+##   from `{name, draws}` by reseed-and-discard (ADR-0003 F5): its next draw
+##   is the live stream's next draw, and drawing from it never advances the
+##   live stream. The fork memo is carried as copies of each child, so a
+##   fork the live stream already took costs the clone no parent draw
+##   (code review 2026-11-04, MR-017 S7).
 ## - **Ended:** a clone of an Ended (or torn-down) match is Ended (torn down)
 ##   too and binds no resolver: every `submit` is `MATCH_ENDED`.
 ## - **Lifetime:** the clone and its resolver reference each other (a
@@ -3496,19 +3511,11 @@ func _scratch_log() -> EventLog:
 	return scratch
 
 
-## A fresh copy of [param stream] at the same position: the stream's own
-## `copy()` when it has one, else a stream of its kind with the same name and
-## seed, `restore(draws)` (reseed-and-discard, ADR-0003 F5 — never a shared
-## generator or a copied generator state) and the same `forked_at`.
-## TODO(rng-event-log): call `RngStream.copy()` once that epic ships it (the
-## story's Out of Scope); this reads the stream's seed and construction seam.
+## A fresh copy of [param stream] at the same position, by the public
+## [method RngStream.copy] (reseed-and-discard, ADR-0003 F5 — never a shared
+## generator or a copied generator state — with the fork memo carried as
+## copies of each child; code review 2026-11-04, MR-017 S7). Null for none.
 static func _copy_stream(stream: Variant) -> RefCounted:
 	if stream == null:
 		return null
-	if stream.has_method(&"copy"):
-		return stream.copy()
-	var source: RngStream = stream
-	var out: RngStream = source._make_child(source.name, source._stream_seed)
-	out.forked_at = source.forked_at
-	out.restore(source.draws)
-	return out
+	return (stream as RngStream).copy()

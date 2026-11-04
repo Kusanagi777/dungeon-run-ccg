@@ -461,7 +461,7 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			match type:
 				"silenced":
 					if flagged.has("silenced"):
-						flagged.silenced = true
+						_apply_silence(flagged, p)
 				"frozen", "thawed":
 					if flagged.has("frozen"):
 						flagged.frozen = type == "frozen"
@@ -554,6 +554,29 @@ func _apply_enchantment(applied: bool, p: Dictionary, group: int, seq: int, step
 		target.health = int(target.health) + direction * health_delta
 	var kind: StringName = AnimStep.STAT_RECOLOUR if attack_delta != 0 or health_delta != 0 else AnimStep.BADGE
 	steps.append(_parallel(_step(kind, [int(target.entity_id)], group, seq)))
+
+
+## U3 `silenced` (match-rules C13; code review 2026-11-04, MR-015 S1): Silence
+## strips enchantments and keywords with no `enchantment_removed` /
+## `keyword_removed` of its own, so the projection replays C13 from the
+## payload: each `removed_enchantments[]` delta comes off attack and maximum
+## health, every `removed_keywords[]` entry is erased, `frozen` clears, and
+## health follows F6 — `damage' = max(0, damage − max(0, old_max − new_max))`,
+## `health = new_max − damage'`. Received auras are never in the payload, so
+## they stay. A payload without the arrays (an older fixture) only flags.
+func _apply_silence(token: Dictionary, p: Dictionary) -> void:
+	token.silenced = true
+	token.frozen = false
+	var old_max: int = int(token.max_health)
+	var damage: int = old_max - int(token.health)
+	for removed: Variant in p.get("removed_enchantments", []):
+		token.attack = int(token.attack) - int((removed as Dictionary).get("attack_delta", 0))
+		token.max_health = int(token.max_health) - int((removed as Dictionary).get("health_delta", 0))
+	var keywords: Array = token.keywords
+	for keyword: Variant in p.get("removed_keywords", []):
+		keywords.erase(str(keyword))
+	var new_max: int = int(token.max_health)
+	token.health = new_max - maxi(0, damage - maxi(0, old_max - new_max))
 
 
 ## U3.3: a run of consecutive `minion_died` sharing a `cause_seq` is one

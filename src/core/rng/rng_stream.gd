@@ -192,6 +192,29 @@ func restore(target_draws: int) -> void:
 	_skip_to(maxi(target_draws, 0))
 
 
+## A new, independent stream at this stream's exact position, for
+## `RulesEngine.clone()` (ADR-0006/0007 planner sandboxes; code review
+## 2026-11-04, MR-017 S7): same `name`, seed and `forked_at`, its generator
+## reseeded and advanced `draws` outputs (F5 reseed-and-discard — never a
+## shared generator or a copied `RandomNumberGenerator.state`, ADR-0003
+## Decision 3), and the fork memo carried as a **copy of each child** at the
+## child's own position — the snapshot's `fork_points` semantics: a fork the
+## original already took is returned by the copy's [method fork] without a
+## parent draw, so the copy keeps drawing what the original would. Nothing is
+## shared: drawing from or forking the copy never touches the original or its
+## children. Takes no draw on this stream. O(draws), plus each memoised
+## child's own draws. The child is built through [method _make_child], so a
+## test double copies to its own kind.
+## Example: `var sandbox_rng: RngStream = rng_match.copy()`.
+func copy() -> RngStream:
+	var out: RngStream = _make_child(name, _stream_seed)
+	out.forked_at = forked_at
+	out.restore(draws)
+	for child_name: String in _forks:
+		out._forks[child_name] = (_forks[child_name] as RngStream).copy()
+	return out
+
+
 ## Discards outputs until `draws == target_draws` (no-op when already there or
 ## past it). The one forward skip, for `RngService.restore()` replaying a fork
 ## at its recorded parent position; rules code never calls it (a skip is a
