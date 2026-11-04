@@ -273,7 +273,7 @@ func test_full_player_board_makes_removal_beat_an_equal_face_attack() -> void:
 	# Act
 	var scored: Array = await _score_all(_scorer(db), engine, profile)
 
-	# Assert — removal 1.0·0.9 + 2.4·1.25/12 = 1.15 vs face 1.1
+	# Assert — removal 1.0·0.9 + 2.4·1.25·3/12 = 1.65 vs face 3.0·4/8 = 1.5
 	_assert_no_sandbox_choice(scored)
 	assert_int(engine.state().players[SIDE_PLAYER].board.size()).is_equal(TestConstants.BOARD_SIZE)
 	var removal: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "target_id", target)
@@ -281,6 +281,40 @@ func test_full_player_board_makes_removal_beat_an_equal_face_attack() -> void:
 	assert_dict(scored[0].command).is_equal(removal.command)
 	var raise: float = float(profile.weights.w_threat) * (1.25 - 1.0) * removal.features.f_threat
 	assert_float(removal.score - face.score).is_equal_approx(raise, EPSILON)
+
+
+func test_full_player_board_removal_is_chosen_by_the_tie_break_in_every_seed() -> void:
+	# Arrange — A18 is decided by F8, not by the scorer's sort: the ×1.25 raise
+	# must clear `tie_epsilon`, or removal and face share a tie set and the
+	# `ai_<floor>` draw picks between them (code review 2026-11-04, BAI-004 B1)
+	var fixture: Dictionary = BossAiBoard.read("player_board_full")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var tie_epsilon: float = float(profile.rules.tie_epsilon)
+	var target: int = BossAiBoard.ids_of(engine, SIDE_PLAYER, str(fixture.expect.removal_target))[0]
+	var seeds: Array = fixture.expect.ai_seeds
+	var scored: Array = await _score_all(_scorer(db), engine, profile)
+	var removal: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "target_id", target)
+	var removal_chosen: int = 0
+	var single_ties: int = 0
+	var draws: int = 0
+
+	# Act — every seed of the fixture's deterministic range
+	for seed_value: int in range(int(seeds[0]), int(seeds[1]) + 1):
+		var decision: Dictionary = TieBreak.pick(scored, tie_epsilon, TestRngStream.seeded(str(fixture.expect.ai_stream), seed_value))
+		if decision.chosen.command == removal.command:
+			removal_chosen += 1
+		if (decision.ties as Array).size() == 1:
+			single_ties += 1
+		draws += int(decision.draws)
+
+	# Assert — removal alone in the tie set, chosen with no draw, every seed
+	var runs: int = int(seeds[1]) - int(seeds[0]) + 1
+	assert_float(float(scored[0].score) - float(scored[1].score)).is_greater(tie_epsilon)
+	assert_int(single_ties).is_equal(runs)
+	assert_int(removal_chosen).is_equal(runs)
+	assert_int(draws).is_equal(0)
 
 
 func test_player_board_of_six_leaves_removal_and_face_attack_equal() -> void:
@@ -480,3 +514,42 @@ func test_score_all_ends_every_trial_clone_so_none_stays_alive() -> void:
 		if trial != null:
 			assert_object(trial.get_ref()).is_null()
 	assert_object(base_resolver.last_clone.get_ref()).is_null()
+
+
+# --- C4: sandbox randomness is an estimate, not a peek (code review 2026-11-04, BAI-004 S1) ---
+
+func test_trial_random_effect_draws_from_the_sim_fork_not_the_live_stream() -> void:
+	# Arrange — the same board at 12 different live stream positions; one
+	# `ai_1/sim_<turn>` fork, derived as plan_turn will (TieBreak.sim_label)
+	var fixture: Dictionary = BossAiBoard.read("random_effect_board")
+	var expect: Dictionary = fixture.expect
+	var offsets: Array = expect.live_offsets
+	var trial_threats: Dictionary = {}
+	var live_giant_destroyed: Dictionary = {}
+	var sim: RngStream = TestRngStream.seeded(str(expect.ai_stream), int(expect.ai_seed)).fork(TieBreak.sim_label(int(expect.sim_turn)))
+	var sim_draws: int = sim.draws
+
+	# Act
+	for offset: int in range(int(offsets[0]), int(offsets[1]) + 1):
+		var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+		var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+		var live: RngStream = engine.rng_match()
+		for _i: int in offset:
+			@warning_ignore("return_value_discarded")
+			live.randi_range(0, 1)
+		var cast: Dictionary = MatchRecords.play_card(SIDE_BOSS, 0, null, null)
+		var base: RulesEngine = engine.clone()
+		var base_draws: int = base.rng_match().draws
+		var entry: Dictionary = _scorer(db).score(cast, base, BossAiBoard.profile(fixture), Scorer.MODE_NORMAL, {Scorer.CONTEXT_SIM_STREAM: sim})
+		assert_int(base.rng_match().draws).is_equal(base_draws)
+		base.end_match()
+		trial_threats[entry.features.f_threat] = true
+		assert_bool(engine.submit(cast).accepted).is_true()
+		live_giant_destroyed[BossAiBoard.ids_of(engine, SIDE_PLAYER, str(expect.giant)).is_empty()] = true
+
+	# Assert — the live outcome varies with the live stream; the trial's does
+	# not (every trial starts from the same fork position), and the fork itself
+	# is never advanced
+	assert_int(live_giant_destroyed.size()).is_equal(2)
+	assert_int(trial_threats.size()).is_equal(1)
+	assert_int(sim.draws).is_equal(sim_draws)

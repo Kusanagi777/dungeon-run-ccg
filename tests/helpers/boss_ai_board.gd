@@ -4,7 +4,8 @@
 ##
 ## A fixture is `{name, profile, band, weights?, deck_card, cards[], boss:
 ## {mana, board[], hand[]}, player: {health, board[]}, expect, …}` — card
-## records are `{id, type, cost, attack?, health?, keywords?, effects?}`, and
+## records are `{id, type, cost, attack?, health?, keywords?, effects?,
+## spell_damage?}` (a weapon's `health` is its durability), and
 ## `board` / `hand` list card ids. [method engine] builds a **live** match on
 ## the production `EffectResolver` over a [FakeCardDatabase] of those cards:
 ## `start`, the keep-all mulligan, the player's turn 1 (casting the given
@@ -97,7 +98,11 @@ static func database(fixture: Dictionary) -> FakeCardDatabase:
 		var keywords: Array = spec.get("keywords", [])
 		match str(spec.type):
 			"minion":
-				by_id[id] = CardFactory.make_minion(id, int(spec.cost), int(spec.attack), int(spec.health), keywords, {"effects": spec.get("effects", [])})
+				var extra: Dictionary = {"effects": spec.get("effects", [])}
+				# optional CardDef.spell_damage (match-rules F7); absent → the CardFactory default
+				if spec.has("spell_damage"):
+					extra["spell_damage"] = int(spec.spell_damage)
+				by_id[id] = CardFactory.make_minion(id, int(spec.cost), int(spec.attack), int(spec.health), keywords, extra)
 			"spell":
 				by_id[id] = CardFactory.make_spell(id, int(spec.cost), spec.get("effects", []), {"keywords": keywords})
 			"weapon":

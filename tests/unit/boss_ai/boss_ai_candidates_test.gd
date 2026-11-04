@@ -299,3 +299,92 @@ func test_op_value_multiplies_by_targets_and_values_structural_ops() -> void:
 	assert_float(body).is_equal_approx(float(op_values.buff) * 1.0, 1e-9)
 	assert_float(structural).is_equal_approx(float(op_values.damage) + float(op_values.buff) + CandidateSet.OP_UNVALUED, 1e-9)
 	base.end_match()
+
+
+func test_op_value_counts_two_adjacent_targets_and_adds_the_equip_row_for_a_weapon() -> void:
+	# Arrange — two boss minions on board (wide_hand_prefilter); a 2/3 weapon in hand (feature_terms)
+	var fixture: Dictionary = BossAiBoard.read("wide_hand_prefilter")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var op_values: Dictionary = BossAiBoard.stub_config().op_values
+	var base: RulesEngine = engine.clone()
+	var own_minions: int = engine.state().players[SIDE_BOSS].board.size()
+	var adjacent: Dictionary = CardFactory.make_spell("bai_test_rally_near", 1, [CardFactory.make_effect("cast", [CardFactory.make_op("buff", {"attack": 1})], {}, {"targets": "adjacent"})])
+	var armoury: Dictionary = BossAiBoard.read("feature_terms")
+	var armoury_db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(armoury)
+	var armed: RulesEngine = BossAiBoard.engine(armoury, armoury_db)
+	var armed_base: RulesEngine = armed.clone()
+	var weapon_play: Array = _plays_of(armed, armed_base.legal_commands(), str(armoury.expect.weapon))
+
+	# Act
+	var near: float = _candidate_set(db, profile).def_value(adjacent, base, SIDE_BOSS)
+	var weapon: float = _candidate_set(armoury_db, BossAiBoard.profile(armoury)).op_value(weapon_play[0], armed_base)
+
+	# Assert — `adjacent` yields up to 2 of the owner's minions (C6, F6
+	# max_targets); a weapon with no effects is its `equip` row alone (the stub
+	# has none: the Edge Cases' unvalued 1.0)
+	assert_int(own_minions).is_greater_equal(EffectSchema.F6_MAX_TARGETS_ADJACENT)
+	assert_float(near).is_equal_approx(float(op_values.buff) * EffectSchema.F6_MAX_TARGETS_ADJACENT, 1e-9)
+	assert_float(weapon).is_equal_approx(float(op_values.get("equip", CandidateSet.OP_UNVALUED)), 1e-9)
+	base.end_match()
+	armed_base.end_match()
+
+
+# --- C4 / C6: attacks under the pre-filter (code review 2026-11-04, BAI-005 S4) ---------------
+
+func test_prefilter_never_drops_a_lethal_face_attack_or_the_best_move() -> void:
+	# Arrange — 32 candidates, cap 10; both face attacks are lethal
+	var fixture: Dictionary = BossAiBoard.read("prefilter_lethal_attack")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var picker: CandidateSet = _candidate_set(db, profile)
+	var scorer: Scorer = Scorer.new(db, BossAiBoard.keyword_values())
+	var base: RulesEngine = engine.clone()
+	var hero: int = int(engine.state().players[SIDE_PLAYER].hero.entity_id)
+	var legal: Array = base.legal_commands()
+	var face_attacks: Array = _of_type(legal, MatchRecords.CMD_ATTACK).filter(func(c: Dictionary) -> bool: return int(c.target_id) == hero)
+
+	# Act
+	var kept: Array = picker.collect(base, profile, profile.budgets)
+	var over_kept: Array = await scorer.score_all(base, kept, profile, Scorer.MODE_NORMAL, {}, ImmediatePlannerTask.new())
+	var over_all: Array = await scorer.score_all(base, legal, profile, Scorer.MODE_NORMAL, {}, ImmediatePlannerTask.new())
+
+	# Assert — the cap engaged, every lethal face attack survived it, and the
+	# best move over the kept set is the best over every legal command
+	assert_int(legal.size()).is_equal(int(fixture.expect.legal))
+	assert_int(kept.size()).is_equal(int(profile.budgets.max_evals_per_action))
+	assert_int(face_attacks.size()).is_equal(engine.state().players[SIDE_BOSS].board.size())
+	for attack: Dictionary in face_attacks:
+		assert_bool(kept.has(attack)).override_failure_message("lethal %s dropped" % str(attack)).is_true()
+	assert_dict(over_kept[0].command).is_equal(over_all[0].command)
+	assert_float(over_kept[0].score).is_equal(over_all[0].score)
+	base.end_match()
+
+
+func test_attack_op_value_adds_the_destroy_row_for_a_kill_and_ranks_lethal_first() -> void:
+	# Arrange — a 1-attack minion into a 1/1 (kills), into a 1/2 (does not), into the hero at 1
+	var fixture: Dictionary = BossAiBoard.read("prefilter_lethal_attack")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var op_values: Dictionary = BossAiBoard.stub_config().op_values
+	var picker: CandidateSet = _candidate_set(db, profile)
+	var base: RulesEngine = engine.clone()
+	var attacker: int = int(engine.state().players[SIDE_BOSS].board[0].entity_id)
+	var killable: int = BossAiBoard.ids_of(engine, SIDE_PLAYER, str(fixture.expect.killable))[0]
+	var survivor: int = BossAiBoard.ids_of(engine, SIDE_PLAYER, str(fixture.expect.survivor))[0]
+	var hero: int = int(engine.state().players[SIDE_PLAYER].hero.entity_id)
+
+	# Act
+	var kill: float = picker.op_value(MatchRecords.attack(SIDE_BOSS, attacker, killable), base)
+	var chip: float = picker.op_value(MatchRecords.attack(SIDE_BOSS, attacker, survivor), base)
+	var lethal: float = picker.op_value(MatchRecords.attack(SIDE_BOSS, attacker, hero), base)
+
+	# Assert — one damage op on one target; a kill adds the `destroy` row (the
+	# stub has none: the Edge Cases' unvalued 1.0); a lethal face attack ranks first
+	assert_float(chip).is_equal_approx(float(op_values.damage), 1e-9)
+	assert_float(kill).is_equal_approx(float(op_values.damage) + float(op_values.get("destroy", CandidateSet.OP_UNVALUED)), 1e-9)
+	assert_float(lethal).is_equal(CandidateSet.LETHAL_RANK)
+	base.end_match()
