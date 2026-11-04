@@ -126,8 +126,10 @@ func test_shipped_warnings_are_pool_size_and_pending_validators_only() -> void:
 	pool_files.sort()
 	pending_files.sort()
 	# content story 002 (MVP-1 War set): the War collectible pool is 25 + the
-	# neutrals ≥ min_collectible_pool 30, so `cards_war.json` no longer warns.
-	assert_array(pool_files).is_equal(["bundles.json", "treasures.json"])
+	# neutrals ≥ min_collectible_pool 30, so `cards_war.json` no longer warns;
+	# content story 005: the 10 MVP bundles ≥ min_bundle_pool 10, so
+	# `bundles.json` no longer warns either.
+	assert_array(pool_files).is_equal(["treasures.json"])
 	assert_array(pending_files).is_equal(_pending_files())
 
 
@@ -335,9 +337,12 @@ func test_bundles_are_the_three_cn4_rows_with_set_theme_and_no_token() -> void:
 	# Act
 	var pool: Array = db.bundle_pool("war")
 
-	# Assert
-	assert_array(_ids(pool)).is_equal(BUNDLES.keys())
+	# Assert — the batch-0 rows are still present; content story 005 adds the
+	# other seven MVP bundles (pinned by content_mvp1_data_test.gd)
+	assert_array(_ids(pool)).contains(BUNDLES.keys())
 	for b: Dictionary in pool:
+		if not BUNDLES.has(b["id"]):
+			continue
 		var row: Array = BUNDLES[b["id"]]
 		assert_str(b["set"]).is_equal(row[0])
 		assert_str(b["theme"]).is_equal(row[1])

@@ -349,9 +349,9 @@ func test_every_shipped_boss_ai_profile_resolves_with_zero_e_ai_rows() -> void:
 	for b: Dictionary in bosses:
 		rows.append_array(BossAI.validate_ai_profile(&"boss", b["id"], b["ai_profile"], db, configs))
 
-	# Assert
+	# Assert — 5 MVP bosses since content story 004 (Rot Warden, Hollow King)
 	assert_array(rows).is_empty()
-	assert_int(bosses.size()).is_equal(3)
+	assert_int(bosses.size()).is_equal(5)
 	for id: String in BAND1_EXTENDS:
 		assert_str(profiles["boss_overrides"][id]["extends"]).is_equal(BAND1_EXTENDS[id])
 		var archetype: Dictionary = profiles["profiles"][BAND1_EXTENDS[id]]
@@ -496,6 +496,372 @@ func test_band_1_boss_passives_and_new_cards_pass_validate_effects_with_zero_row
 	for c: Dictionary in db.cards_by_set("boss") + db.cards_by_set("neutral"):
 		rows.append_array(EffectValidator.validate_effects(&"card", c["id"], c["effects"], db, caps))
 
-	# Assert — zero E_FX_* and W_FX_* (the matriarch's board `tag` filter included)
+	# Assert — zero E_FX_* and W_FX_* (the matriarch's board `tag` filter included);
+	# 11 boss-set cards since content story 004 adds the band-2/3 four
 	assert_array(rows).is_empty()
-	assert_int(db.cards_by_set("boss").size()).is_equal(7)
+	assert_int(db.cards_by_set("boss").size()).is_equal(11)
+
+
+# --- story 005: the 10 MVP bundles (CN-4, AC-14, AC-15) ------------------------------------
+
+## CN-4 MVP rows: id → [name, set, theme, cards].
+const MVP_BUNDLES: Dictionary = {
+	"bundle_war_weapons_1": ["Whetted Steel", "war", "weapons", ["war_sharpen", "war_rusted_axe", "war_blade_apprentice"]],
+	"bundle_war_weapons_2": ["Armoury", "war", "weapons", ["war_blade_strike", "war_heavy_maul", "war_quartermaster"]],
+	"bundle_war_weapons_3": ["Kingsguard", "war", "weapons", ["war_duelists_edge", "war_twin_hatchets", "war_kingsblade"]],
+	"bundle_war_aggro_1": ["First Blood", "war", "aggro", ["war_cellar_raider", "war_warcry", "war_pit_brawler"]],
+	"bundle_war_aggro_2": ["The Pit", "war", "aggro", ["war_berserker", "war_rally", "war_pit_champion"]],
+	"bundle_war_aggro_3": ["Warband", "war", "aggro", ["war_warlord", "war_headsman", "war_cleave_through"]],
+	"bundle_war_armour_1": ["Shield Wall", "war", "armour", ["war_shield_squire", "war_iron_resolve", "war_iron_vanguard"]],
+	"bundle_war_armour_2": ["Bulwark", "war", "armour", ["war_armorer", "war_shieldwall_veteran", "war_shield_maiden"]],
+	"bundle_neutral_wall": ["Hold the Line", "neutral", "wall", ["neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_shield_golem"]],
+	"bundle_neutral_tempo": ["Quick March", "neutral", "tempo", ["neutral_tunnel_rat", "neutral_wolf_rider", "neutral_banner_captain"]],
+}
+## Heroes H-5 War plan tags (Reward Draft's pity rule wants ≥ 2 bundles each).
+const WAR_PLAN_TAGS: Array[String] = ["weapons", "aggro", "armour"]
+## CN-4 / AC-15: War's F2 band split, 3 early / 3 mid / 2 late.
+const WAR_BAND_SPLIT: Dictionary = {"early": 3, "mid": 3, "late": 2}
+## Reward Draft F5 at MVP: `B_min = 9` for any `W ≥ 2` (reward-draft.md F5).
+## Reward Draft has no config validator yet, so `bundle_pool_min` is not
+## registered; story 005 AC-3 checks against this GDD value (sprint-004
+## Goal Prerequisites, option (a)).
+const REWARD_DRAFT_MVP_BUNDLE_POOL_MIN: int = 9
+
+
+func _band(bundle: Dictionary, db: CardDatabase, curve: Dictionary) -> String:
+	var total: int = 0
+	for id: String in bundle["cards"]:
+		total += int(db.card(id)["cost"])
+	var avg: float = float(total) / Array(bundle["cards"]).size()
+	if avg <= float(curve["early_max"]):
+		return "early"
+	return "mid" if avg <= float(curve["mid_max"]) else "late"
+
+
+func test_bundles_json_is_the_ten_cn4_mvp_bundles_with_set_theme_and_pitch() -> void:
+	# Arrange
+	var expected: Array = MVP_BUNDLES.keys()
+	expected.sort()
+
+	# Act
+	var db: CardDatabase = _loaded()
+	var pool: Array = db.bundle_pool("war")
+
+	# Assert — CN-4 rows verbatim; 8 war + 2 neutral; cards share set and theme
+	assert_array(_ids(pool)).is_equal(expected)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "war").size()).is_equal(8)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "neutral").size()).is_equal(2)
+	for b: Dictionary in pool:
+		var row: Array = MVP_BUNDLES[b["id"]]
+		var id: String = b["id"]
+		assert_str(b["name"]).override_failure_message(id).is_equal(row[0])
+		assert_str(b["set"]).override_failure_message(id).is_equal(row[1])
+		assert_str(b["theme"]).override_failure_message(id).is_equal(row[2])
+		assert_array(Array(b["cards"])).override_failure_message(id).is_equal(row[3])
+		assert_that(b["unlock"]).override_failure_message(id).is_null()
+		assert_str(b["text"]["key"]).override_failure_message(id).is_equal("bundle.%s.text" % id)
+		var en: String = b["text"]["en"]
+		assert_bool(en.is_empty() or en.contains("\n")).override_failure_message(id).is_false()
+		for card_id: String in b["cards"]:
+			var card: Dictionary = db.card(card_id)
+			assert_str(card["set"]).override_failure_message(card_id).is_equal(b["set"])
+			assert_bool(Array(card["tags"]).has(b["theme"])).override_failure_message(card_id).is_true()
+			assert_bool(card.get("token", false)).override_failure_message(card_id).is_false()
+	for e: Dictionary in db.report().entries():
+		assert_bool(["E_COUNT", "E_TOKEN_IN_LIST", "E_TAG_MISMATCH"].has(String(e.code))).override_failure_message(str(e)).is_false()
+
+
+func test_mvp_bundles_cover_every_war_signature_and_plan_tag_with_a_3_3_2_band_split() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var curve: Dictionary = db.config("content_budgets")["curve"]
+	var war: Array = db.bundle_pool("war").filter(func(b: Dictionary) -> bool: return b["set"] == "war")
+
+	# Act
+	var bundled: Dictionary = {}
+	var per_theme: Dictionary = {}
+	var per_band: Dictionary = {}
+	for b: Dictionary in war:
+		for id: String in b["cards"]:
+			bundled[id] = true
+		per_theme[b["theme"]] = int(per_theme.get(b["theme"], 0)) + 1
+		var band: String = _band(b, db, curve)
+		per_band[band] = int(per_band.get(band, 0)) + 1
+
+	# Assert — AC-14 coverage and plan tags; AC-15 F2 band split (cut-offs from content_budgets)
+	for id: String in WAR_SIGNATURES:
+		assert_bool(bundled.has(id)).override_failure_message(id).is_true()
+	for tag: String in WAR_PLAN_TAGS:
+		assert_int(int(per_theme.get(tag, 0))).override_failure_message(tag).is_greater_equal(2)
+	assert_that(per_band).is_equal(WAR_BAND_SPLIT)
+
+
+func test_mvp_bundles_clear_the_f5_war_bundle_coverage_floor() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+
+	# Act
+	var rows: Array[Dictionary] = ContentValidator.run_checks(db, db.config("content_budgets"), db.config("heroes_balance"))
+
+	# Assert — 17 / 18 non-starter War cards bundled (war_throwing_axe is the
+	# Edge Cases Discover-only card), above coverage.bundle_coverage_min 0.90
+	for r: Dictionary in rows:
+		assert_str(String(r.field)).override_failure_message(str(r)).is_not_equal("coverage.bundle_coverage_min.war")
+
+
+func test_min_bundle_pool_meets_the_mvp_bundle_pool_min_and_the_war_pool_raises_no_pool_size() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var min_bundle_pool: int = int(db.config("card_database")["min_bundle_pool"])
+	# Reward Draft F5 `B_min = 3 + (F − 2) + 2 × min(F − 2, W)` over the shipped knobs
+	var floors: int = int(db.config("run_structure")["floors_per_run"])
+	var reoffer: int = int(db.config("reward_draft")["reoffer_after_floors"])
+	var b_min: int = 3 + (floors - 2) + 2 * mini(floors - 2, reoffer)
+
+	# Act
+	var pool_size: int = db.bundle_pool("war").size()
+
+	# Assert — AC-3 against the GDD value (bundle_pool_min is not registered yet)
+	assert_int(b_min).is_equal(REWARD_DRAFT_MVP_BUNDLE_POOL_MIN)
+	assert_int(min_bundle_pool).is_greater_equal(REWARD_DRAFT_MVP_BUNDLE_POOL_MIN)
+	assert_int(pool_size).is_equal(10)
+	assert_int(pool_size).is_greater_equal(min_bundle_pool)
+	for w: Dictionary in db.report().warnings():
+		assert_bool(String(w.code) == "W_POOL_SIZE" and String(w.file) == "bundles.json").override_failure_message(str(w)).is_false()
+
+
+# --- story 004: The Rot Warden (band 2), The Hollow King (band 3), decay_husk ---------------
+
+## CN-3 B2 Rot Warden MVP recipe: 2× 12 MVP neutrals led by `neutral_gravekeeper`
+## and `neutral_shield_golem`. The other 10 (story 004 Implementation Notes)
+## plus `neutral_crypt_brute`, which takes the deferred Gravekeeper's two slots
+## (content Edge Cases fallback: the boss cards are already at ×3).
+const ROT_WARDEN_NEUTRALS: Array[String] = [
+	"neutral_shield_golem", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard",
+	"neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_dungeon_delver", "neutral_hush_owl",
+	"neutral_spark_fiend", "neutral_banner_captain", "neutral_wolf_rider", "neutral_crypt_brute",
+]
+## CN-3 B2 Hollow King MVP-1 recipe's 11 neutrals less `neutral_gravekeeper`
+## (deferred); its two slots go to the boss cards at ×3 (Edge Cases fallback).
+const HOLLOW_KING_NEUTRALS: Array[String] = [
+	"neutral_shield_golem", "neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_crypt_brute",
+	"neutral_ogre_porter", "neutral_dungeon_delver", "neutral_cellar_guard", "neutral_banner_captain",
+	"neutral_hush_owl", "neutral_torch_imp",
+]
+## CN-3 B3: [id, T, cost, a, h, keywords, text].
+const BOSS_CARD_ROWS_B23: Array = [
+	["boss_rot_zombie", "M", 3, 2, 3, ["deathrattle"], "Deathrattle: Summon a 1/1 Husk."],
+	["boss_mass_rites", "S", 4, -1, -1, [], "Trigger the Deathrattles of all friendly minions."],
+	["boss_hollow_knight", "M", 4, 3, 4, ["divine_shield"], "Divine Shield."],
+	["boss_crown_of_thorns", "S", 3, -1, -1, [], "Give your minions +1/+1 and Taunt."],
+]
+const HUSK_TOKEN: String = "decay_husk"
+
+
+func test_bands_2_and_3_hold_the_rot_warden_and_the_hollow_king() -> void:
+	# Act
+	var db: CardDatabase = _loaded()
+
+	# Assert — CN-3 MVP: 3 / 1 / 1 bosses by band
+	assert_array(_ids(db.bosses_in_band(2))).is_equal(["boss_rot_warden"])
+	assert_array(_ids(db.bosses_in_band(3))).is_equal(["boss_hollow_king"])
+
+
+func test_rot_warden_is_the_cn3_b1_row() -> void:
+	# Act
+	var boss: Dictionary = _boss_or_empty(_loaded(), "boss_rot_warden")
+
+	# Assert
+	assert_bool(boss.is_empty()).is_false()
+	if boss.is_empty():
+		return
+	assert_str(boss["name"]).is_equal("The Rot Warden")
+	assert_int(int(boss["band"])).is_equal(2)
+	assert_int(int(boss["health"])).is_equal(40)
+	assert_that(boss["hero_power"]).is_null()
+	assert_that(boss["passive"]).is_equal({"trigger": "on_minion_died", "scope": {"who": "friendly_minion"},
+		"targets": "enemy_hero", "ops": [{"op": "damage", "amount": 1.0}]})
+	assert_str(boss["passive_text"]["key"]).is_equal("boss.boss_rot_warden.passive")
+	assert_str(boss["passive_text"]["en"]).is_equal("Whenever a boss minion dies, deal 1 damage to the enemy hero.")
+	assert_array(Array(boss["tags"])).is_equal(["deathrattle"])
+	assert_str(boss["ai_profile"]).is_equal("boss_rot_warden")
+	assert_str(boss["intro_text"]["key"]).is_equal("boss.boss_rot_warden.intro")
+	assert_str(boss["intro_text"]["en"]).contains("dies")
+
+
+func test_hollow_king_is_the_cn3_b1_row() -> void:
+	# Act
+	var boss: Dictionary = _boss_or_empty(_loaded(), "boss_hollow_king")
+
+	# Assert
+	assert_bool(boss.is_empty()).is_false()
+	if boss.is_empty():
+		return
+	assert_str(boss["name"]).is_equal("The Hollow King")
+	assert_int(int(boss["band"])).is_equal(3)
+	assert_int(int(boss["health"])).is_equal(50)
+	assert_that(boss["hero_power"]).is_null()
+	assert_that(boss["passive"]).is_equal({"trigger": "turn_start", "scope": {"side": "owner"},
+		"targets": "all_friendly_minions", "ops": [{"op": "buff", "attack": 1.0, "health": 1.0}]})
+	assert_str(boss["passive_text"]["key"]).is_equal("boss.boss_hollow_king.passive")
+	assert_str(boss["passive_text"]["en"]).is_equal("At the start of the boss's turn, give the boss's minions +1/+1.")
+	assert_array(Array(boss["tags"])).is_equal(["wall"])
+	assert_str(boss["ai_profile"]).is_equal("boss_hollow_king")
+	assert_str(boss["intro_text"]["key"]).is_equal("boss.boss_hollow_king.intro")
+	assert_str(boss["intro_text"]["en"]).contains("+1/+1")
+
+
+func test_rot_warden_and_hollow_king_profiles_resolve_through_their_overrides_with_zero_e_ai_rows() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var profiles: Dictionary = db.config("ai_profiles")
+	var rot: Dictionary = _boss_or_empty(db, "boss_rot_warden")
+	var hollow: Dictionary = _boss_or_empty(db, "boss_hollow_king")
+	assert_bool(rot.is_empty() or hollow.is_empty()).is_false()
+	if rot.is_empty() or hollow.is_empty():
+		return
+
+	# Act — stage 7b as Boot registers it, and the F9 resolution
+	var rows: Array = BossAI.validate_ai_profile(&"boss", rot["id"], rot["ai_profile"], db, {"ai_profiles": profiles})
+	rows.append_array(BossAI.validate_ai_profile(&"boss", hollow["id"], hollow["ai_profile"], db, {"ai_profiles": profiles}))
+	var rot_profile: Dictionary = ProfileResolver.resolve(profiles, rot, 2)
+	var hollow_profile: Dictionary = ProfileResolver.resolve(profiles, hollow, 3)
+
+	# Assert — zero E_AI_* directly and through the load; B1 override column
+	assert_array(rows).is_empty()
+	for e: Dictionary in db.report().entries():
+		assert_bool(String(e.code).begins_with("E_AI_")).override_failure_message(str(e)).is_false()
+	assert_str(profiles["boss_overrides"]["boss_rot_warden"]["extends"]).is_equal("passive_driven")
+	assert_str(profiles["boss_overrides"]["boss_hollow_king"]["extends"]).is_equal("control")
+	assert_float(float(rot_profile.weights.w_self)).is_equal(1.5)
+	assert_array(Array(rot_profile.synergy_tags)).is_equal(["deathrattle"])
+	assert_float(float(hollow_profile.weights.w_board)).is_equal(3.0)
+	assert_str(String(rot_profile.get("intent_mode", "full"))).is_not_equal("hidden")
+	assert_str(String(hollow_profile.get("intent_mode", "full"))).is_not_equal("hidden")
+
+
+func test_rot_warden_deck_is_its_mvp_recipe_with_the_gravekeeper_slots_on_crypt_brute() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var deck: Array = _boss_or_empty(db, "boss_rot_warden").get("deck", [])
+
+	# Act
+	var counts: Dictionary = _deck_counts(deck)
+
+	# Assert — CN-3 B2 MVP recipe: rot_zombie ×3, mass_rites ×3, 12 neutrals ×2
+	assert_int(deck.size()).is_equal(30)
+	assert_int(int(counts.get("boss_rot_zombie", 0))).is_equal(3)
+	assert_int(int(counts.get("boss_mass_rites", 0))).is_equal(3)
+	for id: String in ROT_WARDEN_NEUTRALS:
+		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
+	assert_int(counts.size()).is_equal(14)
+	for id: String in counts:
+		var card: Dictionary = _card_or_empty(db, id)
+		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
+
+
+func test_hollow_king_deck_is_its_mvp1_recipe_with_the_gravekeeper_slots_on_its_boss_cards() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var deck: Array = _boss_or_empty(db, "boss_hollow_king").get("deck", [])
+
+	# Act
+	var counts: Dictionary = _deck_counts(deck)
+
+	# Assert — CN-3 B2 MVP-1 recipe; Edge Cases fallback: boss cards up to ×3
+	assert_int(deck.size()).is_equal(30)
+	assert_int(int(counts.get("boss_hollow_knight", 0))).is_equal(3)
+	assert_int(int(counts.get("boss_crown_of_thorns", 0))).is_equal(3)
+	assert_int(int(counts.get("war_shield_maiden", 0))).is_equal(2)
+	assert_int(int(counts.get("war_shieldwall_veteran", 0))).is_equal(2)
+	for id: String in HOLLOW_KING_NEUTRALS:
+		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
+	assert_int(counts.size()).is_equal(14)
+	for id: String in counts:
+		var card: Dictionary = _card_or_empty(db, id)
+		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
+
+
+func test_the_four_band_2_and_3_boss_cards_match_cn3_b3() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+
+	# Act / Assert
+	for row: Array in BOSS_CARD_ROWS_B23:
+		var card: Dictionary = _card_or_empty(db, row[0])
+		assert_bool(card.is_empty()).override_failure_message("%s missing" % row[0]).is_false()
+		if card.is_empty():
+			continue
+		assert_str(card["set"]).is_equal("boss")
+		assert_str(card["rarity"]).is_equal("common")
+		assert_str(card["type"]).override_failure_message(row[0]).is_equal(TYPE[row[1]])
+		assert_int(int(card["cost"])).override_failure_message(row[0]).is_equal(row[2])
+		if row[1] == "M":
+			assert_int(int(card["attack"])).override_failure_message(row[0]).is_equal(row[3])
+			assert_int(int(card["health"])).override_failure_message(row[0]).is_equal(row[4])
+		assert_array(Array(card["keywords"])).override_failure_message(row[0]).is_equal(row[5])
+		assert_str(card["text"]["en"]).override_failure_message(row[0]).is_equal(row[6])
+		assert_str(card["text"]["key"]).is_equal("card.%s.text" % row[0])
+		assert_bool(card.get("token", false)).is_false()
+	var rites: Dictionary = _card_or_empty(db, "boss_mass_rites")
+	if not rites.is_empty():
+		assert_that(rites["effects"]).is_equal([{"trigger": "cast", "targets": "all_friendly_minions",
+			"ops": [{"op": "retrigger", "trigger": "deathrattle"}]}])
+	var crown: Dictionary = _card_or_empty(db, "boss_crown_of_thorns")
+	if not crown.is_empty():
+		assert_that(crown["effects"]).is_equal([{"trigger": "cast", "targets": "all_friendly_minions",
+			"ops": [{"op": "buff", "attack": 1.0, "health": 1.0}, {"op": "give_keyword", "keyword": "taunt"}]}])
+
+
+func test_decay_husk_is_the_one_decay_record_a_1_1_token_summoned_by_rot_zombie_and_never_listed() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var husk: Dictionary = _card_or_empty(db, HUSK_TOKEN)
+	var zombie: Dictionary = _card_or_empty(db, "boss_rot_zombie")
+
+	# Assert — CN-2 tokens line; CN-6 MVP-1 one-record cards_decay.json; AC-16
+	assert_array(_ids(db.cards_by_set("decay"))).is_equal([HUSK_TOKEN])
+	assert_bool(husk.is_empty() or zombie.is_empty()).is_false()
+	if husk.is_empty() or zombie.is_empty():
+		return
+	assert_str(husk["name"]).is_equal("Husk")
+	assert_str(husk["type"]).is_equal("minion")
+	assert_int(int(husk["cost"])).is_equal(1)
+	assert_int(int(husk["attack"])).is_equal(1)
+	assert_int(int(husk["health"])).is_equal(1)
+	assert_array(Array(husk["tags"])).is_equal(["husk"])
+	assert_bool(husk["token"]).is_true()
+	assert_that(zombie["effects"]).is_equal([{"trigger": "deathrattle",
+		"ops": [{"op": "summon", "card_id": HUSK_TOKEN, "count": 1.0, "position": "source_slot"}]}])
+	for b: Dictionary in _all_bosses(db):
+		assert_array(Array(b["deck"])).override_failure_message(b["id"]).not_contains([HUSK_TOKEN])
+	assert_array(_ids(db.collectible_pool("war"))).not_contains([HUSK_TOKEN])
+	for bundle: Dictionary in db.bundle_pool("war"):
+		assert_array(Array(bundle["cards"])).not_contains([HUSK_TOKEN])
+	# a hero set present with no HeroDef: stage 8 computes pools per heroes.json set only
+	for e: Dictionary in db.report().entries():
+		var on_decay: bool = String(e.file) == "cards_decay.json" or String(e.message).contains("decay")
+		assert_bool(on_decay and ["E_COUNT", "W_POOL_SIZE"].has(String(e.code))).override_failure_message(str(e)).is_false()
+
+
+func test_band_2_and_3_passives_and_new_cards_pass_validate_effects_with_zero_rows() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var caps: Dictionary = db.config("card_effects")
+	var rows: Array = []
+
+	# Act — both passives (on_minion_died on a passive host is a C9 observer),
+	# the boss set and the decay set
+	for id: String in ["boss_rot_warden", "boss_hollow_king"]:
+		var boss: Dictionary = _boss_or_empty(db, id)
+		if boss.is_empty():
+			rows.append({"missing": id})
+		else:
+			rows.append_array(EffectValidator.validate_effects(&"boss", id, [boss["passive"]], db, caps))
+	for c: Dictionary in db.cards_by_set("boss") + db.cards_by_set("decay"):
+		rows.append_array(EffectValidator.validate_effects(&"card", c["id"], c["effects"], db, caps))
+
+	# Assert — zero E_FX_* and W_FX_*; the load stays Ready with zero errors
+	assert_array(rows).is_empty()
+	assert_int(db.state()).is_equal(CardDatabase.State.READY)
+	assert_array(db.report().errors()).is_empty()
