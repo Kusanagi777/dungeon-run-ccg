@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_neutral_fx_a",
+      "name": "Test Bundle",
+      "set": "neutral",
+      "theme": "fixture",
+      "cards": [
+        "neutral_fx_infra_1",
+        "neutral_fx_infra_2",
+        "neutral_fx_infra_3"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fx_a.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_fx_b",
+      "name": "Test Bundle",
+      "set": "neutral",
+      "theme": "fixture",
+      "cards": [
+        "neutral_fx_infra_1",
+        "neutral_fx_infra_2",
+        "neutral_fx_infra_3"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fx_b.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "bundle_neutral_fx_c",
+      "name": "Test Bundle",
+      "set": "neutral",
+      "theme": "fixture",
+      "cards": [
+        "neutral_fx_infra_1",
+        "neutral_fx_infra_2",
+        "neutral_fx_infra_3"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_fx_c.text",
+        "en": ""
+      }
+    }
+  ]
+}

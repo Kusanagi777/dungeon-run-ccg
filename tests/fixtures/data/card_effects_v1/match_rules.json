@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "config": {
+    "board_size": 7,
+    "hand_size": 10,
+    "starting_hand_player": 3,
+    "starting_hand_boss": 4,
+    "max_mana": 10,
+    "hero_power_cost": 2,
+    "mulligan_rounds": 1,
+    "turn_cap": 100,
+    "resolution_step_cap": 1000,
+    "max_attacks_cap": 4,
+    "max_attacks_windfury": 2,
+    "starting_health_player": 30,
+    "fatigue_base": 1,
+    "fatigue_step": 1
+  }
+}

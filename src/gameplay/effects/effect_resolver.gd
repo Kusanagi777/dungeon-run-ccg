@@ -50,6 +50,19 @@ const MEMO_TARGETING: String = "targeting_spec"
 ## sends the memo to `hero_power(id)` instead of `card(id)` — a lookup of the
 ## wrong type logs an error and asserts in a debug build.
 const HERO_POWER_RECORD: String = "HeroPowerDef"
+## Engine play point → the DSL play trigger bound to it (card-effects C2).
+const PLAY_TRIGGERS: Dictionary[StringName, String] = {
+	&"battlecry": "battlecry",
+	&"on_cast": "cast",
+	&"hero_power": "hero_power",
+}
+## The resolver's own event, one per effect pass (card-effects C6.6).
+const EVENT_EFFECT_RESOLVED: StringName = &"effect_resolved"
+## `effect_resolved.host_kind` values (card-effects Interactions).
+const HOST_KIND_CARD: String = "card"
+const HOST_KIND_HERO_POWER: String = "hero_power"
+## `effect_resolved.fizzled` for a false `condition` (C1).
+const FIZZLED_CONDITION_FALSE: String = "condition_false"
 
 var _db: CardDatabase
 var _config: Dictionary
@@ -59,6 +72,8 @@ var _engine: RulesEngine = null
 ## — derived from the definition, filled on first use (story 002's memo;
 ## story 004 adds the record and the memoised targeting spec).
 var _memo: Dictionary[String, Dictionary] = {}
+## The C5 op dispatch table (stateless; story 006).
+var _ops: EffectOps = EffectOps.new()
 
 
 ## Keeps [param db] (the frozen `CardDatabase`; lookups by `card(def_id)`)
@@ -177,11 +192,22 @@ func legal_targets(def_id: String, source: Dictionary) -> Array[int]:
 ## the triggers this pass queues, which the engine appends to Q (ADR-0007 Key
 ## Interfaces, erratum 2026-11-03). The engine raises points from setup on
 ## (`on_draw` while dealing starting hands), so a bound resolver must answer.
-## Story 006 runs the first real pass; until then no card responds and
-## nothing is queued.
+##
+## **Play points** (`battlecry`, `on_cast`, `hero_power` — card-effects C2
+## play class, C6.2): the single candidate is the host `ctx.source`
+## (`ctx {side, candidates: [source], source, target_id, card_id}`, match-rules
+## C6 step 3a / C7). Its definition `ctx.card_id`'s effects whose trigger binds
+## to the point run **now**, in `effects[]` order, each as one pass
+## ([method _run_pass]); a play point queues nothing. A Battlecry whose
+## `required` `chosen` has no legal target never reaches here: the engine does
+## not raise it (`RulesEngine._play_plan` `fizzles`; card-effects AC-08).
+## TODO(story 008): event points (observers, queueing, `ctx.queued` passes);
+## until then they queue nothing.
 ## Example: `var queued: Array[Dictionary] = resolver.resolve(&"on_draw", ctx)`.
-func resolve(_trigger_point: StringName, _ctx: Dictionary) -> Array[Dictionary]:
+func resolve(trigger_point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 	var queued: Array[Dictionary] = []
+	if PLAY_TRIGGERS.has(trigger_point) and not bool(ctx.get(RulesEngine.CTX_QUEUED, false)):
+		_run_play_point(PLAY_TRIGGERS[trigger_point], ctx)
 	return queued
 
 
@@ -203,6 +229,94 @@ func apply_value_hook(_entry: Dictionary, _side: StringName, value: int, _ctx: D
 ## the entry's effect as one pass; until then it does nothing.
 func run_hook_effect(_entry: Dictionary, _side: StringName, _ctx: Dictionary) -> void:
 	pass
+
+
+## Runs every effect of the host `ctx.card_id` whose trigger is
+## [param trigger] now, in `effects[]` order (C1 rule 3, C6.2).
+func _run_play_point(trigger: String, ctx: Dictionary) -> void:
+	assert(_engine != null, "EffectResolver.resolve: not bound to an engine")
+	var host_id: String = str(ctx.card_id)
+	var power_prefix: String = str(RecordSchemas.SCHEMAS[HERO_POWER_RECORD].prefix)
+	var host_kind: String = HOST_KIND_HERO_POWER if host_id.begins_with(power_prefix) else HOST_KIND_CARD
+	var effects: Array = effects_of(host_id)
+	for index: int in effects.size():
+		var effect: Dictionary = effects[index]
+		if str(effect.get("trigger", "")) != trigger:
+			continue
+		_run_pass(effect, {
+			"effect_id": str(effect.get("id", "%s.%d" % [host_id, index])),
+			"host_id": host_id,
+			"host_kind": host_kind,
+			"source_id": int(ctx.source),
+			"owner": str(ctx.side),
+			"trigger": trigger,
+			"target_id": ctx.get("target_id"),
+		})
+
+
+## One effect pass — one C10 step (card-effects C6.0, C6.4; ADR-0007
+## Decision 1): `condition` once (false → `fizzled: condition_false`, every op
+## `skipped`, nothing called) → each op in order through [EffectOps] (its
+## selector against the live board, the primitive per target, its `ops[]`
+## entry; an op with no target never stops the next) → exactly one
+## `effect_resolved` through `engine.emit`, under the engine's current
+## `cause_seq` (the command's `card_played` / `spell_cast` /
+## `hero_power_used` for a play trigger, C6.6). Never runs the death check or
+## `recompute_auras()`: the engine's C10 loop does, after the pass, so a minion
+## an op destroys is still in play — dying — for the ops after it.
+## `depth` is 0: a play effect is the command's own (TODO(story 008): the
+## `cause_seq` chain length for queued passes).
+func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
+	run_ctx["effect"] = effect
+	var fizzled: Variant = null
+	var ops: Array[Dictionary] = []
+	if _condition_holds(effect.get("condition"), run_ctx):
+		for op: Dictionary in effect.get("ops", []):
+			ops.append(_ops.run(_engine, op, run_ctx))
+	else:
+		fizzled = FIZZLED_CONDITION_FALSE
+		for op: Dictionary in effect.get("ops", []):
+			var none: Array[int] = []
+			ops.append(EffectOps.entry(str(op.get("op", "")), none, {}, EffectOps.SKIPPED))
+	@warning_ignore("return_value_discarded")
+	_engine.emit(EVENT_EFFECT_RESOLVED, {
+		"effect_id": run_ctx.effect_id,
+		"host_id": run_ctx.host_id,
+		"host_kind": run_ctx.host_kind,
+		"source_id": run_ctx.source_id,
+		"owner": run_ctx.owner,
+		"trigger": run_ctx.trigger,
+		"depth": 0,
+		"fizzled": fizzled,
+		"ops": ops,
+	})
+
+
+## C4 condition, evaluated once when the pass starts (C1). Absent or `{}` is
+## true; `all` / `any` / `not` combine; `is_owner_turn` compares the engine's
+## active side with the owner.
+## TODO(story 007): `cmp`, `exists`, `test`, `holding` — until then they are
+## false, so such an effect fizzles rather than running on an unchecked
+## condition.
+func _condition_holds(condition: Variant, run_ctx: Dictionary) -> bool:
+	if not condition is Dictionary or (condition as Dictionary).is_empty():
+		return true
+	var c: Dictionary = condition
+	if c.has("all"):
+		for part: Variant in c.all:
+			if not _condition_holds(part, run_ctx):
+				return false
+		return true
+	if c.has("any"):
+		for part: Variant in c.any:
+			if _condition_holds(part, run_ctx):
+				return true
+		return false
+	if c.has("not"):
+		return not _condition_holds(c.get("not"), run_ctx)
+	if c.has("is_owner_turn"):
+		return (String(_engine.active_side()) == str(run_ctx.owner)) == bool(c.is_owner_turn)
+	return false
 
 
 ## The memo entry of [param def_id], built on first use. `has()` before the

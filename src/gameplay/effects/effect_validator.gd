@@ -1151,11 +1151,18 @@ static func _cap(caps: Dictionary, name: String) -> Variant:
 	return caps.get(name)
 
 
+## One report entry. The message also names the effect (`… (effect
+## `<effect_id>`)`) when there is one: Card Database's stage-7b merge keeps
+## `code`, `host_id`, `message` and `path` but has no `effect_id` field
+## (story 005, AC-2), so the merged `E_DELEGATED` entry carries it there.
 static func _add(ctx: Dictionary, code: StringName, path: String, message: String) -> void:
+	var text: String = message
+	if ctx.effect_id != null:
+		text += " (effect `%s`)" % ctx.effect_id
 	(ctx.report as Array).append({
 		"code": code,
 		"host_id": ctx.host_id,
 		"effect_id": ctx.effect_id,
 		"path": path,
-		"message": message,
+		"message": text,
 	})

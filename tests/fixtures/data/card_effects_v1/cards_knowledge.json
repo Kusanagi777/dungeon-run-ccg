@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "knowledge_fx_row_17_apprentice",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "spell_damage": 1,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_17_apprentice.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_17_apprentice"
+    },
+    {
+      "id": "knowledge_fx_row_18_bolt",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_18_bolt.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_18_bolt"
+    },
+    {
+      "id": "knowledge_fx_row_19_storm",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_characters",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_19_storm.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_19_storm"
+    },
+    {
+      "id": "knowledge_fx_row_20_study",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "discover"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_20_study.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_20_study"
+    },
+    {
+      "id": "knowledge_fx_row_21_scribe",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "on_card_played",
+          "scope": {
+            "by": "owner",
+            "card": {
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_21_scribe.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_21_scribe"
+    },
+    {
+      "id": "knowledge_fx_row_22_hoarder",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.hand_size"
+              },
+              ">=",
+              5
+            ]
+          },
+          "targets": {
+            "selector": "random_enemy_character"
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3,
+              "spell_damage": false
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_22_hoarder.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_22_hoarder"
+    },
+    {
+      "id": "knowledge_fx_row_23_deep_freeze",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "freeze"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "test": [
+                  "target",
+                  {
+                    "is_frozen": true
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "op": "destroy"
+                }
+              ],
+              "else": [
+                {
+                  "op": "freeze"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_23_deep_freeze.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_23_deep_freeze"
+    },
+    {
+      "id": "knowledge_fx_row_24_archivist",
+      "name": "Test Card",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "aura"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "aura",
+          "scope": {
+            "zone": "hand"
+          },
+          "targets": {
+            "selector": "hand",
+            "filter": {
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "cost": -1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_fx_row_24_archivist.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/knowledge_fx_row_24_archivist"
+    }
+  ]
+}

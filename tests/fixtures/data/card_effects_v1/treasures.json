@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_fx_row_38_iron_hide",
+      "name": "Test Treasure",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 10
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_fx_row_38_iron_hide.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_fx_row_38_iron_hide"
+    },
+    {
+      "id": "treasure_fx_row_39_free_power",
+      "name": "Test Treasure",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_cost",
+          "scope": {
+            "card": {
+              "side": "friendly",
+              "kind": "hero_power"
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "set": 0
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_fx_row_39_free_power.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_fx_row_39_free_power"
+    },
+    {
+      "id": "treasure_fx_row_40_spell_focus",
+      "name": "Test Treasure",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_damage",
+          "scope": {
+            "source": {
+              "side": "friendly",
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "delta": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_fx_row_40_spell_focus.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_fx_row_40_spell_focus"
+    },
+    {
+      "id": "treasure_fx_row_41_quick_draw",
+      "name": "Test Treasure",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_draw",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": "trigger_subject",
+          "ops": [
+            {
+              "op": "buff",
+              "cost": -1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_fx_row_41_quick_draw.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_fx_row_41_quick_draw"
+    },
+    {
+      "id": "treasure_fx_row_42_rush_banner",
+      "name": "Test Treasure",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "aura",
+              "keywords": [
+                "rush"
+              ]
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_fx_row_42_rush_banner.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_fx_row_42_rush_banner"
+    },
+    {
+      "id": "treasure_fx_row_43_twin_strikes",
+      "name": "Test Treasure",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "modify_max_attacks",
+          "scope": {
+            "who": "owner_hero"
+          },
+          "ops": [
+            {
+              "op": "modify_value",
+              "set": 2
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_fx_row_43_twin_strikes.text",
+        "en": ""
+      },
+      "art": "treasures/treasure_fx_row_43_twin_strikes"
+    }
+  ]
+}

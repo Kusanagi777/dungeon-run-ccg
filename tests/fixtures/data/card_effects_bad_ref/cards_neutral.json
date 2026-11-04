@@ -1,0 +1,447 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_fx_bad_ref",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "nope"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_fx_bad_ref.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_fx_bad_ref"
+    },
+    {
+      "id": "neutral_fx_infra_1",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [
+        "fixture"
+      ],
+      "text": {
+        "key": "card.neutral_fx_infra_1.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_fx_infra_1"
+    },
+    {
+      "id": "neutral_fx_infra_2",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [
+        "fixture"
+      ],
+      "text": {
+        "key": "card.neutral_fx_infra_2.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_fx_infra_2"
+    },
+    {
+      "id": "neutral_fx_infra_3",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [
+        "fixture"
+      ],
+      "text": {
+        "key": "card.neutral_fx_infra_3.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_fx_infra_3"
+    },
+    {
+      "id": "neutral_test_bolt",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "scope": {},
+          "condition": {},
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ],
+          "once_per_turn": false,
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          }
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_bolt.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_bolt"
+    },
+    {
+      "id": "neutral_test_charge",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_charge.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_charge"
+    },
+    {
+      "id": "neutral_test_divine_shield",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_divine_shield.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_divine_shield"
+    },
+    {
+      "id": "neutral_test_draw_two",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "scope": {},
+          "condition": {},
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ],
+          "once_per_turn": false
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_draw_two.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_draw_two"
+    },
+    {
+      "id": "neutral_test_lifesteal",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_lifesteal.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_lifesteal"
+    },
+    {
+      "id": "neutral_test_poisonous",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_poisonous.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_poisonous"
+    },
+    {
+      "id": "neutral_test_rush",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_rush.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_rush"
+    },
+    {
+      "id": "neutral_test_stealth",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_stealth.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_stealth"
+    },
+    {
+      "id": "neutral_test_taunt",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_taunt.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_taunt"
+    },
+    {
+      "id": "neutral_test_vanilla_1_1",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_vanilla_1_1.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_vanilla_1_1"
+    },
+    {
+      "id": "neutral_test_vanilla_2_2",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_vanilla_2_2.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_vanilla_2_2"
+    },
+    {
+      "id": "neutral_test_vanilla_2_5",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_vanilla_2_5.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_vanilla_2_5"
+    },
+    {
+      "id": "neutral_test_vanilla_3_4",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_vanilla_3_4.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_vanilla_3_4"
+    },
+    {
+      "id": "neutral_test_weapon_2_2",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_weapon_2_2.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_weapon_2_2"
+    },
+    {
+      "id": "neutral_test_windfury",
+      "name": "Test Card",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "windfury"
+      ],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_test_windfury.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/neutral_test_windfury"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_fx_row_35_mending_warden",
+      "name": "Test Boss",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_fx_row_44_brand",
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": "owner_hero",
+        "ops": [
+          {
+            "op": "heal",
+            "amount": 5
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_fx_row_35_mending_warden.passive",
+        "en": ""
+      },
+      "deck": [
+        "boss_fx_grave_rat",
+        "neutral_test_vanilla_1_1"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_fx_row_35_mending_warden.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_fx_row_35_mending_warden"
+    },
+    {
+      "id": "boss_fx_row_36_toll_keeper",
+      "name": "Test Boss",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_fx_row_44_brand",
+      "passive": {
+        "trigger": "modify_cost",
+        "scope": {
+          "card": {
+            "side": "enemy",
+            "type": "minion"
+          }
+        },
+        "ops": [
+          {
+            "op": "modify_value",
+            "delta": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_fx_row_36_toll_keeper.passive",
+        "en": ""
+      },
+      "deck": [
+        "boss_fx_grave_rat",
+        "neutral_test_vanilla_1_1"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_fx_row_36_toll_keeper.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_fx_row_36_toll_keeper"
+    },
+    {
+      "id": "boss_fx_row_37_blood_priest",
+      "name": "Test Boss",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_fx_row_44_brand",
+      "passive": {
+        "trigger": "on_heal",
+        "scope": {
+          "who": "enemy",
+          "min_amount": 1
+        },
+        "targets": "enemy_hero",
+        "ops": [
+          {
+            "op": "damage",
+            "amount": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_fx_row_37_blood_priest.passive",
+        "en": ""
+      },
+      "deck": [
+        "boss_fx_grave_rat",
+        "neutral_test_vanilla_1_1"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_fx_row_37_blood_priest.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_fx_row_37_blood_priest"
+    }
+  ]
+}

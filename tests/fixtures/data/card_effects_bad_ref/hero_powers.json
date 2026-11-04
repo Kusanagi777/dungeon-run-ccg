@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "power_fx_plain",
+      "name": "Test Power",
+      "cost": 2,
+      "effects": [],
+      "text": {
+        "key": "power.power_fx_plain.text",
+        "en": ""
+      },
+      "art": "powers/power_fx_plain"
+    }
+  ]
+}

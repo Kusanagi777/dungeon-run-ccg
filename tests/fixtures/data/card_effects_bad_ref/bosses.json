@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_fx_plain",
+      "name": "Test Boss",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_fx_plain",
+      "passive": null,
+      "deck": [
+        "boss_fx_grave_rat",
+        "neutral_test_vanilla_1_1"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_fx_plain.intro",
+        "en": ""
+      }
+    }
+  ]
+}
