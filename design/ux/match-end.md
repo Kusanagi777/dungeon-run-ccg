@@ -2,7 +2,7 @@
 
 > Authoring guidance: .claude/docs/templates/guidance/ux-spec-guide.md (load per-section as you author — do not read entirely).
 
-> **Status**: In Design
+> **Status**: Approved (`/ux-review` round 3, 2026-11-04)
 > **Author**: Jacob + ux-designer (`/ux-design match-end` followed by hand — the skill is not model-invocable; automation `guided` under the owner's standing approval, workflow `standard`, density `balanced` from `rigor: standard`; no `AskUserQuestion` used — the recommended option was taken at every decision point and is listed in §15; no Agent tool — `art-director` / `ui-programmer` / `narrative-director` not spawned)
 > **Last Updated**: 2026-11-04 (revision 1 after `/ux-review` round 1. Blocking: B1 the input lock and the overlay close now start when the queue reaches the `match_ended` step, not when `match_ended` is received, so pause stays reachable through a lethal boss turn; B2 a banner stack rule with positions at 100 / 125 / 150 % for every variant. Advisories: A1 b–d applied and a routed; A2 turn-0 facts line; A4 wireframe; A5 resolution criterion; A3 stays routed)
 > **Journey Phase(s)**: The close of every match (game-concept Core Loop "One match (3–6 minutes)") and the hinge into the next run step — a draft (floors 1–7 won), the run summary (a loss, or floor 8 won) or the same boss again after a rules fault ("Attempt 2"). View state `Ended` (match-ui States); engine phase `Ended` (match-rules States). `design/player-journey.md` does not exist — see §15.
