@@ -35,6 +35,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   ADR-0001 and ADR-0002 were Accepted first.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 - **Erratum 2026-11-03 (DSL spike)** (`docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED; findings 3 and 9): (a) `resolve()` **returns the triggers it queues** — plain-data queue entries carrying the C6.5 raise-time snapshot — instead of `void`; the engine appends them to Q, so the queue stays engine-owned (Decision 1, Alternative 1 unchanged) and match-rules Interactions' `resolve(trigger_point, context) → steps` now agrees. Key Interfaces updated. (b) Gate G7 (Decision 9) gains the subscript forms `x["field"] = …`, `x["field"] += …` and `(x["enchantments"] as Array).append(…)` for the same field lists: the spike's stub engine held 7 such writes and the old pattern saw none of them. Two of the 7 (`pending_destroy`, a whole `enchantments` reassignment) are outside G7's field list in either form; typed state classes remain the stronger fix. No decision changes; status stays Accepted.
+- **Erratum (2026-11-04, sprint 4: card-effects 010, MR-016)**: (a) `EffectResolver._init(db, effects_config, player_hero_set = "")` takes an optional third argument, the run hero's set, which card-effects F4 `base(collectible)` needs and `MatchState` does not carry; composition (ADR-0008) passes it, Decision 3's `clone()` passes the live resolver's `player_hero_set()` to the clone's resolver, and without it `pool: collectible` logs an error and offers nothing. Key Interfaces updated. (b) `choice_made` is logged under the paused pass's `cause_seq` (the same `cause_seq` as its `choice_requested` / `discover_offered` / `discover_picked`), not cause 0. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -254,7 +255,7 @@ nothing at runtime.**
 ```gdscript
 # src/gameplay/effects/effect_resolver.gd — card-effects C1, C5–C10 (architecture.md §Core — Card Effects)
 class_name EffectResolver extends RefCounted
-func _init(db: CardDatabase, effects_config: Dictionary) -> void
+func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String = "") -> void   # (2026-11-04, sprint 4: card-effects 010) run hero set for Discover F4
 func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void   # at RulesEngine.start, before on_match_start
 func unbind() -> void                                                      # at match_ended; breaks the engine↔resolver cycle
 func resolve(trigger_point: StringName, ctx: Dictionary) -> Array[Dictionary]  # ctx: {candidates: Array[int], subject, source, amount, side, ...}; returns the triggers it queues (plain data with the C6.5 snapshot), which the engine appends to Q (erratum 2026-11-03)
