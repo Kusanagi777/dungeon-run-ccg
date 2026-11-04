@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bosses.schema.json",
+  "title": "bosses.json — BossDef records (card-database CR-3)",
+  "description": "Agrees with the loader (src/core/data/record_schemas.gd), never replaces it (ADR-0002 Decision 9). tests/integration/content/content_validate_process_test.gd compares required/properties with RecordSchemas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "band",
+          "health",
+          "hero_power",
+          "passive",
+          "deck",
+          "ai_profile",
+          "tags",
+          "intro_text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,47}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "band": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "health": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "hero_power": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "passive": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "passive_text": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "en"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
+          "deck": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{2,47}$"
+            },
+            "minItems": 1
+          },
+          "ai_profile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            }
+          },
+          "intro_text": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "en"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
+          "art": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

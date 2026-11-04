@@ -75,6 +75,16 @@ Pending (Boot's `PENDING_CONFIG_OWNERS` / `PENDING_RECORD_OWNERS`; each emits on
 
 **Result**: PASS (Config/Data, ADVISORY at story level) — `Ready`, 0 errors.
 
+### Content validate command on the shipped data (content story 007; QA plan Smoke item 7)
+
+`godot --headless --path . -s res://tools/content/validate.gd` (editor binary, debug) → **exit 0**. It printed the same 13 report lines as above, then:
+
+```
+validate: Ready — 0 errors, 13 warnings, 30 records; load ms 11.84 (data_load_budget_ms 200) — root res://assets/data/
+```
+
+Release behaviour (not run as a binary; pinned in process by `test_release_map_makes_pending_validators_errors_and_exits_1`): with Boot's release-severity map every pending owner's row is an error, so the same data exits **1**. With the orchestrator's `configs["content_budgets"] = ContentValidator.validate_config` line applied (trialled on the lane and reverted, since `boot.gd` is orchestrator-owned) the shipped `content_budgets.json` passes and the debug report drops to 12 warnings.
+
 ### Run result (same tree)
 
 - `godot --headless --path . --import`: exit 0.

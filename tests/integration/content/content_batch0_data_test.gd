@@ -47,14 +47,20 @@ const BUNDLES: Dictionary = {
 	"bundle_neutral_wall": ["neutral", "wall", ["neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_shield_golem"]],
 	"bundle_war_armour_1": ["war", "armour", ["war_shield_squire", "war_iron_resolve", "war_iron_vanguard"]],
 }
-## The config files Boot still registers a pending validator for, plus the
-## pending record kind the batch exercises (no treasures ship, so `treasure`
-## never runs).
-## Sorted (`bosses.json` is the `ai_profile` record kind's row).
-const PENDING_FILES: Array[String] = [
-	"bosses.json", "content_budgets.json", "heroes_balance.json", "match_ui.json", "profile_defaults.json",
-	"reward_draft.json", "run_structure.json", "run_ui.json", "treasures_balance.json",
-]
+
+
+## The files whose pending validator reports on this batch, derived from Boot:
+## one per `PENDING_CONFIG_OWNERS` config, plus `bosses.json` while the
+## `ai_profile` record kind is pending (no treasures ship, so `treasure` never
+## runs). Sorted. Derived, so the orchestrator's registrations keep it true.
+func _pending_files() -> Array[String]:
+	var out: Array[String] = []
+	for name: String in BOOT_SCRIPT.PENDING_CONFIG_OWNERS:
+		out.append(name + ".json")
+	if BOOT_SCRIPT.PENDING_RECORD_OWNERS.has("ai_profile"):
+		out.append("bosses.json")
+	out.sort()
+	return out
 
 
 func _map() -> Dictionary:
@@ -121,7 +127,7 @@ func test_shipped_warnings_are_pool_size_band_health_and_pending_validators_only
 	pool_files.sort()
 	pending_files.sort()
 	assert_array(pool_files).is_equal(["bundles.json", "cards_war.json", "treasures.json"])
-	assert_array(pending_files).is_equal(PENDING_FILES)
+	assert_array(pending_files).is_equal(_pending_files())
 
 
 # --- AC-2: War --------------------------------------------------------------------

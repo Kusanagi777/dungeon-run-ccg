@@ -249,7 +249,7 @@ stories:
     name: "validate.gd command and the content_budgets validator"
     file: "production/epics/content/story-007-validate-command-and-budgets-config.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     lane: 6
@@ -257,8 +257,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "needs CDB-008 (M2) + content-001 (lane); orchestrator registers configs.content_budgets = ContentValidator.validate_config"
-    completed: ""
+    note: "needs CDB-008 (M2) + content-001 (lane); orchestrator registers configs.content_budgets = ContentValidator.validate_config (class at src/tools/content/content_validator.gd — tools/* is not exported) and drops it from PENDING_CONFIG_OWNERS; suite trialled green with that line (999 tests)"
+    completed: "2026-11-04"
   - id: "match-rules-010"
     name: "Playing minions, spells, weapons and the hero power"
     file: "production/epics/match-rules/story-010-play-card-and-hero-power.md"
