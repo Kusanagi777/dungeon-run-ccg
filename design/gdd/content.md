@@ -506,7 +506,8 @@ Alpha+ (Edge Cases); T8 records that all 20 are v1-expressible.
    `W_DUP_NAME` and `W_FX_KEYWORD_MISMATCH` are fixed before close, `W_POOL_SIZE` is accepted
    only at MVP-0. The Content validator (`tools/content/validate.gd`, a story in MVP-1) adds
    `E_STARTER_CURVE`, `W_SET_SHARE`, `W_HERO_HEALTH` (Heroes — a `HeroDef.health` other than
-   `player_starting_health`, heroes.md Edge Cases), `W_CURVE`, `W_BUDGET`, `E_TEXT_LENGTH`,
+   match-rules `starting_health_player` (the shipped `match_rules.json` key; 2026-11-04, sprint 4:
+   content 008), heroes.md Edge Cases), `W_CURVE`, `W_BUDGET`, `E_TEXT_LENGTH`,
    `E_COVERAGE` (this GDD, F2–F5). It emits observations, never verdicts.
 4. **`/balance-check` cadence**: once per batch close and once per sprint during Alpha. Metrics:
    curve per set (F2), budget outliers (F3, listed, not auto-fixed), boss pressure by band (F4,
