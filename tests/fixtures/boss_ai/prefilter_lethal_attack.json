@@ -1,0 +1,19 @@
+{
+  "name": "prefilter_lethal_attack",
+  "description": "boss-ai C4 / C6 pre-filter with attacks (code review 2026-11-04, BAI-005 S4; the review's probe P7 board plus one 1/1): default band 2 with budgets.max_evals_per_action lowered to 10. The player hero is at 1 with three 1/2s and a 1/1; the boss has two awake 1/3 attackers and a hand of one aoe spell (damage 1 to all_enemy_minions: 4 targets) and five 2-damage minion-only removal spells (4 legal targets each). That is 32 candidates: 21 plays, 10 attacks (2 attackers x 4 minions + the hero), end_turn. Each attacker's face attack is lethal (1 attack >= 1 health); each attack on the 1/1 kills it. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "budgets": {"max_evals_per_action": 10},
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2},
+    {"id": "bai_wisp", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_guard", "type": "minion", "cost": 2, "attack": 1, "health": 3},
+    {"id": "bai_flame", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_snipe", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"kind": "minion", "side": "enemy"}}, "ops": [{"op": "damage", "amount": 2}]}]}
+  ],
+  "boss": {"mana": 10, "board": ["bai_guard", "bai_guard"], "hand": ["bai_flame", "bai_snipe", "bai_snipe", "bai_snipe", "bai_snipe", "bai_snipe"]},
+  "player": {"health": 1, "board": ["bai_grunt", "bai_grunt", "bai_grunt", "bai_wisp"]},
+  "expect": {"legal": 32, "killable": "bai_wisp", "survivor": "bai_grunt"}
+}

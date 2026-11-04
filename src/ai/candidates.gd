@@ -16,7 +16,8 @@
 ##    `legal_commands()` order) and only the top `max_evals_per_action − 1`
 ##    plus `end_turn` are kept — `end_turn` is always simulated. The rest are
 ##    never scored, so never chosen. The kept commands keep their
-##    `legal_commands()` order.
+##    `legal_commands()` order. A lethal face attack ranks above every finite
+##    value ([method attack_value]), so it is never dropped.
 ##
 ## The three C6 annotations ([method derive_annotations]) are derived from the
 ## effect spec — Card Effects adds no AI-only field — and memoised per
@@ -53,6 +54,13 @@ const BODY_DIVISOR: float = 4.0
 const OP_BODY: String = "buff"
 const OP_WEAPON: String = "equip"
 const OP_ATTACK: String = "damage"
+## The op an attack that kills its minion target adds (C6 `destroy`).
+const OP_KILL: String = "destroy"
+## The pre-filter rank of a lethal face attack (an attack whose damage is at
+## least the defending hero's health + armor): above every finite
+## `op_value`, so the cap never drops it (code review 2026-11-04, BAI-005 S4).
+## A rank, not a tuning value.
+const LETHAL_RANK: float = INF
 
 ## Selectors whose target count is the size of a board (C6 "× the number of
 ## targets its selector yields"): `[own minions, enemy minions, heroes]`
@@ -124,8 +132,9 @@ func collect(sandbox: RulesEngine, _profile: Dictionary, budgets: Dictionary) ->
 ## C6 cheap estimate of [param command] on [param sandbox]: a card play is its
 ## definition's [method def_value] (plus, for a minion, C7's body value
 ## `buff × (attack + health) / 4`; for a weapon, the `equip` row); a hero
-## power its definition's [method def_value]; an attack one `damage` op on
-## one target; `end_turn` 0.
+## power its definition's [method def_value]; an attack its
+## [method attack_value] (one `damage` op on one target, plus `destroy` for a
+## kill, [constant LETHAL_RANK] for a lethal face hit); `end_turn` 0.
 func op_value(command: Dictionary, sandbox: RulesEngine) -> float:
 	var own: String = String(sandbox.active_side())
 	var player: Dictionary = sandbox.state().players[own]
@@ -145,8 +154,34 @@ func op_value(command: Dictionary, sandbox: RulesEngine) -> float:
 			var power: Variant = _db.hero_power(str(player.hero_power.def_id)) if _db != null else null
 			return def_value(power, sandbox, own) if power is Dictionary else 0.0
 		MatchRecords.CMD_ATTACK:
-			return _row(OP_ATTACK)
+			return attack_value(command, sandbox)
 	return 0.0
+
+
+## C6 cheap estimate of the attack [param command] on [param sandbox]: one
+## `damage` op on one target (C6 "× the number of targets", here 1), plus the
+## `destroy` row when it kills its minion target (the attacker's `attack()`
+## reaches the target's `health()`, or the attacker is Poisonous, and the
+## target has no Divine Shield) — so a winning trade outranks a chip; a face
+## attack whose damage reaches the hero's health + armor is
+## [constant LETHAL_RANK], so the pre-filter never drops it (code review
+## 2026-11-04, BAI-005 S4: valued as a bare `damage` row, every attack tied a
+## one-target spell and lost the tie to `legal_commands()` order). Reads the
+## two records through `state_snapshot()` and the engine's derived values.
+func attack_value(command: Dictionary, sandbox: RulesEngine) -> float:
+	var value: float = _row(OP_ATTACK)
+	var attacker: Dictionary = sandbox.state_snapshot(int(command.get("attacker_id", RulesEngine.NO_ENTITY)))
+	var target: Dictionary = sandbox.state_snapshot(int(command.get("target_id", RulesEngine.NO_ENTITY)))
+	if attacker.is_empty() or target.is_empty():
+		return value
+	var damage: int = sandbox.attack(attacker)
+	if str(target.get("kind")) == MatchRecords.KIND_HERO:
+		return LETHAL_RANK if damage > 0 and damage >= sandbox.health(target) + int(target.get("armor", 0)) else value
+	if Scorer.keywords_of(target).has(MatchRecords.KEYWORD_DIVINE_SHIELD) or damage <= 0:
+		return value
+	if damage >= sandbox.health(target) or Scorer.keywords_of(attacker).has(MatchRecords.KEYWORD_POISONOUS):
+		value += _row(OP_KILL)
+	return value
 
 
 ## The C6 value of the effect ops of the definition [param def] on

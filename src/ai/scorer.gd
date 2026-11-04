@@ -453,6 +453,12 @@ func _measure(engine: RulesEngine, mode: StringName) -> Dictionary:
 	return out
 
 
+## The keywords of [param character] (a minion or hero record): its own set
+## plus every enchantment's `keywords_added`, without duplicates.
+static func keywords_of(character: Dictionary) -> Array:
+	return _keywords(character)
+
+
 static func _keywords(character: Dictionary) -> Array:
 	var keywords: Array = (character.keywords as Array).duplicate()
 	for enchantment: Dictionary in character.enchantments:
