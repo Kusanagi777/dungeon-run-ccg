@@ -16,6 +16,8 @@ const DISCOVER: String = MatchRecords.CHOICE_DISCOVER
 const CHOOSE_ONE: String = MatchRecords.CHOICE_CHOOSE_ONE
 ## Float tolerance for sums the GDD states exactly.
 const EPSILON: float = 1e-9
+## The `ai_1` seed of the plan cases.
+const AI_SEED: int = 7
 
 
 # --- helpers -----------------------------------------------------------------
@@ -78,6 +80,36 @@ func _preference(decision: Dictionary, index: int) -> float:
 	return float(_alternative(decision, index).features.preference)
 
 
+## A [BossAI] for [param fixture] over the stub's maps.
+func _boss_ai(fixture: Dictionary, db: Variant, stream: RngStream) -> BossAI:
+	var stub: Dictionary = BossAiBoard.stub_config()
+	return BossAI.new(CardFactory.make_boss_def("boss_test", int(fixture.band)), BossAiBoard.profile(fixture), int(fixture.band), stream, stub.op_values, null, db, stub.keyword_values)
+
+
+## One planned boss turn on a clone of [param fixture]'s board, through the task
+## seam: `{plan, engine}`, the live engine untouched.
+func _planned(fixture: Dictionary, stream: RngStream) -> Dictionary:
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = _engine(fixture, db)
+	var sandbox: RulesEngine = engine.clone()
+	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
+	task.start(_boss_ai(fixture, db, stream).plan_task(sandbox))
+	assert_bool(task.poll()).is_true()
+	var plan: TurnPlan = task.result()
+	sandbox.end_match()
+	return {"plan": plan, "engine": engine}
+
+
+## The `ai_decision {kind: choice}` diagnostics of [param plan].
+func _choices(plan: TurnPlan) -> Array:
+	return plan.diagnostics.filter(func(d: Dictionary) -> bool: return str(d.get("kind")) == BossAI.KIND_CHOICE)
+
+
+## The `choose` commands of [param plan].
+func _choose_commands(plan: TurnPlan) -> Array:
+	return plan.commands.filter(func(c: Dictionary) -> bool: return str(c.type) == MatchRecords.CMD_CHOOSE)
+
+
 ## [param fixture]'s profile under the archetype [param key].
 func _archetype(fixture: Dictionary, key: String) -> Dictionary:
 	var named: Dictionary = fixture.duplicate(true)
@@ -94,7 +126,7 @@ func test_a16_duplicates_collapse_and_the_cheap_option_wins_with_no_draw() -> vo
 	var engine: RulesEngine = _engine(fixture, db)
 	var sandbox: RulesEngine = engine.clone()
 	var stream: TestRngStream = _stream()
-	var boss_ai: BossAI = BossAI.new(null, BossAiBoard.profile(fixture), int(fixture.band), stream, _op_values(), null, db)
+	var boss_ai: BossAI = _boss_ai(fixture, db, stream)
 
 	# Act
 	var index: int = boss_ai.choose(sandbox, _request(DISCOVER, fixture.options))
@@ -313,6 +345,7 @@ func test_choose_one_identical_ops_collapse_to_the_lowest_index_whatever_the_lab
 func test_a_boss_choice_raised_on_the_players_turn_returns_to_the_players_main() -> void:
 	# Arrange — the player kills a boss Deathrattle that raises a Choose One
 	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
 	fixture.boss.board = ["bai_oracle"]
 	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
 	var engine: RulesEngine = _engine(fixture, db)
@@ -325,9 +358,7 @@ func test_a_boss_choice_raised_on_the_players_turn_returns_to_the_players_main()
 	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
 	var pending: Dictionary = engine.pending_choice()
 	assert_str(str(pending.side)).is_equal(SIDE_BOSS)
-	var profile: Dictionary = BossAiBoard.profile(fixture)
-	profile.choice_preference = {}
-	var boss_ai: BossAI = BossAI.new(null, profile, int(fixture.band), _stream(), _op_values(), null, db)
+	var boss_ai: BossAI = _boss_ai(fixture, db, _stream())
 	var sandbox: RulesEngine = engine.clone()
 
 	# Act
@@ -405,8 +436,9 @@ func test_the_chosen_option_is_always_among_the_three_alternatives() -> void:
 
 	# Assert
 	assert_int(int(decision.index)).is_equal(3)
-	assert_int((decision.diagnostic.alternatives as Array).size()).is_equal(Scorer.ALTERNATIVES_MAX)
-	assert_int(int(decision.diagnostic.alternatives[0].command.option_index)).is_equal(3)
+	var alternatives: Array = decision.diagnostic.alternatives
+	assert_int(alternatives.size()).is_equal(Scorer.ALTERNATIVES_MAX)
+	assert_int(int(alternatives.back().command.option_index)).is_equal(3)
 
 
 # --- C1.3, purity ---------------------------------------------------------------------
@@ -471,13 +503,12 @@ func test_a_trial_answers_its_own_choice_with_c7_and_never_advances_the_fork() -
 	var entry: Dictionary = _trial_entry(fixture, {Scorer.CONTEXT_SIM_STREAM: sim})
 
 	# Assert — the trial took option 1, so the player's hero was hit
-	assert_bool(entry.sim_choice_placeholder).is_false()
 	assert_float(float(entry.features.f_face)).is_greater(0.0)
 	assert_int(sim.draws).is_equal(sim_draws)
 
 
-func test_without_a_sim_stream_a_trial_keeps_the_flagged_placeholder() -> void:
-	# Arrange — a caller that has not yet passed the C4 fork
+func test_without_a_sim_stream_a_trial_still_answers_with_c7() -> void:
+	# Arrange — no C4 fork: the trial's copy of `rng_match` serves its random effects
 	var fixture: Dictionary = _choose_one_fixture()
 	fixture.boss.hand = ["bai_fork"]
 
@@ -485,5 +516,142 @@ func test_without_a_sim_stream_a_trial_keeps_the_flagged_placeholder() -> void:
 	var entry: Dictionary = _trial_entry(fixture, {})
 
 	# Assert
-	assert_bool(entry.sim_choice_placeholder).is_true()
-	assert_float(float(entry.features.f_face)).is_equal(0.0)
+	assert_float(float(entry.features.f_face)).is_greater(0.0)
+
+
+func test_a_scorer_without_op_values_answers_at_the_c6_fallback_row() -> void:
+	# Arrange — every op values 1.0, so bai_fork ties and either option is a real answer
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.boss.hand = ["bai_fork"]
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var base: RulesEngine = _engine(fixture, db).clone()
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var scorer: Scorer = Scorer.new(db, BossAiBoard.keyword_values())
+
+	# Act
+	var entry: Dictionary = scorer.score(MatchRecords.play_card(SIDE_BOSS, 0, null, null), base, profile, Scorer.MODE_NORMAL, {})
+	base.end_match()
+
+	# Assert — the placeholder flag is gone with the placeholder
+	assert_bool(entry.has("sim_choice_placeholder")).is_false()
+
+
+# --- the join with plan_turn and the lethal search (QA "choose inside a plan") -------------
+
+func test_a_plan_answers_a_choose_one_with_choose_and_holds_the_command() -> void:
+	# Arrange — default profile: `jab` 1.0 beats `mend` 0.6
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.hand = ["bai_fork"]
+
+	# Act
+	var result: Dictionary = _planned(fixture, _stream(AI_SEED))
+	var plan: TurnPlan = result.plan
+
+	# Assert
+	var commands: Array = _choose_commands(plan)
+	var choices: Array = _choices(plan)
+	assert_int(commands.size()).is_equal(1)
+	assert_int(int(commands[0].option_index)).is_equal(1)
+	assert_int(choices.size()).is_equal(1)
+	assert_int((choices[0].alternatives as Array).size()).is_equal(2)
+	assert_bool(choices[0].has("sim_choice_placeholder")).is_false()
+	for command: Dictionary in plan.commands:
+		assert_bool((result.engine as RulesEngine).submit(command.duplicate(true)).accepted).is_true()
+
+
+func test_a_plan_answers_a_real_discover_and_the_replay_takes_the_best_card() -> void:
+	# Arrange — boss_turns_taken 1, next turn's mana_max 2: all three fit; bai_ace is
+	# worth most; mana 0 keeps the discovered card in hand
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.hand = ["bai_seer"]
+	fixture.boss.mana = 0
+
+	# Act
+	var result: Dictionary = _planned(fixture, _stream(AI_SEED))
+	var plan: TurnPlan = result.plan
+	var engine: RulesEngine = result.engine
+	for command: Dictionary in plan.commands:
+		assert_bool(engine.submit(command.duplicate(true)).accepted).is_true()
+
+	# Assert
+	var held: Array = (engine.state().players[SIDE_BOSS].hand as Array).map(func(card: Dictionary) -> String: return str(card.def_id))
+	assert_int(_choose_commands(plan).size()).is_equal(1)
+	assert_int((_choices(plan)[0].alternatives as Array).size()).is_equal(3)
+	assert_array(held).contains(["bai_ace"])
+
+
+func test_a_choice_tie_on_the_root_sandbox_is_one_draw_counted_in_ai_draws() -> void:
+	# Arrange — bai_twin's two options score alike; trials draw from their own copies
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.hand = ["bai_twin"]
+	var stream: TestRngStream = _stream(AI_SEED)
+
+	# Act
+	var plan: TurnPlan = _planned(fixture, stream).plan
+
+	# Assert
+	assert_int(int(_choices(plan)[0].get("draws", 0))).is_equal(1)
+	assert_int(plan.ai_draws).is_equal(stream.draws)
+
+
+func test_a_lethal_plan_answers_with_choose_and_logs_the_lethal_mode() -> void:
+	# Arrange — only `jab` (5) reaches the player's 5 health: option 0 would heal
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.hand = ["bai_fork"]
+	fixture.player.health = 5
+
+	# Act
+	var plan: TurnPlan = _planned(fixture, _stream(AI_SEED)).plan
+
+	# Assert
+	assert_array(plan.mode_trace).contains([Scorer.MODE_LETHAL])
+	assert_int(int(_choose_commands(plan)[0].option_index)).is_equal(1)
+	assert_str(str(_choices(plan)[0].mode)).is_equal(String(Scorer.MODE_LETHAL))
+
+
+func test_the_lethal_search_finds_a_lethal_only_the_scored_option_reaches() -> void:
+	# Arrange — option 0 heals; only `jab` (5) reaches the player's 5 health
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.hand = ["bai_fork"]
+	fixture.player.health = 5
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var base: RulesEngine = _engine(fixture, db).clone()
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var lethal: LethalSearch = LethalSearch.new(db, CandidateSet.new(db, _op_values(), profile.synergy_tags))
+
+	# Act
+	var steps: Variant = await lethal.search(base, profile, profile.budgets, ImmediatePlannerTask.new(), _stream(AI_SEED).fork(TieBreak.sim_label(2)))
+	base.end_match()
+
+	# Assert
+	assert_bool(steps is Array).is_true()
+
+
+func test_the_lethal_search_answers_a_node_choice_from_the_nodes_own_stream() -> void:
+	# Arrange
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.hand = ["bai_twin"]
+	fixture.player.health = 1
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var base: RulesEngine = _engine(fixture, db).clone()
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var lethal: LethalSearch = LethalSearch.new(db, CandidateSet.new(db, _op_values(), profile.synergy_tags))
+	var sim: RngStream = _stream(AI_SEED).fork(TieBreak.sim_label(2))
+	var sim_draws: int = sim.draws
+	var base_draws: int = (base.rng_match() as RngStream).draws
+
+	# Act
+	var steps: Variant = await lethal.search(base, profile, profile.budgets, ImmediatePlannerTask.new(), sim)
+	var base_after: int = (base.rng_match() as RngStream).draws
+	base.end_match()
+
+	# Assert — a tie drawn at a node moves neither the fork nor the root
+	assert_bool(steps is Array).is_true()
+	assert_int(sim.draws).is_equal(sim_draws)
+	assert_int(base_after).is_equal(base_draws)

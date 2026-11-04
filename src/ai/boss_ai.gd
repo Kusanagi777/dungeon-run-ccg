@@ -191,43 +191,6 @@ const MAX_REJECTIONS: int = 3
 # Profile-entry contexts for `_check_profile`.
 enum _Context { PROFILE, BAND, OVERRIDE }
 
-## The `ai_decision {kind: choice}` of the last [method choose], for `plan_turn`
-## to add to its diagnostics or the driver's choose task to hand on (ADR-0008
-## Decision 3): `choose` itself returns the index alone (C1.4).
-var last_choice: Dictionary = {}
-
-var _profile: Dictionary
-var _ai_stream: RefCounted
-var _op_values: Dictionary
-var _db: Variant
-
-
-## C1.1's construction: [param resolved_profile] from [ProfileResolver],
-## [param ai_stream] the injected `ai_<floor>` stream, [param op_values] the
-## `ai_profiles` map, [param db] answers `card(id)` for the option definitions.
-func _init(_boss_def: Variant = null, resolved_profile: Dictionary = {}, _band: int = 0, ai_stream: RefCounted = null, op_values: Dictionary = {}, _event_log: Variant = null, db: Variant = null) -> void:
-	_profile = resolved_profile
-	_ai_stream = ai_stream
-	_op_values = op_values
-	_db = db
-
-
-## C1.4 / C7: the option the boss takes for the `ChoiceRequest` [param request]
-## on [param sandbox], a clone (ADR-0006: a task body like the others; inside
-## `plan_turn` the sandbox's own Choices are answered here too). Pure over the
-## clone; a tie takes one draw from the `ai_<floor>` stream. The caller submits
-## `choose{issuer: boss, option_index}`. [param mode] is logged in
-## [member last_choice].
-## [codeblock]
-## var index: int = boss_ai.choose(sandbox, sandbox.pending_choice())
-## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, index))
-## [/codeblock]
-func choose(sandbox: RulesEngine, request: Dictionary, mode: StringName = Scorer.MODE_NORMAL) -> int:
-	var decision: Dictionary = Chooser.choose(sandbox, request, _profile, _op_values, _ai_stream, _db, mode)
-	last_choice = decision.diagnostic
-	return int(decision.index)
-
-
 ## The [PlannerTask] of a [method plan_turn] called with none: never yields.
 class _NoYield:
 	extends PlannerTask
@@ -266,12 +229,18 @@ class _Turn:
 		side = String(engine.active_side())
 
 
+## The `ai_decision {kind: choice}` of the last [method choose], for the choose
+## task to hand on (ADR-0008 Decision 3): `choose` itself returns the index alone
+## (C1.4), and [method plan_turn] folds it into its own diagnostics.
+var last_choice: Dictionary = {}
+
 var _boss_def: Dictionary = {}
 var _profile: Dictionary = {}
 var _band: int = 0
 var _ai_stream: RngStream = null
 var _log: Variant = null
 var _db: Variant = null
+var _op_values: Dictionary = {}
 var _picker: CandidateSet = null
 var _scorer: Scorer = null
 var _lethal: LethalSearch = null
@@ -295,8 +264,9 @@ func _init(boss_def: Dictionary, resolved_profile: Dictionary, band: int, ai_str
 	_ai_stream = ai_stream
 	_log = log
 	_db = db
+	_op_values = op_values
 	_picker = CandidateSet.new(db, op_values, resolved_profile.synergy_tags)
-	_scorer = Scorer.new(db, keyword_values)
+	_scorer = Scorer.new(db, keyword_values, op_values)
 	_lethal = LethalSearch.new(db, _picker)
 
 
@@ -518,6 +488,22 @@ func play_turn(engine: RulesEngine, planner: PlannerTask = null) -> void:
 			engine.submit(plan.commands[index])
 
 
+## C1.4 / C7: the option the boss takes for the `ChoiceRequest` [param request]
+## on [param sandbox], a clone (ADR-0006: a task body like the others). Pure over
+## the clone; a tie takes one draw from the `ai_<floor>` stream. The caller submits
+## `choose{issuer: boss, option_index}`. [param mode] is logged in
+## [member last_choice]. Returns [constant Chooser.NO_OPTION] for a request it
+## must not answer.
+## [codeblock]
+## var index: int = boss_ai.choose(sandbox, sandbox.pending_choice())
+## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, index))
+## [/codeblock]
+func choose(sandbox: RulesEngine, request: Dictionary, mode: StringName = Scorer.MODE_NORMAL) -> int:
+	var decision: Dictionary = Chooser.choose(sandbox, request, _profile, _op_values, _ai_stream, _db, mode)
+	last_choice = decision.diagnostic
+	return int(decision.index)
+
+
 ## One pass of the C2 loop. A coroutine.
 func _plan_pass(turn: _Turn) -> void:
 	var cmds: Array = _open(turn, turn.sandbox.legal_commands())
@@ -638,18 +624,22 @@ func _abort_plan(turn: _Turn, reason: String, step: int) -> void:
 		turn.searches_due += 1
 
 
-## Answers boss-side Choices on the sandbox (C2's inner `while`). Story 010 replaces
-## the option 0 here with `choose`; until then the decision is flagged, as the
-## scorer's trials are.
+## Answers boss-side Choices on the sandbox with [method choose] (C2's inner
+## `while`): the root sandbox, so a tie draws from the live `ai_<floor>` stream and
+## counts in `TurnPlan.ai_draws` (C9), and the command is replayed like any other.
 func _answer_choices(turn: _Turn) -> void:
 	while turn.sandbox.phase() == MatchState.PHASE_CHOICE:
 		var pending: Variant = turn.sandbox.pending_choice()
 		if not pending is Dictionary or str(pending.side) != turn.side:
 			return
-		var command: Dictionary = MatchRecords.choose(turn.side, 0)
-		var decision: Dictionary = _decision(turn, command, [])
+		var index: int = choose(turn.sandbox, pending, turn.mode)
+		if index == Chooser.NO_OPTION:
+			return
+		var command: Dictionary = MatchRecords.choose(turn.side, index)
+		var decision: Dictionary = _decision(turn, command, last_choice.alternatives)
 		decision["kind"] = KIND_CHOICE
-		decision["sim_choice_placeholder"] = true
+		decision["draws"] = int(last_choice.draws)
+		turn.plan.ai_draws += int(last_choice.draws)
 		var result: Dictionary = turn.sandbox.submit(command.duplicate(true))
 		if not result.accepted:
 			decision["rejection"] = str(result.rejection.code)

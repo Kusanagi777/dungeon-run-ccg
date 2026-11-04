@@ -9,8 +9,8 @@
 ## 1.87 / −1.0 / −0.33) and written out only where the number is the point
 ## (A13's `1/7`, F2 / F3 examples, A18's ×1.25). `score_all` is a coroutine,
 ## so the tests await it with an `ImmediatePlannerTask` (no worker thread,
-## ADR-0006). Each fixture test also asserts that no scored candidate needed a
-## sandbox Choice answer (the BAI-010 placeholder; story readiness note).
+## ADR-0006). A sandbox Choice is answered with [Chooser]: its cases are in
+## `boss_ai_choose_test.gd`.
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchRecords.SIDE_PLAYER
@@ -78,11 +78,6 @@ func _entry_where(scored: Array, type: String, key: String, value: Variant) -> D
 	return {}
 
 
-func _assert_no_sandbox_choice(scored: Array) -> void:
-	for entry: Dictionary in scored:
-		assert_bool(entry.sim_choice_placeholder).override_failure_message("a sandbox Choice was raised by %s" % str(entry.command)).is_false()
-
-
 # --- static helpers: F2, F3 ------------------------------------------------------
 
 func test_board_value_and_threat_match_the_f2_example() -> void:
@@ -128,7 +123,6 @@ func test_f1_worked_example_plays_trade_then_four_four_then_end_turn_at_the_gdd_
 	# Act — the test's own action loop (play_turn is story 008): score, submit the best
 	while engine.phase() == MatchState.PHASE_MAIN and String(engine.active_side()) == SIDE_BOSS:
 		var scored: Array = await _score_all(scorer, engine, profile)
-		_assert_no_sandbox_choice(scored)
 		var best: Dictionary = scored[0]
 		chosen_types.append(str(best.command.type))
 		chosen_scores.append(float(best.score))
@@ -182,7 +176,6 @@ func test_aoe_seen_lowers_a_fifth_minion_play_by_exactly_one_seventh() -> void:
 	# Assert — boss board 4 → 5 > cap 4: f_over = −1/7, × w_over (1)
 	assert_bool(aoe_seen).is_true()
 	assert_int(engine.state().players[SIDE_BOSS].board.size()).is_equal(rightmost)
-	_assert_no_sandbox_choice(seen)
 	var with_aoe: Dictionary = _entry_where(seen, MatchRecords.CMD_PLAY_CARD, "position", rightmost)
 	var without: Dictionary = _entry_where(unseen, MatchRecords.CMD_PLAY_CARD, "position", rightmost)
 	assert_float(float(profile.weights.w_over)).is_equal(1.0)
@@ -251,7 +244,6 @@ func test_control_fireball_targets_the_six_six() -> void:
 	var scored: Array = await _score_all(_scorer(db), engine, BossAiBoard.profile(fixture))
 
 	# Assert
-	_assert_no_sandbox_choice(scored)
 	var plays: Array = scored.filter(func(e: Dictionary) -> bool: return str(e.command.type) == MatchRecords.CMD_PLAY_CARD)
 	assert_int(plays.size()).is_equal(int(fixture.expect.spell_targets))
 	assert_str(str(scored[0].command.type)).is_equal(MatchRecords.CMD_PLAY_CARD)
@@ -274,7 +266,6 @@ func test_full_player_board_makes_removal_beat_an_equal_face_attack() -> void:
 	var scored: Array = await _score_all(_scorer(db), engine, profile)
 
 	# Assert — removal 1.0·0.9 + 2.4·1.25·3/12 = 1.65 vs face 3.0·4/8 = 1.5
-	_assert_no_sandbox_choice(scored)
 	assert_int(engine.state().players[SIDE_PLAYER].board.size()).is_equal(TestConstants.BOARD_SIZE)
 	var removal: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "target_id", target)
 	var face: Dictionary = _entry_where(scored, MatchRecords.CMD_ATTACK, "target_id", hero)
@@ -408,7 +399,6 @@ func test_battlecry_minion_with_no_legal_target_is_scored_as_its_body() -> void:
 	var scored: Array = await _score_all(_scorer(db), engine, BossAiBoard.profile(fixture))
 
 	# Assert
-	_assert_no_sandbox_choice(scored)
 	var battlecry: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "hand_index", 0)
 	var vanilla: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "hand_index", 1)
 	assert_that(battlecry.command.target_id).is_null()

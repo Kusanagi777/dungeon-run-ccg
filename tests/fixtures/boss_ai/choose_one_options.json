@@ -1,6 +1,6 @@
 {
   "name": "choose_one_options",
-  "description": "boss-ai C7 Choose One (story 010): control profile (heal 0.4, taunt 0.5, damage_all 0.6), band 2. The player has three minions, so opt.sweep scores 1.0 * 3 + 0.6 = 3.6, opt.jab 1.0, opt.mend 0.6 + 0.4 = 1.0. duplicate_options repeats opt.sweep under another label: identical ops collapse. equal_options are four different options of one score. bai_fork is a 0-cost spell whose option 1 alone hits the player's hero; bai_oracle is a boss minion whose Deathrattle raises a boss Choice during the player's turn, killed by the player's 0-cost bai_snipe.",
+  "description": "boss-ai C7 Choose One (story 010): control profile (heal 0.4, taunt 0.5, damage_all 0.6), band 2. The player has three minions, so opt.sweep scores 1.0 * 3 + 0.6 = 3.6, opt.jab 1.0, opt.mend 0.6 + 0.4 = 1.0. duplicate_options repeats opt.sweep under another label: identical ops collapse. equal_options are four different options of one score. bai_fork is a 0-cost spell whose option 1 alone hits the player's hero; bai_oracle is a boss minion whose Deathrattle raises a boss Choice during the player's turn, killed by the player's 0-cost bai_snipe. bai_twin has two different options of one score, a real tie. bai_seer Discovers from bai_dud, bai_ace and bai_lout, then hits the hero, so a plan plays it whatever the mana.",
   "profile": "control",
   "band": 2,
   "deck_card": "bai_filler",
@@ -14,6 +14,17 @@
       {"label_key": "opt.mend", "ops": [{"op": "heal", "amount": 1, "targets": "owner_hero"}]},
       {"label_key": "opt.jab", "ops": [{"op": "damage", "amount": 5, "targets": "enemy_hero"}]}
     ]}]}]},
+    {"id": "bai_twin", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "ops": [{"op": "choose_one", "options": [
+      {"label_key": "opt.a", "ops": [{"op": "damage", "amount": 1, "targets": "enemy_hero"}]},
+      {"label_key": "opt.b", "ops": [{"op": "damage", "amount": 2, "targets": "enemy_hero"}]}
+    ]}]}]},
+    {"id": "bai_seer", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "ops": [
+      {"op": "discover", "pool": "list", "list": ["bai_dud", "bai_ace", "bai_lout"]},
+      {"op": "damage", "amount": 3, "targets": "enemy_hero"}
+    ]}]},
+    {"id": "bai_dud", "type": "minion", "cost": 2, "attack": 1, "health": 1},
+    {"id": "bai_ace", "type": "minion", "cost": 2, "attack": 3, "health": 4},
+    {"id": "bai_lout", "type": "minion", "cost": 2, "attack": 1, "health": 2},
     {"id": "bai_snipe", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"kind": "minion"}}, "ops": [{"op": "damage", "amount": 1}]}]}
   ],
   "boss": {"mana": 4, "board": [], "hand": []},

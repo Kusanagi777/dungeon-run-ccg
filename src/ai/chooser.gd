@@ -39,8 +39,6 @@ extends RefCounted
 ## The index [method choose] returns when it answers nothing: a request for
 ## the player (C1.3: those options are hidden) or one with no options.
 const NO_OPTION: int = -1
-## C9 `ai_decision.kind` of a choice.
-const KIND_CHOICE: String = "choice"
 ## The `choice_preference` key of the tempo rule "lowest cost" (F9).
 const TAG_LOW_COST: String = "low_cost"
 ## The `choice_preference` key of an area `damage` op (F9, C7).
@@ -58,9 +56,10 @@ const NEXT_TURN: int = 1
 ## answers `card(id)`, [param mode] the planner mode to log. Returns `{index,
 ## diagnostic}`: `diagnostic` is the `ai_decision {kind: choice, chosen, mode,
 ## alternatives, draws, diagnostic: true}` payload, plain data, with `draws` the
-## stream draws taken. `alternatives` holds the distinct options, the pick first
-## and then best first, at most [constant Scorer.ALTERNATIVES_MAX]: unlike a
-## lone `end_turn` (A24), a choice counts the pick itself (A16, Edge Cases).
+## stream draws taken. `alternatives` holds the distinct options best first, at
+## most [constant Scorer.ALTERNATIVES_MAX], the pick always among them
+## ([method Scorer.alternatives]): unlike a lone `end_turn` (A24), a choice counts
+## the pick itself (A16, Edge Cases).
 ## [constant NO_OPTION] and an empty `diagnostic` when nothing is answered.
 ## [codeblock]
 ## Chooser.choose(sandbox, request, profile, op_values, ai_stream, db).index   # 0 (A16)
@@ -93,12 +92,12 @@ static func choose(sandbox: RulesEngine, request: Dictionary, profile: Dictionar
 	return {
 		"index": int(chosen.command.option_index),
 		"diagnostic": {
-			"kind": KIND_CHOICE,
+			"kind": BossAI.KIND_CHOICE,
 			"chosen": chosen.command,
 			"mode": String(mode),
-			"alternatives": Scorer.alternatives(_pick_first(scored, chosen)),
+			"alternatives": Scorer.alternatives(_ranked(scored), chosen),
 			"draws": int(decision.draws),
-			"diagnostic": true,
+			TurnPlan.DIAGNOSTIC_KEY: true,
 		},
 	}
 
@@ -223,12 +222,9 @@ static func _cost(def: Variant) -> int:
 	return int(def.get("cost", 0)) if def is Dictionary else 0
 
 
-## [param scored] best first (equal scores by option index) with
-## [param chosen] moved to the front, so the alternatives cap never drops it.
-static func _pick_first(scored: Array, chosen: Dictionary) -> Array:
+## [param scored] best first, equal scores by option index.
+static func _ranked(scored: Array) -> Array:
 	var ranked: Array = scored.duplicate()
 	ranked.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return a.score > b.score if a.score != b.score else int(a.command.option_index) < int(b.command.option_index))
-	ranked.erase(chosen)
-	ranked.push_front(chosen)
 	return ranked

@@ -68,7 +68,9 @@ checks scope against it.*
 - `src/ai/chooser.gd` (new)
 - `src/ai/boss_ai.gd` (`choose` entry point, `last_choice`, C1.1 `_init`)
 - `src/ai/candidates.gd` (`card_value` extracted from `op_value`, `ops_value`)
-- `src/ai/scorer.gd` (trials answer Choices with `Chooser`; `cost_fit` normalisers; optional `op_values` argument)
+- `src/ai/scorer.gd` (trials answer Choices with `Chooser`; `cost_fit` normalisers; optional `op_values` argument; `sim_choice_placeholder` removed)
+- `src/ai/lethal_search.gd` (nodes answer Choices with `Chooser`)
+- `tests/unit/boss_ai/boss_ai_plan_turn_test.gd` (NC-8 byte-identical plan), `tests/unit/boss_ai/boss_ai_scorer_test.gd` (dead placeholder check removed)
 - `tests/unit/boss_ai/boss_ai_choose_test.gd` (new)
 - `tests/fixtures/boss_ai/discover_duplicate_options.json`, `tests/fixtures/boss_ai/choose_one_options.json` (new)
 
@@ -88,7 +90,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boss_ai/boss_ai_choose_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [x] Created — 23 tests, passing (full suite 1433 / 0 failures, 2026-11-04)
+**Status**: [x] Created — 30 tests, passing (see Completion Notes for the merged full suite, 2026-11-04)
 
 ---
 
@@ -107,9 +109,10 @@ checks scope against it.*
 **Run result**: N/A: nothing reaches the screen until the match driver runs a boss turn.
 **Deviations** (advisory):
 - `BossAI.choose` returns the index alone (GDD C1.4, ADR-0008 `-> int`). The story's "returns it alongside the index" is met by `BossAI.last_choice`, which `plan_turn` and story 014's `choose_task` read. GDD over story.
-- `BossAI._init` is story 008's signature plus a trailing `db`, because `RulesEngine` exposes no database and `Chooser` needs one. Lane 1 adds its own `_init` for BAI-008: the two meet at the rebase.
+- Lane 2's own `BossAI._init` was dropped at the BAI-008 join: Lane 1's `_init(boss_def, resolved_profile, band, ai_stream, op_values, log, db, keyword_values)` stands, and now also keeps `op_values`.
 - `src/ai/candidates.gd` and `src/ai/scorer.gd` are outside the story's planned Files. The Implementation Notes ask for `CandidateSet`'s values and for scoring sandboxes to answer with `choose`, and `scorer.gd` assigned that to this story. `Scorer.NORMALISERS` gained `cost_fit_full` and `cost_fit_over` for A29.
-- `alternatives` for a choice counts the pick (A16, Edge Case), the pick first and then best first, so the three-entry cap cannot drop it when a tie-break picks a lower member. A24's empty list stays the `kind: action` rule.
+- `alternatives` for a choice counts the pick (A16, Edge Case), through Lane 1's `Scorer.alternatives(scored, chosen)`: best first, the pick always listed. A24's empty list stays the `kind: action` rule.
+- `sim_choice_placeholder` is gone with the option 0 answers, so `boss_ai_scorer_test.gd`'s `_assert_no_sandbox_choice` (5 calls), which only read that flag, was removed. A scorer built without `op_values` values every op at the C6 fallback row; `BossAI` always passes them.
 
 **Readings of C7** (the GDD names these tags but does not define them; none adds a number):
 - An option's tags are C6 `synergy_match`'s fields plus its `type` (`weapon`) and op names (`heal`). No shipped card carries these as `tags`.
@@ -119,8 +122,8 @@ checks scope against it.*
 
 **Open**:
 - **passive_driven has no preference amount.** C7 says its preference comes from its `synergy_tags`, but F9 gives `passive_driven` and `boss_rot_warden` no `choice_preference` row, and the amount is not defined anywhere. The code reads `choice_preference` for those tags, so shipped passive_driven bosses score a preference of 0 until a row is added; no number was invented. The owner decides whether to ship one.
-- `plan_turn` must call `choose` in its sandbox loop, build `Scorer` with `op_values`, and pass the sim stream. Until then trials keep the flagged option 0 placeholder. QA's "`choose` inside a plan" case is NOT ASSESSED until L2 rebases on BAI-008 (QA plan: run on the M1 trunk).
 - A Choose One op with no `targets` of its own counts one target, because the request does not carry the offering effect's `targets`. Shipped `neutral_smite_or_mend` uses `chosen`, so it is unaffected.
 
+**BAI-008 join** (2026-11-04, start 21:55 UTC, end 22:14 UTC; full suite 1624 test cases, 0 errors, 0 failures, smoke exit 0; merged trunk `f96fc04`, not rebased): `plan_turn`, `LethalSearch` and `Scorer` all answer Choices with `Chooser`; no option 0 answer remains in `src/ai/`. The root sandbox draws a tie from the live `ai_<floor>` stream, counted in `TurnPlan.ai_draws`; a trial or search node draws from its own `rng_match()`, its copy of the `sim_<turn>` fork. QA's "`choose` inside a plan" case is closed by the plan and lethal tests in `boss_ai_choose_test.gd`; NC-8's byte-identical plan by `test_a_plan_is_byte_identical_at_either_end_of_the_planner_target_range`. New tests were seen failing against the option 0 answers, except two that cannot fail there: the NC-8 test failed on a mutant feeding the knob into the budgets, the node-stream test on a mutant drawing from the fork. Lane 3's new `heroes_fixture_hero/ai_profiles.json` gained the required `planner_target_ms` key.
 **Test Evidence**: `tests/unit/boss_ai/boss_ai_choose_test.gd`
 **Reviewed by**: not yet: the orchestrator runs independent reviews at M1.

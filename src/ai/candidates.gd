@@ -219,6 +219,12 @@ func ops_value(ops: Array, sandbox: RulesEngine, own: String) -> float:
 	return _ops_value(ops, null, sandbox, own)
 
 
+## The `op_values` map this instance values with, read only: what a search
+## holding only the picker hands [Chooser].
+func op_values() -> Dictionary:
+	return _op_values
+
+
 ## The three C6 annotations of [param def], memoised by its `id` in this
 ## instance: `position_sensitive` (any effect or op selector is `adjacent`,
 ## `left_neighbour` or `right_neighbour`), `aoe` ([method Scorer.is_aoe]) and
