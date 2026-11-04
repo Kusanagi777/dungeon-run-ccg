@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_fixture_a",
+      "name": "Neutral Fixture A",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_fixture_a.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_fixture_b",
+      "name": "Neutral Fixture B",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_fixture_b.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_fixture_c",
+      "name": "Neutral Fixture C",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_fixture_c.text",
+        "en": ""
+      }
+    }
+  ]
+}

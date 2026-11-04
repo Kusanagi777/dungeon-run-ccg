@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "fortune_fixture_gambler",
+      "name": "Fortune Fixture Gambler",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.fortune_fixture_gambler.text",
+        "en": ""
+      }
+    }
+  ]
+}
