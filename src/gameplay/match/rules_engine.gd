@@ -2630,6 +2630,9 @@ func _do_choose(option_index: int) -> void:
 	_state.suspended_steps = 0
 	_frame = (action.get("frame", {}) as Dictionary).duplicate(true)
 	_stages.assign(action.get("stages", []))
+	# card-effects story 010 (DD-X04; rng-event-log catalogue): choice_requested,
+	# discover_offered, choice_made and discover_picked share one cause_seq.
+	_cause_seq = int(action.get("cause_seq", 0))
 	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
 	if _halted():
 		_queue.clear()

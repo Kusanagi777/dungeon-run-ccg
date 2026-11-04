@@ -62,6 +62,14 @@ class FakeCardDatabase:
 	func hero_power(id: String) -> Variant:
 		return records.get(id)
 
+	## F4 `base(collectible)` (story 010): empty here, so row 20's Discover
+	## is `empty_pool` and raises no Choice.
+	func collectible_pool(_hero_set: String) -> Array:
+		return []
+
+
+## The hero set the resolver is built with (story 010: F4's collectible pool).
+const HERO_SET: String = "knowledge"
 
 var _engine: RulesEngine = null
 var _log: TestEventLog = null
@@ -127,7 +135,7 @@ func _main_phase(hand: Array) -> RulesEngine:
 	var db: FakeCardDatabase = _db()
 	_log = TestEventLog.new()
 	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(), _log)
-	_engine = RulesEngine.new(db, MatchFactory.make_rules_config(), EffectResolver.new(db, _effects_config()))
+	_engine = RulesEngine.new(db, MatchFactory.make_rules_config(), EffectResolver.new(db, _effects_config(), HERO_SET))
 	_engine.start(config)
 	assert_bool(_engine.submit(_engine.legal_commands()[0]).accepted).is_true()
 	var state: MatchState = _engine.state()
@@ -176,6 +184,12 @@ func _entry_count(op: Dictionary) -> int:
 			for inner: Dictionary in op.get("ops", []):
 				per += _entry_count(inner)
 			return per * int(op.get("times", 1))
+		"choose_one":
+			# story 010: its own entry, then option 0's ops inline (the loop picks 0)
+			var picked: int = 1
+			for inner: Dictionary in (op.get("options", [{}])[0] as Dictionary).get("ops", []):
+				picked += _entry_count(inner)
+			return picked
 	return 1
 
 
@@ -415,6 +429,9 @@ func test_every_play_row_of_the_fixture_emits_one_well_formed_effect_resolved() 
 			continue
 		var before: int = _last_seq()
 		_submit(commands.back())
+		# A Choose One / Discover host (row 33, story 010) resolves on `choose`.
+		while _engine.phase() == MatchState.PHASE_CHOICE:
+			_submit(_engine.legal_commands()[0])
 
 		# Assert — one effect_resolved per play effect, each well formed and
 		# caused by the command's own event.
