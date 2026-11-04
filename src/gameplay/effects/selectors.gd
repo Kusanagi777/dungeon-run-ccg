@@ -84,6 +84,12 @@ const NEIGHBOUR_SELECTORS: Array[String] = ["adjacent", "left_neighbour", "right
 const OF_SELF: String = "self"
 const OF_TARGET: String = "target"
 const OF_TRIGGER_SUBJECT: String = "trigger_subject"
+## Run-context flag set by `EffectResolver.recompute_auras()` (story 012): the
+## engine has just stripped every aura enchantment, so a `health ≤ 0` read now
+## is the transient stripped state, not a death — the death check already ran
+## before the recompute (match-rules C10). Under it a pool leaves out only
+## `pending_destroy` characters ([method _left_out]).
+const RUN_AURA_RECOMPUTE: String = "aura_recompute"
 
 
 ## The selector name of [param selector] — a bare string or `{selector, …}`
@@ -194,7 +200,7 @@ static func pool(resolver: EffectResolver, selector: Variant, run: Dictionary) -
 			if bool(shape[1]) and _side_wanted(str(shape[2]), side, owner) and state.players[side].hero != null:
 				records.append(state.players[side].hero)
 		for record: Dictionary in records:
-			if not is_dying(engine, record) and matches(resolver, record, filter, owner, source_id, run):
+			if not _left_out(engine, record, run) and matches(resolver, record, filter, owner, source_id, run):
 				out.append(int(record.entity_id))
 		return out
 	if NEIGHBOUR_SELECTORS.has(name):
@@ -275,7 +281,7 @@ static func _neighbours(resolver: EffectResolver, name: String, selector: Varian
 				picks.append(index + 1)
 			for pick: int in picks:
 				var minion: Dictionary = board[pick]
-				if not is_dying(engine, minion) and matches(resolver, minion, filter, str(run.owner), int(run.get("source_id", -1)), run):
+				if not _left_out(engine, minion, run) and matches(resolver, minion, filter, str(run.owner), int(run.get("source_id", -1)), run):
 					out.append(int(minion.entity_id))
 			return out
 	return out
@@ -363,6 +369,16 @@ static func other_side(side: String) -> String:
 ## `health` unchanged). Example: `EffectSelectors.is_dying(engine, minion)`.
 static func is_dying(engine: RulesEngine, character: Dictionary) -> bool:
 	return engine.health(character) <= 0 or bool(character.get("pending_destroy", false))
+
+
+## Whether a pool leaves [param character] out: a dying one ([method
+## is_dying]) — or, during an aura recompute ([constant RUN_AURA_RECOMPUTE] in
+## [param run]), only a `pending_destroy` one: its health is read with every
+## aura stripped, so a minion alive only through an aura is still a recipient.
+static func _left_out(engine: RulesEngine, character: Dictionary, run: Dictionary) -> bool:
+	if bool(run.get(RUN_AURA_RECOMPUTE, false)):
+		return bool(character.get("pending_destroy", false))
+	return is_dying(engine, character)
 
 
 ## True when [param record] holds [param keyword] in its own `keywords` or

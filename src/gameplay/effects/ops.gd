@@ -95,6 +95,13 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 ## (`cost` only)"; story 011, row 25 Insight). Without it the instance is
 ## skipped like any other illegal target.
 const CARD_INSTANCE_PARAMS: Dictionary[String, String] = {"buff": "cost"}
+## The static op `recompute_auras()` applies (C5 `aura`, C7; story 012).
+const OP_AURA: String = "aura"
+## The kinds an `aura` op accepts (C5 Legal targets: "as for `buff`"); a card
+## instance only with `cost` ([method apply_aura]).
+const AURA_KINDS: Array[String] = ["minion", "hero", "weapon", EffectSelectors.KIND_CARD]
+## C2 `scope.zone` value of a hand-cost aura (row 24): its default targets.
+const ZONE_HAND: String = "hand"
 
 var _table: Dictionary[String, Callable] = {}
 
@@ -313,6 +320,58 @@ func _op_buff(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dicti
 	return _per_target(engine, op, run_ctx, values, func(id: int) -> String:
 		engine.apply_enchantment(id, enchantment)
 		return APPLIED)
+
+
+## C5 `aura` / C7 / F2 (story 012), run by `EffectResolver.recompute_auras()`
+## only — never from an effect pass (the validator allows `aura` only under the
+## static `aura` / `passive_hand` triggers). For each `aura` op of the effect
+## [param run_ctx]`.effect`: its value params (`attack`, `health`, `cost`)
+## evaluated now ([method EffectValues.eval]), its targets the op's `targets`,
+## else the effect's — `hand` when the effect's scope is `zone: hand` and it
+## names none — resolved afresh against the live board, or only
+## [param self_target] for a `passive_hand` host (the card instance itself).
+## Each target, once (one source never applies one aura twice to a target),
+## gets `apply_enchantment(target, {attack_delta, health_delta, cost_delta?,
+## keywords_added, source_entity_id, is_aura: true})`; a card instance only
+## when the op has `cost` (C5: hand cards take `cost` only), a target of a kind
+## the op does not accept never. Records no `ops[]` entry and emits nothing
+## itself: an aura is not an effect pass (the engine's one `auras_recomputed`
+## reports the net change). Example: `ops.apply_aura(engine, run, null)`.
+func apply_aura(engine: RulesEngine, run_ctx: Dictionary, self_target: Variant) -> void:
+	var state: MatchState = engine.state()
+	var effect: Dictionary = run_ctx.effect
+	var scope: Variant = effect.get("scope")
+	var default_targets: Variant = effect.get("targets")
+	if default_targets == null and scope is Dictionary and str((scope as Dictionary).get("zone", "")) == ZONE_HAND:
+		default_targets = ZONE_HAND
+	for op: Variant in effect.get("ops", []):
+		if not op is Dictionary or str((op as Dictionary).get("op", "")) != OP_AURA:
+			continue
+		var aura: Dictionary = op
+		var enchantment: Dictionary = {
+			"attack_delta": EffectValues.eval(aura.get("attack", 0), run_ctx),
+			"health_delta": EffectValues.eval(aura.get("health", 0), run_ctx),
+			"keywords_added": (aura.get("keywords", []) as Array).duplicate(),
+			"source_entity_id": run_ctx.source_id,
+			"is_aura": true,
+		}
+		if aura.has("cost"):
+			enchantment["cost_delta"] = EffectValues.eval(aura.cost, run_ctx)
+		var targets: Array[int] = []
+		if self_target != null:
+			targets.append(int(self_target))
+		else:
+			targets = EffectSelectors.entities(state, aura.get("targets", default_targets), run_ctx)
+		var seen: Dictionary = {}
+		for id: int in targets:
+			if seen.has(id):
+				continue
+			seen[id] = true
+			var kind: String = EffectSelectors.kind_of(state, id)
+			if kind == "" and aura.has("cost") and EffectSelectors.is_card_instance(state, id):
+				kind = EffectSelectors.KIND_CARD
+			if (AURA_KINDS as Array).has(kind):
+				engine.apply_enchantment(id, enchantment)
 
 
 func _op_destroy(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
