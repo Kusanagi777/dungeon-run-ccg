@@ -197,7 +197,7 @@ static func _effects_adapter(host_kind: StringName, host_id: String, effects: Va
 	if not bodies.get("card_effects") is Dictionary:
 		return [{"code": ValidationReport.E_DELEGATED, "host_id": host_id,
 			"message": "not checked: the card_effects config failed stage 7a, so the effect caps are unknown (owner: Card Effects)"}]
-	return EffectValidator.validate_effects(host_kind, host_id, effects, db, bodies["card_effects"])
+	return EffectValidator.validate_effects(host_kind, host_id, effects, db, EffectValidator.stage7_caps(bodies))
 
 
 ## The stage-7b `unlock` adapter: one `{host_kind, host_id, unlock}` def per
