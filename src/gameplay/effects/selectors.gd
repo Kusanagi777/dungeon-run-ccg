@@ -30,6 +30,108 @@ const KIND_ANY: String = "any"
 const SIDE_FRIENDLY: String = "friendly"
 const SIDE_ENEMY: String = "enemy"
 const SIDE_ANY: String = "any"
+## What [method kind_of] calls a weapon in play (weapons carry no `kind` field).
+const KIND_WEAPON: String = "weapon"
+## The reference and side selectors one effect pass resolves (C3; story 006).
+const SELECTOR_SELF: String = "self"
+const SELECTOR_CHOSEN: String = "chosen"
+const SELECTOR_OWNER_HERO: String = "owner_hero"
+const SELECTOR_ENEMY_HERO: String = "enemy_hero"
+const SELECTOR_OWNER_WEAPON: String = "owner_weapon"
+const SELECTOR_ENEMY_WEAPON: String = "enemy_weapon"
+const SELECTOR_OWNER: String = "owner"
+const SELECTOR_OPPONENT: String = "opponent"
+
+
+## The selector name of [param selector] — a bare string or `{selector, …}`
+## (C3) — or "" when there is none.
+## Example: `EffectSelectors.selector_name({"selector": "chosen"}) == "chosen"`.
+static func selector_name(selector: Variant) -> String:
+	if selector is String or selector is StringName:
+		return str(selector)
+	if selector is Dictionary:
+		return str((selector as Dictionary).get("selector", ""))
+	return ""
+
+
+## The entity ids [param selector] yields for one effect pass, in canonical
+## order (C3). [param run] carries `owner` (side), `source_id` and
+## `target_id` (the command's `chosen`, or null). Story 006 resolves the
+## references and the one-entity selectors:
+## - `self` → the source, `chosen` → `target_id` — explicit references, so a
+##   **dying** entity is still yielded (C3, DSL spike finding 5); an entity no
+##   longer in play is not;
+## - `owner_hero` / `enemy_hero` → that hero; `owner_weapon` /
+##   `enemy_weapon` → that weapon, or nothing.
+## A reference's `filter` is not re-applied (for `chosen` it is the legality
+## spec the engine already checked at command time, C1 rule 1).
+## TODO(stories 007–009): area, random, neighbour, hand/deck and
+## `trigger_*` selectors — until then they yield nothing (`no_target`).
+## Example: `EffectSelectors.entities(state, "enemy_hero", {"owner": "player", "source_id": 7, "target_id": null})`.
+static func entities(state: MatchState, selector: Variant, run: Dictionary) -> Array[int]:
+	var out: Array[int] = []
+	var owner: String = str(run.owner)
+	var id: Variant = null
+	match selector_name(selector):
+		SELECTOR_SELF:
+			id = run.source_id
+		SELECTOR_CHOSEN:
+			id = run.target_id
+		SELECTOR_OWNER_HERO:
+			id = _entity_id(state.players[owner].hero)
+		SELECTOR_ENEMY_HERO:
+			id = _entity_id(state.players[other_side(owner)].hero)
+		SELECTOR_OWNER_WEAPON:
+			id = _entity_id(state.players[owner].weapon)
+		SELECTOR_ENEMY_WEAPON:
+			id = _entity_id(state.players[other_side(owner)].weapon)
+	if id != null and kind_of(state, int(id)) != "":
+		out.append(int(id))
+	return out
+
+
+## The side a side-scoped op acts for (C3 `owner` / `opponent`, C5 `side`
+## params): [param which] `opponent` is the other side of [param owner];
+## anything else (`owner`, absent) is [param owner].
+## Example: `EffectSelectors.side_of("opponent", "player") == "boss"`.
+static func side_of(which: Variant, owner: String) -> String:
+	return other_side(owner) if str(which) == SELECTOR_OPPONENT else owner
+
+
+## True for the side selectors `owner` / `opponent` (C3).
+static func is_side_selector(selector: Variant) -> bool:
+	var name: String = selector_name(selector)
+	return name == SELECTOR_OWNER or name == SELECTOR_OPPONENT
+
+
+## What [param entity_id] is in play: `minion` (on a board), `hero`,
+## `weapon` (equipped), or "" when nothing in play has that id (a card
+## instance in hand, deck or `resolving`, or an entity that left play).
+## Example: `if EffectSelectors.kind_of(state, id) == "minion": …`.
+static func kind_of(state: MatchState, entity_id: int) -> String:
+	var found: Dictionary = find(state, entity_id)
+	if found.is_empty():
+		return ""
+	if found.has("kind"):
+		return str(found.kind)
+	return KIND_WEAPON
+
+
+## The in-play record (hero, board minion or equipped weapon) of
+## [param entity_id], or `{}`. Read it, never write it (ADR-0007 gate G7).
+static func find(state: MatchState, entity_id: int) -> Dictionary:
+	for character: Dictionary in characters(state):
+		if int(character.entity_id) == entity_id:
+			return character
+	for side: String in MatchRecords.SIDES:
+		var weapon: Variant = state.players[side].weapon
+		if weapon != null and int(weapon.entity_id) == entity_id:
+			return weapon
+	return {}
+
+
+static func _entity_id(record: Variant) -> Variant:
+	return int(record.entity_id) if record is Dictionary else null
 
 
 ## Every character in play in canonical order: player board left to right,

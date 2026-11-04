@@ -280,7 +280,7 @@ stories:
     name: "Play triggers, chosen targeting and the one-pass contract"
     file: "production/epics/card-effects/story-006-play-triggers-one-pass.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 1
     lane: 3
@@ -288,8 +288,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "stretch; only if MR-010 merged at M2"
-    completed: ""
+    note: "stretch; only if MR-010 merged at M2. Done: play points run now (EffectOps, 12 ops); conditions beyond all/any/not/is_owner_turn, values and F1 are story 007"
+    completed: "2026-11-04"
   # Carryover from sprint 2
   - id: "boot-composition-root-006"
     name: "main.tscn composition entry and the RunShell stub"
