@@ -521,6 +521,8 @@ func submit(command: Dictionary) -> Dictionary:
 			_do_mulligan(command.keep_mask)
 		MatchRecords.CMD_PLAY_CARD:
 			_do_play_card(command)
+		MatchRecords.CMD_ATTACK:
+			_do_attack(command)
 		MatchRecords.CMD_USE_HERO_POWER:
 			_do_hero_power(command)
 		MatchRecords.CMD_END_TURN:
@@ -586,8 +588,9 @@ func run_action(initial_step: Callable) -> void:
 ## — a `required` card lists one command per legal target (a spell or power
 ## with none is absent; a minion or weapon whose Battlecry has none is listed
 ## with `target_id = null`), `optional` lists `null` then each legal target,
-## `none` lists `null` — then the hero power the same way, then `end_turn`
-## (story 012 adds attacks; `concede` is not listed, C2). `[]` in any other
+## `none` lists `null` — then each attacker × each defender F3 accepts
+## (story 012, [method can_attack]), then the hero power the same way as a
+## card, then `end_turn` (`concede` is not listed, C2). `[]` in any other
 ## phase. Legality is derived from the same checks [method submit] runs,
 ## never by trial-submitting; `targeting_spec` is the resolver's memo.
 ## [codeblock]
@@ -606,6 +609,7 @@ func legal_commands() -> Array:
 			var player: Dictionary = _state.players[side]
 			for index: int in player.hand.size():
 				_append_play_commands(legal, side, index)
+			_append_attack_commands(legal, side)
 			if not player.hero_power.used_this_turn and hero_power_cost(side) <= int(player.mana_current):
 				var power_id: String = str(player.hero_power.def_id)
 				for target: Variant in _listed_targets(power_id, _power_source(side), true):
@@ -1490,18 +1494,238 @@ func has_windfury(character: Dictionary) -> bool:
 	return weapon != null and weapon.keywords.has(MatchRecords.KEYWORD_WINDFURY)
 
 
-## C1: `max_attacks = clamp(n, 0, MAX_ATTACKS_CAP)` with
-## `n = MAX_ATTACKS_WINDFURY if has_windfury else 1`. The `modify_max_attacks`
-## hook fold (ADR-0005) is applied to `n` before the single clamp once the
-## engine wires its hook sites (match-rules story 012).
+## C1 / F3: `max_attacks = clampi(hooks.fold(&"modify_max_attacks",
+## controller, n, {who}), 0, MAX_ATTACKS_CAP)` with `n = MAX_ATTACKS_WINDFURY
+## if has_windfury else 1` — the one clamp, after the whole fold (ADR-0005
+## rule 4); `who` is the character's entity id. Derived live on every call, so
+## gaining or losing Windfury mid-turn changes it at once. Without a loaded
+## state or registry the fold is skipped.
 func max_attacks(character: Dictionary) -> int:
 	var n: int = rule("max_attacks_windfury") if has_windfury(character) else ATTACKS_PER_TURN
+	if _state != null and _state.hooks != null:
+		_max_attacks_ctx.who = int(character.entity_id)
+		n = _state.hooks.fold(&"modify_max_attacks", StringName(str(character.controller)), n, _max_attacks_ctx)
 	return clampi(n, 0, rule("max_attacks_cap"))
 
 
 ## C1: `attacks_remaining = max_attacks − attacks_used`.
 func attacks_remaining(character: Dictionary) -> int:
 	return max_attacks(character) - int(character.attacks_used)
+
+
+# --- C8 / F3: attacking (stories 012–014) -------------------------------------
+
+## The F3 rejection codes of the C2 closed set (story 012).
+const R_TARGET_STEALTHED: String = "TARGET_STEALTHED"
+const R_MUST_ATTACK_TAUNT: String = "MUST_ATTACK_TAUNT"
+const R_CANNOT_ATTACK: String = "CANNOT_ATTACK"
+const R_ATTACKER_FROZEN: String = "ATTACKER_FROZEN"
+const R_SUMMONING_SICK: String = "SUMMONING_SICK"
+const R_RUSH_CANNOT_HIT_HERO: String = "RUSH_CANNOT_HIT_HERO"
+
+## The `{who}` context of the `modify_max_attacks` fold (ADR-0005), reused on
+## every evaluation — the fold allocates nothing, and neither does the
+## engine per call. `who` is the character's entity id.
+var _max_attacks_ctx: Dictionary = {"who": 0}
+
+
+## F3 `can_attack(A, D)` for the character [param attacker_id] attacking
+## [param target_id]: `{ok: bool, code: String}` — `code` is "" when ok, else
+## the rejection of the first false term, left to right:
+## `phase == Main(A.controller)` (`WRONG_PHASE` / `NOT_YOUR_TURN`) →
+## `attack(A) > 0 ∧ attacks_remaining(A) > 0` (`CANNOT_ATTACK`; an attacker
+## that is no character in play cannot attack either) → `¬A.frozen`
+## (`ATTACKER_FROZEN`) → `A is hero ∨ ¬A.summoning_sick ∨ charge(A) ∨ (rush(A)
+## ∧ D is minion)` (`RUSH_CANNOT_HIT_HERO` when A has Rush and D is a hero, else
+## `SUMMONING_SICK`) → `D.controller ≠ A.controller ∧ D in play`
+## (`ILLEGAL_TARGET`) → `¬(D is minion ∧ stealth(D))` (`TARGET_STEALTHED`) →
+## `taunters(D.controller) = ∅ ∨ D ∈ taunters` (`MUST_ATTACK_TAUNT`), where
+## `taunters(side) = {m ∈ board : taunt(m) ∧ ¬stealth(m)}`. Keywords are read
+## live — definition plus enchantment `keywords_added` — so `add_keyword` /
+## `remove_keyword` take effect at the next call.
+## [codeblock]
+## var check: Dictionary = engine.can_attack(minion_id, boss_hero_id)
+## if not check.ok: show(check.code)
+## [/codeblock]
+func can_attack(attacker_id: Variant, target_id: Variant) -> Dictionary:
+	var attacker: Dictionary = _character(int(attacker_id)) if _is_whole(attacker_id) else {}
+	var target: Dictionary = _character(int(target_id)) if _is_whole(target_id) else {}
+	var taunters: Array[int] = []
+	if not target.is_empty():
+		taunters = _taunters(str(target.controller))
+	var code: String = _attack_rejection(attacker, target, taunters)
+	return {"ok": code == "", "code": code}
+
+
+## The F3 conjunction over records ([param attacker] / [param target] `{}`
+## when not in play), with [param taunters] of the target's side computed
+## once by the caller ([method legal_commands] evaluates every pair).
+func _attack_rejection(attacker: Dictionary, target: Dictionary, taunters: Array[int]) -> String:
+	if _state.phase != MatchState.PHASE_MAIN:
+		return R_WRONG_PHASE
+	if attacker.is_empty():
+		return R_CANNOT_ATTACK
+	if str(attacker.controller) != str(_state.active_side):
+		return R_NOT_YOUR_TURN
+	if attack(attacker) <= 0 or attacks_remaining(attacker) <= 0:
+		return R_CANNOT_ATTACK
+	if bool(attacker.frozen):
+		return R_ATTACKER_FROZEN
+	var target_kind: String = str(target.get("kind", ""))
+	if attacker.kind == MatchRecords.KIND_MINION and bool(attacker.summoning_sick) and not _has_keyword(attacker, MatchRecords.KEYWORD_CHARGE):
+		var rush: bool = _has_keyword(attacker, MatchRecords.KEYWORD_RUSH)
+		if not (rush and target_kind == MatchRecords.KIND_MINION):
+			return R_RUSH_CANNOT_HIT_HERO if rush and target_kind == MatchRecords.KIND_HERO else R_SUMMONING_SICK
+	if target.is_empty() or str(target.controller) == str(attacker.controller):
+		return R_ILLEGAL_TARGET
+	if target_kind == MatchRecords.KIND_MINION and _has_keyword(target, MatchRecords.KEYWORD_STEALTH):
+		return R_TARGET_STEALTHED
+	if not taunters.is_empty() and not taunters.has(int(target.entity_id)):
+		return R_MUST_ATTACK_TAUNT
+	return ""
+
+
+## F3 `taunters(side)`: the entity ids of [param side]'s board minions with
+## Taunt and without Stealth, in board order.
+func _taunters(side: String) -> Array[int]:
+	var ids: Array[int] = []
+	for minion: Dictionary in _state.players[side].board:
+		if _has_keyword(minion, MatchRecords.KEYWORD_TAUNT) and not _has_keyword(minion, MatchRecords.KEYWORD_STEALTH):
+			ids.append(int(minion.entity_id))
+	return ids
+
+
+## C2 `attack` validation after the phase guard: F3 on the command's
+## `attacker_id` / `target_id`.
+func _validate_attack(command: Dictionary) -> String:
+	return str(can_attack(command.get("attacker_id"), command.get("target_id")).code)
+
+
+## C2 `legal_commands()` attack expansion: for each of [param side]'s
+## characters with `attacks_remaining > 0` (hero, then board left to right),
+## each enemy character (hero, then board) for which F3 holds. `taunters` is
+## computed once per call, not per pair.
+func _append_attack_commands(legal: Array, side: String) -> void:
+	var enemy: String = MatchRecords.SIDE_BOSS if side == MatchRecords.SIDE_PLAYER else MatchRecords.SIDE_PLAYER
+	var taunters: Array[int] = _taunters(enemy)
+	var defenders: Array[Dictionary] = _characters_of(enemy)
+	for attacker: Dictionary in _characters_of(side):
+		if attacks_remaining(attacker) <= 0:
+			continue
+		for defender: Dictionary in defenders:
+			if _attack_rejection(attacker, defender, taunters) == "":
+				legal.append(MatchRecords.attack(side, int(attacker.entity_id), int(defender.entity_id)))
+
+
+## The attack's stage kinds (story 016's staged model, sprint 4 lane 1
+## merge): C8 steps 1, 2, 3–6 and 7, run by [method _attack_stage] over the
+## frame `{side, attacker, defender, cause}` (`cause` the `attack_declared`
+## seq), so a Discover raised by an `on_attack` trigger parks the rest of the
+## attack and `choose` runs it.
+const STAGE_ATTACK_DECLARE: String = "attack_declare"
+const STAGE_ATTACK_POINT: String = "attack_point"
+const STAGE_ATTACK_DAMAGE: String = "attack_damage"
+const STAGE_ATTACK_RESOLVED: String = "attack_resolved"
+
+
+## An accepted `attack` (C8 resolution, story 013) as four stages over one
+## frame, each numbered step its own engine step with its C10 loop:
+## 1. `attack_declared {attacker, defender}`; a Stealth attacker loses it
+##    (`stealth_lost`).
+## 2. Trigger point `on_attack {side, candidates, attacker, defender, source:
+##    attacker, subject: defender}` under `attack_declared`; each response is
+##    a queued step with the full loop.
+## 3. Re-check: A or D no longer in play (died, bounced, transformed) →
+##    `attack_cancelled {attacker, defender}`, A's `attacks_used += 1` when A
+##    is still there; legality is **not** re-evaluated (a Taunt gained or lost
+##    in step 2 changes nothing).
+## 4.–5. [method _attack_damage_step]: both hits in one step, then
+##    `attacks_used += 1`.
+## 6. The C10 loop of that step (`on_damage` triggers, deaths, auras; a
+##    weapon at durability ≤ 0 breaks there).
+## 7. `attack_resolved {attacker, defender}`; [method submit] then runs
+##    `win_loss_check()`.
+## A Discover raised in step 2 parks steps 3–7 (see [method discover]).
+func _do_attack(command: Dictionary) -> void:
+	var attacker_id: int = int(command.attacker_id)
+	var side: String = str(_character(attacker_id).controller)
+	_frame = {"side": side, "attacker": attacker_id, "defender": int(command.target_id), "cause": 0}
+	for kind: String in [STAGE_ATTACK_DECLARE, STAGE_ATTACK_POINT, STAGE_ATTACK_DAMAGE, STAGE_ATTACK_RESOLVED]:
+		_stage({"stage": kind, "side": side})
+
+
+## Executes one attack stage of [method _do_attack] over [member _frame].
+func _attack_stage(stage: Dictionary) -> void:
+	var attacker_id: int = int(_frame.attacker)
+	var defender_id: int = int(_frame.defender)
+	var payload: Dictionary = {"attacker": attacker_id, "defender": defender_id}
+	match str(stage.stage):
+		STAGE_ATTACK_DECLARE:
+			_run_step(_declare_attack_step.bind(payload, _frame))
+		STAGE_ATTACK_POINT:
+			var ctx: Dictionary = {
+				"side": str(stage.side), "candidates": _candidates_in_order(), "attacker": attacker_id,
+				"defender": defender_id, "source": attacker_id, "subject": defender_id,
+			}
+			_run_step(_resolve_step.bind(&"on_attack", ctx), int(_frame.cause))
+		STAGE_ATTACK_DAMAGE:
+			if _character(attacker_id).is_empty() or _character(defender_id).is_empty():
+				_run_step(_cancel_attack_step.bind(payload))
+			else:
+				_run_step(_attack_damage_step.bind(attacker_id, defender_id))
+		STAGE_ATTACK_RESOLVED:
+			emit(&"attack_resolved", payload)
+
+
+## C8 step 1: `attack_declared`; its `seq` goes into [param declared]`.cause`
+## (the `on_attack` step runs under it). An attacker with Stealth loses it
+## now (story 014, C12): the keyword leaves its definition set and every
+## granting enchantment, and `stealth_lost {entity_id}` is emitted — the
+## combat event, not `keyword_removed` (C15) — so from here on it is a legal
+## enemy target and its Taunt binds.
+func _declare_attack_step(payload: Dictionary, declared: Dictionary) -> void:
+	declared.cause = emit(&"attack_declared", payload)
+	var attacker: Dictionary = _character(int(payload.attacker))
+	if _halted() or not _has_keyword(attacker, MatchRecords.KEYWORD_STEALTH):
+		return
+	_strip_keyword(attacker, MatchRecords.KEYWORD_STEALTH)
+	emit(&"stealth_lost", {"entity_id": int(payload.attacker)})
+
+
+## C8 step 3, the attack cancelled: `attack_cancelled`, and the swing still
+## counts for an attacker that is still in play.
+func _cancel_attack_step(payload: Dictionary) -> void:
+	emit(&"attack_cancelled", payload)
+	var attacker: Dictionary = _character(int(payload.attacker))
+	if not attacker.is_empty():
+		attacker.attacks_used = int(attacker.attacks_used) + 1
+
+
+## C8 steps 4–5 as one step (DD-M11): `a_atk = attack(A)` and `d_atk =
+## attack(D)` are read once, before either hit (the snapshot); then
+## `apply_damage(D, a_atk, source)` and — only when `d_atk > 0` and D is a
+## **minion** — `apply_damage(A, d_atk, D)`: a defending hero never deals
+## damage back, weapon or not (DD-X11). No death check between the hits; F2
+## applies Divine Shield, Poisonous and Lifesteal inside each. A hero attacking
+## with a weapon hits with the weapon as the source (its keywords count, and
+## `damage_dealt_by_card` attributes to the weapon's `def_id`) and the weapon
+## loses 1 durability in this step. Then `A.attacks_used += 1`.
+func _attack_damage_step(attacker_id: int, defender_id: int) -> void:
+	var attacker: Dictionary = _character(attacker_id)
+	var defender: Dictionary = _character(defender_id)
+	var a_atk: int = attack(attacker)
+	var d_atk: int = attack(defender)
+	var defender_is_minion: bool = defender.kind == MatchRecords.KIND_MINION
+	var weapon: Variant = _weapon_of(attacker)
+	var source: int = int(weapon.entity_id) if weapon != null else attacker_id
+	@warning_ignore("return_value_discarded")
+	apply_damage(defender_id, a_atk, source)
+	if d_atk > 0 and defender_is_minion:
+		@warning_ignore("return_value_discarded")
+		apply_damage(attacker_id, d_atk, defender_id)
+	if weapon != null:
+		modify_durability(int(weapon.entity_id), -1)
+	attacker.attacks_used = int(attacker.attacks_used) + 1
 
 
 ## A value copy (`duplicate(true)`) of the record with [param entity_id] —
@@ -1590,6 +1814,8 @@ func _validate(type: String, command: Dictionary) -> String:
 			return _validate_play_card(command)
 		MatchRecords.CMD_USE_HERO_POWER:
 			return _validate_hero_power(command)
+		MatchRecords.CMD_ATTACK:
+			return _validate_attack(command)
 		MatchRecords.CMD_END_TURN, MatchRecords.CMD_CONCEDE:
 			return ""
 		MatchRecords.CMD_CHOOSE:
@@ -2283,6 +2509,8 @@ func _run_stage(stage: Dictionary) -> void:
 			_fire_observers(StringName(str(stage.point)), side, int(_frame.id), str(_frame.def_id), cause, instance_id)
 		STAGE_SPELL_DONE:
 			_spell_done(stage)
+		STAGE_ATTACK_DECLARE, STAGE_ATTACK_POINT, STAGE_ATTACK_DAMAGE, STAGE_ATTACK_RESOLVED:
+			_attack_stage(stage)
 
 
 ## The acceptance step of a play: the hand card is found by the frame's

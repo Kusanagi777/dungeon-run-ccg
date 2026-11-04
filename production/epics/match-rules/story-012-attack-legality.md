@@ -1,12 +1,12 @@
 # Story 012: Attack legality predicate
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -65,14 +65,9 @@ F3 is a conjunction evaluated left to right and the first false term names the r
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (`can_attack`, `max_attacks` fold + clamp, `attack` handler validation, `legal_commands` attack expansion)
-- `tests/unit/match_rules/match_rules_attack_legality_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` (`can_attack` F3 + `_attack_rejection` / `_taunters`, `max_attacks` `modify_max_attacks` fold then one clamp, `attack` validation `_validate_attack`, `_append_attack_commands` in `legal_commands()`, an acceptance-only `_do_attack` step for story 013 to replace; the six F3 `R_*` codes)
+- `src/gameplay/match/match_records.gd` (`MatchRecords.attack` command builder; `KEYWORD_TAUNT` / `STEALTH` / `CHARGE` / `RUSH`)
+- `tests/unit/match_rules/match_rules_attack_legality_test.gd` (new, 16 tests)
 
 ## QA Test Cases
 
@@ -88,7 +83,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_attack_legality_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (16 test functions)
 
 ---
 
@@ -96,3 +91,23 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-010-play-card-and-hero-power.md`
 - Unlocks: `production/epics/match-rules/story-013-attack-resolution.md`
+
+## Readiness
+**2026-11-04 — READY** (`/story-readiness` read by hand, sprint 4 lane 1). Design: C8 / F3 / C12 rows cited, criteria self-contained and testable. Architecture: ADR-0007, 0005, 0001 Accepted; TR-match-rules-002 / 006 active; Manifest Version 2026-11-03 = current. Scope: estimate M, Out of Scope stated, dependency story 010 Complete. No open markers; no asset references. DoD: 3 ACs (balanced minimum 2), Type Logic, Test Evidence path given, perf budget (`legal_commands()` ≤ 2 ms) noted. QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 02:45:59 UTC, ended 02:53:11 UTC)
+**Criteria**: 3/3 passing — AC-12 (`test_minion_played_this_turn_without_charge_or_rush_is_summoning_sick`, `test_rush_minion_cannot_hit_the_hero_but_may_hit_a_minion`, `test_charge_minion_may_hit_any_target_and_supersedes_rush`, `test_summoning_sickness_is_gone_on_the_next_own_turn`), AC-17 (`test_a_taunt_minion_must_be_attacked_before_anything_else`, `test_a_stealth_taunt_is_not_a_taunter_and_cannot_be_attacked`, `test_a_friendly_or_not_in_play_target_is_an_illegal_target`, `test_an_attacker_with_attack_zero_or_no_attacks_left_cannot_attack`, `test_a_max_attacks_hook_set_two_lets_a_non_windfury_minion_attack_twice`, `test_the_max_attacks_fold_is_clamped_once_to_zero_and_the_cap` — includes a `delta −2, +2` chain that is 1 only without a clamp between entries), AC-20 (`test_a_frozen_hero_with_a_weapon_is_attacker_frozen_and_keeps_its_durability`, `test_legal_commands_lists_exactly_the_pairs_can_attack_accepts_for_the_active_side`, `test_legal_commands_under_a_taunt_lists_only_the_taunt_as_defender`), plus `test_attack_rejections_follow_the_f3_term_order`, `test_keywords_from_enchantments_and_remove_keyword_are_read_at_the_next_evaluation`, `test_windfury_from_a_keyword_an_enchantment_or_the_hero_weapon_gives_two_attacks`. Watched fail: 15 of 16 against a `can_attack` stub that rejected everything (the Windfury `max_attacks` test passed, because `has_windfury` was already in place from story 001, so it guards existing behaviour).
+**Decisions recorded**:
+- `can_attack(attacker_id, target_id) -> {ok, code}` is public (Boss AI and the UI can ask about one pair); `legal_commands()` calls the record-level `_attack_rejection` with `taunters` computed once per call.
+- `modify_max_attacks` fold ctx is `{who: <entity id>}`, one reused Dictionary (ADR-0005 shows `{who: character}`; ids match the `modify_damage` ctx and card-effects C2 `who` scopes).
+- Attack expansion order in `legal_commands()`: plays, then attacks (attacker hero → board left to right × defender hero → board), then the hero power, then `end_turn` (C2 row order).
+**Deviations** (advisory):
+- F3 has no term for an `attacker_id` that names no character in play; the engine answers `CANNOT_ATTACK`. An enemy character named as attacker fails F3's first term (`NOT_YOUR_TURN`).
+- Rush with a target that is neither a minion nor a hero (unknown id) is `SUMMONING_SICK` (the literal false term; `RUSH_CANNOT_HIT_HERO` only when the target is a hero).
+- `match_records.gd` was changed although the story's Files list named only `rules_engine.gd`: the `attack` command builder and the four combat keyword constants (story 010 set the precedent for builders there).
+- Until story 013, an accepted attack is one step: `attack_declared`, `attacks_used += 1`, `attack_resolved` (the story's allowed stub).
+- The `_validate` comment `TODO(stories 012, 016)` was left untouched on purpose, to keep lane 2's MR-016 merge small; it is stale for 012.
+**Test Evidence**: `tests/unit/match_rules/match_rules_attack_legality_test.gd` (16 tests); full suite 1094 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — headless rules code; no scene, node or screen renders an attack yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

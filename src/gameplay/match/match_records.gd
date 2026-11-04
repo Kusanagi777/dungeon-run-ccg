@@ -39,6 +39,11 @@ const KEYWORD_WINDFURY: String = "windfury"
 const KEYWORD_DIVINE_SHIELD: String = "divine_shield"
 const KEYWORD_POISONOUS: String = "poisonous"
 const KEYWORD_LIFESTEAL: String = "lifesteal"
+## The combat keywords F3 `can_attack` reads (match-rules story 012).
+const KEYWORD_TAUNT: String = "taunt"
+const KEYWORD_STEALTH: String = "stealth"
+const KEYWORD_CHARGE: String = "charge"
+const KEYWORD_RUSH: String = "rush"
 ## `add_card_to_deck` positions (match-rules Interactions): index 0, the end,
 ## or one `rng_match` index.
 const POSITION_TOP: String = "top"
@@ -121,6 +126,16 @@ static func play_card(issuer: String, hand_index: int, position: Variant = null,
 ## (null for none). C7 validates it.
 static func use_hero_power(issuer: String, target_id: Variant = null) -> Dictionary:
 	return command(CMD_USE_HERO_POWER, issuer, {"target_id": target_id})
+
+
+## The C2 `attack` command: [param issuer]'s character [param attacker_id]
+## attacks the character [param target_id] (match-rules story 012). F3
+## `can_attack` validates it.
+## [codeblock]
+## engine.submit(MatchRecords.attack("player", minion_id, boss_hero_id))
+## [/codeblock]
+static func attack(issuer: String, attacker_id: Variant, target_id: Variant) -> Dictionary:
+	return command(CMD_ATTACK, issuer, {"attacker_id": attacker_id, "target_id": target_id})
 
 
 ## The C2 `choose` command from [param issuer] (the side the pending

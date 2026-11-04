@@ -1,12 +1,12 @@
 # Story 014: Windfury, Stealth and Divine Shield in combat
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -65,14 +65,8 @@ Three keyword rules that are only visible in combat: Windfury is a derived `max_
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (Stealth loss at declaration; any keyword-read fixes surfaced by the tests)
-- `tests/unit/match_rules/match_rules_combat_keywords_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` (`_declare_attack_step`: a Stealth attacker loses Stealth at declaration — keyword stripped from its definition set and enchantments, `stealth_lost {entity_id}`; `_do_attack` step-1 doc)
+- `tests/unit/match_rules/match_rules_combat_keywords_test.gd` (new, 10 tests)
 
 ## QA Test Cases
 
@@ -88,7 +82,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_combat_keywords_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (10 test functions)
 
 ---
 
@@ -96,3 +90,18 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-013-attack-resolution.md`
 - Unlocks: `production/epics/match-rules/story-017-clone-and-replay.md`
+
+## Readiness
+**2026-11-04 — READY** (`/story-readiness` read by hand, sprint 4 lane 1). Design: C12 rows, C8 step 1, C9 and the Edge Cases cited, criteria testable. Architecture: ADR-0007 Accepted; TR-match-rules-005 / 006 active; Manifest Version 2026-11-03 = current. Scope: M, Out of Scope stated, dependency story 013 Complete (e5e3cb7). No open markers; no asset references. DoD: 3 ACs, Type Logic, Test Evidence path, `submit()` ≤ 5 ms noted. QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:17:23 UTC, ended 03:20:20 UTC; closed after the mutant runs)
+**Criteria**: 3/3 passing — AC-18 (`test_a_windfury_minion_attacks_twice_as_two_commands_and_not_a_third_time` — Taunt re-evaluated for the second command, `damage_taken 2`, third `CANNOT_ATTACK`; `test_attacks_used_resets_at_the_start_step`; `test_gaining_windfury_after_one_attack_grants_one_more` via `add_keyword` and via an enchantment; `test_losing_windfury_after_one_attack_leaves_no_attacks`), AC-22 (`test_divine_shield_eats_a_poisonous_lifesteal_hit_and_the_attacker_still_takes_damage`, `test_a_poisonous_attacker_killed_by_its_defender_still_poisons_it_and_both_die_together`), AC-26 (`test_a_stealth_minion_loses_stealth_when_it_attacks_before_any_damage`, `test_a_minion_that_lost_stealth_is_attackable_and_its_taunt_binds_again`, `test_a_stealth_taunt_that_has_not_attacked_does_not_bind_the_enemy`, `test_area_and_random_damage_still_hit_a_stealthed_minion`).
+**Watched fail**: the two Stealth-loss tests failed against the story-013 engine. The other eight already passed (Windfury, Divine Shield and Poisonous were in place from stories 001 / 007 / 012 / 013), so each was watched failing against one mutant per run: Windfury ignored in `max_attacks` (3 tests), `_strip_keyword` leaving the definition keyword (losing Windfury, plus Divine Shield and both Stealth tests), Divine Shield disabled, Poisonous marking nothing, a Stealth Taunt counted as a taunter, `apply_damage` refusing a stealthed target.
+**Keyword-read fixes surfaced by the tests**: none needed beyond Stealth loss; every keyword read already goes through `_has_keyword` (definition plus `keywords_added`).
+**Deviations** (advisory):
+- AC-26's "a required-target enemy spell lists it in `legal_targets`" is not asserted here: `legal_targets` is the resolver's (card-effects) filter, and the double answers from scripted lists. The engine's half — the `stealth` keyword is gone from the record the filter reads — is asserted; the listing belongs to a card-effects targeting test.
+- The story says tests use the `card_factory.gd` keyword fixture set; they use `MatchFactory.summon` with keyword lists instead (same records, no database needed for combat).
+**Test Evidence**: `tests/unit/match_rules/match_rules_combat_keywords_test.gd` (10 tests); full suite 1112 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
+**Run result**: N/A — headless rules code; no scene, node or screen renders an attack yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
