@@ -8,7 +8,8 @@
 ## GDD: design/gdd/match-rules.md Game Feel — Input Responsiveness (`submit()`
 ## 5 ms, `legal_commands()` 2 ms), AC-40. ADR-0007 Performance; ADR-0005
 ## Decision 4 (12-entry fold < 0.05 ms); boss-ai F7 / ADR-0006 (`clone()` per
-## look-ahead node against `planner_target_ms` 50 p95).
+## look-ahead node against `planner_target_ms` 500 p95 per planner run,
+## DD-X18).
 ##
 ## Each test collects samples with `Time.get_ticks_usec()` around the call
 ## alone (fixtures and clones are built outside the timed window), prints
@@ -39,19 +40,19 @@ const LEGAL_SAMPLES: int = 100
 const FOLD_SAMPLES: int = 1000
 ## Clones timed per state for the planner estimate.
 const CLONE_SAMPLES: int = 100
-## design/registry/entities.yaml `ai_planner_target_ms` (boss-ai Tuning
-## Knobs; ADR-0006 Performance: 50 ms p95 per turn on the worker), in µs.
-const PLANNER_TARGET_USEC: int = 50_000
 ## boss-ai F7: `planner_time ≈ (actions · evals + lethal_nodes) · t_sim`, with
-## `t_sim = clone + one submit` assumed ≈ 0.01 ms; the worked example uses
-## 8 actions per turn. The per-band counts are read from
-## `assets/data/ai_profiles.json` `bands.<n>.budgets`.
+## `t_sim = clone + one submit` measured here; the worked example uses 8 actions
+## per turn. The per-band counts are read from `assets/data/ai_profiles.json`
+## `bands.<n>.budgets`, and the target from its `runtime.planner_target_ms`
+## ([method PerfGate.planner_target_usec]).
 const F7_ACTIONS: int = 8
-const F7_T_SIM_USEC: float = 10.0
 const AI_PROFILES_PATH: String = "res://assets/data/ai_profiles.json"
 const BANDS: Array[String] = ["1", "2", "3"]
 ## The band whose F7 count the gate uses (F7's worked example, A22).
 const GATE_BAND: String = "3"
+## Band 3's counts are 4.4× over the target at the measured `t_sim` (boss-ai
+## F7), so this gate misses until story 019 AC-4 moves it to band 2.
+const GATE_MISS_NOTE: String = "expected until match-rules story 019 moves the gate to band 2; band 3's counts await R5"
 
 var _fx: MatchBudgetFixtures = MatchBudgetFixtures.new()
 
@@ -189,11 +190,13 @@ func _states() -> Array:
 ## then F7's per-band node count against the count that fits
 ## `planner_target_ms` at the measured median node cost. Gate: the band-3
 ## node cost may be at most [constant GATE_FACTOR] × the per-node share
-## `planner_target / F7 nodes(band 3)` (= F7's 0.01 ms assumption, rounded).
+## `planner_target / F7 nodes(band 3)`, per planner run (DD-X18). With no target
+## in the data the measurements still print and the gate prints NOT ASSESSED.
 func test_clone_and_one_command_node_cost_per_fixture_state_against_the_f7_planner_budget() -> void:
 	# Arrange
 	var profiles: Dictionary = MatchBudgetFixtures.read_fixture(AI_PROFILES_PATH)
 	assert_bool(profiles.has("config")).override_failure_message("%s did not parse" % AI_PROFILES_PATH).is_true()
+	var target_usec: int = PerfGate.planner_target_usec(profiles)
 	var states: Array = _states()
 	var node_medians: Array[int] = []
 
@@ -218,18 +221,19 @@ func test_clone_and_one_command_node_cost_per_fixture_state_against_the_f7_plann
 		var node_stats: Dictionary = _stats(nodes)
 		node_medians.append(int(node_stats.median))
 		print("PERF match_rules clone %s x%d: median %d us, p95 %d us, max %d us" % [label, CLONE_SAMPLES, clone_stats.median, clone_stats.p95, clone_stats.max])
-		print("PERF match_rules clone+submit(%s) %s x%d: median %d us, p95 %d us, max %d us (F7 t_sim %.0f us)" % [command.type, label, CLONE_SAMPLES, node_stats.median, node_stats.p95, node_stats.max, F7_T_SIM_USEC])
+		print("PERF match_rules clone+submit(%s) %s x%d: median %d us, p95 %d us, max %d us" % [command.type, label, CLONE_SAMPLES, node_stats.median, node_stats.p95, node_stats.max])
 	var sorted: Array[int] = node_medians.duplicate()
 	sorted.sort()
 	var t_sim: int = sorted[sorted.size() / 2]
-	var fit: int = PLANNER_TARGET_USEC / maxi(1, t_sim)
 	for band: String in BANDS:
-		var f7: int = _f7_nodes(profiles, band)
-		print("PERF match_rules planner band %s: F7 nodes %d x t_sim %d us = %d ms per turn (target %d ms); nodes that fit %d (%d per round, forecast + play_turn)" % [
-			band, f7, t_sim, f7 * t_sim / 1000, PLANNER_TARGET_USEC / 1000, fit, fit / 2])
+		print(PerfGate.planner_band_line(band, _f7_nodes(profiles, band), t_sim, target_usec))
 
 	# Assert
-	var gate_share: float = float(PLANNER_TARGET_USEC) / _f7_nodes(profiles, GATE_BAND)
-	assert_float(float(t_sim)).override_failure_message("node cost (clone + one submit) median %d us; band %s F7 share %.1f us, gate %.1f us" % [t_sim, GATE_BAND, gate_share, gate_share * GATE_FACTOR]).is_less(gate_share * GATE_FACTOR)
+	if target_usec == PerfGate.NOT_SET:
+		print(PerfGate.not_assessed("match_rules planner gate band %s" % GATE_BAND, "%s is not in the data" % PerfGate.PLANNER_TARGET_SOURCE))
+	else:
+		var gate: float = PerfGate.planner_gate_usec(target_usec, _f7_nodes(profiles, GATE_BAND), GATE_FACTOR)
+		print(PerfGate.planner_gate_line(GATE_BAND, t_sim, target_usec, gate, GATE_MISS_NOTE))
+		assert_float(float(t_sim)).override_failure_message("node cost (clone + one submit) median %d us; band %s gate %.1f us: %s" % [t_sim, GATE_BAND, gate, GATE_MISS_NOTE]).is_less(gate)
 	for row: Array in states:
 		(row[1] as RulesEngine).end_match()
