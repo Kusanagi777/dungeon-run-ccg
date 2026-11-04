@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Grep gates G1–G6: the rules / presentation split, enforced in CI.
+# Grep gates G1–G7: the rules / presentation split, enforced in CI.
 #
 #   bash tools/lint/gates.sh [root]      # root defaults to the current directory
 #
 # Patterns and scopes are ADR-0001 Decision 6 (gate table, with the 2026-11-03
 # errata: G2b deny-list under src/ai/**, G3 exclusions and doc-comment filter,
 # G6 look-around-free bare-call pattern) and the control manifest's
-# Cross-Cutting gate table. Copy them from there, never from memory.
+# Cross-Cutting gate table. Copy them from there, never from memory. G7 is
+# ADR-0007 Decision 9 and the manifest's Core Forbidden row.
 #
 # Every hit prints as `<gate> <file>:<line>: <text>` (file relative to root),
 # and every gate prints `<gate> hits: <n>`, so a log that shows a gate with no
@@ -182,6 +183,15 @@ fi
 # skips `obj.` calls and identifiers that end in a token.
 run_gate G6 -e '(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|pick_random\(' \
 	-- src/gameplay src/ai
+
+# G7 — no direct state writes from effects (sprint-4 review X1). The first
+# pattern is the manifest's, verbatim; the heredoc keeps both quote characters
+# in it literal. Comment lines count: the manifest's expected result is 0 hits.
+g7_writes="$(cat <<'G7_PATTERN'
+\.(board|hand|deck|graveyard|enchantments|keywords)\s*\.(append|erase|insert|remove_at|clear)\(|\.(damage_taken|base_attack|base_health|armor|mana_current|mana_max|frozen|silenced|attacks_used|durability|next_entity_id)\s*[+\-]?=|\[\s*["'](board|hand|deck|graveyard|enchantments|keywords)["']\s*\](\s+as\s+Array\s*\))?\s*\.(append|erase|insert|remove_at|clear)\(|\[\s*["'](damage_taken|base_attack|base_health|armor|mana_current|mana_max|frozen|silenced|attacks_used|durability|next_entity_id)["']\s*\]\s*[+\-]?=([^=]|$)
+G7_PATTERN
+)"
+run_gate G7 -e "$g7_writes" -e 'log\.append\(' -e 'RandomNumberGenerator' -- src/gameplay/effects
 
 if [ "$broken" -ne 0 ]; then
 	echo "gates.sh: at least one gate could not run — not a pass" >&2

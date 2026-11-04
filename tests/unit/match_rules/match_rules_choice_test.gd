@@ -22,6 +22,8 @@ const OPTIONS: Array = ["neutral_test_opt_a", "neutral_test_opt_b", "neutral_tes
 const EFFECT_ID: String = "test_discover.0"
 const SPELL_DAMAGE: int = 2
 const MANA_POOL: int = 10
+## A log cap no fixture here reaches (review S1's reference run).
+const CAP_NOT_REACHED: int = 100_000
 
 
 class FixtureDb extends RefCounted:
@@ -595,3 +597,77 @@ func test_the_step_count_carries_across_the_pause_to_the_step_cap() -> void:
 	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_RESOLUTION_OVERFLOW)
 	EventLogAssertions.assert_payload(log, &"resolution_overflow", {"steps": 4})
 	assert_array(resolver.pass_ids()).is_equal(["t1", "t2"])
+
+
+# --- sprint-4 review S1 / NC-2: the engine half of an `event_cap` in `discover` -----
+
+## The player casts [constant DEF_SCOUT] under a production `EventLog` capped at
+## [param cap]; the scripted cast raises one request. Returns `[engine, log,
+## returned]`, `returned` holding what `discover` answered.
+func _capped_discover(cap: int) -> Array:
+	var log: EventLog = EventLog.new(cap, EventLog.SCOPE_MATCH)
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	resolver.scripts[&"on_cast"] = [_discover_into.bind(returned)]
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, null, {"log": log}, {}, resolver, _db())
+	@warning_ignore("return_value_discarded")
+	engine.submit(engine.legal_commands()[0])
+	_set_hand(engine, SIDE_PLAYER, [DEF_SCOUT])
+	@warning_ignore("return_value_discarded")
+	engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null))
+	return [engine, log, returned]
+
+
+func _discover_into(engine: RulesEngine, ctx: Dictionary, returned: Array) -> void:
+	returned.append(engine.discover(SIDE_PLAYER, OPTIONS, MatchRecords.CHOICE_DISCOVER, ctx.get("source"), EFFECT_ID))
+
+
+## The index in an uncapped run of the first event [param matches] accepts: as
+## a cap, it is the event the log refuses.
+func _index_of(matches: Callable) -> int:
+	var run: Array = _capped_discover(CAP_NOT_REACHED)
+	var events: Array = (run[1] as EventLog).events_since(0)
+	(run[0] as RulesEngine).end_match()
+	for index: int in events.size():
+		if matches.call(events[index]):
+			return index
+	return -1
+
+
+func _assert_ended_by_the_cap_with_nothing_parked(run: Array) -> void:
+	var engine: RulesEngine = run[0]
+	assert_int((run[2] as Array).size()).is_equal(1)
+	assert_dict((run[2] as Array)[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	var types: Array = (run[1] as EventLog).events_since(0).map(func(e: Dictionary) -> String: return str(e.type))
+	assert_array(types.slice(-2)).is_equal(["log_overflow", "match_ended"])
+	assert_array(_player(engine).resolving).is_empty()
+
+
+func test_a_cap_on_the_choice_phase_change_makes_discover_return_nothing_and_parks_nothing() -> void:
+	# Arrange
+	var at: int = _index_of(func(e: Dictionary) -> bool: return str(e.type) == "phase_changed" and str(e.payload.phase) == MatchState.PHASE_CHOICE)
+	assert_int(at).is_greater(0)
+
+	# Act
+	var run: Array = _capped_discover(at)
+
+	# Assert
+	_assert_ended_by_the_cap_with_nothing_parked(run)
+	(run[0] as RulesEngine).end_match()
+
+
+func test_a_cap_on_choice_requested_makes_discover_return_nothing_and_parks_nothing() -> void:
+	# Arrange
+	var at: int = _index_of(func(e: Dictionary) -> bool: return str(e.type) == "choice_requested")
+	assert_int(at).is_greater(0)
+
+	# Act
+	var run: Array = _capped_discover(at)
+
+	# Assert
+	_assert_ended_by_the_cap_with_nothing_parked(run)
+	(run[0] as RulesEngine).end_match()

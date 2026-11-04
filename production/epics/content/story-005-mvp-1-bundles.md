@@ -114,5 +114,5 @@ QL-STORY-READY skipped — Lean mode.
 - Content story 008 (F1–F5): F5 War bundle coverage 0.06 → 0.94 clears its `W_COVERAGE` row. There is no new `W_BUDGET` or `W_CURVE` row, because F1–F3 do not read bundles.
 **Test Evidence**: `production/qa/smoke-2026-11-04-content-mvp1-bundles.md` (PASS). `content_mvp1_data_test.gd` gained 4 tests, all seen failing on the batch-0 bundles. Full suite: 1229 test cases, 0 failures, exit 0. Smoke exit 0.
 **Run result**: N/A, data only. No scene drafts bundles until the reward-draft and run-ui stories.
-**Reviewed by**: self, no independent review (lean: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped). Game-designer sign-off NOT ASSESSED (no agent).
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`): **APPROVED** (data; specialist pass N/A). 0 blocking, no should-fix, no nits. Lane record before that review: self, no independent review (lean: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped). Game-designer sign-off NOT ASSESSED (no agent).
 **Owner sign-off (2026-11-04, DD-X24)**: Jacob accepts the 10 MVP bundles as shipped. This includes the lane-written `text.en` pitches and `min_bundle_pool` unchanged at 10. This replaces the NOT ASSESSED game-designer sign-off above.

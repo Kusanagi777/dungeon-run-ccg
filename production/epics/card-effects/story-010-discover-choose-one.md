@@ -125,7 +125,7 @@
 - `unbind` keeps the continuation.
 
 **Run result**: N/A. This is a rules-layer change with no scene or UI surface; the Choice overlay belongs to match-ui.
-**Reviewed by**: self, no independent review (`review_mode: lean`, LP-CODE-REVIEW and QL-TEST-COVERAGE skipped in lean mode; engine-specialist pass NOT ASSESSED, because no agent could be spawned). Run `/code-review` before the sprint close-out.
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `production/reviews/2026-11-04/code-review-s4-unreviewed.md`): **NOT ASSESSED** [otherwise APPROVED WITH SUGGESTIONS; the engine-specialist and qa-tester passes could not be spawned]. 0 blocking. Should-fix S1 and T1: fixed in the L7 W1 fix buffer. Nits N1–N4 open, at the lanes' discretion. Lane record before that review: self, no independent review (`review_mode: lean`, LP-CODE-REVIEW and QL-TEST-COVERAGE skipped in lean mode; engine-specialist pass NOT ASSESSED, because no agent could be spawned). Run `/code-review` before the sprint close-out.
 
 **Deviations** (ADVISORY unless marked):
 1. **ADR-0007 Key Interfaces.** `EffectResolver._init(db, effects_config, player_hero_set := "")` gains an optional third argument. F4 needs the player's hero set, and `MatchState` does not carry it.

@@ -247,6 +247,33 @@ func test_a_one_shot_stealth_grant_and_a_non_stealth_aura_stay_legal() -> void:
 	_assert_clean(rush_aura)
 
 
+func test_an_aura_granting_divine_shield_is_e_fx_op_on_every_host() -> void:
+	# DD-X25 (code review card-effects 012 S2): an aura re-grants its keywords on
+	# every recompute, so the shield would return after each hit and the minion
+	# could never be damaged. Card, treasure and boss-passive hosts alike.
+	var on_minion: Array = _run(&"card", MINION_HOST, '{"trigger":"aura","targets":{"selector":"all_friendly_minions","filter":{"not_self":true}},"ops":[{"op":"aura","keywords":["divine_shield"]}]}', ["aura"])
+	var on_treasure: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","attack":1,"keywords":["rush","divine_shield"]}]}')
+	var on_passive: Array = _run(&"passive", BOSS_HOST, '{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","keywords":["divine_shield"]}]}')
+
+	assert_array(_codes(on_minion)).contains_exactly(["E_FX_OP"])
+	assert_str(str(_first(on_minion).get("path"))).is_equal("effects/0/ops/0/keywords/0")
+	assert_str(str(_first(on_minion).get("message"))).contains("DD-X25")
+	assert_array(_codes(on_treasure)).contains_exactly(["E_FX_OP"])
+	assert_str(str(_first(on_treasure).get("path"))).is_equal("effects/0/ops/0/keywords/1")
+	assert_array(_codes(on_passive)).contains_exactly(["E_FX_OP"])
+
+
+func test_a_one_shot_divine_shield_grant_and_a_taunt_aura_stay_legal() -> void:
+	# DD-X25 rejects the aura grant only: a popped one-shot shield stays popped
+	var buff: Array = _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"buff","attack":1,"keywords":["divine_shield"]}]}')
+	var give: Array = _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"give_keyword","keyword":"divine_shield"}]}')
+	var taunt_aura: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","keywords":["taunt"]}]}')
+
+	_assert_clean(buff)
+	_assert_clean(give)
+	_assert_clean(taunt_aura)
+
+
 func test_non_modify_value_op_under_a_value_trigger_is_e_fx_op() -> void:
 	var under_value: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"modify_damage","ops":[{"op":"draw","count":1}]}')
 	var nested_under_value: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"modify_cost","ops":[{"op":"conditional","if":{"is_owner_turn":true},"then":[{"op":"modify_value","delta":1}]}]}')

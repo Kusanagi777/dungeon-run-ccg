@@ -1,4 +1,4 @@
-## Integration: the grep gates G1–G6 (`tools/lint/gates.sh`) have been watched
+## Integration: the grep gates G1–G7 (`tools/lint/gates.sh`) have been watched
 ## failing (story boot-composition-root/story-005 AC-4; ADR-0001 Decision 6 —
 ## "the gate script is run once against a deliberately broken file before it
 ## is trusted").
@@ -19,7 +19,7 @@ extends GdUnitTestSuite
 const GATES_SCRIPT := "res://tools/lint/gates.sh"
 const FIXTURES := "res://tests/fixtures/lint/"
 const PROJECT_ROOT := "res://"
-const GATES: Array[String] = ["G1", "G2", "G2b", "G3", "G4", "G5", "G6"]
+const GATES: Array[String] = ["G1", "G2", "G2b", "G3", "G4", "G5", "G6", "G7"]
 ## Exit codes of `gates.sh`.
 const EXIT_CLEAN := 0
 const EXIT_HITS := 1
@@ -154,6 +154,32 @@ func test_g6_fixture_every_bare_global_rng_call_fails_but_stream_calls_do_not() 
 	assert_str(result.text).contains("G6 hits: 7\n")
 	assert_str(result.text).not_contains("stream_user.gd")
 	_assert_only_gate_hits(result.text, "G6")
+
+
+func test_g7_fixture_every_planted_state_write_fails_naming_g7_but_the_engine_does_not() -> void:
+	# Arrange — lines 6-12 of planted_writes.gd each hold one alternative of the
+	# gate: container write, field write, both subscript forms, log, generator;
+	# line 13 is the field write again, through the assignment form
+	var result: Dictionary = _run_gates(FIXTURES + "g7")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_HITS)
+	for line: int in range(6, 14):
+		assert_str(result.text).contains("G7 src/gameplay/effects/planted_writes.gd:%d:" % line)
+	assert_str(result.text).contains("G7 hits: 8
+")
+	assert_str(result.text).not_contains("engine_owner.gd")
+	_assert_only_gate_hits(result.text, "G7")
+
+
+func test_g7_clean_fixture_of_reads_and_primitive_calls_passes() -> void:
+	# Arrange / Act
+	var result: Dictionary = _run_gates(FIXTURES + "g7_clean")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_CLEAN)
+	assert_str(result.text).contains("G7 hits: 0
+")
 
 
 func test_real_tree_passes_every_gate() -> void:

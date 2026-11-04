@@ -1339,6 +1339,8 @@ func equip_weapon(side: String, def_id: String) -> int:
 ## Choice` transition and no command can answer before `Mulligan`, so a
 ## pending request there would block every later `choose` and Discover. The
 ## resolver treats `{}` as "no choice": the effect's later ops do not run.
+## A request whose own events hit the event cap also returns `{}`: the match has
+## ended (sprint-4 review S1).
 ## A request raised inside a primitive — by an in-primitive hook entry
 ## (`on_draw`, `on_hero_damaged`, `on_minion_summoned`; ADR-0005 rule-4
 ## exception, erratum 2026-11-03) — is refused too (code review MR-016 S2):
@@ -1391,6 +1393,10 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 	_state.suspended_action = {"origin_phase": _state.phase, "cause_seq": _cause_seq, "frame": {}, "stages": []}
 	_set_phase(MatchState.PHASE_CHOICE)
 	emit(&"choice_requested", request.duplicate(true))
+	# Either emit may have hit the event cap (sprint-4 review S1): `_end_match`
+	# dropped the request, and the resolver must not suspend on it.
+	if _halted():
+		return {}
 	return request.duplicate(true)
 
 
@@ -2865,6 +2871,23 @@ func _execute_queued(step: Dictionary) -> void:
 	_steps += 1
 
 
+## The queue call of card-effects C5 `retrigger` (sprint-4 review S5; ADR-0007
+## erratum 2026-11-04, not one of the match-rules primitives): appends
+## [param entries] (the resolver's plain-data queue entries for [param point])
+## to Q as if raised now, under the current `cause_seq`, each with
+## `trigger_queued {…, reason: [param reason]}`. Each takes a snapshot of its
+## source, which stays in play. They resolve in the C10 loop after the running
+## step, each as its own step: Q stays the engine's (ADR-0007 Alt 1). A no-op
+## once Ended.
+## [codeblock]
+## engine.queue_triggers(&"deathrattle", resolver.retrigger_entries("deathrattle", id), "retrigger")
+## [/codeblock]
+func queue_triggers(point: StringName, entries: Array[Dictionary], reason: String) -> void:
+	if _halted():
+		return
+	_enqueue(point, entries, _cause_seq, {}, reason)
+
+
 ## Appends the triggers [param entries] the resolver returned for
 ## [param point] to Q as steps `{point, ctx, cause_seq: raise_seq}`, each
 ## with `trigger_queued {point, source_id, effect_id}` (`cause_seq`
@@ -2875,8 +2898,9 @@ func _execute_queued(step: Dictionary) -> void:
 ## source that is not in play (or in hand) at raise time (C10). An entry
 ## without a whole-number `source_id` is a resolver defect: it is logged
 ## (`push_error`) and skipped, and the entries after it still queue (code
-## review 2026-11-03).
-func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}) -> void:
+## review 2026-11-03). A non-empty [param reason] rides on each `trigger_queued`
+## ([method queue_triggers]).
+func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}, reason: String = "") -> void:
 	for entry: Dictionary in entries:
 		if _halted():
 			return
@@ -2897,7 +2921,10 @@ func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dea
 		_queue.append({"point": step_point, "ctx": ctx, "cause_seq": raise_seq})
 		var cause: int = _cause_seq
 		_cause_seq = raise_seq
-		emit(&"trigger_queued", {"point": String(step_point), "source_id": source_id, "effect_id": str(entry.get("effect_id", ""))})
+		var queued: Dictionary = {"point": String(step_point), "source_id": source_id, "effect_id": str(entry.get("effect_id", ""))}
+		if reason != "":
+			queued["reason"] = reason
+		emit(&"trigger_queued", queued)
 		_cause_seq = cause
 
 
@@ -2990,6 +3017,8 @@ func _weapon_leaves(side: String, reason: String) -> void:
 ## enchantment order, base first); the entries queue with the death's
 ## [param died_seq] and the snapshot.
 func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
+	if _halted():
+		return
 	var entity_id: int = int(snapshot.entity_id)
 	var candidates: Array[int] = [entity_id]
 	var ctx: Dictionary = {"side": str(snapshot.controller), "candidates": candidates, "subject": entity_id, "snapshot": snapshot}
@@ -3138,6 +3167,11 @@ func _end_match(winner: Variant, reason: String) -> void:
 	if _halted():
 		return
 	_state.phase = MatchState.PHASE_ENDED
+	# A Choice raised in this step can never be answered now (MR-016 S4: nothing
+	# stays parked on the Ended state; sprint-4 review S1). `_abandon_choice` has
+	# already taken a parked one back; one raised this step has nothing parked.
+	_state.pending_choice = null
+	_state.suspended_action = {}
 	var final_health: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
 		final_health[side] = health(_state.players[side].hero)

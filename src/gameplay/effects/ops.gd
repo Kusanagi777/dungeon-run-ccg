@@ -49,6 +49,9 @@ const BURNED: String = "burned"
 const FATIGUE: String = "fatigue"
 const SKIPPED: String = "skipped"
 const ALREADY_HAS: String = "already_has"
+const NO_SUCH_TRIGGER: String = "no_such_trigger"
+## `trigger_queued.reason` of a C5 `retrigger`.
+const REASON_RETRIGGER: String = "retrigger"
 ## The op params that take a C4 value expression (story 007).
 const VALUE_PARAMS: Array[String] = ["amount", "count", "attack", "health", "cost", "value", "delta", "set"]
 ## The param each op needs non-negative: a negative computed value is clamped
@@ -94,6 +97,7 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 	"silence": ["minion"],
 	"freeze": ["minion", "hero"],
 	"give_keyword": ["minion", "hero", "weapon"],
+	"retrigger": ["minion", "weapon"],
 }
 ## The ops that may target a card instance in hand or deck, and the param
 ## such a target needs (C5 `buff`: "card instances in hand **or deck**
@@ -120,6 +124,7 @@ func _init() -> void:
 		"silence": _op_silence,
 		"freeze": _op_freeze,
 		"give_keyword": _op_give_keyword,
+		"retrigger": _op_retrigger,
 		"draw": _op_draw,
 		"armor": _op_armor,
 		"equip": _op_equip,
@@ -147,10 +152,17 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	if not _table.has(name):
 		return entry(name, [], {}, SKIPPED)
 	var evaluated: Dictionary = op
+	# `values.read_from` is worked out with the value, before the handler: that
+	# is the state the value was read in, and a handler that hits the event cap
+	# unbinds the resolver (sprint-4 review S1; M1 review R1).
+	var read_from: String = ""
 	if run_ctx.get("resolver") is EffectResolver:
 		evaluated = op.duplicate()
 		for key: String in VALUE_PARAMS:
 			if op.get(key) is Dictionary:
+				var origin: String = EffectValues.read_origin(op[key], run_ctx)
+				if origin != "":
+					read_from = origin
 				evaluated[key] = EffectValues.eval(op[key], run_ctx)
 	var clamped: Variant = null
 	var key: String = NON_NEGATIVE.get(name, "")
@@ -162,11 +174,8 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	var result: Dictionary = _table[name].call(engine, evaluated, run_ctx)
 	if clamped != null:
 		(result.values as Dictionary)["clamped_from"] = clamped
-	if run_ctx.get("resolver") is EffectResolver:
-		for key_name: String in VALUE_PARAMS:
-			var origin: String = EffectValues.read_origin(op.get(key_name), run_ctx)
-			if origin != "":
-				(result.values as Dictionary)["read_from"] = origin
+	if read_from != "":
+		(result.values as Dictionary)["read_from"] = read_from
 	return result
 
 
@@ -411,6 +420,29 @@ func _op_give_keyword(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) 
 		if EffectSelectors.has_keyword(EffectSelectors.find(state, id), keyword):
 			return ALREADY_HAS
 		engine.add_keyword(id, keyword)
+		return APPLIED)
+
+
+## C5 `retrigger` (sprint-4 review S5): queues each target's live effects with
+## the op's `trigger` as if raised now, through the engine's
+## [method RulesEngine.queue_triggers] (`trigger_queued{reason: retrigger}`) —
+## the C10 loop resolves them after this pass, each as its own step (C6.0). The
+## source stays in play, so nothing dies and a `source.*` read is live (C6.5).
+## A target with no live effect for the trigger (none printed, or Silenced) is
+## `no_such_trigger`; no target at all is `no_target`. A board with both folds
+## through [method fold_outcomes] like any targeted op: C5 does not name that
+## case, so no test pins it (open question, content story 004's notes).
+func _op_retrigger(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var trigger: String = str(op.get("trigger", ""))
+	var resolver: EffectResolver = run_ctx.resolver
+	return _per_target(engine, op, run_ctx, {"trigger": trigger}, func(id: int) -> String:
+		# An earlier target's `trigger_queued` may have hit the event cap.
+		if engine.phase() == MatchState.PHASE_ENDED:
+			return SKIPPED
+		var entries: Array[Dictionary] = resolver.retrigger_entries(trigger, id)
+		if entries.is_empty():
+			return NO_SUCH_TRIGGER
+		engine.queue_triggers(StringName(trigger), entries, REASON_RETRIGGER)
 		return APPLIED)
 
 
@@ -736,6 +768,9 @@ func _op_add_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -
 	var added: Array[String] = []
 	var outcomes: Array[String] = []
 	for _i: int in count:
+		# The last copy may have hit the event cap: the resolver is unbound now.
+		if engine.phase() == MatchState.PHASE_ENDED:
+			break
 		var def_id: String = str(op.get("card_id", ""))
 		if from is Dictionary:
 			if INSTANCE_POOLS.has(str((from as Dictionary).get("pool", ""))):

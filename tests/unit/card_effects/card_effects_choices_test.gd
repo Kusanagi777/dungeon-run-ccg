@@ -57,6 +57,27 @@ const GIFT: String = "neutral_test_gift"
 ## "After you cast a spell, gain 1 Armor".
 const AFTER_CASTER: String = "neutral_test_after_caster"
 const VANILLA: String = "neutral_test_vanilla"
+## Sprint-4 review S1 / T1: Deathrattle Discovers on a queued pass. `DR_SCOUT`:
+## Deathrattle `[discover(list of 3), armor DR_ARMOUR]`.
+const DR_SCOUT: String = "neutral_test_dr_scout"
+## Deathrattle `armor DR_FOLLOW_ARMOUR`: queued behind `DR_SCOUT`.
+const DR_FOLLOWER: String = "neutral_test_dr_follower"
+## Deathrattle: deal `source.attack` to the enemy hero: an op whose value reads
+## the source, on a queued pass (so the pass holds a raise-time snapshot).
+const DR_AVENGER: String = "neutral_test_dr_avenger"
+## End of your turn: `[discover(list of 3), armor END_ARMOUR]` (review P5 shape).
+const END_SCOUT: String = "neutral_test_end_scout"
+const END_ARMOUR: int = 4
+## Deathrattle: `add_counter` by `source.attack`: the counter op emits for itself.
+const DR_COUNTER: String = "neutral_test_dr_counter"
+## `destroy` every friendly minion.
+const PURGE: String = "neutral_test_purge"
+## `retrigger deathrattle` on every friendly minion: one op, several queue calls.
+const RITES: String = "neutral_test_rites"
+const DR_ARMOUR: int = 2
+const DR_FOLLOW_ARMOUR: int = 3
+## Sprint-4 review S1: the cap of an uncapped reference run.
+const UNCAPPED: int = 100_000
 ## The `list` pools: three minions and one more spell.
 const OPTION_IDS: Array[String] = ["neutral_test_opt_a", "neutral_test_opt_b", "neutral_test_opt_c"]
 const OPTION_SPELL: String = "neutral_test_opt_spell"
@@ -189,6 +210,18 @@ func _make_db() -> FakeCardDatabase:
 		'{"trigger":"cast","ops":[{"op":"add_to_hand","from":{"pool":"collectible","filter":{"type":"spell"}},"count":2}]}'))
 	by_id[AFTER_CASTER] = CardFactory.make_minion(AFTER_CASTER, 1, 1, 3, [], {"effects": _fx(
 		'{"trigger":"after_cast","ops":[{"op":"armor","targets":"owner","amount":1}]}')})
+	by_id[DR_SCOUT] = CardFactory.make_minion(DR_SCOUT, 1, 1, 3, ["deathrattle"], {"effects": _fx(
+		'{"trigger":"deathrattle","ops":[{"op":"discover","pool":"list","list":%s},{"op":"armor","targets":"owner","amount":%d}]}' % [list, DR_ARMOUR])})
+	by_id[DR_FOLLOWER] = CardFactory.make_minion(DR_FOLLOWER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
+		'{"trigger":"deathrattle","ops":[{"op":"armor","targets":"owner","amount":%d}]}' % DR_FOLLOW_ARMOUR)})
+	by_id[DR_AVENGER] = CardFactory.make_minion(DR_AVENGER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
+		'{"trigger":"deathrattle","ops":[{"op":"damage","targets":"enemy_hero","amount":{"ref":"source.attack"}}]}')})
+	by_id[END_SCOUT] = CardFactory.make_minion(END_SCOUT, 1, 1, 3, [], {"effects": _fx(
+		'{"trigger":"turn_end","ops":[{"op":"discover","pool":"list","list":%s},{"op":"armor","targets":"owner","amount":%d}]}' % [list, END_ARMOUR])})
+	by_id[DR_COUNTER] = CardFactory.make_minion(DR_COUNTER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
+		'{"trigger":"deathrattle","ops":[{"op":"add_counter","key":"seen","amount":{"ref":"source.attack"}}]}')})
+	by_id[PURGE] = CardFactory.make_spell(PURGE, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"destroy"}]}'))
+	by_id[RITES] = CardFactory.make_spell(RITES, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"retrigger","trigger":"deathrattle"}]}'))
 	var pools: Dictionary = {HERO_SET: _war_pool(by_id)}
 	return FakeCardDatabase.new(by_id, pools)
 
@@ -736,3 +769,264 @@ func test_a_boss_discover_is_the_boss_choice_and_still_offers_its_options() -> v
 	assert_bool(refused.accepted).is_false()
 	_choose(0, SIDE_BOSS)
 	assert_bool(_hand_ids(SIDE_BOSS).has(str(offered[0].payload.option_card_ids[0]))).is_true()
+
+
+# --- sprint-4 review S1 / NC-2: an `event_cap` during a Discover offer or resume -----
+
+## A started match on the production `EventLog` capped at [param cap] (the cap's
+## `log_overflow` and last `match_ended` are the real rule, ADR-0003 Decision
+## 8), at player Main with [param hand] and [param board] in play.
+func _capped_main(cap: int, hand: Array, board: Array) -> EventLog:
+	_db = _make_db()
+	var log: EventLog = EventLog.new(cap, EventLog.SCOPE_MATCH)
+	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(AC10_SEED), TestEventLog.new(), {"log": log})
+	_engine = RulesEngine.new(_db, MatchFactory.make_rules_config(), EffectResolver.new(_db, _effects_config(), HERO_SET))
+	_engine.start(config)
+	@warning_ignore("return_value_discarded")
+	_engine.submit(_engine.legal_commands()[0])
+	_set_hand(SIDE_PLAYER, hand)
+	for def_id: Variant in board:
+		@warning_ignore("return_value_discarded")
+		_put(SIDE_PLAYER, str(def_id), 1, 3)
+	return log
+
+
+## Casts the first card and answers every Choice with option 0, through both
+## the offer and the resume. Returns what the log holds at the end.
+func _cast_and_answer(log: EventLog) -> Array:
+	@warning_ignore("return_value_discarded")
+	_engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0))
+	while _engine.phase() == MatchState.PHASE_CHOICE:
+		@warning_ignore("return_value_discarded")
+		_engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+	return log.events_since(0)
+
+
+## NC-2 for one host: the events of a whole uncapped cast, then every cap from
+## the first event of the cast to its last. A cap that ends the match leaves no
+## Choice behind, ends `fault` / `event_cap` with `winner` null, and the log's
+## last two events are `log_overflow` and `match_ended`. Returns how many caps
+## ended the match, so a sweep that never reached the cap cannot pass.
+func _sweep(hand: Array, board: Array = []) -> int:
+	var reference: EventLog = _capped_main(UNCAPPED, hand, board)
+	var base: int = reference.events_since(0).size()
+	var total: int = _cast_and_answer(reference).size()
+	_engine.end_match()
+	var ended: int = 0
+	for k: int in range(0, total - base):
+		var log: EventLog = _capped_main(base + k, hand, board)
+		var events: Array = _cast_and_answer(log)
+		var label: String = "%s, cap at cast event %d" % [str(hand), k]
+		assert_str(_engine.phase()).override_failure_message(label).is_equal(MatchState.PHASE_ENDED)
+		ended += 1
+		var state: MatchState = _engine.state()
+		assert_bool(_engine.pending_choice() == null).override_failure_message("%s: pending_choice() kept" % label).is_true()
+		assert_bool(state.pending_choice == null).override_failure_message("%s: state.pending_choice kept" % label).is_true()
+		assert_bool((state.suspended_action as Dictionary).is_empty()).override_failure_message("%s: suspended_action kept" % label).is_true()
+		assert_bool((state.suspended_queue as Array).is_empty()).override_failure_message("%s: suspended_queue kept" % label).is_true()
+		assert_bool(state.effects.pending_choice == null).override_failure_message("%s: continuation kept" % label).is_true()
+		assert_array(state.players[SIDE_PLAYER].resolving).override_failure_message("%s: spell left resolving" % label).is_empty()
+		var result: Dictionary = _engine.result()
+		assert_str(str(result.reason)).override_failure_message(label).is_equal(MatchRecords.REASON_EVENT_CAP)
+		assert_str(str(result.result)).override_failure_message(label).is_equal("fault")
+		assert_bool(result.winner == null).override_failure_message(label).is_true()
+		assert_array(_types(events.slice(-2))).override_failure_message(label).is_equal(["log_overflow", "match_ended"])
+		_engine.end_match()
+	return ended
+
+
+func test_event_cap_sweep_over_a_discover_spell_leaves_nothing_parked() -> void:
+	# Act
+	var ended: int = _sweep([SCOUT])
+
+	# Assert — offer and resume both inside the sweep (review P1: k = 3-5, 8-10)
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_choose_one_spell_leaves_nothing_parked() -> void:
+	# Act
+	var ended: int = _sweep([PICK_ONE])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_two_effect_spell_stops_the_owed_play_run() -> void:
+	# Act — the cap may land while the second `cast` effect is still owed
+	var ended: int = _sweep([TWO_STEP])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_summoning_discover_leaves_nothing_parked() -> void:
+	# Act
+	var ended: int = _sweep([CALLER])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_inside_one_add_to_hand_from_op_stops_it() -> void:
+	# Act — the first copy's `card_added_to_hand` ends the match; the second
+	# copy would read the pool through a resolver that has been unbound
+	var ended: int = _sweep([GIFT])
+
+	# Assert
+	assert_int(ended).is_greater(5)
+
+
+func test_event_cap_sweep_inside_one_retrigger_op_stops_it() -> void:
+	# Act — the first target's `trigger_queued` ends the match mid-op
+	var ended: int = _sweep([RITES], [DR_SCOUT, DR_FOLLOWER])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_queued_source_ref_op_touches_nothing_after_the_cap() -> void:
+	# Act — the op's own `damage_dealt` ends the match: nothing after the handler
+	# may read through the resolver, which has just been unbound
+	var ended: int = _sweep([PURGE], [DR_AVENGER, DR_FOLLOWER])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_queued_counter_op_touches_nothing_after_the_cap() -> void:
+	# Act — the op's own `counter_changed` ends the match (review R1)
+	var ended: int = _sweep([PURGE], [DR_COUNTER, DR_FOLLOWER])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_a_cap_on_discover_offered_runs_no_later_op_of_the_effect() -> void:
+	# Arrange — a reference run finds the event that offers the Discover
+	var reference: EventLog = _capped_main(UNCAPPED, [SCOUT], [])
+	var base: int = reference.events_since(0).size()
+	var events: Array = _cast_and_answer(reference)
+	var offered_at: int = _types(events).find("discover_offered")
+	_engine.end_match()
+	var log: EventLog = _capped_main(offered_at, [SCOUT], [])
+	assert_int(offered_at).is_greater(base)
+
+	# Act
+	var capped: Array = _cast_and_answer(log)
+
+	# Assert — card-effects States `Aborted`: nothing of the effect follows
+	assert_array(_types(capped.slice(-2))).is_equal(["log_overflow", "match_ended"])
+	assert_int(_of_type(capped, "effect_resolved").size()).is_equal(0)
+	assert_int(_of_type(capped, "damage_dealt").size()).is_equal(0)
+	assert_bool(_engine.pending_choice() == null).is_true()
+
+
+func test_a_cap_on_discover_picked_adds_no_pick_and_runs_no_later_op() -> void:
+	# Arrange — the cap lands on the resume's first event of this GDD's pair
+	var reference: EventLog = _capped_main(UNCAPPED, [SCOUT], [])
+	var events: Array = _cast_and_answer(reference)
+	var picked_at: int = _types(events).find("discover_picked")
+	_engine.end_match()
+	var log: EventLog = _capped_main(picked_at, [SCOUT], [])
+	var hand_before: int = 0
+
+	# Act
+	@warning_ignore("return_value_discarded")
+	_engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0))
+	assert_str(_engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	hand_before = (_engine.state().players[SIDE_PLAYER].hand as Array).size()
+	@warning_ignore("return_value_discarded")
+	_engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+
+	# Assert
+	var capped: Array = log.events_since(0)
+	assert_str(_engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_array(_types(capped.slice(-2))).is_equal(["log_overflow", "match_ended"])
+	assert_int(_of_type(capped, "discover_picked").size()).is_equal(0)
+	assert_int(_of_type(capped, "damage_dealt").size()).is_equal(0)
+	assert_int((_engine.state().players[SIDE_PLAYER].hand as Array).size()).is_equal(hand_before)
+
+
+func test_event_cap_sweep_over_a_queued_deathrattle_discover_leaves_nothing_parked() -> void:
+	# Act — the Discover suspends a queued pass with a second Deathrattle behind it
+	var ended: int = _sweep([PURGE], [DR_SCOUT, DR_FOLLOWER])
+
+	# Assert
+	assert_int(ended).is_greater(15)
+
+
+# --- sprint-4 review T1: a Discover on a queued pass, through the real resolver ------
+
+func test_a_deathrattle_discover_parks_the_rest_of_q_and_resumes_it_in_order() -> void:
+	# Arrange — review P2: a second Deathrattle queued behind the Discover's
+	_main_phase([PURGE])
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, DR_SCOUT, 1, 3)
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, DR_FOLLOWER, 1, 3)
+	var armor: int = int(_engine.state().players[SIDE_PLAYER].hero.armor)
+
+	# Act
+	_cast()
+
+	# Assert — suspended mid-pass, the follower parked
+	assert_str(_engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_int((_engine.state().suspended_queue as Array).size()).is_equal(1)
+	var before: int = _last_seq()
+
+	# Act
+	_choose(0)
+
+	# Assert — the pick, the rest of the pass, then the parked trigger
+	var order: Array = _types(_since(before)).filter(func(t: String) -> bool: return [
+		"discover_picked", "card_added_to_hand", "armor_gained", "effect_resolved", "trigger_resolved"].has(t))
+	assert_array(order.slice(0, 7)).is_equal([
+		"discover_picked", "card_added_to_hand", "armor_gained", "effect_resolved",
+		"trigger_resolved", "armor_gained", "effect_resolved"])
+	assert_int(int(_engine.state().players[SIDE_PLAYER].hero.armor) - armor).is_equal(DR_ARMOUR + DR_FOLLOW_ARMOUR)
+	assert_array(_engine.state().suspended_queue).is_empty()
+
+
+func test_a_resumed_deathrattle_pass_keeps_its_depth_one() -> void:
+	# Arrange
+	_main_phase([PURGE])
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, DR_SCOUT, 1, 3)
+	_cast()
+	var before: int = _last_seq()
+
+	# Act
+	_choose(0)
+
+	# Assert — the review's D4: depth comes back with the pass
+	var resolved: Array = _of_type(_since(before), "effect_resolved").filter(
+		func(e: Dictionary) -> bool: return str(e.payload.trigger) == "deathrattle")
+	assert_int(resolved.size()).is_equal(1)
+	assert_int(int(resolved[0].payload.depth)).is_equal(1)
+
+
+func test_an_end_step_observer_discover_resumes_the_end_step_once_then_the_boss_turn() -> void:
+	# Arrange — review P5
+	_main_phase([])
+	@warning_ignore("return_value_discarded")
+	_put(SIDE_PLAYER, END_SCOUT, 1, 3)
+	var armor: int = int(_engine.state().players[SIDE_PLAYER].hero.armor)
+
+	# Act
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+
+	# Assert — paused inside the End step
+	assert_str(_engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	var before: int = _last_seq()
+
+	# Act
+	_choose(0)
+
+	# Assert — the pass finishes at depth 1, the End step closes once, the boss starts
+	var events: Array = _since(before)
+	var resolved: Array = _of_type(events, "effect_resolved")
+	assert_int(resolved.size()).is_equal(1)
+	assert_int(int(resolved[0].payload.depth)).is_equal(1)
+	assert_int(int(_engine.state().players[SIDE_PLAYER].hero.armor) - armor).is_equal(END_ARMOUR)
+	assert_int(_seq_of(events, "turn_ended")).is_greater(int(resolved[0].seq))
+	assert_str(str(_engine.active_side())).is_equal(SIDE_BOSS)
