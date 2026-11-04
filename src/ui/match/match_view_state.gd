@@ -90,7 +90,7 @@ var counters: Dictionary = {}
 var armed_sources: Dictionary = {}
 ## Once-per-turn trigger sources spent this turn (dimmed): `{instance_id: true}`; cleared on `turn_started`.
 var exhausted_sources: Dictionary = {}
-## Feed content `{key, params, group_id}`, newest last, at most `FEED_MAX_LINES`; rendering is story 014.
+## Feed content `{key, params, group_id}`, newest last, at most `feed_max_lines`; rendering is story 014.
 var feed_lines: Array[Dictionary] = []
 ## The `match_ended` payload (match-rules C14 `MatchResult`), or null while the match runs.
 var result: Variant = null
@@ -115,7 +115,8 @@ var _choice_requested: bool = false
 
 
 ## A fresh projection over the `config("match_ui")` body [param ui_config]
-## (`d_base`, `silent_types`, `FEED_MAX_LINES`; match-ui Tuning Knobs).
+## (`d_base`, `silent_types`, `feed_max_lines` — the GDD's `FEED_MAX_LINES`
+## knob, snake_case per DD-T01; match-ui Tuning Knobs).
 ## [codeblock]
 ## var view := MatchViewState.new(db.config("match_ui"))
 ## [/codeblock]
@@ -123,7 +124,7 @@ func _init(ui_config: Dictionary) -> void:
 	_d_base = (ui_config.get("d_base", {}) as Dictionary).duplicate(true)
 	for type: Variant in ui_config.get("silent_types", []):
 		_silent[String(type)] = true
-	_feed_max = int(ui_config.get("FEED_MAX_LINES", 0))
+	_feed_max = int(ui_config.get("feed_max_lines", 0))
 	for side_name: String in [SIDE_PLAYER, SIDE_BOSS]:
 		_sides[side_name] = {
 			"hero": {"entity_id": null, "health": null, "armor": 0, "weapon": null, "power_state": POWER_READY, "frozen": false},
