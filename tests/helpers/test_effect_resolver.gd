@@ -144,6 +144,28 @@ func add_heal_ping_pong(first_id: int, second_id: int) -> void:
 	add_trigger(&"on_heal", second_id, "ping.%d" % second_id, _heal_one.bind(second_id), subject_is.bind(first_id))
 
 
+## `guard` helper: true when `ctx.attacker` is [param entity_id] (bind it) —
+## an `on_attack` responder that answers only its own host's attacks.
+func attacker_is(_engine: RulesEngine, ctx: Dictionary, entity_id: int) -> bool:
+	return ctx.get("attacker") == entity_id
+
+
+## Fixture `on_attack` responder (match-rules story 013, AC-21): when
+## [param attacker_id] attacks, its trigger destroys [param victim_id] — one
+## queued pass, so the victim leaves play in that step's death check, before
+## the engine's re-check.
+func add_on_attack_destroy(attacker_id: int, victim_id: int) -> void:
+	add_trigger(&"on_attack", attacker_id, "oa_destroy.%d" % attacker_id, _destroy_one.bind(victim_id), attacker_is.bind(attacker_id))
+
+
+## Fixture `on_attack` responder (match-rules story 013, AC-21): when
+## [param attacker_id] attacks, its trigger summons [param def_id] for
+## [param side] at the rightmost slot (a Taunt summoned mid-attack must not
+## redirect it).
+func add_on_attack_summon(attacker_id: int, side: String, def_id: String) -> void:
+	add_trigger(&"on_attack", attacker_id, "oa_summon.%d" % attacker_id, _summon_rightmost.bind(side, def_id), attacker_is.bind(attacker_id))
+
+
 ## ADR-0007 Decision 2: store the engine, install [param installers] in order
 ## through the engine's registry, register the evaluators.
 ## Typed as ADR-0007's real `bind`, so a caller passing a plain Array fails
@@ -254,6 +276,15 @@ func _summon_from_snapshot(bound_engine: RulesEngine, ctx: Dictionary, def_id: S
 	for _i: int in count:
 		@warning_ignore("return_value_discarded")
 		bound_engine.summon_minion(str(snapshot.controller), def_id, int(snapshot.position))
+
+
+func _destroy_one(bound_engine: RulesEngine, _ctx: Dictionary, entity_id: int) -> void:
+	bound_engine.destroy(entity_id)
+
+
+func _summon_rightmost(bound_engine: RulesEngine, _ctx: Dictionary, side: String, def_id: String) -> void:
+	@warning_ignore("return_value_discarded")
+	bound_engine.summon_minion(side, def_id, bound_engine.state().players[side].board.size())
 
 
 func _heal_one(bound_engine: RulesEngine, _ctx: Dictionary, entity_id: int) -> void:
