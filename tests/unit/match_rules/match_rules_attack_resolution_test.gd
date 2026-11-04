@@ -381,6 +381,75 @@ func test_a_discover_raised_by_an_on_attack_trigger_pauses_the_rest_of_the_attac
 	assert_str(String(log.last().type)).is_equal("attack_resolved")
 
 
+func test_a_continuation_that_destroys_the_defender_cancels_the_attack_after_choose() -> void:
+	# Arrange — the on_attack trigger Discovers; its continuation (run by
+	# `choose`) destroys the defender, so the parked re-check (C8 step 3)
+	# cancels (code review MR-013 S4, probe P3)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	var attacker: int = _minion(engine, SIDE_PLAYER, AC16_ATTACK, AC16_HEALTH)
+	var defender: int = _minion(engine, SIDE_BOSS, AC16_DEFENDER_ATTACK, AC16_DEFENDER_HEALTH)
+	resolver.add_trigger(&"on_attack", attacker, "oa.discover", _discover_for_player, resolver.attacker_is.bind(attacker))
+	resolver.resume_script = func(e: RulesEngine, _choice: Variant, _index: int) -> void: e.destroy(defender)
+	var before: int = log.events.size()
+	assert_bool(_attack(engine, attacker, defender).accepted).is_true()
+
+	# Act
+	var chosen: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 1))
+
+	# Assert — cancelled, no hit, the swing counted, one attack_resolved, last
+	assert_bool(chosen.accepted).is_true()
+	var events: Array = _since(log, before)
+	assert_int(_of(events, &"attack_cancelled").size()).is_equal(1)
+	assert_int(_of(events, &"damage_dealt").size()).is_equal(0)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	assert_int(int(_record(engine, attacker).damage_taken)).is_zero()
+	assert_int(_of(events, &"attack_resolved").size()).is_equal(1)
+	EventLogAssertions.assert_order(events, [&"choice_made", &"minion_died", &"attack_cancelled", &"attack_resolved"])
+	assert_str(String(log.last().type)).is_equal("attack_resolved")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
+func test_a_discover_raised_in_the_damage_step_parks_only_attack_resolved() -> void:
+	# Arrange — the defender's on_damage trigger Discovers: the pause comes
+	# after both hits and `attacks_used += 1` (C8 steps 4–6), so only step 7
+	# is parked (code review MR-013 S4, probe P4)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	var attacker: int = _minion(engine, SIDE_PLAYER, AC16_ATTACK, AC16_HEALTH)
+	var defender: int = _minion(engine, SIDE_BOSS, AC16_DEFENDER_ATTACK, AC16_DEFENDER_HEALTH)
+	resolver.add_trigger(&"on_damage", defender, "od.discover", _discover_for_player, resolver.subject_is.bind(defender))
+	var before: int = log.events.size()
+
+	# Act 1
+	assert_bool(_attack(engine, attacker, defender).accepted).is_true()
+
+	# Assert 1 — paused after the damage step
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	assert_int(_of(_since(log, before), &"damage_dealt").size()).is_equal(2)
+	assert_int(_of(_since(log, before), &"attack_resolved").size()).is_equal(0)
+	var parked: Array = []
+	for stage: Dictionary in engine.state().suspended_action.stages:
+		parked.append(str(stage.stage))
+	assert_array(parked).is_equal([RulesEngine.STAGE_ATTACK_RESOLVED])
+
+	# Act 2
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert 2 — the damage did not run again; attack_resolved once, last
+	var events: Array = _since(log, before)
+	assert_int(_of(events, &"damage_dealt").size()).is_equal(2)
+	assert_int(int(_record(engine, defender).damage_taken)).is_equal(AC16_ATTACK)
+	assert_int(int(_record(engine, attacker).damage_taken)).is_equal(AC16_DEFENDER_ATTACK)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	assert_int(_of(events, &"attack_resolved").size()).is_equal(1)
+	assert_str(String(log.last().type)).is_equal("attack_resolved")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
 # --- C8 step 4 / DD-X11: the defending hero; the snapshot ------------------------
 
 func test_a_defending_hero_never_deals_damage_back_even_with_a_weapon() -> void:
