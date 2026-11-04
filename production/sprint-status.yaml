@@ -274,7 +274,7 @@ stories:
     serialised: true
     contract: false
     blocker: ""
-    note: "critical-lane stretch, directly after MR-009; CE-004 AC-07 / CE-005 / CE-006 need it at M2"
+    note: "critical-lane stretch, directly after MR-009; CE-004 AC-07 / CE-005 / CE-006 need it at M2; 2026-11-04 code-review fix pass on fix/review-s3w2 (resolving on halt, on_hero_power, effect-summon on_summon, on_card_played instance_id)"
     completed: "2026-11-03"
   - id: "card-effects-006"
     name: "Play triggers, chosen targeting and the one-pass contract"

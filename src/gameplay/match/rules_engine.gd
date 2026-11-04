@@ -867,7 +867,11 @@ func remove_enchantment(target_id: int, index: int) -> void:
 ## negative or beyond the end means the rightmost slot. The minion is
 ## `summoning_sick` with `summoned_on_turn = turn`; `stats.minions_summoned`
 ## rises; emits `minion_summoned {side, entity_id, card_id, position, attack,
-## health}`, then runs the `on_minion_summoned` hooks. A full board is a
+## health}`, then runs the `on_minion_summoned` hooks, then raises trigger
+## point `on_summon {subject, card_id}` (its observers join Q under
+## `minion_summoned`) — card-effects C6.3 "Minion summoned by an effect": no
+## `battlecry`, no `on_play` (a minion played from hand is placed by the
+## `play_card` handler, which runs its own C6.3 steps). A full board is a
 ## no-op with `summon_failed {side, card_id, reason: board_full}`. Returns the
 ## new entity id, or [constant NO_ENTITY].
 ## [codeblock]
@@ -888,12 +892,14 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 	var index: int = board.size() if position < 0 or position > board.size() else position
 	board.insert(index, minion)
 	player.stats.minions_summoned = int(player.stats.minions_summoned) + 1
-	emit(&"minion_summoned", {
-		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": index,
+	var id: int = int(minion.entity_id)
+	var summoned_seq: int = emit(&"minion_summoned", {
+		"side": side, "entity_id": id, "card_id": def_id, "position": index,
 		"attack": attack(minion), "health": health(minion),
 	})
-	_run_inline_hooks(&"on_minion_summoned", side, {"entity_id": int(minion.entity_id), "card_id": def_id})
-	return int(minion.entity_id)
+	_run_inline_hooks(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id})
+	_raise(&"on_summon", {"side": side, "candidates": _candidates_in_order(), "subject": id, "card_id": def_id}, summoned_seq)
+	return id
 
 
 ## Primitive (C10, States "pending_destroy"): marks the minion or weapon
@@ -1563,7 +1569,7 @@ func _play_minion(side: String, card: Dictionary, position: int, plan: Dictionar
 	if not plan.fizzles:
 		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
 	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause, int(card.instance_id))
 	_fire_observers(&"on_play", side, id, def_id, cause)
 	_run_hook_steps(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id}, cause)
 	_fire_observers(&"on_summon", side, id, def_id, cause)
@@ -1590,6 +1596,9 @@ func _accept_minion(side: String, card: Dictionary, position: int, target: Varia
 ## Poisonous and the stats find), `spell_cast {…, spell_damage: F7}`; then
 ## (1) `on_cast` — the spell's effect, (2) `on_card_played` hooks, (3)
 ## `on_card_played` observers, (4) `after_cast`; then `card_to_graveyard`.
+## A fault or `event_cap` that stops the match mid-resolution still moves the
+## card out of `resolving` into the graveyard — with no event, the log being
+## sealed (code review 2026-11-03: it was left in `resolving`).
 func _cast_spell(side: String, card: Dictionary, plan: Dictionary) -> void:
 	var cast: Dictionary = {"cause": 0}
 	_run_step(_accept_spell.bind(side, card, plan.target, cast))
@@ -1598,24 +1607,29 @@ func _cast_spell(side: String, card: Dictionary, plan: Dictionary) -> void:
 	var def_id: String = str(card.def_id)
 	_play_point(&"on_cast", side, id, plan.target, def_id, cause)
 	_run_hook_steps(&"on_card_played", side, {"instance_id": id, "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause, id)
 	_fire_observers(&"after_cast", side, id, def_id, cause)
-	if _halted():
-		return
 	var player: Dictionary = _state.players[side]
+	var was_resolving: bool = player.resolving.has(card)
 	player.resolving.erase(card)
+	if not was_resolving:
+		return
 	card.zone = "graveyard"
 	player.graveyard.append(card)
+	if _halted():
+		return
 	emit(&"card_to_graveyard", {"side": side, "instance_id": id, "card_id": def_id})
 
 
 func _accept_spell(side: String, card: Dictionary, target: Variant, cast: Dictionary) -> void:
 	@warning_ignore("return_value_discarded")
 	_accept_card(side, card, CARD_SPELL, target)
-	if _halted():
-		return
+	# Into `resolving` even when the log refused the acceptance: the card has
+	# left the hand, and [method _cast_spell] moves it on from here.
 	card.zone = "resolving"
 	_state.players[side].resolving.append(card)
+	if _halted():
+		return
 	cast.cause = emit(&"spell_cast", {
 		"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id),
 		"target_id": target, "spell_damage": spell_damage(side),
@@ -1637,7 +1651,7 @@ func _play_weapon(side: String, card: Dictionary, plan: Dictionary) -> void:
 	if not plan.fizzles:
 		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
 	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause, int(card.instance_id))
 	_fire_observers(&"on_weapon_equipped", side, id, def_id, cause)
 
 
@@ -1672,7 +1686,9 @@ func _accept_card(side: String, card: Dictionary, type: String, target: Variant)
 
 ## An accepted `use_hero_power` (C7): pay `hero_power_cost` (`mana_spent`),
 ## `used_this_turn = true`, `hero_power_used {side, power_id, target_id}`,
-## then trigger point `hero_power` from the hero as its own step.
+## then the card-effects C6.3 "Hero power used" row, each its own step under
+## `hero_power_used`: (1) trigger point `hero_power` from the hero (the host
+## power's effect), (2) the `on_hero_power` observers, `subject` the hero.
 func _do_hero_power(command: Dictionary) -> void:
 	var side: String = str(command.issuer)
 	var player: Dictionary = _state.players[side]
@@ -1680,7 +1696,9 @@ func _do_hero_power(command: Dictionary) -> void:
 	var plan: Dictionary = _play_plan(power_id, _power_source(side), command.get("target_id"))
 	var used: Dictionary = {"cause": 0}
 	_run_step(_accept_hero_power.bind(side, plan.target, used))
-	_play_point(&"hero_power", side, int(player.hero.entity_id), plan.target, power_id, int(used.cause))
+	var hero_id: int = int(player.hero.entity_id)
+	_play_point(&"hero_power", side, hero_id, plan.target, power_id, int(used.cause))
+	_fire_observers(&"on_hero_power", side, hero_id, power_id, int(used.cause))
 
 
 func _accept_hero_power(side: String, target: Variant, used: Dictionary) -> void:
@@ -1704,12 +1722,18 @@ func _play_point(point: StringName, side: String, source_id: int, target: Varian
 
 
 ## An observer trigger point of the play order (`on_card_played`, `on_play`,
-## `on_summon`, `after_cast`, `on_weapon_equipped`) as one step under
-## [param cause]: candidates in engine order, `subject` the played entity.
-func _fire_observers(point: StringName, side: String, subject: int, card_id: String, cause: int) -> void:
+## `on_summon`, `after_cast`, `on_weapon_equipped`, `on_hero_power`) as one
+## step under [param cause]: candidates in engine order, `subject` the played
+## entity (the hero for `on_hero_power`). [param instance_id], when given,
+## joins the ctx as `instance_id` — the played card instance, card-effects C2's
+## `trigger_subject` of `on_card_played` (a minion's or weapon's `subject` is
+## its new entity, so the instance is named separately; code review 2026-11-03).
+func _fire_observers(point: StringName, side: String, subject: int, card_id: String, cause: int, instance_id: int = NO_ENTITY) -> void:
 	if _halted():
 		return
 	var ctx: Dictionary = {"side": side, "candidates": _candidates_in_order(), "subject": subject, "card_id": card_id}
+	if instance_id != NO_ENTITY:
+		ctx["instance_id"] = instance_id
 	_run_step(_resolve_step.bind(point, ctx), cause)
 
 
