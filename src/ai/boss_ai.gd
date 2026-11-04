@@ -428,13 +428,14 @@ static func range_problem(range_key: String, value: Variant) -> String:
 ## The task body for one boss turn (ADR-0006 erratum 2026-11-03: built here so
 ## `match_driver.gd` stays `await`-free; `work.call()` is the dynamic path). Called
 ## on the main thread, it first reads the public log, so the worker never touches
-## it. Pass the running [param planner] for `checkpoint()` to yield on, or a
-## time-sliced task would never slice. The caller owns [param sandbox] and ends
+## it. [param planner] is required, and is the task that will run the Callable:
+## `checkpoint()` yields on it, so without it a time-sliced task would run the whole
+## plan inside `start()`. The caller owns [param sandbox] and ends
 ## it once the plan is back.
 ## [codeblock]
 ## task.start(boss_ai.plan_task(sandbox, task))
 ## [/codeblock]
-func plan_task(sandbox: RulesEngine, planner: PlannerTask = null) -> Callable:
+func plan_task(sandbox: RulesEngine, planner: PlannerTask) -> Callable:
 	_read_public_log(sandbox)
 	return func() -> Variant: return await plan_turn(sandbox, planner)
 
@@ -444,7 +445,8 @@ func plan_task(sandbox: RulesEngine, planner: PlannerTask = null) -> Callable:
 ## erratum): every caller awaits it. Forks `sim_<turn>` once, for every sandbox of
 ## the turn (C4), and leaves the root's `rng_match` to move only by what it accepts,
 ## or the replay would diverge. Outside the side-to-move's Main it returns an empty
-## plan. The caller owns [param sandbox] and ends it with `end_match()`.
+## plan. The caller owns [param sandbox] and ends it with `end_match()`. With no
+## [param planner] nothing yields: for tests and the harness, never a task body.
 ## [codeblock]
 ## var plan: TurnPlan = await boss_ai.plan_turn(sandbox)
 ## [/codeblock]

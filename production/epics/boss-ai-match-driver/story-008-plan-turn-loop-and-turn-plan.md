@@ -85,8 +85,10 @@ checks scope against it.*
 - `src/ai/boss_ai.gd` (constructor, planner block)
 - `src/ai/turn_plan.gd` (new)
 - `src/ai/scorer.gd` (`alternatives` takes the pick, N4; additive)
+- `src/ai/planner_task.gd` (doc comments, review D-1)
+- `tests/unit/boss_ai/boss_ai_choose_test.gd` (caller, review D-1)
 - `tests/unit/boss_ai/boss_ai_plan_turn_test.gd` (new, 36 tests)
-- `tests/unit/boss_ai/boss_ai_plan_task_shape_test.gd` (new, 5 tests)
+- `tests/unit/boss_ai/boss_ai_plan_task_shape_test.gd` (new, 7 tests)
 - `tests/helpers/boss_ai_board.gd` (additive: `started_match`, `adopt` rules overrides)
 - `tests/fixtures/boss_ai/scripted_player_10_turns.json`, `tests/fixtures/boss_ai/deathrattle_taunt_divergence.json`, `tests/fixtures/boss_ai/zero_cost_loop.json` (new)
 
@@ -106,7 +108,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boss_ai/boss_ai_plan_turn_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [x] Created: `boss_ai_plan_turn_test.gd` 36 tests, `boss_ai_plan_task_shape_test.gd` 5 tests, passing
+**Status**: [x] Created: `boss_ai_plan_turn_test.gd` 36 tests, `boss_ai_plan_task_shape_test.gd` 7 tests, passing
 
 ---
 
@@ -128,7 +130,7 @@ checks scope against it.*
 - **Search frequency, a reading to confirm.** C2's pseudocode searches on every pass; this searches once per turn, plus once after `ai_plan_aborted`. C2 alone contradicts A7: a band 1 trade that clears the Taunt would make a repeat search find the two face attacks, and `LETHAL` would be logged. C3 ("one more search is allowed per turn"), F7 (`lethal_nodes` counted once per run) and C3's "may still stumble into lethal" all fit the reading. The GDD is not edited: it needs no new rule, but C2's pseudocode should say so.
 - **31 commands at the cap.** GDD C2 and A27 give 30 actions and then the forced `end_turn`, so the capped plan holds 31 commands and 31 diagnostics. The manifest guardrail and the QA plan say "at most 30". The GDD wins; the guardrail needs correcting. The test asserts `cap + 1`.
 - **`_init` takes `db` and `keyword_values` as well** (7th and 8th, required): C1.1, ADR-0008 and the story list six arguments, but `Scorer` and `CandidateSet` need both and the engine exposes no database. Story 013 must pass them.
-- **`plan_turn`, `plan_task` and `play_turn` take an optional `planner`**: no document says how `BossAI` reaches the running task's `checkpoint()`. Without it the planner never yields, so story 013/014 must call `plan_task(sandbox, task)` or a time-sliced run blocks the main thread.
+- **`plan_task(sandbox, planner)` takes the running task, required; `plan_turn` and `play_turn` keep it optional** (no planner: nothing yields, tests and the harness only). No document said how `BossAI` reaches the task's `checkpoint()`, and the erratum's one-argument `plan_task(sandbox)` cannot. Changed by review D-1 below.
 - **The caller ends the sandbox** with `end_match()`, so `plan_task`'s lambda keeps the erratum's shape. Story 014's task-done path must do it, on the discard paths too.
 - **Diagnostics carry two routing keys**, `event` and `command_index`, since the story's payload shape cannot say which event each is or which command it precedes (a rejected decision has none of its own). `TurnPlan.diagnostics_before()` and `event_payload()` are for story 015. Extra payload keys: `tie_set_size`, `lethal_nodes`, `mode_transition`.
 - `lethal_search_exhausted` is written into `mode` on the first decision only, as A9 and the Edge Cases read; `mode_trace` keeps the mode played. Story 009 should know a DEFENSIVE first decision after exhaustion shows the literal there.
@@ -139,4 +141,5 @@ checks scope against it.*
 - `play_turn` writes diagnostics through `engine.emit`, because `log.append` on a live log is forbidden in `src/ai/**`. Harness only.
 - Boss-side Choices are still option 0, flagged `sim_choice_placeholder`, in `BossAI._answer_choices`, `LethalSearch._answer_choices` and `Scorer._answer_choices`. Story 010 owns all three.
 **Test Evidence**: `tests/unit/boss_ai/boss_ai_plan_turn_test.gd`, `tests/unit/boss_ai/boss_ai_plan_task_shape_test.gd`
-**Reviewed by**: not reviewed in lane (the orchestrator runs `/code-review` at M1).
+**Reviewed by**: independent review 2026-11-04 (`s5-review-bossai.md`): CHANGES REQUIRED, one blocking defect, fixed below on `s5/l1-w1`; re-review is the orchestrator's.
+**Review fix D-1** (2026-11-04, start 22:40 UTC, end 22:47 UTC): `plan_task`'s `planner` defaulted to null, so the call shape story 014's AC, ADR-0006 and `planner_task.gd` all showed ran a time-sliced plan inside `start()` on the main thread with no signal. `planner` is now required on `plan_task`; every caller, `planner_task.gd` and story 014's AC and Engine Notes pass the task. `test_plan_task_takes_the_task_with_no_default` failed on the old default before the fix. `test_a_time_sliced_run_yields_inside_the_search_before_it_finishes` asserts `start()` returns still live with nothing submitted, on a lethal board, so the search's stack crosses real suspensions; it passes the task, so it could not fail on the old default, and it was seen failing against a mutant whose lambda drops the task. **Not updated, their owners': ADR-0006 line 248, ADR-0008 and control-manifest line 180 still show `plan_task(sandbox)`; `forecast_task` and `choose_task` (story 014) need the same required task.** Verification: on trunk `14abec6`, import exit 0; `gates.sh`, `no_global_rng.sh`, `parse-check.sh` exit 0; `commands.test` Overall Summary 1710 test cases, 0 errors, 0 failures, 0 orphans, exit 0; `commands.smoke` exit 0, no `SCRIPT ERROR`.

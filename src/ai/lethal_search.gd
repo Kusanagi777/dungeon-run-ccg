@@ -311,20 +311,21 @@ func _is_burn(command: Dictionary, engine: RulesEngine) -> bool:
 	return false
 
 
-## What one hand card adds to F4's sum: a burn's [method face_damage], the attack
-## of a Charge (or, against a Taunt, Rush) minion, a weapon's swings.
+## What one hand card adds to F4's sum: a burn's [method face_damage]; for a Charge
+## (or, against a Taunt, Rush) minion or a weapon, F4's own attacker term once it
+## lands, `attack × attacks_remaining`, so Windfury counts on either.
 func _hand_damage(def: Variant, bonus: int, taunted: bool, node: RulesEngine) -> int:
 	if not def is Dictionary:
 		return 0
 	var keywords: Array = def.get("keywords", [])
+	var swings: int = node.rule("max_attacks_windfury") if keywords.has(MatchRecords.KEYWORD_WINDFURY) else RulesEngine.ATTACKS_PER_TURN
 	match str(def.get("type")):
 		RulesEngine.CARD_SPELL:
 			return face_damage(def, bonus)
 		RulesEngine.CARD_MINION:
 			var charges: bool = keywords.has(MatchRecords.KEYWORD_CHARGE) or (taunted and keywords.has(MatchRecords.KEYWORD_RUSH))
-			return int(def.get("attack", 0)) if charges else 0
+			return int(def.get("attack", 0)) * swings if charges else 0
 		RulesEngine.CARD_WEAPON:
-			var swings: int = node.rule("max_attacks_windfury") if keywords.has(MatchRecords.KEYWORD_WINDFURY) else RulesEngine.ATTACKS_PER_TURN
 			return int(def.get("attack", 0)) * swings
 	return 0
 

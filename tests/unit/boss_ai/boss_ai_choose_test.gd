@@ -93,7 +93,7 @@ func _planned(fixture: Dictionary, stream: RngStream) -> Dictionary:
 	var engine: RulesEngine = _engine(fixture, db)
 	var sandbox: RulesEngine = engine.clone()
 	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
-	task.start(_boss_ai(fixture, db, stream).plan_task(sandbox))
+	task.start(_boss_ai(fixture, db, stream).plan_task(sandbox, task))
 	assert_bool(task.poll()).is_true()
 	var plan: TurnPlan = task.result()
 	sandbox.end_match()

@@ -89,7 +89,7 @@ func _plan(board: Dictionary) -> TurnPlan:
 
 func _run(ai: BossAI, sandbox: RulesEngine) -> TurnPlan:
 	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
-	task.start(ai.plan_task(sandbox))
+	task.start(ai.plan_task(sandbox, task))
 	assert_bool(task.poll()).is_true()
 	return task.result()
 

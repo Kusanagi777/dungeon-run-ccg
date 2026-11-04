@@ -4,7 +4,7 @@
 ##
 ## On 4.7.2 any function containing `await` is a coroutine and every statically
 ## resolved call to it must be `await`ed; the task Callable is the one dynamic hop.
-## So the shape is checked twice: by running `plan_task(sandbox)` through each main-
+## So the shape is checked twice: by running `plan_task(sandbox, task)` through each main-
 ## thread [PlannerTask] (a worker never starts in `tests/unit/**`), and by scanning
 ## `src/ai/` for a call to a planner coroutine that does not await it.
 extends GdUnitTestSuite
@@ -19,8 +19,8 @@ const SLICE_USEC: int = 1
 
 # --- helpers -----------------------------------------------------------------
 
-func _board() -> Dictionary:
-	var fixture: Dictionary = BossAiBoard.read("f1_worked_example")
+func _board(given: Dictionary = {}) -> Dictionary:
+	var fixture: Dictionary = BossAiBoard.read("f1_worked_example") if given.is_empty() else given
 	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
 	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
 	var stub: Dictionary = BossAiBoard.stub_config()
@@ -50,7 +50,7 @@ func test_plan_task_returns_a_turn_plan_through_the_immediate_task() -> void:
 	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
 
 	# Act
-	task.start((board.ai as BossAI).plan_task(sandbox))
+	task.start((board.ai as BossAI).plan_task(sandbox, task))
 	var plan: Variant = task.result()
 	sandbox.end_match()
 
@@ -87,6 +87,57 @@ func test_plan_task_suspends_and_resumes_through_the_time_sliced_task() -> void:
 	var plan: Variant = task.result()
 	assert_bool(plan is TurnPlan).is_true()
 	assert_that((plan as TurnPlan).to_dict()).is_equal(expected.to_dict())
+
+
+func test_plan_task_takes_the_task_with_no_default() -> void:
+	# Arrange — a default is the trap: `plan_task(sandbox)` reads right, and a
+	# time-sliced task then runs the whole plan inside `start()`
+	var found: Array[Dictionary] = []
+
+	# Act
+	for method: Dictionary in load(BOSS_AI_PATH).get_script_method_list():
+		if str(method.name) == "plan_task":
+			found.append(method)
+
+	# Assert
+	assert_int(found.size()).is_equal(1)
+	assert_int((found[0].args as Array).size()).is_equal(2)
+	assert_array(found[0].default_args).is_empty()
+
+
+func test_a_time_sliced_run_yields_inside_the_search_before_it_finishes() -> void:
+	# Arrange — a lethal board, so the search's stack crosses real suspensions; a
+	# clock always past the slice yields at every checkpoint
+	var fixture: Dictionary = BossAiBoard.read("lethal_through_taunt")
+	var reference: Dictionary = _board(fixture)
+	var reference_sandbox: RulesEngine = (reference.engine as RulesEngine).clone()
+	var expected: TurnPlan = await (reference.ai as BossAI).plan_turn(reference_sandbox)
+	reference_sandbox.end_match()
+	var board: Dictionary = _board(fixture)
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	var scratch: EventLog = sandbox.state().log
+	var ticks: Array[int] = [0]
+	var clock: Callable = func() -> int:
+		ticks[0] += SLICE_USEC
+		return ticks[0]
+	var task: TimeSlicedPlannerTask = TimeSlicedPlannerTask.new(SLICE_USEC, clock)
+
+	# Act
+	task.start((board.ai as BossAI).plan_task(sandbox, task))
+	var live_after_start: bool = task.is_live()
+	var events_after_start: int = scratch.size()
+	var polls: int = 0
+	while not task.poll():
+		polls += 1
+	sandbox.end_match()
+
+	# Assert — `start()` came back with nothing submitted, one yield per node at
+	# least, and the sliced turn is the immediate one
+	assert_bool(live_after_start).is_true()
+	assert_int(events_after_start).is_equal(0)
+	assert_int(polls).is_greater(0)
+	assert_str(str(((task.result() as TurnPlan).diagnostics[0]).mode)).is_equal(String(Scorer.MODE_LETHAL))
+	assert_that((task.result() as TurnPlan).to_dict()).is_equal(expected.to_dict())
 
 
 # --- the shape, by source scan ----------------------------------------------------

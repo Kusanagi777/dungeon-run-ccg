@@ -7,7 +7,7 @@
 ## the work is always built in `src/ai/` in this shape (ADR-0006 erratum
 ## 2026-11-03):
 ## [codeblock]
-## func() -> Variant: return await boss_ai.plan_turn(sandbox)
+## func() -> Variant: return await boss_ai.plan_turn(sandbox, task)
 ## [/codeblock]
 ## Each implementation calls it dynamically through `work.call()`, which is what
 ## lets the call site skip the static coroutine check.
@@ -23,7 +23,7 @@
 ##
 ## Usage (the caller owns the task; one `poll()` per frame):
 ## [codeblock]
-## task.start(boss_ai.plan_task(sandbox))
+## task.start(boss_ai.plan_task(sandbox, task))
 ## # each frame:
 ## if task.poll():
 ##     var plan: Variant = task.result()

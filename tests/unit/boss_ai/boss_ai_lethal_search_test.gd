@@ -381,6 +381,21 @@ func test_a_charge_minion_in_hand_is_played_and_swings_for_lethal() -> void:
 	assert_int(_health_after(board, plan)).is_less_equal(0)
 
 
+func test_a_charge_windfury_minion_counts_both_swings_in_f4() -> void:
+	# Arrange — F4's attacker term once it lands: attack × attacks_remaining, 3 × 2
+	var fixture: Dictionary = BossAiBoard.read("lethal_weapon_spell")
+	fixture.cards.append({"id": "bai_twinblade", "type": "minion", "cost": 4, "attack": 3, "health": 1, "keywords": ["charge", "windfury"]})
+	fixture.boss.hand = ["bai_twinblade"]
+	var board: Dictionary = _laid_out(fixture)
+
+	# Act
+	var plan: Variant = await _search(board)
+
+	# Assert — the player at 6 falls to the play and two swings
+	assert_array(_types(plan)).contains_exactly([MatchRecords.CMD_PLAY_CARD, MatchRecords.CMD_ATTACK, MatchRecords.CMD_ATTACK])
+	assert_int(_health_after(board, plan)).is_less_equal(0)
+
+
 func test_a_rush_minion_clears_a_taunt_for_the_face_attack() -> void:
 	# Arrange — the 3/1 Rush kills the 1/1 Taunt; the 5/5 goes face for 5
 	var fixture: Dictionary = BossAiBoard.read("lethal_weapon_spell")

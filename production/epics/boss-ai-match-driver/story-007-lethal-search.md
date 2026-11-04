@@ -74,7 +74,7 @@ checks scope against it.*
 
 - `src/ai/lethal_search.gd` (new)
 - `src/ai/candidates.gd` (`positions()` extracted from `collect`, no behaviour change)
-- `tests/unit/boss_ai/boss_ai_lethal_search_test.gd` (new, 28 tests)
+- `tests/unit/boss_ai/boss_ai_lethal_search_test.gd` (new, 29 tests)
 - `tests/helpers/boss_ai_board.gd` (additive: `adopt`)
 - `tests/fixtures/boss_ai/lethal_open_face.json`, `tests/fixtures/boss_ai/lethal_through_taunt.json`, `tests/fixtures/boss_ai/lethal_weapon_spell.json`, `tests/fixtures/boss_ai/lethal_pruned_root.json`, `tests/fixtures/boss_ai/lethal_shield_wall.json` (new)
 
@@ -94,7 +94,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boss_ai/boss_ai_lethal_search_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [x] Created: 28 tests, passing
+**Status**: [x] Created: 29 tests, passing
 
 ---
 
@@ -118,4 +118,5 @@ checks scope against it.*
 - Shallow reads "depth 1" as no setup ply: attacks on the hero plus at most one burn at the hero, in any number of commands (A6 needs several attacks in band 1). A hero power with a face-reaching `damage` op counts as the burn.
 - `src/ai/lethal_search.gd` answers a boss-side Choice with option 0 until story 010, as the scorer does.
 **Test Evidence**: `tests/unit/boss_ai/boss_ai_lethal_search_test.gd`
-**Reviewed by**: not reviewed in lane (the orchestrator runs `/code-review` at M1).
+**Reviewed by**: independent review 2026-11-04 (`s5-review-bossai.md`).
+**Review fix D-3** (2026-11-04): a Charge + Windfury minion in hand counted one swing in F4 and could prune a real lethal. F4 settles it: `attack(a)·attacks_remaining(a)` is its attacker term, and such a minion has two attacks once it lands. `_hand_damage` now applies the same swings to minions as to weapons. `test_a_charge_windfury_minion_counts_both_swings_in_f4` was seen failing on the old code (plan null). No shipped card has both keywords.
