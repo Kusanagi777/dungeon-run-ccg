@@ -594,6 +594,7 @@ previous_sprints:
         owner: ""
         estimate_days: 1
         blocker: ""
+        note: "2026-11-04 data fix on fix/review-s3w2: boss_starting_health_by_band in match_rules.json + its validator rows"
         completed: "2026-11-03"
       - id: "match-rules-002"
         name: "HookRegistry: install order, fold, copy"

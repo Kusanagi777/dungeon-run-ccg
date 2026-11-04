@@ -104,21 +104,20 @@ func test_shipped_data_loads_ready_with_zero_errors() -> void:
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 
 
-func test_shipped_warnings_are_pool_size_band_health_and_pending_validators_only() -> void:
+func test_shipped_warnings_are_pool_size_and_pending_validators_only() -> void:
 	# Act
 	var report: ValidationReport = _loaded().report()
 
-	# Assert — CN-6.3 allows W_POOL_SIZE at MVP-0; W_BAND_HEALTH is the "not
-	# checked" row (match_rules.json has no boss_starting_health_by_band yet);
-	# every E_DELEGATED warning is a pending owner's W_VALIDATOR_PENDING.
+	# Assert — CN-6.3 allows W_POOL_SIZE at MVP-0; every E_DELEGATED warning is
+	# a pending owner's W_VALIDATOR_PENDING. No W_BAND_HEALTH: match_rules.json
+	# carries boss_starting_health_by_band (DD-M02, fix pass 2026-11-04), so
+	# stage 8 checks every boss and none deviates (content AC-10).
 	var pool_files: Array[String] = []
 	var pending_files: Array[String] = []
 	for w: Dictionary in report.warnings():
 		match String(w.code):
 			"W_POOL_SIZE":
 				pool_files.append(w.file)
-			"W_BAND_HEALTH":
-				assert_str(w.message).contains("not checked")
 			"E_DELEGATED":
 				assert_str(w.message).starts_with("W_VALIDATOR_PENDING: ")
 				pending_files.append(w.file)

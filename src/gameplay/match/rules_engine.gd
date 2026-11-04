@@ -84,14 +84,35 @@ const CONFIG_SAFE_RANGES: Dictionary[String, Array] = {
 	"fatigue_base": [1, 3],
 	"fatigue_step": [1, 2],
 }
+## The per-band knobs (match-rules Tuning Knobs rows with one value per boss
+## band): each is a list of whole numbers, band 1 first, exactly one per
+## [constant CONFIG_BAND_SAFE_RANGES] row. Kept apart from
+## [constant CONFIG_KEYS] because [method rule] answers one `int`.
+## `boss_starting_health_by_band` (DD-M02, registry
+## `boss_starting_health_by_band`) is the band default a boss's `health` is
+## checked against at load (card-database CR-5 stage 8, `W_BAND_HEALTH`); the
+## engine itself takes the boss's health from `MatchConfig.boss.health` (C3
+## step 2) and never reads it.
+const CONFIG_BAND_KEYS: Array[String] = ["boss_starting_health_by_band"]
+## The Tuning Knobs "Safe range" column for [constant CONFIG_BAND_KEYS]: per
+## key, one inclusive `[min, max]` per band, band 1 first. Validation bounds,
+## like [constant CONFIG_SAFE_RANGES]; the integration suite pins them to the
+## GDD row.
+const CONFIG_BAND_SAFE_RANGES: Dictionary[String, Array] = {
+	"boss_starting_health_by_band": [[25, 35], [35, 45], [45, 60]],
+}
 ## The file [method validate_rules_config] reports against (DD-T01 name).
 const CONFIG_FILE: String = "match_rules.json"
 ## Owner code: a [constant CONFIG_KEYS] key is absent from the body.
 const E_RULES_MISSING_KNOB: StringName = &"E_RULES_MISSING_KNOB"
 ## Owner code: a knob is not a whole number (a fraction, string, bool, null…).
 const E_RULES_NOT_INTEGER: StringName = &"E_RULES_NOT_INTEGER"
-## Owner code: a knob lies outside its [constant CONFIG_SAFE_RANGES] row.
+## Owner code: a knob lies outside its [constant CONFIG_SAFE_RANGES] row (or
+## a band's entry outside its [constant CONFIG_BAND_SAFE_RANGES] bounds).
 const E_RULES_OUT_OF_RANGE: StringName = &"E_RULES_OUT_OF_RANGE"
+## Owner code: a [constant CONFIG_BAND_KEYS] knob is not a list with exactly
+## one entry per band.
+const E_RULES_NOT_BAND_LIST: StringName = &"E_RULES_NOT_BAND_LIST"
 
 ## `hook_install_skipped.reason` for a second installer with an installed
 ## `host_id` (ADR-0005 rule 5).
@@ -262,7 +283,8 @@ func rules_config() -> Dictionary:
 ## Decision 4: `call(body, db) -> Array`), registered by `Boot` as
 ## `configs.match_rules`. Static and pure: it reads [param body] only
 ## ([param _db] is the stage-7a calling convention and is unused here).
-## Returns one error per problem, in [constant CONFIG_KEYS] order, each in the
+## Returns one error per problem, in [constant CONFIG_KEYS] order then
+## [constant CONFIG_BAND_KEYS] order, each in the
 ## `ValidationReport` entry shape `{severity, code, file, record_id, field,
 ## message}` (`severity` error, `file` [constant CONFIG_FILE], `record_id`
 ## `null`, `field` the knob key); `[]` when the body is valid:
@@ -270,10 +292,14 @@ func rules_config() -> Dictionary:
 ## - a value that is not a whole number (JSON numbers parse as `float`, so
 ##   `7.0` passes and `7.5`, `"7"`, `true` fail) is [constant E_RULES_NOT_INTEGER];
 ## - a whole number outside its [constant CONFIG_SAFE_RANGES] row is
-##   [constant E_RULES_OUT_OF_RANGE].
+##   [constant E_RULES_OUT_OF_RANGE];
+## - a per-band knob that is not an Array with one entry per band is
+##   [constant E_RULES_NOT_BAND_LIST]; otherwise each band's entry is checked
+##   like a whole-number knob against its own bounds (one error per bad band,
+##   band order, the message naming the band).
 ## [codeblock]
 ## var errors: Array = RulesEngine.validate_rules_config({"board_size": 9.0}, null)
-## errors[0].code   # &"E_RULES_OUT_OF_RANGE" (board_size), then 13 missing knobs
+## errors[0].code   # &"E_RULES_OUT_OF_RANGE" (board_size), then 14 missing knobs
 ## [/codeblock]
 static func validate_rules_config(body: Dictionary, _db: Variant) -> Array:
 	var errors: Array[Dictionary] = []
@@ -282,14 +308,38 @@ static func validate_rules_config(body: Dictionary, _db: Variant) -> Array:
 			errors.append(_config_error(E_RULES_MISSING_KNOB, key, "missing knob `%s` (match-rules Tuning Knobs)" % key))
 			continue
 		var raw: Variant = body[key]
-		var is_number: bool = typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT
-		if not is_number or float(raw) != floorf(float(raw)):
+		if not _is_whole(raw):
 			errors.append(_config_error(E_RULES_NOT_INTEGER, key, "`%s` must be a whole number, found %s (%s)" % [key, str(raw), type_string(typeof(raw))]))
 			continue
 		var value: int = int(raw)
 		var bounds: Array = CONFIG_SAFE_RANGES[key]
 		if value < int(bounds[0]) or value > int(bounds[1]):
 			errors.append(_config_error(E_RULES_OUT_OF_RANGE, key, "`%s` is %d, outside the safe range %d–%d" % [key, value, int(bounds[0]), int(bounds[1])]))
+	for key: String in CONFIG_BAND_KEYS:
+		errors.append_array(_validate_band_knob(body, key))
+	return errors
+
+
+## The [method validate_rules_config] checks of per-band knob [param key].
+static func _validate_band_knob(body: Dictionary, key: String) -> Array[Dictionary]:
+	var errors: Array[Dictionary] = []
+	if not body.has(key):
+		errors.append(_config_error(E_RULES_MISSING_KNOB, key, "missing knob `%s` (match-rules Tuning Knobs)" % key))
+		return errors
+	var raw: Variant = body[key]
+	var band_bounds: Array = CONFIG_BAND_SAFE_RANGES[key]
+	if not raw is Array or (raw as Array).size() != band_bounds.size():
+		errors.append(_config_error(E_RULES_NOT_BAND_LIST, key, "`%s` must be a list of %d whole numbers, band 1 first, found %s (%s)" % [key, band_bounds.size(), str(raw), type_string(typeof(raw))]))
+		return errors
+	for i: int in band_bounds.size():
+		var entry: Variant = raw[i]
+		var band: int = i + 1
+		if not _is_whole(entry):
+			errors.append(_config_error(E_RULES_NOT_INTEGER, key, "`%s` band %d must be a whole number, found %s (%s)" % [key, band, str(entry), type_string(typeof(entry))]))
+			continue
+		var bounds: Array = band_bounds[i]
+		if int(entry) < int(bounds[0]) or int(entry) > int(bounds[1]):
+			errors.append(_config_error(E_RULES_OUT_OF_RANGE, key, "`%s` band %d is %d, outside the safe range %d–%d" % [key, band, int(entry), int(bounds[0]), int(bounds[1])]))
 	return errors
 
 
