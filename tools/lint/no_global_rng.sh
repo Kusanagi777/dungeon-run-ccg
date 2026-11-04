@@ -22,6 +22,11 @@
 
 set -u
 
+# Git Bash rewrites a bare `/` argument into its install path before a native
+# rg sees it, so `--path-separator /` below needs that conversion off. Inert on
+# Linux and macOS.
+export MSYS2_ARG_CONV_EXCL='*'
+
 PATTERN='(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|\.pick_random\(|RandomNumberGenerator\.new\('
 
 # The one permitted entropy call: Run Structure's run-creation command, the F1
@@ -74,7 +79,7 @@ scan() {
 	done
 	[ "${#dirs[@]}" -eq 0 ] && return 0
 	local out rc
-	out="$(rg --line-number --with-filename --no-heading --color never --glob '*.gd' "${globs[@]}" -e "$PATTERN" -- "${dirs[@]}")"
+	out="$(rg --line-number --with-filename --no-heading --color never --path-separator / --glob '*.gd' "${globs[@]}" -e "$PATTERN" -- "${dirs[@]}")"
 	rc=$?
 	if [ "$rc" -ge 2 ]; then
 		echo "no_global_rng.sh: rg exited $rc" >&2

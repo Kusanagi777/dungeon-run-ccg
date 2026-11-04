@@ -16,6 +16,10 @@
 # Exit 0: every script loaded. Exit 1: any `PARSE FAIL` line or non-zero exit.
 # Exit 2: could not run (no godot, or no script found in scope).
 #
+# The one exception to "non-zero exit": exit 139 after the script's `ok:` line.
+# Godot on Windows can die in shutdown once the load has finished (TD-013). The
+# load is proven, so the file passes, and the line and the count both say so.
+#
 # Story: boot-composition-root/story-005 (TD-002, TD-010).
 
 set -u
@@ -42,11 +46,15 @@ fi
 
 checked=0
 failed=0
+exit_crashes=0
 for f in "${files[@]}"; do
 	out="$("$godot_bin" --headless --path . -s res://.claude/scripts/godot-parse-check.gd -- "res://$f" 2>&1)"
 	rc=$?
 	checked=$((checked + 1))
-	if [ "$rc" -ne 0 ] || printf '%s\n' "$out" | grep -q 'PARSE FAIL'; then
+	if [ "$rc" -eq 139 ] && printf '%s\n' "$out" | grep -qF "ok: res://$f"; then
+		exit_crashes=$((exit_crashes + 1))
+		echo "ok: res://$f (godot crashed at exit, after the load: TD-013)"
+	elif [ "$rc" -ne 0 ] || printf '%s\n' "$out" | grep -q 'PARSE FAIL'; then
 		failed=$((failed + 1))
 		printf '%s\n' "$out" | grep -v '^Godot Engine v'
 		printf '%s\n' "$out" | grep -q 'PARSE FAIL' || echo "PARSE FAIL: res://$f (godot exited $rc)"
@@ -56,5 +64,6 @@ for f in "${files[@]}"; do
 done
 
 echo "parse-check.sh: $checked checked, $failed failed"
+[ "$exit_crashes" -eq 0 ] || echo "parse-check.sh: godot crashed at exit on $exit_crashes of $checked runs (TD-013)"
 [ "$failed" -eq 0 ] || exit 1
 exit 0

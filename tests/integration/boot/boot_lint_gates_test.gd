@@ -36,8 +36,17 @@ func _run_gates(root: String, env_path: String = "") -> Dictionary:
 	if env_path.is_empty():
 		code = OS.execute("bash", [script_path, root_path], output, true)
 	else:
-		code = OS.execute("/usr/bin/env", ["PATH=" + env_path, "/bin/bash", script_path, root_path], output, true)
+		# Through bash, not /usr/bin/env: Windows cannot launch POSIX paths directly.
+		code = OS.execute("bash", ["-c", 'PATH="$1" exec "$BASH" "$2" "$3"', "bash", env_path, script_path, root_path], output, true)
 	return {"exit": code, "text": "\n".join(output)}
+
+
+## `path` as a PATH entry: Git Bash spells `C:/x` as `/c/x`, and the drive's colon
+## would otherwise split the entry in two. Any other path comes back unchanged.
+func _path_entry(path: String) -> String:
+	if path.length() > 1 and path[1] == ":":
+		return "/" + path[0].to_lower() + path.substr(2)
+	return path
 
 
 ## Asserts that `gate` reported hits and every other gate reported none.
@@ -160,7 +169,7 @@ func test_real_tree_passes_every_gate() -> void:
 
 func test_missing_ripgrep_refuses_with_exit_2() -> void:
 	# Arrange — a PATH with no rg on it
-	var empty_path: String = ProjectSettings.globalize_path(FIXTURES + "no_rg")
+	var empty_path: String = _path_entry(ProjectSettings.globalize_path(FIXTURES + "no_rg"))
 
 	# Act
 	var result: Dictionary = _run_gates(PROJECT_ROOT, empty_path)
@@ -173,7 +182,7 @@ func test_missing_ripgrep_refuses_with_exit_2() -> void:
 
 func test_ripgrep_older_than_14_refuses_with_exit_2() -> void:
 	# Arrange — fake_rg13/rg prints "ripgrep 13.0.0"; /usr/bin:/bin for head/sed
-	var path: String = ProjectSettings.globalize_path(FIXTURES + "fake_rg13") + ":/usr/bin:/bin"
+	var path: String = _path_entry(ProjectSettings.globalize_path(FIXTURES + "fake_rg13")) + ":/usr/bin:/bin"
 
 	# Act
 	var result: Dictionary = _run_gates(PROJECT_ROOT, path)

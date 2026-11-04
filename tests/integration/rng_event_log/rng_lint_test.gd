@@ -82,8 +82,17 @@ func _lint(root: String, env_path: String = "") -> Dictionary:
 	if env_path.is_empty():
 		code = OS.execute("bash", [script_path, root], output, true)
 	else:
-		code = OS.execute("/usr/bin/env", ["PATH=" + env_path, "/bin/bash", script_path, root], output, true)
+		# Through bash, not /usr/bin/env: Windows cannot launch POSIX paths directly.
+		code = OS.execute("bash", ["-c", 'PATH="$1" exec "$BASH" "$2" "$3"', "bash", env_path, script_path, root], output, true)
 	return {"exit": code, "text": "\n".join(output)}
+
+
+## `path` as a PATH entry: Git Bash spells `C:/x` as `/c/x`, and the drive's colon
+## would otherwise split the entry in two. Any other path comes back unchanged.
+func _path_entry(path: String) -> String:
+	if path.length() > 1 and path[1] == ":":
+		return "/" + path[0].to_lower() + path.substr(2)
+	return path
 
 
 func test_planted_randi_under_gameplay_fails_naming_file_and_line() -> void:
@@ -192,7 +201,7 @@ func test_missing_ripgrep_refuses_with_exit_2() -> void:
 	var root: String = _write("no_rg", "src/gameplay/dealer.gd", STREAM_LINES)
 
 	# Act
-	var result: Dictionary = _lint(root, ProjectSettings.globalize_path(FIXTURE_ROOT + "no_bin"))
+	var result: Dictionary = _lint(root, _path_entry(ProjectSettings.globalize_path(FIXTURE_ROOT + "no_bin")))
 
 	# Assert
 	assert_int(result.exit).is_equal(EXIT_REFUSED)

@@ -21,6 +21,11 @@
 
 set -u
 
+# Git Bash rewrites a bare `/` argument into its install path before a native
+# rg sees it, so `--path-separator /` below needs that conversion off. Inert on
+# Linux and macOS.
+export MSYS2_ARG_CONV_EXCL='*'
+
 # --- ripgrep guard (builtins only until rg is known to exist) ---------------
 if ! command -v rg > /dev/null 2>&1; then
 	echo "gates.sh: ripgrep (rg) not found on PATH — refusing to run (needs ripgrep >= 14)" >&2
@@ -65,7 +70,7 @@ rg_hits() {
 	mapfile -t dirs < <(existing_dirs "$@")
 	[ "${#dirs[@]}" -eq 0 ] && return 0
 	local out rc
-	out="$(rg --line-number --with-filename --no-heading --color never --glob '*.gd' "${args[@]}" -- "${dirs[@]}")"
+	out="$(rg --line-number --with-filename --no-heading --color never --path-separator / --glob '*.gd' "${args[@]}" -- "${dirs[@]}")"
 	rc=$?
 	if [ "$rc" -ge 2 ]; then
 		echo "gates.sh: rg exited $rc (${args[*]})" >&2

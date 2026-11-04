@@ -18,6 +18,10 @@ const FAILED_ROOT: String = "res://tests/fixtures/data/refs_unknown/"
 const NO_ROOT: String = "res://tests/fixtures/data/content_validate_no_such_root/"
 const VALIDATE_SCRIPT: String = "res://tools/content/validate.gd"
 const SCHEMAS: String = "res://tools/content/schemas/"
+## `0xC0000005` as `OS.execute` returns it on Windows (TD-013).
+const EXIT_WINDOWS_ACCESS_VIOLATION: int = -1073741819
+## Runs of validate.gd allowed per case when the child dies in shutdown.
+const MAX_RUNS: int = 5
 ## Schema file → the CR-3 record type the loader enforces for it. One
 ## `cards.schema.json` serves every `cards_<set>.json` (the set ↔ file rule
 ## is the loader's stage 4, `E_SET_MISMATCH`).
@@ -27,14 +31,21 @@ const RECORD_SCHEMAS: Dictionary = {
 }
 
 
-## Runs validate.gd in a child Godot; returns `{exit_code, output}`.
+## Runs validate.gd in a child Godot; returns `{exit_code, output}`. A child that
+## dies in engine shutdown (TD-013) says nothing about validate.gd's own exit
+## code, so only that exact code is run again, at most [constant MAX_RUNS] times.
 func _validate(user_args: Array[String]) -> Dictionary:
 	var args: Array[String] = ["--headless", "--path", ProjectSettings.globalize_path("res://"), "-s", VALIDATE_SCRIPT]
 	if not user_args.is_empty():
 		args.append("--")
 		args.append_array(user_args)
 	var output: Array = []
-	var code: int = OS.execute(OS.get_executable_path(), args, output, true, false)
+	var code: int = EXIT_WINDOWS_ACCESS_VIOLATION
+	var runs: int = 0
+	while code == EXIT_WINDOWS_ACCESS_VIOLATION and runs < MAX_RUNS:
+		output.clear()
+		code = OS.execute(OS.get_executable_path(), args, output, true, false)
+		runs += 1
 	return {"exit_code": code, "output": "\n".join(output)}
 
 
@@ -64,7 +75,10 @@ func test_validate_on_shipped_data_exits_0_and_prints_the_report_with_pending_wa
 
 	# Assert — Ready in a debug binary: pending owners are warnings
 	assert_int(run.exit_code).is_equal(0)
-	assert_str(run.output).contains("validate: Ready — 0 errors")
+	# `\S+` is the report's dash: Windows decodes a child's UTF-8 as the ANSI code
+	# page, so it arrives there as three other characters.
+	var ready_line: RegExMatch = RegEx.create_from_string("validate: Ready \\S+ 0 errors").search(run.output)
+	assert_object(ready_line).is_not_null()
 	assert_str(run.output).contains("[warning] W_POOL_SIZE")
 	assert_str(run.output).contains("W_VALIDATOR_PENDING")
 	assert_str(run.output).not_contains("[error]")

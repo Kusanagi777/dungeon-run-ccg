@@ -1,3 +1,13 @@
+# Every text file is LF in the index and in the working tree, on every OS.
+# The test suite parses GDDs and fixtures as text and runs extensionless fixture
+# scripts (tests/fixtures/lint/fake_rg13/rg), and Godot itself writes LF, so a
+# CRLF checkout fails tests and dirties .import files on every import. This line
+# comes first: the rules below it are more specific and win where they differ.
+* text=auto eol=lf
+
+# Windows batch files are the one exception (vendored gdUnit4 launcher).
+*.cmd text eol=crlf
+
 # Shell scripts must use LF line endings. core.autocrlf=true would otherwise
 # convert them to CRLF on checkout, which breaks bash on Windows Git Bash
 # (stray \r corrupts commands and string comparisons). This applies to the
