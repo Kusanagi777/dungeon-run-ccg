@@ -107,4 +107,4 @@
 - The perf suite file is new under `tests/performance/match_ui/` (QA plan Cross-cutting 2), outside the story's `## Files` list as written.
 **Test Evidence**: `tests/unit/match_ui/animation_queue_test.gd` (15 tests) + `tests/helpers/match_ui/fake_presenter.gd`; full suite 846 test cases, 0 failures, exit 0, 45 SCRIPT ERROR lines (baseline intentional negatives, unchanged from story 001; none from match_ui); smoke exit 0, no SCRIPT ERROR; perf suite exit 0 (`PERF match_ui skip_all x300 steps: 2217 us (budget 100000 us)`); `tools/lint/gates.sh` PASS.
 **Run result**: N/A — the story adds a Node-free `RefCounted` scheduler driven by a fake clock; nothing renders until Story 004's `MatchView` and presenters exist.
-**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode) · `/code-review 2026-11-04 (independent, sprint-4 carry): APPROVED WITH SUGGESTIONS (shares content 001's should-fix)` — fixed in 1803680

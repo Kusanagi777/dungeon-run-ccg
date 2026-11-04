@@ -137,4 +137,4 @@ checks scope against it.*
 - `legal_targets` also excludes dying characters (C3: selectors never yield one); at command time none exists.
 - Filter value expressions (`attack_le: {ref: …}`) in a `chosen` filter never match until story 007 (TODO in `selectors.gd`); no C11 row uses one.
 **Test Evidence**: `tests/unit/card_effects/card_effects_validator_bound_targeting_test.gd`
-**Reviewed by**: self, no independent review (lean: LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode; `/code-review` not run)
+**Reviewed by**: self, no independent review (lean: LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode; `/code-review` not run) · `/code-review 2026-11-04 (independent, sprint-4 carry): APPROVED WITH SUGGESTIONS`
