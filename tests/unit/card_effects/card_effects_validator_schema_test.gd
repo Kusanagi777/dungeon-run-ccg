@@ -59,6 +59,9 @@ func _caps() -> Dictionary:
 		"max_summon_count": TestConstants.BOARD_SIZE,
 		"effect_static_step_limit": TestConstants.EFFECT_STATIC_STEP_LIMIT,
 		"discover_count": TestConstants.DISCOVER_COUNT,
+		# match-rules' HAND_SIZE, which F6 needs (story 004) — folded into the
+		# caps at stage 7b by `EffectValidator.stage7_caps`.
+		"hand_size": TestConstants.HAND_SIZE,
 	}
 
 

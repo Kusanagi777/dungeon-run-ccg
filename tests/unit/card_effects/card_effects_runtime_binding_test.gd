@@ -11,8 +11,9 @@
 ## in-memory record map and counts its lookups. No file is read.
 extends GdUnitTestSuite
 
-## A `CardDatabase` that answers `card(id)` from a map and counts calls; any
-## other query is a test bug (the resolver uses `card` only).
+## A `CardDatabase` that answers `has(id)` / `card(id)` from a map and counts
+## `card` calls; any other query is a test bug (the resolver asks `has` before
+## `card`, story 004).
 class FakeCardDatabase:
 	extends CardDatabase
 
@@ -22,6 +23,9 @@ class FakeCardDatabase:
 
 	func _init(by_id: Dictionary = {}) -> void:
 		records = by_id
+
+	func has(id: String) -> bool:
+		return records.has(id)
 
 	func card(id: String) -> Variant:
 		card_calls[id] = int(card_calls.get(id, 0)) + 1

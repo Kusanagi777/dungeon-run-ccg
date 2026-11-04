@@ -14,7 +14,7 @@ goal: "Carry the match-rules critical lane through primitives, damage, win/loss 
 start: "2026-11-11"
 end: "2026-11-17"
 generated: "2026-11-03"
-updated: "2026-11-03"
+updated: "2026-11-04"
 
 # Lanes (one agent per lane, chain back to back in one worktree); waves = merge points M1-M3.
 # [S] serialised = merges first in its wave; [C] contract-tightening = merges last and fixes the fixtures it breaks.
@@ -154,16 +154,17 @@ stories:
     name: "Validator step bound and targeting spec"
     file: "production/epics/card-effects/story-004-validator-step-bound-targeting.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 3
     wave: 3
     serialised: false
     contract: false
-    blocker: "2026-11-03: MR-010 (play_card in legal_commands()) not merged on lane/s3-card-effects-002-005 — AC-07 last clause; not started (CE-002 done)"
-    note: "AC-07 last clause needs MR-010 play_card in legal_commands() merged at M2"
-    completed: ""
+    blocker: ""
+    # 2026-11-04: MR-010 blocker cleared — merged on trunk (66640a4); done on lane/s3-card-effects-004-006
+    note: "orchestrator: Boot._effects_adapter passes EffectValidator.stage7_caps(bodies) (folds match_rules.hand_size for F6)"
+    completed: "2026-11-04"
   - id: "card-effects-005"
     name: "Fixture set and database injection"
     file: "production/epics/card-effects/story-005-fixture-set-database-injection.md"
