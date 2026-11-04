@@ -41,6 +41,10 @@ const SELECTOR_OWNER_WEAPON: String = "owner_weapon"
 const SELECTOR_ENEMY_WEAPON: String = "enemy_weapon"
 const SELECTOR_OWNER: String = "owner"
 const SELECTOR_OPPONENT: String = "opponent"
+## The trigger-context references (C3; story 008): the entity the trigger
+## context names, a reference like `self` (a dying one is still yielded).
+const SELECTOR_TRIGGER_SUBJECT: String = "trigger_subject"
+const SELECTOR_TRIGGER_SOURCE: String = "trigger_source"
 
 
 ## The selector name of [param selector] — a bare string or `{selector, …}`
@@ -62,11 +66,16 @@ static func selector_name(selector: Variant) -> String:
 ##   **dying** entity is still yielded (C3, DSL spike finding 5); an entity no
 ##   longer in play is not;
 ## - `owner_hero` / `enemy_hero` → that hero; `owner_weapon` /
-##   `enemy_weapon` → that weapon, or nothing.
+##   `enemy_weapon` → that weapon, or nothing;
+## - `trigger_subject` / `trigger_source` → the entity the queued trigger's
+##   context names (`run.trigger_subject` / `run.trigger_source`, story 008)
+##   while it is in play — one that has left play yields nothing, so the op
+##   is `no_target` (Edge Cases: refs read the snapshot, ops need a live
+##   target).
 ## A reference's `filter` is not re-applied (for `chosen` it is the legality
 ## spec the engine already checked at command time, C1 rule 1).
-## TODO(stories 007–009): area, random, neighbour, hand/deck and
-## `trigger_*` selectors — until then they yield nothing (`no_target`).
+## TODO(story 007): area, random, neighbour and hand/deck selectors — until
+## then they yield nothing (`no_target`).
 ## Example: `EffectSelectors.entities(state, "enemy_hero", {"owner": "player", "source_id": 7, "target_id": null})`.
 static func entities(state: MatchState, selector: Variant, run: Dictionary) -> Array[int]:
 	var out: Array[int] = []
@@ -85,6 +94,9 @@ static func entities(state: MatchState, selector: Variant, run: Dictionary) -> A
 			id = _entity_id(state.players[owner].weapon)
 		SELECTOR_ENEMY_WEAPON:
 			id = _entity_id(state.players[other_side(owner)].weapon)
+		SELECTOR_TRIGGER_SUBJECT, SELECTOR_TRIGGER_SOURCE:
+			var named: Variant = run.get(selector_name(selector))
+			id = int(named) if typeof(named) == TYPE_INT or typeof(named) == TYPE_FLOAT else null
 	if id != null and kind_of(state, int(id)) != "":
 		out.append(int(id))
 	return out

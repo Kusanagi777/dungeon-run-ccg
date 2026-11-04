@@ -169,8 +169,8 @@ stories:
     name: "Event observers and queueing"
     file: "production/epics/card-effects/story-008-event-observers-queueing.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 3)"
     estimate_days: 1
     lane: 3
     wave: 1
@@ -178,7 +178,7 @@ stories:
     contract: false
     blocker: ""
     note: "L3 opener"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-007"
     name: "Values, selectors and Spell Damage"
     file: "production/epics/card-effects/story-007-values-selectors-spell-damage.md"

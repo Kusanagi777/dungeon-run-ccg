@@ -404,7 +404,9 @@ func test_every_play_row_of_the_fixture_emits_one_well_formed_effect_resolved() 
 		var command_event: Array = events.filter(func(e: Dictionary) -> bool: return COMMAND_EVENTS.has(str(e.type)))
 		var cause: int = int(command_event.back().seq) if not command_event.is_empty() else -1
 		var plays: Array = (record.effects as Array).filter(func(e: Dictionary) -> bool: return PLAY_TRIGGERS.has(str(e.trigger)))
-		var resolved: Array = _of_type(events, "effect_resolved")
+		# Only the play passes: a queued pass the play raised (row 10 destroys
+		# row 9, whose Deathrattle resolves since story 008) is not the host's.
+		var resolved: Array = _of_type(events, "effect_resolved").filter(func(e: Dictionary) -> bool: return PLAY_TRIGGERS.has(str(e.payload.trigger)))
 		assert_int(resolved.size()).override_failure_message("%s: %s" % [id, str(_types(events))]).is_equal(plays.size())
 		for i: int in resolved.size():
 			var payload: Dictionary = resolved[i].payload
