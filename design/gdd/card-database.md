@@ -380,6 +380,7 @@ The `validation_checks` formula is defined as:
 | n_records | int | 0–`max_records` (`card_database.json` knob, default 5000) | data file | all records across all files; ~240 at v1 (Content CN-1: 120 collectible + 7 tokens + 32 boss-only + 16 bosses + 20 treasures + 36 bundles + 3 heroes + 7 powers) |
 | n_refs | int | 0–50000 | calculated | every id reference checked in CR-5 step 6 |
 | boss_deck_size | int | 1–60 | data file | per boss; Content decides the target (30 at v1, content.md B2) |
+| n_bosses | int | 0–`max_records` | calculated | bosses whose `hero_power` is not `null` — the CR-5 step 6 reference that exists (`BossDef.hero_power` is nullable, CR-3); equal to the boss count when every boss has one, as the v1 estimate assumes (2026-11-04, sprint 4: CDB-009) |
 | data_load_budget_ms | int | 50–1000 | `card_database.json` (tuning knob, default 200) | wall-clock budget for `Unloaded → Ready` on target hardware (mid-range desktop, SSD, release build) |
 | data_memory_budget_mb | int | 1–32 | `card_database.json` (tuning knob, default 4) | resident size of the frozen snapshot |
 
