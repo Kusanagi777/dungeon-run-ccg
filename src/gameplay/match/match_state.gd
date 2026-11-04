@@ -108,6 +108,42 @@ static func from_config(config: Dictionary) -> MatchState:
 	return state
 
 
+## The state-level half of `RulesEngine.clone()` (C2 `MatchState.clone()`;
+## ADR-0007 Decision 3, ADR-0005 Decision 7; match-rules story 017): a new
+## `MatchState` with every plain-data field copied **by value**
+## (`duplicate(true)` — `players` with every record and zone, `pending_choice`,
+## the paused action `suspended_queue` / `suspended_steps` /
+## `suspended_action`, `result`, `effects` — the `EffectRuntime` with its
+## counters, marks and the resolver's `pending_choice` continuation) and the
+## scalars; `hooks` is `hooks.copy()` (same entries, new Dictionaries,
+## evaluators unset — the clone's resolver registers its own at `bind`). The
+## two references are **not** copied: [param scratch_log] and [param stream]
+## replace `log` and `rng_match` (the engine builds the detached scratch log
+## and the stream copy). Nothing in the result is shared with this state.
+## [codeblock]
+## var copy: MatchState = state.clone(EventLog.new(cap, EventLog.SCOPE_MATCH), stream_copy)
+## copy.players["boss"].hero.damage_taken = 99   # this state is unchanged
+## [/codeblock]
+func clone(scratch_log: RefCounted, stream: RefCounted) -> MatchState:
+	var out: MatchState = MatchState.new()
+	out.turn = turn
+	out.active_side = active_side
+	out.phase = phase
+	out.players = players.duplicate(true)
+	out.pending_choice = pending_choice.duplicate(true) if pending_choice is Dictionary else pending_choice
+	out.suspended_queue = suspended_queue.duplicate(true)
+	out.suspended_steps = suspended_steps
+	out.suspended_action = suspended_action.duplicate(true)
+	out.result = result.duplicate(true) if result is Dictionary else result
+	out.next_entity_id = next_entity_id
+	out.hooks = hooks.copy() if hooks != null else null
+	out.effects = effects.duplicate(true)
+	out.floor = floor
+	out.log = scratch_log
+	out.rng_match = stream
+	return out
+
+
 ## A C1 PlayerState at C3 step 2 values: `hero` (a Character from
 ## [method MatchRecords.hero], or null before step 2), `mana_current` 0,
 ## `mana_max` 0, `crystal_bonus` 0 (raised only by

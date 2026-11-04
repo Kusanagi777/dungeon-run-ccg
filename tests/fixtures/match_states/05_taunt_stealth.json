@@ -1,0 +1,13 @@
+{
+  "name": "taunt_stealth",
+  "description": "Boss turn 2 Main: the player has a Taunt wall and a Stealth minion; the boss's Charge minion must attack the Taunt.",
+  "sample_seed": 105,
+  "decks": {"player": [["fx_guard", 15]], "boss": [["fx_runner", 15]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"pick": "play_card", "issuer": "player", "card_id": "fx_guard"},
+    {"type": "end_turn", "issuer": "player"},
+    {"pick": "play_card", "issuer": "boss", "card_id": "fx_runner"}
+  ],
+  "expect": {"phase": "main", "active_side": "boss", "turn": 2, "boards": {"player": 2, "boss": 1}}
+}

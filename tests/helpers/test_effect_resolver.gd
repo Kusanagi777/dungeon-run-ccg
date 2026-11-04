@@ -113,6 +113,9 @@ var passes: Array[Dictionary] = []
 ## health_delta}` — each living source buffs every **other** minion on its
 ## own board, sources in board order, player side first.
 var auras: Dictionary = {}
+## The double [method clone_unbound] last built (match-rules story 017), as a
+## weak reference so the live double never keeps a clone alive; null before.
+var last_clone: WeakRef = null
 
 
 ## Registers an event-trigger responder: entity [param source_id] responds to
@@ -275,6 +278,50 @@ func recompute_auras() -> void:
 				})
 	for script: Callable in aura_scripts:
 		script.call(engine)
+
+
+## The fresh, unbound resolver `RulesEngine.clone()` binds to its clone
+## (match-rules story 017; ADR-0007 Decision 3 — never the live resolver; the
+## production engine builds `EffectResolver.new(db, effects_config)` instead).
+## The scripted configuration is copied — [member scripts], [member queued],
+## [member hook_scripts], [member targets_by_def], [member specs_by_def],
+## [member aura_scripts], [member auras], [member triggers],
+## [member resume_script] — so the clone resolves exactly as the live double
+## would; every record ([member bind_calls], [member resolve_calls],
+## [member hook_calls], [member passes], [member resume_calls], the counters)
+## starts empty and [member engine] is null until `bind`. A trigger's `run` /
+## `guard` that is a bound method of this double (the fixture builders) is
+## rebound to the new double; a test suite's Callables are shared (they take
+## the engine as their first argument). Recorded in [member last_clone].
+## [codeblock]
+## var sandbox: RulesEngine = engine.clone()
+## var clone_resolver: TestEffectResolver = resolver.last_clone.get_ref()
+## [/codeblock]
+func clone_unbound() -> TestEffectResolver:
+	var out: TestEffectResolver = TestEffectResolver.new()
+	out.scripts = scripts.duplicate(true)
+	out.queued = queued.duplicate(true)
+	out.hook_scripts = hook_scripts.duplicate()
+	out.targets_by_def = targets_by_def.duplicate(true)
+	out.specs_by_def = specs_by_def.duplicate(true)
+	out.aura_scripts = aura_scripts.duplicate()
+	out.auras = auras.duplicate(true)
+	out.resume_script = resume_script
+	for trigger: Dictionary in triggers:
+		var copy: Dictionary = trigger.duplicate()
+		copy.run = _rebound(trigger.run, out)
+		copy.guard = _rebound(trigger.guard, out)
+		out.triggers.append(copy)
+	last_clone = weakref(out)
+	return out
+
+
+## [param callable] re-targeted at [param target] when it is one of this
+## double's own (bound) methods, else [param callable] itself.
+func _rebound(callable: Callable, target: TestEffectResolver) -> Callable:
+	if not callable.is_valid() or callable.get_object() != self:
+		return callable
+	return Callable(target, callable.get_method()).bindv(callable.get_bound_arguments())
 
 
 ## Whether the candidate [param entity_id] is Silenced (match-rules story 015,

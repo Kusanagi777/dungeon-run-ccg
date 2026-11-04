@@ -1,0 +1,11 @@
+{
+  "name": "weapon_equipped",
+  "description": "Player turn 1 Main right after equipping a weapon: the hero may swing at the boss hero; another weapon would replace it.",
+  "sample_seed": 108,
+  "decks": {"player": [["fx_axe", 15]], "boss": [["fx_grunt", 15]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"pick": "play_card", "issuer": "player", "card_id": "fx_axe"}
+  ],
+  "expect": {"phase": "main", "active_side": "player", "turn": 1, "weapon": "player"}
+}

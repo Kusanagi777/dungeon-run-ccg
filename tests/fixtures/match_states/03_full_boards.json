@@ -1,0 +1,14 @@
+{
+  "name": "full_boards",
+  "description": "Player turn 3 Main, both boards at board_size: every player minion is ready, minion plays are BOARD_FULL.",
+  "sample_seed": 103,
+  "decks": {"player": [["fx_swarm", 8], ["fx_grunt", 7]], "boss": [["fx_swarm", 15]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"pick": "play_card", "issuer": "player", "card_id": "fx_swarm"},
+    {"type": "end_turn", "issuer": "player"},
+    {"pick": "play_card", "issuer": "boss", "card_id": "fx_swarm"},
+    {"type": "end_turn", "issuer": "boss"}
+  ],
+  "expect": {"phase": "main", "active_side": "player", "turn": 3, "boards": {"player": 7, "boss": 7}}
+}

@@ -1,12 +1,12 @@
 # Story 017: clone() sandbox and replay equivalence
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -69,11 +69,11 @@
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (`clone`)
-- `src/gameplay/match/match_state.gd` (deep copy)
-- `tests/fixtures/match_states/` (10 fixture scripts, new)
-- `tests/helpers/test_effect_resolver.gd` (constructible with no installers for the clone)
-- `tests/unit/match_rules/match_rules_clone_replay_test.gd`
+- `src/gameplay/match/rules_engine.gd` — `clone()` (contract in its doc comment), `_fresh_resolver`, `_scratch_log`, `_copy_stream`; `load_state` / class docs updated
+- `src/gameplay/match/match_state.gd` — `MatchState.clone(scratch_log, stream)`, the by-value state copy
+- `tests/fixtures/match_states/01_mulligan.json` … `10_late_game.json` — 10 fixture scripts (new)
+- `tests/helpers/test_effect_resolver.gd` — `clone_unbound()` (a fresh unbound double with the same scripted configuration; its own bound fixture Callables rebound), `last_clone` (weak reference) — additive
+- `tests/unit/match_rules/match_rules_clone_replay_test.gd` — 12 tests (new)
 
 ---
 
@@ -91,7 +91,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_clone_replay_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (12 test functions)
 
 ---
 
@@ -99,3 +99,33 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-011-effective-cost-and-temporary-mana.md`, `production/epics/match-rules/story-014-combat-keywords.md`, `production/epics/match-rules/story-015-freeze-thaw-silence.md`, `production/epics/match-rules/story-016-choice-phase-and-discover.md`
 - Unlocks: `production/epics/match-rules/story-018-performance-budgets.md`
+
+---
+
+## Readiness (2026-11-04, `/story-readiness` read by hand)
+
+**Verdict: READY** (tier `workflow: full`). ADR-0003/0005/0006/0007 Accepted (2026-11-03, matching `ADR Version`); manifest 2026-11-03 current; TR-match-rules-002 and -003 active; dependencies 011, 014, 016 Complete and 015 Complete on this lane (`c382564`); 3 criteria, each observable; Out of Scope stated; no open markers; no asset references. The C2 clause moved from card-effects 002 AC-1 is present in the criterion (confirmed). Fixture loading: choice **(a)** confirmed — every one of the ten states is reachable by commands from `start` over a fixture card pool, so no `load_state` / `from_state` seam was added. QL-STORY-READY skipped — Lean mode.
+
+## Implementation record (2026-11-04)
+
+- **Resolver construction (the shape `architecture.md` §API Boundaries leaves open):** `_init` is unchanged. `clone()` builds `EffectResolver.new(db, live.effects_config(), live.player_hero_set())` when the live resolver is an `EffectResolver` (the hero set added by card-effects story 010, passed by value per the orchestrator note), and asks any other resolver (the test double) for `clone_unbound()`. No ADR addition: `clone() -> RulesEngine` is the API the architecture already names.
+- **Scratch log:** a production `EventLog(scope match)` with the live log's remaining capacity as its cap and `set_turn(state.turn)`; `seq` restarts at 1 (the planner's checksum is over event types, ADR-0006).
+- **Stream copy:** `RngStream.copy()` does not exist yet (rng-event-log, Out of Scope), so `_copy_stream` rebuilds the stream through its own construction seam (`_make_child(name, seed)`, which keeps a `TestRngStream`'s mode) and `restore(draws)`; it calls `copy()` instead once one exists.
+- **Fixture format (option a):** `{name, sample_seed, decks, boss_health?, rules_overrides?, commands[], expect}`; a command is a literal C2 command, a pick `{pick, issuer?, card_id?, optional?}` of the first matching `legal_commands()` entry, or `{repeat, commands}`; `expect` is asserted so a fixture that stops reaching its state fails.
+- **AC-38's command list** is recorded from a deterministic policy run on engine A (mulligan replacing one card, a rotating Discover pick, play → hero power → attack (minions first) → end turn, 199 commands, then `concede`), then replayed on a fresh engine B — instead of a hand-written 200-entry constant (Implementation Notes). The test asserts the list has 200 accepted commands with every required type and ends in `concede`.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:56:44 UTC, ended 04:11:08 UTC; trunk merged mid-story at the orchestrator's request — `042d5d4`)
+**Criteria**: 3/3 passing —
+- AC-38 `test_a_200_command_match_replays_byte_identical_with_an_equal_result` (canonical-JSON logs and `to_json()` identical, `CommandResult`s and `MatchResult`s equal);
+- AC-39 `test_there_are_ten_fixture_states_and_each_reaches_its_expected_state`, `test_every_legal_command_of_every_fixture_state_is_accepted_on_a_fresh_clone`, `test_200_sampled_commands_absent_from_legal_commands_are_rejected_in_every_fixture_state`;
+- C2 isolation `test_twenty_commands_on_a_clone_leave_the_live_match_log_and_stream_unchanged`, `test_a_clone_copies_hooks_by_value_and_binds_a_fresh_resolver_with_no_installers`, `test_a_clone_carries_the_pending_discover_and_choose_resumes_it_on_the_clone_only`, `test_the_clones_first_rng_draw_is_the_live_streams_next_draw`, `test_the_clones_scratch_log_is_detached_and_discarded_with_the_clone`, `test_a_clone_of_an_ended_match_is_ended_and_binds_no_resolver`, `test_a_clone_on_the_production_resolver_resumes_a_collectible_discover_and_draws_the_same_pool` (orchestrator-requested: real `EffectResolver`, `collectible` pool, hero set by value); the moved card-effects 002 AC-1 clause `test_a_clones_effect_runtime_is_equal_by_value_and_its_counters_are_isolated`.
+- Seen failing: every clone test before `clone()` existed (`Nonexistent function 'clone'`); and under five one-at-a-time mutations — clone writes the live log / shares `players` shallowly (7 tests fail), shares `hooks` and `effects` (5), shares the live stream (2), binds the live resolver (2), builds the resolver without `player_hero_set` (the production-resolver test); AC-38's assertion fails with engine B on another seed. The first stream mutation passed the 20-command test (the clone drew nothing), so the fixture's Discover now shuffles its options with `rng_match` and the test asserts the clone drew.
+**Deviations**:
+- ADVISORY — AC-39 compares a sampled command with `legal_commands()` after dropping the arguments C2 ignores: `submit` accepts and ignores `position` on a spell or weapon play and a `target_id` on a `none`-targeting card or power (or on a Battlecry body whose required target has no legal choice), while `legal_commands()` lists only the null form. Read strictly, "every command absent from `legal_commands()` is rejected" fails for those shapes. Recorded for `/code-review` at M2: either C2 says these arguments are don't-care (as tested) or the engine rejects them (`INVALID_POSITION` / `ILLEGAL_TARGET`). The test also expects a non-keep-all Mulligan mask to be accepted although only keep-all is listed (C2), and does not sample `concede` (never listed, always accepted from the player).
+- ADVISORY — `_copy_stream` reads `RngStream._stream_seed` / `_make_child` (private to rng-event-log) until `RngStream.copy()` exists; `_scratch_log` duck-types `TestEventLog` like the existing `_stamp_log_turn`.
+- ADVISORY — the live stream's fork memo is not copied (the engine never forks, DD-T03); a planner that forks a clone's `rng_match` would take a fresh parent draw.
+**Test Evidence**: `tests/unit/match_rules/match_rules_clone_replay_test.gd` (12 tests) and `tests/fixtures/match_states/` (10 states). Full suite after the trunk merge: 1301 test cases, 0 failures (exit 0); smoke exit 0, no SCRIPT ERROR; suite SCRIPT ERROR count 85, unchanged.
+**Run result**: N/A — an engine sandbox with no scene or screen; its behaviour is observable only through state, the event logs and the stream the tests assert.
+**Engine specialist check**: NOT ASSESSED — no agent spawning in this lane. `duplicate(true)` on plain containers (story Engine Notes), `WeakRef`, `Callable.get_object/get_method/get_bound_arguments/bindv` (test double only) predate 4.3; nothing post-cutoff.
+**Reviewed by**: pending — `/code-review` reserved for MR-017 at M2 (sprint plan); Boss AI story 004 should read that verdict first.

@@ -1,0 +1,11 @@
+{
+  "name": "choice_pending",
+  "description": "A player spell paused on a Discover: Choice, one choose per option plus the player's concede.",
+  "sample_seed": 104,
+  "decks": {"player": [["fx_scout", 15]], "boss": [["fx_grunt", 15]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"pick": "play_card", "issuer": "player", "card_id": "fx_scout"}
+  ],
+  "expect": {"phase": "choice", "active_side": "player", "turn": 1}
+}
