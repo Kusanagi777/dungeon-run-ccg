@@ -83,3 +83,51 @@ func test_permanent_mana_still_applies_and_emits_mana_added() -> void:
 	var events: Array = (engine.state().log as TestEventLog).events.slice(before)
 	assert_int(EventLogAssertions.count_type(events, &"mana_added")).is_equal(1)
 
+
+
+# --- computed values (card-effects story 007) -----------------------------------
+
+func test_a_ref_amount_is_skipped_naming_card_effects_story_007_and_calls_no_primitive() -> void:
+	# Arrange
+	var engine: RulesEngine = _main_phase()
+	var before: int = _log_size(engine)
+
+	# Act
+	var entry: Dictionary = await _run(engine, '{"op":"armor","targets":"owner","amount":{"ref":"owner.hand_size"}}')
+
+	# Assert
+	assert_str(entry.outcome).is_equal(EffectOps.SKIPPED)
+	assert_str(str(entry.values.unsupported_value)).is_equal("amount")
+	assert_str(str(entry.values.reason)).contains("card-effects story 007")
+	assert_array(entry.targets).is_empty()
+	assert_int(_log_size(engine)).is_equal(before)
+
+
+func test_a_computed_summon_count_is_skipped_and_summons_nothing() -> void:
+	# Arrange
+	var engine: RulesEngine = _main_phase()
+	var board_before: int = (engine.state().players[SIDE_PLAYER].board as Array).size()
+	var before: int = _log_size(engine)
+
+	# Act
+	var entry: Dictionary = await _run(engine, '{"op":"summon","card_id":"decay_husk","count":{"count":"all_friendly_minions"}}')
+
+	# Assert
+	assert_str(entry.outcome).is_equal(EffectOps.SKIPPED)
+	assert_str(str(entry.values.unsupported_value)).is_equal("count")
+	assert_int((engine.state().players[SIDE_PLAYER].board as Array).size()).is_equal(board_before)
+	assert_int(_log_size(engine)).is_equal(before)
+
+
+func test_a_computed_damage_amount_deals_no_damage() -> void:
+	# Arrange
+	var engine: RulesEngine = _main_phase()
+	var before: int = _log_size(engine)
+
+	# Act
+	var entry: Dictionary = await _run(engine, '{"op":"damage","targets":"enemy_hero","amount":{"add":[1,{"ref":"match.turn"}]}}')
+
+	# Assert
+	assert_str(entry.outcome).is_equal(EffectOps.SKIPPED)
+	assert_str(str(entry.values.unsupported_value)).is_equal("amount")
+	assert_int(_log_size(engine)).is_equal(before)

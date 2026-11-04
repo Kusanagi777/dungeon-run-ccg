@@ -90,11 +90,16 @@ func handles(op_name: String) -> bool:
 ## its `ops[]` entry. [param run] is the pass context: `{owner, source_id,
 ## target_id, effect}` (`effect` the whole effect object — its `targets` is
 ## the default target set). An op this story does not ship is recorded
-## `{op, targets: [], values: {}, outcome: skipped}` and calls nothing.
+## `{op, targets: [], values: {}, outcome: skipped}` and calls nothing; so is
+## a shipped op with a computed value ([method computed_param]), with
+## `values {unsupported_value, reason}`.
 func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var name: String = str(op.get("op", ""))
 	if not _table.has(name):
 		return entry(name, [], {}, SKIPPED)
+	var computed: String = computed_param(op)
+	if computed != "":
+		return entry(name, [], {"unsupported_value": computed, "reason": REASON_VALUE_EXPRESSION}, SKIPPED)
 	return _table[name].call(engine, op, run_ctx)
 
 
@@ -322,9 +327,29 @@ static func _side(op: Dictionary, run_ctx: Dictionary) -> String:
 	return owner
 
 
-## An int-literal value (JSON numbers arrive as floats).
-## TODO(story 007): value expressions (`{ref}`, `{count}`, `{add}`, …) — until
-## then a non-literal value is 0 (nothing rather than a wrong amount).
+## `values.reason` of an op skipped for a computed value (code review
+## 2026-11-04).
+const REASON_VALUE_EXPRESSION: String = "value_expression_unsupported: computed values are card-effects story 007"
+
+
+## The first numeric param of [param op] (C4: a `P_VALUE` / `P_COUNT` param
+## in [constant EffectSchema.OPS]) holding a value expression (`{ref}`,
+## `{count}`, `{add}`, …) instead of an int literal, else `""`.
+## TODO(story 007): evaluate value expressions; until then [method run]
+## records such an op `skipped` with `values.unsupported_value` and calls no
+## primitive — fail closed, as an unsupported condition fizzles (C4).
+## Example: `EffectOps.computed_param({"op": "armor", "amount": {"ref": "match.turn"}})  # "amount"`.
+static func computed_param(op: Dictionary) -> String:
+	var spec: Dictionary = (EffectSchema.OPS.get(str(op.get("op", "")), {}) as Dictionary).get("params", {})
+	for param: String in spec:
+		var kind: Variant = spec[param]  # a StringName kind, or an Array enum
+		if kind is StringName and (kind == EffectSchema.P_VALUE or kind == EffectSchema.P_COUNT) and op.get(param) is Dictionary:
+			return param
+	return ""
+
+
+## An int-literal value (JSON numbers arrive as floats). A value expression
+## never reaches a handler ([method computed_param]); anything else is 0.
 static func _int(value: Variant) -> int:
 	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
 		return int(value)
