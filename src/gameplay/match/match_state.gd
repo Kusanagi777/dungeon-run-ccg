@@ -54,6 +54,19 @@ var phase: String = PHASE_SETUP
 var players: Dictionary[String, Dictionary] = {}
 ## null, or the engine's `ChoiceRequest` while `phase == "choice"` (C1, C2).
 var pending_choice: Variant = null
+## The action a pending choice paused (match-rules story 016; ADR-0007
+## Decision 1), all plain data so `clone()` is a `duplicate(true)` (story 017).
+## `suspended_queue`: the C10 trigger queue Q at the pause — step Dictionaries
+## `{point, ctx, cause_seq}`, front first. `suspended_steps`: the action's step
+## count so far (`resolution_step_cap` counts across the pause).
+## `suspended_action`: `{}` when nothing is paused, else `{origin_phase,
+## cause_seq, frame, stages}` — the phase `choose` returns to, the `cause_seq`
+## of the paused step (the resumed effect's events keep it), and the rest of
+## the command as `RulesEngine` stages (see `RulesEngine.choose` docs). The
+## resolver's own continuation lives in `effects.pending_choice`.
+var suspended_queue: Array[Dictionary] = []
+var suspended_steps: int = 0
+var suspended_action: Dictionary = {}
 ## null until `Ended`, then the `MatchResult` (C14, [method MatchRecords.match_result]).
 var result: Variant = null
 ## The next id handed to a character, weapon or card instance (C1).
@@ -99,7 +112,9 @@ static func from_config(config: Dictionary) -> MatchState:
 ## [method MatchRecords.hero], or null before step 2), `mana_current` 0,
 ## `mana_max` 0, `crystal_bonus` 0 (raised only by
 ## `add_mana(side, n, temporary=false)` from an `on_match_start` hook — C5, F4),
-## `deck` (index 0 is the top), `hand`, `board` (index 0 is leftmost),
+## `temporary_crystals` 0 (this turn's crystals from `add_mana(side, n,
+## temporary=true)`, removed again at the side's End step — C5; match-rules
+## story 011), `deck` (index 0 is the top), `hand`, `board` (index 0 is leftmost),
 ## `weapon` (null or a Weapon), `hero_power {def_id, used_this_turn}`,
 ## `fatigue_counter` 0, `graveyard`, `resolving` (the CardInstance of a spell
 ## being cast — zone `resolving`, C6 spells step 2 — between `spell_cast` and
@@ -114,6 +129,7 @@ static func make_player_state(hero: Variant = null, hero_power_def_id: String = 
 		"mana_current": 0,
 		"mana_max": 0,
 		"crystal_bonus": 0,
+		"temporary_crystals": 0,
 		"deck": [] as Array[Dictionary],
 		"hand": [] as Array[Dictionary],
 		"board": [] as Array[Dictionary],
