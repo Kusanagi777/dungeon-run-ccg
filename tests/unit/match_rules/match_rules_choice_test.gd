@@ -193,6 +193,8 @@ func test_choose_resumes_the_paused_spell_in_seq_order_and_once() -> void:
 	assert_int(int(added[0].seq)).is_less(int(dealt[0].seq))
 	assert_int(int(dealt[0].seq)).is_less(int(observed[0].seq))
 	assert_int(int(dealt[0].seq)).is_less(int(to_graveyard[0].seq))
+	# GDD C6: the after_cast observers run before the card leaves resolving
+	assert_int(int(observed[0].seq)).is_less(int(to_graveyard[0].seq))
 	assert_int(int(to_graveyard[0].payload.instance_id)).is_equal(spell_id)
 	# the same cause_seq chain: the resumed effect is still the spell's
 	assert_int(int(added[0].cause_seq)).is_equal(cast_seq)
