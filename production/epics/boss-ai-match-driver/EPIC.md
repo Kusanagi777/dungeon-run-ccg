@@ -20,7 +20,7 @@
 | 006 | Tie-break set, fork labels and ai_<floor> draw accounting | Logic | Ready | ADR-0003, ADR-0006 |
 | 007 | Lethal search — damage subset DFS, F4 prune, node budget, shallow mode | Logic | Ready | ADR-0006 |
 | 008 | plan_turn — the C2 action loop, TurnPlan, plan_task and the caps | Logic | Ready | ADR-0006 |
-| 009 | DEFENSIVE mode (F6 threat estimate) and sandbox hook fidelity | Logic | Ready | ADR-0006 |
+| 009 | DEFENSIVE mode (F6 threat estimate) and sandbox hook fidelity; A31 non-lethal face-attack vulnerability (added 2026-11-04, DD-X22) | Logic | Ready | ADR-0006 |
 | 010 | Choice phase — `choose` for Discover and choose_one | Logic | Ready | ADR-0006, ADR-0008 |
 | 011 | Forecast and telegraphing — Intent, intent keys, kept, effective_mode | Logic | Ready | ADR-0008, ADR-0006 |
 | 012 | Hidden-information purity (A4) and the src/ai CI gates (A29, thread symbols) | Logic | Ready | ADR-0001, ADR-0006 |
@@ -82,7 +82,7 @@ Requirements covered by Accepted ADRs: 7 / 7. Untraced Requirements: None.
 ## Definition of Done
 
 - Every story implemented, reviewed and closed with `/story-done`
-- Every acceptance criterion of design/gdd/boss-ai.md verified (30 criteria lines), including A22 and A30 on Windows
+- Every acceptance criterion of design/gdd/boss-ai.md verified (31 criteria lines — A31 added 2026-11-04, DD-X22, story 009), including A22 and A30 on Windows
 - The harness output for each MVP boss is retained under `production/qa/sim/` and identical across two runs of the same seed
 - Logic and Integration stories have passing tests in the test root
 - Visual/Feel and UI stories have retained screenshots in `production/qa/evidence/` (a lead sign-off too for Visual/Feel)

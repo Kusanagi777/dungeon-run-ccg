@@ -93,3 +93,31 @@ match-rules and card-effects are pinned `full`, so all 11 ADRs are in scope. 7 n
 - New `production/epics/card-effects/story-017-validator-silence-before-destroy.md` (Logic, S): AC-47. Card-effects EPIC (17 stories, coverage line), match-rules EPIC coverage line, `production/epics/index.md`.
 
 **Sprint 5:** `src/gameplay/match/rules_engine.gd` `silence` / death check plus a match-rules regression test (card-effects 009); `src/gameplay/effects/effect_validator.gd` order check plus validator tests (card-effects 017).
+
+## DD-X22 — boss-ai.md: non-lethal face attacks
+
+### Change Summary
+Changed sections:
+- C6: an **Attack valuation** paragraph records the pre-filter value as built by boss-ai story 005: one `damage` row, plus the `destroy` row on a kill, with lethal face attacks ranked first. A non-lethal face attack is one `damage` row whatever its Attack, and is valued after simulation by `f_face`.
+- F1: a **Vulnerability exception** with `reach`, `unsafe` and `vulnerable(a)` defined, plus a worked example and a new variables row. When the exception holds, `f_face = 0` and `f_self = −min(1, reach / (boss_health + boss_armor))`.
+- Edge Cases: the "player has lethal next turn" entry is reconciled (no trade helps → the boss races), and a new entry is added. Tuning Knobs: `defensive_margin` also sets `unsafe`. Acceptance Criteria: new A31.
+
+"Vulnerable" chosen: the attack is non-lethal and on the player's hero; **after** it, the player's on-board reach is at least the boss's health plus armour minus `defensive_margin`; and the same attacker had a simulated attack on a player minion whose after-state is below that threshold. The player's reach is F6's board and weapon terms, without the hand estimate, minus the boss's Taunt health (F4).
+- Board-only, because the hand is hidden.
+- "Gives up a trade" is literal, so the boss still races when no trade helps (the existing edge case).
+- The "only Taunt" option was rejected: an attack never removes the attacker's Taunt, and a defending hero never strikes back (match-rules C8), so it can never be what an attack gives up.
+- No new knob, so no data change.
+
+Unchanged: weights, F2–F9, DEFENSIVE mode (F6), lethal search, budgets.
+
+Key changes affecting architecture: none. The rule is scorer arithmetic over states the one-ply sandbox already simulates, so it adds no simulation and no new seam.
+
+### ADRs in scope
+8 ADRs (as DD-X20). A search of `docs/architecture/` for `f_face`, `f_self`, `defensive_margin` and the attack valuation finds nothing. All in scope are **Still Valid**; no erratum.
+
+### Stories
+- `production/epics/boss-ai-match-driver/story-009-defensive-mode-and-sandbox-fidelity.md`: A31 AC, an Implementation Notes paragraph, Files (`src/ai/scorer.gd`, the new test and fixture), estimate S → M.
+- `story-005-…`: its "Open (design)" item is marked resolved; no pre-filter code change.
+- Boss-ai EPIC: story-table row, Definition of Done count 31.
+
+**Sprint 5:** `src/ai/threat_estimate.gd` `reach` / `unsafe`; `src/ai/scorer.gd` exception; `tests/unit/boss_ai/boss_ai_face_attack_vulnerability_test.gd` and its fixture (boss-ai story 009).
