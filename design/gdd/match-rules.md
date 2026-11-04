@@ -1021,7 +1021,7 @@ the snake_case key of the same name in `assets/data/match_rules.json` (`MAX_MANA
 | Parameter | Current value | Safe range | Effect of increase | Effect of decrease | Interacts with |
 |---|---|---|---|---|---|
 | `STARTING_HEALTH_PLAYER` (DD-M02) | 30 | 25–40 | Longer matches (F8: +5 health ≈ +1 turn at k = 0.8); boss burst less lethal; weakens Pillar 3 pacing | Faster losses; band-3 bosses need damage ceilings re-checked | Boss band health, F8 |
-| Boss band health (DD-M02; read from boss def) | 30 / 40 / 50 | 25–35 / 35–45 / 45–60 | Band feels like a stat wall (anti-Pillar 2) unless the passive is the real threat | Bosses fold to tempo; passives never come online | F8 `k` from Content |
+| `BOSS_STARTING_HEALTH_BY_BAND` (DD-M02; one value per band, band 1 first — the band default; a match reads the boss def's `health`, and card-database CR-5 stage 8 warns W_BAND_HEALTH when a boss differs) | 30 / 40 / 50 | 25–35 / 35–45 / 45–60 | Band feels like a stat wall (anti-Pillar 2) unless the passive is the real threat | Bosses fold to tempo; passives never come online | F8 `k` from Content |
 | `MAX_MANA` (DD-M04) | 10 | 7–10 | More late-game swing; only matters if matches exceed 7 turns per side | Caps the curve early; 7 makes 8+ cost cards undraftable — Content must agree | F4, Content cost curve |
 | `BOARD_SIZE` (DD-M01) | 7 | 5–7 | Wider boards; AoE and Taunt walls stronger; UI must fit cards at 1280×720 | Board-fill denial easier; token decks weaker | Match UI layout, Boss AI |
 | `HAND_SIZE` (DD-M06) | 10 | 8–12 | Fewer burns; draw engines stronger | Burns common; draw cards worse; hand fan must still fit | Match UI hand fan |

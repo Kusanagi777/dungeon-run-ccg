@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -124,3 +124,6 @@ checks scope against it.*
 - AC-41's knob and RNG scans read source files, so they sit in `tests/integration/card_effects/` (not in the story's Files list), like match-rules' AC-41 scan.
 **Test Evidence**: `tests/unit/card_effects/card_effects_runtime_binding_test.gd`, `tests/unit/card_effects/card_effects_resolver_teardown_test.gd`, `tests/integration/card_effects/card_effects_config_file_test.gd`
 **Reviewed by**: self, no independent review (lean: LP-CODE-REVIEW and QL-TEST-COVERAGE skipped — Lean mode; `/code-review` not run — due before M2 per the sprint-3 plan)
+
+### Code-review fix pass (2026-11-04, started 02:11:22 UTC, ended 02:12:46 UTC; branch `fix/review-s3w2`)
+`/code-review` sprint 3 wave 2 (2026-11-03) nit: `EffectRuntime._is_plain` accepted `StringName` values and keys, which do not survive JSON (they read back as `String`). It now accepts `String` only. Test added: `test_effect_runtime_is_runtime_rejects_string_names_which_do_not_survive_json` (a value, a key and a nested value), watched fail on the unfixed check. The review's other nit (the "interim" wording in `boot.gd`) was fixed by the orchestrator. Full suite 1071 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0.

@@ -117,7 +117,10 @@ func _knob_literal_hits(source: String) -> Array[String]:
 ## The GDD Tuning Knobs rows, as `{<snake_case key>: {current: int, range: [min, max]}}`.
 ## A row names one knob (`| \`MAX_MANA\` (DD-M04) | 10 | 7–10 |`) or several
 ## separated by ` / ` in every column (`FATIGUE_BASE / FATIGUE_STEP`); a single
-## safe value (`2`) is the range `[2, 2]`.
+## safe value (`2`) is the range `[2, 2]`. A row naming **one** knob with
+## several ` / `-separated values is a per-band knob
+## (`BOSS_STARTING_HEALTH_BY_BAND`, band 1 first): `{current: [int, …],
+## range: [[min, max], …]}`.
 func _gdd_tuning_knobs() -> Dictionary:
 	var text: String = FileAccess.get_file_as_string(GDD_PATH)
 	var section: String = text.get_slice("\n## Tuning Knobs", 1).get_slice("\n## ", 0)
@@ -130,12 +133,30 @@ func _gdd_tuning_knobs() -> Dictionary:
 		var names: Array = knob_name.search_all(cells[1]).map(func(m: RegExMatch) -> String: return m.get_string(1))
 		var currents: PackedStringArray = cells[2].strip_edges().split(" / ")
 		var ranges: PackedStringArray = cells[3].strip_edges().split(" / ")
+		if names.size() == 1 and currents.size() > 1:
+			var per_band: Array = []
+			var band_ranges: Array = []
+			for i: int in currents.size():
+				per_band.append(int(currents[i]))
+				band_ranges.append(_bounds(ranges[i]))
+			rows[String(names[0]).to_lower()] = {"current": per_band, "range": band_ranges}
+			continue
 		for i: int in names.size():
-			var bounds: PackedStringArray = ranges[i].strip_edges().split("–")
-			var low: int = int(bounds[0])
-			var high: int = int(bounds[1]) if bounds.size() > 1 else low
-			rows[String(names[i]).to_lower()] = {"current": int(currents[i]), "range": [low, high]}
+			rows[String(names[i]).to_lower()] = {"current": int(currents[i]), "range": _bounds(ranges[i])}
 	return rows
+
+
+## `"7–10"` → `[7, 10]`; a single value `"2"` → `[2, 2]`.
+func _bounds(cell: String) -> Array:
+	var bounds: PackedStringArray = cell.strip_edges().split("–")
+	var low: int = int(bounds[0])
+	var high: int = int(bounds[1]) if bounds.size() > 1 else low
+	return [low, high]
+
+
+## Every key the `match_rules` body carries: the whole-number knobs, then the per-band knobs.
+func _all_keys() -> Array:
+	return Array(RulesEngine.CONFIG_KEYS) + Array(RulesEngine.CONFIG_BAND_KEYS)
 
 
 # --- shipped file, through DataLoader ----------------------------------------
@@ -150,10 +171,14 @@ func test_shipped_match_rules_loads_through_data_loader_with_the_tuning_knob_def
 	assert_array(file_entries).is_empty()
 	assert_object(result.snapshot).is_not_null()
 	var body: Dictionary = result.snapshot.config_bodies["match_rules"]
-	assert_array(_sorted(body.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
+	assert_array(_sorted(body.keys())).is_equal(_sorted(_all_keys()))
 	var expected: Dictionary = MatchFactory.make_rules_config()
 	for key: String in RulesEngine.CONFIG_KEYS:
 		assert_int(int(body[key])).override_failure_message("match_rules.json %s" % key).is_equal(int(expected[key]))
+	# DD-M02 band defaults: band 1 = 30, band 2 = 40, band 3 = 50
+	for key: String in RulesEngine.CONFIG_BAND_KEYS:
+		var shipped: Array = (body[key] as Array).map(func(v: Variant) -> int: return int(v))
+		assert_array(shipped).override_failure_message("match_rules.json %s" % key).is_equal(Array(expected[key]))
 
 
 func test_shipped_match_rules_passes_its_config_validator() -> void:
@@ -174,12 +199,17 @@ func test_config_safe_ranges_equal_the_gdd_tuning_knobs_safe_range_column() -> v
 	var rows: Dictionary = _gdd_tuning_knobs()
 
 	# Assert — every knob has one GDD row, with the same bounds and current value
-	assert_array(_sorted(rows.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
+	assert_array(_sorted(rows.keys())).is_equal(_sorted(_all_keys()))
 	assert_array(_sorted(RulesEngine.CONFIG_SAFE_RANGES.keys())).is_equal(_sorted(RulesEngine.CONFIG_KEYS))
+	assert_array(_sorted(RulesEngine.CONFIG_BAND_SAFE_RANGES.keys())).is_equal(_sorted(RulesEngine.CONFIG_BAND_KEYS))
 	var body: Dictionary = _load_shipped().snapshot.config_bodies["match_rules"]
 	for key: String in RulesEngine.CONFIG_KEYS:
 		assert_array(RulesEngine.CONFIG_SAFE_RANGES[key]).override_failure_message("safe range %s" % key).is_equal(rows[key].range)
 		assert_int(int(body[key])).override_failure_message("current value %s" % key).is_equal(rows[key].current)
+	for key: String in RulesEngine.CONFIG_BAND_KEYS:
+		assert_array(RulesEngine.CONFIG_BAND_SAFE_RANGES[key]).override_failure_message("safe range %s" % key).is_equal(rows[key].range)
+		var shipped: Array = (body[key] as Array).map(func(v: Variant) -> int: return int(v))
+		assert_array(shipped).override_failure_message("current value %s" % key).is_equal(rows[key].current)
 
 
 # --- AC-41: no knob is a literal in src/ --------------------------------------

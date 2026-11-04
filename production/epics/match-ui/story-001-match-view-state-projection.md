@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -106,3 +106,7 @@
 **Test Evidence**: `tests/unit/match_ui/match_view_state_projection_test.gd` (17 tests); full suite 831 test cases, 0 failures, exit 0, 45 SCRIPT ERROR lines (all baseline intentional negatives in card_database / event_log / rng / boss_ai suites; none from match_ui); smoke exit 0, no SCRIPT ERROR; parse check exit 0; `tools/lint/gates.sh` PASS (G5: no rules-state names under `src/ui`).
 **Run result**: N/A — the story adds a headless `RefCounted` projection and a data class; no scene, node or screen renders them until Story 004's `MatchView`.
 **Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
+
+### Fizzle fix (2026-11-04, started 02:17:30 UTC, ended 02:19:09 UTC; branch `fix/review-s3w2`)
+Orchestrator item (sprint 3 wave 2 code review, extra): `effect_resolved` was projected as a fizzle only when `fizzled == true`, but `EffectResolver` emits `fizzled: null` or the reason String (`condition_false`), so the wisp never played. `MatchViewState` now treats any `fizzled` other than `null` as a fizzle and keeps the reason on the step (`AnimStep.data = {reason}`). Tests added (2, in `match_view_state_projection_test.gd`, payload in the resolver's shape): `test_effect_resolved_with_a_fizzle_reason_yields_one_fizzle_step_keeping_the_reason` (watched fail: no step) and `test_effect_resolved_with_null_fizzled_yields_no_step`. Full suite 1078 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged); smoke exit 0. Run result: N/A, as above — the projection still renders nothing (Story 004).
+Deviation (advisory): a literal `false` is also read as "not fizzled": the committed stream `tests/fixtures/match_ui/streams/full_match_torchbearer.json` and `animation_queue_test.gd` carry `fizzled: false` (pre-dating the engine's shape) and are unchanged.

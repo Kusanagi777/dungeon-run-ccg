@@ -84,14 +84,35 @@ const CONFIG_SAFE_RANGES: Dictionary[String, Array] = {
 	"fatigue_base": [1, 3],
 	"fatigue_step": [1, 2],
 }
+## The per-band knobs (match-rules Tuning Knobs rows with one value per boss
+## band): each is a list of whole numbers, band 1 first, exactly one per
+## [constant CONFIG_BAND_SAFE_RANGES] row. Kept apart from
+## [constant CONFIG_KEYS] because [method rule] answers one `int`.
+## `boss_starting_health_by_band` (DD-M02, registry
+## `boss_starting_health_by_band`) is the band default a boss's `health` is
+## checked against at load (card-database CR-5 stage 8, `W_BAND_HEALTH`); the
+## engine itself takes the boss's health from `MatchConfig.boss.health` (C3
+## step 2) and never reads it.
+const CONFIG_BAND_KEYS: Array[String] = ["boss_starting_health_by_band"]
+## The Tuning Knobs "Safe range" column for [constant CONFIG_BAND_KEYS]: per
+## key, one inclusive `[min, max]` per band, band 1 first. Validation bounds,
+## like [constant CONFIG_SAFE_RANGES]; the integration suite pins them to the
+## GDD row.
+const CONFIG_BAND_SAFE_RANGES: Dictionary[String, Array] = {
+	"boss_starting_health_by_band": [[25, 35], [35, 45], [45, 60]],
+}
 ## The file [method validate_rules_config] reports against (DD-T01 name).
 const CONFIG_FILE: String = "match_rules.json"
 ## Owner code: a [constant CONFIG_KEYS] key is absent from the body.
 const E_RULES_MISSING_KNOB: StringName = &"E_RULES_MISSING_KNOB"
 ## Owner code: a knob is not a whole number (a fraction, string, bool, null…).
 const E_RULES_NOT_INTEGER: StringName = &"E_RULES_NOT_INTEGER"
-## Owner code: a knob lies outside its [constant CONFIG_SAFE_RANGES] row.
+## Owner code: a knob lies outside its [constant CONFIG_SAFE_RANGES] row (or
+## a band's entry outside its [constant CONFIG_BAND_SAFE_RANGES] bounds).
 const E_RULES_OUT_OF_RANGE: StringName = &"E_RULES_OUT_OF_RANGE"
+## Owner code: a [constant CONFIG_BAND_KEYS] knob is not a list with exactly
+## one entry per band.
+const E_RULES_NOT_BAND_LIST: StringName = &"E_RULES_NOT_BAND_LIST"
 
 ## `hook_install_skipped.reason` for a second installer with an installed
 ## `host_id` (ADR-0005 rule 5).
@@ -211,8 +232,18 @@ var _call_last_seq: int = 0
 ## (`source_id`, `effect_id`, …) carrying the source's raise-time `snapshot`,
 ## `cause_seq` the event that raised it. Drained by [method _drain].
 var _queue: Array[Dictionary] = []
-## Steps executed by the current action ([method run_action]); reset per action.
+## Steps executed by the current action — one [method submit], one
+## [method run_action] or the setup of [method start] — counted across every
+## sub-step of it (a play's trigger steps, the C4 Start and End sub-steps) and
+## reset only when the next action begins (code review 2026-11-03: a reset per
+## sub-step gave one command `cap × sub-steps`).
 var _steps: int = 0
+## The trigger hook points whose entries are running right now (ADR-0005
+## rule-4 exception, erratum 2026-11-03): a primitive that reaches the same
+## point again inside one of them faults `resolution_overflow` instead of
+## recursing (a self-feeding `on_hero_damaged` hook must not overflow the call
+## stack). See [method _enter_hook_point].
+var _hook_points_running: Dictionary[StringName, bool] = {}
 ## True while `resolver.recompute_auras()` runs: the aura enchantments it
 ## re-applies are silent (one `auras_recomputed` lists the net changes).
 var _recomputing_auras: bool = false
@@ -252,7 +283,8 @@ func rules_config() -> Dictionary:
 ## Decision 4: `call(body, db) -> Array`), registered by `Boot` as
 ## `configs.match_rules`. Static and pure: it reads [param body] only
 ## ([param _db] is the stage-7a calling convention and is unused here).
-## Returns one error per problem, in [constant CONFIG_KEYS] order, each in the
+## Returns one error per problem, in [constant CONFIG_KEYS] order then
+## [constant CONFIG_BAND_KEYS] order, each in the
 ## `ValidationReport` entry shape `{severity, code, file, record_id, field,
 ## message}` (`severity` error, `file` [constant CONFIG_FILE], `record_id`
 ## `null`, `field` the knob key); `[]` when the body is valid:
@@ -260,10 +292,14 @@ func rules_config() -> Dictionary:
 ## - a value that is not a whole number (JSON numbers parse as `float`, so
 ##   `7.0` passes and `7.5`, `"7"`, `true` fail) is [constant E_RULES_NOT_INTEGER];
 ## - a whole number outside its [constant CONFIG_SAFE_RANGES] row is
-##   [constant E_RULES_OUT_OF_RANGE].
+##   [constant E_RULES_OUT_OF_RANGE];
+## - a per-band knob that is not an Array with one entry per band is
+##   [constant E_RULES_NOT_BAND_LIST]; otherwise each band's entry is checked
+##   like a whole-number knob against its own bounds (one error per bad band,
+##   band order, the message naming the band).
 ## [codeblock]
 ## var errors: Array = RulesEngine.validate_rules_config({"board_size": 9.0}, null)
-## errors[0].code   # &"E_RULES_OUT_OF_RANGE" (board_size), then 13 missing knobs
+## errors[0].code   # &"E_RULES_OUT_OF_RANGE" (board_size), then 14 missing knobs
 ## [/codeblock]
 static func validate_rules_config(body: Dictionary, _db: Variant) -> Array:
 	var errors: Array[Dictionary] = []
@@ -272,14 +308,38 @@ static func validate_rules_config(body: Dictionary, _db: Variant) -> Array:
 			errors.append(_config_error(E_RULES_MISSING_KNOB, key, "missing knob `%s` (match-rules Tuning Knobs)" % key))
 			continue
 		var raw: Variant = body[key]
-		var is_number: bool = typeof(raw) == TYPE_INT or typeof(raw) == TYPE_FLOAT
-		if not is_number or float(raw) != floorf(float(raw)):
+		if not _is_whole(raw):
 			errors.append(_config_error(E_RULES_NOT_INTEGER, key, "`%s` must be a whole number, found %s (%s)" % [key, str(raw), type_string(typeof(raw))]))
 			continue
 		var value: int = int(raw)
 		var bounds: Array = CONFIG_SAFE_RANGES[key]
 		if value < int(bounds[0]) or value > int(bounds[1]):
 			errors.append(_config_error(E_RULES_OUT_OF_RANGE, key, "`%s` is %d, outside the safe range %d–%d" % [key, value, int(bounds[0]), int(bounds[1])]))
+	for key: String in CONFIG_BAND_KEYS:
+		errors.append_array(_validate_band_knob(body, key))
+	return errors
+
+
+## The [method validate_rules_config] checks of per-band knob [param key].
+static func _validate_band_knob(body: Dictionary, key: String) -> Array[Dictionary]:
+	var errors: Array[Dictionary] = []
+	if not body.has(key):
+		errors.append(_config_error(E_RULES_MISSING_KNOB, key, "missing knob `%s` (match-rules Tuning Knobs)" % key))
+		return errors
+	var raw: Variant = body[key]
+	var band_bounds: Array = CONFIG_BAND_SAFE_RANGES[key]
+	if not raw is Array or (raw as Array).size() != band_bounds.size():
+		errors.append(_config_error(E_RULES_NOT_BAND_LIST, key, "`%s` must be a list of %d whole numbers, band 1 first, found %s (%s)" % [key, band_bounds.size(), str(raw), type_string(typeof(raw))]))
+		return errors
+	for i: int in band_bounds.size():
+		var entry: Variant = raw[i]
+		var band: int = i + 1
+		if not _is_whole(entry):
+			errors.append(_config_error(E_RULES_NOT_INTEGER, key, "`%s` band %d must be a whole number, found %s (%s)" % [key, band, str(entry), type_string(typeof(entry))]))
+			continue
+		var bounds: Array = band_bounds[i]
+		if int(entry) < int(bounds[0]) or int(entry) > int(bounds[1]):
+			errors.append(_config_error(E_RULES_OUT_OF_RANGE, key, "`%s` band %d is %d, outside the safe range %d–%d" % [key, band, int(entry), int(bounds[0]), int(bounds[1])]))
 	return errors
 
 
@@ -339,6 +399,7 @@ func start(config: Dictionary) -> void:
 	assert(_state == null, "RulesEngine.start: a match was already started on this engine")
 	_state = MatchState.from_config(config)
 	_cause_seq = 0
+	_steps = 0
 	_resolving = true
 	# C3 step 1: the registry, then bind (installs entries, registers evaluators)
 	_state.hooks = HookRegistry.new()
@@ -405,6 +466,7 @@ func submit(command: Dictionary) -> Dictionary:
 		return _reject(command, invalid, "")
 	_resolving = true
 	_cause_seq = 0
+	_steps = 0
 	_call_first_seq = 0
 	_call_last_seq = 0
 	match type:
@@ -433,7 +495,8 @@ func submit(command: Dictionary) -> Dictionary:
 ## primitives) is executed as step 1, then the loop drains: death check →
 ## `recompute_auras()` → pop queue Q → execute, until no one died and Q is
 ## empty; a step past `resolution_step_cap` is `fault(resolution_overflow)`.
-## Then `win_loss_check()` (C14). The step counter starts at 0 per action.
+## Then `win_loss_check()` (C14). The step counter starts at 0 per action —
+## per `run_action` and per [method submit], never per sub-step.
 ## Every command handler and engine step runs this way internally; this
 ## public entry drives an engine-initiated fixture step (tests, the card-
 ## effects suites). Called while the engine is resolving it does nothing and
@@ -449,6 +512,7 @@ func run_action(initial_step: Callable) -> void:
 		return
 	_resolving = true
 	_cause_seq = 0
+	_steps = 0
 	_run_step(initial_step)
 	@warning_ignore("return_value_discarded")
 	_win_loss_check()
@@ -637,7 +701,7 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 			return
 		if not fire_on_draw:
 			continue
-		_state.hooks.run_triggers(&"on_draw", StringName(side), {"instance_id": instance_id, "card_id": def_id})
+		_run_inline_hooks(&"on_draw", side, {"instance_id": instance_id, "card_id": def_id})
 		_raise(&"on_draw", {"side": side, "candidates": _candidates_in_order(), "subject": instance_id, "card_id": def_id}, drawn_seq)
 
 
@@ -742,7 +806,7 @@ func _after_damage_dealt(target: Dictionary, source: Variant, source_side: Strin
 		@warning_ignore("return_value_discarded")
 		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
 	if target.kind == MatchRecords.KIND_HERO:
-		_state.hooks.run_triggers(&"on_hero_damaged", StringName(target_side), {"amount_dealt": dealt, "source": source})
+		_run_inline_hooks(&"on_hero_damaged", target_side, {"amount_dealt": dealt, "source": source})
 	_raise(&"on_damage", {"side": target_side, "candidates": _candidates_in_order(), "subject": target_id, "amount": dealt, "source": source}, dealt_seq)
 
 
@@ -853,7 +917,11 @@ func remove_enchantment(target_id: int, index: int) -> void:
 ## negative or beyond the end means the rightmost slot. The minion is
 ## `summoning_sick` with `summoned_on_turn = turn`; `stats.minions_summoned`
 ## rises; emits `minion_summoned {side, entity_id, card_id, position, attack,
-## health}`, then runs the `on_minion_summoned` hooks. A full board is a
+## health}`, then runs the `on_minion_summoned` hooks, then raises trigger
+## point `on_summon {subject, card_id}` (its observers join Q under
+## `minion_summoned`) — card-effects C6.3 "Minion summoned by an effect": no
+## `battlecry`, no `on_play` (a minion played from hand is placed by the
+## `play_card` handler, which runs its own C6.3 steps). A full board is a
 ## no-op with `summon_failed {side, card_id, reason: board_full}`. Returns the
 ## new entity id, or [constant NO_ENTITY].
 ## [codeblock]
@@ -874,12 +942,14 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 	var index: int = board.size() if position < 0 or position > board.size() else position
 	board.insert(index, minion)
 	player.stats.minions_summoned = int(player.stats.minions_summoned) + 1
-	emit(&"minion_summoned", {
-		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": index,
+	var id: int = int(minion.entity_id)
+	var summoned_seq: int = emit(&"minion_summoned", {
+		"side": side, "entity_id": id, "card_id": def_id, "position": index,
 		"attack": attack(minion), "health": health(minion),
 	})
-	_state.hooks.run_triggers(&"on_minion_summoned", StringName(side), {"entity_id": int(minion.entity_id), "card_id": def_id})
-	return int(minion.entity_id)
+	_run_inline_hooks(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id})
+	_raise(&"on_summon", {"side": side, "candidates": _candidates_in_order(), "subject": id, "card_id": def_id}, summoned_seq)
+	return id
 
 
 ## Primitive (C10, States "pending_destroy"): marks the minion or weapon
@@ -1549,7 +1619,7 @@ func _play_minion(side: String, card: Dictionary, position: int, plan: Dictionar
 	if not plan.fizzles:
 		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
 	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause, int(card.instance_id))
 	_fire_observers(&"on_play", side, id, def_id, cause)
 	_run_hook_steps(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id}, cause)
 	_fire_observers(&"on_summon", side, id, def_id, cause)
@@ -1576,6 +1646,9 @@ func _accept_minion(side: String, card: Dictionary, position: int, target: Varia
 ## Poisonous and the stats find), `spell_cast {…, spell_damage: F7}`; then
 ## (1) `on_cast` — the spell's effect, (2) `on_card_played` hooks, (3)
 ## `on_card_played` observers, (4) `after_cast`; then `card_to_graveyard`.
+## A fault or `event_cap` that stops the match mid-resolution still moves the
+## card out of `resolving` into the graveyard — with no event, the log being
+## sealed (code review 2026-11-03: it was left in `resolving`).
 func _cast_spell(side: String, card: Dictionary, plan: Dictionary) -> void:
 	var cast: Dictionary = {"cause": 0}
 	_run_step(_accept_spell.bind(side, card, plan.target, cast))
@@ -1584,24 +1657,29 @@ func _cast_spell(side: String, card: Dictionary, plan: Dictionary) -> void:
 	var def_id: String = str(card.def_id)
 	_play_point(&"on_cast", side, id, plan.target, def_id, cause)
 	_run_hook_steps(&"on_card_played", side, {"instance_id": id, "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause, id)
 	_fire_observers(&"after_cast", side, id, def_id, cause)
-	if _halted():
-		return
 	var player: Dictionary = _state.players[side]
+	var was_resolving: bool = player.resolving.has(card)
 	player.resolving.erase(card)
+	if not was_resolving:
+		return
 	card.zone = "graveyard"
 	player.graveyard.append(card)
+	if _halted():
+		return
 	emit(&"card_to_graveyard", {"side": side, "instance_id": id, "card_id": def_id})
 
 
 func _accept_spell(side: String, card: Dictionary, target: Variant, cast: Dictionary) -> void:
 	@warning_ignore("return_value_discarded")
 	_accept_card(side, card, CARD_SPELL, target)
-	if _halted():
-		return
+	# Into `resolving` even when the log refused the acceptance: the card has
+	# left the hand, and [method _cast_spell] moves it on from here.
 	card.zone = "resolving"
 	_state.players[side].resolving.append(card)
+	if _halted():
+		return
 	cast.cause = emit(&"spell_cast", {
 		"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id),
 		"target_id": target, "spell_damage": spell_damage(side),
@@ -1623,7 +1701,7 @@ func _play_weapon(side: String, card: Dictionary, plan: Dictionary) -> void:
 	if not plan.fizzles:
 		_play_point(&"battlecry", side, id, plan.target, def_id, cause)
 	_run_hook_steps(&"on_card_played", side, {"instance_id": int(card.instance_id), "card_id": def_id, "entity_id": id}, cause)
-	_fire_observers(&"on_card_played", side, id, def_id, cause)
+	_fire_observers(&"on_card_played", side, id, def_id, cause, int(card.instance_id))
 	_fire_observers(&"on_weapon_equipped", side, id, def_id, cause)
 
 
@@ -1658,7 +1736,9 @@ func _accept_card(side: String, card: Dictionary, type: String, target: Variant)
 
 ## An accepted `use_hero_power` (C7): pay `hero_power_cost` (`mana_spent`),
 ## `used_this_turn = true`, `hero_power_used {side, power_id, target_id}`,
-## then trigger point `hero_power` from the hero as its own step.
+## then the card-effects C6.3 "Hero power used" row, each its own step under
+## `hero_power_used`: (1) trigger point `hero_power` from the hero (the host
+## power's effect), (2) the `on_hero_power` observers, `subject` the hero.
 func _do_hero_power(command: Dictionary) -> void:
 	var side: String = str(command.issuer)
 	var player: Dictionary = _state.players[side]
@@ -1666,7 +1746,9 @@ func _do_hero_power(command: Dictionary) -> void:
 	var plan: Dictionary = _play_plan(power_id, _power_source(side), command.get("target_id"))
 	var used: Dictionary = {"cause": 0}
 	_run_step(_accept_hero_power.bind(side, plan.target, used))
-	_play_point(&"hero_power", side, int(player.hero.entity_id), plan.target, power_id, int(used.cause))
+	var hero_id: int = int(player.hero.entity_id)
+	_play_point(&"hero_power", side, hero_id, plan.target, power_id, int(used.cause))
+	_fire_observers(&"on_hero_power", side, hero_id, power_id, int(used.cause))
 
 
 func _accept_hero_power(side: String, target: Variant, used: Dictionary) -> void:
@@ -1690,12 +1772,18 @@ func _play_point(point: StringName, side: String, source_id: int, target: Varian
 
 
 ## An observer trigger point of the play order (`on_card_played`, `on_play`,
-## `on_summon`, `after_cast`, `on_weapon_equipped`) as one step under
-## [param cause]: candidates in engine order, `subject` the played entity.
-func _fire_observers(point: StringName, side: String, subject: int, card_id: String, cause: int) -> void:
+## `on_summon`, `after_cast`, `on_weapon_equipped`, `on_hero_power`) as one
+## step under [param cause]: candidates in engine order, `subject` the played
+## entity (the hero for `on_hero_power`). [param instance_id], when given,
+## joins the ctx as `instance_id` — the played card instance, card-effects C2's
+## `trigger_subject` of `on_card_played` (a minion's or weapon's `subject` is
+## its new entity, so the instance is named separately; code review 2026-11-03).
+func _fire_observers(point: StringName, side: String, subject: int, card_id: String, cause: int, instance_id: int = NO_ENTITY) -> void:
 	if _halted():
 		return
 	var ctx: Dictionary = {"side": side, "candidates": _candidates_in_order(), "subject": subject, "card_id": card_id}
+	if instance_id != NO_ENTITY:
+		ctx["instance_id"] = instance_id
 	_run_step(_resolve_step.bind(point, ctx), cause)
 
 
@@ -1851,13 +1939,51 @@ func _resolve_step(point: StringName, ctx: Dictionary) -> void:
 ## [param side] runs as its own step followed by the full C10 loop (ADR-0005
 ## rule 4). Hook points reached inside a primitive (`on_draw`,
 ## `on_hero_damaged`, `on_minion_summoned`) run synchronously within the
-## current step instead — a C10 loop there would run a death check between
-## the ops of one effect pass (ADR-0007, card-effects C6.0).
+## current step instead ([method _run_inline_hooks]) — a C10 loop there would
+## run a death check between the ops of one effect pass (ADR-0007,
+## card-effects C6.0).
 func _run_hook_steps(point: StringName, side: String, ctx: Dictionary, cause: int = -1) -> void:
 	for index: int in _state.hooks.entries(point).size():
 		if _halted():
 			return
-		_run_step(_state.hooks.run_trigger_entry.bind(point, index, StringName(side), ctx), cause)
+		_run_step(_run_hook_entry.bind(point, index, side, ctx), cause)
+
+
+## One step-boundary hook entry (the step [method _run_hook_steps] runs):
+## the entry at [param index] on [param point], with [param point] marked
+## running for the entry itself — not for the C10 loop after it, whose queued
+## triggers may reach the point again legitimately.
+func _run_hook_entry(point: StringName, index: int, side: String, ctx: Dictionary) -> void:
+	if not _enter_hook_point(point):
+		return
+	_state.hooks.run_trigger_entry(point, index, StringName(side), ctx)
+	_hook_points_running[point] = false
+
+
+## A trigger hook point reached inside a primitive (`on_draw`,
+## `on_hero_damaged`, `on_minion_summoned` — ADR-0005 rule-4 exception,
+## erratum 2026-11-03): its entries run synchronously within the current step,
+## back to back, with no C10 loop between them. A primitive one of them calls
+## that reaches [param point] again faults `resolution_overflow`
+## ([method _enter_hook_point]); any other point may still be reached.
+func _run_inline_hooks(point: StringName, side: String, ctx: Dictionary) -> void:
+	if _halted() or not _enter_hook_point(point):
+		return
+	_state.hooks.run_triggers(point, StringName(side), ctx)
+	_hook_points_running[point] = false
+
+
+## Marks [param point] running and returns `true`; when it is already running
+## — a re-entry within one of its entries — ends the match with
+## `fault(resolution_overflow, steps)` (ADR-0005 erratum 2026-11-03: a
+## self-feeding hook ends the match as a fault, never overflows the call
+## stack) and returns `false`. The caller clears the mark after the entries.
+func _enter_hook_point(point: StringName) -> bool:
+	if _hook_points_running.get(point, false):
+		fault(MatchRecords.REASON_RESOLUTION_OVERFLOW, _steps)
+		return false
+	_hook_points_running[point] = true
+	return true
 
 
 ## The one observer order (C4 step 5, C10; cross-review C-16c): player board
@@ -1920,8 +2046,10 @@ func _characters_of(side: String) -> Array[Dictionary]:
 
 
 ## One action of the C10 loop without the closing `win_loss_check` (the
-## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed as
-## step 1 of a fresh step count, then [method _drain]. [param step_cause]
+## C4 sub-steps check once, at Start 7 / End 6): [param step] is executed and
+## counted as one step of the current action's count (reset by
+## [method submit] / [method run_action] / [method start], never here), then
+## [method _drain]. [param step_cause]
 ## (≥ 0) is the `cause_seq` the step runs under — a play's trigger steps run
 ## under its `card_played` / `spell_cast` / `hero_power_used` (card-effects
 ## C6.6); the default keeps the current one. The `cause_seq` from before is
@@ -1933,7 +2061,6 @@ func _run_step(step: Callable, step_cause: int = -1) -> void:
 	var cause: int = _cause_seq
 	if step_cause >= 0:
 		_cause_seq = step_cause
-	_steps = 0
 	step.call()
 	_steps += 1
 	_drain()
@@ -1992,11 +2119,17 @@ func _execute_queued(step: Dictionary) -> void:
 ## optional `point` overrides [param point]); it keeps its own `snapshot` or
 ## gets one — [param dead_snapshot] for a Deathrattle (the source has just
 ## left play), else a value copy of the source now. Nothing is queued for a
-## source that is not in play (or in hand) at raise time (C10).
+## source that is not in play (or in hand) at raise time (C10). An entry
+## without a whole-number `source_id` is a resolver defect: it is logged
+## (`push_error`) and skipped, and the entries after it still queue (code
+## review 2026-11-03).
 func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}) -> void:
 	for entry: Dictionary in entries:
 		if _halted():
 			return
+		if not _is_whole(entry.get("source_id")):
+			push_error("RulesEngine: skipped a malformed trigger entry from resolve(%s) (no integer source_id): %s" % [point, entry])
+			continue
 		var source_id: int = int(entry.source_id)
 		var snapshot: Dictionary = dead_snapshot
 		if snapshot.is_empty():

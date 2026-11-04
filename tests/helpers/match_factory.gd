@@ -58,7 +58,12 @@ const STARTED_BOSS_DECK_SIZE: int = 20
 ## with `overrides` merged on top, frozen with `make_read_only()` as the Card
 ## Database freezes real bodies (CR-7). Pass it straight to
 ## `RulesEngine.new(db, body, resolver)` — never through `Boot`.
+## `boss_starting_health_by_band` (DD-M02) is a read-only untyped Array, the
+## shape `DataLoader` serves for a JSON list.
 static func make_rules_config(overrides: Dictionary = {}) -> Dictionary:
+	var bands: Array = []
+	bands.append_array(TestConstants.BOSS_STARTING_HEALTH_BY_BAND)
+	bands.make_read_only()
 	var body: Dictionary = {
 		"board_size": TestConstants.BOARD_SIZE,
 		"hand_size": TestConstants.HAND_SIZE,
@@ -74,6 +79,7 @@ static func make_rules_config(overrides: Dictionary = {}) -> Dictionary:
 		"starting_health_player": TestConstants.PLAYER_STARTING_HEALTH,
 		"fatigue_base": TestConstants.FATIGUE_BASE,
 		"fatigue_step": TestConstants.FATIGUE_STEP,
+		"boss_starting_health_by_band": bands,
 	}
 	body.merge(overrides, true)
 	body.make_read_only()

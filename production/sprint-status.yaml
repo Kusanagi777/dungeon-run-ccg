@@ -77,7 +77,7 @@ stories:
     serialised: true
     contract: false
     blocker: ""
-    note: "edits test_effect_resolver.gd; /code-review at M2"
+    note: "edits test_effect_resolver.gd; /code-review at M2; 2026-11-04 code-review fix pass on fix/review-s3w2 (hook re-entry guard, per-command step cap, malformed queue entry)"
     completed: "2026-11-03"
   - id: "card-database-006"
     name: "Freeze and CR-6 queries (CR-5 stage 9, CR-6, CR-7)"
@@ -106,7 +106,7 @@ stories:
     serialised: false
     contract: true
     blocker: ""
-    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config (name unchanged; final snake_case keys)"
+    note: "needs MR-008 + CDB-006 at M1 and the AC-1 clone() split into MR-017 (/quick-design, recommended; owner decision before W2) — unsplit it waits for MR-017. Orchestrator registers configs.card_effects = EffectValidator.validate_config (name unchanged; final snake_case keys); 2026-11-04 code-review fix pass on fix/review-s3w2 (_is_plain String only)"
     completed: "2026-11-03"
   - id: "content-001"
     name: "Batch-0 first-playable data set"
@@ -233,7 +233,7 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "boss-ai slot (BAI-004 needs clone()/MR-017); needs CDB-006 at M1; match_ui.json fixture body until content-001 merges"
+    note: "boss-ai slot (BAI-004 needs clone()/MR-017); needs CDB-006 at M1; match_ui.json fixture body until content-001 merges; 2026-11-04 fizzle fix on fix/review-s3w2 (non-null fizzled is a fizzle)"
     completed: "2026-11-03"
   - id: "match-ui-002"
     name: "AnimStep and AnimationQueue — command groups, coalescing, F3 speed, skip-all and the idle invariant"
@@ -274,7 +274,7 @@ stories:
     serialised: true
     contract: false
     blocker: ""
-    note: "critical-lane stretch, directly after MR-009; CE-004 AC-07 / CE-005 / CE-006 need it at M2"
+    note: "critical-lane stretch, directly after MR-009; CE-004 AC-07 / CE-005 / CE-006 need it at M2; 2026-11-04 code-review fix pass on fix/review-s3w2 (resolving on halt, on_hero_power, effect-summon on_summon, on_card_played instance_id)"
     completed: "2026-11-03"
   - id: "card-effects-006"
     name: "Play triggers, chosen targeting and the one-pass contract"
@@ -594,6 +594,7 @@ previous_sprints:
         owner: ""
         estimate_days: 1
         blocker: ""
+        note: "2026-11-04 data fix on fix/review-s3w2: boss_starting_health_by_band in match_rules.json + its validator rows"
         completed: "2026-11-03"
       - id: "match-rules-002"
         name: "HookRegistry: install order, fold, copy"

@@ -491,8 +491,15 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 				exhausted_sources[id] = true
 			steps.append(_step(AnimStep.RIM_GLOW, [id], group, seq))
 		"effect_resolved":
-			if p.get("fizzled", false) == true:
-				steps.append(_step(AnimStep.FIZZLE, _ids([p.get("source_id")]), group, seq))
+			# card-effects Interactions: `fizzled` is null, or the reason
+			# String (`condition_false`, …) — never `true` (code review
+			# 2026-11-03). Any value but null (or a stray `false`) is a fizzle;
+			# the reason rides on the step for display.
+			var fizzled: Variant = p.get("fizzled")
+			if fizzled != null and not (fizzled is bool and fizzled == false):
+				var wisp: AnimStep = _step(AnimStep.FIZZLE, _ids([p.get("source_id")]), group, seq)
+				wisp.data = {"reason": _copy(fizzled)}
+				steps.append(wisp)
 		"discover_offered", "choice_requested":
 			_apply_choice_open(type == "discover_offered", p, group, seq, steps)
 		"choice_made", "discover_picked":

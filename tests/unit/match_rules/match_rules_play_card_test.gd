@@ -69,9 +69,10 @@ func _db() -> FixtureDb:
 
 
 ## A started engine past the mulligan, the player's hand replaced by
-## [param hand] (def ids, left to right) and its mana set to [param mana].
-func _engine(log: TestEventLog, resolver: TestEffectResolver, hand: Array, mana: int, overrides: Dictionary = {}) -> RulesEngine:
-	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, overrides, {}, resolver, _db())
+## [param hand] (def ids, left to right) and its mana set to [param mana];
+## [param rules_overrides] patch the `match_rules` body (e.g. a test step cap).
+func _engine(log: TestEventLog, resolver: TestEffectResolver, hand: Array, mana: int, overrides: Dictionary = {}, rules_overrides: Dictionary = {}) -> RulesEngine:
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, overrides, rules_overrides, resolver, _db())
 	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
 	var state: MatchState = engine.state()
 	var cards: Array = state.players[SIDE_PLAYER].hand
@@ -479,3 +480,159 @@ func test_legal_commands_expand_cards_positions_targets_and_the_hero_power() -> 
 	])
 	# every listed play is accepted as listed (legality is not trial-submitted inside)
 	assert_bool(engine.submit(legal[3]).accepted).is_true()
+
+
+# --- Code review 2026-11-03 (fix pass 2026-11-04) ------------------------------
+# A spell halted mid-resolution leaves `resolving`; card-effects C6.3 rows
+# "Hero power used" (observers `on_hero_power`) and "Minion summoned by an
+# effect" (hook `on_minion_summoned` → observers `on_summon`); C2: the
+# `on_card_played` observers' ctx names the card instance.
+
+## The step cap the halted-spell test sets (a boundary value, as in AC-30).
+const TEST_STEP_CAP: int = 50
+
+
+func _assert_spell_left_resolving(engine: RulesEngine, card: Dictionary) -> void:
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_array(_player(engine).resolving).is_empty()
+	assert_str(str(card.zone)).is_equal("graveyard")
+	assert_bool(_player(engine).graveyard.has(card)).is_true()
+
+
+func test_a_spell_faulted_mid_resolution_leaves_the_resolving_zone() -> void:
+	# Arrange: the spell's on_cast heals one of a ping-pong pair → resolution_overflow
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, [DEF_STUDY], MANA_POOL, {}, {"resolution_step_cap": TEST_STEP_CAP})
+	var first: int = int(MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1).entity_id)
+	var second: int = int(MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1).entity_id)
+	resolver.add_heal_ping_pong(first, second)
+	resolver.scripts[&"on_cast"] = [func(e: RulesEngine, _ctx: Dictionary) -> void: e.apply_heal(first, 1, null)]
+	var card: Dictionary = _player(engine).hand[0]
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_RESOLUTION_OVERFLOW)
+	_assert_spell_left_resolving(engine, card)
+
+
+func test_a_spell_stopped_by_the_event_cap_leaves_the_resolving_zone() -> void:
+	# Arrange: the spell's on_cast caps the log, then emits — the log refuses it
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, [DEF_STUDY], MANA_POOL)
+	resolver.scripts[&"on_cast"] = [func(e: RulesEngine, _ctx: Dictionary) -> void:
+		log.max_events = log.events.size()
+		e.emit(MARKER, {"effect_id": "overflow"})]
+	var card: Dictionary = _player(engine).hand[0]
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	_assert_spell_left_resolving(engine, card)
+
+
+func test_hero_power_fires_on_hero_power_observers_after_the_host_step() -> void:
+	# Arrange: a friendly minion observes on_hero_power
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, [], MANA_POOL)
+	var watcher: int = int(MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1).entity_id)
+	resolver.add_trigger(&"on_hero_power", watcher, "watcher.0", _mark)
+	var calls_before: int = resolver.resolve_calls.size()
+	var before: int = log.events.size()
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.use_hero_power(SIDE_PLAYER)).accepted).is_true()
+
+	# Assert: host hero_power, then the on_hero_power observers (subject the hero)
+	assert_array(_fired(resolver, calls_before)).is_equal(["hero_power", "on_hero_power"])
+	var ctx: Dictionary = _calls(resolver, &"on_hero_power")[0]
+	assert_int(int(ctx.subject)).is_equal(_hero_id(engine, SIDE_PLAYER))
+	assert_str(str(ctx.card_id)).is_equal(DEF_POWER)
+	assert_str(str(ctx.side)).is_equal(SIDE_PLAYER)
+	# the observer's pass ran, raised by hero_power_used (card-effects C6.6)
+	assert_array(resolver.pass_ids(&"on_hero_power")).is_equal(["watcher.0"])
+	var used: Dictionary = _of(log, before, ["hero_power_used"])[0]
+	var resolved: Dictionary = _of(log, before, ["trigger_resolved"])[0]
+	assert_int(int(resolved.cause_seq)).is_equal(int(used.seq))
+
+
+func test_an_effect_summoned_minion_raises_on_summon_after_its_hooks_and_no_play_points() -> void:
+	# Arrange: an on_minion_summoned hook and a friendly minion observing on_summon
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.hook_scripts["t_herald.0"] = _hook_marker
+	var herald: HookInstaller = MatchFactory.make_hook_installer("t_herald", SIDE_PLAYER, [&"on_minion_summoned"])
+	var engine: RulesEngine = _engine(log, resolver, [], MANA_POOL, {"player": {"hook_installers": [herald]}})
+	var watcher: int = int(MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1).entity_id)
+	resolver.add_trigger(&"on_summon", watcher, "watcher.0", _mark)
+	var calls_before: int = resolver.resolve_calls.size()
+	var before: int = log.events.size()
+
+	# Act: an effect summons a minion
+	var ids: Dictionary = {"summoned": RulesEngine.NO_ENTITY}
+	engine.run_action(func() -> void: ids.summoned = engine.summon_minion(SIDE_PLAYER, DEF_VANILLA, -1))
+
+	# Assert: on_summon only (no battlecry, no on_play), subject the new minion
+	assert_array(_fired(resolver, calls_before)).is_equal(["on_summon"])
+	var ctx: Dictionary = _calls(resolver, &"on_summon")[0]
+	assert_int(int(ctx.subject)).is_equal(int(ids.summoned))
+	assert_str(str(ctx.card_id)).is_equal(DEF_VANILLA)
+	# hook first, then the observer's queued pass, raised by minion_summoned
+	var events: Array[Dictionary] = _of(log, before, ["minion_summoned", String(HOOK_MARKER), "trigger_resolved", String(MARKER)])
+	assert_array(_types(events)).is_equal(["minion_summoned", String(HOOK_MARKER), "trigger_resolved", String(MARKER)])
+	assert_int(int(events[2].cause_seq)).is_equal(int(events[0].seq))
+
+
+func test_on_summon_fires_once_for_a_played_minion_and_once_per_effect_summon() -> void:
+	# Arrange: card-effects AC-17's observer shape — "+1/+1 to the played/summoned
+	# minion" on both on_play and on_summon; the played minion's Battlecry summons one
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(TestEventLog.new(), resolver, [DEF_VANILLA], MANA_POOL)
+	var watcher: int = int(MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1).entity_id)
+	# the double's queued ctx is the entry + snapshot: the raise-time subject is
+	# remembered by the guard and taken by the pass, in queue order
+	var subjects: Array[int] = []
+	var remember: Callable = func(_e: RulesEngine, ctx: Dictionary) -> bool:
+		subjects.append(int(ctx.subject))
+		return true
+	var buff: Callable = func(e: RulesEngine, _ctx: Dictionary) -> void:
+		e.apply_enchantment(subjects.pop_front(), {"attack_delta": 1, "health_delta": 1})
+	resolver.add_trigger(&"on_play", watcher, "watcher.play", buff, remember)
+	resolver.add_trigger(&"on_summon", watcher, "watcher.summon", buff, remember)
+	resolver.scripts[&"battlecry"] = [func(e: RulesEngine, _ctx: Dictionary) -> void: e.summon_minion(SIDE_PLAYER, DEF_VANILLA, -1)]
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, 1)).accepted).is_true()
+
+	# Assert: played +2/+2 (on_play + on_summon), effect-summoned +1/+1 (on_summon only)
+	var board: Array = _player(engine).board
+	var played: Dictionary = board[1]
+	var token: Dictionary = board[board.size() - 1]
+	assert_int(engine.attack(played)).is_equal(2 + 2)
+	assert_int(engine.attack(token)).is_equal(2 + 1)
+	assert_int(resolver.pass_ids(&"on_summon").size()).is_equal(2)
+
+
+func test_on_card_played_observers_get_the_card_instance_id() -> void:
+	# Arrange: a minion card and a spell card
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(TestEventLog.new(), resolver, [DEF_VANILLA, DEF_STUDY], MANA_POOL)
+	var minion_card: int = int(_player(engine).hand[0].instance_id)
+	var spell_card: int = int(_player(engine).hand[1].instance_id)
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, 0)).accepted).is_true()
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert: C2 trigger_subject = the card instance; the minion's subject stays its entity
+	var calls: Array[Dictionary] = _calls(resolver, &"on_card_played")
+	assert_int(calls.size()).is_equal(2)
+	assert_int(int(calls[0].get("instance_id", RulesEngine.NO_ENTITY))).is_equal(minion_card)
+	assert_int(int(calls[0].subject)).is_equal(int(_player(engine).board[0].entity_id))
+	assert_int(int(calls[1].get("instance_id", RulesEngine.NO_ENTITY))).is_equal(spell_card)

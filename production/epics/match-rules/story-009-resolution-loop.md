@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -113,3 +113,11 @@ This is the rule that makes Pillar 4 true: every action runs the same loop, ever
 **Test Evidence**: `tests/unit/match_rules/match_rules_resolution_loop_test.gd` (12 tests); full suite 833 test cases, 0 failures, exit 0, 45 SCRIPT ERROR lines (the same intentional negatives as before the story); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
 **Run result**: N/A — the loop is headless rules code; no scene, node or screen renders it yet (Match UI is a later epic).
 **Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
+
+### Code-review fix pass (2026-11-04, started 02:02:58 UTC, ended 02:08:14 UTC; branch `fix/review-s3w2`)
+Findings from `/code-review` sprint 3 wave 2 (2026-11-03) on this story, all fixed:
+- **In-primitive hook re-entry** (should-fix): `on_draw`, `on_hero_damaged` and `on_minion_summoned` entries ran nested inside the primitive with no guard, so a self-feeding hook overflowed the GDScript call stack. The engine now marks a hook point running while its entries run (`_run_inline_hooks` for the three in-primitive points, `_run_hook_entry` for each step-boundary entry — the mark covers the entry, not the C10 loop after it); a primitive that reaches the same point again faults `resolution_overflow {steps}` (ADR-0005 rule-4 exception, erratum 2026-11-03). Unblocks card-effects 015 filling `run_hook_effect`.
+- **Step-cap reset** (should-fix): `_steps = 0` ran in `_run_step`, i.e. per sub-step, so one command got `cap × sub-steps`. It now resets once per `submit`, `run_action` and `start`.
+- **Malformed queue entry** (nit): an entry without a whole-number `source_id` is `push_error`ed and skipped; the entries after it still queue.
+Tests added (6, in `match_rules_resolution_loop_test.gd`, now 18): `test_self_feeding_on_hero_damaged_hook_faults_resolution_overflow_not_the_call_stack`, `test_self_feeding_on_draw_hook_faults_resolution_overflow`, `test_self_feeding_on_minion_summoned_hook_faults_resolution_overflow`, `test_an_in_primitive_hook_that_does_not_re_enter_runs_on_every_hit` (control: the guard clears after each entry), `test_the_step_cap_counts_every_step_of_one_command`, `test_a_malformed_queue_entry_is_logged_and_skipped`. Watched fail on the unfixed engine: 5 of 6 (stack overflow ×1, no fault ×3 — the on_draw / on_minion_summoned loops end on fatigue / a full board —, crash on `entry.source_id`); the control passes before and after by design. Full suite 1064 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR.
+Deviation (advisory): the guard is per hook **point**, as the erratum words it — a re-entry of the point by any side inside an entry faults, even if no entry would be in scope for the nested call.

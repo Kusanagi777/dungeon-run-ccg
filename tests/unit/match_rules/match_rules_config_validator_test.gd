@@ -46,6 +46,9 @@ func test_every_safe_range_boundary_value_is_accepted() -> void:
 	for key: String in RulesEngine.CONFIG_KEYS:
 		at_min[key] = RulesEngine.CONFIG_SAFE_RANGES[key][0]
 		at_max[key] = RulesEngine.CONFIG_SAFE_RANGES[key][1]
+	for key: String in RulesEngine.CONFIG_BAND_KEYS:
+		at_min[key] = (RulesEngine.CONFIG_BAND_SAFE_RANGES[key] as Array).map(func(b: Array) -> int: return int(b[0]))
+		at_max[key] = (RulesEngine.CONFIG_BAND_SAFE_RANGES[key] as Array).map(func(b: Array) -> int: return int(b[1]))
 
 	# Act / Assert
 	assert_array(_validate(at_min)).is_empty()
@@ -57,6 +60,8 @@ func test_whole_number_floats_from_json_are_accepted() -> void:
 	var body: Dictionary = {}
 	for key: String in RulesEngine.CONFIG_KEYS:
 		body[key] = float(MatchFactory.make_rules_config()[key])
+	for key: String in RulesEngine.CONFIG_BAND_KEYS:
+		body[key] = (MatchFactory.make_rules_config()[key] as Array).map(func(v: Variant) -> float: return float(v))
 
 	# Act / Assert
 	assert_array(_validate(body)).is_empty()
@@ -76,8 +81,8 @@ func test_empty_body_reports_every_knob_missing_in_config_keys_order() -> void:
 	# Act
 	var errors: Array = _validate({})
 
-	# Assert
-	assert_array(_fields(errors)).is_equal(Array(RulesEngine.CONFIG_KEYS))
+	# Assert — the whole-number knobs, then the per-band knobs
+	assert_array(_fields(errors)).is_equal(Array(RulesEngine.CONFIG_KEYS) + Array(RulesEngine.CONFIG_BAND_KEYS))
 	for e: Dictionary in errors:
 		assert_bool(e.code == RulesEngine.E_RULES_MISSING_KNOB).is_true()
 
@@ -117,6 +122,68 @@ func test_knob_one_past_either_bound_reports_e_rules_out_of_range() -> void:
 	assert_array(_codes(errors)).is_equal([RulesEngine.E_RULES_OUT_OF_RANGE, RulesEngine.E_RULES_OUT_OF_RANGE])
 	assert_array(_fields(errors)).is_equal(["hand_size", "max_attacks_cap"])
 	assert_str(errors[1].message).contains(str(over))
+
+
+# --- boss_starting_health_by_band (DD-M02; fix pass 2026-11-04) ---------------
+
+const BAND_KEY: String = "boss_starting_health_by_band"
+
+
+func test_band_health_defaults_are_the_dd_m02_values() -> void:
+	# Act / Assert — band 1 = 30, band 2 = 40, band 3 = 50 (TestConstants, registry)
+	assert_array(MatchFactory.make_rules_config()[BAND_KEY]).is_equal(Array(TestConstants.BOSS_STARTING_HEALTH_BY_BAND))
+	assert_array(RulesEngine.CONFIG_BAND_KEYS).is_equal([BAND_KEY])
+
+
+func test_missing_band_health_reports_e_rules_missing_knob() -> void:
+	# Act
+	var errors: Array = _validate(_body_without(BAND_KEY))
+
+	# Assert
+	assert_array(_codes(errors)).is_equal([RulesEngine.E_RULES_MISSING_KNOB])
+	assert_str(errors[0].field).is_equal(BAND_KEY)
+
+
+func test_band_health_that_is_not_one_entry_per_band_reports_e_rules_not_band_list() -> void:
+	# Arrange — a scalar, a map, and a list one band short
+	var bodies: Array = [
+		MatchFactory.make_rules_config({BAND_KEY: 30}),
+		MatchFactory.make_rules_config({BAND_KEY: {"1": 30, "2": 40, "3": 50}}),
+		MatchFactory.make_rules_config({BAND_KEY: [30, 40]}),
+	]
+
+	# Act / Assert
+	for body: Dictionary in bodies:
+		var errors: Array = _validate(body)
+		assert_array(_codes(errors)).is_equal([RulesEngine.E_RULES_NOT_BAND_LIST])
+		assert_array(_fields(errors)).is_equal([BAND_KEY])
+
+
+func test_band_health_entry_that_is_not_whole_reports_e_rules_not_integer() -> void:
+	# Act
+	var errors: Array = _validate(MatchFactory.make_rules_config({BAND_KEY: [30, 40.5, "50"]}))
+
+	# Assert — one error per bad band, band order
+	assert_array(_codes(errors)).is_equal([RulesEngine.E_RULES_NOT_INTEGER, RulesEngine.E_RULES_NOT_INTEGER])
+	assert_str(errors[0].message).contains("band 2")
+	assert_str(errors[1].message).contains("band 3")
+
+
+func test_band_health_entry_one_past_its_band_range_reports_e_rules_out_of_range() -> void:
+	# Arrange — band 1 one over its max, band 3 one under its min
+	var ranges: Array = RulesEngine.CONFIG_BAND_SAFE_RANGES[BAND_KEY]
+	var over: int = int(ranges[0][1]) + 1
+	var under: int = int(ranges[2][0]) - 1
+
+	# Act
+	var errors: Array = _validate(MatchFactory.make_rules_config({BAND_KEY: [over, int(ranges[1][0]), under]}))
+
+	# Assert
+	assert_array(_codes(errors)).is_equal([RulesEngine.E_RULES_OUT_OF_RANGE, RulesEngine.E_RULES_OUT_OF_RANGE])
+	assert_array(_fields(errors)).is_equal([BAND_KEY, BAND_KEY])
+	assert_str(errors[0].message).contains("band 1")
+	assert_str(errors[0].message).contains(str(over))
+	assert_str(errors[1].message).contains("band 3")
 
 
 func test_errors_have_the_validation_report_entry_shape() -> void:

@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: L
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -117,3 +117,12 @@ Playing a card is the longest validation chain in the engine and the order of it
 **Test Evidence**: `tests/unit/match_rules/match_rules_play_card_test.gd` (15 tests); full suite 848 test cases, 0 failures, exit 0, 45 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR; parse check exit 0.
 **Run result**: N/A — headless rules code; no scene, node or screen renders a play yet (Match UI is a later epic).
 **Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)
+
+### Code-review fix pass (2026-11-04, started 02:08:14 UTC, ended 02:11:22 UTC; branch `fix/review-s3w2`)
+Findings from `/code-review` sprint 3 wave 2 (2026-11-03) on this story, all fixed:
+- **`resolving` on halt** (should-fix): a fault or `event_cap` mid-spell returned before the card left `resolving`. `_cast_spell` now always moves it to the graveyard; `card_to_graveyard` is emitted only while the match runs (the log is sealed after a halt). `_accept_spell` puts the card in `resolving` before its own halt check, so a refused `card_played` cannot strand it out of every zone.
+- **`on_hero_power` observers** (should-fix, card-effects C6.3 "Hero power used" step 2): fired as their own step after the host `hero_power` step, `subject` the hero, `card_id` the power, under `hero_power_used`.
+- **`on_summon` for effect summons** (should-fix, card-effects C6.3 "Minion summoned by an effect", needed by card-effects 008 AC-17): `summon_minion` raises `on_summon {subject, card_id}` after its `on_minion_summoned` hooks; its observers queue under `minion_summoned`. The played minion still gets exactly one `on_summon` (the handler places it without `summon_minion`).
+- **`on_card_played` ctx** (nit, card-effects C2 `trigger_subject` = the card instance): the observers' ctx carries `instance_id` for minions, spells and weapons; `subject` is unchanged.
+Tests added (6, in `match_rules_play_card_test.gd`, now 21): `test_a_spell_faulted_mid_resolution_leaves_the_resolving_zone`, `test_a_spell_stopped_by_the_event_cap_leaves_the_resolving_zone`, `test_hero_power_fires_on_hero_power_observers_after_the_host_step`, `test_an_effect_summoned_minion_raises_on_summon_after_its_hooks_and_no_play_points`, `test_on_summon_fires_once_for_a_played_minion_and_once_per_effect_summon` (AC-17's +2/+2 vs +1/+1 at engine level), `test_on_card_played_observers_get_the_card_instance_id`. Watched fail: 6 of 6 on the unfixed engine. Full suite 1070 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines (unchanged intentional negatives); smoke exit 0, no SCRIPT ERROR.
+Not in scope (left for story 016): a spell that pauses for a Discover choice still continues to `after_cast` and the graveyard.
