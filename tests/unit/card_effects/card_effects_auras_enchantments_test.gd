@@ -50,6 +50,12 @@ const WEAKEN_DELTA: int = -2
 ## died this turn" (C7 — the self-only hand aura, a value expression).
 const PASSIVE_HAND: String = "decay_test_passive_hand"
 const PASSIVE_HAND_COST: int = 4
+## Sprint-4 review T2. A weapon: "Your minions have +1 Attack" (`aura` hosts
+## include weapons, C2).
+const BANNER_BLADE: String = "war_test_banner_blade"
+## A minion: "All minions have +1 Attack": one host on each board shows the
+## C7 source order on a recipient.
+const WAR_DRUM: String = "neutral_test_war_drum"
 
 
 ## `has` / `card` / `hero_power` from a map (the engine and the resolver ask
@@ -124,6 +130,10 @@ func _db() -> FakeCardDatabase:
 		{"set": "war"})
 	by_id[PASSIVE_HAND] = CardFactory.make_minion(PASSIVE_HAND, PASSIVE_HAND_COST, 4, 4, [], {"set": "decay", "effects": _fx(
 		'{"trigger":"passive_hand","ops":[{"op":"aura","cost":{"mul":[-1,{"ref":"owner.minions_died_this_turn"}]}}]}')})
+	by_id[BANNER_BLADE] = CardFactory.make_weapon(BANNER_BLADE, 1, 1, 3, {"set": "war", "keywords": ["aura"], "effects": _fx(
+		'{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","attack":%d}]}' % LORD_DELTA)})
+	by_id[WAR_DRUM] = CardFactory.make_minion(WAR_DRUM, 1, 1, 1, ["aura"], {"effects": _fx(
+		'{"trigger":"aura","targets":"all_minions","ops":[{"op":"aura","attack":%d}]}' % LORD_DELTA)})
 	return FakeCardDatabase.new(by_id)
 
 
@@ -488,3 +498,42 @@ func test_a_clone_recomputes_its_own_auras_and_leaves_the_live_board_alone() -> 
 	assert_dict(_engine.state().effects).is_equal(runtime_before)
 	_settle()
 	assert_array(_stats(vanilla)).is_equal([1 + LORD_DELTA, 1 + LORD_DELTA])
+
+
+# --- sprint-4 review T2: a weapon-hosted aura; the C7 source order -------------------
+
+func test_a_weapon_hosts_an_aura_until_it_is_destroyed() -> void:
+	# Arrange
+	_main_phase()
+	var minion: int = _put(SIDE_PLAYER, VANILLA, 1, 1)
+	var weapon: int = _engine.equip_weapon(SIDE_PLAYER, BANNER_BLADE)
+
+	# Act — the recompute after the equip
+	_settle()
+
+	# Assert — applied, sourced to the weapon
+	assert_array(_stats(minion)).is_equal([1 + LORD_DELTA, 1])
+	assert_array(_aura_sources(minion)).is_equal([weapon])
+
+	# Act — the death check breaks it; the same loop recomputes without the aura
+	_engine.run_action(func() -> void: _engine.destroy(weapon))
+
+	# Assert
+	assert_bool(_engine.state().players[SIDE_PLAYER].weapon == null).is_true()
+	assert_array(_stats(minion)).is_equal([1, 1])
+	assert_array(_aura_sources(minion)).is_empty()
+
+
+func test_a_recipient_of_both_boards_lists_the_player_source_before_the_boss_source() -> void:
+	# Arrange — the recipient and the first-placed source sit on the boss side,
+	# so board placement alone cannot produce the order C7 asks for
+	_main_phase()
+	var boss_drum: int = _put(SIDE_BOSS, WAR_DRUM, 1, 1)
+	var recipient: int = _put(SIDE_BOSS, VANILLA, 1, 1)
+	var player_drum: int = _put(SIDE_PLAYER, WAR_DRUM, 1, 1)
+
+	# Act
+	_settle()
+
+	# Assert — C7: player board left to right, then boss
+	assert_array(_aura_sources(recipient)).is_equal([player_drum, boss_drum])
