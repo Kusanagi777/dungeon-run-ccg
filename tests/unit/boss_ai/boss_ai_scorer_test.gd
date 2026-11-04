@@ -273,7 +273,7 @@ func test_full_player_board_makes_removal_beat_an_equal_face_attack() -> void:
 	# Act
 	var scored: Array = await _score_all(_scorer(db), engine, profile)
 
-	# Assert — removal 1.0·0.9 + 2.4·1.25/12 = 1.15 vs face 1.1
+	# Assert — removal 1.0·0.9 + 2.4·1.25·3/12 = 1.65 vs face 3.0·4/8 = 1.5
 	_assert_no_sandbox_choice(scored)
 	assert_int(engine.state().players[SIDE_PLAYER].board.size()).is_equal(TestConstants.BOARD_SIZE)
 	var removal: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "target_id", target)
@@ -281,6 +281,40 @@ func test_full_player_board_makes_removal_beat_an_equal_face_attack() -> void:
 	assert_dict(scored[0].command).is_equal(removal.command)
 	var raise: float = float(profile.weights.w_threat) * (1.25 - 1.0) * removal.features.f_threat
 	assert_float(removal.score - face.score).is_equal_approx(raise, EPSILON)
+
+
+func test_full_player_board_removal_is_chosen_by_the_tie_break_in_every_seed() -> void:
+	# Arrange — A18 is decided by F8, not by the scorer's sort: the ×1.25 raise
+	# must clear `tie_epsilon`, or removal and face share a tie set and the
+	# `ai_<floor>` draw picks between them (code review 2026-11-04, BAI-004 B1)
+	var fixture: Dictionary = BossAiBoard.read("player_board_full")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	var tie_epsilon: float = float(profile.rules.tie_epsilon)
+	var target: int = BossAiBoard.ids_of(engine, SIDE_PLAYER, str(fixture.expect.removal_target))[0]
+	var seeds: Array = fixture.expect.ai_seeds
+	var scored: Array = await _score_all(_scorer(db), engine, profile)
+	var removal: Dictionary = _entry_where(scored, MatchRecords.CMD_PLAY_CARD, "target_id", target)
+	var removal_chosen: int = 0
+	var single_ties: int = 0
+	var draws: int = 0
+
+	# Act — every seed of the fixture's deterministic range
+	for seed_value: int in range(int(seeds[0]), int(seeds[1]) + 1):
+		var decision: Dictionary = TieBreak.pick(scored, tie_epsilon, TestRngStream.seeded(str(fixture.expect.ai_stream), seed_value))
+		if decision.chosen.command == removal.command:
+			removal_chosen += 1
+		if (decision.ties as Array).size() == 1:
+			single_ties += 1
+		draws += int(decision.draws)
+
+	# Assert — removal alone in the tie set, chosen with no draw, every seed
+	var runs: int = int(seeds[1]) - int(seeds[0]) + 1
+	assert_float(float(scored[0].score) - float(scored[1].score)).is_greater(tie_epsilon)
+	assert_int(single_ties).is_equal(runs)
+	assert_int(removal_chosen).is_equal(runs)
+	assert_int(draws).is_equal(0)
 
 
 func test_player_board_of_six_leaves_removal_and_face_attack_equal() -> void:
