@@ -310,7 +310,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `remove_keyword` | `keyword` | characters | `remove_keyword(target, kw)` (match-rules Interactions, added 2026-11-03; emits `keyword_removed`; removing Taunt/Stealth/Divine Shield takes effect at the next legality or damage evaluation) | no-op `no_target`; removing a keyword the target does not hold is a no-op `skipped` |
 | `silence` | — | minions | `silence` | no-op `no_target` |
 | `freeze` | — | characters | `freeze` | no-op; re-freezing re-stamps (match-rules C13) |
-| `destroy` | — | minions, weapons | `destroy` (sets `pending_destroy`; dies in the next death check, so Deathrattles fire) | no-op `no_target` |
+| `destroy` | — | minions, weapons | `destroy` (sets `pending_destroy`; dies in the next death check, so Deathrattles fire — even if a later op of the pass Silences it, match-rules C13 step 2; 2026-11-04, DD-X21) | no-op `no_target` |
 | `summon` | `card_id`, `count` (value, 1–`MAX_SUMMON_COUNT`), `position: source_slot\|right_of_source\|end\|chosen_slot` (default `source_slot` for deathrattles, `right_of_source` otherwise; when the source is not a minion in play — spell, hero power, weapon, treasure/passive — both resolve to `end`, so Raise Dead and Rot fill from the right), `side: owner\|opponent` | — (side-scoped) | `summon_minion(side, def_id, position)` × count, left to right | Board full → the engine emits `summon_failed{board_full}` per failed copy; the op continues with the remaining count (each is its own call) |
 | `transform` | `card_id` | minions | `transform(target, def_id)` — new `entity_id`, no summoning-sickness reset, enchantments dropped, Battlecry does **not** fire | no-op `no_target`; a transformed source's remaining ops that reference `self` resolve against the new entity (C6.5) |
 | `draw` | `count` (value), `side` (default owner) | — | `draw(side, 1)` × count (fatigue/burn per match-rules C11) | Never fails; empty deck → fatigue, full hand → burn, both engine-logged |
@@ -332,6 +332,16 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `choose_one` | `options: [{label_key, ops: op[]}]` (2–4) | per inner op | `discover(side, options)` with `kind: choose_one` → Choice phase; the picked option's ops run | Boss AI picks for the boss; a `chosen` inside an option is illegal (`E_FX_CHOSEN`) — Choose-One cards with targets declare the `chosen` at effect level and both options use it |
 | `aura` | `attack`, `health`, `cost`, `keywords[]` | per the effect's `targets` (static, C7): characters, weapons (`attack` only — "your weapons have +1 Attack" on `owner_weapon`), hand cards (`cost` only), as for `buff` | `apply_enchantment(…, is_aura: true)` inside `recompute_auras()` | Only legal under trigger `aura` / `passive_hand` (`E_FX_OP`). **DD-X16**: `stealth` in an `aura`'s `keywords[]` is `E_FX_OP` — Stealth is only a printed keyword or a one-shot grant (2026-11-04, sprint 4: DD-X16) |
 | `modify_value` | exactly one of `delta` (value), `set` (value), `mul` (int ≥ 0) | — | Returns `context.value` transformed; the engine clamps per its formula | Only legal under value triggers; any other op there is `E_FX_OP` |
+
+**Silence before destroy (content rule, 2026-11-04, DD-X21).** An effect that both Silences and
+destroys the same minion lists `silence` **before** `destroy`. Silence first strips the
+Deathrattle, so none fires ("Silence a minion, then destroy it"). In the other order the minion is
+already `pending_destroy` when Silenced and keeps its Deathrattles, which then fire (match-rules
+C12, C13 step 2). That order is never what such a card means, so the validator rejects it (C10
+`E_FX_OP`). *The same minion* means both ops reach it through the same explicit reference:
+`chosen`, `self`, `target`, `trigger_subject` or `trigger_source`, as the op's own `targets` or
+inherited from the effect's. A search selector cannot reach a minion an earlier op made dying (C3),
+so only a reference can.
 
 #### C6. Resolution
 
@@ -520,7 +530,7 @@ is merged by Card Database with severity `E_DELEGATED` (its CR-5). Closed code s
 | `E_FX_SCHEMA` | Missing/extra field, wrong type, `ops` empty or > `MAX_OPS_PER_EFFECT`, `id` duplicate within host |
 | `E_FX_TRIGGER` | Unknown trigger, or trigger not legal for this host kind (C2 Hosts), or unknown `scope` key |
 | `E_FX_SELECTOR` / `E_FX_FILTER` | Unknown selector / predicate; `self` on a treasure; `adjacent` with `of: self` on a non-minion host; `of: target` under a trigger without `chosen` |
-| `E_FX_OP` | Unknown op; op illegal under this trigger class (`aura` outside static, non-`modify_value` under a value trigger); param out of range; an `aura` granting `stealth` (DD-X16; 2026-11-04, sprint 4: DD-X16) |
+| `E_FX_OP` | Unknown op; op illegal under this trigger class (`aura` outside static, non-`modify_value` under a value trigger); param out of range; an `aura` granting `stealth` (DD-X16; 2026-11-04, sprint 4: DD-X16); a `destroy` that runs before a `silence` on the same reference within one effect (C5 "Silence before destroy"). Order is execution order: inner ops of `conditional` and `choose_one` count in place, but a `then` / `else` pair or two options never order against each other. A `repeat` that holds both ops on one reference counts in either order, because iteration 2's `silence` follows iteration 1's `destroy`. The message names both op paths (2026-11-04, DD-X21) |
 | `E_FX_OP_TARGET` | Op applied to a selector that can never yield a legal kind (e.g. `freeze` on `hand`); `discover` with `then: cast` whose candidate set (the `list`, or the load-time pool after `filter`) contains a spell whose derived `targeting_spec.mode` is not `none` — there is no target source at resume time (no v1 content uses `then: cast`) |
 | `E_FX_OP_UNAVAILABLE` | Op whose primitive match-rules does not expose. **No v1 op raises it** since the five primitives landed in match-rules Interactions on 2026-11-03 (cross-review C-22); the code stays in the closed set for future ops added here before their primitive exists |
 | `E_FX_REF` | `card_id` in `summon`/`transform`/`equip`/`add_to_hand`/`discover.list` not found via `has(id)`; `summon`/`transform` of a non-minion; `equip` of a non-weapon |
@@ -962,6 +972,10 @@ already decides the case, the entry says so and adds only what this system contr
   summoned token raises only `on_summon`.
 - **If a source is Silenced while its trigger is already queued**: the queued instance resolves
   (earned when raised); the source fires nothing afterwards (`Disarmed`).
+- **If one effect destroys a minion and then Silences it**: its Deathrattles fire. `pending_destroy`
+  was set first, and match-rules C13 step 2 keeps the Deathrattles of a `pending_destroy` minion;
+  the death check queues them with a snapshot of the post-Silence stats (AC-21). Content never ships
+  this order: C5 "Silence before destroy", C10 `E_FX_OP` (2026-11-04, DD-X21).
 - **If `once_per_turn` is raised twice in one step** ("whenever a minion dies, draw a card —
   once per turn" and two minions die together): one `trigger_queued`, one draw; the second raise
   is dropped silently (no event — nothing mutated).
@@ -1349,7 +1363,9 @@ refers to the C11 coverage table.
 - [ ] AC-21 **GIVEN** a minion Silenced while its Deathrattle is already queued (killed and
   silenced in one effect: `destroy` then `silence` on a `pending_destroy` target), **WHEN** the
   loop completes, **THEN** the Deathrattle still resolves; **GIVEN** Silence **before** death,
-  **THEN** no `trigger_queued` for it.
+  **THEN** no `trigger_queued` for it. *(2026-11-04, DD-X21: stands as written. "Already queued"
+  means earned at the `pending_destroy` mark: match-rules C13 step 2 keeps the Deathrattle, and the
+  death check queues it.)*
 - [ ] AC-22 **GIVEN** row 21 on board, **WHEN** the owner casts a spell, **THEN** `card_drawn`
   appears after `spell_cast` and after the spell's own `effect_resolved`; **WHEN** the opponent
   casts a spell, **THEN** no draw (scope `by: owner`).
@@ -1448,6 +1464,12 @@ refers to the C11 coverage table.
   it dies, **THEN** `damage_dealt{dealt: 3}` on the enemy hero read from `counter.seen` in the
   raise-time snapshot; **GIVEN** the same minion bounced to hand and replayed, **THEN** its
   counter reads 0.
+- [ ] AC-47 **GIVEN** an effect with `targets: chosen` and ops `[destroy, silence]`, **WHEN**
+  validated, **THEN** one `E_FX_OP` naming both op paths; **GIVEN** `[silence, destroy]`, **THEN** no
+  row; **GIVEN** `destroy` on `chosen` and `silence` on `all_enemy_minions`, **THEN** no row (a
+  search selector never reaches a dying minion, C3); **GIVEN** a `repeat` holding `[silence,
+  destroy]` on `chosen`, **THEN** `E_FX_OP`; **GIVEN** `destroy` in a `conditional`'s `then` and
+  `silence` in its `else`, **THEN** no row (C5 "Silence before destroy", C10; 2026-11-04, DD-X21).
 
 ## Open Questions
 

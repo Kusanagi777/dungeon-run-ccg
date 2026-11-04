@@ -63,3 +63,33 @@ boss-ai.md (standard): 8 ADRs (Foundation 0001, 0002, 0003, 0004, 0010 plus 0005
 - Dated pointers added in content stories 001, 003 and 004. Story 009 now depends on 010. EPIC.md and `production/epics/index.md` show 10 stories.
 
 **Sprint 5:** content story 010 (data: `ai_profiles.json`, `cards_neutral.json`, `bosses.json`; tests: `boss_ai_profiles_data_test.gd` 19 → 20, `content_mvp1_data_test.gd`, `content_batch0_data_test.gd`; boss-ai F9 list).
+
+## DD-X21 — match-rules.md, card-effects.md, content.md: destroy then Silence
+
+### Change Summary
+Changed sections:
+- match-rules C12 (Silence and Deathrattle rows): a minion already `pending_destroy` keeps its Deathrattles when Silenced, so destroy-then-silence **fires**. The old row read "not if Silenced before [it died]".
+- match-rules C13 Silence step (2): the `pending_destroy` exception, with its reason (the mark is irrevocable; `health ≤ 0` is not protected, because a later op can heal it back). The snapshot is still the one taken at the death check.
+- match-rules Edge Cases: two bullets (destroy-then-silence fires; lethal damage-then-silence does not). Acceptance Criteria: new AC-46.
+- card-effects C5: `destroy` row note, plus the new content rule "Silence before destroy" (same target = same explicit reference).
+- card-effects C10: `E_FX_OP` gains the destroy-before-silence order check. No new code: the C10 set is closed, as in DD-X16. Edge Cases: one bullet. AC-21: a dated note that it stands. New AC-47.
+- content CN-6 step 6 (style guide): Silence is said and listed first.
+
+Unchanged: C10 loop, DD-M11 order, raise-time snapshot (C6.5), the closed code set, both Tuning Knobs sections (parsed by the config-file tests).
+
+Key changes affecting architecture: the `silence` primitive's behaviour on a `pending_destroy` minion. No API or event change: `silenced` and `trigger_queued` payloads are unchanged.
+
+Downstream GDDs to re-check: none in the registry. boss-ai sandbox resolves through the same engine, so no text change is needed.
+
+### ADRs in scope
+match-rules and card-effects are pinned `full`, so all 11 ADRs are in scope. 7 name match-rules.md (0001, 0003, 0005, 0006, 0007, 0008, 0009); 3 name card-effects.md (0002, 0005, 0007); content.md is named by 0002 and 0003. A search of `docs/architecture/` for Silence / Deathrattle / `pending_destroy` rules finds only ADR-0007's responder rule ("source live, not silenced"). That rule still holds: a queued instance resolves, and the change is in what Silence removes. ADR-0007's closed `E_FX_*` list is unchanged.
+- All 11: **Still Valid**. No erratum: no ADR quotes the old C12 sentence.
+
+### Shipped data checked (read-only)
+`assets/data/cards_*.json`, `bosses.json`, `treasures.json`, `hero_powers.json`: **no card destroys and silences one target**. The only `destroy` is `war_headsman` and the only `silence` is `neutral_hush_owl`. No planned card in content CN-2 / CN-3 does both.
+
+### Stories
+- `production/epics/card-effects/story-009-…`: AC-21 stands; match-rules AC-46 and the `silence` primitive change added to scope and Files. The sprint-4 blocker is cleared in `production/sprint-status.yaml`.
+- New `production/epics/card-effects/story-017-validator-silence-before-destroy.md` (Logic, S): AC-47. Card-effects EPIC (17 stories, coverage line), match-rules EPIC coverage line, `production/epics/index.md`.
+
+**Sprint 5:** `src/gameplay/match/rules_engine.gd` `silence` / death check plus a match-rules regression test (card-effects 009); `src/gameplay/effects/effect_validator.gd` order check plus validator tests (card-effects 017).

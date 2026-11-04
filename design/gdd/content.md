@@ -523,7 +523,10 @@ Alpha+ (Edge Cases); T8 records that all 20 are v1-expressible.
    stats as `+1/+1`, `Deal N damage` / `Restore N Health` / `Draw N cards` / `Gain N Armor`,
    "your hero" and "the enemy hero" (owner-relative; boss cards use the same words and the UI
    renders them from the boss's side), "a minion" = any minion, "a friendly minion" / "an enemy
-   minion" otherwise; Choose One options separated by "; or". American spelling in rules text
+   minion" otherwise; Choose One options separated by "; or". A card that Silences and destroys
+   the same minion says and lists Silence first ("Silence a minion, then destroy it"; ops
+   `[silence, destroy]`). The destroy-first order lets the Deathrattle fire and is rejected at load
+   (card-effects C5, C10 `E_FX_OP`; 2026-11-04, DD-X21). American spelling in rules text
    (`Armor`), British in tags and prose is fine (`armour` tag). Localisation keys are derived:
    `card.<id>.name` / `card.<id>.text`, `boss.<id>.name` / `boss.<id>.intro`,
    `bundle.<id>.name` / `bundle.<id>.text`, `opt.<key>` for Choose One labels.
