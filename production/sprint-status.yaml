@@ -71,8 +71,8 @@ stories:
     name: "Effective cost, mana payment and temporary crystals"
     file: "production/epics/match-rules/story-011-effective-cost-and-temporary-mana.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 2)"
     estimate_days: 0.5
     lane: 2
     wave: 1
@@ -80,13 +80,13 @@ stories:
     contract: false
     blocker: ""
     note: "L2 critical lane opener; edits match_factory.gd, match_state.gd"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-016"
     name: "Choice phase and Discover"
     file: "production/epics/match-rules/story-016-choice-phase-and-discover.md"
     priority: must-have
-    status: ready-for-dev
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 2)"
     estimate_days: 1
     lane: 2
     wave: 1
@@ -94,7 +94,7 @@ stories:
     contract: false
     blocker: ""
     note: "after-cast rule: a spell paused for Discover runs no after-cast step before choose (add AC via /quick-design or QA case); /code-review at M1"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-015"
     name: "Freeze, thaw and Silence"
     file: "production/epics/match-rules/story-015-freeze-thaw-silence.md"
@@ -169,8 +169,8 @@ stories:
     name: "Event observers and queueing"
     file: "production/epics/card-effects/story-008-event-observers-queueing.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 3)"
     estimate_days: 1
     lane: 3
     wave: 1
@@ -178,13 +178,13 @@ stories:
     contract: false
     blocker: ""
     note: "L3 opener"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-007"
     name: "Values, selectors and Spell Damage"
     file: "production/epics/card-effects/story-007-values-selectors-spell-damage.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "gameplay-programmer (lane 3)"
     estimate_days: 1
     lane: 3
     wave: 1
@@ -192,7 +192,7 @@ stories:
     contract: false
     blocker: ""
     note: "after CE-008 (AC-23/24)"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-011"
     name: "Hero powers"
     file: "production/epics/card-effects/story-011-hero-powers.md"
@@ -323,7 +323,8 @@ stories:
     name: "Content budget checks"
     file: "production/epics/content/story-008-content-budget-checks.md"
     priority: should-have
-    status: backlog
+    status: done
+    completed: "2026-11-04"
     owner: ""
     estimate_days: 1
     lane: 6

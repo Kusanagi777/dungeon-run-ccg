@@ -1,12 +1,12 @@
 # Story 011: Effective cost, mana payment and temporary crystals
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: S
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -34,9 +34,9 @@ F1 is a fixed-order sum: card enchantments, hand-scoped auras, then the `modify_
 
 *From GDD `design/gdd/match-rules.md`, scoped to this story:*
 
-- [ ] AC-07 **GIVEN** player Main with mana 3/3, **WHEN** a 2-cost card is played, **THEN** `mana_current == 1` and `mana_spent {amount: 2}` was emitted before any effect event; mana is never refunded (a Battlecry whose required target is absent still cost its mana); `mana_current` never exceeds `mana_max` and never drops below 0.
-- [ ] AC-08 **GIVEN** a 4-cost card with a −2 enchantment (`cost_modifiers[]`) and a `modify_cost` hook of −3, **WHEN** `effective_cost` is evaluated, **THEN** it is 0 (`max(0, 4 − 2 − 3)`) and the card is playable at 0 mana (F1); the modifier order is card enchantments → hand-scoped auras → `modify_cost` hooks in installation order; the hero power's `HERO_POWER_COST` goes through the same pipeline.
-- [ ] AC-45 **GIVEN** player Main on turn 3 with mana 1/3, **WHEN** an effect calls `add_mana(PLAYER, 2, temporary=true)`, **THEN** `mana_added {side: PLAYER, n: 2, temporary: true}` is emitted and the player reads 3/5; **WHEN** the player's End step runs, **THEN** the player reads `mana_max 3` and `mana_current ≤ 3` before `turn_ended`, no `crystal_gained` was emitted, and the next player Start step refills to 4/4 (F4, no `crystal_bonus` change); **GIVEN** mana 9/10, **WHEN** `add_mana(PLAYER, 2, temporary=true)` resolves, **THEN** the player reads 10/10 (clamped to `MAX_MANA`).
+- [x] AC-07 **GIVEN** player Main with mana 3/3, **WHEN** a 2-cost card is played, **THEN** `mana_current == 1` and `mana_spent {amount: 2}` was emitted before any effect event; mana is never refunded (a Battlecry whose required target is absent still cost its mana); `mana_current` never exceeds `mana_max` and never drops below 0.
+- [x] AC-08 **GIVEN** a 4-cost card with a −2 enchantment (`cost_modifiers[]`) and a `modify_cost` hook of −3, **WHEN** `effective_cost` is evaluated, **THEN** it is 0 (`max(0, 4 − 2 − 3)`) and the card is playable at 0 mana (F1); the modifier order is card enchantments → hand-scoped auras → `modify_cost` hooks in installation order; the hero power's `HERO_POWER_COST` goes through the same pipeline.
+- [x] AC-45 **GIVEN** player Main on turn 3 with mana 1/3, **WHEN** an effect calls `add_mana(PLAYER, 2, temporary=true)`, **THEN** `mana_added {side: PLAYER, n: 2, temporary: true}` is emitted and the player reads 3/5; **WHEN** the player's End step runs, **THEN** the player reads `mana_max 3` and `mana_current ≤ 3` before `turn_ended`, no `crystal_gained` was emitted, and the next player Start step refills to 4/4 (F4, no `crystal_bonus` change); **GIVEN** mana 9/10, **WHEN** `add_mana(PLAYER, 2, temporary=true)` resolves, **THEN** the player reads 10/10 (clamped to `MAX_MANA`).
 
 ---
 
@@ -64,16 +64,10 @@ F1 is a fixed-order sum: card enchantments, hand-scoped auras, then the `modify_
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (`effective_cost` with the fold, `pay_mana`, `add_mana` temporary branch, End-step expiry)
+- `src/gameplay/match/rules_engine.gd` (`effective_cost(card, side)` with the `modify_cost` fold and one clamp, `hero_power_cost(side)`, `COST_KIND_*`, `add_mana` temporary branch, End step 5 expiry)
 - `src/gameplay/match/match_state.gd` (`temporary_crystals` on `PlayerState`)
-- `tests/helpers/match_factory.gd` (`temporary_crystals: 0`)
-- `tests/unit/match_rules/match_rules_cost_test.gd`
-
----
+- `tests/unit/match_rules/match_rules_cost_test.gd` (new, 13 tests)
+- `tests/unit/match_rules/match_rules_data_model_test.gd` (C1 PlayerState field list gains `temporary_crystals`)
 
 ## QA Test Cases
 
@@ -89,7 +83,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_cost_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 13 tests, passing
 
 ---
 
@@ -97,3 +91,27 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-010-play-card-and-hero-power.md`, `production/epics/match-rules/story-002-hook-registry.md`
 - Unlocks: `production/epics/match-rules/story-017-clone-and-replay.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 02:44:02 UTC, ended 02:52 UTC; a per-run turn limit and a worktree move interrupted it once, no work lost)
+**Readiness** (`/story-readiness` by hand, 2026-11-04): READY — ADR-0005 Accepted; TR-match-rules-005 / 006 active; Manifest Version 2026-11-03 current; dependencies 010 and 002 Complete; 3 testable criteria; no open markers. QL-STORY-READY skipped — Lean mode.
+**Criteria**: 3/3 passing (`tests/unit/match_rules/match_rules_cost_test.gd`, 13 tests):
+- AC-07: `test_a_two_cost_card_at_three_mana_leaves_one_and_pays_before_any_effect`, `test_a_battlecry_with_no_legal_target_still_costs_its_mana`, `test_a_card_whose_effective_cost_is_zero_is_playable_at_zero_mana` (never below 0), `test_temporary_mana_is_clamped_to_max_mana` (never above `mana_max`).
+- AC-08: `test_effective_cost_folds_enchantment_then_hook_and_clamps_once_at_zero`, `test_a_card_whose_effective_cost_is_zero_is_playable_at_zero_mana`, `test_cost_hooks_fold_in_installation_order_with_no_clamp_between_entries`, `test_a_set_hook_then_a_delta_hook_apply_in_installation_order`, `test_a_hand_aura_modifier_is_counted_once_before_the_hooks`, `test_the_cost_fold_context_names_the_card_and_its_kind`, `test_the_hero_power_cost_goes_through_the_same_fold`, `test_a_raised_hero_power_cost_is_not_payable_at_the_printed_cost`.
+- AC-45: `test_temporary_mana_raises_max_and_current_and_expires_at_the_end_step` (mana read inside a `turn_ended` subscriber), `test_temporary_mana_is_clamped_to_max_mana`, `test_temporary_crystals_cannot_take_current_mana_below_zero_at_expiry`.
+Watched fail: the suite failed to parse against the story-010 engine (no `effective_cost(card, side)`, no `COST_KIND_*`). Mutants, one per run: the `modify_cost` fold removed from `effective_cost` → 6 tests fail; the End-step expiry skipped → 2 tests fail.
+**Decisions recorded**:
+- **`modify_cost` fold context** (contract for card-effects 014 and the real `apply_value_hook`): `ctx {card, kind}`, one reused Dictionary (the fold allocates nothing). `kind` is `RulesEngine.COST_KIND_CARD` (`card` = the hand `CardInstance`) or `COST_KIND_HERO_POWER` (`card` = `PlayerState.hero_power {def_id, used_this_turn}`), which is what the card-effects C2 `kind: hero_power | any` scope filter reads.
+- `effective_cost(card, side = "")`: the engine's callers pass the side; `""` reads the holder from the state. New public `hero_power_cost(side)`. `legal_commands`, C6 / C7 validation and payment all use them, so display and payment agree.
+- Hand-scoped auras are counted through `cost_modifiers` (`is_aura`), the same sum as the card's own enchantments, so each counts once.
+- Temporary-crystal expiry runs inside the End step 5 step (after the `end_of_turn` enchantments) and emits nothing, per the story note (the GDD names no event).
+**Deviations** (advisory):
+- `tests/helpers/match_factory.gd` is not edited: `MatchFactory.make_player_state` builds through `MatchState.make_player_state`, so it has `temporary_crystals: 0` already. `match_rules_data_model_test.gd` (not in the planned file list) gains the field in its pinned C1 list.
+- No separate `pay_mana(side, amount)` function: payment stays in `_accept_card` / `_accept_hero_power` (story 010), now paying `effective_cost` / `hero_power_cost`. `mana_spent` keeps its story-010 payload `{side, amount, mana_current}`; the note's `card` key is not added (C15 and AC-07 name none).
+- Card-effects follow-up (not edited here): `src/gameplay/effects/ops.gd` `_op_mana` logs `applied` for `duration: this_turn`. With this story the engine accepts temporary crystals, so `applied` is correct again wherever lane 4 changed it to `skipped`.
+- GDD C1's PlayerState list should gain `temporary_crystals` (owner: match-rules GDD).
+**Test Evidence**: `tests/unit/match_rules/match_rules_cost_test.gd` (13 tests). Import exit 0. Full suite (`commands.test`): 1091 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines, all existing intentional negatives (none from match code). Smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — headless rules code; no scene or screen shows costs or mana yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review (LP-CODE-REVIEW skipped — Lean mode; QL-TEST-COVERAGE skipped — Lean mode)

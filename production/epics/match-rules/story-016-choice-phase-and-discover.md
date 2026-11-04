@@ -1,12 +1,12 @@
 # Story 016: Choice phase and Discover continuation
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -34,10 +34,10 @@
 
 *From GDD `design/gdd/match-rules.md`, scoped to this story:*
 
-- [ ] AC-36 **GIVEN** a Discover raised during the boss's turn (a scripted boss Battlecry calling `discover(BOSS, options)`), **WHEN** the player sends `play_card`, **THEN** `CHOICE_PENDING`; **WHEN** Boss AI sends `choose(1)`, **THEN** resolution resumes (`resolver.resume` called with the stored continuation and index 1), the chosen option is in the boss hand (via `add_card_to_hand`), `choice_made` is emitted, the C10 loop runs to stable, and `phase` returns to the originating `BossTurn.Main`.
-- [ ] States `Choice` **GIVEN** `pending_choice` for side S, **WHEN** `choose` arrives from the other side, **THEN** `NOT_YOUR_TURN`; with `option_index` outside `0..options.size()−1`, **THEN** `INVALID_CHOICE`; `concede` from the player is accepted in `Choice` (→ `Ended`, reason `concede`); `legal_commands()` in `Choice` lists exactly one `choose` per option for side S (plus the player's `concede`); `phase_changed(Choice)` and `choice_requested{side, kind, options, source_id, effect_id}` were emitted when the request was raised (distinct from Card Effects' `discover_offered`, DD-X04).
-- [ ] C2 / ADR-0007 **GIVEN** a `ChoiceRequest` raised mid-resolution with a trigger queue that is not empty, **WHEN** `Choice` is entered, **THEN** the remaining queue and the step count are preserved in plain data on `MatchState` (no Callable anywhere in `state.effects` or the queue — `assert_json_representable` on `state_snapshot` of the whole `MatchState` passes), and after `choose` the preserved queue resumes in order with the same `cause_seq` chain; `pending_choice()` returns a value copy of the request.
-- [ ] Quick-design 2026-11-04 (sprint-4 plan gap) **GIVEN** a player spell whose effect list is `[discover(PLAYER, options), deal_damage(BOSS_HERO, 2)]`, **WHEN** the spell is cast and `Choice` is entered, **THEN** no `damage_dealt` event is emitted, boss hero health is unchanged, the spell stays in the `resolving` zone and no `after_cast` trigger has fired; **WHEN** the player sends `choose(0)`, **THEN** the chosen card is added to the player's hand first, then `damage_dealt{dealt: 2}` is emitted, then the spell leaves `resolving` and `after_cast` triggers fire, in that `seq` order.
+- [x] AC-36 **GIVEN** a Discover raised during the boss's turn (a scripted boss Battlecry calling `discover(BOSS, options)`), **WHEN** the player sends `play_card`, **THEN** `CHOICE_PENDING`; **WHEN** Boss AI sends `choose(1)`, **THEN** resolution resumes (`resolver.resume` called with the stored continuation and index 1), the chosen option is in the boss hand (via `add_card_to_hand`), `choice_made` is emitted, the C10 loop runs to stable, and `phase` returns to the originating `BossTurn.Main`.
+- [x] States `Choice` **GIVEN** `pending_choice` for side S, **WHEN** `choose` arrives from the other side, **THEN** `NOT_YOUR_TURN`; with `option_index` outside `0..options.size()−1`, **THEN** `INVALID_CHOICE`; `concede` from the player is accepted in `Choice` (→ `Ended`, reason `concede`); `legal_commands()` in `Choice` lists exactly one `choose` per option for side S (plus the player's `concede`); `phase_changed(Choice)` and `choice_requested{side, kind, options, source_id, effect_id}` were emitted when the request was raised (distinct from Card Effects' `discover_offered`, DD-X04).
+- [x] C2 / ADR-0007 **GIVEN** a `ChoiceRequest` raised mid-resolution with a trigger queue that is not empty, **WHEN** `Choice` is entered, **THEN** the remaining queue and the step count are preserved in plain data on `MatchState` (no Callable anywhere in `state.effects` or the queue — `assert_json_representable` on `state_snapshot` of the whole `MatchState` passes), and after `choose` the preserved queue resumes in order with the same `cause_seq` chain; `pending_choice()` returns a value copy of the request.
+- [x] Quick-design 2026-11-04 (sprint-4 plan gap) **GIVEN** a player spell whose effect list is `[discover(PLAYER, options), deal_damage(BOSS_HERO, 2)]`, **WHEN** the spell is cast and `Choice` is entered, **THEN** no `damage_dealt` event is emitted, boss hero health is unchanged, the spell stays in the `resolving` zone and no `after_cast` trigger has fired; **WHEN** the player sends `choose(0)`, **THEN** the chosen card is added to the player's hand first, then `damage_dealt{dealt: 2}` is emitted, then `after_cast` triggers fire, then the spell leaves `resolving` (`card_to_graveyard`), in that `seq` order (GDD C6), each exactly once. *(Order corrected 2026-11-04 to match C6; the first wording put the graveyard move before `after_cast`.)*
 
 ---
 
@@ -65,16 +65,13 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
-
-- `src/gameplay/match/rules_engine.gd` (`discover` suspend, `Choice` phase guards, `choose` handler, loop resume)
-- `src/gameplay/match/match_state.gd` (`pending_choice`, `suspended_queue`, `suspended_steps`)
-- `tests/helpers/test_effect_resolver.gd` (scripted Discover Battlecry; `resume` adds the option to hand)
-- `tests/unit/match_rules/match_rules_choice_test.gd`
-
----
+- `src/gameplay/match/rules_engine.gd` (command handlers as plain-data stages; `discover` pauses into `Choice`; `choose` handler and validation (`INVALID_CHOICE`); `legal_commands` in `Choice`; `_run_step` / `_drain` stop at a pause; `_park` / `_do_choose` / `_abandon_choice` / `_abandon_stages`)
+- `src/gameplay/match/match_state.gd` (`suspended_queue`, `suspended_steps`, `suspended_action`)
+- `src/gameplay/match/match_records.gd` (`choose(issuer, option_index)` command builder)
+- `tests/helpers/test_effect_resolver.gd` (additive: `resume_script`, run by `resume` after recording)
+- `tests/unit/match_rules/match_rules_choice_test.gd` (new, 11 tests)
+- `tests/unit/match_rules/match_rules_data_model_test.gd` (MatchState field list gains the three `suspended_*` fields)
+- `tests/unit/match_rules/match_rules_primitives_test.gd` (the `discover` test expects `phase_changed` before `choice_requested`)
 
 ## QA Test Cases
 
@@ -90,7 +87,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_choice_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 11 tests, passing
 
 ---
 
@@ -98,3 +95,30 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-010-play-card-and-hero-power.md`
 - Unlocks: `production/epics/match-rules/story-017-clone-and-replay.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:02:14 UTC, ended 03:14 UTC)
+**Readiness** (`/story-readiness` by hand, 2026-11-04): READY — ADR-0007 and ADR-0008 Accepted; TR-match-rules-002 / 006 active; Manifest Version 2026-11-03 current; dependency 010 Complete; 4 testable criteria, including the quick-design 2026-11-04 after-cast criterion; no open markers. QL-STORY-READY skipped — Lean mode. No sprint-4 QA plan was on the branch, so the work followed the story ACs (Sprint-4 rules).
+**Criteria**: 4/4 passing (`tests/unit/match_rules/match_rules_choice_test.gd`, 11 tests):
+- AC-36: `test_a_boss_battlecry_discover_rejects_the_player_until_the_boss_chooses`, plus `test_a_discover_from_a_start_step_trigger_resumes_the_rest_of_the_start_step`.
+- States `Choice`: `test_choice_guards_not_your_turn_invalid_choice_and_choice_pending`, `test_legal_commands_in_choice_are_one_choose_per_option_and_the_concede`, `test_raising_the_request_emits_phase_changed_and_choice_requested`, `test_concede_in_choice_ends_the_match_and_the_spell_leaves_resolving`.
+- C2 / ADR-0007: `test_a_choice_raised_with_a_queue_parks_it_as_plain_data` (including `assert_json_representable` over every plain-data `MatchState` field, and the `pending_choice()` value copy), `test_after_choose_the_parked_queue_resumes_in_order_with_its_cause_seq`, `test_the_step_count_carries_across_the_pause_to_the_step_cap`.
+- Quick-design 2026-11-04: `test_a_spell_paused_by_discover_runs_no_later_step_until_choose`, `test_choose_resumes_the_paused_spell_in_seq_order_and_once`.
+Watched fail: 10 of 11 failed against the story-011 engine. The concede test passed there vacuously, because the old engine had already finished the spell. Mutants, one per run: `_run_stages` ignoring the pause → 3 tests fail; `choose` restarting the step count → 1 fails (the step cap); concede not abandoning the choice → 1 fails (the concede test).
+**Decisions recorded** (the continuation shape card-effects 010 builds on; also in the `RulesEngine.discover` doc comment):
+- **Every command handler is a list of plain-data stages** `{stage, side, …}` over one frame `{side, instance_id, def_id, target, cause, id}`, run by `_run_stages`. This covers play_card (minion, spell, weapon), the hero power, the mulligan, the C4 Start step and the C4 End step, with one stage per hook entry. A Discover can therefore pause any of them. A turn-start or turn-end Discover resumes the rest of that step (draw, Main) rather than soft-locking the match.
+- **`discover()`** records `suspended_action {origin_phase, cause_seq}`, enters `Choice` (`phase_changed`, then `choice_requested`) and returns a copy of the request. A second request while one is pending is logged and refused (card-effects C8).
+- **At the pause:** the resolver returns from its pass and keeps its later ops in `effects.pending_choice`. The engine runs no death check after that unfinished pass, runs no further step or stage, and skips C14. It parks Q (`suspended_queue`), the step count (`suspended_steps`) and the stages and frame (`suspended_action.stages` / `.frame`) on `MatchState`; `submit` returns accepted.
+- **`choose`:** `choice_made {side, option_index}` (cause 0), then the origin phase is restored (`phase_changed`), along with Q and the step count. Next comes `resolver.resume(choice, index)` under the paused step's `cause_seq`, so the pick and the effect's later ops keep the spell / trigger as their cause. Then that step's C10 loop, the parked stages once each, and C14. A `resume` that raises another request pauses again the same way.
+- **`concede` in `Choice`** drops the request and the parked action. A paused spell still leaves `resolving`, silently, like the fault path.
+**Deviations** (advisory):
+- **AC wording vs GDD C6 order:** the quick-design AC lists "the spell leaves `resolving` and `after_cast` triggers fire, in that `seq` order". GDD C6 (spells step 3) and story 010 run the `after_cast` observers first, then `card_to_graveyard`. The C6 order is kept. The test asserts that both come after `damage_dealt`, which comes after `card_added_to_hand`, and that `after_cast` precedes `card_to_graveyard`. If the AC meant graveyard-first, that is a C6 change for the match-rules GDD owner.
+- `legal_commands()` in `Choice` lists the player's `concede`, as the AC says, although Main lists none (story 010).
+- Edited outside the planned file list: `match_records.gd` (new `choose` builder), `match_rules_data_model_test.gd` (MatchState field list) and `match_rules_primitives_test.gd` (a raise now emits `phase_changed` before `choice_requested`). The shared helper edit is additive (`TestEffectResolver.resume_script`; `resume` unchanged when it is unset).
+- Not staged: `start()` (C3 setup: `on_match_start` hooks) and `run_action` fixtures (the paused step's own drain and C14 only). Story 012's attack handler (lane 1, in flight) runs its steps directly. A Discover from an `on_attack` / `on_damage` trigger during an attack pauses correctly, but the attack's later direct steps are skipped rather than resumed until those steps are also built as stages. Hand-off note for MR-013 / the merge.
+- GDD C1's MatchState list should gain `suspended_queue` / `suspended_steps` / `suspended_action` (owner: match-rules GDD). `clone()` (story 017) copies them with `duplicate(true)`.
+**Test Evidence**: `tests/unit/match_rules/match_rules_choice_test.gd` (11 tests). Import exit 0. Full suite (`commands.test`): 1102 test cases, 0 failures, exit 0, 85 SCRIPT ERROR lines, all existing intentional negatives (none from `src/gameplay/match`). Smoke exit 0, no SCRIPT ERROR.
+**Run result**: N/A — headless rules code; no Discover panel or screen exists yet (Match UI is a later epic).
+**Reviewed by**: self, no independent review yet — `/code-review` of MR-016 is scheduled at M1 (sprint-4 plan); QL-TEST-COVERAGE skipped — Lean mode

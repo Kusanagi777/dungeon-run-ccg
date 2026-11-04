@@ -92,6 +92,12 @@ var aura_scripts: Array[Callable] = []
 var aura_recomputes: int = 0
 ## Every `resume` call: `{choice, option_index}`.
 var resume_calls: Array[Dictionary] = []
+## Optional `choose` continuation (match-rules story 016), called
+## `(engine, choice, option_index)` by [method resume] after recording: a test
+## that scripts a Discover puts the rest of its effect here (e.g.
+## `add_card_to_hand` of the pick, then the effect's later ops). Unset: resume
+## only records, as before.
+var resume_script: Callable = Callable()
 ## Registered event-trigger responders, in registration order:
 ## `{point: StringName, source_id: int, effect_id: String, run: Callable,
 ## guard: Callable}` (see [method add_trigger]).
@@ -255,9 +261,12 @@ func _heal_one(bound_engine: RulesEngine, _ctx: Dictionary, entity_id: int) -> v
 	bound_engine.apply_heal(entity_id, 1, entity_id)
 
 
-## Records the `choose` continuation call.
+## Records the `choose` continuation call, then runs [member resume_script]
+## when one is set.
 func resume(choice: Variant, option_index: int) -> void:
 	resume_calls.append({"choice": choice, "option_index": option_index})
+	if resume_script.is_valid():
+		resume_script.call(engine, choice, option_index)
 
 
 ## One fold step (ADR-0005 `set_evaluators` shape): [param value] through the
