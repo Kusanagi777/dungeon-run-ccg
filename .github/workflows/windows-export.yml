@@ -103,3 +103,34 @@ jobs:
             build/windows/*.pck
           if-no-files-found: error
           retention-days: 14
+
+      # The playtest build. A release build fails its data load while any
+      # config validator is still pending (W_VALIDATOR_PENDING is an error in
+      # exported release builds — card-database story 004 review fix), and
+      # opens on the data-error screen by design. The debug build treats those
+      # as warnings and reaches the main menu. deckdelve-debug.console.exe
+      # opens a console window with the log, for bug reports.
+      - name: Export Windows Desktop (debug, playtest)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          mkdir -p build/windows-debug
+          godot --headless --path . --export-debug 'Windows Desktop' build/windows-debug/deckdelve-debug.exe
+          f=build/windows-debug/deckdelve-debug.exe
+          test -f "$f" || { echo "$f missing" >&2; exit 1; }
+          size=$(stat -c %s "$f")
+          echo "deckdelve-debug.exe: $size bytes"
+          if [ "$size" -lt 50000000 ]; then
+            echo "deckdelve-debug.exe is under 50 MB: export is not trustworthy" >&2
+            exit 1
+          fi
+          ls -la build/windows-debug
+
+      - name: Upload Windows playtest build (debug)
+        uses: actions/upload-artifact@v7
+        with:
+          name: deckdelve-windows-debug-${{ github.sha }}
+          path: |
+            build/windows-debug/*.exe
+            build/windows-debug/*.pck
+          if-no-files-found: error
+          retention-days: 14
