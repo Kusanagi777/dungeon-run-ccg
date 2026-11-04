@@ -1118,7 +1118,10 @@ func destroy(target_id: int) -> void:
 ##    Deathrattle…), the enchantment-granted ones having left in 1;
 ## 3. `silenced = true`: the resolver skips this entity's own triggers,
 ##    Deathrattles and aura emission from now on (ADR-0007);
-## 4. F6: `damage_taken = max(0, damage_taken − (old_max − max_health))`;
+## 4. F6: `damage_taken = max(0, damage_taken − max(0, old_max − max_health))`
+##    — only lost maximum health is forgiven: removing a health *debuff* (or a
+##    `set_stats` health) raises the maximum and adds no damage (code review
+##    2026-11-04, MR-015 S2);
 ## 5. `frozen = false` (it thaws at once, no `thawed`);
 ## 6. `silenced {entity_id, removed_enchantments, removed_keywords}` —
 ##    value copies of the removed enchantments, and the keywords it lost
@@ -1151,7 +1154,7 @@ func silence(target_id: int) -> void:
 	(minion.enchantments as Array).assign(kept)
 	(minion.keywords as Array).clear()
 	minion.silenced = true
-	minion.damage_taken = maxi(0, int(minion.damage_taken) - (old_max - max_health(minion)))
+	minion.damage_taken = maxi(0, int(minion.damage_taken) - maxi(0, old_max - max_health(minion)))
 	minion.frozen = false
 	emit(&"silenced", {"entity_id": target_id, "removed_enchantments": removed, "removed_keywords": removed_keywords})
 
