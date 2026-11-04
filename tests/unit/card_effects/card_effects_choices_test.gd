@@ -62,6 +62,9 @@ const VANILLA: String = "neutral_test_vanilla"
 const DR_SCOUT: String = "neutral_test_dr_scout"
 ## Deathrattle `armor DR_FOLLOW_ARMOUR`: queued behind `DR_SCOUT`.
 const DR_FOLLOWER: String = "neutral_test_dr_follower"
+## Deathrattle: deal `source.attack` to the enemy hero: an op whose value reads
+## the source, on a queued pass (so the pass holds a raise-time snapshot).
+const DR_AVENGER: String = "neutral_test_dr_avenger"
 ## `destroy` every friendly minion.
 const PURGE: String = "neutral_test_purge"
 ## `retrigger deathrattle` on every friendly minion: one op, several queue calls.
@@ -206,6 +209,8 @@ func _make_db() -> FakeCardDatabase:
 		'{"trigger":"deathrattle","ops":[{"op":"discover","pool":"list","list":%s},{"op":"armor","targets":"owner","amount":%d}]}' % [list, DR_ARMOUR])})
 	by_id[DR_FOLLOWER] = CardFactory.make_minion(DR_FOLLOWER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
 		'{"trigger":"deathrattle","ops":[{"op":"armor","targets":"owner","amount":%d}]}' % DR_FOLLOW_ARMOUR)})
+	by_id[DR_AVENGER] = CardFactory.make_minion(DR_AVENGER, 1, 1, 3, ["deathrattle"], {"effects": _fx(
+		'{"trigger":"deathrattle","ops":[{"op":"damage","targets":"enemy_hero","amount":{"ref":"source.attack"}}]}')})
 	by_id[PURGE] = CardFactory.make_spell(PURGE, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"destroy"}]}'))
 	by_id[RITES] = CardFactory.make_spell(RITES, 1, _fx('{"trigger":"cast","targets":"all_friendly_minions","ops":[{"op":"retrigger","trigger":"deathrattle"}]}'))
 	var pools: Dictionary = {HERO_SET: _war_pool(by_id)}
@@ -865,6 +870,15 @@ func test_event_cap_sweep_inside_one_add_to_hand_from_op_stops_it() -> void:
 func test_event_cap_sweep_inside_one_retrigger_op_stops_it() -> void:
 	# Act — the first target's `trigger_queued` ends the match mid-op
 	var ended: int = _sweep([RITES], [DR_SCOUT, DR_FOLLOWER])
+
+	# Assert
+	assert_int(ended).is_greater(10)
+
+
+func test_event_cap_sweep_over_a_queued_source_ref_op_touches_nothing_after_the_cap() -> void:
+	# Act — the op's own `damage_dealt` ends the match: nothing after the handler
+	# may read through the resolver, which has just been unbound
+	var ended: int = _sweep([PURGE], [DR_AVENGER, DR_FOLLOWER])
 
 	# Assert
 	assert_int(ended).is_greater(10)

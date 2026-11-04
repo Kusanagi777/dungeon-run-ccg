@@ -23,8 +23,7 @@
 ## turns a pass into a plain-data **work list** ([method work], [method step])
 ## so a `discover` / `choose_one` can suspend it mid-effect, and adds
 ## `add_to_hand` and the F4 pool ([method pool_candidates],
-## [method draw_options]); the pause itself is the resolver's. `retrigger`
-## (sprint-4 review S5) queues through the engine ([method _op_retrigger]).
+## [method draw_options]); the pause itself is the resolver's.
 ## [codeblock]
 ## var ops := EffectOps.new()
 ## var todo: Array[Dictionary] = EffectOps.work([{"op": "draw", "count": 2}])
@@ -120,6 +119,7 @@ func _init() -> void:
 		"silence": _op_silence,
 		"freeze": _op_freeze,
 		"give_keyword": _op_give_keyword,
+		"retrigger": _op_retrigger,
 		"draw": _op_draw,
 		"armor": _op_armor,
 		"equip": _op_equip,
@@ -127,7 +127,6 @@ func _init() -> void:
 		"mana": _op_mana,
 	}
 	_table["add_to_hand"] = _op_add_to_hand
-	_table["retrigger"] = _op_retrigger
 
 
 ## True when this story's table runs [param op_name] (else [method run]

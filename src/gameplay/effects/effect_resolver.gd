@@ -525,25 +525,6 @@ func _collect(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 	return queued
 
 
-## C5 `retrigger` (sprint-4 review S5): the queue entries of [param target_id]'s
-## live effects with DSL trigger [param trigger], as if that point had been
-## raised now — [method _collect] over the one candidate, so Silence, `scope`
-## and the entry shape are the real raise's (depth included: one below the pass
-## running now). The entity is still in play, so it stands in for the death
-## snapshot [method _candidate_host] reads. `[]` when it has no such effect.
-## Reads only; the op hands the entries to the engine.
-## Example: `var entries: Array[Dictionary] = resolver.retrigger_entries("deathrattle", id)`.
-func retrigger_entries(trigger: String, target_id: int) -> Array[Dictionary]:
-	var state: MatchState = _engine.state()
-	var candidates: Array[int] = [target_id]
-	return _collect(StringName(trigger), {
-		"side": EffectScope.controller_of(state, target_id),
-		"candidates": candidates,
-		"subject": target_id,
-		"snapshot": EffectSelectors.find(state, target_id),
-	})
-
-
 ## The candidate's host `{def_id, owner}`, or `{}` when it cannot respond:
 ## a Silenced source responds to nothing (C6.2; story 009 keeps a trigger
 ## already queued). A Deathrattle's candidate has just left play, so it is
@@ -636,6 +617,25 @@ func _run_queued(ctx: Dictionary) -> void:
 		ENTRY_DEPTH: int(ctx.get(ENTRY_DEPTH, 1)),
 		"snapshot": ctx.get("snapshot", {}),
 		RUN_EFFECT_INDEX: index,
+	})
+
+
+## C5 `retrigger` (sprint-4 review S5): the queue entries of [param target_id]'s
+## live effects with DSL trigger [param trigger], as if that point had been
+## raised now — [method _collect] over the one candidate, so Silence, `scope`
+## and the entry shape are the real raise's (depth included: one below the pass
+## running now). The entity is still in play, so it stands in for the death
+## snapshot [method _candidate_host] reads. `[]` when it has no such effect.
+## Queues nothing itself: the op hands the entries to the engine.
+## Example: `var entries: Array[Dictionary] = resolver.retrigger_entries("deathrattle", id)`.
+func retrigger_entries(trigger: String, target_id: int) -> Array[Dictionary]:
+	var state: MatchState = _engine.state()
+	var candidates: Array[int] = [target_id]
+	return _collect(StringName(trigger), {
+		"side": EffectScope.controller_of(state, target_id),
+		"candidates": candidates,
+		"subject": target_id,
+		"snapshot": EffectSelectors.find(state, target_id),
 	})
 
 
