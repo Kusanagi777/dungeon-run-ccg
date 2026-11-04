@@ -120,6 +120,11 @@ static func from_config(config: Dictionary) -> MatchState:
 ## two references are **not** copied: [param scratch_log] and [param stream]
 ## replace `log` and `rng_match` (the engine builds the detached scratch log
 ## and the stream copy). Nothing in the result is shared with this state.
+## `suspended_queue` must stay a **deep** copy: `choose` on the clone clears
+## the parked queue in place and stamps `ctx.queued` on each step it runs, so
+## a shared or shallow copy would empty or alter the live engine's waiting
+## triggers (code review 2026-11-04, MR-017 S5; pinned by the clone-replay
+## suite's queued-Choice test).
 ## [codeblock]
 ## var copy: MatchState = state.clone(EventLog.new(cap, EventLog.SCOPE_MATCH), stream_copy)
 ## copy.players["boss"].hero.damage_taken = 99   # this state is unchanged

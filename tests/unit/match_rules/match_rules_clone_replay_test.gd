@@ -50,6 +50,8 @@ const POOL_SPECS: Array = [
 ]
 const DISCOVER_OPTIONS: Array = ["fx_grunt", "fx_brute", "fx_runner"]
 const DISCOVER_EFFECT_ID: String = "fx.discover"
+## The S5 fixture's `on_cast` triggers, in queue order (t1 Discovers).
+const QUEUED_TRIGGERS: Array[String] = ["t1", "t2", "t3"]
 ## `fx_bolt` damage, and its scripted legal targets: the two heroes (C1 ids 1, 2).
 const BOLT_DAMAGE: int = 2
 const BOLT_TARGETS: Array[int] = [MatchFactory.PLAYER_HERO_ENTITY_ID, MatchFactory.BOSS_HERO_ENTITY_ID]
@@ -616,6 +618,72 @@ func test_twenty_commands_on_a_clone_leave_the_live_match_log_and_stream_unchang
 	assert_int(live.rng_match().draws).is_equal(draws)
 	assert_dict(_fingerprint(live)).is_equal(before)
 	sandbox.end_match()
+
+
+## A live match paused in `Choice` with **two triggers waiting in Q** (code
+## review 2026-11-04, MR-017 S5): the player's 0-cost Frost raises three
+## `on_cast` triggers t1…t3 from the spell; t1's pass Discovers, so t2 and t3
+## are parked in `suspended_queue`. Returns `[engine, resolver]`.
+func _queued_choice_fixture(log: TestEventLog) -> Array:
+	var started: Array = _start(REPLAY_SEED, log, [["fx_frost", 15]], [["fx_wall", 15]])
+	var engine: RulesEngine = started[0]
+	var resolver: TestEffectResolver = started[1]
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var spell_id: int = int(engine.state().players[SIDE_PLAYER].hand[0].instance_id)
+	resolver.add_trigger(&"on_cast", spell_id, QUEUED_TRIGGERS[0], _queued_discover)
+	for effect_id: String in QUEUED_TRIGGERS.slice(1):
+		resolver.add_trigger(&"on_cast", spell_id, effect_id, _queued_mark)
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	return started
+
+
+## t1's pass: a player Discover (the continuation is plain data).
+func _queued_discover(engine: RulesEngine, ctx: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
+	engine.discover(SIDE_PLAYER, DISCOVER_OPTIONS, MatchRecords.CHOICE_DISCOVER, ctx.get("source_id"), DISCOVER_EFFECT_ID)
+	engine.state().effects.pending_choice = {"effect_id": DISCOVER_EFFECT_ID, "source": ctx.get("source_id")}
+
+
+## t2 / t3's pass: one count in `effects.counters`.
+func _queued_mark(engine: RulesEngine, _ctx: Dictionary) -> void:
+	_count(engine, "queued_marks")
+
+
+func _parked_ids(engine: RulesEngine) -> Array[String]:
+	var out: Array[String] = []
+	for step: Dictionary in engine.state().suspended_queue:
+		out.append(str(step.ctx.effect_id))
+	return out
+
+
+func test_choose_on_a_clone_paused_with_a_queue_leaves_the_live_parked_queue_intact() -> void:
+	# Arrange: t2, t3 wait in the live engine's suspended_queue
+	var log: TestEventLog = TestEventLog.new()
+	var started: Array = _queued_choice_fixture(log)
+	var live: RulesEngine = started[0]
+	var live_resolver: TestEffectResolver = started[1]
+	assert_array(_parked_ids(live)).is_equal(QUEUED_TRIGGERS.slice(1))
+	var before: Dictionary = _fingerprint(live)
+	var seq: int = log.events.size()
+
+	# Act: the clone picks — `_do_choose` takes Q back and clears the parked
+	# one in place, and each pass stamps `ctx.queued` on its step
+	var sandbox: RulesEngine = live.clone()
+	assert_bool(sandbox.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert: the clone ran t2, t3; the live queue, steps and log are untouched
+	assert_array(_clone_resolver(live_resolver).pass_ids()).is_equal(QUEUED_TRIGGERS.slice(1))
+	assert_int(int(sandbox.state().effects.counters.queued_marks)).is_equal(QUEUED_TRIGGERS.size() - 1)
+	assert_array(sandbox.state().suspended_queue).is_empty()
+	assert_array(_parked_ids(live)).is_equal(QUEUED_TRIGGERS.slice(1))
+	assert_dict(_fingerprint(live)).is_equal(before)
+	assert_int(log.events.size()).is_equal(seq)
+	sandbox.end_match()
+	# and the live choice still resumes its own queue
+	assert_bool(live.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+	assert_array(live_resolver.pass_ids()).is_equal(QUEUED_TRIGGERS)
+	assert_int(int(live.state().effects.counters.queued_marks)).is_equal(QUEUED_TRIGGERS.size() - 1)
 
 
 func test_a_clone_copies_hooks_by_value_and_binds_a_fresh_resolver_with_no_installers() -> void:
