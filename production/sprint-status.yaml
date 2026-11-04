@@ -281,16 +281,16 @@ stories:
     name: "MVP-1 band-1 bosses: Rat King, Gatekeeper"
     file: "production/epics/content/story-003-mvp-1-band-1-bosses-rat-king-gatekeeper.md"
     priority: should-have
-    status: backlog
-    owner: ""
+    status: done
+    owner: "game-designer (data), lane 5"
     estimate_days: 1
     lane: 5
     wave: 1
     serialised: false
     contract: true
     blocker: ""
-    note: "stage-7b ai_profile registration missing (no owning story); orchestrator line only if a story lands: map[\"ai_profile\"] = BossAI.validate_ai_profile"
-    completed: ""
+    note: "AC-1 zero E_AI_* proven by a direct validate_ai_profile test; Boot's map[\"ai_profile\"] = BossAI.validate_ai_profile lands at merge (lane 4)"
+    completed: "2026-11-04"
   - id: "content-005"
     name: "MVP-1 bundles"
     file: "production/epics/content/story-005-mvp-1-bundles.md"

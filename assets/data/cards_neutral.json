@@ -322,6 +322,58 @@
         "key": "card.neutral_ogre_porter.text",
         "en": ""
       }
+    },
+    {
+      "id": "neutral_smite_or_mend",
+      "name": "Smite or Mend",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "choose_one",
+              "options": [
+                {
+                  "label_key": "opt.smite",
+                  "ops": [
+                    {
+                      "op": "damage",
+                      "amount": 2
+                    }
+                  ]
+                },
+                {
+                  "label_key": "opt.mend",
+                  "ops": [
+                    {
+                      "op": "heal",
+                      "amount": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tricks"
+      ],
+      "text": {
+        "key": "card.neutral_smite_or_mend.text",
+        "en": "Choose One — Deal 2 damage to a character; or Restore 4 Health to it."
+      }
     }
   ]
 }

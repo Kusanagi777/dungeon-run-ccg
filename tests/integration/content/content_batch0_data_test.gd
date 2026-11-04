@@ -180,9 +180,10 @@ func test_war_set_holds_the_eight_batch0_cn2_cards_and_the_whetstone_blade_token
 	assert_array(_ids(db.collectible_pool("war"))).not_contains([WAR_TOKEN])
 
 
-func test_neutral_set_is_the_batch0_rows() -> void:
-	# Act / Assert
-	assert_array(_ids(_loaded().cards_by_set("neutral"))).is_equal(NEUTRALS)
+func test_neutral_set_holds_the_batch0_rows() -> void:
+	# Act / Assert — content story 003 adds `neutral_smite_or_mend`
+	# (`content_mvp1_data_test.gd` pins the whole set)
+	assert_array(_ids(_loaded().cards_by_set("neutral"))).contains(NEUTRALS)
 
 
 func test_war_starter_is_the_h4_list_and_passes_heroes_f1() -> void:
@@ -225,7 +226,8 @@ func test_torchbearer_is_the_cn3_b1_row() -> void:
 	var db: CardDatabase = _loaded()
 
 	# Assert
-	assert_array(_ids(db.bosses_in_band(1))).is_equal(["boss_torchbearer"])
+	# content story 003 adds The Rat King and The Gatekeeper to band 1
+	assert_array(_ids(db.bosses_in_band(1))).contains(["boss_torchbearer"])
 	var boss: Dictionary = db.boss("boss_torchbearer")
 	assert_int(int(boss["health"])).is_equal(30)
 	assert_that(boss["hero_power"]).is_null()
@@ -274,12 +276,12 @@ func test_torchbearer_deck_is_thirty_non_token_ids_per_the_b2_recipe() -> void:
 	assert_int(counts.size()).is_equal(15)
 
 
-func test_boss_cards_are_the_two_b3_rows() -> void:
+func test_boss_cards_hold_the_two_torchbearer_b3_rows() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 
-	# Assert
-	assert_array(_ids(db.cards_by_set("boss"))).is_equal(["boss_ember_bolt", "boss_tinder_imp"])
+	# Assert — content story 003 adds the Rat King / Gatekeeper cards and `boss_rat`
+	assert_array(_ids(db.cards_by_set("boss"))).contains(["boss_ember_bolt", "boss_tinder_imp"])
 	for c: Dictionary in db.cards_by_set("boss"):
 		assert_str(c["rarity"]).is_equal("common")
 

@@ -224,3 +224,278 @@ func test_war_curve_matches_the_cn2_summary_and_f2_targets() -> void:
 		var s: float = float(bucket_counts[k]) / cards.size()
 		assert_bool(absf(s - float(curve["bucket"][k])) <= float(curve["bucket_tol"]) + 1e-9).override_failure_message(
 			"bucket %d share %.3f vs %.2f" % [k + 1, s, float(curve["bucket"][k])]).is_true()
+
+
+# --- story 003: band-1 bosses The Rat King and The Gatekeeper --------------------------------
+
+## CN-3 B2 Rat King: 2× 13 MVP neutrals ≤ 5 cost. The two of the 15 MVP
+## neutrals left out (story 003 Implementation Notes): `neutral_gravekeeper`
+## (deferred, story 001) and `neutral_smite_or_mend` (the swarm deck is bodies).
+const RAT_KING_NEUTRALS: Array[String] = [
+	"neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_lantern_bearer",
+	"neutral_bulwark_smith", "neutral_dungeon_delver", "neutral_hush_owl", "neutral_spark_fiend",
+	"neutral_banner_captain", "neutral_wolf_rider", "neutral_shield_golem", "neutral_crypt_brute",
+	"neutral_ogre_porter",
+]
+const RAT_KING_EXCLUDED: Array[String] = ["neutral_gravekeeper", "neutral_smite_or_mend"]
+## CN-3 B2 Gatekeeper recipe's neutrals less `neutral_gravekeeper` (deferred);
+## its two slots go to the boss cards at ×3 (content Edge Cases fallback).
+const GATEKEEPER_NEUTRALS: Array[String] = [
+	"neutral_lantern_bearer", "neutral_cellar_guard", "neutral_dungeon_delver", "neutral_shield_golem",
+	"neutral_crypt_brute", "neutral_ogre_porter", "neutral_bulwark_smith", "neutral_banner_captain",
+	"neutral_hush_owl", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_smite_or_mend",
+]
+## CN-3 B3: [id, T, cost, a, h, keywords, text].
+const BOSS_CARD_ROWS: Array = [
+	["boss_rat_pack", "M", 2, 1, 1, ["battlecry"], "Battlecry: Summon two 1/1 Rats."],
+	["boss_rat_matriarch", "M", 4, 3, 3, ["aura"], "Your Rats have +1/+1."],
+	["boss_iron_gate", "M", 3, 1, 6, ["taunt"], "Taunt."],
+	["boss_gate_warden", "M", 5, 3, 6, ["taunt", "battlecry"], "Taunt. Battlecry: Give your other minions +0/+2."],
+]
+const RAT_TOKEN: String = "boss_rat"
+## The archetype each band-1 boss override extends (CN-3 B1 `ai_profile` column).
+const BAND1_EXTENDS: Dictionary = {"boss_rat_king": "aggro", "boss_gatekeeper": "control", "boss_torchbearer": "aggro"}
+
+
+func _deck_counts(deck: Array) -> Dictionary:
+	var counts: Dictionary = {}
+	for id: String in deck:
+		counts[id] = int(counts.get(id, 0)) + 1
+	return counts
+
+
+func _card_or_empty(db: CardDatabase, id: String) -> Dictionary:
+	for t: String in ["minion", "spell", "weapon"]:
+		for c: Dictionary in db.cards_by_type(t):
+			if c["id"] == id:
+				return c
+	return {}
+
+
+func _all_bosses(db: CardDatabase) -> Array:
+	return db.bosses_in_band(1) + db.bosses_in_band(2) + db.bosses_in_band(3)
+
+
+func _boss_or_empty(db: CardDatabase, id: String) -> Dictionary:
+	for b: Dictionary in _all_bosses(db):
+		if b["id"] == id:
+			return b
+	return {}
+
+
+func test_band_1_holds_rat_king_gatekeeper_and_torchbearer() -> void:
+	# Act
+	var ids: Array[String] = _ids(_loaded().bosses_in_band(1))
+	ids.sort()
+
+	# Assert — D-06: band_split [2, 1, 1] draws 2 of these 3
+	assert_array(ids).is_equal(["boss_gatekeeper", "boss_rat_king", "boss_torchbearer"])
+
+
+func test_rat_king_is_the_cn3_b1_row() -> void:
+	# Act
+	var boss: Dictionary = _boss_or_empty(_loaded(), "boss_rat_king")
+
+	# Assert
+	assert_bool(boss.is_empty()).is_false()
+	if boss.is_empty():
+		return
+	assert_str(boss["name"]).is_equal("The Rat King")
+	assert_int(int(boss["band"])).is_equal(1)
+	assert_int(int(boss["health"])).is_equal(30)
+	assert_that(boss["hero_power"]).is_null()
+	assert_that(boss["passive"]).is_equal({"trigger": "turn_start", "scope": {"side": "owner"},
+		"ops": [{"op": "summon", "card_id": RAT_TOKEN, "count": 1.0, "position": "end"}]})
+	assert_str(boss["passive_text"]["key"]).is_equal("boss.boss_rat_king.passive")
+	assert_str(boss["passive_text"]["en"]).is_equal("At the start of the boss's turn, summon a 1/1 Rat.")
+	assert_array(Array(boss["tags"])).is_equal(["swarm"])
+	assert_str(boss["ai_profile"]).is_equal("boss_rat_king")
+	assert_str(boss["intro_text"]["key"]).is_equal("boss.boss_rat_king.intro")
+	assert_str(boss["intro_text"]["en"]).contains("Rat")
+
+
+func test_gatekeeper_is_the_cn3_b1_row() -> void:
+	# Act
+	var boss: Dictionary = _boss_or_empty(_loaded(), "boss_gatekeeper")
+
+	# Assert
+	assert_bool(boss.is_empty()).is_false()
+	if boss.is_empty():
+		return
+	assert_str(boss["name"]).is_equal("The Gatekeeper")
+	assert_int(int(boss["band"])).is_equal(1)
+	assert_int(int(boss["health"])).is_equal(30)
+	assert_that(boss["hero_power"]).is_null()
+	assert_that(boss["passive"]).is_equal({"trigger": "aura", "targets": "all_friendly_minions",
+		"ops": [{"op": "aura", "keywords": ["taunt"]}]})
+	assert_str(boss["passive_text"]["key"]).is_equal("boss.boss_gatekeeper.passive")
+	assert_str(boss["passive_text"]["en"]).is_equal("The boss's minions have Taunt.")
+	assert_array(Array(boss["tags"])).is_equal(["wall"])
+	assert_str(boss["ai_profile"]).is_equal("boss_gatekeeper")
+	assert_str(boss["intro_text"]["key"]).is_equal("boss.boss_gatekeeper.intro")
+	assert_str(boss["intro_text"]["en"]).contains("Taunt")
+
+
+func test_every_shipped_boss_ai_profile_resolves_with_zero_e_ai_rows() -> void:
+	# Arrange — Boot registers the stage-7b `ai_profile` validator at merge
+	# (lane 4); until then it is run here directly over every shipped boss row
+	var db: CardDatabase = _loaded()
+	var profiles: Dictionary = db.config("ai_profiles")
+	var configs: Dictionary = {"ai_profiles": profiles}
+	var bosses: Array = _all_bosses(db)
+
+	# Act — the 7a config check with every loaded card (op coverage), then 7b per boss
+	var rows: Array = BossAI.validate_profiles_config(profiles, db)
+	for b: Dictionary in bosses:
+		rows.append_array(BossAI.validate_ai_profile(&"boss", b["id"], b["ai_profile"], db, configs))
+
+	# Assert
+	assert_array(rows).is_empty()
+	assert_int(bosses.size()).is_equal(3)
+	for id: String in BAND1_EXTENDS:
+		assert_str(profiles["boss_overrides"][id]["extends"]).is_equal(BAND1_EXTENDS[id])
+		var archetype: Dictionary = profiles["profiles"][BAND1_EXTENDS[id]]
+		var resolved: Dictionary = ProfileResolver.resolve(profiles, _boss_or_empty(db, id), 1)
+		assert_float(float(resolved.weights.w_face)).override_failure_message(id).is_equal(float(archetype.weights.w_face))
+		assert_str(String(resolved.intent_mode)).override_failure_message(id).is_equal("full")
+
+
+func test_rat_king_deck_is_two_boss_cards_and_thirteen_neutrals_at_most_5_cost() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var deck: Array = _boss_or_empty(db, "boss_rat_king").get("deck", [])
+
+	# Act
+	var counts: Dictionary = _deck_counts(deck)
+
+	# Assert — CN-3 B2
+	assert_int(deck.size()).is_equal(30)
+	assert_int(int(counts.get("boss_rat_pack", 0))).is_equal(2)
+	assert_int(int(counts.get("boss_rat_matriarch", 0))).is_equal(2)
+	for id: String in RAT_KING_NEUTRALS:
+		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
+	assert_int(counts.size()).is_equal(15)
+	for id: String in counts:
+		var card: Dictionary = _card_or_empty(db, id)
+		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
+		if String(card.get("set", "")) == "neutral":
+			assert_int(int(card["cost"])).override_failure_message(id).is_less_equal(5)
+	assert_array(counts.keys()).not_contains(RAT_KING_EXCLUDED)
+
+
+func test_gatekeeper_deck_is_its_b2_recipe_with_the_gravekeeper_slots_on_its_boss_cards() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var deck: Array = _boss_or_empty(db, "boss_gatekeeper").get("deck", [])
+
+	# Act
+	var counts: Dictionary = _deck_counts(deck)
+
+	# Assert — B2 recipe; Edge Cases same-batch fallback: boss cards up to ×3
+	assert_int(deck.size()).is_equal(30)
+	assert_int(int(counts.get("boss_iron_gate", 0))).is_equal(3)
+	assert_int(int(counts.get("boss_gate_warden", 0))).is_equal(3)
+	for id: String in GATEKEEPER_NEUTRALS:
+		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
+	assert_int(counts.size()).is_equal(14)
+	for id: String in counts:
+		var card: Dictionary = _card_or_empty(db, id)
+		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
+
+
+func test_the_four_band_1_boss_cards_match_cn3_b3() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+
+	# Act / Assert
+	for row: Array in BOSS_CARD_ROWS:
+		var card: Dictionary = _card_or_empty(db, row[0])
+		assert_bool(card.is_empty()).override_failure_message("%s missing" % row[0]).is_false()
+		if card.is_empty():
+			continue
+		assert_str(card["set"]).is_equal("boss")
+		assert_str(card["rarity"]).is_equal("common")
+		assert_str(card["type"]).override_failure_message(row[0]).is_equal(TYPE[row[1]])
+		assert_int(int(card["cost"])).override_failure_message(row[0]).is_equal(row[2])
+		assert_int(int(card["attack"])).override_failure_message(row[0]).is_equal(row[3])
+		assert_int(int(card["health"])).override_failure_message(row[0]).is_equal(row[4])
+		assert_array(Array(card["keywords"])).override_failure_message(row[0]).is_equal(row[5])
+		assert_str(card["text"]["en"]).override_failure_message(row[0]).is_equal(row[6])
+		assert_str(card["text"]["key"]).is_equal("card.%s.text" % row[0])
+		assert_bool(card.get("token", false)).is_false()
+	var matriarch: Dictionary = _card_or_empty(db, "boss_rat_matriarch")
+	if not matriarch.is_empty():
+		assert_that(matriarch["effects"][0]["targets"]).is_equal({"selector": "all_friendly_minions", "filter": {"tag": "rat"}})
+
+
+func test_boss_rat_is_a_1_1_rat_token_summoned_by_the_passive_and_rat_pack_and_never_listed() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var rat: Dictionary = _card_or_empty(db, RAT_TOKEN)
+	var pack: Dictionary = _card_or_empty(db, "boss_rat_pack")
+
+	# Assert — CN-2 tokens line; AC-16
+	assert_bool(rat.is_empty() or pack.is_empty()).is_false()
+	if rat.is_empty() or pack.is_empty():
+		return
+	assert_str(rat["set"]).is_equal("boss")
+	assert_str(rat["type"]).is_equal("minion")
+	assert_str(rat["name"]).is_equal("Rat")
+	assert_int(int(rat["cost"])).is_equal(1)
+	assert_int(int(rat["attack"])).is_equal(1)
+	assert_int(int(rat["health"])).is_equal(1)
+	assert_array(Array(rat["tags"])).is_equal(["rat"])
+	assert_bool(rat["token"]).is_true()
+	assert_bool(_boss_or_empty(db, RAT_TOKEN).is_empty()).is_true()
+	assert_str(pack["effects"][0]["ops"][0]["card_id"]).is_equal(RAT_TOKEN)
+	assert_int(int(pack["effects"][0]["ops"][0]["count"])).is_equal(2)
+	for b: Dictionary in _all_bosses(db):
+		assert_array(Array(b["deck"])).override_failure_message(b["id"]).not_contains([RAT_TOKEN])
+	assert_array(_ids(db.collectible_pool("war"))).not_contains([RAT_TOKEN])
+	for bundle: Dictionary in db.bundle_pool("war"):
+		assert_array(Array(bundle["cards"])).not_contains([RAT_TOKEN])
+
+
+func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_14() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var card: Dictionary = _card_or_empty(db, "neutral_smite_or_mend")
+
+	# Assert — 14, not CN-2's 15: `neutral_gravekeeper` stays deferred (story 001)
+	assert_int(db.cards_by_set("neutral").size()).is_equal(14)
+	assert_bool(card.is_empty()).is_false()
+	if card.is_empty():
+		return
+	assert_str(card["name"]).is_equal("Smite or Mend")
+	assert_str(card["type"]).is_equal("spell")
+	assert_int(int(card["cost"])).is_equal(2)
+	assert_str(card["rarity"]).is_equal("common")
+	assert_array(Array(card["keywords"])).is_empty()
+	assert_array(Array(card["tags"])).is_equal(["tricks"])
+	assert_str(card["text"]["en"]).is_equal("Choose One — Deal 2 damage to a character; or Restore 4 Health to it.")
+	var effect: Dictionary = card["effects"][0]
+	assert_str(effect["trigger"]).is_equal("cast")
+	assert_that(effect["targets"]).is_equal({"selector": "chosen", "filter": {"kind": "any"}})
+	assert_str(effect["ops"][0]["op"]).is_equal("choose_one")
+	assert_int(effect["ops"][0]["options"].size()).is_equal(2)
+
+
+func test_band_1_boss_passives_and_new_cards_pass_validate_effects_with_zero_rows() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var caps: Dictionary = db.config("card_effects")
+	var rows: Array = []
+
+	# Act — both passives, the boss set (token included) and the neutral set
+	for id: String in ["boss_rat_king", "boss_gatekeeper"]:
+		var boss: Dictionary = _boss_or_empty(db, id)
+		if boss.is_empty():
+			rows.append({"missing": id})
+		else:
+			rows.append_array(EffectValidator.validate_effects(&"boss", id, [boss["passive"]], db, caps))
+	for c: Dictionary in db.cards_by_set("boss") + db.cards_by_set("neutral"):
+		rows.append_array(EffectValidator.validate_effects(&"card", c["id"], c["effects"], db, caps))
+
+	# Assert — zero E_FX_* and W_FX_* (the matriarch's board `tag` filter included)
+	assert_array(rows).is_empty()
+	assert_int(db.cards_by_set("boss").size()).is_equal(7)

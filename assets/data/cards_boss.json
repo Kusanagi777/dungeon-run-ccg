@@ -61,6 +61,147 @@
         "key": "card.boss_tinder_imp.text",
         "en": "At the end of your turn, deal 1 damage to the enemy hero."
       }
+    },
+    {
+      "id": "boss_rat_pack",
+      "name": "Rat Pack",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "boss_rat",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_rat_pack.text",
+        "en": "Battlecry: Summon two 1/1 Rats."
+      }
+    },
+    {
+      "id": "boss_rat_matriarch",
+      "name": "Rat Matriarch",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "tag": "rat"
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_rat_matriarch.text",
+        "en": "Your Rats have +1/+1."
+      }
+    },
+    {
+      "id": "boss_iron_gate",
+      "name": "Iron Gate",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 1,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_iron_gate.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "boss_gate_warden",
+      "name": "Gate Warden",
+      "set": "boss",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_gate_warden.text",
+        "en": "Taunt. Battlecry: Give your other minions +0/+2."
+      }
+    },
+    {
+      "id": "boss_rat",
+      "name": "Rat",
+      "set": "boss",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "rat"
+      ],
+      "text": {
+        "key": "card.boss_rat.text",
+        "en": ""
+      },
+      "token": true
     }
   ]
 }
