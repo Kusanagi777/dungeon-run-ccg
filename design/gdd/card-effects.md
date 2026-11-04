@@ -176,18 +176,18 @@ Triggers fall into four classes, which decide *how* the resolver runs them:
 | `deathrattle` | event | `deathrattle(entity)` | — | — | minion, weapon | `source` (snapshot, C6.5) |
 | `turn_start` | event | `turn_start(side)` | `on_turn_start` | `side: owner\|opponent\|any` (default `owner`) | minion, weapon, hero power, treasure, passive | — |
 | `turn_end` | event | `turn_end(side)` | `on_turn_end` | `side` (default `owner`) | same | — |
-| `on_play` | event | `on_play` | — | `by: owner\|opponent\|any`; `card: filter` | minion, weapon, treasure, passive | `trigger_subject` = the minion played |
+| `on_play` | event | `on_play` | — | `by: owner\|opponent\|any` (default `owner` (2026-11-04, sprint 4: card-effects 008, designer default)); `card: filter` | minion, weapon, treasure, passive | `trigger_subject` = the minion played |
 | `on_summon` | event | `on_summon` | `on_minion_summoned` | `of: friendly_minion\|enemy_minion\|any_minion` (default friendly); `card: filter` | same | `trigger_subject` |
 | `on_card_played` | event | `on_card_played` | `on_card_played` | `by` (default owner); `card: filter` (e.g. `type: spell`) | same | `trigger_subject` = the card instance |
-| `after_cast` | event | `after_cast` | — | `by`; `card: filter` | minion, treasure, passive | `trigger_subject` = the spell |
-| `on_attack` | event | `on_attack(attacker, defender)` | — | `attacker: self\|owner_hero\|friendly\|enemy\|any`; `defender: filter` | minion, weapon, hero power, treasure, passive | `trigger_source` = attacker, `trigger_subject` = defender |
+| `after_cast` | event | `after_cast` | — | `by` (default `owner` (2026-11-04, sprint 4: card-effects 008, designer default)); `card: filter` | minion, treasure, passive | `trigger_subject` = the spell |
+| `on_attack` | event | `on_attack(attacker, defender)` | — | `attacker: self\|owner_hero\|friendly\|enemy\|any` (default `self` (2026-11-04, sprint 4: card-effects 008, designer default)); `defender: filter` | minion, weapon, hero power, treasure, passive | `trigger_source` = attacker, `trigger_subject` = defender |
 | `on_damage_taken` | event | `on_damage(target, amount, source)` | `on_hero_damaged` (hero scope only) | `who: self\|owner_hero\|friendly\|enemy\|any` (default self); `min_amount` | same | `trigger_subject` = damaged, `trigger_source` = damager, `context.amount` = `dealt` |
-| `on_damage_dealt` | event | `on_damage(target, amount, source)` | — | `by: self\|owner_hero\|owner_weapon\|friendly\|any` (default self); `to: filter` | same | as above |
+| `on_damage_dealt` | event | `on_damage(target, amount, source)` | — | `by: self\|owner_hero\|owner_weapon\|friendly\|any` (default self); `to: filter`. **DD-X15**: on a weapon swing the **hero** is the damage source, so the swing matches `by: owner_hero` (or `friendly` / `any`), not `owner_weapon`; the weapon's Poisonous / Lifesteal still apply to that swing (2026-11-04, sprint 4: 8dcccf6) | same | as above |
 | `on_heal` | event | `on_heal` | — | `who` (default friendly) ; `min_amount` | same | `trigger_subject`, `context.amount` |
 | `on_minion_died` | event | `on_minion_died(minion)` | — | `who: friendly_minion\|enemy_minion\|any_minion` (default friendly); `card: filter` | same | `trigger_subject` (snapshot of the dead minion) |
 | `on_draw` | event | `on_draw(card)` | `on_draw` | `side` (default owner); `card: filter` | same | `trigger_subject` = the drawn card instance |
 | `on_hero_power` | event | observer on `hero_power` | — | `by` (default owner) | same | — |
-| `on_weapon_equipped` | event | `on_weapon_equipped` | — | `side` | same | `trigger_subject` = weapon |
+| `on_weapon_equipped` | event | `on_weapon_equipped` | — | `side` (default `owner` (2026-11-04, sprint 4: card-effects 008, designer default)) | same | `trigger_subject` = weapon |
 | `on_match_start` | event | — | `on_match_start` | — | treasure, passive | — |
 | `aura` | static | `recompute_auras()` | `recompute_auras()` (treasure auras are hosted on the owner's hero slot) | `zone: board\|hand` (default board) | minion, weapon, treasure, passive | — |
 | `passive_hand` | static | hand-scope self-aura on the card instance (F1 `card_enchantment_delta`) | — | — | minion, spell, weapon | `self` = the card in hand |
@@ -330,7 +330,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
 | `conditional` | `if` (condition), `then: op[]`, `else: op[]` | per inner op | — | The branch not taken is logged as `skipped`; inner ops obey their own semantics |
 | `repeat` | `times` (value, 1–`MAX_REPEAT` 10), `ops: op[]` | per inner op | — | Each iteration re-evaluates selectors against the live board (so "deal 1 damage to a random enemy, 3 times" can hit three different or the same target) |
 | `choose_one` | `options: [{label_key, ops: op[]}]` (2–4) | per inner op | `discover(side, options)` with `kind: choose_one` → Choice phase; the picked option's ops run | Boss AI picks for the boss; a `chosen` inside an option is illegal (`E_FX_CHOSEN`) — Choose-One cards with targets declare the `chosen` at effect level and both options use it |
-| `aura` | `attack`, `health`, `cost`, `keywords[]` | per the effect's `targets` (static, C7): characters, weapons (`attack` only — "your weapons have +1 Attack" on `owner_weapon`), hand cards (`cost` only), as for `buff` | `apply_enchantment(…, is_aura: true)` inside `recompute_auras()` | Only legal under trigger `aura` / `passive_hand` (`E_FX_OP`) |
+| `aura` | `attack`, `health`, `cost`, `keywords[]` | per the effect's `targets` (static, C7): characters, weapons (`attack` only — "your weapons have +1 Attack" on `owner_weapon`), hand cards (`cost` only), as for `buff` | `apply_enchantment(…, is_aura: true)` inside `recompute_auras()` | Only legal under trigger `aura` / `passive_hand` (`E_FX_OP`). **DD-X16**: `stealth` in an `aura`'s `keywords[]` is `E_FX_OP` — Stealth is only a printed keyword or a one-shot grant (2026-11-04, sprint 4: DD-X16) |
 | `modify_value` | exactly one of `delta` (value), `set` (value), `mul` (int ≥ 0) | — | Returns `context.value` transformed; the engine clamps per its formula | Only legal under value triggers; any other op there is `E_FX_OP` |
 
 #### C6. Resolution
@@ -344,7 +344,13 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
    observers raised during the pass resolve after it, in queue order, each as its own step. A
    hook-hosted effect is likewise one step (C9). This is match-rules C6 step 3 ("the minion's
    Battlecry … as its own step") and C10's `execute(t)` read literally; `RESOLUTION_STEP_CAP`
-   counts passes, F6's static bound counts mutations per pass.
+   counts passes, F6's static bound counts mutations per pass. **In-primitive hooks**
+   (`on_draw`, `on_hero_damaged`, `on_minion_summoned` — the hook entries a primitive runs
+   synchronously inside the current step, ADR-0005 rule-4 exception) cannot pause: a Discover
+   raised inside one is refused with a logged reason and the requesting effect's later ops do not
+   run. Step-boundary hooks (`on_turn_start`, `on_turn_end`, `on_card_played`) and every effect
+   pass still pause into `Choice` (C8); an `on_match_start` hook's Discover is refused because it
+   runs in Setup (match-rules C3 step 4) (2026-11-04, sprint 4: 99dfd3b).
 1. **Binding.** At `RulesEngine.start`, the resolver registers itself as the engine's effect
    callback. For each card instance it indexes its host's effects by trigger; for each treasure and
    the boss passive it installs hooks through `hook_installers` (match-rules C3 step 1) in
@@ -448,7 +454,7 @@ means the command is refused before any mutation (only ever caused by `chosen`, 
   is a `modify_cost` value trigger, so that F1's three terms keep their owners (card enchantment →
   Card Effects, hand aura → Card Effects, hook → Treasures).
 - Auras never grant `battlecry`/`deathrattle` effects, only stats, `cost` and the keyword set
-  `give_keyword` allows.
+  `give_keyword` allows, less `stealth` (DD-X16, C5 `aura` row) (2026-11-04, sprint 4: DD-X16).
 
 #### C8. Choices: Discover and Choose One
 
@@ -514,7 +520,7 @@ is merged by Card Database with severity `E_DELEGATED` (its CR-5). Closed code s
 | `E_FX_SCHEMA` | Missing/extra field, wrong type, `ops` empty or > `MAX_OPS_PER_EFFECT`, `id` duplicate within host |
 | `E_FX_TRIGGER` | Unknown trigger, or trigger not legal for this host kind (C2 Hosts), or unknown `scope` key |
 | `E_FX_SELECTOR` / `E_FX_FILTER` | Unknown selector / predicate; `self` on a treasure; `adjacent` with `of: self` on a non-minion host; `of: target` under a trigger without `chosen` |
-| `E_FX_OP` | Unknown op; op illegal under this trigger class (`aura` outside static, non-`modify_value` under a value trigger); param out of range |
+| `E_FX_OP` | Unknown op; op illegal under this trigger class (`aura` outside static, non-`modify_value` under a value trigger); param out of range; an `aura` granting `stealth` (DD-X16; 2026-11-04, sprint 4: DD-X16) |
 | `E_FX_OP_TARGET` | Op applied to a selector that can never yield a legal kind (e.g. `freeze` on `hand`); `discover` with `then: cast` whose candidate set (the `list`, or the load-time pool after `filter`) contains a spell whose derived `targeting_spec.mode` is not `none` — there is no target source at resume time (no v1 content uses `then: cast`) |
 | `E_FX_OP_UNAVAILABLE` | Op whose primitive match-rules does not expose. **No v1 op raises it** since the five primitives landed in match-rules Interactions on 2026-11-03 (cross-review C-22); the code stays in the closed set for future ops added here before their primitive exists |
 | `E_FX_REF` | `card_id` in `summon`/`transform`/`equip`/`add_to_hand`/`discover.list` not found via `has(id)`; `summon`/`transform` of a non-minion; `equip` of a non-weapon |
@@ -786,6 +792,11 @@ for i in 1..n_options: j = randi_range(0, |candidates| − 1); options.append(ca
 
 Candidates are kept in Card Database's id-ascending order (CR-6) before drawing, so the draw is
 independent of file order.
+
+`player_hero_set` is the run hero's set, which `MatchState` does not carry: composition passes it
+as the `EffectResolver` third constructor argument `player_hero_set` (and `clone()` passes it on to
+the clone's resolver); without it, `pool: collectible` logs an error and is `empty_pool`
+(2026-11-04, sprint 4: card-effects 010).
 
 **Variables:**
 | Variable | Type | Range | Source | Description |
