@@ -1,0 +1,19 @@
+{
+  "name": "wide_hand_prefilter",
+  "description": "boss-ai C4 / C6 pre-filter: default band 2 with budgets.max_evals_per_action lowered to 10 (the Tuning Knobs minimum). The player has three 1/2s; the boss has two awake 1/3 attackers and a hand of one aoe spell (damage 1 to all_enemy_minions: op_value 1.0 x 3 targets), three 2-damage single-target spells (4 legal targets each) and two vanilla 2/2s. After position filtering that is 24 candidates (1 + 12 + 2 + 8 attacks + end_turn), more than 10. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "budgets": {"max_evals_per_action": 10},
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2},
+    {"id": "bai_guard", "type": "minion", "cost": 2, "attack": 1, "health": 3},
+    {"id": "bai_squire", "type": "minion", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_flame", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_bolt", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"side": "enemy"}}, "ops": [{"op": "damage", "amount": 2}]}]}
+  ],
+  "boss": {"mana": 10, "board": ["bai_guard", "bai_guard"], "hand": ["bai_flame", "bai_bolt", "bai_bolt", "bai_bolt", "bai_squire", "bai_squire"]},
+  "player": {"health": 30, "board": ["bai_grunt", "bai_grunt", "bai_grunt"]},
+  "expect": {"filtered": 24, "aoe": "bai_flame", "body": "bai_squire"}
+}

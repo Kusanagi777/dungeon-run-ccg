@@ -127,7 +127,7 @@ stories:
     name: "Scorer features and board value"
     file: "production/epics/boss-ai-match-driver/story-004-scorer-features-and-board-value.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 4
@@ -135,13 +135,13 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "starts after MR-017 merges at M2 (one-ply clone() sandbox); sandbox Discover auto-answer (BAI-010) missing; /code-review at M3"
-    completed: ""
+    note: "starts after MR-017 merges at M2 (one-ply clone() sandbox); sandbox Discover: readiness option (a), option-0 placeholder flagged until BAI-010; F7 t_sim ~100x low per the MR-015/017 review (see Completion Notes); /code-review at M3"
+    completed: "2026-11-04"
   - id: "boss-ai-match-driver-005"
     name: "Candidates, hero-power rule and positions"
     file: "production/epics/boss-ai-match-driver/story-005-candidates-hero-power-rule-and-positions.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 4
@@ -150,7 +150,7 @@ stories:
     contract: false
     blocker: ""
     note: "after BAI-004 in L4"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-018"
     name: "Performance budgets"
     file: "production/epics/match-rules/story-018-performance-budgets.md"
@@ -352,7 +352,7 @@ stories:
     name: "Tie-break and stream draws"
     file: "production/epics/boss-ai-match-driver/story-006-tie-break-and-stream-draws.md"
     priority: nice-to-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -360,8 +360,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "stretch; after BAI-004"
-    completed: ""
+    note: "stretch; after BAI-004; ACs amended 2026-11-04 per QA plan (A2 rewritten, A3/A5 moved to BAI-008 — add them to story 008)"
+    completed: "2026-11-04"
   - id: "card-effects-014"
     name: "Value-hook folds"
     file: "production/epics/card-effects/story-014-value-hook-folds.md"

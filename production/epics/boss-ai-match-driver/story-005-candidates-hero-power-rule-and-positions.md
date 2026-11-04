@@ -1,12 +1,12 @@
 # Story 005: Candidate set — op_value pre-filter, hero-power rule and position sensitivity
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -28,13 +28,22 @@
 
 ---
 
+## Readiness (`/story-readiness`, by hand, 2026-11-04)
+
+**Verdict: READY.** Tier: workflow standard. ADR-0001 and ADR-0006 Accepted; TR-boss-ai-001 active; Manifest Version 2026-11-03 equals the manifest's; story 004 Complete (`243bb14`, same lane); no open markers; 3 criteria. QL-STORY-READY skipped — Lean mode.
+
+- No Discover in the three fixtures (hero power `damage enemy_hero`; an `adjacent` Battlecry `buff`; `damage` spells and vanilla minions), so the BAI-010 gap does not reach this story.
+- Applied from the match-rules 015/017 review (2026-11-04): candidates are only ever taken from `legal_commands()` (never synthesised), and every sandbox clone is ended.
+
+---
+
 ## Acceptance Criteria
 
 *From GDD `design/gdd/boss-ai.md` A12, A17 and C4, scoped to this story:*
 
-- [ ] **A12** GIVEN `rules.hero_power = spare_mana`, 3 mana and a 3-cost card in hand, WHEN scored, THEN the card is played and the hero power is not used; GIVEN 2 mana and no 2-cost card, THEN the hero power is used (`f_hp` +1 / −1 / 0 per F9: `always`, `spare_mana`, `never`, `value`).
-- [ ] **A17** GIVEN a minion whose own effect uses the `adjacent` selector (derived `position_sensitive`, C6), WHEN `legal_commands` offers 4 positions, THEN 4 candidates are simulated; GIVEN a plain minion, THEN exactly 1 position (rightmost, `position = board.size`) is simulated.
-- [ ] GIVEN `legal_commands()` yields more candidates than `budgets.max_evals_per_action`, WHEN `score_all` runs, THEN exactly `max_evals_per_action` candidates are simulated, chosen by `op_value × targets yielded` rank (C6), `end_turn` is always among them, and no candidate outside the simulated set is ever chosen (C4); the `ai_decision` alternatives list holds at most 3 entries.
+- [x] **A12** GIVEN `rules.hero_power = spare_mana`, 3 mana and a 3-cost card in hand, WHEN scored, THEN the card is played and the hero power is not used; GIVEN 2 mana and no 2-cost card, THEN the hero power is used (`f_hp` +1 / −1 / 0 per F9: `always`, `spare_mana`, `never`, `value`).
+- [x] **A17** GIVEN a minion whose own effect uses the `adjacent` selector (derived `position_sensitive`, C6), WHEN `legal_commands` offers 4 positions, THEN 4 candidates are simulated; GIVEN a plain minion, THEN exactly 1 position (rightmost, `position = board.size`) is simulated.
+- [x] GIVEN `legal_commands()` yields more candidates than `budgets.max_evals_per_action`, WHEN `score_all` runs, THEN exactly `max_evals_per_action` candidates are simulated, chosen by `op_value × targets yielded` rank (C6), `end_turn` is always among them, and no candidate outside the simulated set is ever chosen (C4); the `ai_decision` alternatives list holds at most 3 entries.
 
 ---
 
@@ -66,9 +75,11 @@
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/ai/candidates.gd`
-- `tests/unit/boss_ai/boss_ai_candidates_test.gd`
-- `tests/fixtures/boss_ai/hero_power_spare_mana.json`, `tests/fixtures/boss_ai/adjacent_minion.json`, `tests/fixtures/boss_ai/wide_hand_prefilter.json`
+- `src/ai/candidates.gd` (new)
+- `src/ai/scorer.gd` (modified: `f_hp` from the F9 rule, `card_playable` context, `alternatives()`, public `selector_name` / `other_side`)
+- `tests/unit/boss_ai/boss_ai_candidates_test.gd` (new, 11 tests)
+- `tests/helpers/boss_ai_board.gd` (modified, story 004's helper: `hero_power` cards, `boss.hero_power`, fixture `budgets`)
+- `tests/fixtures/boss_ai/hero_power_spare_mana.json`, `tests/fixtures/boss_ai/adjacent_minion.json`, `tests/fixtures/boss_ai/wide_hand_prefilter.json` (new)
 
 ---
 
@@ -86,7 +97,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/boss_ai/boss_ai_candidates_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created — 11 tests, passing (full suite 1343 / 0 failures, 2026-11-04)
 
 ---
 
@@ -94,3 +105,19 @@ checks scope against it.*
 
 - Depends on: `production/epics/boss-ai-match-driver/story-004-scorer-features-and-board-value.md`
 - Unlocks: `production/epics/boss-ai-match-driver/story-007-lethal-search.md`, `production/epics/boss-ai-match-driver/story-008-plan-turn-loop-and-turn-plan.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-04 (start 05:15 UTC, work and verification done by about 05:25 UTC, committed 14:09 UTC after a session pause; lane 4 wave 3, branch `lane/s4-l4-w3`)
+**Criteria**: 3/3 passing — A12 `test_spare_mana_plays_the_three_cost_card_instead_of_the_hero_power`, `test_spare_mana_uses_the_hero_power_when_no_card_is_playable`, `test_hero_power_feature_follows_each_f9_rule`, `test_scored_hero_power_carries_the_profile_rule_and_other_actions_carry_zero`; A17 `test_position_sensitive_minion_keeps_every_offered_position` (4 simulated vs 1 at `board.size`, counted by checkpoints); pre-filter `test_prefilter_keeps_exactly_max_evals_ranked_by_op_value_with_end_turn` (exactly `max_evals_per_action` from the profile, `end_turn` kept, every dropped command ranked ≤ every kept one, the best is a kept one, `Scorer.alternatives` = 3), `test_prefilter_keeps_end_turn_even_when_it_ranks_last`, boundary `test_prefilter_is_off_when_candidates_equal_max_evals`; plus `derive_annotations`, the per-instance memo, and `op_value` × targets / structural ops / unvalued 1.0. Each was seen failing against a mutated `candidates.gd` (positions kept, `spare_mana` → 0, forced `end_turn` dropped, rank reversed, memo off, targets multiplier off), then restored.
+**Verification**: import exit 0; `commands.test` 1343 test cases, 0 errors, 0 failures, 0 orphans, exit 0, 85 `SCRIPT ERROR` lines (the known intentional negatives, unchanged); `commands.smoke` exit 0, no `SCRIPT ERROR`; `tools/lint/gates.sh` PASS.
+**Run result**: N/A — headless rules-tier candidate filtering with no scene; nothing is on screen until the match driver (story 013) runs a boss turn.
+**Deviations** (advisory):
+- Signatures: `collect(sandbox, profile, budgets)` as planned; `op_value(command, sandbox)` is an instance method (it needs the board for "× targets yielded" and this instance's `db` / `op_values`), not `op_value(command, db, op_values)`; `def_value(def, sandbox, own)` is the per-definition half.
+- The cap is applied after position filtering (only the rightmost position of a plain minion is a candidate at all, C6), and keeps `max_evals_per_action − 1` ranked commands plus `end_turn`.
+- `op_value` of non-effect actions, which C6 leaves open: a minion body is C7's `buff × (attack + health) / 4`, a weapon play adds the `equip` row, an attack is one `damage` row on one target, `end_turn` 0. Selector target counts follow C6; `adjacent` counts up to 2 and `left_/right_neighbour` up to 1 of the owner's minions (Card Effects F6's bounds).
+- `spare_mana`'s "no card is playable with the remaining mana" is read as "no `play_card` in the base sandbox's `legal_commands()`" (`Scorer.card_playable`, once per `score_all`).
+- Same `state()`-on-clones deviation as story 004 (hand definitions, board sizes); candidates come only from `legal_commands()` (review note 6).
+**Test Evidence**: `tests/unit/boss_ai/boss_ai_candidates_test.gd`
+**Reviewed by**: self, no independent review (`/code-review` of BAI-004 at M3 covers `scorer.gd`; this story's own review is not scheduled in sprint-004.md)
