@@ -330,6 +330,9 @@ func test_accepted_spell_resolves_from_the_resolving_zone_then_goes_to_the_grave
 	resolver.scripts[&"on_cast"] = [func(e: RulesEngine, _ctx: Dictionary) -> void:
 		seen["zone"] = str(card.zone)
 		seen["resolving"] = (e.state().players[SIDE_PLAYER].resolving as Array).has(card)]
+	# GDD C6: after_cast fires while the card is still in resolving
+	resolver.scripts[&"after_cast"] = [func(_e: RulesEngine, _ctx: Dictionary) -> void:
+		seen["after_cast_zone"] = str(card.zone)]
 	var before: int = log.events.size()
 	var calls_before: int = resolver.resolve_calls.size()
 
@@ -337,7 +340,7 @@ func test_accepted_spell_resolves_from_the_resolving_zone_then_goes_to_the_grave
 	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
 
 	# Assert: spell_cast carries F7; on_cast → on_card_played → after_cast → graveyard
-	assert_dict(seen).is_equal({"zone": "resolving", "resolving": true})
+	assert_dict(seen).is_equal({"zone": "resolving", "resolving": true, "after_cast_zone": "resolving"})
 	var events: Array[Dictionary] = _of(log, before, ["mana_spent", "card_played", "spell_cast", "card_to_graveyard"])
 	assert_array(_types(events)).is_equal(["mana_spent", "card_played", "spell_cast", "card_to_graveyard"])
 	assert_dict(events[2].payload).is_equal({

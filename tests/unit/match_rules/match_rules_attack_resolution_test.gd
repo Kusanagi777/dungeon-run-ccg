@@ -143,6 +143,7 @@ func test_simultaneous_damage_lands_both_hits_in_one_step_in_the_c8_order() -> v
 	# the order: declared, on_attack triggers, A→D, D→A, the loop, resolved
 	var events: Array = _since(log, before)
 	EventLogAssertions.assert_order(events, [&"attack_declared", &"trigger_resolved", MARKER, &"damage_dealt", &"damage_dealt", &"attack_resolved"])
+	# adjacent only in this bare fixture: an `on_damage` responder, Divine Shield, armour or Lifesteal lands events between the hits (C8 bars only a death check)
 	EventLogAssertions.assert_consecutive(events, [&"damage_dealt", &"damage_dealt"])
 	var hits: Array[Dictionary] = _of(events, &"damage_dealt")
 	assert_int(hits.size()).is_equal(2)
@@ -181,6 +182,75 @@ func test_a_hero_weapon_attack_takes_the_minions_strike_back_and_spends_durabili
 	assert_int(int(weapon.durability)).is_equal(AC19_WEAPON_DURABILITY - 1)
 	EventLogAssertions.assert_consecutive(_since(log, before), [&"damage_dealt", &"damage_dealt", &"weapon_durability_changed"])
 	assert_str(str(again.rejection.code)).is_equal("CANNOT_ATTACK")
+	# DD-X15: the hero, not the weapon, is the swing's damage source; the
+	# strike back's source is the minion; the weapon is credited nothing
+	var hits: Array[Dictionary] = _of(_since(log, before), &"damage_dealt")
+	assert_int(int(hits[0].payload.source)).is_equal(hero)
+	assert_int(int(hits[1].payload.source)).is_equal(minion)
+	assert_bool(engine.state().players[SIDE_PLAYER].stats.damage_dealt_by_card.has(str(weapon.def_id))).is_false()
+
+
+func test_a_hero_swing_with_a_poisonous_lifesteal_weapon_is_sourced_by_the_hero_and_keeps_the_keywords() -> void:
+	# Arrange — DD-X15 (code review MR-013 S3): the hero is the source for
+	# triggers, source-filtered hooks and stats; F2 still reads the weapon's
+	# Poisonous and Lifesteal on that swing. A player `modify_damage` hook
+	# (no ops) records the fold's ctx.
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var edge: HookInstaller = MatchFactory.make_hook_installer("t_edge", SIDE_PLAYER, [&"modify_damage"])
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [edge]}}, {}, resolver, _db())
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var weapon: Dictionary = MatchFactory.make_weapon(MatchFactory.alloc_entity_id(engine.state()), 1, AC19_WEAPON_DURABILITY, "neutral_test_fang", [MatchRecords.KEYWORD_POISONOUS, MatchRecords.KEYWORD_LIFESTEAL])
+	engine.state().players[SIDE_PLAYER].weapon = weapon
+	var hero: int = _hero_id(engine, SIDE_PLAYER)
+	_record(engine, hero).damage_taken = AC19_MINION_HEALTH
+	var minion: int = _minion(engine, SIDE_BOSS, AC19_MINION_ATTACK, SAFE_HEALTH)
+	var before: int = log.events.size()
+	var calls_before: int = resolver.resolve_calls.size()
+	var folds_before: int = resolver.hook_calls.size()
+
+	# Act
+	assert_bool(_attack(engine, hero, minion).accepted).is_true()
+
+	# Assert — the swing's source is the hero everywhere it is read
+	var hits: Array[Dictionary] = _of(_since(log, before), &"damage_dealt")
+	assert_int(int(hits[0].payload.source)).is_equal(hero)
+	var fold_sources: Array = []
+	for call: Dictionary in resolver.hook_calls.slice(folds_before):
+		if call.kind == "fold" and call.point == "modify_damage":
+			fold_sources.append(call.ctx.source)
+	assert_array(fold_sources).contains([hero])
+	assert_bool(fold_sources.has(int(weapon.entity_id))).is_false()
+	var on_damage_sources: Array = []
+	for call: Dictionary in resolver.resolve_calls.slice(calls_before):
+		if call.point == &"on_damage" and not call.ctx.get(RulesEngine.CTX_QUEUED, false):
+			on_damage_sources.append(call.ctx.source)
+	assert_array(on_damage_sources).contains([hero])
+	assert_bool(on_damage_sources.has(int(weapon.entity_id))).is_false()
+	# … and the weapon's keywords still count: Poisonous kills the minion,
+	# Lifesteal heals the hero by 1 (the minion's strike back takes 1 again)
+	assert_bool(_record(engine, minion).is_empty()).is_true()
+	assert_int(int(_record(engine, hero).damage_taken)).is_equal(AC19_MINION_HEALTH)
+	assert_int(_of(_since(log, before), &"healed").size()).is_equal(1)
+
+
+func test_a_heroes_weapon_keywords_count_only_for_its_swing() -> void:
+	# Arrange — a Lifesteal weapon held, then damage the hero deals some other
+	# way (a hero-power-style hit, source the hero): no Lifesteal
+	var log: TestEventLog = TestEventLog.new()
+	var engine: RulesEngine = _engine(log, TestEffectResolver.new())
+	var weapon: Dictionary = MatchFactory.make_weapon(MatchFactory.alloc_entity_id(engine.state()), 1, AC19_WEAPON_DURABILITY, "neutral_test_fang", [MatchRecords.KEYWORD_LIFESTEAL])
+	engine.state().players[SIDE_PLAYER].weapon = weapon
+	var hero: int = _hero_id(engine, SIDE_PLAYER)
+	_record(engine, hero).damage_taken = AC19_MINION_HEALTH
+	var minion: int = _minion(engine, SIDE_BOSS, 0, SAFE_HEALTH)
+
+	# Act
+	engine.run_action(func() -> void: engine.apply_damage(minion, 1, hero))
+
+	# Assert
+	assert_int(int(_record(engine, hero).damage_taken)).is_equal(AC19_MINION_HEALTH)
+	EventLogAssertions.assert_not_contains_type(log, &"healed")
 
 
 func test_a_hero_weapon_attack_on_the_next_turn_kills_and_breaks_in_one_death_check() -> void:
@@ -310,6 +380,75 @@ func test_a_discover_raised_by_an_on_attack_trigger_pauses_the_rest_of_the_attac
 	assert_int(_of(events, &"attack_resolved").size()).is_equal(1)
 	EventLogAssertions.assert_order(events, [&"attack_declared", &"choice_requested", &"choice_made", &"damage_dealt", &"damage_dealt", &"attack_resolved"])
 	assert_str(String(log.last().type)).is_equal("attack_resolved")
+
+
+func test_a_continuation_that_destroys_the_defender_cancels_the_attack_after_choose() -> void:
+	# Arrange — the on_attack trigger Discovers; its continuation (run by
+	# `choose`) destroys the defender, so the parked re-check (C8 step 3)
+	# cancels (code review MR-013 S4, probe P3)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	var attacker: int = _minion(engine, SIDE_PLAYER, AC16_ATTACK, AC16_HEALTH)
+	var defender: int = _minion(engine, SIDE_BOSS, AC16_DEFENDER_ATTACK, AC16_DEFENDER_HEALTH)
+	resolver.add_trigger(&"on_attack", attacker, "oa.discover", _discover_for_player, resolver.attacker_is.bind(attacker))
+	resolver.resume_script = func(e: RulesEngine, _choice: Variant, _index: int) -> void: e.destroy(defender)
+	var before: int = log.events.size()
+	assert_bool(_attack(engine, attacker, defender).accepted).is_true()
+
+	# Act
+	var chosen: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 1))
+
+	# Assert — cancelled, no hit, the swing counted, one attack_resolved, last
+	assert_bool(chosen.accepted).is_true()
+	var events: Array = _since(log, before)
+	assert_int(_of(events, &"attack_cancelled").size()).is_equal(1)
+	assert_int(_of(events, &"damage_dealt").size()).is_equal(0)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	assert_int(int(_record(engine, attacker).damage_taken)).is_zero()
+	assert_int(_of(events, &"attack_resolved").size()).is_equal(1)
+	EventLogAssertions.assert_order(events, [&"choice_made", &"minion_died", &"attack_cancelled", &"attack_resolved"])
+	assert_str(String(log.last().type)).is_equal("attack_resolved")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
+func test_a_discover_raised_in_the_damage_step_parks_only_attack_resolved() -> void:
+	# Arrange — the defender's on_damage trigger Discovers: the pause comes
+	# after both hits and `attacks_used += 1` (C8 steps 4–6), so only step 7
+	# is parked (code review MR-013 S4, probe P4)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	var attacker: int = _minion(engine, SIDE_PLAYER, AC16_ATTACK, AC16_HEALTH)
+	var defender: int = _minion(engine, SIDE_BOSS, AC16_DEFENDER_ATTACK, AC16_DEFENDER_HEALTH)
+	resolver.add_trigger(&"on_damage", defender, "od.discover", _discover_for_player, resolver.subject_is.bind(defender))
+	var before: int = log.events.size()
+
+	# Act 1
+	assert_bool(_attack(engine, attacker, defender).accepted).is_true()
+
+	# Assert 1 — paused after the damage step
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	assert_int(_of(_since(log, before), &"damage_dealt").size()).is_equal(2)
+	assert_int(_of(_since(log, before), &"attack_resolved").size()).is_equal(0)
+	var parked: Array = []
+	for stage: Dictionary in engine.state().suspended_action.stages:
+		parked.append(str(stage.stage))
+	assert_array(parked).is_equal([RulesEngine.STAGE_ATTACK_RESOLVED])
+
+	# Act 2
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert 2 — the damage did not run again; attack_resolved once, last
+	var events: Array = _since(log, before)
+	assert_int(_of(events, &"damage_dealt").size()).is_equal(2)
+	assert_int(int(_record(engine, defender).damage_taken)).is_equal(AC16_ATTACK)
+	assert_int(int(_record(engine, attacker).damage_taken)).is_equal(AC16_DEFENDER_ATTACK)
+	assert_int(int(_record(engine, attacker).attacks_used)).is_equal(1)
+	assert_int(_of(events, &"attack_resolved").size()).is_equal(1)
+	assert_str(String(log.last().type)).is_equal("attack_resolved")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
 
 
 # --- C8 step 4 / DD-X11: the defending hero; the snapshot ------------------------

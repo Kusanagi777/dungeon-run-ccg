@@ -285,6 +285,10 @@ var _frame: Dictionary = {}
 ## recursing (a self-feeding `on_hero_damaged` hook must not overflow the call
 ## stack). See [method _enter_hook_point].
 var _hook_points_running: Dictionary[StringName, bool] = {}
+## How many in-primitive hook points ([method _run_inline_hooks]) are running
+## right now (nested when one entry's primitive reaches another). While it is
+## above 0, [method discover] refuses (code review MR-016 S2).
+var _inline_hook_depth: int = 0
 ## True while `resolver.recompute_auras()` runs: the aura enchantments it
 ## re-applies are silent (one `auras_recomputed` lists the net changes).
 var _recomputing_auras: bool = false
@@ -822,7 +826,10 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 ## min(mana_current + n, max_mana)`, `temporary_crystals += temp`, then
 ## `mana_added {side, n, temporary: true}`. `crystal_bonus` is untouched, so
 ## the next Start-step refill (F4) ignores them; the End step takes them back
-## ([method _expire_end_of_turn]). `mana_current ≤ mana_max` holds throughout.
+## ([method _expire_end_of_turn]). Crystals granted on the opponent's turn
+## last until [param side]'s next Start step, whose refill discards them
+## (`temporary_crystals = 0`), so no End step ever cuts `mana_max` below F4
+## (code review MR-011 S5). `mana_current ≤ mana_max` holds throughout.
 ## [codeblock]
 ## engine.add_mana("player", 1, false)   # 2/2 on the player's first turn
 ## engine.add_mana("player", 2, true)    # 1/3 → 3/5 this turn only
@@ -844,9 +851,10 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 
 
 ## Primitive (F2, C9): [param requested] damage to the character
-## [param target_id] from [param source] — an entity id (a minion, a hero, the
-## weapon a hero attacks with — its keywords then count for the attack — or a
-## card instance) or `null` (fatigue, DD-X14) — evaluated in one step:
+## [param target_id] from [param source] — an entity id (a minion, a hero —
+## also when it swings a weapon, DD-X15; the attack handler then adds the
+## weapon's keywords through [method _apply_damage] — or a card instance) or
+## `null` (fatigue, DD-X14) — evaluated in one step:
 ## 1. `amount = maxi(0, hooks.fold(&"modify_damage", source_side, requested,
 ##    {source, target}))` — the engine's one clamp, after the whole fold
 ##    (ADR-0005 rule 4). `source_side` is the source's side; a null source
@@ -871,6 +879,15 @@ func add_mana(side: String, n: int, temporary: bool = false) -> void:
 ## var dealt: int = engine.apply_damage(target_id, 3, attacker_id)
 ## [/codeblock]
 func apply_damage(target_id: int, requested: int, source: Variant) -> int:
+	return _apply_damage(target_id, requested, source, null)
+
+
+## [method apply_damage] with [param keyword_source]: an entity whose
+## Poisonous / Lifesteal also count for this hit (F2 step 5) without it being
+## the source. A hero's weapon swing passes the hero as `source` and its
+## weapon here (DD-X15: the hero is the damage source; the weapon's keywords
+## apply to that swing only). `null` for every other hit.
+func _apply_damage(target_id: int, requested: int, source: Variant, keyword_source: Variant) -> int:
 	if _halted():
 		return 0
 	var target: Dictionary = _character(target_id)
@@ -906,20 +923,22 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 		"armor_absorbed": armor_absorbed, "dealt": dealt, "health_after": health(target),
 	})
 	if dealt > 0 and not _halted():
-		_after_damage_dealt(target, source, source_side, dealt, dealt_seq)
+		_after_damage_dealt(target, source, source_side, dealt, dealt_seq, keyword_source)
 	return dealt
 
 
 ## F2 step 5, once `dealt > 0`: stats, Poisonous, Lifesteal, the
 ## `on_hero_damaged` hooks and trigger point `on_damage` (in that order) —
 ## its triggers queue with `cause_seq` [param dealt_seq], the `damage_dealt`.
-func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int, dealt_seq: int) -> void:
+## Poisonous and Lifesteal read [param source] and [param keyword_source]
+## (see [method _apply_damage]).
+func _after_damage_dealt(target: Dictionary, source: Variant, source_side: String, dealt: int, dealt_seq: int, keyword_source: Variant = null) -> void:
 	var target_id: int = int(target.entity_id)
 	var target_side: String = str(target.controller)
 	_record_damage_stats(target_side, source, source_side, dealt)
-	if target.kind == MatchRecords.KIND_MINION and _source_has(source, MatchRecords.KEYWORD_POISONOUS):
+	if target.kind == MatchRecords.KIND_MINION and _hit_has(source, keyword_source, MatchRecords.KEYWORD_POISONOUS):
 		target["pending_destroy"] = true
-	if source_side != "" and _source_has(source, MatchRecords.KEYWORD_LIFESTEAL):
+	if source_side != "" and _hit_has(source, keyword_source, MatchRecords.KEYWORD_LIFESTEAL):
 		@warning_ignore("return_value_discarded")
 		apply_heal(int(_state.players[source_side].hero.entity_id), dealt, source)
 	if target.kind == MatchRecords.KIND_HERO:
@@ -1247,6 +1266,19 @@ func equip_weapon(side: String, def_id: String) -> int:
 ## (DD-X04: not Card Effects' `discover_offered`) and returns it (story 016).
 ## A second request while one is pending is a resolver defect (card-effects
 ## C8: exactly one outstanding): logged, nothing changes, `{}` returned.
+## A request raised in `Setup` (an `on_match_start` hook, C3 step 4) is
+## refused the same way (code review MR-016 S3): States has no `Setup →
+## Choice` transition and no command can answer before `Mulligan`, so a
+## pending request there would block every later `choose` and Discover. The
+## resolver treats `{}` as "no choice": the effect's later ops do not run.
+## A request raised inside a primitive — by an in-primitive hook entry
+## (`on_draw`, `on_hero_damaged`, `on_minion_summoned`; ADR-0005 rule-4
+## exception, erratum 2026-11-03) — is refused too (code review MR-016 S2):
+## those entries run synchronously inside the current step with no C10 loop,
+## so the rest of the primitive (the next entries, the next card of a
+## `draw(n)`, the caller's later ops) has no plain-data stage to park.
+## Step-boundary hooks (`on_match_start` aside, `on_turn_start`,
+## `on_turn_end`, `on_card_played`) and every effect pass still pause.
 ##
 ## **The pause** (ADR-0007 Decision 1; the contract card-effects story 010's
 ## pass suspension builds on). After this call the resolver must **return
@@ -1279,6 +1311,12 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 		return {}
 	if _state.pending_choice != null:
 		push_error("RulesEngine.discover: a ChoiceRequest is already pending (card-effects C8: exactly one outstanding)")
+		return {}
+	if _state.phase == MatchState.PHASE_SETUP:
+		push_error("RulesEngine.discover: refused in Setup (an on_match_start hook, C3 step 4): States has no Setup → Choice transition and no command can answer before Mulligan")
+		return {}
+	if _inline_hook_depth > 0:
+		push_error("RulesEngine.discover: refused inside a primitive (an on_draw / on_hero_damaged / on_minion_summoned hook entry): ADR-0005's rule-4 exception runs those entries synchronously within the step, which cannot pause")
 		return {}
 	var request: Dictionary = MatchRecords.choice_request(side, kind, options.duplicate(true), source_id, effect_id)
 	_state.pending_choice = request
@@ -1489,13 +1527,16 @@ func attack(character: Dictionary) -> int:
 
 ## C1: `has_windfury = Windfury ∈ keywords ∨ (hero ∧ weapon ≠ null ∧ Windfury ∈
 ## weapon.keywords)`. `keywords` covers the definition's set and keywords
-## granted by enchantments (`keywords_added`), so a hero gains Windfury from
-## its weapon or from an enchantment.
+## granted by enchantments (`keywords_added`) — on the character and on the
+## weapon alike — so a hero gains Windfury from its weapon (printed or
+## enchanted) or from an enchantment.
 func has_windfury(character: Dictionary) -> bool:
 	if _has_keyword(character, MatchRecords.KEYWORD_WINDFURY):
 		return true
+	# the weapon's printed keywords and its enchantments alike ("give your
+	# weapon Windfury"; code review MR-012 S1), as `_source_has` reads them
 	var weapon: Variant = _weapon_of(character)
-	return weapon != null and weapon.keywords.has(MatchRecords.KEYWORD_WINDFURY)
+	return weapon != null and _has_keyword(weapon, MatchRecords.KEYWORD_WINDFURY)
 
 
 ## C1 / F3: `max_attacks = clampi(hooks.fold(&"modify_max_attacks",
@@ -1568,7 +1609,7 @@ func _attack_rejection(attacker: Dictionary, target: Dictionary, taunters: Array
 	if _state.phase != MatchState.PHASE_MAIN:
 		return R_WRONG_PHASE
 	if attacker.is_empty():
-		return R_CANNOT_ATTACK
+		return R_CANNOT_ATTACK  # deviation (story 012): F3 has no term for an attacker not in play
 	if str(attacker.controller) != str(_state.active_side):
 		return R_NOT_YOUR_TURN
 	if attack(attacker) <= 0 or attacks_remaining(attacker) <= 0:
@@ -1579,6 +1620,7 @@ func _attack_rejection(attacker: Dictionary, target: Dictionary, taunters: Array
 	if attacker.kind == MatchRecords.KIND_MINION and bool(attacker.summoning_sick) and not _has_keyword(attacker, MatchRecords.KEYWORD_CHARGE):
 		var rush: bool = _has_keyword(attacker, MatchRecords.KEYWORD_RUSH)
 		if not (rush and target_kind == MatchRecords.KIND_MINION):
+			# deviation (story 012): Rush with an unknown target is the literal false term, SUMMONING_SICK
 			return R_RUSH_CANNOT_HIT_HERO if rush and target_kind == MatchRecords.KIND_HERO else R_SUMMONING_SICK
 	if target.is_empty() or str(target.controller) == str(attacker.controller):
 		return R_ILLEGAL_TARGET
@@ -1710,10 +1752,13 @@ func _cancel_attack_step(payload: Dictionary) -> void:
 ## `apply_damage(D, a_atk, source)` and — only when `d_atk > 0` and D is a
 ## **minion** — `apply_damage(A, d_atk, D)`: a defending hero never deals
 ## damage back, weapon or not (DD-X11). No death check between the hits; F2
-## applies Divine Shield, Poisonous and Lifesteal inside each. A hero attacking
-## with a weapon hits with the weapon as the source (its keywords count, and
-## `damage_dealt_by_card` attributes to the weapon's `def_id`) and the weapon
-## loses 1 durability in this step. Then `A.attacks_used += 1`.
+## applies Divine Shield, Poisonous and Lifesteal inside each. The attacker is
+## always the source of its hit — a hero swinging a weapon too (DD-X15: for
+## `damage_dealt.source`, the `modify_damage` fold and `on_hero_damaged` /
+## `on_damage` contexts and the stats; a hero has no `def_id`, so
+## `damage_dealt_by_card` credits nothing) — while the weapon's Poisonous and
+## Lifesteal count for that swing ([method _apply_damage]); the weapon loses
+## 1 durability in this step. Then `A.attacks_used += 1`.
 func _attack_damage_step(attacker_id: int, defender_id: int) -> void:
 	var attacker: Dictionary = _character(attacker_id)
 	var defender: Dictionary = _character(defender_id)
@@ -1721,9 +1766,9 @@ func _attack_damage_step(attacker_id: int, defender_id: int) -> void:
 	var d_atk: int = attack(defender)
 	var defender_is_minion: bool = defender.kind == MatchRecords.KIND_MINION
 	var weapon: Variant = _weapon_of(attacker)
-	var source: int = int(weapon.entity_id) if weapon != null else attacker_id
+	var weapon_id: Variant = int(weapon.entity_id) if weapon != null else null
 	@warning_ignore("return_value_discarded")
-	apply_damage(defender_id, a_atk, source)
+	_apply_damage(defender_id, a_atk, attacker_id, weapon_id)
 	if d_atk > 0 and defender_is_minion:
 		@warning_ignore("return_value_discarded")
 		apply_damage(attacker_id, d_atk, defender_id)
@@ -1830,8 +1875,7 @@ func _validate(type: String, command: Dictionary) -> String:
 			if not _is_whole(index) or int(index) < 0 or int(index) >= count:
 				return R_INVALID_CHOICE
 			return ""
-	# TODO(story 012): the attack handler. Until it exists its command is not
-	# accepted in any phase.
+	# Unreachable for the C2 types (the phase guard rejects an unknown one).
 	return R_WRONG_PHASE
 
 
@@ -2256,8 +2300,13 @@ func _turn_begin(side: String) -> void:
 	emit(&"turn_started", {"turn": _state.turn, "side": side})
 	if _halted():
 		return
-	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill
+	# 2. mana (F4): crystals from own turns plus the permanent bonus, then refill.
+	#    F4 ignores temporary crystals, so the refill discards any still held —
+	#    ones granted on the opponent's turn outlive that turn's End step, and
+	#    a later own End step must not take them back below F4 (code review
+	#    MR-011 S5)
 	var old_max: int = int(player.mana_max)
+	player.temporary_crystals = 0
 	player.mana_max = mini(int(player.turns_taken) + int(player.crystal_bonus), rule("max_mana"))
 	if int(player.mana_max) > old_max:
 		emit(&"crystal_gained", {"side": side, "mana_max": player.mana_max, "gained": int(player.mana_max) - old_max})
@@ -2358,10 +2407,16 @@ func _run_hook_entry(point: StringName, index: int, side: String, ctx: Dictionar
 ## back to back, with no C10 loop between them. A primitive one of them calls
 ## that reaches [param point] again faults `resolution_overflow`
 ## ([method _enter_hook_point]); any other point may still be reached.
+## These entries cannot pause: a Discover raised by one is refused
+## ([method discover], code review MR-016 S2), so the later entries and the
+## rest of the primitive (the next card of a `draw(n)`) never run behind a
+## pending `Choice`.
 func _run_inline_hooks(point: StringName, side: String, ctx: Dictionary) -> void:
 	if _halted() or not _enter_hook_point(point):
 		return
+	_inline_hook_depth += 1
 	_state.hooks.run_triggers(point, StringName(side), ctx)
+	_inline_hook_depth -= 1
 	_hook_points_running[point] = false
 
 
@@ -2559,15 +2614,14 @@ func _park() -> void:
 ## / stages restored, `resolver.resume(choice, option_index)` under the paused
 ## step's `cause_seq`, then that step's C10 loop. [method submit] runs the
 ## restored stages and closes the action.
+## The parked action is taken back **before** `choice_made` is emitted, so an
+## `event_cap` on that event (or on the `phase_changed` after it) leaves the
+## stages in [member _stages] for [method _abandon_stages]: a paused spell
+## still leaves `resolving` (code review MR-016 S4, keeping the 2026-11-03
+## fault guarantee) and nothing stays parked on the Ended state.
 func _do_choose(option_index: int) -> void:
 	var choice: Dictionary = _state.pending_choice
 	var action: Dictionary = _state.suspended_action
-	# card-effects story 010 (DD-X04; rng-event-log catalogue): choice_requested,
-	# discover_offered, choice_made and discover_picked share one cause_seq.
-	_cause_seq = int(action.get("cause_seq", 0))
-	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
-	if _halted():
-		return
 	_state.pending_choice = null
 	_state.suspended_action = {}
 	_queue.assign(_state.suspended_queue)
@@ -2576,8 +2630,16 @@ func _do_choose(option_index: int) -> void:
 	_state.suspended_steps = 0
 	_frame = (action.get("frame", {}) as Dictionary).duplicate(true)
 	_stages.assign(action.get("stages", []))
+	# card-effects story 010 (DD-X04; rng-event-log catalogue): choice_requested,
+	# discover_offered, choice_made and discover_picked share one cause_seq.
+	_cause_seq = int(action.get("cause_seq", 0))
+	emit(&"choice_made", {"side": str(choice.side), "option_index": option_index})
+	if _halted():
+		_queue.clear()
+		return
 	_set_phase(str(action.origin_phase))
 	if _halted():
+		_queue.clear()
 		return
 	_cause_seq = int(action.cause_seq)
 	_resolver.resume(choice, option_index)
@@ -3184,11 +3246,18 @@ func _record_damage_stats(target_side: String, source: Variant, source_side: Str
 	by_card[def_id] = int(by_card.get(def_id, 0)) + dealt
 
 
+## Whether one hit carries [param keyword] (F2 step 5): its [param source]
+## has it, or its [param keyword_source] does (a hero's weapon on its swing,
+## DD-X15).
+func _hit_has(source: Variant, keyword_source: Variant, keyword: String) -> bool:
+	return _source_has(source, keyword) or (keyword_source != null and _source_has(keyword_source, keyword))
+
+
 ## Whether damage [param source] has [param keyword] (C12, F2): a character's
-## or weapon's keywords (definition plus enchantments — a weapon's count for
-## the hero attacking with it, story 013 passes the weapon as the source), a
-## card instance's definition keywords. [constant SOURCE_FATIGUE], null and a
-## source that left every zone have none.
+## or weapon's keywords (definition plus enchantments), a card instance's
+## definition keywords. A hero has only its own: its weapon's count for its
+## swing alone, passed separately ([method _hit_has], DD-X15).
+## [constant SOURCE_FATIGUE], null and a source that left every zone have none.
 func _source_has(source: Variant, keyword: String) -> bool:
 	if typeof(source) != TYPE_INT:
 		return false

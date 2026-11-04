@@ -276,9 +276,8 @@ func test_whetstones_blade_buff_is_removed_at_the_owners_end_step() -> void:
 
 
 func test_a_whetted_blade_swing_deals_the_blade_attack_plus_1() -> void:
-	# Arrange — the weapon's enchantment counts in the hero's attack (C1).
-	# The swing's `damage_dealt.source` (DD-X15: the hero) is match-rules
-	# C8's, owned by the match-rules review fixes — not asserted here.
+	# Arrange — the weapon's enchantment counts in the hero's attack (C1);
+	# the swing's `damage_dealt.source` is the hero (DD-X15, match-rules C8)
 	_main_phase(ROW_08)
 	_submit(MatchRecords.use_hero_power(SIDE_PLAYER))
 	_next_player_turn()
@@ -293,6 +292,7 @@ func test_a_whetted_blade_swing_deals_the_blade_attack_plus_1() -> void:
 	assert_int(dealt.size()).is_equal(1)
 	assert_int(int(dealt[0].payload.target)).is_equal(_hero(SIDE_BOSS))
 	assert_int(int(dealt[0].payload.dealt)).is_equal(BLADE_ATTACK + WHETSTONE_DELTA)
+	assert_int(int(dealt[0].payload.source)).is_equal(_hero(SIDE_PLAYER))
 
 
 # --- AC-43: Rot (row 16) ------------------------------------------------------------

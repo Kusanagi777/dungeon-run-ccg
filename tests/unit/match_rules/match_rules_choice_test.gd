@@ -193,6 +193,8 @@ func test_choose_resumes_the_paused_spell_in_seq_order_and_once() -> void:
 	assert_int(int(added[0].seq)).is_less(int(dealt[0].seq))
 	assert_int(int(dealt[0].seq)).is_less(int(observed[0].seq))
 	assert_int(int(dealt[0].seq)).is_less(int(to_graveyard[0].seq))
+	# GDD C6: the after_cast observers run before the card leaves resolving
+	assert_int(int(observed[0].seq)).is_less(int(to_graveyard[0].seq))
 	assert_int(int(to_graveyard[0].payload.instance_id)).is_equal(spell_id)
 	# the same cause_seq chain: the resumed effect is still the spell's
 	assert_int(int(added[0].cause_seq)).is_equal(cast_seq)
@@ -350,6 +352,171 @@ func test_concede_in_choice_ends_the_match_and_the_spell_leaves_resolving() -> v
 	assert_str(str(engine.result().winner)).is_equal(SIDE_BOSS)
 	assert_array(_player(engine).resolving).is_empty()
 	assert_int(resolver.resume_calls.size()).is_zero()
+
+
+func test_an_event_cap_on_choice_made_still_moves_the_paused_spell_out_of_resolving() -> void:
+	# Arrange — a paused spell, and the log full right before `choose`
+	# (code review MR-016 S4; the 2026-11-03 guarantee: a fault still moves
+	# the card out of `resolving`)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	var spell_id: int = fixture[1]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	log.max_events = log.events.size()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+
+	# Assert — Ended by the cap, the spell in the graveyard, nothing left parked
+	assert_bool(result.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	assert_array(_player(engine).resolving).is_empty()
+	var graveyard_ids: Array[int] = []
+	for card: Dictionary in _player(engine).graveyard:
+		graveyard_ids.append(int(card.instance_id))
+	assert_array(graveyard_ids).contains([spell_id])
+	assert_dict(engine.state().suspended_action).is_empty()
+	assert_array(engine.state().suspended_queue).is_empty()
+	assert_object(engine.pending_choice()).is_null()
+	assert_int(resolver.resume_calls.size()).is_zero()
+
+
+# --- Refused requests (code review MR-016 S3) ------------------------------------------
+
+func test_a_discover_raised_during_setup_is_refused_and_leaves_no_pending_choice() -> void:
+	# Arrange — an `on_match_start` treasure hook Discovers (C3 step 4, phase
+	# Setup: States has no Setup → Choice row and Setup accepts no command, so
+	# nobody could answer it); its return value is recorded
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.resume_script = _resume
+	var returned: Array = []
+	resolver.hook_scripts["t_oracle.0"] = func(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+		returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_oracle.0"))
+	var oracle: HookInstaller = MatchFactory.make_hook_installer("t_oracle", SIDE_PLAYER, [&"on_match_start"])
+
+	# Act
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [oracle]}}, {}, resolver, _db())
+
+	# Assert — refused: an empty request, Mulligan reached, nothing parked
+	assert_int(returned.size()).is_equal(1)
+	assert_dict(returned[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MULLIGAN)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	EventLogAssertions.assert_not_contains_type(log, &"choice_requested")
+	# … and the match is not poisoned: the mulligan runs, a later Discover pauses
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	_set_hand(engine, SIDE_PLAYER, [DEF_SCOUT])
+	resolver.scripts[&"on_cast"] = [_discover.bind(SIDE_PLAYER, [])]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
+## A started engine past the mulligan whose player treasure `t_lens` has one
+## `on_draw` entry per [param scripts] item (`t_lens.<i>`, run in order).
+func _on_draw_hook_engine(log: TestEventLog, resolver: TestEffectResolver, scripts: Array[Callable]) -> RulesEngine:
+	var points: Array = []
+	for i: int in scripts.size():
+		points.append(&"on_draw")
+		resolver.hook_scripts["t_lens.%d" % i] = scripts[i]
+	var lens: HookInstaller = MatchFactory.make_hook_installer("t_lens", SIDE_PLAYER, points)
+	resolver.resume_script = _resume
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [lens]}}, {}, resolver, _db())
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	return engine
+
+
+func _hook_discover(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary, returned: Array) -> void:
+	returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_lens.0"))
+
+
+func _hook_armor(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+	e.apply_armor(String(s), 1)
+
+
+func test_a_discover_from_an_in_primitive_hook_is_refused_and_the_next_entry_runs_with_no_choice() -> void:
+	# Arrange — `on_draw` entries [discover, gain 1 armour] (ADR-0005 rule-4
+	# exception: in-primitive entries run synchronously inside the draw; code
+	# review MR-016 S2, probe P2a: the armour ran while the choice was pending)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	var engine: RulesEngine = _on_draw_hook_engine(log, resolver, [_hook_discover.bind(returned), _hook_armor])
+	returned.clear()   # the turn-1 Start-step draw fired the hook too
+	var before: int = log.events.size()
+
+	# Act
+	engine.draw(SIDE_PLAYER, 1)
+
+	# Assert — refused: no Choice, nothing parked; the next entry is no longer
+	# running behind a pending request
+	assert_int(returned.size()).is_equal(1)
+	assert_dict(returned[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	EventLogAssertions.assert_not_contains_type(log.events.slice(before), &"choice_requested")
+	assert_int(_since(log, before, "armor_gained").size()).is_equal(1)
+
+
+func test_a_multi_card_draw_whose_on_draw_hook_discovers_draws_every_card_with_no_pending_choice() -> void:
+	# Arrange — one `on_draw` entry that Discovers; draw 2 (probe P2b: the
+	# second card was drawn after `choice_requested`, its own request dropped)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	var engine: RulesEngine = _on_draw_hook_engine(log, resolver, [_hook_discover.bind(returned)])
+	returned.clear()   # the turn-1 Start-step draw fired the hook too
+	var before: int = log.events.size()
+
+	# Act
+	engine.draw(SIDE_PLAYER, 2)
+
+	# Assert — both requests refused, both cards drawn, the match not paused
+	assert_int(_since(log, before, "card_drawn").size()).is_equal(2)
+	assert_int(returned.size()).is_equal(2)
+	assert_dict(returned[0]).is_empty()
+	assert_dict(returned[1]).is_empty()
+	EventLogAssertions.assert_not_contains_type(log.events.slice(before), &"choice_requested")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_object(engine.pending_choice()).is_null()
+
+
+func test_a_discover_from_a_step_boundary_hook_still_pauses_and_resumes() -> void:
+	# Arrange — an `on_turn_start` treasure entry Discovers: a step-boundary
+	# hook (its own step, ADR-0005 rule 4), so it may pause (story 016)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	resolver.hook_scripts["t_dawn.0"] = func(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+		returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_dawn.0"))
+	var dawn: HookInstaller = MatchFactory.make_hook_installer("t_dawn", SIDE_PLAYER, [&"on_turn_start"])
+	resolver.resume_script = _resume
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [dawn]}}, {}, resolver, _db())
+	var before: int = log.events.size()
+
+	# Act 1 — the mulligan runs the turn-1 Start step, whose hook Discovers
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+
+	# Assert 1 — paused before the Start-step draw
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_dict(returned[0]).is_not_empty()
+	var drawn_before: int = _since(log, before, "card_drawn").size()
+
+	# Act 2
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert 2 — the draw ran once after the pick, then Main
+	var drawn: Array[Dictionary] = _since(log, before, "card_drawn")
+	assert_int(drawn.size()).is_equal(drawn_before + 1)
+	assert_int(int(_since(log, before, "card_added_to_hand")[0].seq)).is_less(int(drawn[drawn.size() - 1].seq))
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
 
 
 # --- C2 / ADR-0007: the suspended queue and step count ------------------------------

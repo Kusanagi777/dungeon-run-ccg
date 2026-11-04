@@ -150,6 +150,12 @@ const KEYWORDS: PackedStringArray = [
 ## Keywords `give_keyword` / `aura` may not grant (C5, C7): effect-shaped or
 ## display-only ones.
 const UNGRANTABLE_KEYWORDS: PackedStringArray = ["battlecry", "deathrattle", "discover", "aura", "silence", "freeze"]
+## Keywords an `aura` op may not grant although a one-shot grant may (DD-X16):
+## an aura re-applies Stealth on the step after the declaration stripped it,
+## so the attacker would stay untargetable (match-rules C12; code review
+## MR-014 S2). Lifted when a card needs it and the engine tracks a broken
+## Stealth.
+const AURA_UNGRANTABLE_KEYWORDS: PackedStringArray = ["stealth"]
 
 ## Display keywords (C1 rule 2) and what in the effects backs each one: a
 ## trigger name (`trigger`) or an op anywhere in the ops tree (`op`).

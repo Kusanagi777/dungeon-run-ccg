@@ -42,7 +42,8 @@ const E_FX_TRIGGER: StringName = &"E_FX_TRIGGER"
 const E_FX_SELECTOR: StringName = &"E_FX_SELECTOR"
 ## Unknown filter predicate (or a predicate value outside its enum).
 const E_FX_FILTER: StringName = &"E_FX_FILTER"
-## Unknown op; op illegal under the trigger class; param out of range.
+## Unknown op; op illegal under the trigger class; param out of range; an
+## `aura` granting Stealth (DD-X16).
 const E_FX_OP: StringName = &"E_FX_OP"
 ## Op on a selector that can never yield a legal kind (story 004).
 const E_FX_OP_TARGET: StringName = &"E_FX_OP_TARGET"
@@ -779,6 +780,8 @@ static func _check_param(op_name: String, key: String, kind: Variant, value: Var
 			else:
 				for i: int in (value as Array).size():
 					_check_grant_keyword(value[i], "%s/%d" % [path, i], ctx)
+					if op_name == EffectSchema.STATIC_ONLY_OP and EffectSchema.AURA_UNGRANTABLE_KEYWORDS.has(value[i]):
+						_add(ctx, E_FX_OP, "%s/%d" % [path, i], "an `aura` may not grant `%s` (DD-X16: printed or one-shot only)" % value[i])
 		EffectSchema.P_FILTER:
 			_check_filter(value, path, ctx)
 		EffectSchema.P_FROM:

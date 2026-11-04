@@ -357,6 +357,40 @@ func test_temporary_mana_is_clamped_to_max_mana() -> void:
 	assert_int(int(player.mana_max)).is_equal(full)
 
 
+func test_temporary_crystals_granted_on_the_opponents_turn_never_cut_mana_below_f4() -> void:
+	# Arrange — a real match past the mulligan: player turn 1 (1/1), then the
+	# boss's turn 1 (code review MR-011 S5, probe P4)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {}, {}, resolver, _db())
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var player: Dictionary = _player(engine)
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+
+	# Act 1 — on the boss's turn the player gains two temporary crystals
+	engine.run_action(func() -> void: engine.add_mana(SIDE_PLAYER, TEMP_GAIN, true))
+	assert_int(int(player.mana_max)).is_equal(1 + TEMP_GAIN)
+
+	# Act 2 — the player's turn 2 Start step refills by F4: the off-turn
+	# crystals are gone and none stay recorded for a later expiry
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_BOSS)).accepted).is_true()
+
+	# Assert 2 — F4 for turns_taken 2
+	assert_int(int(player.mana_max)).is_equal(2)
+	assert_int(int(player.mana_current)).is_equal(2)
+	assert_int(int(player.temporary_crystals)).is_zero()
+
+	# Act 3 — the player's End step, then the boss's turn and the player's turn 3
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+
+	# Assert 3 — the End step took nothing back (P4: 0/0, below F4's 2)
+	assert_int(int(player.mana_max)).is_equal(2)
+	var before: int = log.events.size()
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_BOSS)).accepted).is_true()
+	EventLogAssertions.assert_payload(log.events.slice(before), &"crystal_gained", {"side": SIDE_PLAYER, "mana_max": 3, "gained": 1})
+	assert_int(int(player.mana_current)).is_equal(3)
+
+
 func test_temporary_crystals_cannot_take_current_mana_below_zero_at_expiry() -> void:
 	# Arrange — 0/3, +2 temporary, then all of it spent
 	var log: TestEventLog = TestEventLog.new()
