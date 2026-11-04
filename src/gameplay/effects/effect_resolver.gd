@@ -659,12 +659,17 @@ func _run_queued(ctx: Dictionary) -> void:
 ## raised now — [method _collect] over the one candidate, so Silence, `scope`
 ## and the entry shape are the real raise's (depth included: one below the pass
 ## running now). The entity is still in play, so it stands in for the death
-## snapshot [method _candidate_host] reads. `[]` when it has no such effect.
+## snapshot [method _candidate_host] reads. `[]` when it has no such effect, or
+## is Silenced: C3 "live (unsilenced)" holds here, so a Deathrattle kept through
+## Silence fires from the death and nothing else (2026-11-04, DD-X21; M1 review H1).
 ## Queues nothing itself: the op hands the entries to the engine.
 ## Example: `var entries: Array[Dictionary] = resolver.retrigger_entries("deathrattle", id)`.
 func retrigger_entries(trigger: String, target_id: int) -> Array[Dictionary]:
 	var state: MatchState = _engine.state()
 	var candidates: Array[int] = [target_id]
+	if bool(EffectSelectors.find(state, target_id).get("silenced", false)):
+		var none: Array[Dictionary] = []
+		return none
 	return _collect(StringName(trigger), {
 		"side": EffectScope.controller_of(state, target_id),
 		"candidates": candidates,

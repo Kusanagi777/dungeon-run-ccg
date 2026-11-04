@@ -31,6 +31,9 @@ const RITES: String = "neutral_test_rites"
 const RITES_THEN_ARMOR: String = "neutral_test_rites_then_armor"
 ## Row 14's shape: `chosen`, `retrigger deathrattle`.
 const DECAY: String = "neutral_test_decay"
+## `chosen`: `destroy`, `silence`, then `retrigger`: the target keeps its
+## Deathrattle for its death (DD-X21) but is Silenced when the op runs.
+const LAST_RITES: String = "neutral_test_last_rites"
 ## `owner_weapon`, `retrigger deathrattle`.
 const ARMOURER: String = "neutral_test_armourer"
 ## Deathrattle: gain 1 Armor.
@@ -125,6 +128,8 @@ func _make_db() -> FakeCardDatabase:
 		'{"trigger":"cast","targets":"all_friendly_minions","ops":[%s,{"op":"armor","targets":"owner","amount":1}]}' % retrigger))
 	by_id[DECAY] = CardFactory.make_spell(DECAY, 1, _fx(
 		'{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly","has_trigger":"deathrattle"}},"ops":[%s]}' % retrigger))
+	by_id[LAST_RITES] = CardFactory.make_spell(LAST_RITES, 1, _fx(
+		'{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion","side":"friendly"}},"ops":[{"op":"destroy"},{"op":"silence"},%s]}' % retrigger))
 	by_id[ARMOURER] = CardFactory.make_spell(ARMOURER, 1, _fx('{"trigger":"cast","targets":"owner_weapon","ops":[%s]}' % retrigger))
 	by_id[WARD] = _deathrattle_minion(WARD, '"ops":[{"op":"armor","targets":"owner","amount":1}]')
 	by_id[SPAWNER] = _deathrattle_minion(SPAWNER, '"ops":[{"op":"summon","card_id":"%s","count":1,"position":"source_slot"}]' % TOKEN)
@@ -400,6 +405,24 @@ func test_a_silenced_minion_has_no_live_deathrattle_and_is_no_such_trigger() -> 
 	assert_str(str(_op_entry(events, "retrigger").get("outcome", ""))).is_equal(EffectOps.NO_SUCH_TRIGGER)
 	assert_int(_of_type(events, "trigger_queued").size()).is_equal(0)
 	assert_int(_armor()).is_equal(0)
+
+
+func test_a_silenced_minion_that_kept_its_deathrattle_is_not_retriggered_and_fires_once() -> void:
+	# Arrange — review H1: destroy then silence keeps the Deathrattle (DD-X21)
+	_main_phase([LAST_RITES])
+	var ward: int = _put(WARD)
+	var before: int = _last_seq()
+
+	# Act
+	_cast(ward)
+
+	# Assert — C3 "live (unsilenced)": only the death fires it
+	var events: Array = _since(before)
+	assert_str(str(_op_entry(events, "retrigger").get("outcome", ""))).is_equal(EffectOps.NO_SUCH_TRIGGER)
+	var by_retrigger: Array = _of_type(events, "trigger_queued").filter(func(e: Dictionary) -> bool: return e.payload.has("reason"))
+	assert_array(by_retrigger).is_empty()
+	assert_array(_resolved_sources(events)).is_equal([ward])
+	assert_int(_armor()).is_equal(1)
 
 
 func test_a_mixed_board_queues_only_the_minions_with_a_live_deathrattle() -> void:
