@@ -45,9 +45,11 @@
 - **Release vs debug export:** pending config validators emit `W_VALIDATOR_PENDING`, an error in release builds, so the release export opens on the data-error screen by design. The **debug** export (`deckdelve-windows-debug-<sha>` artifact) is the playtest build.
 - **Local setup:** `tools/setup.sh` (bash; installs Godot 4.7.2 + export templates under `~/.local`). On Windows, hooks and lints need Git Bash; Godot must be on PATH as `godot`. `.claude/settings.json` now pre-allows the routine git/godot/lint commands.
 
-## 4. Sprint 5 — what was in flight when this was written
+## 4. Sprint 5 — wave 1 is yours to run
 
-The cloud session launched **wave 1** in its own container. These branches exist **only in the cloud container** until that session merges and pushes them to `bootstrap/ccgs-template`:
+**Update (owner "stop"):** the cloud session stopped all wave-1 agents before any of them committed. Nothing below exists on trunk; every story is still Ready. Run wave 1 locally from this table and `sprint-005.md` (one agent per lane, worktree per lane, merge in the M1 order). The QA plan was not written either — run `/qa-plan sprint` first. The S3 design proposal is done (§5).
+
+Wave 1 as planned (branch names are suggestions):
 
 | Lane | Branch | Work |
 |---|---|---|
@@ -61,7 +63,7 @@ The cloud session launched **wave 1** in its own container. These branches exist
 | QA | `s5/qa-plan` | `production/qa/qa-plan-sprint-005-2026-11-04.md` |
 | Design | (report only) | proposal for review finding S3: how aura keyword/cost changes reach the log and the match view |
 
-**Before starting any sprint-5 story locally, `git pull` and check `git log` for "merge: sprint 5 L…" commits.** If a wave-1 story is not merged yet, ask Jacob whether the cloud session is still running — do not redo it in parallel (the two would conflict in `rules_engine.gd`, `boss_ai.gd`, `effect_resolver.gd`, `ops.gd`). If the cloud session is gone, those stories are still Ready on trunk; re-run them from their story files.
+Lane 2's knob decision stands: add `planner_target_ms: 500` to the `runtime` block of `assets/data/ai_profiles.json`, validated 50–1,000, read-only for the UI (a measurement target, never a runtime clock). Shared files in wave 1: `rules_engine.gd` is touched by heroes 001 (`start`), card-effects 009 (Silence) and the fix buffer (`discover`/queue) — different functions, merged in the M1 order; `boss_ai.gd` by BAI-008 then BAI-010.
 
 **After wave 1 (per `sprint-005.md`):** merge in the plan's M1 order; register `heroes_balance` in Boot after heroes 004; then wave 2 (boss-ai 013 → 015 critical, match-rules 019 perf pass as the only `rules_engine.gd` editor in W2, card-effects 014 → 013, treasures 003, content 010, card-effects 017); then wave 3 (match-ui 003 → 010 — the first UI stories needing retained screenshots in `production/qa/evidence/`). Each wave ends with an independent `/code-review` of its stories (the retro found 13 of 23 sprint-4 stories had gone unreviewed until late).
 
