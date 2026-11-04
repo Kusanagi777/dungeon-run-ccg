@@ -1,0 +1,16 @@
+{
+  "name": "random_effect_board",
+  "description": "boss-ai C4 sandbox randomness (code review 2026-11-04, BAI-004 S1; the review's probe P10 board): control profile, band 2; the boss holds a 1-cost 'destroy a random enemy minion' spell and the player has a 6/6 and three 1/1s. The tests advance the live match stream by each count in live_offsets before scoring, so the live outcome differs across runs; a trial given its own ai_1/sim_<turn> fork must not follow it. No card here has a discover or choose_one op.",
+  "profile": "control",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_dice", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "random_enemy_minion", "ops": [{"op": "destroy"}]}]},
+    {"id": "bai_giant", "type": "minion", "cost": 6, "attack": 6, "health": 6},
+    {"id": "bai_imp", "type": "minion", "cost": 1, "attack": 1, "health": 1}
+  ],
+  "boss": {"mana": 4, "board": [], "hand": ["bai_dice"]},
+  "player": {"health": 30, "board": ["bai_giant", "bai_imp", "bai_imp", "bai_imp"]},
+  "expect": {"giant": "bai_giant", "live_offsets": [1, 12], "ai_stream": "ai_1", "ai_seed": 5, "sim_turn": 2}
+}

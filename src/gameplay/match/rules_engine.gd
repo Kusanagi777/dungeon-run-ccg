@@ -3451,6 +3451,16 @@ func _find_record(entity_id: int) -> Dictionary:
 ##   live stream. The fork memo is carried as copies of each child, so a
 ##   fork the live stream already took costs the clone no parent draw
 ##   (code review 2026-11-04, MR-017 S7).
+## - **RNG override** (code review 2026-11-04, BAI-004 S1; boss-ai C4):
+##   given [param rng_override], the clone's `rng_match` **is** that stream —
+##   taken by reference, not copied, so pass a `copy()` to keep your own at
+##   its position — and every random effect on the clone draws from it
+##   instead. For a planner trial whose randomness must be "an estimate, not
+##   a peek at the live stream": the caller derives it from its own stream
+##   (`ai_<floor>.fork("sim_<turn>")`, ADR-0003 rule 5), never by forking
+##   `rng_match`, and never passes this engine's own `rng_match` (asserts).
+##   A clone of the clone copies the override like any `rng_match`. Default
+##   null: the copy above.
 ## - **Ended:** a clone of an Ended (or torn-down) match is Ended (torn down)
 ##   too and binds no resolver: every `submit` is `MATCH_ENDED`.
 ## - **Lifetime:** the clone and its resolver reference each other (a
@@ -3465,13 +3475,16 @@ func _find_record(entity_id: int) -> Dictionary:
 ##     score(trial.state_snapshot(hero_id))
 ##     trial.end_match()
 ## sandbox.end_match()
+## var trial_with_estimate: RulesEngine = sandbox.clone(sim_stream.copy())   # own randomness
 ## [/codeblock]
-func clone() -> RulesEngine:
+func clone(rng_override: RngStream = null) -> RulesEngine:
 	assert(_state != null, "RulesEngine.clone: no match is loaded")
 	assert(not _resolving, "RulesEngine.clone: taken while resolving — a clone is taken between calls")
 	var resolver: Variant = _fresh_resolver()
+	assert(rng_override == null or rng_override != _state.rng_match, "RulesEngine.clone: the override must not be this engine's own rng_match")
 	var copy: RulesEngine = RulesEngine.new(_db, _rules_config, resolver)
-	copy._state = _state.clone(_scratch_log(), _copy_stream(_state.rng_match))
+	var stream: RefCounted = rng_override if rng_override != null else _copy_stream(_state.rng_match)
+	copy._state = _state.clone(_scratch_log(), stream)
 	copy._torn_down = _torn_down
 	if _bound and resolver != null:
 		var no_installers: Array[HookInstaller] = []

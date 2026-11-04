@@ -514,3 +514,42 @@ func test_score_all_ends_every_trial_clone_so_none_stays_alive() -> void:
 		if trial != null:
 			assert_object(trial.get_ref()).is_null()
 	assert_object(base_resolver.last_clone.get_ref()).is_null()
+
+
+# --- C4: sandbox randomness is an estimate, not a peek (code review 2026-11-04, BAI-004 S1) ---
+
+func test_trial_random_effect_draws_from_the_sim_fork_not_the_live_stream() -> void:
+	# Arrange — the same board at 12 different live stream positions; one
+	# `ai_1/sim_<turn>` fork, derived as plan_turn will (TieBreak.sim_label)
+	var fixture: Dictionary = BossAiBoard.read("random_effect_board")
+	var expect: Dictionary = fixture.expect
+	var offsets: Array = expect.live_offsets
+	var trial_threats: Dictionary = {}
+	var live_giant_destroyed: Dictionary = {}
+	var sim: RngStream = TestRngStream.seeded(str(expect.ai_stream), int(expect.ai_seed)).fork(TieBreak.sim_label(int(expect.sim_turn)))
+	var sim_draws: int = sim.draws
+
+	# Act
+	for offset: int in range(int(offsets[0]), int(offsets[1]) + 1):
+		var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+		var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+		var live: RngStream = engine.rng_match()
+		for _i: int in offset:
+			@warning_ignore("return_value_discarded")
+			live.randi_range(0, 1)
+		var cast: Dictionary = MatchRecords.play_card(SIDE_BOSS, 0, null, null)
+		var base: RulesEngine = engine.clone()
+		var base_draws: int = base.rng_match().draws
+		var entry: Dictionary = _scorer(db).score(cast, base, BossAiBoard.profile(fixture), Scorer.MODE_NORMAL, {Scorer.CONTEXT_SIM_STREAM: sim})
+		assert_int(base.rng_match().draws).is_equal(base_draws)
+		base.end_match()
+		trial_threats[entry.features.f_threat] = true
+		assert_bool(engine.submit(cast).accepted).is_true()
+		live_giant_destroyed[BossAiBoard.ids_of(engine, SIDE_PLAYER, str(expect.giant)).is_empty()] = true
+
+	# Assert — the live outcome varies with the live stream; the trial's does
+	# not (every trial starts from the same fork position), and the fork itself
+	# is never advanced
+	assert_int(live_giant_destroyed.size()).is_equal(2)
+	assert_int(trial_threats.size()).is_equal(1)
+	assert_int(sim.draws).is_equal(sim_draws)

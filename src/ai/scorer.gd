@@ -13,9 +13,11 @@
 ## **Clone discipline** (match-rules 015/017 code review, 2026-11-04, notes
 ## 3, 5, 6): every trial clone is ended with `end_match()` on every path,
 ## early returns included (a dropped clone leaks: engine and resolver hold each
-## other); `rng_match` is never forked on a clone (the clone's fork memo is
-## not carried, so its forks diverge from live — planner randomness comes from
-## the `ai_<floor>` stream's `sim_<turn>` fork); and candidates must be taken
+## other); `rng_match` is never forked on a clone (since `RngStream.copy()`,
+## 2026-11-04, a clone's `rng_match` carries the live fork memo as copies, so
+## a fork of it is the match stream's own child, not planner randomness —
+## that comes from the `ai_<floor>` stream's `sim_<turn>` fork, given to each
+## trial through `clone(rng_override)`, [constant CONTEXT_SIM_STREAM]); and candidates must be taken
 ## from `legal_commands()` — `submit` accepts and ignores a stray `position`
 ## or `target_id`, so a synthesised command could score as a duplicate.
 ##
@@ -41,9 +43,12 @@
 ## already-multiplied weights and branches on mode only for the Taunt BV bonus);
 ## `choose` scoring for a sandbox Discover (story 010 — until then a boss-side
 ## Choice raised in a trial is answered with option 0 and the entry is flagged
-## `sim_choice_placeholder`); installing the `sim_<turn>` fork on the turn's
-## base sandbox (story 008 `plan_turn`; every trial copies the base's
-## `rng_match`, so trials of one turn start from the same stream position).
+## `sim_choice_placeholder`); forking `ai_<floor>.fork("sim_<turn>")` and
+## passing it as `context[CONTEXT_SIM_STREAM]` (story 008 `plan_turn`). Until
+## a caller passes it, a trial falls back to a copy of the base's
+## `rng_match` — the live outcome of a random effect, which C4 forbids (code
+## review 2026-11-04, BAI-004 S1); the root sandbox itself keeps its
+## `rng_match` copy, or replay diverges (ADR-0006).
 ## [codeblock]
 ## var scorer := Scorer.new(db, db.config("ai_profiles").keyword_values)
 ## var base: RulesEngine = engine.clone()
@@ -64,6 +69,12 @@ const MODE_DEFENSIVE: StringName = &"DEFENSIVE"
 const ALTERNATIVES_MAX: int = 3
 ## The [method score] context key for the F9 `spare_mana` test.
 const CONTEXT_CARD_PLAYABLE: String = "card_playable"
+## The [method score] context key for the C4 sandbox stream: the turn's
+## `ai_<floor>/sim_<turn>` fork ([method TieBreak.sim_label]). When present,
+## every trial is `clone(sim_stream.copy())`, so its random effects draw from
+## the fork — every trial of a turn from the same fork position, the fork
+## itself never advanced — instead of a copy of the live `rng_match`.
+const CONTEXT_SIM_STREAM: String = "sim_stream"
 
 ## The eleven F1 features, in F1 order — the keys of every `features`
 ## Dictionary, so `ai_decision.features` can carry it verbatim.
@@ -158,7 +169,8 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## for DEFENSIVE by story 009; `rules.BV_NORM`, `THREAT_NORM`, `trade_ratio`,
 ## `overextend_cap_aoe`, `assume_aoe` read from it); [param mode] one of the
 ## `MODE_*` constants; [param context] `{aoe_seen: bool, card_playable:
-## bool}` (`aoe_seen`: C1.3, F5 — see [method aoe_seen_in]; `card_playable`:
+## bool, sim_stream: RngStream}` (`sim_stream`: [constant CONTEXT_SIM_STREAM];
+## `aoe_seen`: C1.3, F5 — see [method aoe_seen_in]; `card_playable`:
 ## whether a `play_card` is legal on the base, for the F9 `spare_mana` rule —
 ## [method score_all] fills it once, else a `use_hero_power` candidate reads it
 ## from the base's `legal_commands()`). Returns `{command, score, features, sim_overflow,
@@ -176,7 +188,8 @@ func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictiona
 	var entry: Dictionary = {"command": candidate, "score": 0.0, "features": {}, "sim_overflow": false, "sim_choice_placeholder": false}
 	var after: Dictionary = before
 	if str(candidate.get("type")) != MatchRecords.CMD_END_TURN:
-		var trial: RulesEngine = sandbox_before.clone()
+		var sim: Variant = context.get(CONTEXT_SIM_STREAM)
+		var trial: RulesEngine = sandbox_before.clone((sim as RngStream).copy() if sim is RngStream else null)
 		var result: Dictionary = trial.submit(candidate.duplicate(true))
 		if result.accepted:
 			entry.sim_choice_placeholder = _answer_choices(trial, own)
