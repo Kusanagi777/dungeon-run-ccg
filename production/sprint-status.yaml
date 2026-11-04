@@ -23,6 +23,9 @@ updated: "2026-11-04"
 # /code-review reserved: MR-013, MR-016 (M1), MR-017 (M2), BAI-004 (M3). Standing rule: commit each story the moment its suite is green.
 # Owner: 12 h/week (decided 2026-11-04); First Playable sprint 6 accepted 2026-11-04 (fallback 7).
 # Later candidate, not in this sprint: boss-ai-match-driver story-019 (reload E_BUSY) — after BAI-015, before BAI-017.
+# Closed 2026-11-04: committed 21/22 done (MR-018 in progress, blocked on the submit budget -> match-rules story-019);
+# stretch 1/3 (BAI-006 done; CE-009 and CE-014 not started, blocked). Smoke PASS (1403 tests):
+# production/qa/smoke-2026-11-04-sprint-004.md. Retro: production/retrospectives/retro-sprint-4-2026-11-04.md.
 
 stories:
   - id: "match-rules-012"
@@ -162,8 +165,8 @@ stories:
     wave: 3
     serialised: true
     contract: false
-    blocker: "2026-11-04: AC-40 submit median 25.1 ms debug / 19.9 ms release vs 5 ms (gate 10 ms); owner decision: /perf-profile + engine story (R1-R3) and/or re-budget; boss-ai F7 t_sim 0.37-0.45 ms vs 0.01 ms -> /propagate-design-change (R5)"
-    note: "harness, blocking half (8 tests) and production/qa/perf-match-rules-2026-11-04.md done; legal_commands 0.64 ms and fold 22 us pass"
+    blocker: "2026-11-04: AC-40 worst-case submit median 25.1 ms debug / 19.9 ms release vs 5 ms (gate 10 ms); sprint close: local 27.3 ms, CI 17.6 ms. Follow-up: match-rules story-019 (rules engine performance pass, R1-R4; Ready, sprint-5 candidate). boss-ai F7 t_sim 0.39 ms vs 0.01 ms: planner target re-set by DD-X18 (500 ms per planner run); F7 band counts still to re-derive (R5)"
+    note: "harness, blocking half (8 tests) and production/qa/perf-match-rules-2026-11-04.md done; legal_commands 0.64 ms and fold 22 us pass; stays open until story-019 re-measures AC-40"
     completed: ""
   - id: "card-effects-008"
     name: "Event observers and queueing"
@@ -324,7 +327,6 @@ stories:
     file: "production/epics/content/story-008-content-budget-checks.md"
     priority: should-have
     status: done
-    completed: "2026-11-04"
     owner: ""
     estimate_days: 1
     lane: 6
@@ -333,20 +335,20 @@ stories:
     contract: false
     blocker: ""
     note: "L6 opener"
-    completed: ""
+    completed: "2026-11-04"
   - id: "card-effects-009"
     name: "Deathrattle snapshot, once_per_turn, Silence-after-queue, counters"
     file: "production/epics/card-effects/story-009-deathrattle-snapshot-counters.md"
     priority: nice-to-have
-    status: backlog
+    status: ready-for-dev
     owner: ""
     estimate_days: 1
     lane: 3
     wave: 3
     serialised: false
     contract: false
-    blocker: ""
-    note: "stretch; after CE-012; needs MR-015 at M2"
+    blocker: "2026-11-04: GDD conflict on destroy-then-silence — match-rules C12 vs card-effects AC-21 (queued Deathrattle survives a later Silence); MR-015/017 code review S3; a design decision is needed before AC-21 can be built"
+    note: "stretch; not started. Story file reads Ready, so status is ready-for-dev per the mapping; the blocker holds it (the story header should go to Blocked at /story-readiness)"
     completed: ""
   - id: "boss-ai-match-driver-006"
     name: "Tie-break and stream draws"
@@ -360,21 +362,21 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "stretch; after BAI-004; ACs amended 2026-11-04 per QA plan (A2 rewritten, A3/A5 moved to BAI-008 — add them to story 008)"
+    note: "stretch; after BAI-004; ACs amended 2026-11-04 per QA plan (A2 rewritten, A3/A5 moved to BAI-008 — added to story 008 in ae3b161)"
     completed: "2026-11-04"
   - id: "card-effects-014"
     name: "Value-hook folds"
     file: "production/epics/card-effects/story-014-value-hook-folds.md"
     priority: nice-to-have
-    status: backlog
+    status: ready-for-dev
     owner: ""
     estimate_days: 1
     lane: 6
     wave: 3
     serialised: false
     contract: false
-    blocker: ""
-    note: "stretch; treasures HookInstaller missing (no story)"
+    blocker: "2026-11-04: treasures HookInstaller / passive_installer missing (no treasures story yet); AC fixtures cannot install value hooks without it"
+    note: "stretch; not started. Story file reads Ready, so status is ready-for-dev per the mapping; the blocker holds it (the story header should go to Blocked at /story-readiness)"
     completed: ""
 
 # Previous sprints — kept for history; not part of the current sprint's story list.
