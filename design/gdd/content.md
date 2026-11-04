@@ -523,7 +523,10 @@ Alpha+ (Edge Cases); T8 records that all 20 are v1-expressible.
    stats as `+1/+1`, `Deal N damage` / `Restore N Health` / `Draw N cards` / `Gain N Armor`,
    "your hero" and "the enemy hero" (owner-relative; boss cards use the same words and the UI
    renders them from the boss's side), "a minion" = any minion, "a friendly minion" / "an enemy
-   minion" otherwise; Choose One options separated by "; or". American spelling in rules text
+   minion" otherwise; Choose One options separated by "; or". A card that Silences and destroys
+   the same minion says and lists Silence first ("Silence a minion, then destroy it"; ops
+   `[silence, destroy]`). The destroy-first order lets the Deathrattle fire and is rejected at load
+   (card-effects C5, C10 `E_FX_OP`; 2026-11-04, DD-X21). American spelling in rules text
    (`Armor`), British in tags and prose is fine (`armour` tag). Localisation keys are derived:
    `card.<id>.name` / `card.<id>.text`, `boss.<id>.name` / `boss.<id>.intro`,
    `bundle.<id>.name` / `bundle.<id>.text`, `opt.<key>` for Choose One labels.
@@ -737,6 +740,14 @@ hypothesis needs.
   at MVP-1 and Bog Witch / Shadow of the Delve at Alpha-A (before `neutral_ember_sprite`, Alpha-B),
   Lich Archivist at VS and Frost Hag at Alpha-A (before the Knowledge file, Alpha-B). AC-10 checks
   every shipped deck against this rule at each batch close.
+  *Superseded for Gravekeeper (2026-11-04, DD-X20):* sprint 4 also used this fallback for
+  `neutral_gravekeeper`, which could not load while Boss AI had no `op_values` row for
+  `add_counter` (`E_AI_OP_UNVALUED`; content stories 001, 003, 004). Boss AI now values
+  `add_counter` (boss-ai C6), so Gravekeeper ships in MVP-1 as CN-2 lists it and its slots swap
+  back into the B2 recipes that name it: Gatekeeper, Hollow King and Rot Warden (DD-X20), and The
+  Torchbearer, whose batch-0 deck dropped it for the same reason (content story 010). A missing
+  `op_values` row is not a reason to use this fallback; Rat King's exclusion of Gravekeeper is a
+  recipe choice, accepted as shipped (DD-X24).
 - **If an id is renamed after a story cites it**: never — ids are permanent (CN-6 step 9); a wrong
   id is deprecated (`token: true`, pulled from every list) and a new id added, and the old id stays
   so archived run records and the event log resolve.

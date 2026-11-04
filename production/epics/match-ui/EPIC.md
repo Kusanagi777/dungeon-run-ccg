@@ -47,7 +47,7 @@ Turn a match into something the owner can play with a mouse: hand fan, two board
 
 - Scene partition per ADR-0009 (`match_view.tscn` root + one scene per presenter + shared card frame); `@abstract Presenter` with `bind`, `owns`, `on_step_started`, `apply_final`, `sync_report`
 - `MatchViewState`, `AnimationQueue`, `AnimStep` as headless-testable `RefCounted` with a fake clock; `COALESCE_THRESHOLD` 8, `SPEED_DIV`, `reduce_motion`, `anim_speed` from `SettingsBus`
-- Mouse-first input: drag-to-play, drag-to-attack, hero power, End Turn, hover text ≤ 100 ms; latency table (pickup / drag 16 ms, release → first event 50 ms, rejection 50 ms, skip 100 ms, End Turn → intent 300 ms)
+- Mouse-first input: drag-to-play, drag-to-attack, hero power, End Turn, hover text ≤ 100 ms; latency table (pickup / drag 16 ms, release → first event 50 ms, rejection 50 ms, skip 100 ms, End Turn → commit beat `max(300 ms, planner run)` ≤ 500 ms then "boss thinking" — 2026-11-04, DD-X23; was End Turn → intent 300 ms)
 - Mulligan screen (Hearthstone rules), Choice overlay for Discover / Choose One, intent banner, event feed, end banner, pause menu
 - `MatchDebugLoader` (`--fixture`, `--pose`, `--pause-at`, `--anim-speed`, `--ai-debug`), fixtures under `tests/fixtures/match_ui/`, absent from release exports (CI greps the `.pck`)
 - `match_view_finished(result)` hand-off signal

@@ -6,7 +6,7 @@
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04 (DD-X23 AC note; implementation not started)
 
 ## Context
 
@@ -35,6 +35,7 @@
 - [ ] **L8** GIVEN a boss turn with A = 12 groups and D = 7.0 s at defaults, WHEN F4 runs, THEN gap = 0.245 s (±0.001) and T = 10.0 s; GIVEN A = 30, D = 15 s, THEN gap = 0.15, k = 0.509 (±0.001) and the turn plays in 10.0 s; GIVEN A = 5, D = 2.5 s, THEN gap 0.6 and T = 5.2 s.
 - [ ] **L16** GIVEN `settings.action_delay_ms = 1200` and a boss turn with A = 5, D = 2.5 s, WHEN F4 runs, THEN gap = 1.2 s and T = 7.6 s; GIVEN the setting absent, THEN gap = 0.6 s (Boss AI's `presentation.action_delay_s`).
 - [ ] GIVEN `turn_started{side: boss}` then a burst whose groups arrive over two ticks, WHEN the queue plays it with a fake clock, THEN the commit beat (`intent_banner_s`) plays before the first action group, the second tick's groups use the gap computed at the first group, the remainder auto-skips once `k = K_MIN` and the clock reaches `max_turn_playback_s`, player controls report locked (only skip, pause menu and feed allowed) until `turn_started{side: player}` has drained, and a boss-side Choice produces one 0.4 s "boss discovers…" step with no options.
+- [ ] **(2026-11-04, DD-X23 — commit beat over planning)** GIVEN End Turn at *t* and a `PlannerTask` fake that completes after *p* ms, WHEN the queue plays the boss turn with a fake clock, THEN the commit beat starts at *t* and the first action group starts at *t* + `max(intent_banner_s, p)` for *p* ∈ {100, 400} (300 ms and 400 ms). For *p* = 800 the beat ends at *t* + 500 (`planner_target_ms`), the "boss thinking" state shows from *t* + 500 until the plan arrives at *t* + 800, and the first group starts then. In every case F4's `gap` / `k` are computed with `intent_banner_s`; the stretch is planning time and does not count against `max_turn_playback_s` (match-ui U6.2, F4).
 
 ---
 
@@ -48,7 +49,7 @@
 
 ## Out of Scope
 
-- Story 015: intent banner rendering, skip hint, hand dim, End Turn → commit beat ≤ 300 ms measurement.
+- Story 015: intent banner rendering (including the "boss thinking" state), skip hint, hand dim, End Turn → commit beat measurement (`max(300 ms, planner run)` ≤ 500 ms — 2026-11-04, DD-X23; was ≤ 300 ms).
 
 ---
 

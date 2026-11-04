@@ -594,8 +594,9 @@ Each criterion is a gdUnit4 test unless marked *manual*; all run headless with l
   round-trips it with `replay_equal` holding (rule 12a).
 - [ ] **GIVEN** a snapshot with `data_version = "1.0"` and installed data `"1.1"`, **WHEN**
   `restore()` is called, **THEN** it returns an error and no stream is created.
-- [ ] Performance: appending 10,000 events and reading `events_since(0)` completes in under 50 ms
-  headless; `restore()` of a stream with `draws = 10,000` in under 5 ms.
+- [ ] Performance: appending 10,000 events and reading `events_since(0)` completes in under 80 ms
+  headless (was 50 ms; raised 2026-11-04, DD-X19 — measured 33–47 ms CI, 51–60 ms debug, 43–65 ms
+  release); `restore()` of a stream with `draws = 10,000` in under 5 ms.
 - [ ] *Manual:* the death screen shows a 16-hex-digit seed; typing it into hero select with the
   same hero yields the same floor-1 boss and first offers (DD-R09).
 - [ ] No hardcoded values: `log_memory_budget_bytes` and `keep_match_logs` are read from a data

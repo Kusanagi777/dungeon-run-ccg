@@ -172,13 +172,26 @@ emerges from scoring: "Fireball the 6/6, not the 1/1" is simply the candidate wi
 `f_threat`. The **op value table** (`op_values` in `ai_profiles.json`, keyed on the Card Effects
 C5 op names — `damage`, `heal`, `buff`, `set_stats`, `give_keyword`, `silence`, `freeze`,
 `destroy`, `summon`, `transform`, `draw`, `discover`, `add_to_hand`, `copy_to_hand`,
-`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`; the structural ops `conditional`,
+`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`, `add_counter` (added 2026-11-04, DD-X20); the structural ops `conditional`,
 `repeat` and `choose_one` are valued as the sum of their inner ops, `aura` and `modify_value` as
 `buff`) is used in two places only: as the pre-filter rank when candidates exceed the eval budget
 (C4), and to value options that cannot be simulated (C7). An op's value is multiplied by the
 number of targets its selector yields on the current board (`all_*` selectors, `n` picks), so a
 three-target `damage` outranks a one-target one without an AoE row of its own. It is a hint,
-never the decision. Three **derived annotations** are computed by Boss AI from the effect spec at
+never the decision. **`add_counter` row (2026-11-04, DD-X20): `add_counter 0.5`.** The op is
+source-scoped and has no selector, so its target count is 1. Its value sits at the floor of the
+table, with `armor` (0.5) and below `heal` (0.6): incrementing a counter changes nothing on the
+board when it resolves; the payoff is valued by the op that reads `counter.<key>` (Neutral
+Gravekeeper's Deathrattle is a `damage` op, 1.0 × its targets), so a higher row would count the
+same damage twice, and a zero row would rank a counter card as dead text in the pre-filter. The
+row lets `neutral_gravekeeper` load without `E_AI_OP_UNVALUED` (content CN-2). `set_counter` stays
+unvalued (no shipped card uses it). **Attack valuation** (2026-11-04, DD-X22; records what boss-ai
+story 005 built). An attack command's pre-filter value is one `damage` row on its target. An
+attack that kills its minion target adds the `destroy` row. A lethal attack on the player's hero
+(attack ≥ health + armour) ranks above every other candidate, so the pre-filter never drops it. A
+non-lethal attack on the player's hero is one `damage` row whatever its Attack, the same as any
+face attack. Its amount is valued after simulation by F1's face term `f_face`, and F1 sets
+`f_face` to 0 when the attack leaves the boss vulnerable. Three **derived annotations** are computed by Boss AI from the effect spec at
 load — Card Effects adds no AI-only fields: `position_sensitive` = any effect on the card uses an
 `adjacent`, `left_neighbour` or `right_neighbour` selector (Card Effects C3); `aoe` = any
 `damage`, `destroy`, `freeze`, `silence` or negative `buff`/`set_stats` op whose selector is
@@ -390,6 +403,7 @@ f_passive= 1 if synergy_match(card(a), profile.synergy_tags) else 0             
 | w_hp | float | 0–2 | data file | default 0.5 |
 | w_passive | float | 0–5 | data file | default 0; passive_driven 2.5 |
 | BV_NORM, THREAT_NORM | float | 5–20 | data file (`rules`) | Normalisers so features stay in [−1, 1] for a typical 2–3 minion swing |
+| vulnerable(a) | bool | — | calculated | F1 vulnerability exception below (2026-11-04, DD-X22) |
 
 **Output Range:** roughly −8 to +12 with default weights; `end_turn` on a full-mana turn scores
 ≈ −w_mana. **Example** (aggro profile: `w_board 1.5, w_face 3.0, w_trade 1.0, w_threat 2.0,
@@ -403,6 +417,39 @@ survives as a 3/1): `ΔBV_boss = (3+1) − (3+3) = −2`, `ΔBV_player = 0 − (
 `end_turn` scores `−6/6 · 1.0 = −1.0`. The trade is chosen first (2.45), then the 4/4 (1.87 — its
 features are unchanged by the trade), then `end_turn` (now `−2/6 = −0.33`, the best remaining
 move).
+
+**Vulnerability exception (2026-11-04, DD-X22).** A non-lethal attack on the player's hero is
+valued by `f_face` like any face attack. The exception is an attack that leaves the boss
+vulnerable. For that candidate `f_face = 0`, and its `f_self` charges the hit it leaves open:
+`f_self = −min(1, reach(after(a)) / (boss_health + boss_armor))`. A face attack otherwise has
+`f_self = 0`, because a hero never strikes back. The defensive terms (`f_self`, `f_trade`,
+`f_threat`, `f_board`) then decide against the alternatives.
+
+```
+reach(s)         = Σ_{m ∈ player.board in s} attack(m)·max_attacks(m) + player_weapon_attack(s)
+                   − Σ_{t ∈ boss taunters in s} health(t)                     (F6 counting, F4 Taunt term)
+unsafe(s)        = reach(s) ≥ boss_health(s) + boss_armor(s) − defensive_margin
+vulnerable(a)    = a is an attack by A on the player's hero, not lethal,
+                   ∧ unsafe(after(a))
+                   ∧ ∃ simulated candidate b = A attacks a player minion with ¬unsafe(after(b))
+```
+
+Two choices fix this definition. Both make it testable from the sandbox states alone. First, it
+uses the player's **board only**, without F6's `burn_per_mana` hand estimate, because the hand is
+hidden (C1.3) and the estimate would flag almost every late-game attack. Second, it applies only
+when the same attacker had a trade that would have kept the boss safe: "gives up a trade". When
+no trade helps, the boss races (Edge Cases "If the player has lethal next turn"). "Gives up a
+blocker" needs no clause of its own, because an attack never removes the attacker's Taunt and a
+hero never strikes back (match-rules C8, C12). `frozen` and summoning-sick player minions count
+as in F6. The rule holds in every band (`rules.defensive` gates only F6's DEFENSIVE mode).
+**Example:** default profile, boss 12 health, `defensive_margin` 3, no boss Taunt. The player has
+a 5/5 and a 4/2 (reach 9 ≥ 9, unsafe). The boss's 4/4 can hit face for 4, or trade into the 4/2
+(reach 5, safe). The face attack is vulnerable, so `f_face = 0` instead of 4/20 = 0.2, and
+`f_self = −9/12 = −0.75`. It scores −0.75. The trade scores −0.73: both die (`f_board` −0.4,
+`f_trade` −1, `f_threat` +0.67). With no mana left, `end_turn` scores 0, so the boss holds back
+rather than opening itself to a lethal swing. If the 4/2 were a 4/6 the 4/4 cannot kill (reach
+stays 9 after the attack), no trade helps, and the face attack keeps `f_face = 0.2`. It scores 0.3
+and is chosen.
 
 ### F2. Board value and threat
 
@@ -537,6 +584,12 @@ Profile = { extends?: key,
             synergy_tags: [string] }
 ```
 
+`add_counter 0.5` (2026-11-04, DD-X20; C6) is a decided row of the op value table that the list
+above does not yet carry. It moves into that list in the same change that adds it to
+`assets/data/ai_profiles.json`, because `boss_ai_profiles_data_test.gd` pins the shipped file to
+the list (content story 010, sprint 5). Until then the shipped file has the 19 rows above and a
+card using `add_counter` fails the load with `E_AI_OP_UNVALUED`.
+
 Archetype deltas from `default` (F1's table holds the default weights; default `rules` are
 `hero_power spare_mana`, `lethal_search full`, `defensive false`, `assume_aoe false`): **aggro** `w_face 3.0, w_board
 1.5, trade_ratio 1.3, hero_power always, choice_preference {charge 0.5, weapon 0.4}`; **control**
@@ -605,7 +658,12 @@ budget), `off`.
   boss finds — intended).
 - **If the player has lethal next turn** (F6) and no defensive play changes the estimate: the AI
   still plays the best-scoring DEFENSIVE action (often racing, since `f_face` is reduced not
-  zeroed); it does not resign or stall.
+  zeroed); it does not resign or stall. The F1 vulnerability exception does not zero `f_face`
+  here, because no trade by the attacker makes the boss safe (2026-11-04, DD-X22).
+- **If a non-lethal face attack gives up a trade that would keep the boss safe** (F1
+  `vulnerable`): `f_face = 0` and `f_self` charges the open reach for that attack, so the trade,
+  a defensive play or `end_turn` is chosen on its own terms. `ai_decision` lists the face attack with `f_face 0` in `top3` when it is there
+  (2026-11-04, DD-X22).
 - **If both lethal and defensive conditions hold**: lethal wins (checked first, C2).
 - **If the planner's forecast and the real turn disagree** (player changed the board): the
   committed intent carries `kept = false`; the forecast is never retro-edited (log is append-only).
@@ -676,12 +734,12 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `synergy_tags` | per boss | — | More tags: boss tunnels on its passive even when losing | Empty: passive never fed; Pillar 2 weakens | `w_passive`, Content |
 | `trade_ratio` | 1.0 | 0.5–2.0 | Only trades up | Trades down freely | `w_trade` |
 | `overextend_cap_aoe` | 4 | 2–7 | Cap irrelevant at 7 | At 2 the boss never commits | `w_over`, `BOARD_SIZE` |
-| `defensive_margin` / `burn_per_mana` | 3 / 1.0 | 0–10 / 0–2 | Defensive mode earlier and more often | Boss ignores lethal threats | F6, `defensive_multipliers` |
+| `defensive_margin` / `burn_per_mana` | 3 / 1.0 | 0–10 / 0–2 | Defensive mode earlier and more often | Boss ignores lethal threats | F6, `defensive_multipliers`; `defensive_margin` also sets F1's `unsafe` threshold (2026-11-04, DD-X22) |
 | `tie_epsilon` | 0.05 | 0–0.5 | More RNG in play; less predictable | Fully deterministic ordering by canonical sort | `ai_<floor>` draw count |
 | `lethal_max_nodes` | 50 / 500 / 4000 | 10–20,000 | Finds deeper lethals; planner time up | Misses multi-step lethals | `planner_target_ms` |
 | `max_evals_per_action` | 40 / 120 / 250 | 10–1,000 | Better target choice on wide boards; time up | Pre-filter decides more; weaker play | `op_values`, `planner_target_ms` |
 | `max_actions_per_turn` | 30 | 10–100 | Longer degenerate turns possible | Legit token turns cut short | Match Rules `TURN_CAP` |
-| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; runs past 300 ms show "boss thinking" more often | Forces smaller budgets | F7 (measurement only; never a runtime switch), `intent_banner_s` |
+| `planner_target_ms` | 500 per planner run (`play_turn`, `forecast` each; was 50 per round — 2026-11-04, DD-X18) | 50–1,000 (was 20–200 — 2026-11-04, DD-X18) | Allows larger budgets; the commit beat stretches over the run up to this cap (match-ui U6.2, 2026-11-04, DD-X23), and runs past it show "boss thinking" | Forces smaller budgets | F7 (measurement only; never a runtime switch), `intent_banner_s` |
 | `presentation.action_delay_s` | 0.6 | 0.3–1.2 | Boss turns read slower; risk "long opponent turns" | Actions blur together | `max_turn_playback_s` |
 | `presentation.max_turn_playback_s` | 10 | 6–20 | Long turns play in full | Delay compresses on busy turns | `action_delay_s` |
 | `presentation.intent_banner_s` / `plan_changed_s` | 0.3 / 1.2 | 0.2–0.6 / 0.6–2.0 | Longer commit beat / longer "plan changed" label; the first boss action starts later | Beat unreadable / label missed | Match UI `boss_turn_gap` (reads `intent_banner_s`) |
@@ -716,14 +774,15 @@ prompts from this section (11 intent icons, banner frame, "plan changed" label).
 Slay the Spire's enemy intent icons — the boss's plan is public, so a loss is "I saw it and
 could not stop it", never "where did that come from". Anti-reference: Hearthstone's AI opponents
 pausing with a "thinking" emote; the boss here does not stall on screen — a short "boss thinking"
-beat (ADR-0006) appears only when a planner run outlasts the 300 ms banner beat (2026-11-04,
-DD-X18).
+beat (ADR-0006) appears only when a planner run outlasts the commit beat, which stretches over
+planning to `max(intent_banner_s, planner run)` up to `planner_target_ms` 500 ms (2026-11-04,
+DD-X18; DD-X23: was "outlasts the 300 ms banner beat").
 
 ### Input Responsiveness
 | Action | Max latency (ms) | Frame budget (60 fps) | Notes |
 |---|---|---|---|
-| Player `end_turn` → boss planner complete | 500 | 30 frames | F7 target per planner run (was 50 ms / 3 frames — 2026-11-04, DD-X18), measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30). A run longer than the 300 ms banner beat shows the existing "boss thinking" state (ADR-0006) |
-| Planner complete → first boss action on screen | 300 | 18 frames | Banner commit beat, then playback |
+| Player `end_turn` → boss planner complete | 500 | 30 frames | F7 target per planner run (was 50 ms / 3 frames — 2026-11-04, DD-X18), measured off the main thread (C1.5); main-thread cost ≤ 2 ms in any frame (A30). The commit beat covers the run up to 500 ms; a longer run shows the existing "boss thinking" state (ADR-0006) (2026-11-04, DD-X23; was "longer than the 300 ms banner beat") |
+| End Turn → first boss action on screen | `max(300, planner run)`, ≤ 500 at target | 18–30 frames | The commit beat starts at End Turn and lasts `max(intent_banner_s, planner run)` capped at `planner_target_ms`; playback follows. Past the cap, "boss thinking" until the plan arrives, then playback (match-ui U6.2). Was "Planner complete → first boss action 300" (2026-11-04, DD-X23) |
 | Each subsequent boss action | `action_delay_s` = 600 | 36 frames | Compressed to fit `max_turn_playback_s` on busy turns |
 | Player click "skip" during playback | 100 | 6 frames | Playback jumps to the final state (events already logged) |
 
@@ -733,7 +792,7 @@ Not applicable — the AI animates nothing; playback reuses Match Rules' targets
 ### Impact Moments
 | Impact Type | Duration (ms) | Effect Description | Configurable? |
 |---|---|---|---|
-| Intent commit beat | 300 | Banner brightens, short hold before the first action | Yes (`intent_banner_s`) |
+| Intent commit beat | 300–500 (`max(intent_banner_s, planner run)`, capped at `planner_target_ms`; 2026-11-04, DD-X23) | Banner brightens, short hold before the first action | Yes (`intent_banner_s`) |
 | Lethal intent (`intent_key = lethal`) | 600 | Banner pulses red once; no other emphasis — the board already says it | Yes |
 
 ### Weight and Responsiveness Profile
@@ -899,6 +958,13 @@ under `tests/fixtures/boss_ai/`, never inline numbers except where the number is
   through the real match driver (windowed, not headless), **THEN** no frame attributes more than
   2 ms of main-thread time to `src/ai/**` (`.claude/rules/ai-code.md`), and the `ai_decision`
   sequence equals the headless run of the same seed (A1).
+- [ ] **A31 GIVEN** F1's vulnerability example (default profile; boss 12 health, `defensive_margin`
+  3, no boss Taunt; player 5/5 + 4/2 at 20 health; boss 4/4 able to attack), **WHEN** the
+  candidates are scored with boss mana 0, **THEN** the face attack has `f_face = 0` and
+  `f_self = −0.75`, and the chosen action is not the face attack. **GIVEN** the 4/2 replaced by a
+  4/6, **THEN** the face attack has `f_face = 0.2` and `f_self = 0` (no trade makes the boss safe)
+  and is chosen. **GIVEN** a boss 2/4 Taunt added (reach 9 − 4 = 5, safe), **THEN** `f_face = 0.2`. **GIVEN** the player at 4 health, **THEN** the face attack is lethal
+  and never zeroed (2026-11-04, DD-X22).
 
 ## Open Questions
 

@@ -16,6 +16,7 @@ Review record for this run (2026-11-03, `/architecture-decision`, headless, no
 `AskUserQuestion` answerer):
 
 - **Erratum 2026-11-03 (rng-event-log story 003)**: the snapshot carries a fourth key, `fork_points: {fork name: parent draw count at fork time}`; `restore()` replays `stream(parent).fork(label)` at that point (forks keyed by parent + label, per the code-review erratum) and clears cached forks. `snapshot()` keeps `run_seed` as an int in memory; `snapshot_to_json_dict()` persists `run_seed_hex`. `restore()` rejects a snapshot from another run seed or with malformed entries (`ERR_INVALID_DATA`).
+- **Erratum 2026-11-04 (DD-X19)**: the rng-event-log performance AC for 10,000 appends + `events_since(0)` is **80 ms** headless (was 50 ms; owner decision after rng-event-log story 010 measured 51–60 ms debug, 33–47 ms CI, 43–65 ms release). The per-append deep copy and freeze (Decision 5) stay; only the budget changes. Text below updated; the decision is unchanged.
 - TD-ADR skipped — Lean mode (`review_mode: lean`; TD-ADR is not a PHASE-GATE).
 - Engine validation: **NOT ASSESSED** — `godot-specialist` was not spawned (no
   `Agent` tool in this run). Every engine claim below is sourced from
@@ -145,7 +146,7 @@ pins Godot 4.7.2 / GDScript.
 - `.claude/rules/ai-code.md` 2 ms/frame and ADR-0006: the planner runs off the
   main thread; this ADR must say what the log guarantees to subscribers.
 - Budgets (rng-event-log Acceptance Criteria): 10,000 appends + `events_since(0)`
-  under 50 ms headless; `restore()` of 10,000 draws under 5 ms; open match log
+  under 80 ms headless (50 ms until 2026-11-04, DD-X19); `restore()` of 10,000 draws under 5 ms; open match log
   ≤ 2 MB (`log_memory_budget_bytes`).
 - Engine reference has no page for `RandomNumberGenerator`, `JSON`, `Time`,
   `FileAccess` details beyond the 4.4 `store_*` → `bool` row; claims about them
@@ -572,14 +573,14 @@ Probe D/E scripts and raw output: scratch, outside the repo
 | rule 19 `damage_by_card == {"card_a": 12}` | GDD AC 14 | `event_log_summary_test.gd` |
 | Diagnostic `command_rejected` round-trips (rule 12a) | GDD AC 15 | `event_log_test.gd` |
 | `data_version` mismatch → error, nothing created | GDD AC 16 (helper passes `test_restore_rejects_data_version_mismatch`) | `rng_service_test.gd` |
-| Perf: 10,000 appends + `events_since(0)` < 50 ms; `restore(10,000)` < 5 ms | GDD AC 17 | `rng_event_log_perf_test.gd` (thresholds fail the test) |
+| Perf: 10,000 appends + `events_since(0)` < 80 ms (2026-11-04, DD-X19; was 50 ms); `restore(10,000)` < 5 ms | GDD AC 17 | `rng_event_log_perf_test.gd` (thresholds fail the test) |
 | Two runs, seed 42, hero War, same commands ⇒ equal `run_started.boss_ids[]` and floor-1 `draft_offered.option_ids[]` | GDD AC 3 (needs Run Structure + Reward Draft) | `tests/integration/rng_event_log/replay_equivalence_test.gd` |
 | Manual: seed shown on the death screen reproduces floor-1 boss and offers | GDD AC 18 | playtest note under `production/qa/evidence/` when run-ui lands |
 
 ## Performance Implications
 - **CPU**: one `randi()` per draw plus integer arithmetic — negligible; a 36-card
   shuffle is 35 draws. `append` deep-copies the payload (typically < 10 keys);
-  10,000 appends measured against the 50 ms AC. `restore` ≤ 5 ms per stream at
+  10,000 appends measured against the 80 ms AC (2026-11-04, DD-X19; was 50 ms). `restore` ≤ 5 ms per stream at
   10,000 draws.
 - **Memory**: one `RandomNumberGenerator` per requested stream (≈ 4 per floor,
   plus forks) — bytes. Open match log ≤ `log_memory_budget_bytes` (2 MB) by

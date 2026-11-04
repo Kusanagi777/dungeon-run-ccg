@@ -347,8 +347,8 @@ stories:
     wave: 3
     serialised: false
     contract: false
-    blocker: "2026-11-04: GDD conflict on destroy-then-silence — match-rules C12 vs card-effects AC-21 (queued Deathrattle survives a later Silence); MR-015/017 code review S3; a design decision is needed before AC-21 can be built"
-    note: "stretch; not started. Story file reads Ready, so status is ready-for-dev per the mapping; the blocker holds it (the story header should go to Blocked at /story-readiness)"
+    blocker: ""
+    note: "stretch; not started. Blocker cleared 2026-11-04 by DD-X21 (destroy then silence: the Deathrattle fires; match-rules C12/C13 revised, AC-21 stands); scope gains the match-rules silence change and match-rules AC-46"
     completed: ""
   - id: "boss-ai-match-driver-006"
     name: "Tie-break and stream draws"

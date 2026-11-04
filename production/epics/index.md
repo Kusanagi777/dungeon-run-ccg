@@ -12,7 +12,7 @@ Review: PR-EPIC skipped — Lean mode
 | RNG & Event Log | Foundation | RNG & Event Log | design/gdd/rng-event-log.md | 11 stories | Ready |
 | Card Database | Foundation | Card Database | design/gdd/card-database.md | 10 stories | Ready |
 | Match Rules | Core | Match Rules | design/gdd/match-rules.md | 19 stories | Ready |
-| Card Effects | Core | Card Effects | design/gdd/card-effects.md | 16 stories | Ready |
+| Card Effects | Core | Card Effects | design/gdd/card-effects.md | 17 stories (story 017 added 2026-11-04, DD-X21) | Ready |
 | Boss AI + Match Driver | Core | Boss AI (+ Run Structure's `MatchDriver`) | design/gdd/boss-ai.md | 19 stories | Ready |
 | Match UI | Presentation | Match UI | design/gdd/match-ui.md | 24 stories | Ready |
 | Run Structure | Feature | Run Structure | design/gdd/run-structure.md | Not yet created | Ready |
@@ -21,7 +21,7 @@ Review: PR-EPIC skipped — Lean mode
 | Heroes | Feature | Heroes | design/gdd/heroes.md | 4 stories | Ready |
 | Run UI | Presentation | Run UI | design/gdd/run-ui.md | Not yet created | Ready |
 | Meta Progression (persistence + seam) | Feature / Foundation code | Meta Progression | design/gdd/meta-progression.md | Not yet created | Ready |
-| Content (MVP batch) | Feature (data) | Content | design/gdd/content.md | 9 stories | Ready |
+| Content (MVP batch) | Feature (data) | Content | design/gdd/content.md | 10 stories (story 010 added 2026-11-04, DD-X20) | Ready |
 
 ## Build order and plan mapping (E1–E10)
 

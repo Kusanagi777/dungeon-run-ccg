@@ -480,9 +480,9 @@ draw(side):
 | **Lifesteal** | Minion, Weapon, Spell | Damage dealt by this source heals its controller's hero by the same amount | Heal is applied inside the same damage step (F2), after `dealt` is known; no `healed` event when `dealt = 0` (Divine Shield) |
 | **Poisonous** | Minion, Weapon | Any damage > 0 to a minion destroys it | No effect on heroes; blocked by Divine Shield; the kill resolves in the death check, so a Deathrattle still fires |
 | **Freeze** | Character (status) | Frozen characters cannot attack | Thaw rule in C13; Silence thaws; freezing an already-frozen character re-stamps `frozen_on_turn` |
-| **Silence** | Minion (operation) | Removes keywords, enchantments, Deathrattles, triggered and aura effects from the target | Does not remove summoning sickness, damage already taken, or `pending_destroy`; C13 |
+| **Silence** | Minion (operation) | Removes keywords, enchantments, Deathrattles, triggered and aura effects from the target | Does not remove summoning sickness, damage already taken, or `pending_destroy`; on a minion already `pending_destroy` it does not remove its Deathrattles (2026-11-04, DD-X21); C13 |
 | **Battlecry** | Minion, Weapon | Effect when **played** from hand | Does not fire when summoned by an effect; first step of a play (C6); fizzles without a required target |
-| **Deathrattle** | Minion, Weapon | Effect when it leaves play by dying/breaking | Queued in board order (C10); fires even if the source was Silenced **after** it died (impossible) but not if Silenced before |
+| **Deathrattle** | Minion, Weapon | Effect when it leaves play by dying/breaking | Queued in board order (C10). **Fires** when the minion was Silenced after it was marked `pending_destroy` (`destroy` then `silence` in one effect): the Deathrattles it held when marked were earned there and queue at the death check as usual (2026-11-04, DD-X21; was "not if Silenced before [it died]", which made this case not fire). Does **not** fire when Silenced before the destroy, or when Silenced while dying from damage alone (`health ≤ 0`, no `pending_destroy`) |
 | **Spell Damage +N** | Minion | Spells cast by the controller deal N more damage | Summed over the controller's board (F7); applied by Card Effects to spell damage operations only |
 | **Discover** | Spell/Battlecry (operation) | Offer 3 options, the controller picks 1 | Options drawn from the `match` RNG stream; enters the Choice phase (States); Boss AI chooses for the boss |
 | **Aura** | Minion | Static buff while the source is in play | Recomputed after every step (C10); never stacks with itself from the same source; source Silence ends it |
@@ -505,7 +505,13 @@ counter.
 the target (aura enchantments it *receives* from other sources are re-applied by the next
 `recompute_auras()` — Silence stops the target's own aura **emission**, not its reception);
 (2) clear all keywords, Deathrattles and triggered effects granted by the definition or by
-enchantments; (3) set `silenced = true` so Card Effects skips the definition's triggers for this
+enchantments — **except** that a minion already `pending_destroy` keeps the Deathrattles it held
+when it was marked, whether printed or granted (2026-11-04, DD-X21): `pending_destroy` is
+irrevocable (cleared only by leaving play), so its Deathrattles were earned at the destroy; they
+queue at the death check in DD-M11 order and read the raise-time snapshot taken there (post-Silence
+stats). A minion at `health ≤ 0` without `pending_destroy` is not protected, because a later op of
+the same pass can still heal or buff it back. Content lists `silence` before `destroy` when a card
+means to stop the Deathrattle (card-effects C5); (3) set `silenced = true` so Card Effects skips the definition's triggers for this
 entity; (4) clamp damage with F6's Silence rule — `damage_taken = max(0, damage_taken −
 max(0, old_max_health − new_max_health))` — so a buffed, damaged minion keeps its current health where
 possible but never exceeds its new maximum; (5) `frozen = false`; (6) emit `silenced`. Silence
@@ -959,6 +965,16 @@ names the exact outcome; "the engine decides" is not an answer here.
 
 - **If Silence hits a minion with Divine Shield, Taunt and a Deathrattle**: all three are removed
   in one step; when it later dies no Deathrattle fires; a shield already popped is not restored.
+- **If one effect destroys a minion and then Silences it** (`destroy` then `silence` through the
+  same reference, e.g. `chosen`): the minion is `pending_destroy` when Silenced, so its keywords,
+  enchantments and other triggers are removed but its Deathrattles stay; the death check after the
+  pass removes it and queues them. Log: `silenced`, then `minion_died`, then `trigger_queued` for
+  the Deathrattle (2026-11-04, DD-X21). In the other order (`silence` then `destroy`) no
+  Deathrattle fires. The content validator rejects the destroy-first order on one target
+  (card-effects C10), so this case reaches the engine only from test fixtures.
+- **If one effect deals lethal damage and then Silences the same minion**: the minion is dying
+  (`health ≤ 0`) but not `pending_destroy`, so Silence removes its Deathrattle and none fires
+  (2026-11-04, DD-X21: only the irrevocable mark protects it).
 - **If Silence hits a minion that was buffed by an aura from another minion**: the buff is removed
   by Silence and immediately re-applied by `recompute_auras` — net no change to received auras;
   only the Silenced minion's own emitted aura stops.
@@ -1367,6 +1383,12 @@ and a fixture card set (`tests/fixtures/cards_test.json`: vanilla minions, one o
   `crystal_gained` was emitted, and the next player Start step refills to 4/4 (F4, no
   `crystal_bonus` change); **GIVEN** mana 9/10, **WHEN** `add_mana(PLAYER, 2, temporary=true)`
   resolves, **THEN** the player reads 10/10 (clamped to `MAX_MANA`).
+- [ ] AC-46 **GIVEN** a minion with a Deathrattle "deal 2 damage to the enemy hero", **WHEN** one
+  effect runs `destroy` then `silence` on it through `chosen`, **THEN** after the pass the log
+  reads `silenced`, `minion_died`, then `trigger_queued` and `damage_dealt {dealt: 2}` on the enemy
+  hero; **WHEN** the order is `silence` then `destroy`, **THEN** `minion_died` is emitted and no
+  `trigger_queued` follows for it; **WHEN** the effect is lethal `damage` then `silence`, **THEN** no
+  `trigger_queued` follows (C12 Deathrattle row, C13 step 2; 2026-11-04, DD-X21).
 
 ## Open Questions
 

@@ -108,7 +108,7 @@ QL-STORY-READY skipped — Lean mode.
 **Started / ended (UTC)**: 2026-11-04T03:02:22Z – 2026-11-04T03:07:47Z (readiness reading overlapped story 002, from 2026-11-04T02:44Z)
 **Criteria**: 3/3 passing — AC-1 by direct validator run (the Boot registration lands at merge), AC-2 and AC-3 with the deviations below
 **Deviations**:
-- **Gatekeeper deck (AC-2)**: `neutral_gravekeeper` ×2 → `boss_iron_gate` and `boss_gate_warden` at ×3 each (content Edge Cases fallback), because Gravekeeper stays deferred (story 001). To restore: once Boss AI values `add_counter`, add the Gravekeeper record and swap the two slots back.
+- **Gatekeeper deck (AC-2)**: `neutral_gravekeeper` ×2 → `boss_iron_gate` and `boss_gate_warden` at ×3 each (content Edge Cases fallback), because Gravekeeper stays deferred (story 001). To restore: once Boss AI values `add_counter`, add the Gravekeeper record and swap the two slots back. *(2026-11-04, DD-X20: Boss AI now values `add_counter`; the swap is content story 010. Rat King's exclusion stands, DD-X24.)*
 - **Neutral set 14, not 15 (AC-3)**: same cause.
 - **AC-1 "zero `E_AI_*`" through the load**: Boot still lists `ai_profile` in `PENDING_RECORD_OWNERS` on this branch, so the load shows one `W_VALIDATOR_PENDING` row on `bosses.json`. `BossAI.validate_profiles_config` + `validate_ai_profile` over all three shipped bosses return zero rows (test, seen failing on a mutated key). With lane 4's line `map["ai_profile"] = BossAI.validate_ai_profile` trialled and reverted, validate reads `Ready — 0 errors, 9 warnings`.
 - Boss-card display names (`Rat Pack`, `Rat Matriarch`, `Iron Gate`, `Gate Warden`) come from the ids: CN-3 B3 has no Name column. The `intro_text` lines are placeholders (content Open Questions "Intro lines").
@@ -118,3 +118,4 @@ QL-STORY-READY skipped — Lean mode.
 **Test Evidence**: `production/qa/smoke-2026-11-04-content-mvp1-band1-bosses.md` (PASS); `tests/integration/content/content_mvp1_data_test.gd` (+10 tests, all seen failing before the records were added). Full suite 1096 test cases, 0 failures, exit 0; smoke exit 0.
 **Run result**: N/A — data only; no scene loads these bosses until the match driver and match-ui stories, and the smoke run stays clean.
 **Reviewed by**: self, no independent review (lean — QL-TEST-COVERAGE and LP-CODE-REVIEW skipped); game-designer sign-off NOT ASSESSED (no agent)
+**Owner sign-off (2026-11-04, DD-X24)**: Jacob accepts both band-1 bosses as shipped. This covers Rat King's two excluded neutrals (`neutral_gravekeeper`, `neutral_smite_or_mend`), which stand as a recipe choice, and Gatekeeper's Edge Cases fallback, which is superseded for Gravekeeper by DD-X20: content story 010 swaps it back. This replaces the NOT ASSESSED game-designer sign-off above.

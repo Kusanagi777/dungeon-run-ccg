@@ -13,6 +13,7 @@ Accepted
 Review record for this authoring run (2026-11-03, `review_mode: lean`,
 `automation: guided`, `workflow: standard`, `docs.density: balanced`):
 
+- **Erratum 2026-11-04 (DD-X23)**: match-ui's End Turn → commit beat row is now "the beat lasts `max(intent_banner_s, planner run)` up to boss-ai `planner_target_ms` (500 ms), then playback; past that, 'boss thinking' until the plan arrives" (match-ui U6.2). The beat begins on `turn_started{side: boss}` over the already-shown intent, and `ai_intent_committed` is applied when it ends. Decisions 1–4 (queue, boss-turn mode, scene partition, loader seam) are unchanged; the Related latency line is updated.
 - **TD-ADR gate skipped — Lean mode.** `technical-director` was not spawned.
 - **Engine validation: NOT ASSESSED** — no `Agent` tool was available to this
   run, so `godot-specialist` was not spawned. `docs/engine-reference/godot/`
@@ -119,7 +120,7 @@ behaviour references, not ported code (TD-010).
 - **Display-only** (`.claude/rules/ui-code.md`; ADR-0001): no presenter holds a number the view-state cannot reproduce; every match mutation goes through `submit`.
 - **The UI never blocks the game thread** (`ui-code.md`; U4.8): per-step timing on process ticks, no `await` chains inside rules code.
 - **Every animation skippable and motion-preference aware** (`ui-code.md`; DD-X07 `anim_speed`, `reduce_motion`; F3).
-- **Latency table** (match-ui Input Responsiveness): pickup 16 ms, drag 16 ms, release → first visual 50 ms, rejection 50 ms, skip-all 100 ms, End Turn → commit beat 300 ms, hover 100 ms.
+- **Latency table** (match-ui Input Responsiveness): pickup 16 ms, drag 16 ms, release → first visual 50 ms, rejection 50 ms, skip-all 100 ms, End Turn → commit beat ends and playback starts at `max(300 ms, planner run)` ≤ 500 ms, then "boss thinking" until the plan arrives (2026-11-04, DD-X23; was "End Turn → commit beat 300 ms"), hover 100 ms.
 - **1280x720 logical, `canvas_items` stretch** (DD-T05; F6 grid).
 - **Evidence**: every screen reachable from a launch argument (U11) and captured per `run-and-observe.md` / ADR-0010.
 - **Deprecated patterns banned** (`deprecated-apis.md`): `yield()`, string `connect`, `$NodePath` in `_process`, untyped `Array` / `Dictionary`.

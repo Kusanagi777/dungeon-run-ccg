@@ -123,7 +123,7 @@ QL-STORY-READY skipped — Lean mode.
 **Deviations**:
 - **Hollow King deck (AC-2)**: `neutral_gravekeeper` ×2 → `boss_hollow_knight` and `boss_crown_of_thorns` at ×3 each (content Edge Cases fallback).
 - **Rot Warden deck (AC-2)**: `neutral_gravekeeper` ×2 → `neutral_crypt_brute` ×2. Both boss cards are already at ×3, so the fallback's neutral branch applies.
-- **Why, and how to restore**: both deviations come from Gravekeeper staying deferred (story 001). To restore, add the Gravekeeper record once Boss AI values `add_counter`, then swap the slots back.
+- **Why, and how to restore**: both deviations come from Gravekeeper staying deferred (story 001). To restore, add the Gravekeeper record once Boss AI values `add_counter`, then swap the slots back. *(2026-11-04, DD-X20: Boss AI now values `add_counter`; both swaps are content story 010.)*
 - **Boss-card names**: `Rot Zombie`, `Mass Rites`, `Hollow Knight`, `Crown of Thorns` come from the ids, because CN-3 B3 has no Name column. The token is named `Husk`, from its CN-2 card text.
 - **Intro text**: the `intro_text` lines are placeholders (content Open Questions "Intro lines").
 - **`boss_rot_zombie` summon position**: `source_slot`, from card-effects C11 row 9, the Deathrattle-summon shape. B3 does not name a position.
@@ -148,3 +148,4 @@ QL-STORY-READY skipped — Lean mode.
 - At Alpha-A, Decay deathrattle cards replace Rot Warden's neutrals; at VS, three walls replace three of Hollow King's neutrals (content Edge Cases).
 
 **Reviewed by**: self, no independent review (lean: QL-TEST-COVERAGE and LP-CODE-REVIEW skipped). Game-designer sign-off NOT ASSESSED (no agent).
+**Owner sign-off (2026-11-04, DD-X24)**: Jacob accepts Rot Warden and Hollow King as shipped. This covers Rot Warden's 10 named neutrals and its two exclusions (`neutral_ogre_porter`, `neutral_smite_or_mend`), and both decks' Edge Cases fallbacks, which are superseded for Gravekeeper by DD-X20: content story 010 swaps them back. This replaces the NOT ASSESSED game-designer sign-off above.
