@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: `forecast` runs on a clone at `PlayerTurn.Main` with no gate on player input; a stale premise is discarded silently; `ai_intent_shown` is appended by the driver on the main thread. `telegraph_mode` is applied via `on_setting_changed` → `boss_ai.set_telegraph_mode` when no task is live, else deferred to `_on_task_done()`.
 - Forbidden: The intent is never fabricated — it is a projection of a plan the planner would execute on the forecast state. Hidden: which card will be played, Discover picks, anything that would reveal the hand.
-- Guardrail: Forecast doubles the per-round worker cost off-thread (A22 measures forecast + play_turn together).
+- Guardrail: Forecast is its own planner run off-thread, during the player's turn; A22 measures it separately from `play_turn`, each p95 ≤ 500 ms (2026-11-04, DD-X18); was "forecast doubles the per-round worker cost; A22 measures forecast + play_turn together". A forecast still running at End Turn is discarded (ADR-0008; boss-ai C8 tolerates "plan changed").
 
 ---
 

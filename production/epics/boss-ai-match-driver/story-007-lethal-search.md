@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: `BossAI` `await`s `planner.checkpoint()` between lethal-search nodes (C3). Budgets are counts from `ai_profiles.json`.
 - Forbidden: Never run the search against the live engine; the worker is never handed the live engine or live log.
-- Guardrail: `lethal_max_nodes` 50 / 500 / 4000 per band (F7); at band 3 it is the first knob lowered if A22 fails.
+- Guardrail: `lethal_max_nodes` 50 / 500 / 4000 per band (F7); band 3's counts (this and `max_evals_per_action`) are lowered if A22 (p95 ≤ 500 ms per planner run) fails after match-rules story 019 re-measures (2026-11-04, DD-X18).
 
 ---
 

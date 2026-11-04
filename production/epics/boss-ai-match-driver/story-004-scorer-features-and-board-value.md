@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: `RulesEngine.clone()` deep-copies `MatchState` (including hooks) and binds a fresh `EffectResolver` with no installers — the sandbox. The Boss AI plans on the clone inside a `PlannerTask`. `BossAI` `await`s `planner.checkpoint()` between candidate evaluations (C4–C6 `score_all`).
 - Forbidden: Nothing in `src/ai/**` ever calls `signal.emit`, `log.append` on a live log, `get_tree()` or any `Node` method. Never hand the worker the live engine. `RulesEngine.state()` is called only from `src/gameplay/effects/**` — the scorer reads through `legal_commands()`, `clone()`, `submit()` results and the public query surface.
-- Guardrail: `clone()` + empty resolver memo per look-ahead node measured by the sim harness against `planner_target_ms` 50 p95; `submit()` ≤ 5 ms worst case.
+- Guardrail: `clone()` + empty resolver memo per look-ahead node measured by the sim harness against `planner_target_ms` 50 p95; `submit()` ≤ 5 ms worst case. **Note 2026-11-04, DD-X18:** `planner_target_ms` is now 500 p95 per planner run (`play_turn` and `forecast` each).
 
 ---
 

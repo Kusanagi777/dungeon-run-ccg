@@ -24,7 +24,7 @@
 **Control Manifest Rules (this layer)**:
 - Required: Default `WorkerPoolPlannerTask` protocol; `Boot` constructs `WorkerPoolPlannerTask` by default and `TimeSlicedPlannerTask` when `runtime.planner_mode == "time_sliced"` or `--ai-sync`.
 - Forbidden: Never a dedicated `Thread` per boss turn as the default (kept as a drop-in `ThreadPlannerTask` behind the seam if the pool misbehaves on Windows). Never main-thread time-slicing as the sole implementation.
-- Guardrail: Boss AI main thread ≤ 2 ms per frame — one `is_task_completed` per frame plus replay bounded by `replay_budget_ms`; worker 50 ms p95 per turn (A22).
+- Guardrail: Boss AI main thread ≤ 2 ms per frame — one `is_task_completed` per frame plus replay bounded by `replay_budget_ms`; worker 500 ms p95 per planner run, `play_turn` and `forecast` each (A22) (2026-11-04, DD-X18); was 50 ms p95 per turn.
 
 ---
 
@@ -35,7 +35,7 @@
 - [ ] GIVEN the Windows export built by `commands.build` from the current `main`, WHEN it is launched on the owner's Windows machine and a band-1 match (Rat King, Gatekeeper or Torchbearer) is played through the real `MatchDriver` with `WorkerPoolPlannerTask` (`runtime.planner_mode = worker`), THEN at least one full boss turn completes with `ai_intent_shown`, `ai_intent_committed` and `ai_decision` events in the log, no `ai_fault`, and the retained log is saved under `production/qa/evidence/boss-ai-windows-<date>/` (gate condition 6: "Boss AI planner running on the Windows export").
 - [ ] **A30** GIVEN a Windows debug export with the profiler attached, WHEN 20 band-3 boss rounds (Hollow King) run through the real match driver (windowed, not headless), THEN no frame attributes more than 2 ms of main-thread time to `src/ai/**` (and `MatchDriver.tick()` logs no `ai_fault {tick_over_budget}`), and the `ai_decision` sequence equals the headless Linux run of the same seed (A1); the profiler capture and the two canonical-JSON logs are retained in the evidence folder.
 - [ ] GIVEN the Windows export, WHEN Story 017's determinism suite (worker vs time-sliced vs immediate, the full 1,000-turn set) is run via `tools/sim.sh` / the gdUnit4 command on Windows, THEN the logs are byte-identical across the three implementations with zero `ai_fault`, the result file is retained, and gate condition 9's Boss AI half is recorded as met in `production/gate-checks/gate-pre-production-2026-11-03.md`'s follow-up (technical-director sign-off noted in the evidence README).
-- [ ] **A22 on the target machine** GIVEN Story 016's harness run on the owner's Windows machine (headless, release template, band 3, 200 seeds), THEN `p95_planner_ms ≤ 50` and `ai_decision` events ≤ 400 per match, or the F7 knob (`lethal_max_nodes` band 3) is lowered in `ai_profiles.json` and the run repeated until it passes — the data change recorded as a `/quick-design` note.
+- [ ] **A22 on the target machine** GIVEN Story 016's harness run on the owner's Windows machine (headless, release template, band 3, 200 seeds), THEN `p95_planner_ms ≤ 500` for `play_turn` and for `forecast` separately (2026-11-04, DD-X18); was ≤ 50) and `ai_decision` events ≤ 400 per match, or band 3's F7 counts (`max_evals_per_action`, `lethal_max_nodes`) are lowered in `ai_profiles.json` and the run repeated until it passes — the data change recorded as a `/quick-design` note.
 
 ---
 
