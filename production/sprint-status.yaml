@@ -239,7 +239,7 @@ stories:
     name: "Load and memory budget"
     file: "production/epics/card-database/story-009-load-and-memory-budget.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -248,12 +248,12 @@ stories:
     contract: false
     blocker: ""
     note: "edits test_constants.gd"
-    completed: ""
+    completed: "2026-11-04"
   - id: "boot-composition-root-007"
     name: "Boot responsibilities in the control manifest"
     file: "production/epics/boot-composition-root/story-007-boot-responsibilities-manifest.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: ""
     estimate_days: 0.5
     lane: 4
@@ -261,8 +261,8 @@ stories:
     serialised: false
     contract: false
     blocker: ""
-    note: "after the L4 W1 fix buffer merges"
-    completed: ""
+    note: "after the L4 W1 fix buffer merges; condition 12 handed over, /create-control-manifest update pending"
+    completed: "2026-11-04"
   - id: "content-002"
     name: "MVP-1 War set"
     file: "production/epics/content/story-002-mvp-1-war-set.md"
