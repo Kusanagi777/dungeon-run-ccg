@@ -15,7 +15,11 @@
 ## record at C3 step 1, and the unit suite pins the two together.
 ## - `once_marks`: `once_per_turn` marks, `effect_id → turn` (C1).
 ## - `counters`: `str(entity_id) → {key: int}` (C5 `add_counter`).
-## - `per_turn`: per-turn tallies, `key → int` (C4).
+## - `per_turn`: per-turn tallies, `side → {key → int}` (C4, C6.8; story
+##   007): `cards_played_this_turn`, `spells_cast_this_turn`,
+##   `minions_died_this_turn`, kept by the resolver from the trigger points
+##   it sees ([method bump]) and dropped at that side's Start step
+##   ([method reset_turn]); an absent key reads 0 ([method tally]).
 ## - `pending_choice`: null, or the Discover / Choose One continuation (C8.1).
 ## [codeblock]
 ## var runtime: Dictionary = EffectRuntime.make()
@@ -54,6 +58,30 @@ static func is_runtime(value: Variant) -> bool:
 		if not record[field] is Dictionary:
 			return false
 	return _is_plain(record)
+
+
+## [param side]'s per-turn tally [param key] in [param runtime] (0 when
+## never bumped this turn). Example: `EffectRuntime.tally(state.effects, "player", "cards_played_this_turn")`.
+static func tally(runtime: Dictionary, side: String, key: String) -> int:
+	var bucket: Variant = (runtime.per_turn as Dictionary).get(side)
+	return int((bucket as Dictionary).get(key, 0)) if bucket is Dictionary else 0
+
+
+## Adds 1 to [param side]'s tally [param key] — the resolver's own data
+## (ADR-0007 Decision 5's exception; a tally is derivable from the log and
+## emits nothing). Example: `EffectRuntime.bump(state.effects, "boss", "minions_died_this_turn")`.
+static func bump(runtime: Dictionary, side: String, key: String) -> void:
+	var per_turn: Dictionary = runtime.per_turn
+	if not per_turn.get(side) is Dictionary:
+		per_turn[side] = {}
+	var bucket: Dictionary = per_turn[side]
+	bucket[key] = int(bucket.get(key, 0)) + 1
+
+
+## Drops every tally of [param side] (its Start step, C4).
+## Example: `EffectRuntime.reset_turn(state.effects, "player")`.
+static func reset_turn(runtime: Dictionary, side: String) -> void:
+	(runtime.per_turn as Dictionary).erase(side)
 
 
 static func _is_plain(value: Variant) -> bool:
