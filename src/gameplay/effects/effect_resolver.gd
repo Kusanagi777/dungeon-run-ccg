@@ -3,7 +3,8 @@
 ## `set_evaluators`).
 ##
 ## A `RefCounted` built once per match by the composition code
-## (`MatchDriver`: `EffectResolver.new(db, db.config("card_effects"))`), handed
+## (`MatchDriver`: `EffectResolver.new(db, db.config("card_effects"),
+## hero_set)` — the hero set is F4's collectible pool, story 010), handed
 ## to `RulesEngine._init`, and bound by `RulesEngine.start` at C3 step 1 —
 ## before `on_match_start`:
 ## - [method bind] keeps the engine, installs each `HookInstaller` through
@@ -25,11 +26,16 @@
 ## effects — derived data, rebuildable from the database, empty in a fresh
 ## resolver (a clone's resolver starts empty — ADR-0007 Decision 3).
 ##
+## **Choices** (story 010; card-effects C8, F4): a `discover` / `choose_one`
+## op raises the engine's `ChoiceRequest` and suspends its pass, keeping the
+## rest as plain data in `EffectRuntime.pending_choice`; the engine calls
+## [method resume] on `choose` (ADR-0007 Decision 1).
+##
 ## Every Tuning Knob is read from the injected config body (the `config` of
 ## `assets/data/card_effects.json`), never from a literal: [method knob],
 ## [method knob_int]; keys are [constant EffectValidator.CONFIG_KEYS].
 ## [codeblock]
-## var resolver := EffectResolver.new(db, db.config("card_effects"))
+## var resolver := EffectResolver.new(db, db.config("card_effects"), "war")
 ## var engine := RulesEngine.new(db, db.config("match_rules"), resolver)
 ## engine.start(config)       # binds the resolver
 ## engine.end_match()         # unbinds it
@@ -99,9 +105,51 @@ const HOST_KIND_CARD: String = "card"
 const HOST_KIND_HERO_POWER: String = "hero_power"
 ## `effect_resolved.fizzled` for a false `condition` (C1).
 const FIZZLED_CONDITION_FALSE: String = "condition_false"
+## This GDD's Choice events (C6.6, C8.1; DD-X04 — distinct from match-rules'
+## `choice_requested` / `choice_made`).
+const EVENT_DISCOVER_OFFERED: StringName = &"discover_offered"
+const EVENT_DISCOVER_PICKED: StringName = &"discover_picked"
+## The ops that suspend a pass (C8).
+const OP_DISCOVER: String = "discover"
+const OP_CHOOSE_ONE: String = "choose_one"
+## The DSL play trigger a `discover` `then: cast` pick resolves (C5).
+const TRIGGER_CAST: String = "cast"
+## Run-context field: the index of the running effect in its host's
+## `effects[]`, so a resumed pass re-reads the effect from the memo instead of
+## carrying it in the continuation.
+const RUN_EFFECT_INDEX: String = "effect_index"
+## `EffectRuntime.pending_choice` — the continuation (C8.1; ADR-0007 Decision
+## 1), plain data only: `{effect_id, side, kind, options, op_index, item,
+## remaining_ops, entries, run, source_snapshot, tail}` (see [method _offer]).
+const CONT_EFFECT_ID: String = "effect_id"
+const CONT_SIDE: String = "side"
+const CONT_KIND: String = "kind"
+const CONT_OPTIONS: String = "options"
+const CONT_OP_INDEX: String = "op_index"
+const CONT_ITEM: String = "item"
+const CONT_REMAINING_OPS: String = "remaining_ops"
+const CONT_ENTRIES: String = "entries"
+const CONT_RUN: String = "run"
+const CONT_SOURCE_SNAPSHOT: String = "source_snapshot"
+const CONT_TAIL: String = "tail"
+## A play run still owed (a [constant CONT_TAIL] entry): the host's effects
+## with `trigger` from index `next`, as [method resolve] runs a play point.
+const PLAY_TRIGGER: String = "trigger"
+const PLAY_HOST: String = "host_id"
+const PLAY_SOURCE: String = "source"
+const PLAY_SIDE: String = "side"
+const PLAY_TARGET: String = "target_id"
+const PLAY_NEXT: String = "next"
 
 var _db: CardDatabase
 var _config: Dictionary
+## The player's hero set: `base(collectible)` of F4 for both sides (Discover
+## and `add_to_hand.from` draw from the player's pool).
+var _hero_set: String = ""
+## The play runs still owed after the pass running now (a play point's later
+## effects; a `then: cast` pick): captured into the continuation when the
+## pass suspends ([constant CONT_TAIL]), empty between calls.
+var _tail: Array[Dictionary] = []
 ## The bound engine: set by [method bind], cleared by [method unbind].
 var _engine: RulesEngine = null
 ## `def_id → {effects: Array, record: Dictionary, targeting_spec: Dictionary}`
@@ -122,9 +170,15 @@ var _depth: int = 0
 ## builds asserts the body's `hooks_before_triggers` is `true` (the knob
 ## exists only for this assertion; `EffectValidator.validate_config` rejects
 ## any other value at load).
-func _init(db: CardDatabase, effects_config: Dictionary) -> void:
+## [param player_hero_set] is the run's hero set (`HeroDef.set`, e.g. `war`):
+## F4's `base(collectible) = collectible_pool(player_hero_set)` for both sides.
+## The composition code that knows the hero passes it; `clone()` must pass the
+## live resolver's [method player_hero_set] to the clone's. Left empty, a
+## `pool: collectible` draw logs an error and offers nothing.
+func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String = "") -> void:
 	_db = db
 	_config = effects_config
+	_hero_set = player_hero_set
 	assert(_config.get(KNOB_HOOKS_BEFORE_TRIGGERS) == true, "card_effects.hooks_before_triggers must be true (card-effects Tuning Knobs)")
 
 
@@ -145,14 +199,37 @@ func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void:
 
 
 ## Releases the engine: clears the registry's evaluators and the engine
-## reference. A no-op when not bound. Example: `resolver.unbind()`.
+## reference, and drops a continuation still pending (a `concede` in
+## `Choice` abandons it — C8.5). A no-op when not bound.
+## Example: `resolver.unbind()`.
 func unbind() -> void:
 	if _engine == null:
 		return
 	var state: MatchState = _engine.state()
 	if state != null and state.hooks != null:
 		state.hooks.set_evaluators(Callable(), Callable())
+	if state != null and state.effects.has("pending_choice"):
+		state.effects.pending_choice = null
+	_tail.clear()
 	_engine = null
+
+
+## The player's hero set given to `_init` ("" when none was).
+## Example: `EffectResolver.new(db, config, live.player_hero_set())` for a clone.
+func player_hero_set() -> String:
+	return _hero_set
+
+
+## F4 `base(collectible)`: `collectible_pool(player_hero_set)` — the same pool
+## for both sides (tokens and the `boss` set excluded by Card Database CR-6).
+## Without a hero set it logs an error and is empty, so a misbuilt resolver
+## shows up as `empty_pool` plus the error, never as a silent pass.
+## Example: `resolver.collectible_pool().size()`.
+func collectible_pool() -> Array:
+	if _hero_set == "":
+		push_error("EffectResolver: `pool: collectible` needs the player's hero set (EffectResolver.new(db, config, hero_set); F4)")
+		return []
+	return _db.collectible_pool(_hero_set)
 
 
 ## The engine this resolver is bound to, or null before [method bind] and
@@ -308,23 +385,50 @@ func run_hook_effect(_entry: Dictionary, _side: StringName, _ctx: Dictionary) ->
 ## [param trigger] now, in `effects[]` order (C1 rule 3, C6.2).
 func _run_play_point(trigger: String, ctx: Dictionary) -> void:
 	assert(_engine != null, "EffectResolver.resolve: not bound to an engine")
-	var host_id: String = str(ctx.card_id)
+	@warning_ignore("return_value_discarded")
+	_run_play_from({
+		PLAY_TRIGGER: trigger,
+		PLAY_HOST: str(ctx.card_id),
+		PLAY_SOURCE: int(ctx.source),
+		PLAY_SIDE: str(ctx.side),
+		PLAY_TARGET: ctx.get("target_id"),
+		PLAY_NEXT: 0,
+	})
+
+
+## The play run [param play] (`{trigger, host_id, source, side, target_id,
+## next}`): each effect of the host from index `next` whose trigger is
+## `trigger`, as one pass each. While a pass runs, the rest of this run is at
+## the front of [member _tail], so a pass that suspends for a choice carries
+## it in its continuation and [method resume] runs it after `choose`.
+## Returns false when a pass suspended (nothing after it ran).
+func _run_play_from(play: Dictionary) -> bool:
+	var host_id: String = str(play[PLAY_HOST])
 	var power_prefix: String = str(RecordSchemas.SCHEMAS[HERO_POWER_RECORD].prefix)
 	var host_kind: String = HOST_KIND_HERO_POWER if host_id.begins_with(power_prefix) else HOST_KIND_CARD
+	var trigger: String = str(play[PLAY_TRIGGER])
 	var effects: Array = effects_of(host_id)
-	for index: int in effects.size():
+	for index: int in range(int(play[PLAY_NEXT]), effects.size()):
 		var effect: Dictionary = effects[index]
 		if str(effect.get("trigger", "")) != trigger:
 			continue
-		_run_pass(effect, {
+		var rest: Dictionary = play.duplicate(true)
+		rest[PLAY_NEXT] = index + 1
+		_tail.push_front(rest)
+		var finished: bool = _run_pass(effect, {
 			"effect_id": str(effect.get("id", "%s.%d" % [host_id, index])),
 			"host_id": host_id,
 			"host_kind": host_kind,
-			"source_id": int(ctx.source),
-			"owner": str(ctx.side),
+			"source_id": int(play[PLAY_SOURCE]),
+			"owner": str(play[PLAY_SIDE]),
 			"trigger": trigger,
-			"target_id": ctx.get("target_id"),
+			"target_id": play[PLAY_TARGET],
+			RUN_EFFECT_INDEX: index,
 		})
+		_tail.pop_front()
+		if not finished:
+			return false
+	return true
 
 
 ## C6.2 "who responds" for event point [param point]: the queue entries of
@@ -432,6 +536,7 @@ func _run_queued(ctx: Dictionary) -> void:
 	assert(index >= 0 and index < effects.size(), "EffectResolver: queued entry %s names no effect of %s" % [ctx.get("effect_id"), def_id])
 	if index < 0 or index >= effects.size():
 		return
+	@warning_ignore("return_value_discarded")
 	_run_pass(effects[index], {
 		"effect_id": str(ctx.effect_id),
 		"host_id": def_id,
@@ -445,6 +550,7 @@ func _run_queued(ctx: Dictionary) -> void:
 		ENTRY_AMOUNT: ctx.get(ENTRY_AMOUNT),
 		ENTRY_DEPTH: int(ctx.get(ENTRY_DEPTH, 1)),
 		"snapshot": ctx.get("snapshot", {}),
+		RUN_EFFECT_INDEX: index,
 	})
 
 
@@ -463,20 +569,43 @@ func _run_queued(ctx: Dictionary) -> void:
 ## pass, the depth of the pass that raised it plus one (1 when raised outside
 ## any pass: a command's own primitive, a combat hit, a death check, a turn
 ## step).
-func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
+## **Suspension** (C8, story 010): the ops run off a plain-data work list
+## ([method EffectOps.work]); a `discover` / `choose_one` that raises a
+## `ChoiceRequest` ([method _offer]) stores the rest of the list as the
+## continuation and the pass returns **false** — no `effect_resolved`, no
+## later op, no draw — until [method resume] finishes it. Returns true when
+## the pass ran to its `effect_resolved`.
+func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> bool:
 	run_ctx["effect"] = effect
 	run_ctx["resolver"] = self
 	_depth = int(run_ctx.get(ENTRY_DEPTH, 0))
 	var fizzled: Variant = null
-	var ops: Array[Dictionary] = []
+	var entries: Array[Dictionary] = []
+	var todo: Array[Dictionary] = []
 	if _condition_holds(effect.get("condition"), run_ctx):
-		for op: Dictionary in effect.get("ops", []):
-			ops.append_array(_ops.run_all(_engine, op, run_ctx))
+		todo = EffectOps.work(effect.get("ops", []))
 	else:
 		fizzled = FIZZLED_CONDITION_FALSE
 		for op: Dictionary in effect.get("ops", []):
 			var none: Array[int] = []
-			ops.append(EffectOps.entry(str(op.get("op", "")), none, {}, EffectOps.SKIPPED))
+			entries.append(EffectOps.entry(str(op.get("op", "")), none, {}, EffectOps.SKIPPED))
+	return _continue_pass(run_ctx, entries, todo, fizzled)
+
+
+## Runs the work list [param todo] of a pass to its end — then the one
+## `effect_resolved` with [param entries] (the `ops[]` so far plus each item's)
+## — or until a choice suspends it (returns false; see [method _run_pass]).
+func _continue_pass(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary], fizzled: Variant) -> bool:
+	while not todo.is_empty():
+		var item: Dictionary = todo.front()
+		var name: String = str((item.op as Dictionary).get("op", ""))
+		if not bool(item.skip) and (name == OP_DISCOVER or name == OP_CHOOSE_ONE):
+			todo.pop_front()
+			if _offer(item, run_ctx, entries, todo):
+				_depth = 0
+				return false
+			continue
+		entries.append_array(_ops.step(_engine, todo, run_ctx))
 	@warning_ignore("return_value_discarded")
 	_engine.emit(EVENT_EFFECT_RESOLVED, {
 		"effect_id": run_ctx.effect_id,
@@ -487,9 +616,183 @@ func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> void:
 		"trigger": run_ctx.trigger,
 		"depth": _depth,
 		"fizzled": fizzled,
-		"ops": ops,
+		"ops": entries,
 	})
 	_depth = 0
+	return true
+
+
+## C8.1 for the work item [param item] (a `discover` or `choose_one` op):
+## builds the options — F4 for `discover` ([method EffectOps.pool_candidates],
+## `n = count` (default `DISCOVER_COUNT`) draws with removal), the option
+## records for `choose_one` — and, when there are any, raises the request
+## through the engine's `discover(owner, options, kind, source_id, effect_id)`
+## primitive (it enters `Choice`, emits `choice_requested`), emits
+## `discover_offered {side, source_id, effect_id, kind, option_card_ids |
+## option_label_keys}` and stores the continuation in
+## `EffectRuntime.pending_choice` — `{effect_id, side, kind, options,
+## op_index, item, remaining_ops, entries, run, source_snapshot, tail}`, plain
+## data (the run context without the effect and the resolver, the work list
+## left, the `ops[]` entries so far, the play runs still owed). Returns true
+## when the pass is now suspended. No candidate: one `empty_pool` entry, no
+## Choice, false (the effect continues — AC-11). A request the engine refuses
+## (the match ended, or one already pending — the engine logs that defect):
+## one `skipped` entry, false.
+func _offer(item: Dictionary, run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary]) -> bool:
+	var op: Dictionary = item.op
+	var name: String = str(op.get("op", ""))
+	var owner: String = str(run_ctx.owner)
+	var none: Array[int] = []
+	var kind: String = ChoiceRequest.KIND_CHOOSE_ONE if name == OP_CHOOSE_ONE else ChoiceRequest.KIND_DISCOVER
+	var options: Array = []
+	if kind == ChoiceRequest.KIND_CHOOSE_ONE:
+		options = (op.get("options", []) as Array).duplicate(true)
+	else:
+		var n: int = maxi(0, EffectValues.eval(op.get("count", knob_int(EffectOps.KNOB_DISCOVER_COUNT)), run_ctx))
+		options = EffectOps.draw_options(_engine, EffectOps.pool_candidates(self, op, run_ctx), n)
+		if options.is_empty():
+			var empty: Dictionary = EffectOps.entry(name, none, {"pool": str(op.get("pool", "")), "options": []}, EffectOps.EMPTY_POOL)
+			EffectOps.tag_condition(empty, item)
+			entries.append(empty)
+			return false
+	var request: Dictionary = _engine.discover(owner, options, kind, run_ctx.source_id, str(run_ctx.effect_id))
+	if request.is_empty():
+		var refused: Dictionary = EffectOps.entry(name, none, {}, EffectOps.SKIPPED)
+		EffectOps.tag_condition(refused, item)
+		entries.append(refused)
+		return false
+	var offered: Dictionary = {"side": owner, "source_id": run_ctx.source_id, "effect_id": str(run_ctx.effect_id), "kind": kind}
+	if kind == ChoiceRequest.KIND_CHOOSE_ONE:
+		offered["option_label_keys"] = options.map(func(option: Variant) -> String: return str((option as Dictionary).get("label_key", "")))
+	else:
+		offered["option_card_ids"] = options.duplicate()
+	@warning_ignore("return_value_discarded")
+	_engine.emit(EVENT_DISCOVER_OFFERED, offered)
+	var run: Dictionary = run_ctx.duplicate()
+	run.erase("effect")
+	run.erase("resolver")
+	var snapshot: Variant = run_ctx.get("snapshot")
+	if not snapshot is Dictionary or (snapshot as Dictionary).is_empty():
+		snapshot = EffectSelectors.find(_engine.state(), int(run_ctx.source_id)).duplicate(true)
+	_engine.state().effects.pending_choice = {
+		CONT_EFFECT_ID: str(run_ctx.effect_id),
+		CONT_SIDE: owner,
+		CONT_KIND: kind,
+		CONT_OPTIONS: options.duplicate(true),
+		CONT_OP_INDEX: int(item.op_index),
+		CONT_ITEM: item.duplicate(true),
+		CONT_REMAINING_OPS: todo.duplicate(true),
+		CONT_ENTRIES: entries.duplicate(true),
+		CONT_RUN: run.duplicate(true),
+		CONT_SOURCE_SNAPSHOT: snapshot,
+		CONT_TAIL: _tail.duplicate(true),
+	}
+	return true
+
+
+## The `choose` continuation (ADR-0007 Key Interfaces; C8.2): the engine calls
+## it on `choose{option_index}` with [param choice] (its `ChoiceRequest`)
+## after `choice_made`, under the paused step's `cause_seq`. Takes the
+## continuation out of `EffectRuntime.pending_choice`, emits `discover_picked
+## {side, picked_index, picked_card_id | picked_label_key}`, applies the pick
+## ([method _apply_pick]: `then` for Discover, the option's `ops` inline for
+## Choose One), continues the same effect from the next work item, emits its
+## one `effect_resolved`, then runs the play runs still owed (the host's later
+## effects of the same play point). Any of these may raise the next request:
+## the pass suspends again the same way (a `repeat` around a `discover` makes
+## sequential choices, C8.4). Draws nothing itself. Without a continuation
+## (a resolver defect) it logs an error and does nothing.
+## Example: the engine's `_resolver.resume(choice, option_index)`.
+func resume(choice: Variant, option_index: int) -> void:
+	assert(_engine != null, "EffectResolver.resume: not bound to an engine")
+	var runtime: Dictionary = _engine.state().effects
+	var cont: Variant = runtime.get("pending_choice")
+	if not cont is Dictionary:
+		push_error("EffectResolver.resume: no continuation pending (card-effects C8)")
+		return
+	runtime.pending_choice = null
+	var pending: Dictionary = cont
+	assert(not choice is Dictionary or str((choice as Dictionary).get("effect_id", "")) == str(pending[CONT_EFFECT_ID]), "EffectResolver.resume: the ChoiceRequest is not this continuation's")
+	var run_ctx: Dictionary = (pending[CONT_RUN] as Dictionary).duplicate(true)
+	run_ctx["effect"] = effects_of(str(run_ctx.host_id))[int(run_ctx[RUN_EFFECT_INDEX])]
+	run_ctx["resolver"] = self
+	_depth = int(run_ctx.get(ENTRY_DEPTH, 0))
+	var entries: Array[Dictionary] = []
+	entries.assign(pending[CONT_ENTRIES])
+	var todo: Array[Dictionary] = []
+	todo.assign(pending[CONT_REMAINING_OPS])
+	var tail: Array[Dictionary] = []
+	tail.assign(pending[CONT_TAIL])
+	_tail = tail
+	_apply_pick(pending, option_index, run_ctx, entries, todo)
+	if _continue_pass(run_ctx, entries, todo, null):
+		while not tail.is_empty():
+			if not _run_play_from(tail.pop_front()):
+				break
+	_tail = []
+	_depth = 0
+
+
+## The pick of [param pending] at [param index] (C8.2; C5 `discover.then`):
+## `discover_picked`, then
+## - Choose One: one `choose_one` entry `{picked_index, label_key}` and the
+##   option's `ops` at the front of [param todo] (they run inline, before the
+##   effect's next op);
+## - Discover `then: add_to_hand` (default): `add_card_to_hand(side, id)` —
+##   `burned` on a full hand (still a pick, Edge Cases); `then: summon`:
+##   `summon_minion(side, id, end)` — `board_full` when full; `then: cast`:
+##   the picked spell's `cast` effects run as passes of their own once this
+##   pass has resolved (passes never nest; v1 content has no `then: cast`);
+## - a pick from the owner's deck or hand would have to move that instance:
+##   no primitive does yet, so it is `skipped` with `values.unsupported`.
+func _apply_pick(pending: Dictionary, index: int, run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary]) -> void:
+	var side: String = str(pending[CONT_SIDE])
+	var item: Dictionary = pending[CONT_ITEM]
+	var op: Dictionary = item.op
+	var options: Array = pending[CONT_OPTIONS]
+	var picked: Dictionary = {"side": side, "picked_index": index}
+	var targets: Array[int] = []
+	var outcome: String = EffectOps.APPLIED
+	var values: Dictionary = {}
+	if str(pending[CONT_KIND]) == ChoiceRequest.KIND_CHOOSE_ONE:
+		var option: Dictionary = options[index]
+		picked["picked_label_key"] = str(option.get("label_key", ""))
+		@warning_ignore("return_value_discarded")
+		_engine.emit(EVENT_DISCOVER_PICKED, picked)
+		values = {"picked_index": index, "label_key": str(option.get("label_key", ""))}
+		var inline: Array[Dictionary] = EffectOps.work(option.get("ops", []), item.condition, false, int(item.op_index))
+		inline.append_array(todo)
+		todo.assign(inline)
+	else:
+		var def_id: String = str(options[index])
+		picked["picked_card_id"] = def_id
+		@warning_ignore("return_value_discarded")
+		_engine.emit(EVENT_DISCOVER_PICKED, picked)
+		var then: String = str(op.get("then", EffectOps.THEN_ADD_TO_HAND))
+		values = {"pool": str(op.get("pool", "")), "options": options.duplicate(), "picked": def_id, "then": then, "side": side}
+		if EffectOps.INSTANCE_POOLS.has(str(op.get("pool", ""))):
+			values["unsupported"] = EffectOps.UNSUPPORTED_INSTANCE_PICK
+			outcome = EffectOps.SKIPPED
+		else:
+			match then:
+				EffectOps.THEN_SUMMON:
+					if (_engine.state().players[side].board as Array).size() >= _engine.rule("board_size"):
+						outcome = EffectOps.BOARD_FULL
+					var id: int = _engine.summon_minion(side, def_id, EffectOps.POSITION_END)
+					if id != RulesEngine.NO_ENTITY:
+						targets.append(id)
+				EffectOps.THEN_CAST:
+					_tail.push_front({
+						PLAY_TRIGGER: TRIGGER_CAST, PLAY_HOST: def_id, PLAY_SOURCE: int(run_ctx.source_id),
+						PLAY_SIDE: side, PLAY_TARGET: null, PLAY_NEXT: 0,
+					})
+				_:
+					outcome = EffectOps.hand_add_outcome(_engine, side)
+					@warning_ignore("return_value_discarded")
+					_engine.add_card_to_hand(side, def_id)
+	var picked_entry: Dictionary = EffectOps.entry(str(op.get("op", "")), targets, values, outcome)
+	EffectOps.tag_condition(picked_entry, item)
+	entries.append(picked_entry)
 
 
 ## C4 condition, evaluated once when the pass starts (C1): `cmp`, `exists`,

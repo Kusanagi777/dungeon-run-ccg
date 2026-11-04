@@ -12,17 +12,22 @@
 ## Story 006 ships `damage`, `heal`, `buff`, `destroy`, `draw`, `armor`,
 ## `equip`, `summon`, `silence`, `freeze`, `give_keyword` and `mana`; every
 ## other C5 op is recorded `skipped` until its story lands
-## (TODO: `discover` / `choose_one` 010, counters 009, `transform` /
+## (TODO: counters 009, `transform` /
 ## `copy_to_hand` / keyword removal 013, the rest with the stories that own
-## them). Story 007 adds `conditional` / `repeat` ([method run_all]), value
+## them). Story 007 adds `conditional` / `repeat` ([method step]), value
 ## expressions — every value param ([constant VALUE_PARAMS]) is evaluated by
 ## `EffectValues.eval` in [method run] before the handler sees it, a negative
 ## result for a [constant NON_NEGATIVE] param clamped to 0 with
 ## `values.clamped_from` — and Spell Damage (F1) in `damage`. The pass
-## context `run` carries `resolver`, the bound [EffectResolver].
+## context `run` carries `resolver`, the bound [EffectResolver]. Story 010
+## turns a pass into a plain-data **work list** ([method work], [method step])
+## so a `discover` / `choose_one` can suspend it mid-effect, and adds
+## `add_to_hand` and the F4 pool ([method pool_candidates],
+## [method draw_options]); the pause itself is the resolver's.
 ## [codeblock]
 ## var ops := EffectOps.new()
-## var entries: Array[Dictionary] = ops.run_all(engine, {"op": "draw", "count": 2}, run)
+## var todo: Array[Dictionary] = EffectOps.work([{"op": "draw", "count": 2}])
+## var entries: Array[Dictionary] = ops.step(engine, todo, run)
 ## [/codeblock]
 class_name EffectOps
 extends RefCounted
@@ -95,6 +100,7 @@ func _init() -> void:
 		"summon": _op_summon,
 		"mana": _op_mana,
 	}
+	_table["add_to_hand"] = _op_add_to_hand
 
 
 ## True when this story's table runs [param op_name] (else [method run]
@@ -131,45 +137,81 @@ func run(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary
 	return result
 
 
-## Runs [param op] and returns its `effect_resolved.ops` entries — one per
-## leaf op executed (C5, story 007):
-## - `conditional {if, then, else}`: `if` (a C4 condition) evaluated now; the
-##   branch taken runs, each of the other branch's ops is one `skipped`
-##   entry; every entry of both carries `values.condition` (Edge Cases: the
-##   log carries the evaluated condition);
-## - `repeat {times, ops}`: `times` (a value, clamped to 0 …
-##   `max_repeat`) iterations, each re-resolving its selectors against the
-##   live board (C6.0: a minion an iteration kills is dying, so the next
-##   finds no target);
+## The work items of [param ops] for a pass's work list (story 010): one
+## plain-data `{op, condition, skip, op_index}` per op, in order. `condition`
+## is the outermost `conditional`'s evaluated `if` the op sits under (null at
+## top level), `skip` marks an op of the branch not taken, and `op_index` is
+## the index of the effect's top-level op it came from ([param op_index], or
+## each op's own index when it is −1). Plain data, so a suspended pass keeps
+## it in `EffectRuntime.pending_choice`.
+## Example: `var todo: Array[Dictionary] = EffectOps.work(effect.ops)`.
+static func work(ops: Variant, condition: Variant = null, skip: bool = false, op_index: int = -1) -> Array[Dictionary]:
+	var items: Array[Dictionary] = []
+	var list: Array = ops if ops is Array else []
+	for index: int in list.size():
+		items.append({
+			"op": list[index],
+			"condition": condition,
+			"skip": skip,
+			"op_index": index if op_index < 0 else op_index,
+		})
+	return items
+
+
+## Pops the front item of the work list [param todo] and runs it, returning
+## the `effect_resolved.ops` entries it produced — one per leaf op executed
+## (C5, story 007; as a work list since story 010):
+## - a `skip` item (an op of the `conditional` branch not taken): one
+##   `skipped` entry, nothing run;
+## - `conditional {if, then, else}`: `if` (a C4 condition) evaluated now; both
+##   branches go to the front of [param todo] — the taken one to run, the
+##   other as `skip` items — and every entry from either carries
+##   `values.condition` (Edge Cases: the log carries the evaluated condition);
+##   returns no entry itself;
+## - `repeat {times, ops}`: `times` (a value, clamped to 0 … `max_repeat`)
+##   copies of `ops` go to the front of [param todo]; each copy's selectors are
+##   resolved when it runs, against the live board (C6.0: a minion an
+##   iteration kills is dying, so the next finds no target);
 ## - any other op: [method run], one entry.
-## Example: `entries.append_array(ops.run_all(engine, op, run))`.
-func run_all(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Array[Dictionary]:
+## `discover` / `choose_one` never reach here un-skipped: the resolver takes
+## them off the list first, because they suspend the pass (C8).
+## Example: `while not todo.is_empty(): entries.append_array(ops.step(engine, todo, run))`.
+func step(engine: RulesEngine, todo: Array[Dictionary], run_ctx: Dictionary) -> Array[Dictionary]:
+	var item: Dictionary = todo.pop_front()
+	var op: Dictionary = item.op
 	var out: Array[Dictionary] = []
-	match str(op.get("op", "")):
-		"conditional":
-			var taken: bool = EffectValues.holds(op.get("if"), run_ctx)
-			for branch: String in ["then", "else"]:
-				var runs: bool = taken == (branch == "then")
-				for inner: Variant in op.get(branch, []):
-					var entries: Array[Dictionary] = []
-					if runs:
-						entries = run_all(engine, inner, run_ctx)
-					else:
-						var none: Array[int] = []
-						entries.append(entry(str((inner as Dictionary).get("op", "")), none, {}, SKIPPED))
-					for e: Dictionary in entries:
-						(e.values as Dictionary)["condition"] = taken
-						out.append(e)
-		"repeat":
-			var times: int = EffectValues.eval(op.get("times", 1), run_ctx)
-			var resolver: EffectResolver = run_ctx.resolver
-			times = clampi(times, 0, resolver.knob_int(KNOB_MAX_REPEAT))
-			for _i: int in times:
-				for inner: Variant in op.get("ops", []):
-					out.append_array(run_all(engine, inner, run_ctx))
-		_:
-			out.append(run(engine, op, run_ctx))
+	var children: Array[Dictionary] = []
+	if bool(item.skip):
+		var none: Array[int] = []
+		out.append(entry(str(op.get("op", "")), none, {}, SKIPPED))
+	else:
+		match str(op.get("op", "")):
+			"conditional":
+				var taken: bool = EffectValues.holds(op.get("if"), run_ctx)
+				var marker: Variant = item.condition if item.condition != null else taken
+				children = work(op.get("then", []), marker, not taken, int(item.op_index))
+				children.append_array(work(op.get("else", []), marker, taken, int(item.op_index)))
+			"repeat":
+				var times: int = EffectValues.eval(op.get("times", 1), run_ctx)
+				var resolver: EffectResolver = run_ctx.resolver
+				times = clampi(times, 0, resolver.knob_int(KNOB_MAX_REPEAT))
+				for _i: int in times:
+					children.append_array(work(op.get("ops", []), item.condition, false, int(item.op_index)))
+			_:
+				out.append(run(engine, op, run_ctx))
+	if not children.is_empty():
+		children.append_array(todo)
+		todo.assign(children)
+	for e: Dictionary in out:
+		tag_condition(e, item)
 	return out
+
+
+## Writes [param item]'s `conditional` marker into [param op_entry]'s
+## `values.condition` (none at top level). Example: `EffectOps.tag_condition(e, item)`.
+static func tag_condition(op_entry: Dictionary, item: Dictionary) -> void:
+	if item.get("condition") != null:
+		(op_entry.values as Dictionary)["condition"] = item.condition
 
 
 ## One `ops[]` entry (card-effects Interactions payload).
@@ -413,3 +455,128 @@ static func _int(value: Variant) -> int:
 	if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
 		return int(value)
 	return 0
+
+
+# --- choices and pools (story 010; C5 `discover` / `add_to_hand`, F4) -------------
+
+## The C5 outcome of a `discover` / `add_to_hand.from` with no candidate (F4
+## `n_options == 0`: no Choice phase, the effect continues).
+const EMPTY_POOL: String = "empty_pool"
+## C5 `discover.pool` / `add_to_hand.from.pool` values.
+const POOL_COLLECTIBLE: String = "collectible"
+const POOL_LIST: String = "list"
+const POOL_DECK: String = "deck"
+const POOL_HAND: String = "hand"
+## The pools that offer the owner's card instances: a pick from them must
+## move that instance, which no match-rules primitive does yet (see
+## [method _op_add_to_hand] and `EffectResolver.resume`).
+const INSTANCE_POOLS: Array[String] = [POOL_DECK, POOL_HAND]
+## C5 `discover.then` values (default `add_to_hand`).
+const THEN_ADD_TO_HAND: String = "add_to_hand"
+const THEN_SUMMON: String = "summon"
+const THEN_CAST: String = "cast"
+## The F4 Tuning Knobs (card-effects Tuning Knobs).
+const KNOB_DISCOVER_COUNT: String = "discover_count"
+const KNOB_DISCOVER_EXCLUDE_HAND: String = "discover_exclude_hand"
+## `values.unsupported` on a pick from [constant INSTANCE_POOLS].
+const UNSUPPORTED_INSTANCE_PICK: String = "instance_pick_needs_a_move_primitive"
+
+
+## F4 `candidates` for the pool spec [param spec] (`{pool, list?, filter?}` —
+## a `discover` op, or an `add_to_hand.from`) in pass [param run_ctx]:
+## `distinct_by_def_id(filter(base(pool), spec.filter) \ {source.def_id})`,
+## minus the def_ids in the owner's hand when `DISCOVER_EXCLUDE_HAND` is set,
+## id-ascending (CR-6 order, so the draw is independent of file order).
+## `base(collectible)` is `collectible_pool(player_hero_set)` for both sides
+## ([method EffectResolver.collectible_pool]); `base(list)` is `spec.list ∩
+## has(id)`; `base(deck)` / `base(hand)` are the owner's instances, by def_id.
+## Cards are filtered as `{entity_id: -1, def_id, controller: owner}`, so the
+## definition predicates of C3 apply. Example:
+## `var ids: Array[String] = EffectOps.pool_candidates(resolver, op, run)`.
+static func pool_candidates(resolver: EffectResolver, spec: Dictionary, run_ctx: Dictionary) -> Array[String]:
+	var owner: String = str(run_ctx.owner)
+	var player: Dictionary = resolver.bound_engine().state().players[owner]
+	var base: Array[String] = []
+	match str(spec.get("pool", "")):
+		POOL_COLLECTIBLE:
+			for record: Variant in resolver.collectible_pool():
+				base.append(str((record as Dictionary).id))
+		POOL_LIST:
+			for id: Variant in (spec.get("list") if spec.get("list") is Array else []):
+				if not resolver.definition(str(id)).is_empty():
+					base.append(str(id))
+		POOL_DECK, POOL_HAND:
+			for card: Variant in player[str(spec.pool)]:
+				base.append(str((card as Dictionary).def_id))
+	var excluded: Dictionary = {str(run_ctx.get("host_id", "")): true}
+	if bool(resolver.knob(KNOB_DISCOVER_EXCLUDE_HAND)):
+		for card: Variant in player.hand:
+			excluded[str((card as Dictionary).def_id)] = true
+	var filter: Dictionary = spec.filter if spec.get("filter") is Dictionary else {}
+	var seen: Dictionary = {}
+	var out: Array[String] = []
+	for id: String in base:
+		if seen.has(id) or excluded.has(id):
+			continue
+		seen[id] = true
+		if EffectSelectors.matches(resolver, {"entity_id": -1, "def_id": id, "controller": owner}, filter, owner, int(run_ctx.get("source_id", -1)), run_ctx):
+			out.append(id)
+	out.sort()
+	return out
+
+
+## F4's offer draw: `min(n, |candidates|)` options, each the candidate at
+## `j = engine.rng_match().randi_range(0, |candidates| − 1)`, with removal
+## — exactly that many stream draws, none when the pool is empty. Leaves
+## [param candidates] unchanged. Example:
+## `var options: Array[String] = EffectOps.draw_options(engine, ids, 3)`.
+static func draw_options(engine: RulesEngine, candidates: Array[String], n: int) -> Array[String]:
+	var rest: Array[String] = candidates.duplicate()
+	var options: Array[String] = []
+	var rng: RefCounted = engine.rng_match()
+	for _i: int in mini(n, rest.size()):
+		var j: int = rng.randi_range(0, rest.size() - 1)
+		options.append(rest[j])
+		rest.remove_at(j)
+	return options
+
+
+## The outcome a hand-add will have: `burned` when [param side]'s hand is
+## full (the engine burns the card, C5), else `applied`.
+static func hand_add_outcome(engine: RulesEngine, side: String) -> String:
+	return BURNED if (engine.state().players[side].hand as Array).size() >= engine.rule("hand_size") else APPLIED
+
+
+## C5 `add_to_hand`: `add_card_to_hand(side, def_id)` × count, `def_id` the
+## op's `card_id` or, with `from: {pool, filter, list}`, one F4 pick per copy
+## ([method pool_candidates] then one draw). Per copy: an empty pool is
+## `empty_pool`, a full hand `burned` (the engine emits `card_burned`), else
+## `applied`. A `from` over the owner's deck or hand would have to move that
+## instance, which no primitive does yet: each such copy is `skipped` with
+## `values.unsupported` and draws nothing.
+func _op_add_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var side: String = _side(op, run_ctx)
+	var count: int = _int(op.get("count", 1))
+	var from: Variant = op.get("from")
+	var values: Dictionary = {"count": count, "side": side}
+	var added: Array[String] = []
+	var outcomes: Array[String] = []
+	for _i: int in count:
+		var def_id: String = str(op.get("card_id", ""))
+		if from is Dictionary:
+			if INSTANCE_POOLS.has(str((from as Dictionary).get("pool", ""))):
+				values["unsupported"] = UNSUPPORTED_INSTANCE_PICK
+				outcomes.append(SKIPPED)
+				continue
+			var picks: Array[String] = draw_options(engine, pool_candidates(run_ctx.resolver, from, run_ctx), 1)
+			if picks.is_empty():
+				outcomes.append(EMPTY_POOL)
+				continue
+			def_id = picks[0]
+		outcomes.append(hand_add_outcome(engine, side))
+		@warning_ignore("return_value_discarded")
+		engine.add_card_to_hand(side, def_id)
+		added.append(def_id)
+	values["card_ids"] = added
+	var none: Array[int] = []
+	return entry("add_to_hand", none, values, fold_outcomes(outcomes) if count > 0 else APPLIED)
