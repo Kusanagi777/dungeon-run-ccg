@@ -466,7 +466,8 @@ func _run_play_point(trigger: String, ctx: Dictionary) -> void:
 ## `trigger`, as one pass each. While a pass runs, the rest of this run is at
 ## the front of [member _tail], so a pass that suspends for a choice carries
 ## it in its continuation and [method resume] runs it after `choose`.
-## Returns false when a pass suspended (nothing after it ran).
+## Returns false when a pass suspended, or the match ended in it (nothing after
+## it ran).
 func _run_play_from(play: Dictionary) -> bool:
 	var host_id: String = str(play[PLAY_HOST])
 	var power_prefix: String = str(RecordSchemas.SCHEMAS[HERO_POWER_RECORD].prefix)
@@ -658,7 +659,7 @@ func _run_queued(ctx: Dictionary) -> void:
 ## `ChoiceRequest` ([method _offer]) stores the rest of the list as the
 ## continuation and the pass returns **false** — no `effect_resolved`, no
 ## later op, no draw — until [method resume] finishes it. Returns true when
-## the pass ran to its `effect_resolved`.
+## the pass ran to its `effect_resolved` and the match goes on.
 func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> bool:
 	run_ctx["effect"] = effect
 	run_ctx["resolver"] = self
@@ -679,8 +680,11 @@ func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> bool:
 ## Runs the work list [param todo] of a pass to its end — then the one
 ## `effect_resolved` with [param entries] (the `ops[]` so far plus each item's)
 ## — or until a choice suspends it (returns false; see [method _run_pass]).
+## An emit that hits the event cap ends the match and unbinds this resolver in
+## its own frame (sprint-4 review S1): [member _engine] goes null, the rest of
+## the list is dropped and it returns false, so no owed play run follows.
 func _continue_pass(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary], fizzled: Variant) -> bool:
-	while not todo.is_empty():
+	while not todo.is_empty() and _engine != null:
 		var item: Dictionary = todo.front()
 		var name: String = str((item.op as Dictionary).get("op", ""))
 		if not bool(item.skip) and (name == OP_DISCOVER or name == OP_CHOOSE_ONE):
@@ -690,6 +694,9 @@ func _continue_pass(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array
 				return false
 			continue
 		entries.append_array(_ops.step(_engine, todo, run_ctx))
+	if _engine == null:
+		_depth = 0
+		return false
 	@warning_ignore("return_value_discarded")
 	_engine.emit(EVENT_EFFECT_RESOLVED, {
 		"effect_id": run_ctx.effect_id,
@@ -703,7 +710,7 @@ func _continue_pass(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array
 		"ops": entries,
 	})
 	_depth = 0
-	return true
+	return _engine != null
 
 
 ## C8.1 for the work item [param item] (a `discover` or `choose_one` op):
@@ -752,6 +759,8 @@ func _offer(item: Dictionary, run_ctx: Dictionary, entries: Array[Dictionary], t
 		offered["option_card_ids"] = options.duplicate()
 	@warning_ignore("return_value_discarded")
 	_engine.emit(EVENT_DISCOVER_OFFERED, offered)
+	if _engine == null:
+		return true
 	var run: Dictionary = run_ctx.duplicate()
 	run.erase("effect")
 	run.erase("resolver")
@@ -843,6 +852,8 @@ func _apply_pick(pending: Dictionary, index: int, run_ctx: Dictionary, entries: 
 		picked["picked_label_key"] = str(option.get("label_key", ""))
 		@warning_ignore("return_value_discarded")
 		_engine.emit(EVENT_DISCOVER_PICKED, picked)
+		if _engine == null:
+			return
 		values = {"picked_index": index, "label_key": str(option.get("label_key", ""))}
 		var inline: Array[Dictionary] = EffectOps.work(option.get("ops", []), item.condition, false, int(item.op_index))
 		inline.append_array(todo)
@@ -852,6 +863,8 @@ func _apply_pick(pending: Dictionary, index: int, run_ctx: Dictionary, entries: 
 		picked["picked_card_id"] = def_id
 		@warning_ignore("return_value_discarded")
 		_engine.emit(EVENT_DISCOVER_PICKED, picked)
+		if _engine == null:
+			return
 		var then: String = str(op.get("then", EffectOps.THEN_ADD_TO_HAND))
 		values = {"pool": str(op.get("pool", "")), "options": options.duplicate(), "picked": def_id, "then": then, "side": side}
 		if EffectOps.INSTANCE_POOLS.has(str(op.get("pool", ""))):

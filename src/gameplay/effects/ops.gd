@@ -421,6 +421,9 @@ func _op_retrigger(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> 
 	var trigger: String = str(op.get("trigger", ""))
 	var resolver: EffectResolver = run_ctx.resolver
 	return _per_target(engine, op, run_ctx, {"trigger": trigger}, func(id: int) -> String:
+		# An earlier target's `trigger_queued` may have hit the event cap.
+		if engine.phase() == MatchState.PHASE_ENDED:
+			return SKIPPED
 		var entries: Array[Dictionary] = resolver.retrigger_entries(trigger, id)
 		if entries.is_empty():
 			return NO_SUCH_TRIGGER
@@ -701,6 +704,9 @@ func _op_add_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -
 	var added: Array[String] = []
 	var outcomes: Array[String] = []
 	for _i: int in count:
+		# The last copy may have hit the event cap: the resolver is unbound now.
+		if engine.phase() == MatchState.PHASE_ENDED:
+			break
 		var def_id: String = str(op.get("card_id", ""))
 		if from is Dictionary:
 			if INSTANCE_POOLS.has(str((from as Dictionary).get("pool", ""))):

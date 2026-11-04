@@ -1308,6 +1308,8 @@ func equip_weapon(side: String, def_id: String) -> int:
 ## Choice` transition and no command can answer before `Mulligan`, so a
 ## pending request there would block every later `choose` and Discover. The
 ## resolver treats `{}` as "no choice": the effect's later ops do not run.
+## A request whose own events hit the event cap also returns `{}`: the match has
+## ended (sprint-4 review S1).
 ## A request raised inside a primitive — by an in-primitive hook entry
 ## (`on_draw`, `on_hero_damaged`, `on_minion_summoned`; ADR-0005 rule-4
 ## exception, erratum 2026-11-03) — is refused too (code review MR-016 S2):
@@ -1360,6 +1362,10 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 	_state.suspended_action = {"origin_phase": _state.phase, "cause_seq": _cause_seq, "frame": {}, "stages": []}
 	_set_phase(MatchState.PHASE_CHOICE)
 	emit(&"choice_requested", request.duplicate(true))
+	# Either emit may have hit the event cap (sprint-4 review S1): `_end_match`
+	# dropped the request, and the resolver must not suspend on it.
+	if _halted():
+		return {}
 	return request.duplicate(true)
 
 
@@ -2980,6 +2986,8 @@ func _weapon_leaves(side: String, reason: String) -> void:
 ## enchantment order, base first); the entries queue with the death's
 ## [param died_seq] and the snapshot.
 func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
+	if _halted():
+		return
 	var entity_id: int = int(snapshot.entity_id)
 	var candidates: Array[int] = [entity_id]
 	var ctx: Dictionary = {"side": str(snapshot.controller), "candidates": candidates, "subject": entity_id, "snapshot": snapshot}
@@ -3128,6 +3136,11 @@ func _end_match(winner: Variant, reason: String) -> void:
 	if _halted():
 		return
 	_state.phase = MatchState.PHASE_ENDED
+	# A Choice raised in this step can never be answered now (MR-016 S4: nothing
+	# stays parked on the Ended state; sprint-4 review S1). `_abandon_choice` has
+	# already taken a parked one back; one raised this step has nothing parked.
+	_state.pending_choice = null
+	_state.suspended_action = {}
 	var final_health: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
 		final_health[side] = health(_state.players[side].hero)
