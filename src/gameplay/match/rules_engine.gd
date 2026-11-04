@@ -174,6 +174,9 @@ const WEAPON_REPLACED: String = "replaced"
 ## `weapon_destroyed.reason` when the death check breaks a weapon at
 ## durability ≤ 0 (or marked `pending_destroy`, C10).
 const WEAPON_BROKEN: String = "broken"
+## The keyword a `pending_destroy` minion keeps through Silence (C13 step 2;
+## 2026-11-04, DD-X21).
+const KEYWORD_DEATHRATTLE: String = "deathrattle"
 ## The `ctx` key the engine sets to `true` when it executes a queued trigger:
 ## `resolver.resolve(point, ctx)` with it runs that one effect pass (one C10
 ## step) instead of collecting responders (story 009; card-effects C6.6).
@@ -1131,7 +1134,13 @@ func destroy(target_id: int) -> void:
 ##    aura enchantments it *receives* stay for the loop's `recompute_auras()`
 ##    to strip and re-apply, so received auras are net unchanged);
 ## 2. `keywords.clear()` — the definition's keywords (Divine Shield, Taunt,
-##    Deathrattle…), the enchantment-granted ones having left in 1;
+##    Deathrattle…), the enchantment-granted ones having left in 1. **Except**
+##    (2026-11-04, DD-X21) a minion already `pending_destroy` and not Silenced
+##    before it was marked keeps the Deathrattles it held at the mark, printed
+##    or granted: it keeps the `deathrattle` keyword (not in `removed_keywords`)
+##    and gets `deathrattles_kept = true`, which the resolver reads to answer
+##    `deathrattle` despite 3. A minion at `health ≤ 0` without the mark, or
+##    Silenced first, gets neither;
 ## 3. `silenced = true`: the resolver skips this entity's own triggers,
 ##    Deathrattles and aura emission from now on (ADR-0007);
 ## 4. F6: `damage_taken = max(0, damage_taken − max(0, old_max − max_health))`
@@ -1155,6 +1164,7 @@ func silence(target_id: int) -> void:
 	if minion.is_empty():
 		return
 	var old_max: int = max_health(minion)
+	var keeps_deathrattles: bool = bool(minion.get("pending_destroy", false)) and not bool(minion.silenced)
 	var removed_keywords: Array[String] = []
 	removed_keywords.append_array(minion.keywords)
 	var removed: Array[Dictionary] = []
@@ -1169,6 +1179,11 @@ func silence(target_id: int) -> void:
 				removed_keywords.append(keyword)
 	(minion.enchantments as Array).assign(kept)
 	(minion.keywords as Array).clear()
+	if keeps_deathrattles:
+		minion["deathrattles_kept"] = true
+		if removed_keywords.has(KEYWORD_DEATHRATTLE):
+			removed_keywords.erase(KEYWORD_DEATHRATTLE)
+			(minion.keywords as Array).append(KEYWORD_DEATHRATTLE)
 	minion.silenced = true
 	minion.damage_taken = maxi(0, int(minion.damage_taken) - maxi(0, old_max - max_health(minion)))
 	minion.frozen = false

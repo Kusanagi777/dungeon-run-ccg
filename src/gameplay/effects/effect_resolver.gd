@@ -88,7 +88,7 @@ const EVENT_TRIGGERS: Dictionary[StringName, Array] = {
 ## play *before* the raising event).
 const ENTRY_POINTS: Array[StringName] = [&"on_play", &"on_summon", &"on_card_played", &"on_weapon_equipped"]
 ## Queue-entry fields (ADR-0007 erratum 2026-11-03: `{source_id, effect_id,
-## point?, snapshot?}` — the engine fills `snapshot`; the rest is the
+## point?, snapshot?}` — this resolver supplies the C6.5 `snapshot`; the rest is the
 ## resolver's own plain data, read back by the queued pass).
 const ENTRY_DEF_ID: String = "def_id"
 const ENTRY_EFFECT_INDEX: String = "effect_index"
@@ -327,7 +327,7 @@ func legal_targets(def_id: String, source: Dictionary) -> Array[int]:
 ## 008): walks `ctx.candidates` in the engine's order (never re-sorted) and,
 ## per candidate, its definition effects in `effects[]` order; each effect
 ## whose trigger binds to the point and that [method _responds] is returned
-## as one queue entry (`{source_id, effect_id, def_id, effect_index, owner,
+## as one queue entry (`{source_id, effect_id, snapshot, def_id, effect_index, owner,
 ## trigger, trigger_subject, trigger_source, amount, depth}`) — the engine
 ## appends them to Q; nothing runs now (C10: triggers queue, never nest).
 ## **A queued entry** (`ctx.queued`, the engine popping it) runs as that one
@@ -475,7 +475,7 @@ func _run_play_from(play: Dictionary) -> bool:
 	var effects: Array = effects_of(host_id)
 	for index: int in range(int(play[PLAY_NEXT]), effects.size()):
 		var effect: Dictionary = effects[index]
-		if str(effect.get("trigger", "")) != trigger:
+		if str(effect.get("trigger", "")) != trigger or not _claim_once(effect, host_id, index, int(play[PLAY_SOURCE])):
 			continue
 		var rest: Dictionary = play.duplicate(true)
 		rest[PLAY_NEXT] = index + 1
@@ -520,13 +520,18 @@ func _collect(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 			var trigger: String = str(effect.get("trigger", ""))
 			if not triggers.has(trigger) or not _responds(trigger, effect, ctx, source_id, str(host.owner)):
 				continue
+			if not _claim_once(effect, def_id, index, source_id):
+				continue
 			queued.append(_queue_entry(point, ctx, source_id, def_id, index, effect, str(host.owner), trigger))
 	return queued
 
 
 ## The candidate's host `{def_id, owner}`, or `{}` when it cannot respond:
-## a Silenced source responds to nothing (C6.2; story 009 keeps a trigger
-## already queued). A Deathrattle's candidate has just left play, so it is
+## a Silenced source responds to nothing (C6.2; a trigger already queued still
+## resolves, [method _run_queued]). The exception is a Deathrattle the engine
+## kept through Silence: `deathrattles_kept` on the death snapshot, set when
+## Silence hit a minion already `pending_destroy` (match-rules C13 step 2;
+## 2026-11-04, DD-X21). A Deathrattle's candidate has just left play, so it is
 ## read from the death snapshot `ctx.snapshot` (match-rules C10); every other
 ## candidate is a minion or weapon in play. Heroes host no definition
 ## effects (hero-slot observers — hero power, treasures, passive — are story
@@ -539,6 +544,8 @@ func _candidate_host(point: StringName, source_id: int, ctx: Dictionary) -> Dict
 		if snapshot is Dictionary and int((snapshot as Dictionary).get("entity_id", -1)) == source_id:
 			record = snapshot
 			owner = str(record.get("controller", ctx.get("side", "")))
+			if bool(record.get("deathrattles_kept", false)):
+				return {"def_id": str(record.def_id), "owner": owner}
 	else:
 		var state: MatchState = _engine.state()
 		var kind: String = EffectSelectors.kind_of(state, source_id)
@@ -553,17 +560,42 @@ func _candidate_host(point: StringName, source_id: int, ctx: Dictionary) -> Dict
 ## Whether [param effect] (DSL [param trigger], source [param source_id],
 ## owned by [param owner]) responds to this occurrence [param ctx]: its
 ## `scope` matches (C2, [EffectScope]). The trigger binding, liveness and
-## Silence are checked by the caller. TODO(story 009): the `once_per_turn`
-## mark (C6.7) — until marks exist every occurrence responds.
+## Silence are checked by the caller, and the `once_per_turn` mark by
+## [method _claim_once] once this says yes.
 func _responds(trigger: String, effect: Dictionary, ctx: Dictionary, source_id: int, owner: String) -> bool:
 	return EffectScope.matches(self, trigger, effect.get("scope"), ctx, source_id, owner)
+
+
+## C6.7: true when [param effect] (index [param index] of [param def_id]) may
+## be queued or run for [param source_id] now. Without `once_per_turn` that is
+## always; with it the first call of a global `turn` sets the mark and says
+## yes, and any later one says no — a dropped raise emits nothing (Edge Cases:
+## nothing mutated). The mark is set here, when queued or run, so two raises
+## in one step produce one resolution; a false `condition` still spends it.
+func _claim_once(effect: Dictionary, def_id: String, index: int, source_id: int) -> bool:
+	if not bool(effect.get("once_per_turn", false)):
+		return true
+	var state: MatchState = _engine.state()
+	var key: String = EffectRuntime.once_key(_effect_id(effect, def_id, index), source_id, int(state.turn))
+	if EffectRuntime.once_marked(state.effects, key):
+		return false
+	EffectRuntime.mark_once(state.effects, key)
+	return true
+
+
+## The id of [param effect]: its own `id`, else `def_id.index`.
+static func _effect_id(effect: Dictionary, def_id: String, index: int) -> String:
+	return str(effect.get("id", "%s.%d" % [def_id, index]))
 
 
 ## One queue entry (ADR-0007 erratum shape plus this resolver's fields):
 ## plain data only — the engine copies it into Q and back into `ctx`.
 ## `trigger_subject` is the card instance for `on_card_played` (C2), the
 ## defender for `on_attack`, else `ctx.subject`; `trigger_source` is the
-## damager / healer (`ctx.source`) or the attacker.
+## damager / healer (`ctx.source`) or the attacker. `snapshot` is the C6.5
+## raise-time snapshot ([method EffectValues.source_snapshot]) of the source as
+## it is now: the death record for a Deathrattle, so post-Silence stats for a
+## kept one; the live record otherwise.
 func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: String, index: int, effect: Dictionary, owner: String, trigger: String) -> Dictionary:
 	var subject: Variant = ctx.get("subject")
 	var trigger_source: Variant = null
@@ -575,9 +607,11 @@ func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: St
 			trigger_source = ctx.get("attacker")
 		&"on_damage", &"on_heal":
 			trigger_source = ctx.get("source")
+	var record: Dictionary = ctx.snapshot if point == &"deathrattle" else EffectSelectors.find(_engine.state(), source_id)
 	return {
 		"source_id": source_id,
-		"effect_id": str(effect.get("id", "%s.%d" % [def_id, index])),
+		"effect_id": _effect_id(effect, def_id, index),
+		"snapshot": EffectValues.source_snapshot(self, record, source_id, def_id, owner),
 		ENTRY_DEF_ID: def_id,
 		ENTRY_EFFECT_INDEX: index,
 		ENTRY_OWNER: owner,
@@ -590,7 +624,7 @@ func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: St
 
 
 ## The engine popped one of this resolver's queue entries (`ctx` is the
-## entry plus the engine's `snapshot` and `queued`): run that effect as one
+## entry, its C6.5 `snapshot` included, plus `queued`): run that effect as one
 ## pass, whether or not its source is still in play (C6.5: queued = earned).
 ## The engine emitted `trigger_resolved` first; this pass runs under it.
 func _run_queued(ctx: Dictionary) -> void:
