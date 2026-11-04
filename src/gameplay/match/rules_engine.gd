@@ -1087,9 +1087,24 @@ func destroy(target_id: int) -> void:
 	record["pending_destroy"] = true
 
 
-## Primitive (C13): silences the minion [param target_id] — `silenced = true`
-## and `silenced {entity_id}`.
-## TODO(story 015): strip enchantments and keywords, the F6 clamp, thaw.
+## Primitive (C13, F6; story 015): silences the minion [param target_id] in
+## one step with one event:
+## 1. `old_max = max_health`; every **non-aura** enchantment is removed (no
+##    `enchantment_removed` — the single `silenced` is the step's event; the
+##    aura enchantments it *receives* stay for the loop's `recompute_auras()`
+##    to strip and re-apply, so received auras are net unchanged);
+## 2. `keywords.clear()` — the definition's keywords (Divine Shield, Taunt,
+##    Deathrattle…), the enchantment-granted ones having left in 1;
+## 3. `silenced = true`: the resolver skips this entity's own triggers,
+##    Deathrattles and aura emission from now on (ADR-0007);
+## 4. F6: `damage_taken = max(0, damage_taken − (old_max − max_health))`;
+## 5. `frozen = false` (it thaws at once, no `thawed`);
+## 6. `silenced {entity_id, removed_enchantments, removed_keywords}` —
+##    value copies of the removed enchantments, and the keywords it lost
+##    (definition first, then enchantment-granted, each once).
+## `summoning_sick`, `attacks_used`, `pending_destroy` and `base_*` are never
+## touched, and lost health is not restored. A missing minion (or a hero) is
+## a no-op with no event.
 ## [codeblock]
 ## engine.silence(minion_id)
 ## [/codeblock]
@@ -1099,8 +1114,25 @@ func silence(target_id: int) -> void:
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return
+	var old_max: int = max_health(minion)
+	var removed_keywords: Array[String] = []
+	removed_keywords.append_array(minion.keywords)
+	var removed: Array[Dictionary] = []
+	var kept: Array[Dictionary] = []
+	for enchantment: Dictionary in minion.enchantments:
+		if bool(enchantment.get("is_aura", false)):
+			kept.append(enchantment)
+			continue
+		removed.append(enchantment.duplicate(true))
+		for keyword: String in enchantment.keywords_added:
+			if not removed_keywords.has(keyword):
+				removed_keywords.append(keyword)
+	(minion.enchantments as Array).assign(kept)
+	(minion.keywords as Array).clear()
 	minion.silenced = true
-	emit(&"silenced", {"entity_id": target_id})
+	minion.damage_taken = maxi(0, int(minion.damage_taken) - (old_max - max_health(minion)))
+	minion.frozen = false
+	emit(&"silenced", {"entity_id": target_id, "removed_enchantments": removed, "removed_keywords": removed_keywords})
 
 
 ## Primitive (C13): freezes the character [param target_id] — `frozen =
@@ -2281,14 +2313,16 @@ func _turn_begin(side: String) -> void:
 ## C4 End step for the active [param side], entered by `end_turn`, as stages
 ## (story 016): (1) `phase = end`, `turn_ending`; (2) the `turn_end` triggers
 ## (same candidate order); (3) one stage per `on_turn_end` hook entry, each a
-## step with its C10 loop; (4)–(5) [method _expire_end_of_turn] as one step;
+## step with its C10 loop; (4) the thaw rule ([method _thaw], story 015);
+## (5) [method _expire_end_of_turn] as one step;
 ## (6) win/loss, `turn_ended`, then the other side's Start stages. Stops at
 ## the first event the log refuses (`event_cap`, [method emit]).
 func _end_stages(side: String) -> Array[Dictionary]:
 	var out: Array[Dictionary] = [{"stage": STAGE_TURN_ENDING, "side": side}]
 	out.append({"stage": STAGE_TURN_POINT, "side": side, "point": "turn_end"})
 	out.append_array(_hook_stages(&"on_turn_end", side, STAGE_HOOK))
-	# 4. TODO(story 015): the thaw rule (C13) for every `side` character.
+	# 4. the thaw rule (C13) for every `side` character (story 015)
+	out.append({"stage": STAGE_TURN_THAW, "side": side})
 	# 5. end_of_turn enchantments on everything `side` owns — one step, whose
 	#    C10 loop recomputes the auras (and kills what lost its health buff);
 	#    the side's temporary crystals expire in the same step (story 011)
@@ -2414,6 +2448,30 @@ func _expire_end_of_turn(side: String) -> void:
 		player.temporary_crystals = 0
 
 
+## The End-step stage that applies the thaw rule (story 015; C4 End step 4).
+const STAGE_TURN_THAW: String = "turn_thaw"
+
+
+## C4 End step 4, the C13 thaw rule, for every character of [param side]
+## (the hero, then the board left to right): a Frozen character thaws —
+## `frozen = false`, `thawed {entity_id}` — when `frozen_on_turn < turn` (it
+## was frozen before this turn began and has missed its attack) **or**
+## `attacks_remaining == 0` (it had used its attacks when frozen). Otherwise
+## it was frozen on its own turn before attacking and stays Frozen through
+## its next turn, thawing at that turn's End step. No counter beyond
+## `frozen_on_turn`; a re-freeze re-stamped it, and the rule runs once here.
+## Thawing raises no trigger, so the stage runs no C10 step of its own.
+func _thaw(side: String) -> void:
+	for character: Dictionary in _characters_of(side):
+		if _halted():
+			return
+		if not bool(character.frozen):
+			continue
+		if int(character.frozen_on_turn) < _state.turn or attacks_remaining(character) <= 0:
+			character.frozen = false
+			emit(&"thawed", {"entity_id": int(character.entity_id)})
+
+
 func _expire_in(enchantments: Array, owner_id: int) -> void:
 	var i: int = 0
 	while i < enchantments.size() and not _halted():
@@ -2488,6 +2546,8 @@ func _run_stage(stage: Dictionary) -> void:
 		STAGE_TURN_ENDING:
 			_state.phase = MatchState.PHASE_END
 			emit(&"turn_ending", {"turn": _state.turn, "side": side})
+		STAGE_TURN_THAW:
+			_thaw(side)
 		STAGE_TURN_EXPIRE:
 			_run_step(_expire_end_of_turn.bind(side))
 		STAGE_TURN_ENDED:

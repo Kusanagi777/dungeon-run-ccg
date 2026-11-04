@@ -520,7 +520,8 @@ func test_silence_and_freeze_emit_their_status_events() -> void:
 
 	# Assert
 	var silenced: Dictionary = _assert_one(log.events.slice(before, mid), "silenced")
-	assert_dict(silenced.payload).is_equal({"entity_id": id})
+	# story 015 completes silence: the payload also lists what it stripped
+	assert_dict(silenced.payload).is_equal({"entity_id": id, "removed_enchantments": [], "removed_keywords": []})
 	assert_bool(minion.silenced).is_true()
 	var frozen: Dictionary = _assert_one(_since(log, mid), "frozen")
 	assert_dict(frozen.payload).is_equal({"entity_id": id, "frozen_on_turn": engine.state().turn})

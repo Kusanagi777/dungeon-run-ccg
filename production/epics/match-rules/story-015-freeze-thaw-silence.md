@@ -1,12 +1,12 @@
 # Story 015: Freeze, thaw and Silence
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -68,9 +68,10 @@ The thaw rule covers Hearthstone's three cases with one comparison and no hidden
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/gameplay/match/rules_engine.gd` (`freeze`, `silence` complete, thaw at End step 4)
-- `tests/helpers/test_effect_resolver.gd` (skip triggers for `silenced` entities)
-- `tests/unit/match_rules/match_rules_freeze_silence_test.gd`
+- `src/gameplay/match/rules_engine.gd` — `silence` complete (C13 steps 1–6, F6 clamp, one `silenced {entity_id, removed_enchantments, removed_keywords}`), End step 4 thaw stage (`STAGE_TURN_THAW`, `_thaw`); `freeze` unchanged (story 006 already re-stamped)
+- `tests/helpers/test_effect_resolver.gd` — a silenced candidate answers no registered trigger (Deathrattle read from the raise-time snapshot); a silenced `auras` source emits nothing (additive: only silenced entities behave differently)
+- `tests/unit/match_rules/match_rules_freeze_silence_test.gd` — 13 tests (new)
+- `tests/unit/match_rules/match_rules_primitives_test.gd` — `silenced` payload assertion widened to the completed payload (one line)
 
 ---
 
@@ -88,7 +89,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_rules/match_rules_freeze_silence_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing (13 test functions)
 
 ---
 
@@ -96,3 +97,21 @@ checks scope against it.*
 
 - Depends on: `production/epics/match-rules/story-013-attack-resolution.md`, `production/epics/match-rules/story-009-resolution-loop.md`
 - Unlocks: `production/epics/match-rules/story-017-clone-and-replay.md`
+
+---
+
+## Readiness (2026-11-04, `/story-readiness` read by hand)
+
+**Verdict: READY** (tier `workflow: full`, `match-rules` override). ADR-0007 Accepted (2026-11-03, matches `ADR Version`); manifest 2026-11-03 current; TR-match-rules-005 active; dependencies story 009 and story 013 Complete (013 merged at M1); 3 criteria (balanced minimum 2), each observable; Out of Scope stated; no open markers; no asset references; Test Evidence names the test file. QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:52:01 UTC, ended 03:55:49 UTC implementation + verification; closed 03:57 UTC)
+**Criteria**: 3/3 passing — AC-24 (`test_silence_strips_a_buffed_damaged_minion_and_clamps_damage_by_f6`, `test_aura_loss_leaves_damage_and_kills_the_minion_after_its_source_in_one_loop`, `test_silence_removes_divine_shield_taunt_and_deathrattle_and_it_never_fires` with its unsilenced control, `test_silence_does_not_restore_a_popped_divine_shield`); AC-25 (the four thaw cases plus the End-step order test); C13 exclusions (`test_a_frozen_minion_silenced_thaws_at_once_and_may_attack_this_turn`, `test_silence_keeps_sickness_attacks_used_pending_destroy_base_stats_and_damage`, `test_a_silenced_minion_keeps_received_auras_and_stops_emitting_its_own`). 11 of 13 tests seen failing against the pre-story code; the two that passed are the story-009 aura-loss behaviour and the unsilenced Deathrattle control, both expected to pass before this story.
+**Deviations**:
+- ADVISORY — the `silenced` payload is `{entity_id, removed_enchantments, removed_keywords}` (the Implementation Notes' `target` is spelled `entity_id`, like `frozen` / `thawed` and every other status event); `removed_enchantments` holds value copies of the removed enchantments (enchantments have no ids). The story-006 primitives test's exact-payload assertion was widened to match.
+- ADVISORY — the thaw stage runs no C10 step of its own (thawing raises no trigger), so `resolution_step_cap` counts are unchanged by it; `thawed` carries `cause_seq 0` like `turn_ending`.
+- Aura-granted keywords on received aura enchantments are left for `recompute_auras()` (C13 step 1: Silence stops emission, not reception).
+**Test Evidence**: `tests/unit/match_rules/match_rules_freeze_silence_test.gd` (13 tests). Full suite 1238 test cases, 0 failures (exit 0); smoke exit 0, no SCRIPT ERROR; suite SCRIPT ERROR count 85, unchanged from baseline (intentional negative tests).
+**Run result**: N/A — a rules-engine Logic story with no scene, screen or UI surface: Freeze/Silence are observable only through the event log and state the tests assert.
+**Engine specialist check**: NOT ASSESSED — no agent spawning in this lane; APIs used (`Array.assign`, `duplicate(true)`, `maxi`) predate 4.3.
+**Reviewed by**: self, no independent review (review lean; `/code-review` not scheduled for MR-015 this sprint)

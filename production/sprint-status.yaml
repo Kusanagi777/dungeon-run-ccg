@@ -99,7 +99,7 @@ stories:
     name: "Freeze, thaw and Silence"
     file: "production/epics/match-rules/story-015-freeze-thaw-silence.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: ""
     estimate_days: 1
     lane: 2
@@ -108,7 +108,7 @@ stories:
     contract: false
     blocker: ""
     note: "needs MR-013 merged at M1"
-    completed: ""
+    completed: "2026-11-04"
   - id: "match-rules-017"
     name: "Clone and replay"
     file: "production/epics/match-rules/story-017-clone-and-replay.md"
