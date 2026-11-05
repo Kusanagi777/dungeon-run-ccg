@@ -1,0 +1,5 @@
+os: MINGW64_NT-10.0-26100 3.6.6-1cdd4371.x86_64
+renderer: windows / opengl3 (Compatibility) / NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU
+godot arguments: /c/dungeon-run-ccg/.claude/worktrees/s5-l2/tools/bin/godot --path C:/dungeon-run-ccg/.claude/worktrees/s5-l2 --windowed --resolution 1280x720 --rendering-driver opengl3 --write-movie C:/dungeon-run-ccg/.claude/worktrees/s5-l2/production/qa/evidence/story-011-windows-screenshot-capture/.capture-soAPXm/f.png --quit-after 60 res://src/scenes/main.tscn -- --boot-fail-fixture=boot_data_error 
+engine renderer lines:
+OpenGL API 3.3.0 NVIDIA 610.47 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU

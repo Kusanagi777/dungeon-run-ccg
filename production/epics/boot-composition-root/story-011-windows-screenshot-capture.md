@@ -1,12 +1,13 @@
 # Story 011: A Windows screenshot path — `tools/capture.sh` without Xvfb, with the renderer recorded
 
 > **Epic**: Boot & Composition Root
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-05
+> **Readiness**: 2026-11-05 `/story-readiness` (by hand, sprint 6 pre-wave lane): **READY**. ADR-0010 is Accepted and carries the DD-X32 erratum; stories 006 and 010 are Complete; three testable criteria, no open question in them. No GDD, stated with a reason (tooling). No qa-lead specs (Lean mode), so the tests come from the criteria. The review's DQ-2 (planner on a capture run) is not a criterion here; see Completion Notes.
 
 ## Context
 
@@ -38,9 +39,9 @@ Two facts found while verifying: `tools/capture.sh` already forwards arguments a
 
 *From sprint 6 row 12, ADR-0010 Decision 3 and 5, DD-X32:*
 
-- [ ] GIVEN Git Bash on Windows with a desktop session and the story 010 wrapper first on `PATH`, WHEN `bash tools/capture.sh res://src/scenes/boot.tscn <out-dir> 60` (the script header's rig-check command) runs, THEN it does not call `xvfb-run` or add `--headless`, exits 0, and keeps a non-blank 1280x720 PNG named as on Linux; the blank check runs under whichever of `python3`, `python`, `py -3` starts first, and none starting is exit 2 with a message.
-- [ ] GIVEN the same run, THEN the default renderer on Windows is ADR-0010 Decision 3's Windows form (no `--rendering-driver`, the project's Forward+); `CAPTURE_RENDERER=opengl3` passes `--rendering-driver opengl3` without Xvfb (Compatibility on the real GPU); any other value is exit 2; and beside the kept PNG the script writes `<name>.renderer.txt` holding the OS, the exact Godot arguments and the engine's startup renderer line(s), so no frame is retained without its renderer, and a Windows frame with that sidecar is BLOCKING UI evidence (DD-X32).
-- [ ] GIVEN a Linux host (cloud container or CI), WHEN the rig-check command and the 3- and 5-argument forms run, THEN output, exit codes (0, 2, 3, 4) and the kept file are as before plus the `.renderer.txt` sidecar, which reads `xvfb / opengl3 / llvmpipe`; where no Linux host is available this criterion reads NOT ASSESSED, and Windows evidence is never offered for it.
+- [x] GIVEN Git Bash on Windows with a desktop session and the story 010 wrapper first on `PATH`, WHEN `bash tools/capture.sh res://src/scenes/boot.tscn <out-dir> 60` (the script header's rig-check command) runs, THEN it does not call `xvfb-run` or add `--headless`, exits 0, and keeps a non-blank 1280x720 PNG named as on Linux; the blank check runs under whichever of `python3`, `python`, `py -3` starts first, and none starting is exit 2 with a message.
+- [x] GIVEN the same run, THEN the default renderer on Windows is ADR-0010 Decision 3's Windows form (no `--rendering-driver`, the project's Forward+); `CAPTURE_RENDERER=opengl3` passes `--rendering-driver opengl3` without Xvfb (Compatibility on the real GPU); any other value is exit 2; and beside the kept PNG the script writes `<name>.renderer.txt` holding the OS, the exact Godot arguments and the engine's startup renderer line(s), so no frame is retained without its renderer, and a Windows frame with that sidecar is BLOCKING UI evidence (DD-X32).
+- [ ] **NOT ASSESSED (2026-11-05: no Linux host here).** GIVEN a Linux host (cloud container or CI), WHEN the rig-check command and the 3- and 5-argument forms run, THEN output, exit codes (0, 2, 3, 4) and the kept file are as before plus the `.renderer.txt` sidecar, which reads `xvfb / opengl3 / llvmpipe`; where no Linux host is available this criterion reads NOT ASSESSED, and Windows evidence is never offered for it.
 
 ---
 
@@ -75,6 +76,7 @@ Two facts found while verifying: `tools/capture.sh` already forwards arguments a
 - `tools/capture.sh`
 - `tests/README.md` (capture paragraph)
 - `production/qa/evidence/story-011-windows-screenshot-capture/` (the two Windows frames, their sidecars, the README of commands and what was checked by eye)
+- `tests/integration/boot/capture_script_test.gd` (added 2026-11-05, with its `.uid`: the lane brief asks for tests first)
 
 ---
 
@@ -90,7 +92,7 @@ Two facts found while verifying: `tools/capture.sh` already forwards arguments a
 **Required evidence**:
 - Integration: documented verification record — the retained frames and sidecars above, with the exact command lines and exit codes, and the Linux re-run output or an explicit NOT ASSESSED. `bash -n tools/capture.sh` and the lint gates stay green.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created; see Completion Notes
 
 ---
 
@@ -99,3 +101,34 @@ Two facts found while verifying: `tools/capture.sh` already forwards arguments a
 - Depends on: `production/epics/boot-composition-root/story-010-godot-wrapper-and-user-dir-isolation.md` (the `godot` it launches); `production/epics/boot-composition-root/story-006-main-scene-composition-entry.md` (the rig-check scene and the `--` pass-through, done)
 - Unlocks: `production/epics/match-ui/story-004-match-view-skeleton-and-fixture-loader.md` (AC-3 and its retained frame, if lanes run on Windows), and the retained screenshots of `story-005`, `006`, `007`, `008`, `009`, `011` and `025` in the same case
 - **Sprint 6 placement**: before W1, behind story 010 in the same tools lane, merged before MUI-004 starts (MUI-004 W1 L1 takes the first frame). Fallback if it slips: lanes capture on a Linux host (plan row 12 fix (c)) or the owner retains frames by hand at 0.25 h more per UI story that the plan does not budget. Not a [S] or [C] story.
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-05
+**Started / ended (UTC)**: 2026-11-05T17:34:46Z – 2026-11-05T18:03:30Z
+**Criteria**: 2/3 passing. AC-3 is NOT ASSESSED: no Linux host here, as the AC allows, and no Windows evidence is offered for it.
+**Real captures run**: 2, each opening a window for about 5 s, both exit 0 at the first attempt. Frames, sidecars, commands and the eye check are in `production/qa/evidence/story-011-windows-screenshot-capture/`.
+
+**Deviations**:
+- **`tests/integration/boot/capture_script_test.gd` is new and was not in the story's Files.** The lane brief asks for tests first.
+- **The Windows branch calls `$repo_root/tools/bin/godot` by path, not `godot` on `PATH`.** That guarantees the wrapper, whatever else is on `PATH`; AC-1's GIVEN still holds.
+- **Godot's output is now logged and repeated after it exits, on Linux too.** Same streams and same content, but nothing shows while it runs. Files, not `tee`: no race on the log, and no pipe that a stray child could hold open on a host this lane cannot test.
+- **No renderer line in the log is exit 3 with no frame kept, on both branches.** AC-2's "no frame is retained without its renderer" wins over AC-3's "as before" for this one new path. On Windows it catches `GODOT_BIN` naming the GUI build. The Linux banner is the one retained in the story 006 evidence, so a Linux run should not reach it; that is unverified until a Linux run.
+- **`CAPTURE_RENDERER` is checked on Linux too**: any value but `opengl3` is exit 2 there. It has no other effect on Linux.
+- **The Python search is Windows only.** Linux stays on `python3`, so its exit codes do not move.
+- **The second frame is `main.tscn`'s `data_error`, not the boot scene again**, so the same window also proves the arguments after `--` reach the scene on Windows, and a third run was not needed.
+- **Finding: Forward+ ran on Vulkan 1.4.341, not D3D12.** `project.godot` sets no driver, and `docs/engine-reference/godot/` says D3D12 is the Windows default since 4.6. The frame stands, because the sidecar records what ran. Why they disagree is NOT ASSESSED; the reference is not edited here.
+- `.claude/docs/run-and-observe.md` and the control manifest are unchanged: neither is in this story's Files.
+
+**Test Evidence**: `tests/integration/boot/capture_script_test.gd`, 36 tests, no window: stubs stand for `uname`, `xvfb-run` and the engine, and the real wrapper and blank check run. 27 were seen failing against the unmodified script. The other 9 passed there, which for the Linux tests is the point: they pin "as before". Each of the 9 was then seen failing on a deliberate mutant, 8 mutants in all, restored after each run: `--headless` on the Windows line; the Godot exit check removed; a rendering driver always passed; the Linux line changed; user args dropped on Linux; Godot's stderr on stdout; the kept-path line broken; the Python search used on Linux.
+
+**Gate** (2026-11-05, this tree): `--import` exit 0; `gates.sh`, `no_global_rng.sh`, `parse-check.sh` (52 checked, 0 failed), `ai_code_gates.sh` and `bash -n tools/capture.sh` pass; the suite ends `Overall Summary: 2441 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans |`; `godot --headless --quit-after 5` exit 0 with no `SCRIPT ERROR`.
+
+**The planner on a capture run (review DQ-2, `story-009:62`)**: `capture.sh` needs no planner change, so none was made. A shell cannot pass a `Callable`, but it does not have to:
+- Arguments after `--` reach `OS.get_cmdline_user_args()` on both branches (`test_windows_user_args_...`, `test_linux_user_args_...`, and frame 02 on a real Windows run).
+- `Boot.driver_factory()` reads those arguments by default, so `-- --fixture=<name> --ai-sync` selects `TimeSlicedPlannerTask` with no override.
+- Observed in a scratch headless run, not committed and with no window: `--ai-sync` as a real process argument gave `TimeSlicedPlannerTask` on the real clock, three rounds, 149 events, 0 faults, and an event stream identical to `ImmediatePlannerTask`'s on the same fixture. With no flag it gave `WorkerPoolPlannerTask`, also identical. The scratch script exited 139 after printing, each time: TD-013, from its own unanchored inner class. It is not a repo command. The fixture is `MatchDriverFixture`, not a `match_view` run, because `match_view.tscn` does not exist yet.
+- The other route in the review, a launcher scene under `tests/`, also passes `capture.sh`'s `res://*.tscn` check, so it needs no change here either.
+
+**Open, for the owner, blocks MUI-004's readiness**: does the `match_view.tscn` capture get its planner from `-- --ai-sync`, with the loader passing no override, or from a launcher scene under `tests/` that passes `ImmediatePlannerTask`? Not decided here: DD-X33 names tests and the sim harness and is silent on a capture run, and ADR-0008 D11 and the manifest (lines 212, 331) still say `ImmediatePlannerTask`. `--ai-sync` is the smaller change; it means rewording MUI-004 AC-2 and adding the flag to AC-3's command. `story-009:62` stays wrong until then and is not edited here.

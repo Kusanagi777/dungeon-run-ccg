@@ -1,0 +1,5 @@
+os: MINGW64_NT-10.0-26100 3.6.6-1cdd4371.x86_64
+renderer: windows / default (Forward+) / NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU
+godot arguments: /c/dungeon-run-ccg/.claude/worktrees/s5-l2/tools/bin/godot --path C:/dungeon-run-ccg/.claude/worktrees/s5-l2 --windowed --resolution 1280x720 --write-movie C:/dungeon-run-ccg/.claude/worktrees/s5-l2/production/qa/evidence/story-011-windows-screenshot-capture/.capture-E99AKb/f.png --quit-after 60 res://src/scenes/boot.tscn 
+engine renderer lines:
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU
