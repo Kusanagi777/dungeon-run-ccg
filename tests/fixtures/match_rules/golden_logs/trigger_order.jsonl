@@ -1,7 +1,7 @@
 {"result":{"accepted":true,"events":[20,70],"rejection":null},"scenario":"play_minion"}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"player"},"seq":20,"turn":1,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"pb_grunt","hand_index":0,"instance_id":41,"side":"player","target_id":null,"type":"minion"},"seq":21,"turn":1,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"pb_grunt","entity_id":44,"health":3,"position":0,"side":"player"},"seq":22,"turn":1,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"pb_grunt","entity_id":44,"health":3,"keywords":[],"position":0,"side":"player"},"seq":22,"turn":1,"type":"minion_summoned"}}
 {"event":{"cause_seq":21,"payload":{"effect_id":"on_card_played.44","point":"on_card_played","source_id":44},"seq":23,"turn":1,"type":"trigger_queued"}}
 {"event":{"cause_seq":21,"payload":{"effect_id":"on_card_played.33","point":"on_card_played","source_id":33},"seq":24,"turn":1,"type":"trigger_queued"}}
 {"event":{"cause_seq":21,"payload":{"effect_id":"on_card_played.34","point":"on_card_played","source_id":34},"seq":25,"turn":1,"type":"trigger_queued"}}
@@ -280,7 +280,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":292,"turn":2,"type":"phase_changed"}}
 {"scenario":"nested_raise_keeps_the_raise_time_candidates"}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":29,"prevented":0,"requested":1,"source":null,"target":2},"seq":293,"turn":2,"type":"damage_dealt"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"pb_grunt","entity_id":46,"health":3,"position":0,"side":"player"},"seq":294,"turn":2,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"pb_grunt","entity_id":46,"health":3,"keywords":[],"position":0,"side":"player"},"seq":294,"turn":2,"type":"minion_summoned"}}
 {"event":{"cause_seq":294,"payload":{"effect_id":"on_summon.46","point":"on_summon","source_id":46},"seq":295,"turn":2,"type":"trigger_queued"}}
 {"event":{"cause_seq":294,"payload":{"effect_id":"on_summon.44","point":"on_summon","source_id":44},"seq":296,"turn":2,"type":"trigger_queued"}}
 {"event":{"cause_seq":294,"payload":{"effect_id":"on_summon.33","point":"on_summon","source_id":33},"seq":297,"turn":2,"type":"trigger_queued"}}

@@ -4,7 +4,7 @@
 
 > **Status**: Designed
 > **Author**: `/design-system` (game-designer role) for the owner. `systems-designer`, `ai-programmer`, `qa-lead` and `art-director` not consulted — Lean mode (no `Agent` tool available in this run). Review manually before production.
-> **Last Updated**: 2026-11-03
+> **Last Updated**: 2026-11-05
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 4 (Readable, deterministic rules) primarily; Pillar 2 (Bosses are puzzles) and Pillar 3 (Lose fast, learn fast) secondarily
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` Feasibility: no engine reference for `scripting` under `docs/engine-reference/godot/modules/`; feasibility not checked against the pinned engine (this system is pure GDScript `RefCounted` logic with no engine surface, DD-T02). No ADRs exist yet; DD-T02/DD-T03 cite ADR-0001/ADR-0003 as planned.
@@ -15,6 +15,8 @@
 > **REVISED 2026-11-03 (DSL spike follow-ups, `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED)**: C15 adds `card_added_to_hand` for the `add_card_to_hand` primitive (Interactions primitive list names it; finding 2); C10 states an aura recompute with no net change emits no `auras_recomputed` (finding 8).
 > **REVISED 2026-11-04 (DD-X26, S3 option C)**: C10 and C15: `auras_recomputed` entries carry absolute values, including keywords and player hand costs; `production/reviews/2026-11-04/proposal-s3-aura-projection.md`.
 > **REVISED 2026-11-05 (DD-X29)**: C5, C10, C15, F1: every cost the player can see reaches the log. `auras_recomputed` also lists a hand card or the hero power whose cost moved by a `modify_cost` hook or a non-aura enchantment, compared with what the log last said; new hero-power entry; optional `hook_delta`.
+> **REVISED 2026-11-05 (sprint 6: MR-020)**: C15 states `minion_summoned.keywords[]`, the field rng-event-log §D already listed and the engine now sends.
+> **REVISED 2026-11-05 (DD-X35)**: C3 step 8 and C15: `match_started` carries `starting_health {player, boss}`, read after the `on_match_start` hooks. It carries no starting armour field.
 
 ## Summary
 
@@ -206,6 +208,8 @@ appends to the live log or advances the live stream.
    redraw, so a returned card can be drawn again — this is intended, not a bug. Mulligan redraws do **not** fire `on_draw` hooks (DD-X13). One round only
    (`MULLIGAN_ROUNDS` = 1). A mask of all `true` is a legal "keep all".
 8. `match_started` is emitted and the engine runs the Start step for PLAYER on turn 1 (DD-M03).
+   Its `starting_health {player, boss}` is each hero's health at this instant, so it includes
+   anything step 4's hooks did (2026-11-05, DD-X35).
 
 #### C4. Turn structure
 
@@ -599,6 +603,14 @@ hand, or is burned when the hand is full (`burned: true`, no separate `card_burn
 `transform`.
 `silenced {entity_id, removed_enchantments, removed_keywords}` is the Silence event (C13)
 (2026-11-04, sprint 4: MR-015).
+`match_started {floor, hero_id, boss_id, player_deck_size, boss_deck_size, starting_health}` reports
+each hero's health as absolute values under `starting_health {player, boss}`, the shape of `match_ended`'s
+`final_health`. It is the first event that can: the view learns the hero ids from it. There is no starting
+armour field, so armour a hook grants before this event does not reach the view (2026-11-05, DD-X35).
+`minion_summoned` carries `keywords[]`: the minion's full effective set at that instant (printed plus
+enchantment-granted), each once, sorted, the meaning `auras_recomputed` gives the field; an empty array
+when it has none. Both emit sites send it, the C6 play and the `summon_minion` primitive. A keyword an
+aura grants arrives in the `auras_recomputed` that follows (2026-11-05, sprint 6: MR-020).
 `auras_recomputed {changes[]}` is the C10 recompute event, one per non-empty recompute
 (2026-11-04, DD-X26). Each entry is one changed entity, with absolute values: a character or weapon
 `{entity_id, attack, health, max_health, keywords[]}` (`keywords` is the full effective set, sorted);

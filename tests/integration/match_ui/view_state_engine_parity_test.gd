@@ -6,13 +6,11 @@
 ## Both sides are played by [method _next_command] straight on the engine: no boss
 ## planner is under test here, so the suite does not depend on the driver's schedule.
 ## "Hand ids" means the player's: L3 stores no boss `card_id`, so the boss's is a
-## count. `hero.health` stays null in the view until an event reports it (MUI-001),
-## so a null reads as "nothing to disagree with" and is counted, not compared.
+## count. Hero health is compared once the view knows the hero, a null included:
+## `match_started` reports the heroes and their health together (DD-X35).
 ##
-## **Not assessed:** token `keywords`. The engine's `minion_summoned` omits the
-## `keywords[]` that rng-event-log §D lists, so a printed keyword reaches no view
-## (match-ui story 003, Completion Notes). [constant NOT_PROJECTED] leaves that field
-## out until the engine sends it; delete the constant then and this suite covers it.
+## Token `keywords` are compared at every `seq` that compares boards: `minion_summoned`
+## reports the effective set (match-rules story 020).
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT := preload("res://src/core/boot.gd")
@@ -26,8 +24,6 @@ const COMMAND_CAP: int = 600
 const PICK_STRIDE: int = 7
 ## Each row: a shipped boss and the seed of one full match against it.
 const MATCHES: Array = [["boss_torchbearer", 11], ["boss_rat_king", 12], ["boss_gatekeeper", 13], ["boss_rot_warden", 14]]
-## Token fields left out of the comparison: see the class description.
-const NOT_PROJECTED: Array[String] = ["keywords"]
 ## Events the engine sends part-way through a batch it already applied: every death
 ## of a pass leaves the board before the first `minion_died`, and the Start step's
 ## reset comes after the view applied it on `turn_started`. Boards are not compared
@@ -113,7 +109,7 @@ func _compare(at: String, boards: bool = true) -> void:
 		_expect(at, side, "hand", _hand_ids(shown.hand), truth.hand)
 		if boards:
 			_expect_board(at, side, _tokens(shown.board), _tokens(truth.board))
-		if shown.hero.health != null:
+		if shown.hero.entity_id != null:
 			_health_compared += 1
 			_expect(at, side, "hero_health", shown.hero.health, truth.hero.health)
 
@@ -125,7 +121,7 @@ func _expect_board(at: String, side: String, shown: Array, truth: Array) -> void
 		return
 	for index: int in shown.size():
 		for field: String in (truth[index] as Dictionary).keys():
-			if not NOT_PROJECTED.has(field) and (_settled or not SETTLED_ONLY.has(field)):
+			if _settled or not SETTLED_ONLY.has(field):
 				_expect(at, side, "token %s" % field, shown[index][field], truth[index][field])
 
 

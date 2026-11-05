@@ -211,7 +211,7 @@
 {"event":{"cause_seq":0,"payload":{"instance_ids":[20,14,9,4,8,24,27,17,30,7,26,28,21,19,18,11,6,12,22,3,31,10,5,13,32,29,16,25],"side":"player"},"seq":11,"turn":0,"type":"deck_shuffled"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_scout","hand_size":3,"instance_id":20,"side":"player"},"seq":12,"turn":0,"type":"card_drawn"}}
 {"event":{"cause_seq":0,"payload":{"replaced_instance_ids":[8],"side":"player"},"seq":13,"turn":0,"type":"mulligan_resolved"}}
-{"event":{"cause_seq":0,"payload":{"boss_deck_size":26,"boss_id":2,"floor":1,"hero_id":1,"player_deck_size":27},"seq":14,"turn":0,"type":"match_started"}}
+{"event":{"cause_seq":0,"payload":{"boss_deck_size":26,"boss_id":2,"floor":1,"hero_id":1,"player_deck_size":27,"starting_health":{"boss":300,"player":40}},"seq":14,"turn":0,"type":"match_started"}}
 {"event":{"cause_seq":0,"payload":{"side":"player","turn":1},"seq":15,"turn":1,"type":"turn_started"}}
 {"event":{"cause_seq":0,"payload":{"gained":1,"mana_max":1,"side":"player"},"seq":16,"turn":1,"type":"crystal_gained"}}
 {"event":{"cause_seq":0,"payload":{"mana_available":1,"mana_max":1,"side":"player"},"seq":17,"turn":1,"type":"mana_refilled"}}
@@ -234,7 +234,7 @@
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_scout","instance_id":20,"side":"player"},"seq":34,"turn":1,"type":"card_to_graveyard"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":0,"side":"player"},"seq":35,"turn":1,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_runner","hand_index":2,"instance_id":63,"side":"player","target_id":null,"type":"minion"},"seq":36,"turn":1,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":64,"health":1,"position":0,"side":"player"},"seq":37,"turn":1,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":64,"health":1,"keywords":["charge"],"position":0,"side":"player"},"seq":37,"turn":1,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"attacker":64,"defender":2},"seq":38,"turn":1,"type":"attack_declared"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":297,"prevented":0,"requested":1,"source":64,"target":2},"seq":39,"turn":1,"type":"damage_dealt"}}
 {"event":{"cause_seq":0,"payload":{"attacker":64,"defender":2},"seq":40,"turn":1,"type":"attack_resolved"}}
@@ -258,10 +258,10 @@
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_frost","instance_id":62,"side":"boss"},"seq":58,"turn":2,"type":"card_to_graveyard"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":1,"side":"boss"},"seq":59,"turn":2,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":1,"instance_id":42,"side":"boss","target_id":null,"type":"minion"},"seq":60,"turn":2,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":65,"health":4,"position":0,"side":"boss"},"seq":61,"turn":2,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":65,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":61,"turn":2,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":1,"side":"boss"},"seq":62,"turn":2,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":34,"side":"boss","target_id":null,"type":"minion"},"seq":63,"turn":2,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":66,"health":4,"position":0,"side":"boss"},"seq":64,"turn":2,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":66,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":64,"turn":2,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":2},"seq":65,"turn":2,"type":"turn_ending"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":2},"seq":66,"turn":2,"type":"turn_ended"}}
 {"event":{"cause_seq":0,"payload":{"side":"player","turn":3},"seq":67,"turn":3,"type":"turn_started"}}
@@ -272,7 +272,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":72,"turn":3,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":1,"side":"player"},"seq":73,"turn":3,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":2,"instance_id":9,"side":"player","target_id":null,"type":"minion"},"seq":74,"turn":3,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":67,"health":2,"position":0,"side":"player"},"seq":75,"turn":3,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":67,"health":2,"keywords":[],"position":0,"side":"player"},"seq":75,"turn":3,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"attacker":64,"defender":65},"seq":76,"turn":3,"type":"attack_declared"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":3,"prevented":0,"requested":1,"source":64,"target":65},"seq":77,"turn":3,"type":"damage_dealt"}}
 {"event":{"cause_seq":0,"payload":{"attacker":64,"defender":65},"seq":78,"turn":3,"type":"attack_resolved"}}
@@ -287,10 +287,10 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":87,"turn":4,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":2,"side":"boss"},"seq":88,"turn":4,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":1,"instance_id":40,"side":"boss","target_id":null,"type":"minion"},"seq":89,"turn":4,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":68,"health":4,"position":0,"side":"boss"},"seq":90,"turn":4,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":68,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":90,"turn":4,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":0,"side":"boss"},"seq":91,"turn":4,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_seer","hand_index":0,"instance_id":58,"side":"boss","target_id":null,"type":"minion"},"seq":92,"turn":4,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":69,"health":2,"position":0,"side":"boss"},"seq":93,"turn":4,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":69,"health":2,"keywords":["battlecry","discover"],"position":0,"side":"boss"},"seq":93,"turn":4,"type":"minion_summoned"}}
 {"event":{"cause_seq":92,"payload":{"phase":"choice","side":"boss"},"seq":94,"turn":4,"type":"phase_changed"}}
 {"event":{"cause_seq":92,"payload":{"effect_id":"fx.discover","kind":"discover","options":["fx_brute","fx_grunt","fx_runner"],"side":"boss","source_id":69},"seq":95,"turn":4,"type":"choice_requested"}}
 {"event":{"cause_seq":92,"payload":{"option_index":2,"side":"boss"},"seq":96,"turn":4,"type":"choice_made"}}
@@ -298,7 +298,7 @@
 {"event":{"cause_seq":92,"payload":{"card_id":"fx_runner","hand_size":1,"instance_id":70,"side":"boss"},"seq":98,"turn":4,"type":"card_added_to_hand"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":0,"side":"boss"},"seq":99,"turn":4,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_runner","hand_index":0,"instance_id":70,"side":"boss","target_id":null,"type":"minion"},"seq":100,"turn":4,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":71,"health":1,"position":1,"side":"boss"},"seq":101,"turn":4,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":71,"health":1,"keywords":["charge"],"position":1,"side":"boss"},"seq":101,"turn":4,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"attacker":71,"defender":64},"seq":102,"turn":4,"type":"attack_declared"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":0,"prevented":0,"requested":1,"source":71,"target":64},"seq":103,"turn":4,"type":"damage_dealt"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":0,"prevented":0,"requested":1,"source":64,"target":71},"seq":104,"turn":4,"type":"damage_dealt"}}
@@ -315,7 +315,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":115,"turn":5,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":0,"side":"player"},"seq":116,"turn":5,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":1,"instance_id":14,"side":"player","target_id":null,"type":"minion"},"seq":117,"turn":5,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":72,"health":3,"position":1,"side":"player"},"seq":118,"turn":5,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":72,"health":3,"keywords":[],"position":1,"side":"player"},"seq":118,"turn":5,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"attacker":67,"defender":66},"seq":119,"turn":5,"type":"attack_declared"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":3,"prevented":0,"requested":1,"source":67,"target":66},"seq":120,"turn":5,"type":"damage_dealt"}}
 {"event":{"cause_seq":0,"payload":{"attacker":67,"defender":66},"seq":121,"turn":5,"type":"attack_resolved"}}
@@ -329,7 +329,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":129,"turn":6,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":3,"side":"boss"},"seq":130,"turn":6,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":46,"side":"boss","target_id":null,"type":"minion"},"seq":131,"turn":6,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":73,"health":4,"position":3,"side":"boss"},"seq":132,"turn":6,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":73,"health":4,"keywords":["taunt"],"position":3,"side":"boss"},"seq":132,"turn":6,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":1,"side":"boss"},"seq":133,"turn":6,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":134,"turn":6,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":69,"defender":67},"seq":135,"turn":6,"type":"attack_declared"}}
@@ -347,10 +347,10 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":147,"turn":7,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":3,"side":"player"},"seq":148,"turn":7,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":2,"instance_id":8,"side":"player","target_id":null,"type":"minion"},"seq":149,"turn":7,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":74,"health":2,"position":0,"side":"player"},"seq":150,"turn":7,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":74,"health":2,"keywords":[],"position":0,"side":"player"},"seq":150,"turn":7,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":2,"side":"player"},"seq":151,"turn":7,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":1,"instance_id":4,"side":"player","target_id":null,"type":"minion"},"seq":152,"turn":7,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":75,"health":2,"position":2,"side":"player"},"seq":153,"turn":7,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":75,"health":2,"keywords":[],"position":2,"side":"player"},"seq":153,"turn":7,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":0,"side":"player"},"seq":154,"turn":7,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":155,"turn":7,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":72,"defender":66},"seq":156,"turn":7,"type":"attack_declared"}}
@@ -367,7 +367,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":167,"turn":8,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":3,"side":"boss"},"seq":168,"turn":8,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":49,"side":"boss","target_id":null,"type":"minion"},"seq":169,"turn":8,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":76,"health":2,"position":1,"side":"boss"},"seq":170,"turn":8,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":76,"health":2,"keywords":[],"position":1,"side":"boss"},"seq":170,"turn":8,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":1,"side":"boss"},"seq":171,"turn":8,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":172,"turn":8,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":69,"defender":75},"seq":173,"turn":8,"type":"attack_declared"}}
@@ -391,7 +391,7 @@
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_bolt","instance_id":24,"side":"player"},"seq":191,"turn":9,"type":"card_to_graveyard"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":1,"side":"player"},"seq":192,"turn":9,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":15,"side":"player","target_id":null,"type":"minion"},"seq":193,"turn":9,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":77,"health":3,"position":2,"side":"player"},"seq":194,"turn":9,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":77,"health":3,"keywords":[],"position":2,"side":"player"},"seq":194,"turn":9,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"attacker":72,"defender":68},"seq":195,"turn":9,"type":"attack_declared"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":3,"health_after":1,"prevented":0,"requested":3,"source":72,"target":68},"seq":196,"turn":9,"type":"damage_dealt"}}
 {"event":{"cause_seq":0,"payload":{"attacker":72,"defender":68},"seq":197,"turn":9,"type":"attack_resolved"}}
@@ -408,7 +408,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":208,"turn":10,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":3,"side":"boss"},"seq":209,"turn":10,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_seer","hand_index":0,"instance_id":55,"side":"boss","target_id":null,"type":"minion"},"seq":210,"turn":10,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":78,"health":2,"position":4,"side":"boss"},"seq":211,"turn":10,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":78,"health":2,"keywords":["battlecry","discover"],"position":4,"side":"boss"},"seq":211,"turn":10,"type":"minion_summoned"}}
 {"event":{"cause_seq":210,"payload":{"phase":"choice","side":"boss"},"seq":212,"turn":10,"type":"phase_changed"}}
 {"event":{"cause_seq":210,"payload":{"effect_id":"fx.discover","kind":"discover","options":["fx_grunt","fx_brute","fx_runner"],"side":"boss","source_id":78},"seq":213,"turn":10,"type":"choice_requested"}}
 {"event":{"cause_seq":210,"payload":{"option_index":1,"side":"boss"},"seq":214,"turn":10,"type":"choice_made"}}
@@ -416,7 +416,7 @@
 {"event":{"cause_seq":210,"payload":{"card_id":"fx_brute","hand_size":1,"instance_id":79,"side":"boss"},"seq":216,"turn":10,"type":"card_added_to_hand"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":0,"side":"boss"},"seq":217,"turn":10,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":79,"side":"boss","target_id":null,"type":"minion"},"seq":218,"turn":10,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":80,"health":3,"position":2,"side":"boss"},"seq":219,"turn":10,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":80,"health":3,"keywords":[],"position":2,"side":"boss"},"seq":219,"turn":10,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"attacker":76,"defender":74},"seq":220,"turn":10,"type":"attack_declared"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":1,"prevented":0,"requested":1,"source":76,"target":74},"seq":221,"turn":10,"type":"damage_dealt"}}
 {"event":{"cause_seq":0,"payload":{"armor_absorbed":0,"dealt":1,"health_after":1,"prevented":0,"requested":1,"source":74,"target":76},"seq":222,"turn":10,"type":"damage_dealt"}}
@@ -457,7 +457,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":257,"turn":12,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":5,"side":"boss"},"seq":258,"turn":12,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":48,"side":"boss","target_id":null,"type":"minion"},"seq":259,"turn":12,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":81,"health":2,"position":1,"side":"boss"},"seq":260,"turn":12,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":81,"health":2,"keywords":[],"position":1,"side":"boss"},"seq":260,"turn":12,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":3,"side":"boss"},"seq":261,"turn":12,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":262,"turn":12,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":78,"defender":72},"seq":263,"turn":12,"type":"attack_declared"}}
@@ -495,7 +495,7 @@
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_scout","instance_id":17,"side":"player"},"seq":295,"turn":13,"type":"card_to_graveyard"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":4,"side":"player"},"seq":296,"turn":13,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":82,"side":"player","target_id":null,"type":"minion"},"seq":297,"turn":13,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":83,"health":3,"position":1,"side":"player"},"seq":298,"turn":13,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":83,"health":3,"keywords":[],"position":1,"side":"player"},"seq":298,"turn":13,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":2,"side":"player"},"seq":299,"turn":13,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":300,"turn":13,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":77,"defender":68},"seq":301,"turn":13,"type":"attack_declared"}}
@@ -518,7 +518,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":318,"turn":14,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":7,"side":"boss"},"seq":319,"turn":14,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":33,"side":"boss","target_id":null,"type":"minion"},"seq":320,"turn":14,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":84,"health":4,"position":0,"side":"boss"},"seq":321,"turn":14,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":84,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":321,"turn":14,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":5,"side":"boss"},"seq":322,"turn":14,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":323,"turn":14,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":80,"defender":83},"seq":324,"turn":14,"type":"attack_declared"}}
@@ -537,7 +537,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":337,"turn":15,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":6,"side":"player"},"seq":338,"turn":15,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_seer","hand_index":0,"instance_id":30,"side":"player","target_id":null,"type":"minion"},"seq":339,"turn":15,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":85,"health":2,"position":0,"side":"player"},"seq":340,"turn":15,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":85,"health":2,"keywords":["battlecry","discover"],"position":0,"side":"player"},"seq":340,"turn":15,"type":"minion_summoned"}}
 {"event":{"cause_seq":339,"payload":{"phase":"choice","side":"player"},"seq":341,"turn":15,"type":"phase_changed"}}
 {"event":{"cause_seq":339,"payload":{"effect_id":"fx.discover","kind":"discover","options":["fx_runner","fx_grunt","fx_brute"],"side":"player","source_id":85},"seq":342,"turn":15,"type":"choice_requested"}}
 {"event":{"cause_seq":339,"payload":{"option_index":2,"side":"player"},"seq":343,"turn":15,"type":"choice_made"}}
@@ -545,7 +545,7 @@
 {"event":{"cause_seq":339,"payload":{"card_id":"fx_brute","hand_size":1,"instance_id":86,"side":"player"},"seq":345,"turn":15,"type":"card_added_to_hand"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":3,"side":"player"},"seq":346,"turn":15,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":86,"side":"player","target_id":null,"type":"minion"},"seq":347,"turn":15,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":87,"health":3,"position":0,"side":"player"},"seq":348,"turn":15,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":87,"health":3,"keywords":[],"position":0,"side":"player"},"seq":348,"turn":15,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":1,"side":"player"},"seq":349,"turn":15,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":350,"turn":15,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":77,"defender":84},"seq":351,"turn":15,"type":"attack_declared"}}
@@ -561,7 +561,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":361,"turn":16,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":8,"side":"boss"},"seq":362,"turn":16,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":35,"side":"boss","target_id":null,"type":"minion"},"seq":363,"turn":16,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":88,"health":4,"position":0,"side":"boss"},"seq":364,"turn":16,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":88,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":364,"turn":16,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":6,"side":"boss"},"seq":365,"turn":16,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":366,"turn":16,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":16},"seq":367,"turn":16,"type":"turn_ending"}}
@@ -574,7 +574,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":374,"turn":17,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":8,"side":"player"},"seq":375,"turn":17,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":7,"side":"player","target_id":null,"type":"minion"},"seq":376,"turn":17,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":89,"health":2,"position":1,"side":"player"},"seq":377,"turn":17,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":89,"health":2,"keywords":[],"position":1,"side":"player"},"seq":377,"turn":17,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":6,"side":"player"},"seq":378,"turn":17,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":379,"turn":17,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":85,"defender":84},"seq":380,"turn":17,"type":"attack_declared"}}
@@ -598,7 +598,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":398,"turn":18,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"boss"},"seq":399,"turn":18,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_seer","hand_index":0,"instance_id":53,"side":"boss","target_id":null,"type":"minion"},"seq":400,"turn":18,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":90,"health":2,"position":0,"side":"boss"},"seq":401,"turn":18,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":90,"health":2,"keywords":["battlecry","discover"],"position":0,"side":"boss"},"seq":401,"turn":18,"type":"minion_summoned"}}
 {"event":{"cause_seq":400,"payload":{"phase":"choice","side":"boss"},"seq":402,"turn":18,"type":"phase_changed"}}
 {"event":{"cause_seq":400,"payload":{"effect_id":"fx.discover","kind":"discover","options":["fx_brute","fx_grunt","fx_runner"],"side":"boss","source_id":90},"seq":403,"turn":18,"type":"choice_requested"}}
 {"event":{"cause_seq":400,"payload":{"option_index":2,"side":"boss"},"seq":404,"turn":18,"type":"choice_made"}}
@@ -606,7 +606,7 @@
 {"event":{"cause_seq":400,"payload":{"card_id":"fx_runner","hand_size":1,"instance_id":91,"side":"boss"},"seq":406,"turn":18,"type":"card_added_to_hand"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":7,"side":"boss"},"seq":407,"turn":18,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_runner","hand_index":0,"instance_id":91,"side":"boss","target_id":null,"type":"minion"},"seq":408,"turn":18,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":92,"health":1,"position":1,"side":"boss"},"seq":409,"turn":18,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":92,"health":1,"keywords":["charge"],"position":1,"side":"boss"},"seq":409,"turn":18,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":5,"side":"boss"},"seq":410,"turn":18,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":411,"turn":18,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":92,"defender":77},"seq":412,"turn":18,"type":"attack_declared"}}
@@ -654,7 +654,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":454,"turn":20,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":10,"side":"boss"},"seq":455,"turn":20,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":38,"side":"boss","target_id":null,"type":"minion"},"seq":456,"turn":20,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":93,"health":4,"position":0,"side":"boss"},"seq":457,"turn":20,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":93,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":457,"turn":20,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":8,"side":"boss"},"seq":458,"turn":20,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":459,"turn":20,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":20},"seq":460,"turn":20,"type":"turn_ending"}}
@@ -690,7 +690,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":490,"turn":22,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":10,"side":"boss"},"seq":491,"turn":22,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":36,"side":"boss","target_id":null,"type":"minion"},"seq":492,"turn":22,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":94,"health":4,"position":0,"side":"boss"},"seq":493,"turn":22,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":94,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":493,"turn":22,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":8,"side":"boss"},"seq":494,"turn":22,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":495,"turn":22,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":22},"seq":496,"turn":22,"type":"turn_ending"}}
@@ -729,7 +729,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":529,"turn":24,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":8,"side":"boss"},"seq":530,"turn":24,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_seer","hand_index":0,"instance_id":56,"side":"boss","target_id":null,"type":"minion"},"seq":531,"turn":24,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":96,"health":2,"position":0,"side":"boss"},"seq":532,"turn":24,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":2,"card_id":"fx_seer","entity_id":96,"health":2,"keywords":["battlecry","discover"],"position":0,"side":"boss"},"seq":532,"turn":24,"type":"minion_summoned"}}
 {"event":{"cause_seq":531,"payload":{"phase":"choice","side":"boss"},"seq":533,"turn":24,"type":"phase_changed"}}
 {"event":{"cause_seq":531,"payload":{"effect_id":"fx.discover","kind":"discover","options":["fx_grunt","fx_runner","fx_brute"],"side":"boss","source_id":96},"seq":534,"turn":24,"type":"choice_requested"}}
 {"event":{"cause_seq":531,"payload":{"option_index":1,"side":"boss"},"seq":535,"turn":24,"type":"choice_made"}}
@@ -737,7 +737,7 @@
 {"event":{"cause_seq":531,"payload":{"card_id":"fx_runner","hand_size":1,"instance_id":97,"side":"boss"},"seq":537,"turn":24,"type":"card_added_to_hand"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":8,"side":"boss"},"seq":538,"turn":24,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_runner","hand_index":0,"instance_id":97,"side":"boss","target_id":null,"type":"minion"},"seq":539,"turn":24,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":98,"health":1,"position":1,"side":"boss"},"seq":540,"turn":24,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_runner","entity_id":98,"health":1,"keywords":["charge"],"position":1,"side":"boss"},"seq":540,"turn":24,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":6,"side":"boss"},"seq":541,"turn":24,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":542,"turn":24,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":98,"defender":89},"seq":543,"turn":24,"type":"attack_declared"}}
@@ -763,7 +763,7 @@
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_scout","instance_id":19,"side":"player"},"seq":563,"turn":25,"type":"card_to_graveyard"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":7,"side":"player"},"seq":564,"turn":25,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":99,"side":"player","target_id":null,"type":"minion"},"seq":565,"turn":25,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":100,"health":3,"position":3,"side":"player"},"seq":566,"turn":25,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":100,"health":3,"keywords":[],"position":3,"side":"player"},"seq":566,"turn":25,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":5,"side":"player"},"seq":567,"turn":25,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":568,"turn":25,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":87,"defender":96},"seq":569,"turn":25,"type":"attack_declared"}}
@@ -791,7 +791,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":591,"turn":26,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"boss"},"seq":592,"turn":26,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":50,"side":"boss","target_id":null,"type":"minion"},"seq":593,"turn":26,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":101,"health":2,"position":0,"side":"boss"},"seq":594,"turn":26,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":101,"health":2,"keywords":[],"position":0,"side":"boss"},"seq":594,"turn":26,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"boss"},"seq":595,"turn":26,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":596,"turn":26,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":26},"seq":597,"turn":26,"type":"turn_ending"}}
@@ -812,7 +812,7 @@
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_scout","instance_id":18,"side":"player"},"seq":612,"turn":27,"type":"card_to_graveyard"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"player"},"seq":613,"turn":27,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":102,"side":"player","target_id":null,"type":"minion"},"seq":614,"turn":27,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":103,"health":2,"position":4,"side":"player"},"seq":615,"turn":27,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":103,"health":2,"keywords":[],"position":4,"side":"player"},"seq":615,"turn":27,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"player"},"seq":616,"turn":27,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":617,"turn":27,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":89,"defender":101},"seq":618,"turn":27,"type":"attack_declared"}}
@@ -840,7 +840,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":640,"turn":28,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"boss"},"seq":641,"turn":28,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":52,"side":"boss","target_id":null,"type":"minion"},"seq":642,"turn":28,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":104,"health":2,"position":0,"side":"boss"},"seq":643,"turn":28,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":104,"health":2,"keywords":[],"position":0,"side":"boss"},"seq":643,"turn":28,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"boss"},"seq":644,"turn":28,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":645,"turn":28,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":28},"seq":646,"turn":28,"type":"turn_ending"}}
@@ -852,7 +852,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":652,"turn":29,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":7,"side":"player"},"seq":653,"turn":29,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":11,"side":"player","target_id":null,"type":"minion"},"seq":654,"turn":29,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":105,"health":3,"position":4,"side":"player"},"seq":655,"turn":29,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":105,"health":3,"keywords":[],"position":4,"side":"player"},"seq":655,"turn":29,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":5,"side":"player"},"seq":656,"turn":29,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":657,"turn":29,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":103,"defender":104},"seq":658,"turn":29,"type":"attack_declared"}}
@@ -880,7 +880,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":680,"turn":30,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":10,"side":"boss"},"seq":681,"turn":30,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":37,"side":"boss","target_id":null,"type":"minion"},"seq":682,"turn":30,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":106,"health":4,"position":0,"side":"boss"},"seq":683,"turn":30,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":106,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":683,"turn":30,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":8,"side":"boss"},"seq":684,"turn":30,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":685,"turn":30,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":30},"seq":686,"turn":30,"type":"turn_ending"}}
@@ -892,7 +892,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":692,"turn":31,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"player"},"seq":693,"turn":31,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":6,"side":"player","target_id":null,"type":"minion"},"seq":694,"turn":31,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":107,"health":2,"position":4,"side":"player"},"seq":695,"turn":31,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":107,"health":2,"keywords":[],"position":4,"side":"player"},"seq":695,"turn":31,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"player"},"seq":696,"turn":31,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":697,"turn":31,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":100,"defender":106},"seq":698,"turn":31,"type":"attack_declared"}}
@@ -931,7 +931,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":731,"turn":33,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":3,"mana_current":7,"side":"player"},"seq":732,"turn":33,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_brute","hand_index":0,"instance_id":12,"side":"player","target_id":null,"type":"minion"},"seq":733,"turn":33,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":108,"health":3,"position":5,"side":"player"},"seq":734,"turn":33,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":3,"card_id":"fx_brute","entity_id":108,"health":3,"keywords":[],"position":5,"side":"player"},"seq":734,"turn":33,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":5,"side":"player"},"seq":735,"turn":33,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":736,"turn":33,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":105,"defender":2},"seq":737,"turn":33,"type":"attack_declared"}}
@@ -959,7 +959,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":759,"turn":34,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":0,"mana_current":10,"side":"boss"},"seq":760,"turn":34,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_wall","hand_index":0,"instance_id":44,"side":"boss","target_id":null,"type":"minion"},"seq":761,"turn":34,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":109,"health":4,"position":0,"side":"boss"},"seq":762,"turn":34,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":0,"card_id":"fx_wall","entity_id":109,"health":4,"keywords":["taunt"],"position":0,"side":"boss"},"seq":762,"turn":34,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":8,"side":"boss"},"seq":763,"turn":34,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":764,"turn":34,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":34},"seq":765,"turn":34,"type":"turn_ending"}}
@@ -1006,7 +1006,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"boss"},"seq":806,"turn":36,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"boss"},"seq":807,"turn":36,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":47,"side":"boss","target_id":null,"type":"minion"},"seq":808,"turn":36,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":111,"health":2,"position":0,"side":"boss"},"seq":809,"turn":36,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":111,"health":2,"keywords":[],"position":0,"side":"boss"},"seq":809,"turn":36,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"boss"},"seq":810,"turn":36,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"boss","target_id":null},"seq":811,"turn":36,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"side":"boss","turn":36},"seq":812,"turn":36,"type":"turn_ending"}}
@@ -1018,7 +1018,7 @@
 {"event":{"cause_seq":0,"payload":{"phase":"main","side":"player"},"seq":818,"turn":37,"type":"phase_changed"}}
 {"event":{"cause_seq":0,"payload":{"amount":1,"mana_current":9,"side":"player"},"seq":819,"turn":37,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"card_id":"fx_grunt","hand_index":0,"instance_id":3,"side":"player","target_id":null,"type":"minion"},"seq":820,"turn":37,"type":"card_played"}}
-{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":112,"health":2,"position":0,"side":"player"},"seq":821,"turn":37,"type":"minion_summoned"}}
+{"event":{"cause_seq":0,"payload":{"attack":1,"card_id":"fx_grunt","entity_id":112,"health":2,"keywords":[],"position":0,"side":"player"},"seq":821,"turn":37,"type":"minion_summoned"}}
 {"event":{"cause_seq":0,"payload":{"amount":2,"mana_current":7,"side":"player"},"seq":822,"turn":37,"type":"mana_spent"}}
 {"event":{"cause_seq":0,"payload":{"power_id":"war_test_power","side":"player","target_id":null},"seq":823,"turn":37,"type":"hero_power_used"}}
 {"event":{"cause_seq":0,"payload":{"attacker":1,"defender":111},"seq":824,"turn":37,"type":"attack_declared"}}

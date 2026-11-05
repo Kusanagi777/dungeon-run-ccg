@@ -186,7 +186,8 @@ func apply(event: Dictionary) -> Array[AnimStep]:
 ## (`hero_power_cost` until then, DD-X29);
 ## `board` is `[{entity_id, card_id, attack, health, max_health, keywords,
 ## frozen, silenced, attacks_used}]` left to right. `hero.health` is null until
-## an event reports it (`damage_dealt.health_after`). An unknown side gives `{}`.
+## an event reports it (`match_started.starting_health`, DD-X35, then
+## `damage_dealt.health_after`). An unknown side gives `{}`.
 ## [codeblock]
 ## var mana: int = view.side(&"player").mana.available
 ## [/codeblock]
@@ -301,6 +302,10 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 		"match_started":
 			_sides[SIDE_PLAYER].hero.entity_id = p.get("hero_id")
 			_sides[SIDE_BOSS].hero.entity_id = p.get("boss_id")
+			var starting: Dictionary = p.get("starting_health", {})
+			for side_name: String in _sides:
+				if starting.has(side_name):
+					_sides[side_name].hero.health = int(starting[side_name])
 		"deck_shuffled":
 			var deck: Dictionary = {}
 			for id: Variant in p.get("instance_ids", []):

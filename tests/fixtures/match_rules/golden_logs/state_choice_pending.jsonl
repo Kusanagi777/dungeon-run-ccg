@@ -10,7 +10,7 @@
 {"event":{"cause_seq":0,"payload":{"instance_ids":[10,7,14],"side":"player"},"seq":10,"turn":0,"type":"mulligan_offered"}}
 {"event":{"cause_seq":0,"payload":{"instance_ids":[13,5,3,6,11,16,17,4,12,8,15,9],"side":"player"},"seq":11,"turn":0,"type":"deck_shuffled"}}
 {"event":{"cause_seq":0,"payload":{"replaced_instance_ids":[],"side":"player"},"seq":12,"turn":0,"type":"mulligan_resolved"}}
-{"event":{"cause_seq":0,"payload":{"boss_deck_size":11,"boss_id":2,"floor":1,"hero_id":1,"player_deck_size":12},"seq":13,"turn":0,"type":"match_started"}}
+{"event":{"cause_seq":0,"payload":{"boss_deck_size":11,"boss_id":2,"floor":1,"hero_id":1,"player_deck_size":12,"starting_health":{"boss":30,"player":30}},"seq":13,"turn":0,"type":"match_started"}}
 {"event":{"cause_seq":0,"payload":{"side":"player","turn":1},"seq":14,"turn":1,"type":"turn_started"}}
 {"event":{"cause_seq":0,"payload":{"gained":1,"mana_max":1,"side":"player"},"seq":15,"turn":1,"type":"crystal_gained"}}
 {"event":{"cause_seq":0,"payload":{"mana_available":1,"mana_max":1,"side":"player"},"seq":16,"turn":1,"type":"mana_refilled"}}

@@ -454,7 +454,7 @@ func test_summon_minion_inserts_a_sick_minion_from_its_definition() -> void:
 	var event: Dictionary = _assert_one(_since(log, before), "minion_summoned")
 	assert_dict(event.payload).is_equal({
 		"side": SIDE_PLAYER, "entity_id": id, "card_id": DEF_GRUNT, "position": 0,
-		"attack": GRUNT_ATTACK, "health": GRUNT_HEALTH,
+		"attack": GRUNT_ATTACK, "health": GRUNT_HEALTH, "keywords": ["taunt"],
 	})
 	assert_int(int(minion.entity_id)).is_equal(id)
 	assert_bool(board[1] == left).is_true()

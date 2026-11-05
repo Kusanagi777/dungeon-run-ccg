@@ -1264,7 +1264,7 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 	var id: int = int(minion.entity_id)
 	var summoned_seq: int = emit(&"minion_summoned", {
 		"side": side, "entity_id": id, "card_id": def_id, "position": index,
-		"attack": attack(minion), "health": health(minion),
+		"attack": attack(minion), "health": health(minion), "keywords": _effective_keywords(minion),
 	})
 	_run_inline_hooks(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id})
 	_raise(&"on_summon", {"side": side, "candidates": _candidates_in_order(), "subject": id, "card_id": def_id}, summoned_seq)
@@ -2385,7 +2385,7 @@ func _accept_minion(side: String, card: Dictionary, position: int, target: Varia
 	played.id = int(minion.entity_id)
 	emit(&"minion_summoned", {
 		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": position,
-		"attack": attack(minion), "health": health(minion),
+		"attack": attack(minion), "health": health(minion), "keywords": _effective_keywords(minion),
 	})
 
 
@@ -2588,13 +2588,17 @@ func _mulligan_step(keep_mask: Array) -> void:
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
 	if _halted():
 		return
-	# C3 step 8: match_started
+	# C3 step 8: match_started, after the hooks, so the values are final (DD-X35)
+	var starting_health: Dictionary = {}
+	for side: String in MatchRecords.SIDES:
+		starting_health[side] = health(_state.players[side].hero)
 	emit(&"match_started", {
 		"floor": _state.floor,
 		"hero_id": int(_state.players[MatchRecords.SIDE_PLAYER].hero.entity_id),
 		"boss_id": int(_state.players[MatchRecords.SIDE_BOSS].hero.entity_id),
 		"player_deck_size": _state.players[MatchRecords.SIDE_PLAYER].deck.size(),
 		"boss_deck_size": _state.players[MatchRecords.SIDE_BOSS].deck.size(),
+		"starting_health": starting_health,
 	})
 
 
