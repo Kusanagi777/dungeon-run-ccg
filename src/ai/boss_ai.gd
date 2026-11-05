@@ -168,8 +168,9 @@ const OVERRIDE_ONLY_INTENT: String = "hidden"
 const BAND_KEYS: Array[String] = ["1", "2", "3"]
 ## F9 `presentation` keys (all ranged in [constant RANGES]).
 const PRESENTATION_KEYS: Array[String] = ["action_delay_s", "max_turn_playback_s", "intent_banner_s", "plan_changed_s"]
-## F9 / ADR-0006 `runtime.planner_mode` values (`PlannerTask` implementations).
-const PLANNER_MODES: Array[String] = ["worker", "time_sliced", "immediate"]
+## F9 / ADR-0006 `runtime.planner_mode` values (`PlannerTask` implementations). Shipped
+## data cannot select a test helper: tests pass a planner to the factory (DD-X33).
+const PLANNER_MODES: Array[String] = ["worker", "time_sliced"]
 ## F9 / ADR-0006 `runtime` timing keys: positive finite milliseconds.
 const RUNTIME_TIMING_KEYS: Array[String] = ["slice_ms", "replay_budget_ms"]
 ## The `runtime` enum key.

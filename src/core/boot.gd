@@ -140,6 +140,51 @@ func services() -> Services:
 	return _services
 
 
+## The `driver_factory` a `RunMachine`, a debug loader or the sim harness receives by
+## argument (ADR-0008 Decisions 1 and 11): a `func(config: Dictionary) -> MatchDriver`
+## that builds a new [MatchDriver] over `Services.card_database`, with the settings
+## snapshot `Services.meta.get_settings()` taken at that call.
+##
+## Each driver gets a `Callable() -> PlannerTask` that makes a **new** task per call,
+## because `PlannerTask.start` runs once per object (DD-X31). The first that applies
+## picks the task:
+## 1. a valid [param planner_override], which is the task source as it stands, with
+##    neither `planner_mode` nor `--ai-sync` consulted. Tests and the sim harness pass
+##    `ImmediatePlannerTask` here: `src/` never names it, and `tests/*` is not exported
+##    (DD-X33);
+## 2. `--ai-sync` in [param cmdline_args] in a debug build, or
+##    `runtime.planner_mode == "time_sliced"`: a [TimeSlicedPlannerTask] on `slice_ms`;
+## 3. otherwise a [WorkerPoolPlannerTask] (ADR-0006).
+##
+## `config("ai_profiles")` is read once, here, and only when there is no override. No
+## driver is built until the returned `Callable` is called. Before [method boot], or
+## after a `Failed` load, this logs an error and returns an empty `Callable`, so there
+## is never a factory over no data. It keeps nothing: every call builds a new factory
+## from `_services`. [param cmdline_args] is a parameter only so a test can pass
+## `--ai-sync`. Single-thread-only, as `Boot` is; a task touches none of this.
+## [codeblock]
+## var driver_factory: Callable = Boot.driver_factory()
+## var driver: MatchDriver = driver_factory.call(match_config)
+## var harness_factory: Callable = Boot.driver_factory(func() -> PlannerTask: return ImmediatePlannerTask.new())
+## [/codeblock]
+func driver_factory(planner_override: Callable = Callable(), cmdline_args: PackedStringArray = OS.get_cmdline_user_args()) -> Callable:
+	if _result == null or not _result.ok:
+		push_error("Boot.driver_factory(): no Ready boot, so no factory (call boot() first and check BootResult.ok)")
+		return Callable()
+	var db: CardDatabase = _services.card_database
+	var meta: MetaApi = _services.meta
+	var planner_factory: Callable = planner_override
+	if not planner_factory.is_valid():
+		var runtime: Dictionary = db.config(BossAI.CONFIG_NAME).runtime
+		if (OS.is_debug_build() and cmdline_args.has("--ai-sync")) or runtime.planner_mode == "time_sliced":
+			var slice_usec: int = int(float(runtime.slice_ms) * MatchDriver.USEC_PER_MSEC)
+			planner_factory = func() -> PlannerTask: return TimeSlicedPlannerTask.new(slice_usec)
+		else:
+			planner_factory = func() -> PlannerTask: return WorkerPoolPlannerTask.new()
+	return func(config: Dictionary) -> MatchDriver:
+		return MatchDriver.new(config, db, meta.get_settings(), planner_factory)
+
+
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5
 ## step 2; ADR-0002 Decision 4): `{effects, ai_profile, unlock, treasure,
 ## configs: {<every config file but card_database>}}`. A key missing here is
