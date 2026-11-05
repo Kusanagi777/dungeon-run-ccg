@@ -43,12 +43,20 @@ const HERO_POWER_ALWAYS: String = "always"
 const HERO_POWER_SPARE_MANA: String = "spare_mana"
 const HERO_POWER_NEVER: String = "never"
 const HERO_POWER_VALUE: String = "value"
-## Edge Cases "an op type … has no `op_values` row: valued 1.0" (the load
-## reports `E_AI_OP_UNVALUED`, `BossAI.validate_op_coverage`).
-const OP_UNVALUED: float = 1.0
-## C7's vanilla-body rule, used here for every minion body: `buff` value ×
-## `(attack + health) / BODY_DIVISOR`.
-const BODY_DIVISOR: float = 4.0
+## The two numbers of the C6 and C7 valuation, a named table so A29's gate can
+## see them (`tools/ci/ai_code_gates.sh`; BAI review N6).
+## `op_unvalued`: Edge Cases "an op type … has no `op_values` row: valued 1.0" (the
+## load reports `E_AI_OP_UNVALUED`, `BossAI.validate_op_coverage`).
+## `body_divisor`: C7's vanilla-body rule, used here for every minion body: `buff`
+## value × `(attack + health) / body_divisor`.
+const NORMALISERS: Dictionary = {
+	"op_unvalued": 1.0,
+	"body_divisor": 4.0,
+}
+## [constant NORMALISERS] `op_unvalued`, by its old name.
+const OP_UNVALUED: float = NORMALISERS.op_unvalued
+## [constant NORMALISERS] `body_divisor`, by its old name.
+const BODY_DIVISOR: float = NORMALISERS.body_divisor
 ## The op a body is valued as (C7), the op a weapon play is valued as (C6
 ## `equip`), the op an attack is valued as (one `damage` to one target).
 const OP_BODY: String = "buff"

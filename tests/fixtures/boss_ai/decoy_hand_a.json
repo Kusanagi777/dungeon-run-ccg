@@ -1,0 +1,24 @@
+{
+  "name": "decoy_hand_a",
+  "description": "boss-ai A4: every card in the player's hand is an area spell, drawn through the engine, so its `card_drawn.card_id` is in the log. If the AI reads this, it plays X: a boss that took the hand for `aoe_seen` would charge the 5th grunt `f_over` and play `x_card` instead, and the same spell played in public does exactly that. Boss mana 1 buys one card. `deck_card` costs 9, so the Start draw cannot change the plan (A4 against C8.1: a drawn card the boss plays gives kept = false). decoy_hand_b differs only in `player_drawn` and `player_deck`. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "weights": {"w_over": 3.0},
+  "deck_card": "bai_filler",
+  "x_card": "bai_x",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2},
+    {"id": "bai_x", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 12}]}]},
+    {"id": "bai_decoy_flame", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_decoy_inferno", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 2}]}]},
+    {"id": "bai_decoy_ember", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 3}]}]},
+    {"id": "bai_lamb_a", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_lamb_b", "type": "minion", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_lamb_c", "type": "minion", "cost": 3, "attack": 3, "health": 3}
+  ],
+  "boss": {"mana": 0, "board": ["bai_grunt", "bai_grunt", "bai_grunt", "bai_grunt"], "hand": ["bai_grunt", "bai_x"]},
+  "player": {"health": 30, "board": []},
+  "player_drawn": ["bai_decoy_flame", "bai_decoy_inferno", "bai_decoy_ember"],
+  "player_deck": ["bai_decoy_ember", "bai_decoy_flame"]
+}

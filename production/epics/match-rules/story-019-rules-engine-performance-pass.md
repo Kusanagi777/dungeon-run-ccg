@@ -233,6 +233,7 @@ Read on the unchanged engine plus the diagnostic counters alone (`4d2b046`, then
 
 **Open.**
 - R6 (owner): AC-3, after a quiet-machine and release re-measure.
+**Reviewed by**: independent `/code-review`, 2026-11-05 (`production/reviews/2026-11-05/code-review-s5-w2-bossai-mr019.md`, full scope, at `f4aff0e`): **APPROVED WITH SUGGESTIONS**, 0 required. The review does not close the story: it stays BLOCKED on AC-3 and AC-4 under its own close rule. Open: R3's unchecked buffer, the Testability items, the cross-OS golden comparison and, from `production/reviews/2026-11-05/code-review-s5-w2-effects-treasures.md` P1, a re-run with real hooks and an aura host.
 - AC-3, AC-4, AC-40 on the release template: NOT ASSESSED, no template here.
 - Goldens compared on one OS only (Windows): QA plan MR-019 asks for a cross-OS check. NOT ASSESSED until Linux CI runs them.
 - R5 follow-up is unchanged: band 3 is 1,638 ms at this `t_sim`.

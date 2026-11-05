@@ -118,7 +118,7 @@ checks scope against it.*
 **Started / ended (UTC)**: 01:03:33 / 01:14:30 (2026-11-05 UTC)
 **Criteria**: 3/3 passing, all by automated test (none deferred)
 **Test Evidence**: `tests/unit/card_effects/card_effects_transform_copy_test.gd` (31)
-**Reviewed by**: self, no independent review (the orchestrator runs `/code-review` at M2; a lane does not review its own work)
+**Reviewed by**: independent `/code-review`, 2026-11-05 (`production/reviews/2026-11-05/code-review-s5-w2-effects-treasures.md`, full scope, `868ebe4`): **APPROVED WITH SUGGESTIONS**, 0 required. Open, all latent with no shipped card: D1, D2, D3, D4, then N2, S3, S4, S5.
 **Run result**: N/A — a Logic story changes nothing visible; the full suite and `godot --headless --quit-after 5` are the evidence.
 
 **Traceability**
