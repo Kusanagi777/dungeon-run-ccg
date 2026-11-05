@@ -418,8 +418,8 @@ func test_groups_a_late_tick_adds_past_the_budget_auto_skip_too() -> void:
 	# Act
 	_run_until_idle(queue)
 
-	# Assert
-	assert_float(_now).is_equal_approx(10.0, 2.0 * NEAR)
+	# Assert: 0.1 s of it was idle, which the turn clock does not count
+	assert_float(_now).is_equal_approx(10.1, 2.0 * NEAR)
 	assert_int(_skips).is_equal(1)
 
 
@@ -538,6 +538,100 @@ func test_exit_on_an_idle_queue_ends_the_mode_at_the_next_advance() -> void:
 	# Assert
 	assert_bool(held).is_true()
 	assert_bool(queue.boss_turn_active()).is_false()
+
+
+# --- a player's Choice on the boss's turn --------------------------------------------
+
+func _player_choice(view: MatchViewState, seq: int) -> void:
+	var payload: Dictionary = {"side": PLAYER, "kind": "discover", "source_id": 9, "effect_id": "x.0"}
+	var offered: Dictionary = payload.duplicate()
+	offered["option_card_ids"] = ["card_a"]
+	var requested: Dictionary = payload.duplicate()
+	requested["options"] = ["card_a"]
+	@warning_ignore("return_value_discarded")
+	view.apply({"seq": seq, "turn": 2, "type": "discover_offered", "payload": offered, "cause_seq": 5})
+	@warning_ignore("return_value_discarded")
+	view.apply({"seq": seq + 1, "turn": 2, "type": "choice_requested", "payload": requested, "cause_seq": 5})
+
+
+func test_a_players_choice_on_the_boss_turn_lifts_the_lock_for_the_pick_alone() -> void:
+	# Arrange: the boss's replay raised a Choice the player owes (States `ChoiceOpen`)
+	var view: MatchViewState = MatchViewState.new(MatchUiTestConfig.body())
+	var queue: AnimationQueue = _boss_queue()
+	var router: InputRouter = _router(queue, view)
+	@warning_ignore("return_value_discarded")
+	_turn_started(view, BOSS, 10)
+	var before: bool = router.controls_locked()
+
+	# Act
+	_player_choice(view, 20)
+	var open: bool = router.controls_locked()
+	var pick: bool = router.allows(&"choose")
+	var end_turn: bool = router.allows(&"end_turn")
+	var menu: bool = router.allows(&"menu")
+	@warning_ignore("return_value_discarded")
+	view.apply({"seq": 22, "turn": 2, "type": "choice_made", "payload": {"side": PLAYER, "option_index": 0}, "cause_seq": 5})
+
+	# Assert
+	assert_bool(before).is_true()
+	assert_bool(open).override_failure_message("the player cannot answer their Choice").is_false()
+	assert_bool(pick).is_true()
+	assert_bool(end_turn).override_failure_message("a Choice has no other input").is_false()
+	assert_bool(menu).is_true()
+	assert_bool(router.controls_locked()).override_failure_message("the lock did not return").is_true()
+	assert_bool(router.allows(&"choose")).is_false()
+
+
+func test_a_boss_choice_keeps_the_lock() -> void:
+	# Arrange
+	var view: MatchViewState = MatchViewState.new(MatchUiTestConfig.body())
+	var queue: AnimationQueue = _boss_queue()
+	var router: InputRouter = _router(queue, view)
+	@warning_ignore("return_value_discarded")
+	_turn_started(view, BOSS, 10)
+
+	# Act
+	@warning_ignore("return_value_discarded")
+	view.apply({"seq": 20, "turn": 2, "type": "choice_requested", "payload": {"side": BOSS, "kind": "discover", "options": ["card_a"], "source_id": 9, "effect_id": "x.0"}, "cause_seq": 5})
+
+	# Assert
+	assert_bool(router.controls_locked()).is_true()
+	assert_bool(router.allows(&"choose")).is_false()
+
+
+func test_the_turn_clock_stops_while_the_player_chooses_and_the_boss_replans() -> void:
+	# Arrange: the first half of the turn has played, and the player takes 30 s to choose
+	var queue: AnimationQueue = _boss_queue()
+	_burst(queue, 2, 0.5)
+	_run_until_idle(queue)
+	var first_half: float = _now
+	_run_to(queue, 30.0)
+
+	# Act: the re-plan brings the second half
+	_groups(queue, 3, 0.5, 2000)
+	_run_until_idle(queue)
+
+	# Assert
+	assert_int(_skips).override_failure_message("the wait counted against the budget").is_equal(0)
+	assert_int(_action_starts().size()).is_equal(5)
+	assert_float(first_half).is_equal_approx(1.9, 2.0 * NEAR)
+	assert_float(_now).is_equal_approx(30.0 + 3.0 * 0.5 + 2.0 * 0.6, 3.0 * NEAR)
+
+
+func test_the_budget_still_bites_on_the_plan_after_a_choice() -> void:
+	# Arrange
+	var queue: AnimationQueue = _boss_queue()
+	_burst(queue, 1, 0.5)
+	_run_until_idle(queue)
+	_run_to(queue, 30.0)
+
+	# Act: 9.2 s of budget left from 0.8, and a second half far longer than that
+	_groups(queue, 30, 1.0, 2000)
+	_run_until_idle(queue, 60.0)
+
+	# Assert
+	assert_int(_skips).is_equal(1)
+	assert_float(_now).is_equal_approx(30.0 + 9.2, 3.0 * NEAR)
 
 
 # --- a boss Choice -------------------------------------------------------------------

@@ -46,8 +46,10 @@
 ## when the first group would start, over the groups then queued, with
 ## `intent_banner_s` however long the beat ran: the stretch is planning time. Later
 ## groups reuse that `gap` and `k`. From that start a clock runs up from
-## `intent_banner_s`; when it reaches `max_turn_playback_s` the rest is skipped. At
-## `instant` nothing is held and F4 is 0 (Edge Cases).
+## `intent_banner_s`, while a plan step is queued or playing: a wait with nothing to
+## show, such as the player's own Choice and the re-plan after it, is not playback.
+## When the clock reaches `max_turn_playback_s` the rest is skipped. At `instant`
+## nothing is held and F4 is 0 (Edge Cases).
 ##
 ## Divisors and the threshold come from `config("match_ui")`; `anim_speed` and
 ## `reduce_motion` from the DD-X07 settings dictionary (`SettingsBus` /
@@ -563,8 +565,15 @@ func _run_clocks(dt: float) -> void:
 	_gap_left_s = maxf(_gap_left_s - dt, 0.0)
 	if _boss_phase == _BossPhase.BEAT or _boss_phase == _BossPhase.THINKING:
 		_beat_elapsed_s += dt
-	elif _f4_ready and _boss_phase == _BossPhase.PLAYBACK:
+	elif _f4_ready and _boss_phase == _BossPhase.PLAYBACK and _plan_step_left():
 		_turn_clock_s += dt
+
+
+## True while a plan step plays or waits at the head of the queue.
+func _plan_step_left() -> bool:
+	if not _active.is_empty() and _is_plan_step(_active[0]):
+		return true
+	return not _pending.is_empty() and _is_plan_step(_pending[0])
 
 
 ## U4.3: true when [param step] joined (or became) a coalesced pop.
