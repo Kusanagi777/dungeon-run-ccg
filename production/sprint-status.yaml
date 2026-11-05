@@ -61,7 +61,7 @@ stories:
     name: "A committed Godot wrapper: godot resolution and a per-worktree user://"
     file: "production/epics/boot-composition-root/story-010-godot-wrapper-and-user-dir-isolation.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 7)"
     estimate_days: 1
     lane: 7
@@ -70,7 +70,7 @@ stories:
     contract: false
     blocker: ""
     note: "pre-W1, M0, before any W1 lane worktree is cut; row 13; the export half of AC-3 reads NOT ASSESSED until templates are installed; fallback: the scratchpad shim, L5 or L6 W1; /code-review at M0"
-    completed: ""
+    completed: "2026-11-05"
   - id: "boot-composition-root-011"
     name: "A Windows screenshot path: tools/capture.sh without Xvfb, with the renderer recorded"
     file: "production/epics/boot-composition-root/story-011-windows-screenshot-capture.md"
