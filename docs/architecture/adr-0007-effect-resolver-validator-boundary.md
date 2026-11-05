@@ -368,7 +368,9 @@ static func derive_targeting_spec(effects: Array) -> Dictionary            # the
 ### Negative
 
 - Two engine additions (`state()`, `emit()`) widen `RulesEngine`'s surface; the
-  control manifest must restrict their callers by directory.
+  control manifest must restrict their callers by directory. `queue_triggers()`
+  is a third (2026-11-04, sprint-4 review S5), restricted the same way
+  (sprint 5 code review, 2026-11-04).
 - Per-`def_id` memo rebuilt per clone — a small, repeated cost inside the
   planner's budget (measured, not assumed).
 - The explicit `unbind()` is a lifecycle step a programmer can forget; the
@@ -419,7 +421,7 @@ static func derive_targeting_spec(effects: Array) -> Dictionary            # the
 
 | TD | Prototype root cause | Rule here that rules it out |
 |---|---|---|
-| TD-002 | Calls to rules functions that did not exist (half-finished rename) | The engine surface the resolver may call is enumerated (24 primitives + `state`, `emit`, `rng_match`) and typed; the per-file parse check and the scripted-engine double catch a missing call before a match runs |
+| TD-002 | Calls to rules functions that did not exist (half-finished rename) | The engine surface the resolver may call is enumerated (24 primitives + `state`, `emit`, `rng_match`, and `queue_triggers` since 2026-11-04) and typed; the per-file parse check and the scripted-engine double catch a missing call before a match runs |
 | TD-004 (resolution half; schema half is ADR-0002) | `CardEffectBase` never subclassed or invoked; synergies as stubs | Effects are data resolved by one `EffectResolver` through primitives; the validator rejects anything unexpressible at load; there is no code-per-card path to leave unimplemented |
 
 ## Performance Implications

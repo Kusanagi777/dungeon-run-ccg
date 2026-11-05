@@ -36,6 +36,11 @@ in-primitive hooks (synchronous, re-entry fault, Discover refused); ADR-0006
 cause; ADR-0008 `MatchQuery` in the rules tier; the `RulesEngine.clone()`
 contract; DD-X15, DD-X16, DD-X17; performance budgets from `project.yaml`.
 
+**Erratum 2026-11-04 (sprint 5 code review, `production/reviews/2026-11-04/`)**: two Core
+rows changed by hand, no regeneration. `BossAI.plan_task` takes the running task
+(`code-review-s5-w1-bossai.md` D-1), and `RulesEngine.queue_triggers` gains its
+directory restriction (`code-review-s5-w1-ce009-fixbuffer.md`, ADR Compliance).
+
 ---
 
 ## Foundation Layer Rules
@@ -161,6 +166,7 @@ contract; DD-X15, DD-X16, DD-X17; performance budgets from `project.yaml`.
 - **`resolve(point, ctx)` returns the triggers it queues** as plain-data entries `{source_id, effect_id, point?, snapshot?}`; the engine fills a missing `snapshot` with a raise-time copy (a Deathrattle's death snapshot with `position`), appends them to Q, drops an entry whose source is no longer on the board / a hero / a weapon / in hand / in `resolving`, and runs a popped entry with `ctx.queued = true` and no `candidates` — source: ADR-0007 (errata 2026-11-03, DSL spike and match-rules 009)
 - **`choice_made` is logged under the paused pass's `cause_seq`** (the same as its `choice_requested` / `discover_offered` / `discover_picked`), never cause 0 — source: ADR-0007 (erratum 2026-11-04)
 - **`EffectResolver` mutates match state only through engine primitives, emits only through `engine.emit(type, payload)`, draws only through `engine.rng_match()`**; `RulesEngine.state()` is called only from `src/gameplay/effects/**`, plus read-only from `src/ai/**` on a sandbox clone until `MatchQuery` exists (ADR-0007 erratum 2026-11-04, TD-014) — source: ADR-0007
+- **`RulesEngine.queue_triggers(point, entries, reason)` is called only from `src/gameplay/effects/**`** (C5 `retrigger`): it appends the resolver's plain-data entries to Q and emits `trigger_queued {…, reason}`, so Q stays engine-owned; it is not one of the 24 primitives — source: ADR-0007 (erratum 2026-11-04, sprint-4 review S5)
 - **`EffectRuntime {once_marks, counters, per_turn, pending_choice}` is plain data in `MatchState.effects`** (Dictionaries, Arrays, ints, Strings); `clone()` copies it by value; `counter_changed` is emitted for each counter change — source: ADR-0007
 - **One effect pass = one C10 step**; the resolver orders effects only *within* one entity (array order, definition before enchantment-granted) — source: ADR-0007
 - **`EffectValidator.validate_effects(host_kind, host_id, effects, db, caps) -> Array` is `static`, pure, allocates its own report**; `caps` is the `card_effects` config body passed as a parameter; codes are the closed `E_FX_*` / `W_FX_*` set; `targeting_spec` is derived via `derive_targeting_spec`, memoised per `def_id` — source: ADR-0007
@@ -177,7 +183,7 @@ contract; DD-X15, DD-X16, DD-X17; performance budgets from `project.yaml`.
 - **Evaluator Callables take everything they need as arguments**; the resolver binds bound methods, not closures over mutable state — source: ADR-0005
 - **Match-tier hook state (`once_per_turn` marks, counters) lives in `EffectRuntime` keyed by treasure id; run-tier state is the installer's read-only `state` blob returned by `hosts()`** — source: ADR-0005
 - **The Boss AI plans on `RulesEngine.clone()` inside a `PlannerTask` and returns a `TurnPlan`** `{commands[], diagnostics[], expected_checksum, ai_draws, mode_trace}` (plain data); `MatchDriver.tick()` replays the commands into the live engine via `submit()` on the main thread, appending each `ai_decision` (`cause_seq = 0`, `diagnostic: true`) immediately before its command, and compares the event-type checksum after replay — source: ADR-0006, ADR-0008
-- **The planner task Callable is built inside `src/ai/` by `BossAI.plan_task(sandbox) -> Callable`** (`func() -> Variant: return await boss_ai.plan_turn(sandbox)`, since `plan_turn` is a coroutine), so `match_driver.gd` stays `await`-free — source: ADR-0006 (erratum 2026-11-03, engine validation)
+- **The planner task Callable is built inside `src/ai/` by `BossAI.plan_task(sandbox, task) -> Callable`** (`func() -> Variant: return await boss_ai.plan_turn(sandbox, task)`, since `plan_turn` is a coroutine), so `match_driver.gd` stays `await`-free; `task` is required, and is the `PlannerTask` that will run the Callable, or a time-sliced task cannot yield — source: ADR-0006 (errata 2026-11-03, engine validation; 2026-11-04, sprint 5 code review D-1)
 - **Planner randomness comes from the `ai_<floor>` stream's `sim_<turn>` fork; candidates come from the clone's `legal_commands()`**, never synthesised — source: ADR-0006, DD-X17 (MR-015/017 code review 2026-11-04; `src/ai/scorer.gd`)
 - **Default `WorkerPoolPlannerTask`**: `WorkerThreadPool.add_task(callable, false, "boss_ai")`, one `is_task_completed(id)` per `tick()`, `wait_for_task_completion(id)` exactly once after completion; **fallback `TimeSlicedPlannerTask`** when `config("ai_profiles").runtime.planner_mode == "time_sliced"` or `--ai-sync`; **`ImmediatePlannerTask`** in `tests/unit/**` and the sim harness — source: ADR-0006
 - **`BossAI` `await`s `planner.checkpoint()` between candidate evaluations (C4–C6 `score_all`) and between lethal-search nodes (C3)**; it is a no-op on the worker and a yield when time-sliced; `await` under `src/ai/**` is allowed only on the planner's own coroutines (`checkpoint()`, `plan_turn`, `score_all`, lethal search — gate G2b deny-list, ADR-0001/0006 errata 2026-11-03) — source: ADR-0006, ADR-0001
