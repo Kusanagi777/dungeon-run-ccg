@@ -75,7 +75,7 @@ stories:
     name: "A Windows screenshot path: tools/capture.sh without Xvfb, with the renderer recorded"
     file: "production/epics/boot-composition-root/story-011-windows-screenshot-capture.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 7)"
     estimate_days: 1
     lane: 7
@@ -84,7 +84,7 @@ stories:
     contract: false
     blocker: ""
     note: "pre-W1, M0, behind BOOT-010 in lane 7; row 12; DD-X32: Windows frames are BLOCKING UI evidence with a .renderer.txt sidecar (ADR-0010 erratum 2026-11-05); fallback: row 12 fix (c); /code-review at M0"
-    completed: ""
+    completed: "2026-11-05"
   - id: "match-ui-005"
     name: "Hero panels, mana bar, deck piles, top bar, hero power and End Turn"
     file: "production/epics/match-ui/story-005-hero-panels-mana-and-end-turn.md"
