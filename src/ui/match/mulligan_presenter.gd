@@ -19,7 +19,6 @@ const BODY_FONT_PX: int = 16
 const PILL_FONT_PX: int = 14
 const REPLACE_ALPHA: float = 0.45
 const FLIP_HALF: float = 0.5
-## The number row: `1`–`9`, then `0` for the tenth card (mulligan.md §7.2).
 
 var _view: MatchViewState = null
 var _cfg: Dictionary = {}
