@@ -35,6 +35,16 @@ func _run_gates(root: String, env_path: String = "") -> Dictionary:
 	return {"exit": code, "text": "\n".join(output)}
 
 
+## Runs the script on [param root] with [param fake] in front of the inherited PATH.
+func _run_gates_with(fake: String, root: String) -> Dictionary:
+	var output: Array = []
+	var entry: String = _path_entry(ProjectSettings.globalize_path(FIXTURES + fake))
+	var script_path: String = ProjectSettings.globalize_path(GATE_SCRIPT)
+	var root_path: String = ProjectSettings.globalize_path(root)
+	var code: int = OS.execute("bash", ["-c", 'PATH="$1:$PATH" exec "$BASH" "$2" "$3"', "bash", entry, script_path, root_path], output, true)
+	return {"exit": code, "text": "\n".join(output)}
+
+
 ## [param path] as a PATH entry: Git Bash spells `C:/x` as `/c/x`.
 func _path_entry(path: String) -> String:
 	if path.length() > 1 and path[1] == ":":
@@ -157,6 +167,43 @@ func test_tables_strings_comments_and_indices_pass() -> void:
 		assert_str(result.text).contains("%s hits: 0\n" % rule)
 
 
+func test_a_pinned_name_at_another_value_fails() -> void:
+	# Arrange / Act
+	var result: Dictionary = _run_gates(FIXTURES + "ai_pin_value")
+
+	# Assert — the review's `UNPRICED = 0.75`, and the two rules it kept
+	assert_int(result.exit).is_equal(EXIT_HITS)
+	assert_str(result.text).contains("AI-LITERAL src/ai/lethal_search.gd:3:")
+	assert_str(result.text).contains("AI-LITERAL src/ai/lethal_search.gd:4:")
+	assert_str(result.text).contains("AI-LITERAL src/ai/scorer.gd:3:")
+	assert_str(result.text).contains("AI-LITERAL src/ai/boss_ai.gd:3:")
+	_assert_only_rule_hits(result.text, "AI-LITERAL", 4)
+
+
+func test_a_pinned_name_or_table_in_another_file_fails() -> void:
+	# Arrange / Act
+	var result: Dictionary = _run_gates(FIXTURES + "ai_pin_file")
+
+	# Assert — right name, right value, wrong file; a constant list of 0 and 1 too
+	assert_int(result.exit).is_equal(EXIT_HITS)
+	for line: int in [3, 4, 5, 7, 9]:
+		assert_str(result.text).contains("AI-LITERAL src/ai/elsewhere.gd:%d:" % line)
+	_assert_only_rule_hits(result.text, "AI-LITERAL", 5)
+
+
+func test_a_new_or_changed_row_of_a_pinned_table_fails() -> void:
+	# Arrange / Act
+	var result: Dictionary = _run_gates(FIXTURES + "ai_pin_rows")
+
+	# Assert — a new key even at 1.0; a changed value; a changed range bound
+	assert_int(result.exit).is_equal(EXIT_HITS)
+	for line: int in [5, 6, 7]:
+		assert_str(result.text).contains("AI-LITERAL src/ai/scorer.gd:%d:" % line)
+	assert_str(result.text).not_contains("AI-LITERAL src/ai/scorer.gd:4:")
+	assert_str(result.text).contains("AI-LITERAL src/ai/boss_ai.gd:4:")
+	_assert_only_rule_hits(result.text, "AI-LITERAL", 4)
+
+
 func test_real_tree_passes_every_rule() -> void:
 	# Arrange / Act
 	var result: Dictionary = _run_gates(PROJECT_ROOT)
@@ -179,6 +226,46 @@ func test_a_root_with_no_src_ai_refuses_with_exit_2() -> void:
 	assert_int(result.exit).is_equal(EXIT_REFUSED)
 	assert_str(result.text).contains("src/ai")
 	assert_str(result.text).not_contains("hits: 0")
+
+
+func test_a_src_ai_with_no_script_refuses_with_exit_2() -> void:
+	# Arrange / Act — the directory exists and there is nothing in it to check
+	var result: Dictionary = _run_gates(FIXTURES + "ai_empty")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_REFUSED)
+	assert_str(result.text).contains("no .gd file under src/ai")
+	assert_str(result.text).not_contains("hits:")
+
+
+func test_an_rg_error_listing_the_files_refuses_with_exit_2() -> void:
+	# Arrange / Act
+	var result: Dictionary = _run_gates_with("fake_rg_fails", FIXTURES + "ai_thread")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_REFUSED)
+	assert_str(result.text).contains("rg --files exited 2")
+	assert_str(result.text).not_contains("hits:")
+
+
+func test_an_rg_error_in_a_rule_refuses_with_exit_2_and_prints_no_count() -> void:
+	# Arrange / Act — the literal scan is clean, then every search errors
+	var result: Dictionary = _run_gates_with("fake_rg_search_fails", FIXTURES + "ai_thread")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_REFUSED)
+	assert_str(result.text).contains("AI-THREAD: could not run")
+	assert_str(result.text).not_contains("hits:")
+
+
+func test_an_awk_error_refuses_with_exit_2_and_prints_no_count() -> void:
+	# Arrange / Act
+	var result: Dictionary = _run_gates_with("fake_awk_fails", FIXTURES + "ai_clean")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_REFUSED)
+	assert_str(result.text).contains("AI-LITERAL: could not run")
+	assert_str(result.text).not_contains("hits:")
 
 
 func test_missing_ripgrep_refuses_with_exit_2() -> void:
