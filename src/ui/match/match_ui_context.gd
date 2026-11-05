@@ -1,0 +1,74 @@
+## What every match presenter reads and never writes: the `config("match_ui")` body,
+## the palette as colours, the card faces and the live read model. `MatchView` builds
+## one in `_ready` (ADR-0009: every value read once there) and hands it to each
+## presenter, so no presenter names `Boot` or the database.
+## [codeblock]
+## var ctx := MatchUiContext.new(db.config("match_ui"), db)
+## panel.color = ctx.color("table_lit")
+## var row: Rect2 = ctx.rect("player_row")
+## [/codeblock]
+class_name MatchUiContext
+extends RefCounted
+
+## Palette tokens of a card's border and art box by set; another set reads as neutral.
+const SET_PRIMARY: Dictionary = {"war": "war", "decay": "decay", "knowledge": "knowledge", "boss": "boss_band_1"}
+const SET_SECONDARY: Dictionary = {"war": "war2", "decay": "decay2", "knowledge": "knowledge2", "boss": "boss_band_1"}
+const FALLBACK_TOKEN: String = "neutral"
+
+## The `config("match_ui")` body. Read only.
+var config: Dictionary = {}
+## The live read model, for hover and highlighting only (match-ui U2). Null until a
+## controller is set.
+var query: MatchQuery = null
+## `func(entity_id: int) -> Vector2`, the screen centre of a drawn entity.
+var locate: Callable = Callable()
+
+var _db: CardDatabase = null
+var _colors: Dictionary = {}
+
+
+## A context over [param ui_config]; [param db] gives card sets. A test may pass null.
+func _init(ui_config: Dictionary, db: CardDatabase = null) -> void:
+	config = ui_config
+	_db = db
+	var palette: Dictionary = config.get("palette", {})
+	for token: String in palette:
+		_colors[token] = Color.html(str(palette[token]))
+
+
+## The colour of palette [param token]; an unknown token reports and reads as magenta.
+func color(token: String) -> Color:
+	if not _colors.has(token):
+		push_error("MatchUiContext: no palette token '%s'" % token)
+		return Color.MAGENTA
+	return _colors[token]
+
+
+## The F6 rectangle [param zone] of `layout`.
+func rect(zone: String) -> Rect2:
+	var values: Array = (config.layout as Dictionary).get(zone, [])
+	if values.size() != 4:
+		push_error("MatchUiContext: no layout rect '%s'" % zone)
+		return Rect2()
+	return Rect2(float(values[0]), float(values[1]), float(values[2]), float(values[3]))
+
+
+## `{name_key, text_key, type, cost, attack, health, keywords, primary, secondary}`
+## for [param card_id]: `card_text` plus its frame colours. `{}` for an unknown id.
+func card_face(card_id: String) -> Dictionary:
+	var face: Dictionary = query.card_text(card_id) if query != null else {}
+	if face.is_empty():
+		return {}
+	var card_set: String = ""
+	if _db != null:
+		var record: Variant = _db.card(card_id)
+		if record is Dictionary:
+			card_set = str(record.get("set", ""))
+	face["primary"] = color(str(SET_PRIMARY.get(card_set, FALLBACK_TOKEN)))
+	face["secondary"] = color(str(SET_SECONDARY.get(card_set, FALLBACK_TOKEN)))
+	return face
+
+
+## The letter badge of [param keyword]: a glyph is the non-colour backup (art bible §7).
+func glyph(keyword: String) -> String:
+	return str((config.get("glyphs", {}) as Dictionary).get(keyword, keyword.left(1).to_upper()))
