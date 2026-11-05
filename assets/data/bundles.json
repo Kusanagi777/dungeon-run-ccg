@@ -384,6 +384,198 @@
         "key": "bundle.bundle_decay_sacrifice_2.text",
         "en": "Feed the board to what stays on it."
       }
+    },
+    {
+      "id": "bundle_knowledge_spells_1",
+      "name": "Cantrips",
+      "set": "knowledge",
+      "theme": "spells",
+      "cards": [
+        "knowledge_ink_sprite",
+        "knowledge_frost_lance",
+        "knowledge_apprentice"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spells_1.text",
+        "en": "Small spells, and a hand to cheapen them."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spells_2",
+      "name": "Evocation",
+      "set": "knowledge",
+      "theme": "spells",
+      "cards": [
+        "knowledge_lightning_lash",
+        "knowledge_meteor_bolt",
+        "knowledge_glacial_wind"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spells_2.text",
+        "en": "Burn it, or freeze it where it stands."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spells_3",
+      "name": "Deep Vault",
+      "set": "knowledge",
+      "theme": "spells",
+      "cards": [
+        "knowledge_transmute",
+        "knowledge_rime_elemental",
+        "knowledge_vault_golem"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spells_3.text",
+        "en": "Spells that end a fight on their own."
+      }
+    },
+    {
+      "id": "bundle_knowledge_draw_1",
+      "name": "Open Books",
+      "set": "knowledge",
+      "theme": "draw",
+      "cards": [
+        "knowledge_spark",
+        "knowledge_study",
+        "knowledge_scribe"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_draw_1.text",
+        "en": "Turn every spell into another card."
+      }
+    },
+    {
+      "id": "bundle_knowledge_draw_2",
+      "name": "Long Reading",
+      "set": "knowledge",
+      "theme": "draw",
+      "cards": [
+        "knowledge_deep_study",
+        "knowledge_star_reader",
+        "knowledge_forbidden_tome"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_draw_2.text",
+        "en": "Read deep, and let the stars do the rest."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spell_damage_1",
+      "name": "Kindling",
+      "set": "knowledge",
+      "theme": "spell_damage",
+      "cards": [
+        "knowledge_candle_acolyte",
+        "knowledge_rune_warden",
+        "knowledge_lorekeeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spell_damage_1.text",
+        "en": "Every spell you cast hits harder."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spell_damage_2",
+      "name": "Conflagration",
+      "set": "knowledge",
+      "theme": "spell_damage",
+      "cards": [
+        "knowledge_chain_lightning",
+        "knowledge_flamewave",
+        "knowledge_grand_grimoire"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spell_damage_2.text",
+        "en": "Spells that scorch the whole board."
+      }
+    },
+    {
+      "id": "bundle_knowledge_discover_1",
+      "name": "Lost Library",
+      "set": "knowledge",
+      "theme": "discover",
+      "cards": [
+        "knowledge_lost_page",
+        "knowledge_archive_seeker",
+        "knowledge_scrying"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_discover_1.text",
+        "en": "Find the page you need."
+      }
+    },
+    {
+      "id": "bundle_neutral_wall_2",
+      "name": "Stone and Lamp",
+      "set": "neutral",
+      "theme": "wall",
+      "cards": [
+        "neutral_gate_guardian",
+        "neutral_temple_guard",
+        "neutral_old_lamplighter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_wall_2.text",
+        "en": "A wall that tends its own wounds."
+      }
+    },
+    {
+      "id": "bundle_neutral_tricks_2",
+      "name": "Hush and Hex",
+      "set": "neutral",
+      "theme": "tricks",
+      "cards": [
+        "neutral_smite_or_mend",
+        "neutral_muzzle",
+        "neutral_hourglass_mage"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tricks_2.text",
+        "en": "Bend the turn your way."
+      }
+    },
+    {
+      "id": "bundle_neutral_pings_2",
+      "name": "Embers",
+      "set": "neutral",
+      "theme": "pings",
+      "cards": [
+        "neutral_ember_sprite",
+        "neutral_gravekeeper",
+        "neutral_hedge_wizard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pings_2.text",
+        "en": "Little fires, and something to feed them."
+      }
+    },
+    {
+      "id": "bundle_neutral_big_2",
+      "name": "Siege Train",
+      "set": "neutral",
+      "theme": "big",
+      "cards": [
+        "neutral_ogre_porter",
+        "neutral_great_cleaver",
+        "neutral_dungeon_warden"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_big_2.text",
+        "en": "Heavy steel and a heavier guard."
+      }
     }
   ]
 }

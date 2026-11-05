@@ -21,7 +21,8 @@
       "mana": 1.5,
       "equip": 1.2,
       "retrigger": 1.5,
-      "add_counter": 0.5
+      "add_counter": 0.5,
+      "set_counter": 0.5
     },
     "keyword_values": {
       "taunt": 1.2,

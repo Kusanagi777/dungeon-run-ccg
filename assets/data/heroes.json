@@ -58,6 +58,35 @@
         "key": "hero.hero_decay.text",
         "en": "Nothing in my garden is wasted — least of all the dead."
       }
+    },
+    {
+      "id": "hero_knowledge",
+      "name": "Archivist Ilse",
+      "set": "knowledge",
+      "health": 30,
+      "hero_power": "power_insight",
+      "starter_deck": [
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_tunnel_rat",
+        "knowledge_candle_acolyte",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "knowledge_frost_lance",
+        "knowledge_archive_seeker",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "knowledge_study",
+        "knowledge_lightning_lash",
+        "neutral_crypt_brute",
+        "knowledge_lorekeeper",
+        "neutral_ogre_porter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_knowledge.text",
+        "en": "I have read the ending. I am only checking the page."
+      }
     }
   ]
 }

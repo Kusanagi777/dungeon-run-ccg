@@ -713,6 +713,242 @@
         "key": "card.boss_knife_in_the_dark.text",
         "en": "Deal 4 damage to a damaged minion."
       }
+    },
+    {
+      "id": "boss_scrap_plating",
+      "name": "Scrap Plating",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 5,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_scrap_plating.text",
+        "en": "Gain 5 Armor."
+      }
+    },
+    {
+      "id": "boss_junk_golem",
+      "name": "Junk Golem",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_junk_golem.text",
+        "en": "Battlecry: Gain 3 Armor."
+      }
+    },
+    {
+      "id": "boss_signal_torch",
+      "name": "Signal Torch",
+      "set": "boss",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_signal_torch.text",
+        "en": "Whenever your hero attacks, deal 1 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_pyre_bomb",
+      "name": "Pyre Bomb",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_pyre_bomb.text",
+        "en": "Deal 3 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_reflection",
+      "name": "Reflection",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "random_enemy_minion"
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_reflection.text",
+        "en": "Add a copy of a random enemy minion to your hand."
+      }
+    },
+    {
+      "id": "boss_mirror_golem",
+      "name": "Mirror Golem",
+      "set": "boss",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": {
+                "count": "all_enemy_minions"
+              },
+              "health": {
+                "count": "all_enemy_minions"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_mirror_golem.text",
+        "en": "Battlecry: Gain +1/+1 for each enemy minion."
+      }
+    },
+    {
+      "id": "boss_heartbeat",
+      "name": "Heartbeat",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_heartbeat.text",
+        "en": "Deal 1 damage to all enemy minions. Draw a card."
+      }
+    },
+    {
+      "id": "boss_heart_guardian",
+      "name": "Heart Guardian",
+      "set": "boss",
+      "type": "minion",
+      "cost": 6,
+      "attack": 5,
+      "health": 7,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_heart_guardian.text",
+        "en": "Taunt. Deathrattle: Deal 2 damage to all enemy minions."
+      }
     }
   ]
 }
