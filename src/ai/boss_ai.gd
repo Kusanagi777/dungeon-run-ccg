@@ -264,7 +264,8 @@ class _Turn:
 	## Keys for the next `ai_decision`: the last search's result, a mode change.
 	var note: Dictionary = {}
 	## A forecast's undrawn deck, as instance ids ([method LethalSearch.drop_unseen]);
-	## empty in a real plan, where a draw is real.
+	## empty in a real plan, where a draw is real. A search draws on neither: it gets
+	## [method _deck_ids] in both.
 	var unseen: Array = []
 	## `{entity_id: attack}` of the side's characters when the plan began: C8.3's
 	## "attackers that exist now", at the attack they have now.
@@ -675,10 +676,16 @@ func _run_loop(turn: _Turn) -> void:
 ## Takes the forecast's clone to the side's Main (see the class doc): notes the
 ## undrawn deck, then the opponent's `end_turn`, and what follows any action.
 func _begin_own_turn(turn: _Turn) -> void:
-	var deck: Array = turn.sandbox.state().players[turn.side].deck
-	turn.unseen = deck.map(func(card: Dictionary) -> int: return int(card.instance_id))
+	turn.unseen = _deck_ids(turn)
 	if turn.sandbox.submit(MatchRecords.end_turn(Scorer.other_side(turn.side))).accepted:
 		_settle(turn)
+
+
+## The side's deck on the sandbox now, as instance ids: what a lethal search may not
+## read in any plan (C1.3), and all a forecast may not keep.
+func _deck_ids(turn: _Turn) -> Array:
+	var deck: Array = turn.sandbox.state().players[turn.side].deck
+	return deck.map(func(card: Dictionary) -> int: return int(card.instance_id))
 
 
 ## What follows an accepted action: the Choices the side owes, then, in a forecast,
@@ -754,7 +761,7 @@ func _plan_pass(turn: _Turn) -> void:
 		turn.searches_due -= 1
 		var budgets: Dictionary = (_profile.budgets as Dictionary).duplicate()
 		budgets.max_actions_per_turn = cap - turn.actions
-		var steps: Variant = await _lethal.search(turn.sandbox, _profile, budgets, turn.planner, turn.sim, turn.unseen)
+		var steps: Variant = await _lethal.search(turn.sandbox, _profile, budgets, turn.planner, turn.sim, _deck_ids(turn))
 		_note_search(turn)
 		if steps != null:
 			_enter_mode(turn, Scorer.MODE_LETHAL)
