@@ -325,6 +325,11 @@ func max_repairs() -> int:
 	return int(_knobs.max_repairs_before_rebuild)
 
 
+## Unix seconds from the injected clock: every timestamp in the profile uses it.
+func now() -> int:
+	return int(_clock.call())
+
+
 ## The in-memory profile itself, for `MetaFacade` and its rules only: every other
 ## reader takes a copy through a named method.
 func live_profile() -> Dictionary:
