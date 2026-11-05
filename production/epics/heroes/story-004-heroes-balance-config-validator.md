@@ -115,4 +115,4 @@ Boot still registers `heroes_balance` as a pending config validator (`Boot.PENDI
 - ADVISORY, beyond the AC's `avg_min > avg_max`: `plan_min > plan_max` and `hp_value_min > hp_value_max` are also `E_RANGE`, following `ContentValidator`'s ordered pairs.
 - ADVISORY, a difference from that precedent: a pair is not compared when either end already has an entry, because AC-2 asks for exactly one.
 - ADVISORY, key choices the story leaves open: `starter_curve.bucket` is the fixed key list of the file and F1 (`0`-`5`, `6_plus`). `plan_tags` and `set_share` take any `RecordSchemas.HERO_SETS` key, so a later hero's rows stay data only (AC-19), and any other key is `E_UNKNOWN_FIELD`.
-**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
+**Reviewed by**: independent `/code-review`, 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-heroes-treasures.md`, summary scope: correctness and contract risk only): **APPROVED WITH SUGGESTIONS**. Open: the low design question on a `plan_tags` body with no row for an existing hero

@@ -118,5 +118,5 @@ checks scope against it.*
 - Shallow reads "depth 1" as no setup ply: attacks on the hero plus at most one burn at the hero, in any number of commands (A6 needs several attacks in band 1). A hero power with a face-reaching `damage` op counts as the burn.
 - `src/ai/lethal_search.gd` answers a boss-side Choice with option 0 until story 010, as the scorer does.
 **Test Evidence**: `tests/unit/boss_ai/boss_ai_lethal_search_test.gd`
-**Reviewed by**: independent review 2026-11-04 (`s5-review-bossai.md`).
+**Reviewed by**: independent review 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-bossai.md`): **APPROVED WITH SUGGESTIONS**, 0 required. D-3 is fixed below. D-2 goes to story 012. DQ-1 is the owner's and stays open.
 **Review fix D-3** (2026-11-04): a Charge + Windfury minion in hand counted one swing in F4 and could prune a real lethal. F4 settles it: `attack(a)·attacks_remaining(a)` is its attacker term, and such a minion has two attacks once it lands. `_hand_damage` now applies the same swings to minions as to weapons. `test_a_charge_windfury_minion_counts_both_swings_in_f4` was seen failing on the old code (plan null). No shipped card has both keywords.
