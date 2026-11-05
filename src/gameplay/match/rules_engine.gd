@@ -341,6 +341,22 @@ var _bound: bool = false
 ## True once [method end_match] tore a live (not Ended) match down: every
 ## later `submit` is `MATCH_ENDED`, unlogged (code review 2026-11-03).
 var _torn_down: bool = false
+## The reused `ctx.candidates` buffers, one per [member _candidate_depth] (story
+## 019 R3). A trigger point's list is only read for as long as its `resolve()`
+## runs, so the next raise at that depth may overwrite it; a raise nested inside
+## that `resolve()` runs one depth down and leaves it alone. Never handed to
+## anything that outlives the call: a queued step carries no `candidates`.
+var _candidate_lists: Array[Array] = []
+var _candidate_depth: int = 0
+## [member _zone_serial] each buffer was filled at, so a raise with no zone change
+## since reuses it as it stands. Trusted only inside one action: a fixture writes
+## zones directly between calls, so every action starts by bumping the serial and
+## a raise outside any action always refills. Within an action only primitives
+## write the zones.
+var _candidate_serials: Array[int] = []
+## Bumped by every move of a candidate (a board minion or a weapon) and at the
+## start of every action.
+var _zone_serial: int = 0
 ## Where each entity was last seen (story 019 R2): `entity_id → side index | zone
 ## << 1 | position << 4` ([method _locate]). Engine-side and transient, never in
 ## [MatchState]: a location is no derived value, so C1 holds, and the snapshot and
@@ -540,6 +556,7 @@ func start(config: Dictionary) -> void:
 	_cause_seq = 0
 	_steps = 0
 	_resolving = true
+	_zone_serial += 1
 	# C3 step 1: the registry, then bind (installs entries, registers evaluators)
 	_state.hooks = HookRegistry.new()
 	# Typed as ADR-0007's `bind(engine, installers: Array[HookInstaller])`: a
@@ -617,6 +634,7 @@ func submit(command: Dictionary) -> Dictionary:
 	if invalid != "":
 		return _reject(command, invalid, "")
 	_resolving = true
+	_zone_serial += 1
 	_cause_seq = 0
 	_steps = 0
 	_call_first_seq = 0
@@ -676,6 +694,7 @@ func run_action(initial_step: Callable) -> void:
 	if _halted() or _torn_down:
 		return
 	_resolving = true
+	_zone_serial += 1
 	_cause_seq = 0
 	_steps = 0
 	_stages.clear()
@@ -1391,6 +1410,7 @@ func transform(target_id: int, def_id: String) -> int:
 	minion.summoned_on_turn = old.summoned_on_turn
 	minion.attacks_used = old.attacks_used
 	board[index] = minion
+	_zone_serial += 1
 	_where[int(minion.entity_id)] = _hint(_side_index(side), LOC_BOARD, index)
 	emit(&"minion_transformed", {
 		"side": side, "entity_id": int(minion.entity_id), "from_card_id": str(old.def_id),
@@ -1422,6 +1442,7 @@ func equip_weapon(side: String, def_id: String) -> int:
 			return NO_ENTITY
 	var weapon: Dictionary = MatchRecords.weapon(_take_entity_id(), def_id, int(def.get("attack", 0)), int(def.get("durability", 0)), def.get("keywords", []))
 	player.weapon = weapon
+	_zone_serial += 1
 	_where[int(weapon.entity_id)] = _hint(_side_index(side), LOC_WEAPON, 0)
 	emit(&"weapon_equipped", {
 		"side": side, "entity_id": int(weapon.entity_id), "card_id": def_id,
@@ -2581,7 +2602,7 @@ func _fire_trigger_point(point: StringName, side: String) -> void:
 ## One trigger-point step: `resolver.resolve(point, ctx)`; what it returns
 ## joins Q, raised by the event the step runs under.
 func _resolve_step(point: StringName, ctx: Dictionary) -> void:
-	_enqueue(point, _resolver.resolve(point, ctx), _cause_seq)
+	_enqueue(point, _resolve_candidates(point, ctx), _cause_seq)
 
 
 ## A trigger hook point at a step boundary (C3 step 4, C4 Start 4 / End 3;
@@ -2646,18 +2667,51 @@ func _enter_hook_point(point: StringName) -> bool:
 ## left to right, player weapon, player hero (hero power and hero
 ## enchantments live on it), then the boss side the same way — player side
 ## first regardless of whose turn it is.
+## Refilled in place, into this depth's buffer, when the zones changed (story 019
+## R3): valid until the next raise at this depth, so a caller passes it to
+## [method _resolve_candidates] and keeps nothing.
 func _candidates_in_order() -> Array[int]:
-	_candidate_buffers += 1
-	var ids: Array[int] = []
+	while _candidate_lists.size() <= _candidate_depth:
+		_candidate_buffers += 1
+		var fresh: Array[int] = []
+		_candidate_lists.append(fresh)
+		_candidate_serials.append(-1)
+	var ids: Array[int] = _candidate_lists[_candidate_depth]
+	if _resolving and _candidate_serials[_candidate_depth] == _zone_serial:
+		return ids
+	_candidate_serials[_candidate_depth] = _zone_serial
+	var count: int = 0
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		count += (player.board as Array).size()
+		if player.weapon != null:
+			count += 1
+		if player.hero != null:
+			count += 1
+	ids.resize(count)
+	var at: int = 0
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
 		for minion: Dictionary in player.board:
-			ids.append(int(minion.entity_id))
+			ids[at] = int(minion.entity_id)
+			at += 1
 		if player.weapon != null:
-			ids.append(int(player.weapon.entity_id))
+			ids[at] = int(player.weapon.entity_id)
+			at += 1
 		if player.hero != null:
-			ids.append(int(player.hero.entity_id))
+			ids[at] = int(player.hero.entity_id)
+			at += 1
 	return ids
+
+
+## `resolver.resolve(point, ctx)` with the candidate depth raised, so a primitive
+## the resolver calls in there raises into the next buffer and `ctx.candidates`
+## stays the list this point was raised with (story 019 R3).
+func _resolve_candidates(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
+	_candidate_depth += 1
+	var entries: Array[Dictionary] = _resolver.resolve(point, ctx)
+	_candidate_depth -= 1
+	return entries
 
 
 ## C4 End step 5: removes every `expires = end_of_turn` enchantment on what
@@ -3121,6 +3175,7 @@ func _take_weapon(side: String) -> Dictionary:
 	var snapshot: Dictionary = (player.weapon as Dictionary).duplicate(true)
 	snapshot["controller"] = side
 	player.weapon = null
+	_zone_serial += 1
 	return snapshot
 
 
@@ -3647,7 +3702,7 @@ static func _strip_keyword(record: Dictionary, keyword: String) -> void:
 func _raise(point: StringName, ctx: Dictionary, raise_seq: int) -> void:
 	if _halted():
 		return
-	_enqueue(point, _resolver.resolve(point, ctx), raise_seq)
+	_enqueue(point, _resolve_candidates(point, ctx), raise_seq)
 
 
 func _find_record(entity_id: int) -> Dictionary:
@@ -3753,6 +3808,8 @@ static func _side_index(side: String) -> int:
 ## Hints every record of [param side]'s list [param zone] at its position: the
 ## zone moves that shift a list (a summon, a death, a play, a bounce, a discard).
 func _index_zone(side: String, zone: int) -> void:
+	if zone == LOC_BOARD:
+		_zone_serial += 1
 	var side_index: int = _side_index(side)
 	var list: Array = _state.players[side][LOC_KEYS[zone]]
 	var id_key: String = _id_key(zone)

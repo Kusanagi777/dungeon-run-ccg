@@ -17,6 +17,13 @@ const CHAIN_STAT_MAP_PASSES: int = 0
 ## R1 (story 019 AC-1): at most these per recompute with an aura or a primitive:
 ## the `before` and `after` of [method RulesEngine._recompute_auras].
 const MAX_STAT_MAP_PASSES_PER_RECOMPUTE: int = 2
+## R3 (story 019 AC-1): `candidate_buffers` may exceed `drain_iterations` by this.
+const CANDIDATE_BUFFER_MARGIN: int = 1
+## The moves of a candidate in the R3 one-action test: summon, transform, bounce,
+## equip.
+const CANDIDATE_MOVES: int = 4
+## Summons in one step of the R3 refill test.
+const CONSECUTIVE_SUMMONS: int = 3
 ## Quiet recomputes the R1 aura test runs after the last aura has gone.
 const QUIET_RECOMPUTES: int = 3
 
@@ -340,4 +347,200 @@ func test_a_clones_location_index_is_its_own() -> void:
 	_assert_one_touch(engine, moved, MatchRecords.SIDE_PLAYER, "the live board did not shift")
 	_assert_one_touch(sandbox, moved, MatchRecords.SIDE_PLAYER, "the clone's board did")
 	sandbox.end_match()
+	engine.end_match()
+
+
+# --- R3: one reused candidate buffer ---------------------------------------------------
+
+func test_the_chain_allocates_at_most_one_candidate_buffer_per_drain_iteration() -> void:
+	# Act
+	var counts: Dictionary = _chain_counts()
+
+	# Assert: baseline 555, one per trigger point
+	assert_int(int(counts.candidate_buffers)).is_less_equal(int(counts.drain_iterations) + CANDIDATE_BUFFER_MARGIN)
+
+
+func test_a_raise_nested_in_resolve_leaves_the_outer_candidates_as_they_were_raised() -> void:
+	# Arrange: an `on_damage` script that reads its list, summons (so `on_summon` is
+	# raised from inside this resolve), then reads its list again
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var seen: Dictionary = {}
+	resolver.scripts[&"on_damage"] = [func(e: RulesEngine, ctx: Dictionary) -> void:
+		if seen.has("before"):
+			return
+		seen["before"] = (ctx.candidates as Array).duplicate()
+		@warning_ignore("return_value_discarded")
+		e.summon_minion(MatchRecords.SIDE_PLAYER, MatchBudgetFixtures.GRUNT, 0)
+		seen["after"] = (ctx.candidates as Array).duplicate()]
+	var boss_hero: int = int(engine.state().players[MatchRecords.SIDE_BOSS].hero.entity_id)
+
+	# Act
+	engine.run_action(func() -> void: engine.apply_damage(boss_hero, 1, null))
+
+	# Assert
+	assert_array(seen.get("after", [])).is_equal(seen.get("before", [null]))
+	engine.end_match()
+
+
+func test_a_board_written_directly_between_calls_reaches_the_next_candidates() -> void:
+	# Arrange: the buffer filled, then a fixture's write no zone serial can see
+	var engine: RulesEngine = _fx.make_aura_board(_fx.make_resolver(false))
+	var before: int = engine._candidates_in_order().size()
+	@warning_ignore("return_value_discarded")
+	MatchFactory.summon(engine.state(), MatchRecords.SIDE_BOSS, 1, 1)
+
+	# Act
+	var after: int = engine._candidates_in_order().size()
+
+	# Assert
+	assert_int(after).is_equal(before + 1)
+	engine.end_match()
+
+
+func test_a_board_written_directly_between_two_actions_reaches_the_second_actions_raise() -> void:
+	# Arrange: one action fills the buffer, then a fixture writes the board
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var hero: int = int(engine.state().players[MatchRecords.SIDE_PLAYER].hero.entity_id)
+	var lists: Array = []
+	resolver.scripts[&"on_heal"] = [func(_e: RulesEngine, ctx: Dictionary) -> void: lists.append((ctx.candidates as Array).duplicate())]
+	engine.run_action(func() -> void: engine.apply_heal(hero, 1, null))
+	var placed: Dictionary = MatchFactory.summon(engine.state(), MatchRecords.SIDE_BOSS, 1, 1)
+
+	# Act
+	engine.run_action(func() -> void: engine.apply_heal(hero, 1, null))
+
+	# Assert
+	assert_int(lists.size()).is_equal(2)
+	assert_bool((lists[1] as Array).has(int(placed.entity_id))).override_failure_message("the second action raised a list from before the write").is_true()
+	engine.end_match()
+
+
+func test_a_weapon_equipped_into_an_empty_slot_reaches_the_next_raise_in_the_action() -> void:
+	# Arrange: an empty slot, so only the equip itself moves a candidate
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var player: Dictionary = engine.state().players[MatchRecords.SIDE_PLAYER]
+	var hero: int = int(player.hero.entity_id)
+	player.weapon = null
+	var lists: Array = []
+	resolver.scripts[&"on_heal"] = [func(_e: RulesEngine, ctx: Dictionary) -> void: lists.append((ctx.candidates as Array).duplicate())]
+	var ids: Dictionary = {}
+
+	# Act
+	engine.run_action(func() -> void:
+		engine.apply_heal(hero, 1, null)
+		ids["weapon"] = engine.equip_weapon(MatchRecords.SIDE_PLAYER, MatchBudgetFixtures.AXE)
+		engine.apply_heal(hero, 1, null))
+
+	# Assert
+	assert_int(lists.size()).is_equal(2)
+	assert_bool((lists[0] as Array).has(int(ids.weapon))).is_false()
+	assert_bool((lists[1] as Array).has(int(ids.weapon))).override_failure_message("the equip did not reach the raise after it").is_true()
+	engine.end_match()
+
+
+func test_a_weapon_that_breaks_alone_leaves_the_candidates_of_the_next_step() -> void:
+	# Arrange: a queued pass that heals, so a raise follows the death check that
+	# breaks the weapon, with no board move in that check to refill the list
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var player: Dictionary = engine.state().players[MatchRecords.SIDE_PLAYER]
+	var hero: int = int(player.hero.entity_id)
+	var weapon: int = int(player.weapon.entity_id)
+	var lists: Array = []
+	resolver.scripts[&"on_heal"] = [func(_e: RulesEngine, ctx: Dictionary) -> void: lists.append((ctx.candidates as Array).duplicate())]
+	var ran: Dictionary = {}
+	resolver.add_trigger(&"on_heal", hero, "heal_again", func(e: RulesEngine, _ctx: Dictionary) -> void:
+		if not ran.has("once"):
+			ran["once"] = true
+			e.apply_heal(hero, 1, null))
+
+	# Act
+	engine.run_action(func() -> void:
+		engine.modify_durability(weapon, -MatchBudgetFixtures.AURA_WEAPON_DURABILITY)
+		engine.apply_heal(hero, 1, null))
+
+	# Assert: in the list at the first heal, gone from the one after it broke
+	assert_int(lists.size()).is_equal(2)
+	assert_bool((lists[0] as Array).has(weapon)).is_true()
+	assert_bool((lists[1] as Array).has(weapon)).override_failure_message("a broken weapon stayed a candidate").is_false()
+	engine.end_match()
+
+
+func test_each_move_of_a_candidate_reaches_the_next_raise_in_one_action() -> void:
+	# Arrange: the candidates of an `on_heal` raised after each move, all in one step
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var player: Dictionary = engine.state().players[MatchRecords.SIDE_PLAYER]
+	var hero: int = int(player.hero.entity_id)
+	var lists: Array = []
+	resolver.scripts[&"on_heal"] = [func(_e: RulesEngine, ctx: Dictionary) -> void: lists.append((ctx.candidates as Array).duplicate())]
+	var first: int = int(player.board[0].entity_id)
+	var last: int = int(player.board[player.board.size() - 1].entity_id)
+	var old_weapon: int = int(player.weapon.entity_id)
+
+	# Act
+	var ids: Dictionary = {}
+	engine.run_action(func() -> void:
+		engine.apply_heal(hero, 1, null)
+		ids["summoned"] = engine.summon_minion(MatchRecords.SIDE_PLAYER, MatchBudgetFixtures.GRUNT, -1)
+		engine.apply_heal(hero, 1, null)
+		ids["transformed"] = engine.transform(first, MatchBudgetFixtures.WALL)
+		engine.apply_heal(hero, 1, null)
+		engine.return_to_hand(last)
+		engine.apply_heal(hero, 1, null)
+		ids["weapon"] = engine.equip_weapon(MatchRecords.SIDE_PLAYER, MatchBudgetFixtures.AXE)
+		engine.apply_heal(hero, 1, null))
+
+	# Assert: each list shows the move before it
+	assert_int(lists.size()).is_equal(CANDIDATE_MOVES + 1)
+	assert_bool((lists[1] as Array).has(int(ids.summoned))).override_failure_message("summon").is_true()
+	assert_bool((lists[2] as Array).has(int(ids.transformed))).override_failure_message("transform in").is_true()
+	assert_bool((lists[2] as Array).has(first)).override_failure_message("transform out").is_false()
+	assert_bool((lists[3] as Array).has(last)).override_failure_message("bounce").is_false()
+	assert_bool((lists[4] as Array).has(int(ids.weapon))).override_failure_message("equip in").is_true()
+	assert_bool((lists[4] as Array).has(old_weapon)).override_failure_message("equip out").is_false()
+	engine.end_match()
+
+
+func test_a_death_reaches_the_candidates_of_the_on_minion_died_it_raises() -> void:
+	# Arrange
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var lists: Array = []
+	resolver.scripts[&"on_minion_died"] = [func(_e: RulesEngine, ctx: Dictionary) -> void: lists.append((ctx.candidates as Array).duplicate())]
+	var victim: int = int(engine.state().players[MatchRecords.SIDE_BOSS].board[0].entity_id)
+	var hero: int = int(engine.state().players[MatchRecords.SIDE_PLAYER].hero.entity_id)
+
+	# Act: an earlier raise in the same action fills the buffer first
+	engine.run_action(func() -> void:
+		engine.apply_heal(hero, 1, null)
+		engine.destroy(victim))
+
+	# Assert
+	assert_int(lists.size()).is_equal(1)
+	assert_bool((lists[0] as Array).has(victim)).is_false()
+	engine.end_match()
+
+
+func test_consecutive_raises_each_see_the_board_as_it_is_then() -> void:
+	# Arrange: the reused buffer must not answer with an earlier raise's list
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var sizes: Array[int] = []
+	resolver.scripts[&"on_summon"] = [func(_e: RulesEngine, ctx: Dictionary) -> void: sizes.append((ctx.candidates as Array).size())]
+	var before: int = engine._candidates_in_order().size()
+
+	# Act
+	engine.run_action(func() -> void:
+		for _i: int in CONSECUTIVE_SUMMONS:
+			@warning_ignore("return_value_discarded")
+			engine.summon_minion(MatchRecords.SIDE_BOSS, MatchBudgetFixtures.GRUNT, -1))
+
+	# Assert: one more candidate at each raise
+	assert_int(sizes.size()).is_equal(CONSECUTIVE_SUMMONS)
+	for i: int in sizes.size():
+		assert_int(sizes[i]).is_equal(before + i + 1)
 	engine.end_match()
