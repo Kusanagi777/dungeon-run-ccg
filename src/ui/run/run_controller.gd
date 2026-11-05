@@ -29,6 +29,8 @@ signal overlay_closed
 signal screen_refreshed(id: StringName, read_model: Dictionary)
 ## Swap `MatchView` in over [param driver]; [param info] is its `set_match_info` body.
 signal match_requested(driver: MatchDriver, info: Dictionary)
+## Swap the replay of the log at [param path] in over the run log.
+signal replay_requested(path: String, hero_id: String, boss_id: String)
 ## Enqueue a toast (U5). [param kind] is `&"unlock"` or `&"warning"`.
 signal toast(kind: StringName, payload: Dictionary)
 ## The top screen's `committed` sub-state changed (U4).
@@ -53,6 +55,7 @@ const SCREEN_DEFEAT: StringName = &"summary_defeat"
 const SCREEN_ABANDONED: StringName = &"summary_abandoned"
 const SCREEN_LOG: StringName = &"run_log"
 const SCREEN_DETAIL: StringName = &"run_detail"
+const SCREEN_REPLAYS: StringName = &"replay_list"
 const SCREEN_SETTINGS: StringName = &"settings"
 const SCREEN_CONTROLS: StringName = &"controls"
 const SCREEN_GLOSSARY: StringName = &"glossary"
@@ -73,8 +76,9 @@ const LEGAL: Dictionary = {
 	SCREEN_VICTORY: [&"new_run_same_hero", &"go_hero_select", &"go_main_menu"],
 	SCREEN_DEFEAT: [&"new_run_same_hero", &"go_hero_select", &"go_main_menu"],
 	SCREEN_ABANDONED: [&"new_run_same_hero", &"go_main_menu"],
-	SCREEN_LOG: [&"load_more", &"open_run", &"new_run_requested", &"back"],
+	SCREEN_LOG: [&"load_more", &"open_run", &"open_replays", &"new_run_requested", &"back"],
 	SCREEN_DETAIL: [&"back"],
+	SCREEN_REPLAYS: [&"play_replay", &"back"],
 	SCREEN_SETTINGS: [&"set_setting", &"clear_run_records_requested", &"reset_profile_requested", &"open_controls", &"open_glossary", &"back"],
 	SCREEN_CONTROLS: [&"set_binding", &"reset_bindings", &"back"],
 	SCREEN_GLOSSARY: [&"back"],
@@ -261,6 +265,10 @@ func _dispatch(name: StringName, args: Dictionary) -> void:
 			screen_refreshed.emit(SCREEN_LOG, _log_model())
 		&"open_run":
 			_open_run_detail(str(args.get("run_id", "")))
+		&"open_replays":
+			_open_replays(str(args.get("run_id", "")))
+		&"play_replay":
+			replay_requested.emit(str(args.get("path", "")), str(args.get("hero_id", "")), str(args.get("boss_id", "")))
 		&"set_setting":
 			var _set: Error = _meta.set_setting(StringName(str(args.get("key", ""))), args.get("value"))
 		&"set_binding":
@@ -343,6 +351,7 @@ func _begin_match() -> void:
 		"floor": int(model.get("floor", 1)),
 		"boss_def_id": str(model.get("boss", {}).get("id", "")),
 		"hero_def_id": str(model.get("hero", {}).get("id", "")),
+		"treasures": Array(model.get("treasures", [])),
 	})
 
 
@@ -557,6 +566,13 @@ func _open_run_detail(run_id: String) -> void:
 	for row: Variant in _log_rows:
 		if row is Dictionary and str(row.get("run_id")) == run_id and int(row.get("schema_version", 0)) == RunRecord.SCHEMA_VERSION:
 			_push(SCREEN_DETAIL, _models.run_detail(row))
+			return
+
+
+func _open_replays(run_id: String) -> void:
+	for row: Variant in _log_rows:
+		if row is Dictionary and str(row.get("run_id")) == run_id:
+			_push(SCREEN_REPLAYS, _models.replays(row))
 			return
 
 

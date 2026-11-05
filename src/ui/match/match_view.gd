@@ -375,6 +375,7 @@ func _build() -> void:
 	_queue.boss_thinking_changed.connect(_intent.set_thinking)
 	_queue.paused.connect(_on_paused)
 	_focus.configure(_hand, _player_row, _boss_row, _player_panel, _boss_panel)
+	_focus.set_live_rects({FocusPresenter.KIND_BANNER: _intent.plate_rect, InputRouter.STOP_END_TURN: _end_turn.get_global_rect})
 	_focus.changed.connect(_on_focus_changed)
 	_router.focus_step_requested.connect(_focus.move)
 	_router.focus_direction_requested.connect(_focus.move_direction)
@@ -516,6 +517,7 @@ func _apply_text_scale(scale: float) -> void:
 	_display_settings.set_text_scale(scale)
 	_player_panel.set_text_scale(scale)
 	_boss_panel.set_text_scale(scale)
+	_intent.set_text_scale(scale)
 	var rect: Rect2 = _ui.rect("end_turn")
 	var width: float = minf(rect.size.x * scale, float(_config.text_scale.end_turn_max_w))
 	_end_turn.position = Vector2(rect.end.x - width, rect.position.y)
@@ -942,6 +944,7 @@ func _clear_legality() -> void:
 	_show_inspect(-1)
 	_player_panel.show_power_tooltip(false)
 	_player_panel.set_power_state({})
+	_intent.show_focus_tooltip(false)
 
 
 ## U5: the `state_actionable` outline, "nothing left to do".
@@ -984,6 +987,7 @@ func _show_info(card: int, token: int, over_power: bool) -> void:
 		_player_panel.show_portrait_tooltip(true)
 	_boss_panel.show_portrait_tooltip(kind == FocusPresenter.KIND_BOSS_PORTRAIT)
 	_tray.show_tooltip(held_id if kind == FocusPresenter.KIND_TREASURE else TreasureTray.NO_CHIP)
+	_intent.show_focus_tooltip(kind == FocusPresenter.KIND_BANNER)
 
 
 func _on_focus_changed(stop: Dictionary) -> void:
@@ -1057,13 +1061,22 @@ func _enter_ended() -> void:
 	_end_turn.disabled = true
 
 
-## DD-X09: in `Ended` only a fresh press continues; `Esc` and everything else do nothing.
+## DD-X09: in `Ended` only a fresh press continues. `Esc` and RMB only close an open feed
+## drawer, the chain's one step left once `result` is set; the feed key still reads it.
 func _on_ended_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_banner.press_continue()
-	elif MatchInput.read(event) in [MatchInput.CONFIRM, MatchInput.END_TURN]:
-		_banner.press_continue()
+		elif event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+			_router.escape(InputRouter.CHAIN_POINTER)
+		return
+	match MatchInput.read(event):
+		MatchInput.CONFIRM, MatchInput.END_TURN:
+			_banner.press_continue()
+		MatchInput.CANCEL:
+			_router.escape()
+		MatchInput.FEED:
+			_router.intent(InputRouter.INTENT_FEED)
 
 
 func _finish_match() -> void:

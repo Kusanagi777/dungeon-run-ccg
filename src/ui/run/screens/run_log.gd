@@ -1,6 +1,6 @@
 ## `run_log` (run-ui U2; meta-progression AC-28): archived runs newest first, the
 ## per-hero stats header, a hero filter over the loaded pages, Load more, and per row
-## Open and Copy seed. The filter is local (no command); zero runs shows one line with
+## Open, Replays (when the run has archived match logs) and Copy seed. The filter is local (no command); zero runs shows one line with
 ## New Run focused.
 extends Screen
 
@@ -126,6 +126,12 @@ func _add_row(row: Dictionary) -> Array[Control]:
 		open.pressed.connect(send.bind(&"open_run", {"run_id": row.run_id}))
 		body.add_child(open)
 		stops.append(open)
+	if int(row.get("replays", 0)) > 0:
+		var replays: Button = UiKit.button(tr("log.replays"))
+		replays.custom_minimum_size.x = COPY_W
+		replays.pressed.connect(send.bind(&"open_replays", {"run_id": row.run_id}))
+		body.add_child(replays)
+		stops.append(replays)
 	var copy: Button = UiKit.button(tr("summary.copy"))
 	copy.custom_minimum_size.x = COPY_W
 	copy.pressed.connect(_copy.bind(str(row.seed)))

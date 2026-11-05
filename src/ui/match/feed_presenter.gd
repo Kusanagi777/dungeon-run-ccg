@@ -4,8 +4,8 @@
 ## the feed shows only those the display has reached, so it never tells a card's fate
 ## ahead of the table: `present` carries the count as `feed_total`.
 ##
-## `Esc` and RMB close an open drawer first (hud.md `feed:open`, chain step 2). Story 019
-## owns the rest of the chain and can call [method close].
+## `feed_toggle`, `Esc` and RMB reach it through [InputRouter] (hud.md `feed:open`, chain
+## step 2), so a rebound key is the only key; RMB over the drawer itself closes it here.
 ## [codeblock]
 ## feed.set_names("hero_war", "boss_torchbearer")
 ## feed.open()
@@ -129,22 +129,6 @@ func close() -> void:
 	_open = false
 	_drawer.visible = false
 	_ticker.visible = true
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if ui == null:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		var key: Key = (event as InputEventKey).keycode
-		if key == KEY_L:
-			toggle()
-			get_viewport().set_input_as_handled()
-		elif key == KEY_ESCAPE and _open:
-			close()
-			get_viewport().set_input_as_handled()
-	elif _is_right_press(event) and _open:
-		close()
-		get_viewport().set_input_as_handled()
 
 
 func _on_drawer_input(event: InputEvent) -> void:

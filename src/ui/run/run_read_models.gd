@@ -344,6 +344,28 @@ func run_detail(entry: Dictionary) -> Dictionary:
 	return model
 
 
+## `replay_list`: every archived match log of the run [param entry], in floor and attempt
+## order, each with what [MatchReplay] says about it. The refusal copy lives with the
+## viewer's strings, which nothing has installed before a first match.
+func replays(entry: Dictionary) -> Dictionary:
+	MatchStrings.install(_db, _db.config("match_ui"))
+	var hero_id: String = str(entry.get("hero_id", ""))
+	var bosses: Array = entry.get("boss_sequence", [])
+	var rows: Array[Dictionary] = []
+	for log_file: Dictionary in MatchReplay.archives(str(entry.get("run_id", ""))):
+		var check: Dictionary = MatchReplay.inspect(log_file.path, _db)
+		var floor_index: int = int(log_file.floor) - 1
+		rows.append({
+			"path": log_file.path,
+			"label": RunText.t("replay.fault_row" if log_file.fault else "replay.row", {"floor": log_file.floor, "attempt": log_file.attempt}),
+			"replayable": check.replayable,
+			"reason": tr(str(check.reason_key)) if not check.replayable else "",
+			"hero_id": hero_id,
+			"boss_id": str(bosses[floor_index]) if floor_index >= 0 and floor_index < bosses.size() else "",
+		})
+	return {"rows": rows}
+
+
 ## The read model of a stored [param entry], the same one a finished run has.
 func archived_model(entry: Dictionary) -> Dictionary:
 	return RunRecord.from_dict(entry).read_model(_db, _db.config("run_structure"))
@@ -563,6 +585,7 @@ func _log_row(entry: Dictionary) -> Dictionary:
 		"seed": str(entry.get("run_seed_hex", "")),
 		"custom_seed": str(entry.get("seed_source", "")) == RunState.SEED_CUSTOM,
 		"details": int(entry.get("schema_version", 0)) == RunRecord.SCHEMA_VERSION,
+		"replays": MatchReplay.archives(run_id).size(),
 	}
 	if not bool(row.details):
 		row["result"] = RunText.t("log.details_unavailable")
@@ -626,8 +649,10 @@ func _hero_name(hero_id: String) -> String:
 	return str((_db.hero(hero_id) as Dictionary).get("name", hero_id)) if _db.has(hero_id) else RunText.t(REMOVED_KEY, {"id": hero_id})
 
 
+## `damage_by_card` also names hero powers and treasures, so any record may be asked for.
 func _card_name(card_id: String) -> String:
-	return str((_db.card(card_id) as Dictionary).get("name", card_id)) if _db.has(card_id) else RunText.t(REMOVED_KEY, {"id": card_id})
+	var record: Variant = _db.any_record(card_id)
+	return str((record as Dictionary).get("name", card_id)) if record is Dictionary else RunText.t(REMOVED_KEY, {"id": card_id})
 
 
 func _initial(text: String) -> String:

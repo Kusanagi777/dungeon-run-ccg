@@ -152,6 +152,21 @@ func swap_in_match(driver: MatchDriver, info: Dictionary) -> void:
 	_refresh_idle()
 
 
+## Hides the run screens and plays the archived log at [param path] over them. Nothing
+## here touches the run: the viewer ends in [method _on_replay_finished], on the screen
+## it started from. A log [MatchReplay] refuses changes nothing.
+func swap_in_replay(path: String, hero_id: String, boss_id: String) -> void:
+	var view: Control = MatchReplay.create_view(path, _services.card_database, hero_id, boss_id)
+	if view == null:
+		return
+	Signal(view, &"match_view_finished").connect(_on_replay_finished)
+	_stack.visible = false
+	_banner.visible = false
+	_match_view = view
+	_match_host.add_child(view)
+	_refresh_idle()
+
+
 func _ready() -> void:
 	if _services == null:
 		_services = Boot.services()
@@ -185,6 +200,7 @@ func _start_controller(db: CardDatabase) -> void:
 	_controller.overlay_closed.connect(pop_overlay)
 	_controller.screen_refreshed.connect(_on_screen_refreshed)
 	_controller.match_requested.connect(swap_in_match)
+	_controller.replay_requested.connect(swap_in_replay)
 	_controller.toast.connect(_toasts.enqueue)
 	_controller.committed_changed.connect(_on_committed_changed)
 	_controller.skip_requested.connect(_transition.skip)
@@ -282,15 +298,30 @@ func _on_match_view_finished(result: Variant) -> void:
 	_update_banner()
 
 
+func _on_replay_finished(_result: Variant) -> void:
+	_match_view.queue_free()
+	_match_view = null
+	_stack.visible = true
+	_update_banner()
+	if _top() != null:
+		_focus(_top())
+	_refresh_idle()
+
+
+# A live match, or a replay over a run screen.
+func _match_showing() -> bool:
+	return _match_view != null or state.base == RunController.SCREEN_MATCH
+
+
 ## U5: a queued toast may start only here.
 func _refresh_idle() -> void:
 	var base: StringName = state.base
-	var held: bool = base == RunController.SCREEN_MATCH or base == RunController.SCREEN_RUN_START or base == RunController.SCREEN_DATA_ERROR
+	var held: bool = _match_showing() or base == RunController.SCREEN_RUN_START or base == RunController.SCREEN_DATA_ERROR
 	_toasts.set_idle(not state.transitioning and not held and state.top() != RunController.SCREEN_CONFIRM)
 
 
 func _input(event: InputEvent) -> void:
-	if _controller == null or state.base == RunController.SCREEN_MATCH or not _is_press(event):
+	if _controller == null or _match_showing() or not _is_press(event):
 		return
 	var at_run_start: bool = state.top() == RunController.SCREEN_RUN_START
 	if state.transitioning or at_run_start:
@@ -299,7 +330,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if state.base == RunController.SCREEN_MATCH or _top() == null:
+	if _match_showing() or _top() == null:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		var _closed: bool = _top().close_drawer()
@@ -384,7 +415,7 @@ func _build_banner() -> void:
 
 func _update_banner() -> void:
 	var text: String = _controller.read_only_text() if _controller != null else ""
-	_banner.visible = not text.is_empty() and state.base != RunController.SCREEN_MATCH
+	_banner.visible = not text.is_empty() and not _match_showing()
 	var row: Node = _banner.get_node("Row")
 	(row.get_child(0) as Label).text = text
 	(row.get_child(1) as Button).visible = state.base == RunController.SCREEN_MENU and text == tr("banner.locked")

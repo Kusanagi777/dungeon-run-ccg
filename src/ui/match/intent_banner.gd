@@ -60,6 +60,9 @@ var _plan_left_s: float = 0.0
 var _busy_s: float = 0.0
 var _hint_on: bool = false
 var _skipping: bool = false
+var _hovered: bool = false
+var _focused: bool = false
+var _scale: float = 1.0
 
 
 ## Builds every part at its rect, hidden.
@@ -93,6 +96,24 @@ func configure(plan_changed_s: float) -> void:
 ## Frames the turn banner in the band colour of [param boss_def_id].
 func set_boss(boss_def_id: String) -> void:
 	_turn_style.border_color = ui.boss_identity(boss_def_id).primary
+
+
+## A key put focus on the plate: the same tooltip the pointer opens (U5, MUI-018).
+func show_focus_tooltip(on: bool) -> void:
+	_focused = on
+	_refresh_tooltip()
+
+
+## The plate as it stands, grown or not, for the focus ring.
+func plate_rect() -> Rect2:
+	return Rect2(_plate.position, _plate.size)
+
+
+## hud.md §10.2 at [param scale]: above 100 % the plate grows left to fit its one-line
+## label, its right edge fixed, to `text_scale.intent_min_x` at most.
+func set_text_scale(scale: float) -> void:
+	_scale = scale
+	_fit_plate()
 
 
 ## The queue's `boss_thinking_changed` (U6.2).
@@ -215,8 +236,8 @@ func _build_plate() -> void:
 	_plate.add_theme_stylebox_override("panel", _plate_style)
 	# PASS, not STOP: a click on the plate is still a skip.
 	_plate.mouse_filter = Control.MOUSE_FILTER_PASS
-	_plate.mouse_entered.connect(_show_tooltip.bind(true))
-	_plate.mouse_exited.connect(_show_tooltip.bind(false))
+	_plate.mouse_entered.connect(_set_hovered.bind(true))
+	_plate.mouse_exited.connect(_set_hovered.bind(false))
 	_plate.visible = false
 	add_child(_plate)
 	_icon = _text(Rect2(0, 0, icon_w, rect.size.y), font_px, "text_light", _plate)
@@ -303,6 +324,30 @@ func _render() -> void:
 	_label.add_theme_color_override("font_color", ui.color("state_danger" if danger else "text_light"))
 	_plate.self_modulate = Color.WHITE * float(_cfg.beat_bright) if _bright else Color.WHITE
 	_reticle.visible = target != null and _plate.visible and _plan_left_s == 0.0 and ui.locate.is_valid()
+	_fit_plate()
+	_refresh_tooltip()
+
+
+func _fit_plate() -> void:
+	var rect: Rect2 = ui.rect("intent_banner")
+	var icon_w: float = float(_cfg.icon_w) * _scale
+	var width: float = rect.size.x
+	if _scale > 1.0:
+		var font_px: int = _label.get_theme_font_size(&"font_size")
+		var text_w: float = _label.get_theme_font(&"font").get_string_size(_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
+		var limit: float = rect.end.x - float(ui.config.text_scale.intent_min_x)
+		width = clampf(text_w + icon_w * 2.0 + LABEL_MARGIN_PX, rect.size.x, limit)
+	_plate.size = Vector2(width, rect.size.y)
+	_plate.position = Vector2(rect.end.x - width, rect.position.y)
+	_plate.pivot_offset = _plate.size / 2.0
+	_icon.size.x = icon_w
+	_label.position.x = icon_w
+	_label.size.x = width - icon_w * 2.0
+	_amount.position.x = width - icon_w
+	_amount.size.x = icon_w - LABEL_MARGIN_PX
+	_tooltip.position = Vector2(_plate.position.x, rect.end.y + TOOLTIP_GAP)
+	_tooltip.size = Vector2(width, TOOLTIP_H * _scale)
+	_tooltip_text.size = _tooltip.size - Vector2.ONE * LABEL_MARGIN_PX * 2.0
 
 
 ## `lethal` pulses once, and is static under `reduce_motion` (hud.md §4.2).
@@ -314,9 +359,14 @@ func _pulse_if_lethal(step: AnimStep, d_eff: float) -> void:
 	pulse.tween_property(_plate, "scale", Vector2.ONE, d_eff / 2.0)
 
 
-func _show_tooltip(on: bool) -> void:
+func _set_hovered(on: bool) -> void:
+	_hovered = on
+	_refresh_tooltip()
+
+
+func _refresh_tooltip() -> void:
 	var known: bool = _intent is Dictionary and str(_intent.get("effective_mode", MODE_HIDDEN)) != MODE_HIDDEN
-	_tooltip.visible = on and known
+	_tooltip.visible = (_hovered or _focused) and known
 	if _tooltip.visible:
 		var amount: Variant = _intent.get("amount")
 		_tooltip_text.text = tr(KEY_LONG % str(_intent.intent_key)).format({"amount": int(amount) if amount != null else 0})

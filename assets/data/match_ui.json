@@ -650,7 +650,8 @@
     "text_scale": {
       "base_font_px": 16,
       "end_turn_max_w": 200,
-      "boss_mana_moves_at": 1.25
+      "boss_mana_moves_at": 1.25,
+      "intent_min_x": 432
     },
     "palette_high_contrast": {
       "state_danger": "#FF8C42",
