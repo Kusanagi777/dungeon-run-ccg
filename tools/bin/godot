@@ -20,7 +20,8 @@
 #   1. $GODOT_BIN
 #   2. engine.path in project.local.yaml (this worktree's, then the main checkout's)
 #   3. the next `godot` / `godot.exe` on PATH that is not a copy of this script
-# An engine named by 1 or 2 that cannot run is an error, not a reason to try 3.
+# An engine named by 1 or 2 that cannot run, or that is a copy of this script, is
+# an error, not a reason to try 3.
 #
 # user:// lives in <root>/<key>, set through APPDATA (Windows) or XDG_DATA_HOME:
 #   <root>  $GODOT_USERDATA_ROOT, else dungeon-run-ccg-userdata under the temp dir
@@ -88,7 +89,9 @@ read_engine_path() {
 
 resolve_binary() {
 	if [ -n "${GODOT_BIN:-}" ]; then
-		if is_runnable "$GODOT_BIN"; then
+		if is_runnable "$GODOT_BIN" && is_wrapper "$GODOT_BIN"; then
+			bin_error="GODOT_BIN is set to '$GODOT_BIN', which is this wrapper, not the engine: running it would start itself for ever. Name the engine; on Windows, the *_console.exe inside the download folder."
+		elif is_runnable "$GODOT_BIN"; then
 			bin="$GODOT_BIN"
 			bin_source="GODOT_BIN"
 		else
@@ -102,7 +105,9 @@ resolve_binary() {
 		[ -f "$file" ] || continue
 		path="$(read_engine_path "$file")"
 		[ -n "$path" ] || continue
-		if is_runnable "$path"; then
+		if is_runnable "$path" && is_wrapper "$path"; then
+			bin_error="engine.path in $file is '$path', which is this wrapper, not the engine: running it would start itself for ever."
+		elif is_runnable "$path"; then
 			bin="$path"
 			bin_source="engine.path in $file"
 		else

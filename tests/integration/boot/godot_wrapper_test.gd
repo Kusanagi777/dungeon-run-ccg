@@ -357,6 +357,62 @@ func test_engine_path_naming_nothing_exits_127_and_names_the_file() -> void:
 	assert_str(result.text).contains("project.local.yaml")
 
 
+func test_godot_bin_naming_the_wrapper_exits_127_and_never_loops() -> void:
+	# Arrange — what `export GODOT_BIN="$(command -v godot)"` gives with tools/bin on PATH
+	_stub("onpath", "onpath")
+	var env: Dictionary = {"GODOT_BIN": _bash_path(ProjectSettings.globalize_path(WRAPPER))}
+
+	# Act
+	var result: Dictionary = _run(_repo("repo"), _bash_path(_path("onpath")), env)
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_NOT_FOUND)
+	assert_str(result.text).contains("GODOT_BIN")
+	assert_str(result.text).contains("is this wrapper")
+	assert_str(result.text).not_contains("label=onpath")
+
+
+func test_godot_bin_naming_another_copy_of_the_wrapper_exits_127() -> void:
+	# Arrange — another worktree's tools/bin/godot resolves the same value and re-execs
+	_write("copy/godot", FileAccess.get_file_as_string(WRAPPER))
+	_util("make-executable", _path("copy/godot"))
+
+	# Act
+	var result: Dictionary = _run(_repo("repo"), "", {"GODOT_BIN": _bash_path(_path("copy/godot"))})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_NOT_FOUND)
+	assert_str(result.text).contains("GODOT_BIN")
+
+
+func test_engine_path_naming_the_wrapper_exits_127_and_names_the_file() -> void:
+	# Arrange
+	var repo: String = _repo("repo")
+	_write("repo/project.local.yaml", "engine.path: %s\n" % _bash_path(ProjectSettings.globalize_path(WRAPPER)))
+	_stub("onpath", "onpath")
+
+	# Act
+	var result: Dictionary = _run(repo, _bash_path(_path("onpath")), {})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_NOT_FOUND)
+	assert_str(result.text).contains("project.local.yaml")
+	assert_str(result.text).contains("is this wrapper")
+	assert_str(result.text).not_contains("label=onpath")
+
+
+func test_self_check_reports_a_godot_bin_naming_the_wrapper() -> void:
+	# Arrange
+	var env: Dictionary = {"GODOT_BIN": _bash_path(ProjectSettings.globalize_path(WRAPPER))}
+
+	# Act
+	var result: Dictionary = _run(_repo("repo"), "", env, ["--self-check"])
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_NOT_FOUND)
+	assert_str(result.text).contains("is this wrapper")
+
+
 func test_exit_codes_pass_through_unchanged() -> void:
 	# Arrange
 	var repo: String = _repo("repo")

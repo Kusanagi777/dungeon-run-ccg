@@ -98,8 +98,9 @@ Windows and Linux; `--self-check` fails on any OS where it does not hold.
    `notes:` line. That warning is harmless; `GODOT_BIN` avoids it.
 3. The next `godot` / `godot.exe` on `PATH` that is not a copy of the wrapper.
 
-An engine named by 1 or 2 that cannot run exits 127 rather than trying the next
-source, so a typo cannot silently run a different Godot. With nothing found it
+An engine named by 1 or 2 that cannot run, or that is a copy of the wrapper, exits
+127 rather than trying the next source, so a typo cannot silently run a different
+Godot and `GODOT_BIN="$(command -v godot)"` cannot start itself for ever. With nothing found it
 exits 127 and the message names `GODOT_BIN`.
 
 **Isolation.** `user://` lives in `<root>/<key>`, set through `APPDATA` on
@@ -242,15 +243,18 @@ On Linux it runs the command observed to work on this container
 1280x720 --rendering-driver opengl3 --write-movie <dir>/f.png --quit-after 60
 res://<scene>.tscn`, keeps the **last** frame as `01-<scene-basename>.png`,
 deletes the other frames and the `.wav`, and exits non-zero when Godot failed
-or logged no renderer line (3) or when the frame is a single colour (4, a blank
-capture — checked by a dependency-free PNG reader run with `python3 -I`). `frames`
-defaults to 60; raise it for a scene that animates in. Godot's output is shown
-once it has exited, on the stream it was written to.
+or logged no renderer banner (3) or when the frame is a single colour (4, a blank
+capture — checked by a dependency-free PNG reader run with `python3 -I`). Frame and
+sidecar move into `<out-dir>` only after every check passes, so a failed capture
+adds neither and leaves an earlier pair as it was. `frames` defaults to 60; raise it
+for a scene that animates in. Godot's output is shown once it has exited, on the
+stream it was written to. The sidecar is committed, so `<repo>`, `<tmp>` and
+`<home>` stand for this machine's paths.
 
 On Windows (Git Bash) it is the same run without `xvfb-run` and without
 `--rendering-driver`, which is ADR-0010 Decision 3's Forward+ form, launched through
 `tools/bin/godot` from the worktree root (`GODOT_BIN` as in "Running Godot on a dev
-machine", naming the `*_console.exe`: the GUI build logs no renderer line, so its
+machine", naming the `*_console.exe`: the GUI build logs no renderer banner, so its
 frames are not kept). **It opens a real window on the desktop** for the length of
 the run, about 5 s at 60 frames. A session with no display is exit 3 with Godot's
 error shown. The blank check runs under the first of `python3`, `python`, `py -3`

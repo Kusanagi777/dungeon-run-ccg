@@ -1,3 +1,3 @@
-Reviewed-Content-Hash: tools/capture.sh 1450082d469747d9c1574024b8da7b16b8014152
-Reviewed-Content-Hash: tests/README.md fed2f43cc972df1e6cc2218b5a7fc39304f4d297
-Reviewed-Content-Hash: tests/integration/boot/capture_script_test.gd 5b3b8d82e1b9a371c4352b09b95e16068310d9d0
+Reviewed-Content-Hash: tools/capture.sh 1929ece0ab0db3ec1596735eb1aff1e637925129
+Reviewed-Content-Hash: tests/README.md 298290faffa37ad8918486f50506fef164eb25c2
+Reviewed-Content-Hash: tests/integration/boot/capture_script_test.gd 8fcf2fbda80737a1d206410e4fff12cc60595ebf

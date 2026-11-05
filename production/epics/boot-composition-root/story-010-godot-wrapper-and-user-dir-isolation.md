@@ -174,3 +174,5 @@ Isolated: default keys, 17:08:03-17:15:01 UTC
 ```
 
 **Reviewed by**: lean — `/code-review` runs independently at M0 (orchestrator)
+
+**Rework 2026-11-05 (independent review D-010-1, landed with story 011's rework)**: `GODOT_BIN` or `engine.path` naming the wrapper or a copy of it now exits 127 and says so, instead of re-executing for ever. Four tests added and not run: the owner stopped the run, and no suite ran on this change.
