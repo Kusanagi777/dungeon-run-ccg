@@ -59,6 +59,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   2. **No choose task.** Choices are answered inside the plan: `boss_ai.choose_task` is gone and Decision 3's `Choice` row starts a **plan** task. A Choice raised by a replayed command waits with the plan pending, its `choose` next in the plan. A boss Choice with no plan pending (a boss Deathrattle on the player's turn, a boss Start-step trigger) still needs an answer, so the row stays for it, and `plan_turn` opens by answering it: on the player's turn the plan is that `choose` alone, and on the boss's it goes on to the turn. The row is what keeps "no separate choose task" from hanging the match on a boss Choice nothing else would answer.
   3. **No way forward is a fault.** `_on_task_done()` turns a null result or an empty plan into `ai_fault {reason: null_result | empty_plan}` and ends the boss's turn. The engine refuses `end_turn` during a Choice, so an open boss Choice is first closed on its first option; a Choice on the player's turn leaves no boss turn to end. `_diverge` closes it the same way. A null forecast is the fault alone. Should the engine refuse the boss's `end_turn` at Main, which nothing reachable does, the row plans and logs again, so `event_cap` ends the match: it cannot hang.
   4. **Interfaces.** `_init`'s optional `clock` argument (story 015) is added to Key Interfaces, and a premise is `{turn, side, phase}`, since `PHASE_MAIN` names both sides' Main. The settings snapshot's `telegraph_mode` reaches the AI at construction.
+- **Erratum 2026-11-05 (sprint 5 wave 2 code review, `production/reviews/2026-11-05/code-review-s5-w2-matchdriver.md`, ADR Compliance)**: `MatchDriver._init` gains an optional fifth argument, `clock: Callable = Time.get_ticks_usec`, the time source of the replay budget, so a test drives `tick_over_budget` without the real clock. `BossAI.new` takes eight arguments, not six: `db` and `keyword_values` follow `config.log`. Decision 1 and Key Interfaces updated. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -202,7 +203,7 @@ boss's plan.**
    `ProfileResolver.resolve(db.config("ai_profiles"), boss_def, band)`;
    `EffectResolver.new(db, db.config("card_effects"))`; `RulesEngine.new(db,
    db.config("match_rules"), resolver)`; `BossAI.new(boss_def, resolved_profile,
-   band, config.rng_ai, op_values, config.log)`; `engine.start(config)` (which
+   band, config.rng_ai, op_values, config.log, db, keyword_values)`; `engine.start(config)` (which
    binds the resolver and installs `player.hook_installers` then
    `boss.hook_installers` before `on_match_start` — ADR-0007/0005); then
    `_after_engine_step()` (below). `RunMachine` keeps the driver in `_driver` and
@@ -361,7 +362,7 @@ boss's plan.**
 ```gdscript
 # src/gameplay/run/match_driver.gd — owned by Run Structure (architecture.md §Feature); additions marked
 class_name MatchDriver extends RefCounted
-func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_factory: Callable, clock: Callable = Time.get_ticks_usec) -> void   # planner_factory: Callable() -> a NEW PlannerTask, called per task (2026-11-04, DD-X31)
+func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_factory: Callable, clock: Callable = Time.get_ticks_usec) -> void   # planner_factory: Callable() -> a NEW PlannerTask, called per task (2026-11-04, DD-X31); `clock` ADDED (erratum 2026-11-05): the replay budget's time source
 func submit(command: Command) -> CommandResult        # PLAYER commands, synchronous on the live engine; concede while a task is live → queued (ENGINE_BUSY/concede_queued)
 func legal_commands() -> Array[Command]               # pass-through to the live engine
 func query() -> MatchQuery

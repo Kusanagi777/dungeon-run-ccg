@@ -327,6 +327,9 @@ static func _scales(op: Dictionary, run_ctx: Dictionary) -> bool:
 	if typeof(flag) == TYPE_BOOL:
 		return bool(flag)
 	if str(flag) == SPELL_DAMAGE_AUTO:
+		# A treasure or passive (C9) is no spell, and `definition` holds no such id.
+		if run_ctx.get("source_id") is String:
+			return false
 		return str(resolver.definition(str(run_ctx.get("host_id", ""))).get("type", "")) == HOST_TYPE_SPELL
 	return false
 
@@ -635,7 +638,7 @@ func _op_set_counter(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -
 ## changes nothing and emits nothing). The op is `applied` either way.
 static func _write_counter(engine: RulesEngine, op_name: String, key: String, value: int, run_ctx: Dictionary, values: Dictionary) -> Dictionary:
 	var runtime: Dictionary = engine.state().effects
-	var source_id: int = int(run_ctx.source_id)
+	var source_id: Variant = run_ctx.source_id
 	var changed: bool = EffectRuntime.counter(runtime, source_id, key) != value
 	EffectRuntime.write_counter(runtime, source_id, key, value)
 	if changed:
@@ -722,7 +725,7 @@ func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dic
 		elif board.size() < engine.rule("board_size"):
 			outcomes.append(SKIPPED)
 	var resolved: String = position
-	if _source_index(board, int(run_ctx.source_id)) < 0 and _former_slot(position, side, run_ctx) < 0:
+	if _source_index(board, EffectSelectors.run_source(run_ctx)) < 0 and _former_slot(position, side, run_ctx) < 0:
 		resolved = POSITION_NAME_END
 	return entry("summon", summoned, {"card_id": card_id, "count": count, "side": side, "position": resolved}, fold_outcomes(outcomes) if count > 0 else APPLIED)
 
@@ -733,7 +736,7 @@ func _op_summon(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dic
 static func _summon_index(board: Array, position: String, side: String, run_ctx: Dictionary, placed: int) -> int:
 	if position != POSITION_RIGHT_OF_SOURCE and position != POSITION_SOURCE_SLOT:
 		return POSITION_END
-	var index: int = _source_index(board, int(run_ctx.source_id))
+	var index: int = _source_index(board, EffectSelectors.run_source(run_ctx))
 	if index < 0:
 		var former: int = _former_slot(position, side, run_ctx)
 		return former + placed if former >= 0 else POSITION_END

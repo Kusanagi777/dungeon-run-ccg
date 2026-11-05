@@ -118,7 +118,7 @@ checks scope against it.*
 **Started / ended (UTC)**: 00:43:24 / 01:03:32 (2026-11-05 UTC)
 **Criteria**: 3/3 passing, all by automated test (none deferred)
 **Test Evidence**: `tests/unit/card_effects/card_effects_value_hooks_test.gd` (40)
-**Reviewed by**: self, no independent review (the orchestrator runs `/code-review` at M2; a lane does not review its own work)
+**Reviewed by**: independent `/code-review`, 2026-11-05 (`production/reviews/2026-11-05/code-review-s5-w2-effects-treasures.md`, full scope, `d9932c7`): **APPROVED WITH SUGGESTIONS**, 0 required. Q2 is decided by DD-X29 (`26f7f47`). Open: Q1 (an absent `side` in a value filter), S2, P1, the ADR-0005 drift.
 **Run result**: N/A — a Logic story changes nothing visible; the full suite and `godot --headless --quit-after 5` are the evidence.
 
 **Traceability**

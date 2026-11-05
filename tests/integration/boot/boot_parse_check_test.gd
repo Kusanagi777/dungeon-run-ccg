@@ -13,6 +13,9 @@ const FAKE_GODOT := "res://tests/fixtures/lint/fake_godot/godot"
 ## Exit codes of `parse-check.sh`.
 const EXIT_CLEAN := 0
 const EXIT_FAILED := 1
+## A script of each tier the check must load: a UI script reaches Godot's loader
+## the same way, and nothing else proves it parses on its own.
+const UI_AND_RULES_SCRIPTS: Array[String] = ["res://src/gameplay/match/rules_engine.gd", "res://src/ai/boss_ai.gd", "res://src/core/boot.gd", "res://src/ui/boot_screen.gd", "res://src/ui/match/match_view_state.gd"]
 ## What bash reports for a segfault or a Windows access violation.
 const EXIT_CRASH := 139
 
@@ -32,6 +35,15 @@ func _bash_path(path: String) -> String:
 	if path.length() > 1 and path[1] == ":":
 		return "/" + path[0].to_lower() + path.substr(2)
 	return path
+
+
+func test_every_tier_with_scripts_is_in_scope() -> void:
+	# Act
+	var result: Dictionary = _parse_check(0, true)
+
+	# Assert — one real script per tier; src/ui joined after the wave 2 review
+	for script: String in UI_AND_RULES_SCRIPTS:
+		assert_str(result.text).contains("ok: %s" % script)
 
 
 func test_clean_exit_after_ok_line_passes() -> void:

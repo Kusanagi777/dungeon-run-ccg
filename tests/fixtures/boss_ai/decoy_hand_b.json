@@ -1,0 +1,24 @@
+{
+  "name": "decoy_hand_b",
+  "description": "boss-ai A4, the second fixture: decoy_hand_a with no area spell anywhere in the player's hand or deck, and no card in common with it there. Everything else is the same. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "weights": {"w_over": 3.0},
+  "deck_card": "bai_filler",
+  "x_card": "bai_x",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2},
+    {"id": "bai_x", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 12}]}]},
+    {"id": "bai_decoy_flame", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_decoy_inferno", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 2}]}]},
+    {"id": "bai_decoy_ember", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 3}]}]},
+    {"id": "bai_lamb_a", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_lamb_b", "type": "minion", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_lamb_c", "type": "minion", "cost": 3, "attack": 3, "health": 3}
+  ],
+  "boss": {"mana": 0, "board": ["bai_grunt", "bai_grunt", "bai_grunt", "bai_grunt"], "hand": ["bai_grunt", "bai_x"]},
+  "player": {"health": 30, "board": []},
+  "player_drawn": ["bai_lamb_a", "bai_lamb_b", "bai_lamb_c"],
+  "player_deck": ["bai_lamb_c", "bai_lamb_b"]
+}

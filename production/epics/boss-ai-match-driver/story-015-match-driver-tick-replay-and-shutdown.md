@@ -124,3 +124,4 @@
 - **A refused diagnostic append calls `engine.fault(event_cap)`.** Not in the story; ADR-0003 Decision 8 requires the log's overflow to be answered, and only the engine's own `emit` did so.
 - **A `null` task result is ignored.** The work errored, and no document says what the boss does next. Story 014's `_on_task_done()` owns the dispatch.
 **Limits of the replay test**: it proves the live engine matches the clone and that a seed repeats within one tree. It does not pin a log across commits; MR-019's goldens do that.
+**Reviewed by**: independent `/code-review`, 2026-11-05 (`production/reviews/2026-11-05/code-review-s5-w2-matchdriver.md`, full scope, at `2117aa3`): **APPROVED WITH SUGGESTIONS**, 0 required. D-1 is closed by `9ed7a6a` (story 013's Review fixes). Open: S-2 to S-6, N-5.

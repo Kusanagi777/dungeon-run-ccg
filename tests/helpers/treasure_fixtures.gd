@@ -11,6 +11,7 @@
 ## [codeblock]
 ## var db: CardDatabase = TreasureFixtures.database()               # all 20
 ## var mvp: CardDatabase = TreasureFixtures.database(TreasureFixtures.MVP_IDS)
+## var scripted: CardDatabase = TreasureFixtures.database([], [CardFactory.make_spell("neutral_test_two", 2)])
 ## var boss: Dictionary = TreasureFixtures.make_boss_test_taxman()
 ## [/codeblock]
 class_name TreasureFixtures
@@ -40,16 +41,20 @@ class TreasureOverlayLoader:
 	extends DataLoader
 
 	var _treasures: Array = []
+	var _cards: Array = []
 
-	func _init(treasures: Array) -> void:
+	func _init(treasures: Array, cards: Array = []) -> void:
 		super(BASE_ROOT)
 		_treasures = treasures
+		_cards = cards
 
 	func _read_and_parse(report: ValidationReport) -> Array[Dictionary]:
 		var staged: Array[Dictionary] = super(report)
 		for item: Dictionary in staged:
 			if item.row.name == "treasures.json":
 				item.body = CardFactory.make_definition_file(_treasures)
+			elif item.row.name == "cards_neutral.json":
+				(item.body.records as Array).append_array(_cards)
 		return staged
 
 
@@ -62,11 +67,13 @@ static func records() -> Array:
 
 ## A `Ready` `CardDatabase` whose treasures are the [constant TREASURES_V1]
 ## records named in [param ids], or all 20 when [param ids] is empty.
-static func database(ids: Array = []) -> CardDatabase:
+## [param cards] are `neutral` CardDefs loaded beside the root's own, for a test
+## that scripts a hand the root has no card for.
+static func database(ids: Array = [], cards: Array = []) -> CardDatabase:
 	var treasures: Array = records()
 	if not ids.is_empty():
 		treasures = treasures.filter(func(def: Dictionary) -> bool: return ids.has(def.id))
-	var db: CardDatabase = CardDatabase.new(TreasureOverlayLoader.new(treasures))
+	var db: CardDatabase = CardDatabase.new(TreasureOverlayLoader.new(treasures, cards))
 	db.load(ValidatorStubs.accept_all())
 	GameAssertions.fail_if(db.state() != CardDatabase.State.READY, "treasure fixture did not load: %s" % str(db.report().entries()))
 	return db

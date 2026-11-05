@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Per-file parse check of the rules and foundation tiers (ADR-0001
+# Per-file parse check of the rules, foundation and UI tiers (ADR-0001
 # Implementation Guidelines: "Every rules file must pass
 # .claude/scripts/godot-parse-check.gd on its own").
 #
@@ -7,7 +7,7 @@
 #   GODOT=/path/to/godot bash tools/lint/parse-check.sh
 #
 # One `godot --headless --path . -s res://.claude/scripts/godot-parse-check.gd
-# -- res://<file>` per script under src/gameplay/, src/ai/ and src/core/, so
+# -- res://<file>` per script under src/gameplay/, src/ai/, src/core/ and src/ui/, so
 # each file is proven to load on its own. Run it after
 # `godot --headless --path . --import`: the check needs the class cache.
 #
@@ -28,7 +28,7 @@ if ! command -v "$godot_bin" > /dev/null 2>&1; then
 fi
 
 scopes=()
-for d in src/gameplay src/ai src/core; do
+for d in src/gameplay src/ai src/core src/ui; do
 	[ -d "$d" ] && scopes+=("$d")
 done
 files=()
@@ -36,7 +36,7 @@ if [ "${#scopes[@]}" -gt 0 ]; then
 	mapfile -t files < <(find "${scopes[@]}" -type f -name '*.gd' | LC_ALL=C sort)
 fi
 if [ "${#files[@]}" -eq 0 ]; then
-	echo "parse-check.sh: no .gd file under src/gameplay, src/ai or src/core — nothing checked, not a pass" >&2
+	echo "parse-check.sh: no .gd file under src/gameplay, src/ai, src/core or src/ui — nothing checked, not a pass" >&2
 	exit 2
 fi
 
