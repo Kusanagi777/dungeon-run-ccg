@@ -8,13 +8,13 @@ Review: PR-EPIC skipped — Lean mode
 
 | Epic | Layer | System | GDD | Stories | Status |
 |------|-------|--------|-----|---------|--------|
-| Boot & Composition Root | Foundation | Boot (composition root) | — (architecture.md §Dependency injection; ADR-0001) | 8 stories | Ready |
+| Boot & Composition Root | Foundation | Boot (composition root) | — (architecture.md §Dependency injection; ADR-0001) | 11 stories | Ready |
 | RNG & Event Log | Foundation | RNG & Event Log | design/gdd/rng-event-log.md | 11 stories | Ready |
 | Card Database | Foundation | Card Database | design/gdd/card-database.md | 10 stories | Ready |
-| Match Rules | Core | Match Rules | design/gdd/match-rules.md | 19 stories | Ready |
+| Match Rules | Core | Match Rules | design/gdd/match-rules.md | 20 stories | Ready |
 | Card Effects | Core | Card Effects | design/gdd/card-effects.md | 17 stories (story 017 added 2026-11-04, DD-X21) | Ready |
 | Boss AI + Match Driver | Core | Boss AI (+ Run Structure's `MatchDriver`) | design/gdd/boss-ai.md | 19 stories | Ready |
-| Match UI | Presentation | Match UI | design/gdd/match-ui.md | 24 stories | Ready |
+| Match UI | Presentation | Match UI | design/gdd/match-ui.md | 25 stories | Ready |
 | Run Structure | Feature | Run Structure | design/gdd/run-structure.md | Not yet created | Ready |
 | Reward Draft | Feature | Reward Draft | design/gdd/reward-draft.md | Not yet created | Ready |
 | Treasures | Feature | Treasures | design/gdd/treasures.md | 13 stories | Ready |

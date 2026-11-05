@@ -34,6 +34,7 @@ Review record for this run (2026-11-03, `/architecture-decision`, headless, no
 - **TD review 2026-11-03 (acceptance pass over ADR-0001..0011):** no change;
   consistent with ADR-0009 Verification (4) and ADR-0011's launch arguments.
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
+- **Erratum 2026-11-05 (DD-X32, boot-composition-root story 011)**: Decision 5's "until a Windows capture rig exists (Open point)" is closed. A Windows frame from `tools/capture.sh`, in Forward+ (the default) or with `CAPTURE_RENDERER=opengl3`, counts as BLOCKING UI evidence, as the Linux CI PNG does, and each records its renderer in a `<name>.renderer.txt` sidecar beside the PNG (OS, exact Godot arguments, the engine's startup renderer lines); the reviewer says which renderer it is. Decision 4's frame rules and the no-`--headless` rule apply unchanged, and Decisions 1, 2 and 6 do not change: Forward+ still ships and Linux evidence is still Compatibility on llvmpipe through `tools/capture.sh`. The per-UI-story Windows playtest row stays, because an `opengl3` frame or a Linux PNG is no proof of Forward+ output. The control manifest gains the Windows form at the next `/create-control-manifest update`.
 
 ## Date
 
@@ -200,7 +201,7 @@ desktop launch.
    differs (describe)" per story, and a difference opens a bug, not a story
    reopen. `/story-done` accepts the CI PNG as the BLOCKING evidence; the
    Windows confirmation is the ADVISORY follow-through until a Windows capture
-   rig exists (Open point).
+   rig exists (Open point; closed by erratum 2026-11-05, DD-X32).
 6. **Design rules that keep the two renderers equivalent for 2D UI in v1**
    (binding on ADR-0009, ADR-0011 and every UI story; `/create-control-manifest`
    extracts them):

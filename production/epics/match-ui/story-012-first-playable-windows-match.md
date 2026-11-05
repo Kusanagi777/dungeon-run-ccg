@@ -84,5 +84,5 @@ This story closes the first-playable slice (Stories 001–011). Gate `production
 
 ## Dependencies
 
-- Depends on: `production/epics/match-ui/story-008-drag-to-play-attack-and-targeting-arrow.md`, `production/epics/match-ui/story-009-mulligan-screen.md`, `production/epics/match-ui/story-010-boss-turn-pacing.md`, `production/epics/match-ui/story-011-match-end-banner-and-handoff.md`; `production/epics/content/story-001-batch-0-first-playable-data-set.md`; `production/epics/boss-ai-match-driver/story-018-windows-planner-a30-and-determinism.md`; gate entry condition 8 (CI Windows export — sprint task, no story)
+- Depends on: `production/epics/match-ui/story-008-drag-to-play-attack-and-targeting-arrow.md`, `production/epics/match-ui/story-025-hero-power-drag-to-cast-zone.md` (added 2026-11-05: AC-1's hero power has no mouse path without it, DD-X34), `production/epics/match-ui/story-009-mulligan-screen.md`, `production/epics/match-ui/story-010-boss-turn-pacing.md`, `production/epics/match-ui/story-011-match-end-banner-and-handoff.md`; `production/epics/content/story-001-batch-0-first-playable-data-set.md`; `production/epics/boss-ai-match-driver/story-018-windows-planner-a30-and-determinism.md`; gate entry condition 8 (CI Windows export — sprint task, no story)
 - Unlocks: `production/epics/match-ui/story-024-input-latency-and-feel-validation.md`; playtest #1

@@ -20,6 +20,9 @@
 | 006 | main.tscn composition entry and the RunShell stub | UI | Ready | ADR-0001, ADR-0011, ADR-0010 |
 | 007 | Boot responsibilities list for the control manifest (gate condition 12) | Config/Data | Complete (manifest update pending) | ADR-0001 |
 | 008 | Windows Desktop export in CI, uploaded as an artifact (gate condition 8) | Config/Data | Complete (CI run pending) | ADR-0010, ADR-0001 |
+| 009 | Boot supplies driver_factory — a per-task planner factory chosen by planner_mode | Integration | Ready | ADR-0008, ADR-0006, ADR-0001, ADR-0011 |
+| 010 | A committed Godot wrapper — godot resolution and a per-worktree user:// | Integration | Ready | N/A (dev tooling) |
+| 011 | A Windows screenshot path — tools/capture.sh without Xvfb, with the renderer recorded | Integration | Ready | ADR-0010 |
 
 Order: 001 → 002 → 003 → 004 → {005, 006} → 007. Cross-epic: 003 and 004 need the `card-database` epic's `CardDatabase` / `ValidationReport` and `profile_defaults.json`; until then their tests inject a `card_database` override. QL-STORY-READY skipped — Lean mode.
 

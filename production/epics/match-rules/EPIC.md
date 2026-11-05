@@ -72,6 +72,7 @@ Requirements covered by Accepted ADRs: 8 / 8. Untraced Requirements: None.
 | 017 | clone() sandbox and replay equivalence | Logic | Ready | ADR-0005 |
 | 018 | Performance budgets: submit and legal_commands | Logic | Ready | ADR-0007 |
 | 019 | Rules engine performance pass | Logic | Ready | ADR-0007 |
+| 020 | minion_summoned carries keywords[], match_started carries the starting hero health, one reviewed golden regeneration | Logic | Ready | ADR-0003, ADR-0007, ADR-0001 |
 
 Dependency order: 001, 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009 → 010 → {011, 012, 016} → 012 → 013 → {014, 015} → 017 → 018. All 45 GDD acceptance criteria are covered (AC-41 in 001; AC-40 in 018). AC-46 (destroy then Silence: the Deathrattle fires; added 2026-11-04, DD-X21) is covered by `production/epics/card-effects/story-009-deathrattle-snapshot-counters.md`, which takes the `silence` primitive change. Gate entry condition 3 (N-05) is satisfied by DD-X11 — story 013 cites it. QL-STORY-READY skipped — Lean mode.
 

@@ -29,6 +29,62 @@ updated: "2026-11-05"
 
 stories:
   # --- Must Have (First Playable critical path) ---
+  - id: "match-rules-020"
+    name: "minion_summoned carries keywords[], match_started carries the starting hero health, one reviewed golden regeneration"
+    file: "production/epics/match-rules/story-020-keywords-and-starting-health-on-events.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 9)"
+    estimate_days: 1
+    lane: 9
+    wave: 0
+    serialised: true
+    contract: true
+    blocker: "readiness: the player_health/boss_health names and starting armour are open (design owner)"
+    note: "pre-W1, merges first at M0 (only rules_engine.gd editor); rows 9 and 10; goldens regenerate only in this change's own commit, stripped-diff proof, technical-director reads the diff before merge; full suite against the merged state; fallback L6 W1; /code-review at M0"
+    completed: ""
+  - id: "boot-composition-root-009"
+    name: "Boot supplies driver_factory: a per-task planner factory chosen by planner_mode"
+    file: "production/epics/boot-composition-root/story-009-driver-factory.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 8)"
+    estimate_days: 1
+    lane: 8
+    wave: 0
+    serialised: true
+    contract: false
+    blocker: ""
+    note: "pre-W1, M0, ahead of every W1 lane; row 8; DD-X33: planner_mode immediate becomes a data error, profiles_stub.json moves to worker ([S], shared fixture); boot.gd merged by the orchestrator; open: BAI-019's is_live under the factory; fallback L6 W1; /code-review at M0"
+    completed: ""
+  - id: "boot-composition-root-010"
+    name: "A committed Godot wrapper: godot resolution and a per-worktree user://"
+    file: "production/epics/boot-composition-root/story-010-godot-wrapper-and-user-dir-isolation.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 7)"
+    estimate_days: 1
+    lane: 7
+    wave: 0
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "pre-W1, M0, before any W1 lane worktree is cut; row 13; the export half of AC-3 reads NOT ASSESSED until templates are installed; fallback: the scratchpad shim, L5 or L6 W1; /code-review at M0"
+    completed: ""
+  - id: "boot-composition-root-011"
+    name: "A Windows screenshot path: tools/capture.sh without Xvfb, with the renderer recorded"
+    file: "production/epics/boot-composition-root/story-011-windows-screenshot-capture.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 7)"
+    estimate_days: 1
+    lane: 7
+    wave: 0
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "pre-W1, M0, behind BOOT-010 in lane 7; row 12; DD-X32: Windows frames are BLOCKING UI evidence with a .renderer.txt sidecar (ADR-0010 erratum 2026-11-05); fallback: row 12 fix (c); /code-review at M0"
+    completed: ""
   - id: "match-ui-005"
     name: "Hero panels, mana bar, deck piles, top bar, hero power and End Turn"
     file: "production/epics/match-ui/story-005-hero-panels-mana-and-end-turn.md"
@@ -112,6 +168,20 @@ stories:
     contract: false
     blocker: ""
     note: "UI: six retained screenshots + owner sign-off; needs MUI-005 at M1; sole match_view.gd editor in W2; /code-review at M2"
+    completed: ""
+  - id: "match-ui-025"
+    name: "Hero power by drag: an untargeted Ready hero power is dragged to the cast zone (Phase C)"
+    file: "production/epics/match-ui/story-025-hero-power-drag-to-cast-zone.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 1)"
+    estimate_days: 0.5
+    lane: 1
+    wave: 3
+    serialised: false
+    contract: false
+    blocker: "readiness: the dragged button's look in Phase C is open (AC-1 and AC-4 wait on it)"
+    note: "UI: retained screenshot + owner sign-off; row 11; L1 W3 between MUI-008 and MUI-012, takes L1 to 7.0 links; DD-X34: drag-only for playtest #1, a single click does nothing until MUI-017; /code-review at M3"
     completed: ""
   - id: "match-ui-012"
     name: "First playable: one War match vs The Torchbearer, mouse-played, on the Windows export"

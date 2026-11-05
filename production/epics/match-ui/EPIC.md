@@ -36,6 +36,7 @@
 | 022 | Debug loader completion — argument parsing, --anim-speed, --ai-debug overlay and the full fixture sweep | Integration | Ready | ADR-0009, ADR-0010 |
 | 023 | Impact moments and reduce motion — hit-stop, shake, lethal slow-down, feel timings | Visual/Feel | Ready | ADR-0009 |
 | 024 | Input latency table measured, and the Feel acceptance playtest | Integration | Ready | ADR-0009, ADR-0010 |
+| 025 | Hero power by drag — an untargeted Ready hero power is dragged to the cast zone (Phase C) | UI | Ready | ADR-0009, ADR-0001 |
 
 First-playable slice: 001–012 (gate condition 5). Dependency order: 001 → 002 → 003 → 004 (carries `/perf-profile`, gate condition 10) → 005, 006, 007, 009, 010 → 008 (needs 005–007) → 011 → 012 · after the slice: 013, 014, 017 → 015 (needs 010), 016 (needs 008, 014), 018 (needs 006, 017) → 019 (needs 013, 017, 018) → 021 (needs 014, 018) → 020 (needs 015, 019, 021) → 022 (needs 014, 015) → 023 (needs 015, 016) → 024. Logic tests live under `tests/unit/match_ui/`, Integration under `tests/integration/match_ui/`; UI evidence under `production/qa/evidence/<story-slug>/` via `tools/capture.sh`. QL-STORY-READY skipped — Lean mode.
 
