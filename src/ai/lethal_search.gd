@@ -214,7 +214,7 @@ func potential(node: RulesEngine) -> int:
 func taunt_hp(node: RulesEngine) -> int:
 	var total: int = 0
 	for minion: Dictionary in node.state().players[_enemy(node)].board:
-		if _is_taunter(minion):
+		if is_taunter(minion):
 			total += node.health(minion)
 	return total
 
@@ -398,7 +398,7 @@ func _answer_choices(node: RulesEngine, profile: Dictionary) -> void:
 		var pending: Variant = node.pending_choice()
 		if not pending is Dictionary or str(pending.side) != own:
 			return
-		var index: int = int(Chooser.choose(node, pending, profile, _picker.op_values(), node.rng_match(), _db).index)
+		var index: int = int(Chooser.choose(node, pending, profile, _picker.op_values(), node.rng_match(), _db, own).index)
 		if index == Chooser.NO_OPTION or not node.submit(MatchRecords.choose(own, index)).accepted:
 			return
 
@@ -440,12 +440,13 @@ static func _enemy(node: RulesEngine) -> String:
 
 static func _has_taunt(node: RulesEngine) -> bool:
 	for minion: Dictionary in node.state().players[_enemy(node)].board:
-		if _is_taunter(minion):
+		if is_taunter(minion):
 			return true
 	return false
 
 
-static func _is_taunter(minion: Dictionary) -> bool:
+## F3 `taunters`: Taunt, and not Stealth.
+static func is_taunter(minion: Dictionary) -> bool:
 	var keywords: Array = Scorer.keywords_of(minion)
 	return keywords.has(MatchRecords.KEYWORD_TAUNT) and not keywords.has(MatchRecords.KEYWORD_STEALTH)
 

@@ -1,12 +1,13 @@
 # Story 009: DEFENSIVE mode (F6 threat estimate) and sandbox hook fidelity
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: S → M (2026-11-04, DD-X22: A31 added)
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: 2026-11-04 (DD-X22 amendment; implementation not started)
+> **Last Updated**: 2026-11-05
+> **Readiness**: READY (2026-11-05, by hand: story 008 merged at M1, story 004 Complete; ADR-0006 Accepted; DD-X22 and GDD F1 agree with the story; the QA plan's evidence gap closed by adding the A31 file; A20 uses the story's own allowance, see below)
 
 ## Context
 
@@ -66,9 +67,10 @@
 planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
 checks scope against it.*
 
-- `src/ai/threat_estimate.gd`
-- `src/ai/boss_ai.gd` (mode selection)
+- `src/ai/threat_estimate.gd` (new)
+- `src/ai/boss_ai.gd` (mode selection, `_scoring_mode`, `_scoring_profile`)
 - `src/ai/scorer.gd` (A31 vulnerability exception — 2026-11-04, DD-X22)
+- `src/ai/lethal_search.gd` (`is_taunter` made public for [ThreatEstimate])
 - `tests/unit/boss_ai/boss_ai_face_attack_vulnerability_test.gd`, `tests/fixtures/boss_ai/f1_vulnerability_board.json` (A31)
 - `tests/unit/boss_ai/boss_ai_defensive_mode_test.gd`
 - `tests/fixtures/boss_ai/f6_defensive_board.json`, `tests/fixtures/boss_ai/heal_doubling_passive.json`
@@ -87,9 +89,9 @@ checks scope against it.*
 
 **Story Type**: Logic
 **Required evidence**:
-- Logic: `tests/unit/boss_ai/boss_ai_defensive_mode_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
+- Logic: `tests/unit/boss_ai/boss_ai_defensive_mode_test.gd` and `tests/unit/boss_ai/boss_ai_face_attack_vulnerability_test.gd` (A31; added 2026-11-05, wave 1 readiness) — must exist and pass (`/story-done` checks that they EXIST; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created: `boss_ai_defensive_mode_test.gd` 17 tests, `boss_ai_face_attack_vulnerability_test.gd` 15 tests, passing
 
 ---
 
@@ -97,3 +99,25 @@ checks scope against it.*
 
 - Depends on: `production/epics/boss-ai-match-driver/story-008-plan-turn-loop-and-turn-plan.md`
 - Unlocks: `production/epics/boss-ai-match-driver/story-016-sim-harness.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-05 (start 01:10 UTC, end 01:23 UTC; sprint 5 lane 2 wave 2, branch `s5/l2-w2`)
+**Criteria**: 3/3 passing, A20 on the test resolver (below). A15 `test_a15_*`, `test_f6_*`, `test_the_choice_follows_the_defensive_multipliers`, `test_a_successful_clear_drops_back_to_normal_within_the_turn`; A20 `test_a20_*`; A31 `test_a31_*` with the GDD's pinned scores (−0.75, −0.73, 0, 0.3), and the edges `test_only_the_same_attackers_trade_counts`, `test_a_frozen_or_sleeping_player_minion_counts_in_reach`, `test_the_exception_costs_no_extra_simulation`.
+**Tests seen failing**: both suites failed first against missing code (`ThreatEstimate` undeclared). With `ThreatEstimate` in and the `scorer.gd` exception not yet written, the A31 tests failed with the face attack at its plain 0.3 (`f_face` 0.2), as the QA plan asks, and the mode tests failed on `NORMAL`. The A20 tests and the rest passed there, so 25 deliberate mutants were run, all killed: among them `clone_loses_hooks` (a temporary `HookRegistry.copy` edit, restored), `defensive_before_lethal`, `no_band_gate`, `mode_never_drops`, `no_taunt_bonus`, `burn_truncated`, `reach_has_burn`, `any_attackers_trade`, `lethal_zeroed`, `score_not_recomputed`.
+**Verification**: import exit 0; `gates.sh`, `no_global_rng.sh`, `parse-check.sh` exit 0; `commands.test` Overall Summary 1808 test cases, 0 errors, 0 failures, 0 orphans, exit 0; `commands.smoke` exit 0, no `SCRIPT ERROR`.
+**Run result**: N/A: nothing reaches the screen until the match driver runs a boss turn.
+**A20 and CE-014**: the production `EffectResolver.apply_value_hook` passes every value through until card-effects story 014, and `clone()` rebuilds a production resolver, so a real `modify_heal` cannot fold on the production path yet. Under the story's allowance the test runs a real `boss.hook_installers` entry on `TestEffectResolver`, through `HookRegistry.copy()`, the clone's rebinding and the engine's `apply_heal` (a Lifesteal hit). Nothing is stubbed in `src/ai/**`. **A20 through the production resolver stays NOT ASSESSED until CE-014 merges**; the suite's header says to re-point it then.
+**Deviations** (advisory):
+- `ThreatEstimate.incoming` returns `float`, not the story's `int`: `burn_per_mana` is a float (GDD F6, range 0–2) and truncating moves the trigger. GDD over story.
+- `reach(sandbox, own)` and `unsafe(sandbox, rules, own)` take the sandbox, whose derived values they need, and the side; the story wrote `reach(state, rules)` and `unsafe(state)`.
+- `f_self` floors a negative `reach` at 0, or a heavily Taunted board would pay the attack a bonus. F1 does not reach this case: it needs a boss at or under its margin.
+- The exception lives in `score_all`, so a lone `score()` stays the plain F1: only `score_all` has the trades to compare.
+- A forced `end_turn` (only move, action cap) returns before the mode is re-evaluated, as it returns before the search (C2 order), so it logs the mode of the pass before.
+- `src/ai/lethal_search.gd` is outside the planned Files: `_is_taunter` became public so F4's Taunt term has one definition.
+- DD-X22's "gives up a blocker" follows GDD F1, which has no such clause (QA plan, informational).
+
+**Unchanged, as told**: one search per turn and the second-search budget. The owner's questions on them stay open.
+**Test Evidence**: `tests/unit/boss_ai/boss_ai_defensive_mode_test.gd`, `tests/unit/boss_ai/boss_ai_face_attack_vulnerability_test.gd`
+**Reviewed by**: not yet: the orchestrator runs independent reviews at M2.

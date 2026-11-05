@@ -9,6 +9,9 @@
 ## ([constant COMMAND_INDEX_KEY]; a rejected decision or an abort has no command
 ## of its own, so it rides on the next one), submits the command, and compares
 ## [method checksum] of what the live log gained with [member expected_checksum].
+## The first diagnostic is `ai_intent_committed` (C2, C8.2), which rule 12a does not
+## flag: it is an intent event, routed here like the others and left out of the
+## checksum by type ([constant INTENT_EVENTS]).
 ## Diagnostics past the last command (`command_index == commands.size()`) follow
 ## it. Nothing here references an engine, a log or a stream.
 ## [codeblock]
@@ -20,21 +23,25 @@
 class_name TurnPlan
 extends RefCounted
 
-## The diagnostic key naming the event to append (`ai_decision`,
-## `ai_plan_aborted`, `ai_fault`; rng-event-log rule 12a).
+## The diagnostic key naming the event to append (`ai_intent_committed`,
+## `ai_decision`, `ai_plan_aborted`, `ai_fault`; rng-event-log rule 12a, §D).
 const EVENT_KEY: String = "event"
 ## The diagnostic key holding the index in [member commands] it is appended
 ## before.
 const COMMAND_INDEX_KEY: String = "command_index"
 ## The payload flag rule 12a sets on every diagnostic, which no checksum counts.
 const DIAGNOSTIC_KEY: String = "diagnostic"
+## The intent events: the live log holds them and a sandbox's never does, and they
+## are not diagnostics (rule 12a), so [method checksum] skips them by type.
+const INTENT_EVENTS: Array[String] = ["ai_intent_shown", "ai_intent_committed"]
 ## Separates the event types [method checksum] hashes.
 const TYPE_SEPARATOR: String = "\n"
 
 ## The commands the sandbox accepted, in order; each is replayed as it stands.
 var commands: Array = []
-## Event payloads with `diagnostic: true`, each carrying [constant EVENT_KEY] and
-## [constant COMMAND_INDEX_KEY], in the order they were raised.
+## Event payloads, each carrying [constant EVENT_KEY] and
+## [constant COMMAND_INDEX_KEY], in the order they were raised: the intent first,
+## then those with `diagnostic: true`.
 var diagnostics: Array[Dictionary] = []
 ## [method checksum] of the sandbox's scratch log over the turn.
 var expected_checksum: int = 0
@@ -43,6 +50,11 @@ var ai_draws: int = 0
 ## The modes entered this turn, in order, from `NORMAL` (ai-code "log every
 ## transition").
 var mode_trace: Array[StringName] = []
+## One row per action the sandbox accepted, `end_turn` and `choose` aside: `{key,
+## target_id, face, score, lethal}`, what [method BossAI.intent_from_plan] folds.
+## `face` counts attackers that existed when the plan began; `score` is `-INF` for
+## an unscored step, so this stays out of [method to_dict].
+var intent_rows: Array[Dictionary] = []
 
 
 ## Every diagnostic routed before the command at [param index], in order.
@@ -85,9 +97,9 @@ static func event_payload(diagnostic: Dictionary) -> Dictionary:
 
 
 ## FNV-1a (rng-event-log F2, signed int64) over the types of [param events]
-## (log envelopes, in order), skipping every diagnostic: the live log carries the
-## replayed `ai_decision`s and the sandbox log any `command_rejected`, and neither
-## is game state. The one implementation both sides of a replay share (story 015).
+## (log envelopes, in order), skipping every diagnostic and [constant INTENT_EVENTS]:
+## the live log carries the replayed `ai_decision`s and the intent, the sandbox log
+## any `command_rejected`, and none of them is game state. The one implementation both sides of a replay share (story 015).
 ## [codeblock]
 ## var drift: bool = TurnPlan.checksum(log.events_since(seq)) != plan.expected_checksum
 ## [/codeblock]
@@ -95,6 +107,6 @@ static func checksum(events: Array) -> int:
 	var types: PackedStringArray = PackedStringArray()
 	for event: Dictionary in events:
 		var payload: Dictionary = event.get("payload", {})
-		if not bool(payload.get(DIAGNOSTIC_KEY, false)):
+		if not bool(payload.get(DIAGNOSTIC_KEY, false)) and not INTENT_EVENTS.has(str(event.type)):
 			types.append(str(event.type))
 	return RngService.fnv1a64(TYPE_SEPARATOR.join(types).to_utf8_buffer())

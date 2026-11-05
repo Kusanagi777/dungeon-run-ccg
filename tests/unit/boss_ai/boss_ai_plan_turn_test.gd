@@ -274,7 +274,7 @@ func test_play_turn_appends_each_diagnostic_before_its_command_with_cause_zero()
 	# Act
 	await (board.ai as BossAI).play_turn(board.engine)
 
-	# Assert — decision, then that command's first event, three times over
+	# Assert — the commit, then decision and that command's first event, three times over
 	var turn_events: Array = log.events.slice(from)
 	var decisions: Array = turn_events.filter(func(e: Dictionary) -> bool: return str(e.type) == BossAI.EVENT_DECISION)
 	assert_int(decisions.size()).is_equal(3)
@@ -282,7 +282,9 @@ func test_play_turn_appends_each_diagnostic_before_its_command_with_cause_zero()
 		assert_int(int(decision.cause_seq)).is_equal(0)
 		assert_bool(decision.payload.diagnostic).is_true()
 		assert_bool(decision.payload.has(TurnPlan.EVENT_KEY)).is_false()
-	assert_str(str(turn_events[0].type)).is_equal(BossAI.EVENT_DECISION)
+	assert_str(str(turn_events[0].type)).is_equal(BossAI.EVENT_INTENT_COMMITTED)
+	assert_int(int(turn_events[0].cause_seq)).is_equal(0)
+	assert_str(str(turn_events[1].type)).is_equal(BossAI.EVENT_DECISION)
 	assert_str(String((board.engine as RulesEngine).active_side())).is_equal(SIDE_PLAYER)
 
 
@@ -578,6 +580,8 @@ func test_a_plan_that_runs_out_with_the_player_alive_is_aborted_too() -> void:
 
 			# Assert — a plan that ended the match is never aborted
 			var aborted: Array = _events(plan, BossAI.EVENT_PLAN_ABORTED)
+			if not aborted.is_empty() and (board.sandbox as RulesEngine).phase() != MatchState.PHASE_ENDED:
+				assert_str(str(_events(plan, BossAI.EVENT_INTENT_COMMITTED)[0].intent_key)).is_not_equal(Intent.KEY_LETHAL)
 			if (board.sandbox as RulesEngine).phase() == MatchState.PHASE_ENDED:
 				assert_array(aborted).is_empty()
 			reasons.append_array(aborted.map(func(d: Dictionary) -> String: return str(d.reason)))
@@ -601,7 +605,8 @@ func test_only_end_turn_legal_gives_one_command_and_one_unscored_decision() -> v
 	assert_array(_types(plan.commands)).contains_exactly([MatchRecords.CMD_END_TURN])
 	var decisions: Array = _decisions(plan)
 	assert_int(decisions.size()).is_equal(1)
-	assert_int(plan.diagnostics.size()).is_equal(1)
+	assert_int(plan.diagnostics.size()).is_equal(2)
+	assert_str(str(_events(plan, BossAI.EVENT_INTENT_COMMITTED)[0].intent_key)).is_equal(Intent.KEY_PASS)
 	assert_str(str(decisions[0].chosen.type)).is_equal(MatchRecords.CMD_END_TURN)
 	assert_array(decisions[0].alternatives).is_empty()
 	assert_str(str(decisions[0].reason)).is_equal(BossAI.REASON_ONLY_MOVE)

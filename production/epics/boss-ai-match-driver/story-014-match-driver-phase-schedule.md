@@ -19,7 +19,7 @@
 **ADR Version**: 2026-11-03
 
 **Engine**: Godot 4.7.2 | **Risk**: HIGH / NOT SOURCEABLE
-**Engine Notes**: Erratum 2026-11-03 — the plan task Callable is `boss_ai.plan_task(sandbox, planner_task)` (returns `func() -> Variant: return await boss_ai.plan_turn(sandbox)`); the driver never writes `await`. Forecast and choose task Callables follow the same pattern (`BossAI.forecast_task(sandbox)`, `BossAI.choose_task(sandbox, pending)` built in `src/ai/`). Concurrent read-only `CardDatabase` access during a forecast is NOT SOURCEABLE (Story 017).
+**Engine Notes**: Erratum 2026-11-03 — the plan task Callable is `boss_ai.plan_task(sandbox, planner_task)` (returns `func() -> Variant: return await boss_ai.plan_turn(sandbox)`); the driver never writes `await`. Forecast and choose task Callables follow the same pattern (`BossAI.forecast_task(sandbox, planner_task)`, `BossAI.choose_task(sandbox, pending, planner_task)` built in `src/ai/`; the task is required, as on `plan_task`, and both landed with story 011: 2026-11-05, BAI-008 D-1). Concurrent read-only `CardDatabase` access during a forecast is NOT SOURCEABLE (Story 017).
 
 **Control Manifest Rules (this layer)**:
 - Required: `_after_engine_step()` runs after every engine step and every replayed command and reads `phase()` / `active_side()` / `pending_choice()` to schedule forecast, plan or choose tasks. `forecast` runs on a clone at `PlayerTurn.Main` with no gate on player input; a stale premise (`turn` / `phase` moved since the clone) is discarded silently; `ai_intent_shown` is appended by the driver on the main thread. Boss `Choice` with no task live → task `boss_ai.choose(sandbox, pending) -> int`, then `engine.submit(choose{issuer: boss, option_index})` on the main thread. Settings: `telegraph_mode` applied via `on_setting_changed` → `boss_ai.set_telegraph_mode` when no task is live, else deferred to `_on_task_done()`; no other key reaches the rules.
@@ -44,7 +44,7 @@
 *Derived from ADR-0008 Implementation Guidelines and Decision 3's table:*
 
 - Extend `src/gameplay/run/match_driver.gd` (Story 013): `_after_engine_step()` implements the four-row table verbatim; `_start_task(kind, work: Callable, premise: {turn, phase})`; `_on_task_done()`: read `result()` once; queued concede → discard, submit concede; stale premise → discard; forecast → `boss_ai.note_forecast(intent)` + append `ai_intent_shown` if `effective_mode != hidden`; boss choice → submit; `TurnPlan` → set pending plan (replay is Story 015). Apply `_telegraph_pending` here.
-- Add to `src/ai/boss_ai.gd`: `forecast_task(sandbox) -> Callable` and `choose_task(sandbox, pending) -> Callable`, siblings of `plan_task` (the erratum's `await` shape lives in `src/ai/`).
+- `src/ai/boss_ai.gd` already has `forecast_task(sandbox, planner) -> Callable`, `choose_task(sandbox, pending, planner) -> Callable` and `note_forecast(intent)`, siblings of `plan_task` (the erratum's `await` shape lives in `src/ai/`). They landed with story 011 (2026-11-05, wave-1 review): this story calls them. A choose task's result is the index; its decision is `BossAI.last_choice`.
 - "No forecast started for `engine.turn`" is a field `_forecast_turn`; reset when the turn advances.
 - Tests drive a fake `PlannerTask` whose `poll()` answers are scripted so the test controls when the task "returns" relative to player commands; assert through the `TestEventLog` double and spies on `BossAI` entry points. Path: `tests/unit/match_driver/match_driver_schedule_test.gd` (ADR-0008 names `tests/unit/run/`; see Story 013 note).
 
@@ -67,7 +67,6 @@ planned ones; `/dev-story` replaces the list with the files it changed; `/story-
 checks scope against it.*
 
 - `src/gameplay/run/match_driver.gd`
-- `src/ai/boss_ai.gd` (`forecast_task`, `choose_task`)
 - `tests/unit/match_driver/match_driver_schedule_test.gd`
 
 ---

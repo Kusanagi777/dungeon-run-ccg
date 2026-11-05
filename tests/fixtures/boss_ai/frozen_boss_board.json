@@ -1,0 +1,15 @@
+{
+  "name": "frozen_boss_board",
+  "description": "boss-ai Edge Cases \"If the boss hero or all its minions are Frozen\": the boss's only attacker is a 3/3 the test freezes on the player's turn (match-rules C13: it stays Frozen through the boss's turn). `develop_hand` gives the boss a card to play. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_squire", "type": "minion", "cost": 2, "attack": 2, "health": 2}
+  ],
+  "boss": {"mana": 0, "board": ["bai_brute"], "hand": []},
+  "develop_hand": ["bai_squire"],
+  "player": {"health": 20, "board": []}
+}

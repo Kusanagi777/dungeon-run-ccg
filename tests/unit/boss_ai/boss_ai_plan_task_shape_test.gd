@@ -13,7 +13,7 @@ const BOSS_AI_PATH: String = "res://src/ai/boss_ai.gd"
 const AI_DIR: String = "res://src/ai/"
 const TEST_DIR: String = "res://tests/unit/boss_ai/"
 ## The coroutines of the erratum, as a call site spells them.
-const COROUTINE_CALLS: Array[String] = ["plan_turn(", "score_all(", ".search(", "_plan_pass("]
+const COROUTINE_CALLS: Array[String] = ["plan_turn(", "score_all(", ".search(", "_plan_pass(", "_run_loop(", "forecast("]
 const SLICE_USEC: int = 1
 
 
@@ -105,6 +105,68 @@ func test_plan_task_takes_the_task_with_no_default() -> void:
 	assert_array(found[0].default_args).is_empty()
 
 
+func test_forecast_task_and_choose_task_take_the_task_with_no_default() -> void:
+	# Arrange — BAI-008 D-1 for the two siblings: the same trap, the same cure
+	var expected_args: Dictionary = {"forecast_task": 2, "choose_task": 3}
+	var found: Dictionary = {}
+
+	# Act
+	for method: Dictionary in load(BOSS_AI_PATH).get_script_method_list():
+		if expected_args.has(str(method.name)):
+			found[str(method.name)] = method
+
+	# Assert
+	assert_int(found.size()).is_equal(expected_args.size())
+	for name: String in expected_args:
+		assert_int((found[name].args as Array).size()).is_equal(int(expected_args[name]))
+		assert_array(found[name].default_args).is_empty()
+
+
+func test_forecast_task_returns_an_intent_through_the_immediate_task() -> void:
+	# Arrange
+	var board: Dictionary = _board(BossAiBoard.read("attackers_4_3"))
+	var engine: RulesEngine = board.engine
+	assert_bool(engine.submit(MatchRecords.end_turn(MatchRecords.SIDE_BOSS)).accepted).is_true()
+	var sandbox: RulesEngine = engine.clone()
+	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
+
+	# Act
+	task.start((board.ai as BossAI).forecast_task(sandbox, task))
+	var intent: Variant = task.result()
+	sandbox.end_match()
+
+	# Assert
+	assert_bool(intent is Intent).is_true()
+	assert_str((intent as Intent).intent_key).is_equal(Intent.KEY_ATTACK_FACE)
+
+
+func test_forecast_task_suspends_and_resumes_through_the_time_sliced_task() -> void:
+	# Arrange — a clock always past the slice: every checkpoint yields
+	var board: Dictionary = _board(BossAiBoard.read("attackers_4_3"))
+	var engine: RulesEngine = board.engine
+	assert_bool(engine.submit(MatchRecords.end_turn(MatchRecords.SIDE_BOSS)).accepted).is_true()
+	var sandbox: RulesEngine = engine.clone()
+	var ticks: Array[int] = [0]
+	var clock: Callable = func() -> int:
+		ticks[0] += SLICE_USEC
+		return ticks[0]
+	var task: TimeSlicedPlannerTask = TimeSlicedPlannerTask.new(SLICE_USEC, clock)
+
+	# Act
+	task.start((board.ai as BossAI).forecast_task(sandbox, task))
+	var live_after_start: bool = task.is_live()
+	var polls: int = 0
+	while not task.poll():
+		polls += 1
+	sandbox.end_match()
+
+	# Assert — it yielded, and the sliced forecast is the immediate one
+	assert_bool(live_after_start).is_true()
+	assert_int(polls).is_greater(0)
+	assert_str((task.result() as Intent).intent_key).is_equal(Intent.KEY_ATTACK_FACE)
+	assert_int(int((task.result() as Intent).amount)).is_equal(7)
+
+
 func test_a_time_sliced_run_yields_inside_the_search_before_it_finishes() -> void:
 	# Arrange — a lethal board, so the search's stack crosses real suspensions; a
 	# clock always past the slice yields at every checkpoint
@@ -136,7 +198,7 @@ func test_a_time_sliced_run_yields_inside_the_search_before_it_finishes() -> voi
 	assert_bool(live_after_start).is_true()
 	assert_int(events_after_start).is_equal(0)
 	assert_int(polls).is_greater(0)
-	assert_str(str(((task.result() as TurnPlan).diagnostics[0]).mode)).is_equal(String(Scorer.MODE_LETHAL))
+	assert_str(str(((task.result() as TurnPlan).diagnostics[1]).mode)).is_equal(String(Scorer.MODE_LETHAL))
 	assert_that((task.result() as TurnPlan).to_dict()).is_equal(expected.to_dict())
 
 

@@ -58,7 +58,7 @@ func _decide(fixture: Dictionary, kind: String, options: Array, stream: RefCount
 	var engine: RulesEngine = _engine(fixture, db)
 	var sandbox: RulesEngine = engine.clone()
 	var used: Dictionary = profile if not profile.is_empty() else BossAiBoard.profile(fixture)
-	var decision: Dictionary = Chooser.choose(sandbox, _request(kind, options), used, _op_values(), stream, db)
+	var decision: Dictionary = Chooser.choose(sandbox, _request(kind, options), used, _op_values(), stream, db, SIDE_BOSS)
 	sandbox.end_match()
 	return decision
 
@@ -443,6 +443,69 @@ func test_the_chosen_option_is_always_among_the_three_alternatives() -> void:
 
 # --- C1.3, purity ---------------------------------------------------------------------
 
+func test_a_request_is_answered_for_the_side_named_and_no_other() -> void:
+	# Arrange — the side is the caller's, not a hard-coded boss (wave 1 review)
+	var fixture: Dictionary = _discover_fixture()
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = _engine(fixture, db)
+	var request: Dictionary = _request(DISCOVER, ["bai_squire", "bai_page"], SIDE_PLAYER)
+
+	# Act
+	var own: Dictionary = Chooser.choose(engine, request, BossAiBoard.profile(fixture), _op_values(), _stream(), db, SIDE_PLAYER)
+	var other: Dictionary = Chooser.choose(engine, _request(DISCOVER, ["bai_squire", "bai_page"]), BossAiBoard.profile(fixture), _op_values(), _stream(), db, SIDE_PLAYER)
+
+	# Assert
+	assert_int(int(own.index)).is_not_equal(Chooser.NO_OPTION)
+	assert_str(str(own.diagnostic.chosen.issuer)).is_equal(SIDE_PLAYER)
+	assert_int(int(other.index)).is_equal(Chooser.NO_OPTION)
+
+
+func test_choose_task_answers_through_the_immediate_task() -> void:
+	# Arrange
+	var fixture: Dictionary = _discover_fixture()
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = _engine(fixture, db)
+	var sandbox: RulesEngine = engine.clone()
+	var boss_ai: BossAI = _boss_ai(fixture, db, _stream())
+	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
+
+	# Act
+	task.start(boss_ai.choose_task(sandbox, _request(DISCOVER, fixture.options), task))
+	var index: Variant = task.result()
+	sandbox.end_match()
+
+	# Assert — the task's result is `choose`'s, and `last_choice` carries the decision
+	assert_int(int(index)).is_equal(0)
+	assert_str(str(boss_ai.last_choice.kind)).is_equal(BossAI.KIND_CHOICE)
+
+
+func test_choose_task_yields_to_a_time_sliced_task_before_it_scores() -> void:
+	# Arrange — a clock always past the slice
+	var fixture: Dictionary = _discover_fixture()
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = _engine(fixture, db)
+	var sandbox: RulesEngine = engine.clone()
+	var boss_ai: BossAI = _boss_ai(fixture, db, _stream())
+	var ticks: Array[int] = [0]
+	var clock: Callable = func() -> int:
+		ticks[0] += 1
+		return ticks[0]
+	var task: TimeSlicedPlannerTask = TimeSlicedPlannerTask.new(1, clock)
+
+	# Act
+	task.start(boss_ai.choose_task(sandbox, _request(DISCOVER, fixture.options), task))
+	var scored_inside_start: bool = not boss_ai.last_choice.is_empty()
+	var live_after_start: bool = task.is_live()
+	while not task.poll():
+		pass
+	sandbox.end_match()
+
+	# Assert
+	assert_bool(scored_inside_start).is_false()
+	assert_bool(live_after_start).is_true()
+	assert_int(int(task.result())).is_equal(0)
+
+
 func test_a_players_pending_choice_is_never_scored() -> void:
 	# Arrange
 	var fixture: Dictionary = _discover_fixture()
@@ -451,7 +514,7 @@ func test_a_players_pending_choice_is_never_scored() -> void:
 	var stream: TestRngStream = _stream()
 
 	# Act
-	var decision: Dictionary = Chooser.choose(engine, _request(DISCOVER, ["bai_squire", "bai_page"], SIDE_PLAYER), BossAiBoard.profile(fixture), _op_values(), stream, db)
+	var decision: Dictionary = Chooser.choose(engine, _request(DISCOVER, ["bai_squire", "bai_page"], SIDE_PLAYER), BossAiBoard.profile(fixture), _op_values(), stream, db, SIDE_BOSS)
 
 	# Assert
 	assert_int(int(decision.index)).is_equal(Chooser.NO_OPTION)
@@ -470,7 +533,7 @@ func test_choose_leaves_the_sandbox_untouched() -> void:
 
 	# Act
 	@warning_ignore("return_value_discarded")
-	Chooser.choose(sandbox, _request(DISCOVER, fixture.options), BossAiBoard.profile(fixture), _op_values(), _stream(), db)
+	Chooser.choose(sandbox, _request(DISCOVER, fixture.options), BossAiBoard.profile(fixture), _op_values(), _stream(), db, SIDE_BOSS)
 
 	# Assert
 	assert_dict(sandbox.state().players[SIDE_BOSS]).is_equal(before)
