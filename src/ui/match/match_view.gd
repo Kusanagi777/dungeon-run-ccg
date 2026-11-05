@@ -100,6 +100,11 @@ func router() -> InputRouter:
 	return _router
 
 
+## The hand fan, for poses and tests.
+func hand() -> HandPresenter:
+	return _hand
+
+
 ## Debug builds: every presenter's display equals the view-state (U4.6).
 func assert_in_sync() -> void:
 	for presenter: Presenter in _presenters:
@@ -124,6 +129,13 @@ func _process(delta: float) -> void:
 	_controller.tick()
 	_queue.advance(delta)
 	_refresh_interaction()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _started:
+		return
+	if event is InputEventMouseMotion:
+		_update_hover((event as InputEventMouseMotion).position)
 
 
 func _exit_tree() -> void:
@@ -337,6 +349,11 @@ func _refresh_interaction() -> void:
 
 func _show_legality() -> void:
 	var legal: Array[Dictionary] = _router.player_commands()
+	var playable: Dictionary = {}
+	for card: Dictionary in _ui.query.hand(MatchViewState.SIDE_PLAYER):
+		if card.playable:
+			playable[int(card.instance_id)] = true
+	_hand.set_playable(playable, true)
 	var mana: int = int(_view.side(&"player").mana.available)
 	_set_end_turn_lit(legal.size() <= 1 or mana == 0)
 	_player_panel.set_power_state(_ui.query.hero_power_state(MatchViewState.SIDE_PLAYER))
@@ -344,6 +361,8 @@ func _show_legality() -> void:
 
 func _clear_legality() -> void:
 	_set_end_turn_lit(false)
+	_hand.set_playable({}, false)
+	_hand.set_hover(-1, 0.0)
 	_player_panel.set_power_state({})
 
 
@@ -359,6 +378,14 @@ func _locate(entity_id: int) -> Vector2:
 	if _boss_panel.owns([entity_id]):
 		return _boss_panel.portrait_rect().get_center()
 	return _ui.rect("viewport").get_center()
+
+
+## Hover previews belong to `Idle` (States), and a preview never moves focus.
+func _update_hover(point: Vector2) -> void:
+	if _router.view_state() != InputRouter.STATE_IDLE:
+		return
+	_hand.set_hover(_hand.card_at(point))
+	_player_panel.show_power_tooltip(_player_panel.power_rect().has_point(point))
 
 
 func _on_skipped() -> void:

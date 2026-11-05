@@ -1,7 +1,7 @@
 # Story 006: Hand fan and hover preview — F1, F2 and the shared CardFrame
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

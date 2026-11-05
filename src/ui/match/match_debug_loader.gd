@@ -31,6 +31,7 @@ const DEFAULT_FLOOR: int = 1
 ## How long one settle may run before the fixture is reported stuck.
 const SETTLE_TIMEOUT_MS: int = 60000
 const SETTLE_POLL_USEC: int = 200
+const POSE_HOVER: String = "hover"
 ## Macro names a `commands` entry may hold in `macro`.
 const MACRO_END_TURNS: String = "end_turns"
 const MACRO_PLAY_ALL: String = "play_all"
@@ -102,9 +103,18 @@ func load_fixture(fixture_name: String) -> MatchController:
 	return controller
 
 
-## U11: a view-only pose after loading. Poses arrive with the stories that need them.
-func apply_pose(_view: MatchView, _pose: String) -> void:
-	return
+## U11: a view-only pose after loading. `hover:<instance_id>` is the 1.5x preview. Poses
+## arrive with the stories that need them; an unknown one is reported and skipped.
+func apply_pose(view: MatchView, pose: String) -> void:
+	if pose == "":
+		return
+	var parts: PackedStringArray = pose.split(":", true, 1)
+	var value: String = parts[1] if parts.size() > 1 else ""
+	match parts[0]:
+		POSE_HOVER:
+			view.hand().set_hover(int(value), 0.0)
+		_:
+			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
 
 
 func _read(path: String) -> Variant:
