@@ -7,10 +7,10 @@
 ## `RulesEngine` and `EffectResolver`. The other cases use the real engine and
 ## resolver over inline hosts and a fake database.
 ##
-## Two details are undefined in the GDDs and deliberately **not pinned** here
+## One detail is undefined in the GDDs and deliberately **not pinned** here
 ## (reported to game-designer, see content story 004's notes): the op outcome
-## when only some targets have a Deathrattle, and where a `source_slot` summon
-## lands while its source is still on the board.
+## when only some targets have a Deathrattle. Where a `source_slot` summon lands
+## while its source is still on the board is DD-X27, pinned below.
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT: GDScript = preload("res://src/core/boot.gd")
@@ -40,6 +40,8 @@ const ARMOURER: String = "neutral_test_armourer"
 const WARD: String = "neutral_test_ward"
 ## Deathrattle: summon `TOKEN` at `source_slot` (Rot Zombie's shape).
 const SPAWNER: String = "neutral_test_spawner"
+## Deathrattle: summon two `TOKEN`s at `source_slot` (DD-X27's `[source, copy, copy]`).
+const TWIN_SPAWNER: String = "neutral_test_twin_spawner"
 ## Deathrattle: give your minions +2 Attack.
 const RALLIER: String = "neutral_test_rallier"
 ## Deathrattle: deal `source.attack` to the enemy hero (row 12's shape).
@@ -133,6 +135,7 @@ func _make_db() -> FakeCardDatabase:
 	by_id[ARMOURER] = CardFactory.make_spell(ARMOURER, 1, _fx('{"trigger":"cast","targets":"owner_weapon","ops":[%s]}' % retrigger))
 	by_id[WARD] = _deathrattle_minion(WARD, '"ops":[{"op":"armor","targets":"owner","amount":1}]')
 	by_id[SPAWNER] = _deathrattle_minion(SPAWNER, '"ops":[{"op":"summon","card_id":"%s","count":1,"position":"source_slot"}]' % TOKEN)
+	by_id[TWIN_SPAWNER] = _deathrattle_minion(TWIN_SPAWNER, '"ops":[{"op":"summon","card_id":"%s","count":2,"position":"source_slot"}]' % TOKEN)
 	by_id[RALLIER] = _deathrattle_minion(RALLIER, '"targets":"all_friendly_minions","ops":[{"op":"buff","attack":%d}]' % RALLY_ATTACK)
 	by_id[AVENGER] = _deathrattle_minion(AVENGER, '"ops":[{"op":"damage","targets":"enemy_hero","amount":{"ref":"source.attack"}}]')
 	by_id[BURSTER] = _deathrattle_minion(BURSTER, '"targets":"all_friendly_minions","ops":[{"op":"damage","amount":3}]')
@@ -272,6 +275,47 @@ func test_mass_rites_over_three_rot_zombies_on_shipped_data_queues_each_deathrat
 	assert_array(Array(entry.get("targets", []))).is_equal(zombies)
 	for zombie: Variant in zombies:
 		assert_bool(EffectSelectors.find(_engine.state(), int(zombie)).is_empty()).is_false()
+
+
+func test_mass_rites_over_three_rot_zombies_lays_each_husk_right_of_its_own_zombie() -> void:
+	# Arrange
+	var db: CardDatabase = _shipped_db()
+	_shipped_boss_main(db)
+	var zombies: Array = [
+		_put(ROT_ZOMBIE, 2, 3, SIDE_BOSS), _put(ROT_ZOMBIE, 2, 3, SIDE_BOSS), _put(ROT_ZOMBIE, 2, 3, SIDE_BOSS),
+	]
+	var before: int = _last_seq()
+
+	# Act
+	_submit(MatchRecords.play_card(SIDE_BOSS, 0))
+
+	# Assert — DD-X27: Z H Z H Z H, never H Z H Z H Z; the Deathrattles resolve
+	# left to right, so each later Zombie has moved right by the Husks before it
+	assert_array(_board_defs(SIDE_BOSS)).is_equal([ROT_ZOMBIE, HUSK, ROT_ZOMBIE, HUSK, ROT_ZOMBIE, HUSK])
+	var board: Array = _engine.state().players[SIDE_BOSS].board
+	assert_array([board[0].entity_id, board[2].entity_id, board[4].entity_id]).is_equal(zombies)
+	var positions: Array = _of_type(_since(before), "minion_summoned").map(func(e: Dictionary) -> int: return int(e.payload.position))
+	assert_array(positions).is_equal([1, 3, 5])
+
+
+func test_a_source_slot_summon_with_its_source_in_play_goes_right_of_it_in_order() -> void:
+	# Arrange — [vanilla, twin spawner, vanilla]
+	_main_phase([RITES])
+	var left: int = _put(VANILLA)
+	var spawner: int = _put(TWIN_SPAWNER)
+	var right: int = _put(VANILLA)
+	var before: int = _last_seq()
+
+	# Act
+	_cast()
+
+	# Assert — `[source, copy, copy]`; the source keeps index 1
+	var board: Array = _engine.state().players[SIDE_PLAYER].board
+	assert_array(_board_defs()).is_equal([VANILLA, TWIN_SPAWNER, TOKEN, TOKEN, VANILLA])
+	assert_array([board[0].entity_id, board[1].entity_id, board[4].entity_id]).is_equal([left, spawner, right])
+	var summoned: Array = _of_type(_since(before), "minion_summoned")
+	assert_array(summoned.map(func(e: Dictionary) -> int: return int(e.payload.entity_id))).is_equal([board[2].entity_id, board[3].entity_id])
+	assert_str(str(_op_entry(_since(before), "summon").values.position)).is_equal(EffectOps.POSITION_SOURCE_SLOT)
 
 
 # --- C5 / C6.0 / C6.3: order, steps, cause ------------------------------------------

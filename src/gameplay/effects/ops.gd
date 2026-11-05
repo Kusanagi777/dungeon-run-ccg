@@ -561,8 +561,9 @@ func _op_equip(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dict
 
 ## C5 `summon`: `summon_minion(side, card_id, position)` × count, left to
 ## right. Position: `right_of_source` (the default outside Deathrattles) and
-## `source_slot` place the copies right of / at the source while the source
-## is a minion in play on that side; otherwise — a spell, hero power, weapon
+## `source_slot` both place the copies immediately right of the source, in
+## order, while it is a minion in play on that side: `[source, copy, copy]`,
+## and the source never moves (DD-X27); otherwise — a spell, hero power, weapon
 ## or passive source (C5; story 011: Rot) — and for `end`, the rightmost
 ## slot. `values.position` is the position as resolved: the authored one, or
 ## [constant POSITION_NAME_END] after that fallback. A full board is
@@ -605,7 +606,7 @@ static func _summon_index(board: Array, position: String, side: String, run_ctx:
 	if index < 0:
 		var former: int = _former_slot(position, side, run_ctx)
 		return former + placed if former >= 0 else POSITION_END
-	return index + placed + (1 if position == POSITION_RIGHT_OF_SOURCE else 0)
+	return index + placed + 1
 
 
 ## The `board_index` of the pass's raise-time snapshot when [param position] is
