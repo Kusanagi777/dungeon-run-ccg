@@ -46,7 +46,7 @@ const PENDING_CONFIG_OWNERS: PackedStringArray = [
 ## Stage-7b record validator keys whose owner has not shipped its validator;
 ## each is registered with [method _pending_record_validator] (one
 ## `W_VALIDATOR_PENDING` entry per host kind per load, same severity rule).
-const PENDING_RECORD_OWNERS: PackedStringArray = ["treasure"]
+const PENDING_RECORD_OWNERS: PackedStringArray = []
 
 ## False until [method boot] has run once (the QQ-04 test asserts it at suite
 ## start); true from then on, whatever the load's outcome. Read-only: it is
@@ -161,6 +161,8 @@ func services() -> Services:
 ## - `configs.rng_event_log` → `EventLog.validate_config` (rng-event-log 007);
 ## - `configs.content_budgets` → `ContentValidator.validate_config` (content 007);
 ## - `configs.heroes_balance` → `Heroes.validate_config` (heroes 004);
+## - `treasure` → `Treasures.validate_treasure_record` (treasures 003), the
+##   stage-7b entry over `Treasures.validate_treasure_defs`;
 ## - pending: [constant PENDING_RECORD_OWNERS] through
 ##   [method _pending_record_validator] and [constant PENDING_CONFIG_OWNERS]
 ##   through [method _pending_config_validator].
@@ -168,7 +170,6 @@ func services() -> Services:
 ## true, `error` when false); it defaults to `OS.is_debug_build()` and is a
 ## parameter only so a test can build the release map. Build a fresh map per
 ## load: the pending record validators share a per-map "already reported" set.
-## TODO(treasures): "treasure" → Treasures.validate_treasure_defs
 ## TODO(each config owner): replace its pending entry with its static `validate_config`.
 func _collect_validators(meta: MetaApi, debug_build: bool = OS.is_debug_build()) -> Dictionary:
 	var configs: Dictionary = {}
@@ -186,6 +187,7 @@ func _collect_validators(meta: MetaApi, debug_build: bool = OS.is_debug_build())
 		"effects": _effects_adapter,
 		"unlock": _unlock_adapter.bind(unlock_defs),
 		"ai_profile": BossAI.validate_ai_profile,
+		"treasure": Treasures.validate_treasure_record,
 		"configs": configs,
 	}
 	for key: String in PENDING_RECORD_OWNERS:

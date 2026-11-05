@@ -18,7 +18,8 @@ const RECORDS_FIXTURE: String = FIXTURES + "clean/"
 ## The record validators that are real, not pending.
 ## `ai_profile` is real since the sprint-4 L4 code-review fix (2026-11-04):
 ## `BossAI.validate_ai_profile` (boss-ai story 002/003, stage-7b convention).
-const REAL_RECORD_KEYS: Array[String] = ["effects", "unlock", "ai_profile"]
+## `treasure` is real since treasures story 003: `Treasures.validate_treasure_record`.
+const REAL_RECORD_KEYS: Array[String] = ["effects", "unlock", "ai_profile", "treasure"]
 
 
 func _map(debug_build: bool = true) -> Dictionary:
@@ -76,6 +77,7 @@ func test_every_record_key_maps_to_a_validator_and_the_pending_ones_are_the_list
 	# Assert
 	assert_array(pending).contains_exactly_in_any_order(Array(BOOT_SCRIPT.PENDING_RECORD_OWNERS))
 	assert_int(pending.size() + REAL_RECORD_KEYS.size()).is_equal(DataLoader.RECORD_VALIDATORS.size())
+	assert_array(Array(BOOT_SCRIPT.PENDING_RECORD_OWNERS)).is_empty()
 
 
 func test_pending_config_validator_is_a_warning_in_debug_naming_the_owner() -> void:
@@ -98,8 +100,8 @@ func test_pending_config_validator_is_an_error_in_an_exported_build() -> void:
 
 
 func test_pending_record_validator_reports_once_per_host_kind() -> void:
-	# Arrange
-	var treasure: Callable = _map().treasure
+	# Arrange — no owner is pending today, so the validator is bound by hand
+	var treasure: Callable = BOOT_SCRIPT._pending_record_validator.bind("treasure", {}, true)
 
 	# Act — three treasure records, then a second host kind
 	var first: Array = treasure.call(&"treasure", "treasure_a", {}, null, {})
@@ -145,21 +147,35 @@ func test_release_map_fails_the_ready_fixture_load() -> void:
 
 
 func test_pending_record_validators_report_once_per_host_kind_in_a_load() -> void:
-	# Arrange — clean/ has 2 bosses and several treasures; only the two pending
-	# record keys come from Boot's map, the rest accept
+	# Arrange — clean/ has 2 bosses and several treasures; no owner is pending
+	# today, so one key is bound by hand and the rest accept
 	var map: Dictionary = ValidatorStubs.accept_all()
-	var boot_map: Dictionary = _map(true)
-	for key: String in BOOT_SCRIPT.PENDING_RECORD_OWNERS:
-		map[key] = boot_map[key]
+	map.treasure = BOOT_SCRIPT._pending_record_validator.bind("treasure", {}, true)
 
 	# Act
 	var report: ValidationReport = DataLoader.new(RECORDS_FIXTURE).run(map).report
 
-	# Assert — one entry per pending key: treasure on treasures.json (ai_profile
-	# is real since 2026-11-04)
+	# Assert — one entry for the key: treasure on treasures.json
 	var fields: Array = _pending_entries(report).map(func(e: Dictionary) -> String: return "%s:%s" % [e.file, e.field])
 	assert_array(fields).contains_exactly_in_any_order(["treasures.json:treasure"])
 	assert_bool(report.has_errors()).is_false()
+
+
+func test_treasure_entry_is_the_treasures_validator_and_nothing_is_pending_for_it() -> void:
+	# Arrange — only `treasure` comes from Boot's map; treasures_invalid/ holds one
+	# valid treasure, the faulted ones, and the shipped `treasures_balance` body
+	var map: Dictionary = ValidatorStubs.accept_all()
+	map.treasure = _map(true).treasure
+
+	# Act
+	var report: ValidationReport = DataLoader.new(FIXTURES + "treasures_invalid/").run(map).report
+
+	# Assert — the real validator ran, and it reported nothing pending
+	assert_array(_pending_entries(report)).is_empty()
+	var rows: Array = report.entries().filter(func(e: Dictionary) -> bool: return e.record_id == "treasure_two_affinities")
+	assert_int(rows.size()).is_equal(1)
+	assert_str(rows[0].message).starts_with("E_TR_TAGS: ")
+	assert_array(report.entries().filter(func(e: Dictionary) -> bool: return e.record_id == "treasure_valid")).is_empty()
 
 
 func test_ai_profile_entry_is_boss_ais_stage_7b_validator() -> void:
