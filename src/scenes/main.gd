@@ -1,9 +1,10 @@
 ## `main.tscn`'s root: the one composition entry (ADR-0001 Decision 4;
 ## architecture.md §Data Flow 5 step 1; boot-composition-root story 006).
 ##
-## Its only job: call `Boot.boot()` exactly once in `_ready()`, then
-## instantiate the `RunShell` stub, hand it the `Services` bag by argument
-## ([method RunShell.bind]) and add it to the tree. It holds no game state.
+## Its only job: add the Run UI input actions, call `Boot.boot()` exactly once in
+## `_ready()`, then instantiate the `RunShell`, hand it the `Services` bag and the
+## run machine by argument ([method RunShell.bind]) and add it to the tree. It holds
+## no game state.
 ## This root and `run_shell.gd` are the only `Boot` references under
 ## `src/scenes/` and `src/ui/` (ADR-0001 gate G3 scope note).
 ##
@@ -16,6 +17,12 @@
 ## will reuse. A release build ignores the argument.
 ## [codeblock]
 ## godot --path . -- --boot-fail-fixture=boot_data_error     # data_error capture
+## [/codeblock]
+## Debug builds only: `--run-ui-screen=<id> --run-ui-fixture=<name>` opens one screen
+## from a fixture through `RunDebugLoader` (run-ui U10), loaded by path so a release
+## export never names it.
+## [codeblock]
+## godot --path . -- --run-ui-screen=boss_intro --run-ui-fixture=mid_run_floor4
 ## [/codeblock]
 ## Any build: the user argument `--print-data-version` boots, prints `data_version()`
 ## and quits without opening the shell, exit 0, or exit 1 with an empty line when the
@@ -38,7 +45,7 @@
 class_name Main
 extends Control
 
-## The `RunShell` stub scene (the Run UI epic replaces its body, keeps the path).
+## The `RunShell` scene.
 const RUN_SHELL_SCENE: PackedScene = preload("res://src/ui/run/run_shell.tscn")
 ## The debug argument selecting a broken fixture root.
 const FAIL_FIXTURE_ARG: String = "--boot-fail-fixture="
@@ -54,21 +61,35 @@ const FIXTURE_NAME_PATTERN: String = "^[a-z0-9_]+$"
 const MATCH_FIXTURE_ARG: String = "--fixture="
 ## `load()`ed on that route only, so the shell's start pays nothing for it.
 const MATCH_VIEW_SCENE_PATH: String = "res://src/ui/match/match_view.tscn"
+## `load()`ed by path: a release export has no such script.
+const RUN_DEBUG_LOADER_PATH: String = "res://src/ui/run/run_debug_loader.gd"
 
 
 func _ready() -> void:
 	var args: Array = Array(OS.get_cmdline_user_args())
+	RunInput.install()
 	if launches_match(args, OS.is_debug_build()):
 		add_child((load(MATCH_VIEW_SCENE_PATH) as PackedScene).instantiate())
 		return
-	var booted: BootResult = Boot.boot(boot_overrides(args, OS.is_debug_build()))
+	var overrides: Dictionary = boot_overrides(args, OS.is_debug_build())
+	var loader: RefCounted = null
+	var launch: Dictionary = {}
+	if OS.is_debug_build() and ResourceLoader.exists(RUN_DEBUG_LOADER_PATH):
+		var loader_script: GDScript = load(RUN_DEBUG_LOADER_PATH)
+		launch = loader_script.call(&"from_args", OS.get_cmdline_user_args())
+		if not str(launch.screen).is_empty() and not str(launch.fixture).is_empty():
+			loader = loader_script.new()
+			overrides.merge(loader.call(&"load_fixture", str(launch.fixture)), true)
+	var booted: BootResult = Boot.boot(overrides)
 	if args.has(PRINT_DATA_VERSION_ARG):
 		print(Boot.services().card_database.data_version() if booted.ok else "")
 		get_tree().quit(0 if booted.ok else 1)
 		return
 	var shell: RunShell = RUN_SHELL_SCENE.instantiate() as RunShell
-	shell.bind(Boot.services())
+	shell.bind(Boot.services(), Boot.run_machine() if booted.ok else null)
 	add_child(shell)
+	if loader != null:
+		loader.call(&"open", shell, StringName(str(launch.screen)))
 
 
 ## True when [param args] (the user arguments) ask for a match fixture in a

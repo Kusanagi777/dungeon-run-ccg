@@ -1,0 +1,155 @@
+{
+ "record": {
+  "run_id": "48A10CC0B2ED54EC-1793000000",
+  "run_seed_hex": "48A10CC0B2ED54EC",
+  "seed_source": "random",
+  "hero_id": "hero_war",
+  "floors_per_run": 8,
+  "band_split": [
+   3,
+   3,
+   2
+  ],
+  "treasure_floors": [
+   1,
+   3,
+   5
+  ],
+  "boss_sequence": [
+   "boss_torchbearer",
+   "boss_rat_king",
+   "boss_gatekeeper",
+   "boss_rot_warden",
+   "boss_blood_abbess",
+   "boss_iron_tollman",
+   "boss_hollow_king",
+   "boss_lich_archivist"
+  ],
+  "floor": 3,
+  "status": "abandoned",
+  "deck": [
+   "neutral_tunnel_rat",
+   "neutral_tunnel_rat",
+   "war_shield_squire",
+   "war_sharpen",
+   "neutral_cellar_guard",
+   "neutral_cellar_guard",
+   "war_rusted_axe",
+   "war_warcry",
+   "neutral_dungeon_delver",
+   "neutral_dungeon_delver",
+   "war_iron_vanguard",
+   "war_quartermaster",
+   "neutral_crypt_brute",
+   "war_pit_brawler",
+   "neutral_ogre_porter",
+   "neutral_tunnel_rat",
+   "neutral_wolf_rider",
+   "neutral_banner_captain",
+   "neutral_lantern_bearer",
+   "neutral_bulwark_smith",
+   "neutral_shield_golem"
+  ],
+  "treasures": [
+   "treasure_hollow_crown"
+  ],
+  "drafts": [
+   {
+    "floor": 1,
+    "kind": "treasure",
+    "offered_ids": [
+     "treasure_hollow_crown"
+    ],
+    "picked_id": "treasure_hollow_crown",
+    "card_ids_added": []
+   },
+   {
+    "floor": 1,
+    "kind": "bundle",
+    "offered_ids": [
+     "bundle_neutral_tempo"
+    ],
+    "picked_id": "bundle_neutral_tempo",
+    "card_ids_added": [
+     "neutral_tunnel_rat",
+     "neutral_wolf_rider",
+     "neutral_banner_captain"
+    ]
+   },
+   {
+    "floor": 2,
+    "kind": "bundle",
+    "offered_ids": [
+     "bundle_neutral_wall"
+    ],
+    "picked_id": "bundle_neutral_wall",
+    "card_ids_added": [
+     "neutral_lantern_bearer",
+     "neutral_bulwark_smith",
+     "neutral_shield_golem"
+    ]
+   }
+  ],
+  "match_attempts": {
+   "1": 1,
+   "2": 1
+  },
+  "match_summaries": [
+   {
+    "floor": 1,
+    "result": "win",
+    "reason": "hero_dead",
+    "turns": 9,
+    "cards_played": 12,
+    "damage_by_card": {
+     "neutral_tunnel_rat": 10,
+     "war_shield_squire": 8,
+     "war_sharpen": 6
+    },
+    "boss_id": "boss_torchbearer",
+    "band": 1,
+    "attempt": 1,
+    "duration_s": 180
+   },
+   {
+    "floor": 2,
+    "result": "win",
+    "reason": "hero_dead",
+    "turns": 9,
+    "cards_played": 12,
+    "damage_by_card": {
+     "neutral_tunnel_rat": 10,
+     "war_shield_squire": 8,
+     "war_sharpen": 6
+    },
+    "boss_id": "boss_rat_king",
+    "band": 1,
+    "attempt": 1,
+    "duration_s": 180
+   }
+  ],
+  "started_at": 1793000000,
+  "updated_at": 1793003000,
+  "play_seconds": 1394,
+  "totals": {
+   "matches_played": 2,
+   "turns": 18,
+   "damage_by_card": {
+    "neutral_tunnel_rat": 20,
+    "war_shield_squire": 16,
+    "war_sharpen": 12
+   },
+   "cards_drafted": 6,
+   "treasures_taken": 1
+  },
+  "result": {
+   "outcome": "abandoned",
+   "floors_cleared": 2,
+   "floor_reached": 3,
+   "total_turns": 18,
+   "ended_by": null,
+   "abandon_reason": "player"
+  },
+  "ended_at": 1793003000
+ }
+}

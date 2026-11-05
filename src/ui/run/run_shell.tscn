@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://src/ui/run/run_shell.gd" id="1_run_shell"]
+[ext_resource type="Script" path="res://src/ui/run/toast_layer.gd" id="2_toast"]
+[ext_resource type="Script" path="res://src/ui/run/focus_ring.gd" id="3_ring"]
 
 [node name="RunShell" type="Control"]
 layout_mode = 3
@@ -21,81 +23,58 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.0784314, 0.0941176, 0.12549, 1)
 
-[node name="MainMenu" type="VBoxContainer" parent="."]
+[node name="ScreenStack" type="Control" parent="."]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -80.0
-offset_right = 400.0
-offset_bottom = 80.0
-grow_horizontal = 2
-grow_vertical = 2
-alignment = 1
-
-[node name="TitleLabel" type="Label" parent="MainMenu"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.94902, 0.913725, 0.847059, 1)
-theme_override_font_sizes/font_size = 48
-horizontal_alignment = 1
-
-[node name="PendingLabel" type="Label" parent="MainMenu"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.721569, 0.67451, 0.588235, 1)
-theme_override_font_sizes/font_size = 20
-horizontal_alignment = 1
-
-[node name="DataError" type="MarginContainer" parent="."]
-unique_name_in_owner = true
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 48
-theme_override_constants/margin_top = 48
-theme_override_constants/margin_right = 48
-theme_override_constants/margin_bottom = 48
 
-[node name="ErrorLayout" type="VBoxContainer" parent="DataError"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="ErrorTitleLabel" type="Label" parent="DataError/ErrorLayout"]
+[node name="MatchHost" type="Control" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.94902, 0.913725, 0.847059, 1)
-theme_override_font_sizes/font_size = 32
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="ErrorCountLabel" type="Label" parent="DataError/ErrorLayout"]
+[node name="ToastLayer" type="Control" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.721569, 0.67451, 0.588235, 1)
-theme_override_font_sizes/font_size = 16
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_toast")
 
-[node name="ErrorScroll" type="ScrollContainer" parent="DataError/ErrorLayout"]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="ErrorRows" type="VBoxContainer" parent="DataError/ErrorLayout/ErrorScroll"]
+[node name="FocusRing" type="Control" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_ring")
 
-[node name="ErrorRowTemplate" type="Label" parent="DataError/ErrorLayout"]
+[node name="TransitionLayer" type="ColorRect" parent="."]
 unique_name_in_owner = true
-visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(0.94902, 0.913725, 0.847059, 1)
-theme_override_font_sizes/font_size = 14
-autowrap_mode = 3
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0784314, 0.0941176, 0.12549, 1)
+
+[node name="Gamma" type="CanvasModulate" parent="."]
+unique_name_in_owner = true

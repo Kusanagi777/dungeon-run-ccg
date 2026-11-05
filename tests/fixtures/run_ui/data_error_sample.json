@@ -1,0 +1,79 @@
+{
+ "overrides": {
+  "rows": [
+   {
+    "file": "cards_war.json",
+    "id": "war_0",
+    "code": "E_SCHEMA",
+    "message": "row 0 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_1",
+    "code": "E_SCHEMA",
+    "message": "row 1 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_2",
+    "code": "E_SCHEMA",
+    "message": "row 2 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_3",
+    "code": "E_SCHEMA",
+    "message": "row 3 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_4",
+    "code": "E_SCHEMA",
+    "message": "row 4 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_5",
+    "code": "E_SCHEMA",
+    "message": "row 5 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_6",
+    "code": "E_SCHEMA",
+    "message": "row 6 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_7",
+    "code": "E_SCHEMA",
+    "message": "row 7 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_8",
+    "code": "E_SCHEMA",
+    "message": "row 8 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_9",
+    "code": "E_SCHEMA",
+    "message": "row 9 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_10",
+    "code": "E_SCHEMA",
+    "message": "row 10 does not fit the schema"
+   },
+   {
+    "file": "cards_war.json",
+    "id": "war_11",
+    "code": "E_SCHEMA",
+    "message": "row 11 does not fit the schema"
+   }
+  ],
+  "report_text": "12 rows"
+ }
+}
