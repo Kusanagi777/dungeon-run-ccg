@@ -136,8 +136,6 @@ func _shake(step: AnimStep, d_eff: float) -> void:
 
 
 
-
-
 # A skipped shake leaves the control where it started.
 func _rest() -> void:
 	if _rest_at != null and is_instance_valid(_origin):

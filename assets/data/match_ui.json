@@ -189,6 +189,12 @@
         202,
         723,
         315
+      ],
+      "menu_button": [
+        1212,
+        0,
+        44,
+        44
       ]
     },
     "hero": {
@@ -286,7 +292,6 @@
       "shake_px": 3,
       "font_px": 14,
       "max_w": 300,
-      "tooltip_gap_px": 12,
       "flash_s": 0.1,
       "flash": {
         "MUST_ATTACK_TAUNT": "taunts",
@@ -360,6 +365,9 @@
       "hud.fatigue": "Fatigue %d",
       "hud.power.cost": "Cost %d",
       "hud.power.used": "Already used this turn",
+      "hud.portrait.health": "Health %d",
+      "hud.portrait.armor": "Armor %d",
+      "hud.portrait.weapon": "Weapon %d/%d",
       "reject.NOT_ENOUGH_MANA": "Not enough mana.",
       "reject.BOARD_FULL": "Your board is full (7 minions).",
       "reject.MUST_ATTACK_TAUNT": "A Taunt minion must be attacked first.",

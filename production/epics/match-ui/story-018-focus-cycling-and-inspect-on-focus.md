@@ -1,7 +1,7 @@
 # Story 018: Keyboard focus cycling, the focus ring and inspect-on-focus
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

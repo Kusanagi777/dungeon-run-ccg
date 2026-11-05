@@ -30,6 +30,8 @@ const TOOLTIP_GAP: float = 8.0
 var _view: MatchViewState = null
 var _primary: Color = Color.WHITE
 var _power_id: String = ""
+var _name_key: String = ""
+var _passive_key: String = ""
 var _power_state: Dictionary = {}
 var _portrait_rect: Rect2 = Rect2()
 var _power_rect: Rect2 = Rect2()
@@ -103,6 +105,8 @@ func set_identity(identity: Dictionary) -> void:
 	_portrait_style.bg_color = _primary.lerp(ui.color("table_dark"), PORTRAIT_DIM)
 	_initial.text = str(identity.get("initial", ""))
 	_power_id = str(identity.get("power_id", ""))
+	_name_key = str(identity.get("name_key", ""))
+	_passive_key = str(identity.get("passive_key", ""))
 	if _power_glyph != null:
 		_power_glyph.text = tr(MatchStrings.POWER_NAME_KEY % _power_id).left(POWER_INITIAL_CHARS)
 		_power.visible = _power_id != ""
@@ -266,6 +270,28 @@ func show_power_tooltip(on: bool) -> void:
 	_tooltip.position = _power_rect.position + Vector2(_power_rect.size.x + TOOLTIP_GAP, 0)
 
 
+## Focus: name, health, armour, weapon and the boss's passive text (hud.md Focus Order
+## stops 4 and 11), from the display.
+func show_portrait_tooltip(on: bool) -> void:
+	_tooltip.visible = on
+	if not on:
+		return
+	var lines: PackedStringArray = [tr(_name_key)]
+	if _shown.get("health") != null:
+		lines.append(tr("hud.portrait.health") % int(_shown.health))
+	if int(_shown.get("armor", 0)) > 0:
+		lines.append(tr("hud.portrait.armor") % int(_shown.armor))
+	var weapon: Variant = _shown.get("weapon")
+	if weapon != null:
+		lines.append(tr("hud.portrait.weapon") % [int(weapon.attack), int(weapon.durability)])
+	if _passive_key != "":
+		lines.append(tr(_passive_key))
+	_tooltip_text.text = "\n".join(lines)
+	var left: float = _portrait_rect.position.x - TOOLTIP_SIZE.x - TOOLTIP_GAP
+	var right: float = _portrait_rect.end.x + TOOLTIP_GAP
+	_tooltip.position = Vector2(right if side == SIDE_PLAYER else left, _portrait_rect.position.y)
+
+
 ## match-end.md §6: the winner's portrait ramps to its identification colour, once.
 func saturate(duration_s: float) -> void:
 	if duration_s <= 0.0:
@@ -280,7 +306,7 @@ func saturate(duration_s: float) -> void:
 
 func _shown_power_cost() -> int:
 	var cost: Variant = _view.side(side).hero.power_cost
-	return int(cost) if cost != null else int(ui.query.hero_power_cost(String(side)))
+	return int(cost) if cost != null else ui.power_cost(_power_id)
 
 
 func _build_player_slots() -> void:

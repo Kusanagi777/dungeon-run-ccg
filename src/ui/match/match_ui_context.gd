@@ -79,7 +79,15 @@ func hero_identity(hero_def_id: String) -> Dictionary:
 		"primary": color(str(SET_PRIMARY.get(str(record.get("set", "")), FALLBACK_TOKEN))),
 		"initial": str(record.get("name", "")).left(1),
 		"power_id": str(record.get("hero_power", "")),
+		"name_key": MatchStrings.HERO_NAME_KEY % hero_def_id,
 	}
+
+
+## The printed cost of hero power [param power_id], until an entry reports another
+## (DD-X29); 0 for an unknown id.
+func power_cost(power_id: String) -> int:
+	var record: Variant = _db.hero_power(power_id) if _db != null else null
+	return int(record.get("cost", 0)) if record is Dictionary else 0
 
 
 ## The panel identity of boss [param boss_def_id]: `{primary, initial, passive_key}`.
@@ -92,6 +100,7 @@ func boss_identity(boss_def_id: String) -> Dictionary:
 		"primary": color(BAND_TOKEN % int(record.get("band", 1))),
 		"initial": str(record.get("name", "")).left(1),
 		"passive_key": str(passive.get("key", "")) if passive is Dictionary else "",
+		"name_key": MatchStrings.BOSS_NAME_KEY % boss_def_id,
 	}
 
 

@@ -33,6 +33,10 @@ const FEED_TOGGLE_METHOD: StringName = &"toggle"
 const FEED_OPEN_METHOD: StringName = &"is_open"
 const POSE_CHOICE: String = "choice"
 const POSE_REJECT: String = "reject"
+const POSE_FOCUS: String = "focus"
+const POSE_TREASURE_PREFIX: String = "treasure:"
+## `focus:<n>` below this is a hand index, at or above it a token's instance id.
+const HAND_SLOTS: int = 10
 const EVENT_REJECTED: String = "command_rejected"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
@@ -75,6 +79,9 @@ var _inspected: int = -1
 # The card of the drag that just submitted, until the engine has answered.
 var _dropped_card: int = -1
 var _reject: RejectPresenter = null
+var _focus: FocusPresenter = null
+# The turn focus last took its default on.
+var _focus_turn: int = -1
 # The source of the last session, for the rejection shake and tooltip.
 var _last_source: Dictionary = {}
 var _last_by_pointer: bool = false
@@ -158,7 +165,30 @@ func apply_pose(pose: String, _value: String) -> bool:
 		POSE_REJECT:
 			_pose_reject(_value)
 			return true
+		POSE_FOCUS:
+			_pose_focus(_value)
+			return true
 	return false
+
+
+## U11 `focus:<element>`: a hand index, a token's instance id, `hero_power`, `end_turn`
+## or `treasure:<n>`, with what focus opens.
+func _pose_focus(element: String) -> void:
+	_refresh_interaction()
+	var stop: Dictionary = {}
+	if element == InputRouter.SOURCE_HERO_POWER:
+		stop = {"kind": InputRouter.SOURCE_HERO_POWER, "id": -1}
+	elif element == InputRouter.STOP_END_TURN:
+		stop = {"kind": InputRouter.STOP_END_TURN, "id": 0}
+	elif element.begins_with(POSE_TREASURE_PREFIX):
+		stop = {"kind": FocusPresenter.KIND_TREASURE, "id": int(element.trim_prefix(POSE_TREASURE_PREFIX))}
+	elif int(element) < HAND_SLOTS and int(element) < (_view.side(&"player").hand as Array).size():
+		stop = {"kind": InputRouter.SOURCE_CARD, "id": int(_view.side(&"player").hand[int(element)].instance_id)}
+	elif _boss_row.has_token(int(element)):
+		stop = {"kind": FocusPresenter.KIND_BOSS_TOKEN, "id": int(element)}
+	else:
+		stop = {"kind": InputRouter.SOURCE_ATTACKER, "id": int(element)}
+	_focus.focus_stop(stop, true)
 
 
 ## U11 `reject:<code>`: the projected rejection of [param code], its tooltip and flash
@@ -290,6 +320,9 @@ func _build() -> void:
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
 		presenter.bind(_view)
+	_focus.configure(_hand, _player_row, _boss_row, _player_panel, _boss_panel)
+	_focus.changed.connect(_on_focus_changed)
+	_router.focus_step_requested.connect(_focus.move)
 	_reject.set_flash_targets({"taunts": _boss_row.flash_taunts, "mana_bar": _player_panel.flash_mana})
 	_banner.continued.connect(_finish_match)
 	_choice.chosen.connect(func(index: int) -> void:
@@ -306,7 +339,10 @@ func _build_extra_presenters() -> Array[Presenter]:
 	_reject = RejectPresenter.new()
 	_reject.name = "RejectFeedback"
 	add_child(_reject)
-	return [_reject]
+	_focus = FocusPresenter.new()
+	_focus.name = "Focus"
+	add_child(_focus)
+	return [_reject, _focus]
 
 
 ## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).
@@ -512,6 +548,7 @@ func _on_session_started(session: Dictionary) -> void:
 	var source: Dictionary = session.source
 	var kind: String = str(source.kind)
 	var targeted: bool = session.phase == InputRouter.SESSION_TARGET
+	_focus.focus_stop(source, false)
 	_set_source_lifted(source, true, targeted or session.entered_by != TargetingSession.ENTERED_DRAG)
 	if targeted:
 		_open_target_phase(session, _source_centre(source))
@@ -645,7 +682,8 @@ func _show_legality() -> void:
 	_show_attackers(legal)
 	var mana: int = int(_view.side(&"player").mana.available)
 	_set_end_turn_lit(legal.size() <= 1 or mana == 0)
-	_router.set_focus_stop(_default_stop(playable))
+	_focus.enter_idle(_default_stop(playable), int(_view.turn) != _focus_turn)
+	_focus_turn = int(_view.turn)
 	_player_panel.set_power_state(_ui.query.hero_power_state(MatchViewState.SIDE_PLAYER))
 
 
@@ -690,7 +728,9 @@ func _clear_legality() -> void:
 	_hand.set_hover(-1, 0.0)
 	_player_row.set_attackers({}, {})
 	_player_panel.set_can_attack(false)
+	_focus.leave_idle()
 	_show_inspect(-1)
+	_player_panel.show_power_tooltip(false)
 	_player_panel.set_power_state({})
 
 
@@ -717,9 +757,27 @@ func _update_hover(point: Vector2) -> void:
 	if _router.view_state() != InputRouter.STATE_IDLE:
 		return
 	var card: int = _hand.card_at(point)
-	_hand.set_hover(card)
-	_show_inspect(_row_token_at(point) if card == -1 else -1)
-	_player_panel.show_power_tooltip(_player_panel.power_rect().has_point(point))
+	_show_info(card, _row_token_at(point) if card == -1 else -1, _player_panel.power_rect().has_point(point))
+
+
+## Hover and focus open the same information, and what a key opened stays up when the
+## pointer has nothing to show.
+func _show_info(card: int, token: int, over_power: bool) -> void:
+	var held: Dictionary = _focus.inspected()
+	var kind: String = str(held.get("kind", ""))
+	var held_id: int = int(held.get("id", -1))
+	var held_token: bool = kind == FocusPresenter.KIND_BOSS_TOKEN or (kind == InputRouter.SOURCE_ATTACKER and _player_row.has_token(held_id))
+	_hand.set_hover(card if card != -1 or kind != InputRouter.SOURCE_CARD else held_id)
+	_show_inspect(token if token != -1 or not held_token else held_id)
+	_player_panel.show_power_tooltip(over_power or kind == InputRouter.SOURCE_HERO_POWER)
+	if kind == InputRouter.SOURCE_ATTACKER and not held_token:
+		_player_panel.show_portrait_tooltip(true)
+	_boss_panel.show_portrait_tooltip(kind == FocusPresenter.KIND_BOSS_PORTRAIT)
+
+
+func _on_focus_changed(stop: Dictionary) -> void:
+	_router.set_focus_stop(stop)
+	_show_info(-1, -1, false)
 
 
 func _row_token_at(point: Vector2) -> int:

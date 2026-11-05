@@ -62,6 +62,8 @@ signal session_ended(session: Dictionary, submitted: bool)
 ## `A` armed attacker selection: [param badges] maps entity id to its slot numeral, and
 ## is empty when the state disarms (targeting.md §7.1).
 signal attackers_armed(badges: Dictionary)
+## `Tab` in `Idle`: move keyboard focus [param step] stops.
+signal focus_step_requested(step: int)
 ## `L`, or `Esc` / RMB with the drawer open: toggle the feed drawer.
 signal feed_requested()
 
@@ -398,6 +400,8 @@ func _on_accept(enter: bool) -> void:
 		SOURCE_CARD, SOURCE_ATTACKER, SOURCE_HERO_POWER:
 			if enter:
 				_select(_focus, Vector2.ZERO, TargetingSession.ENTERED_KEY, false)
+		FocusPresenter.KIND_FEED:
+			intent(INTENT_FEED)
 
 
 ## `1`–`0`: the hand card at [param slot] into targeting; a slot past the hand is ignored.
@@ -528,6 +532,8 @@ func _stop_centre(stop: int) -> Vector2:
 
 
 func _cycle(step: int) -> void:
+	if view_state() == STATE_IDLE:
+		focus_step_requested.emit(step)
 	if not in_session() or dragging():
 		return
 	match _session.phase:
