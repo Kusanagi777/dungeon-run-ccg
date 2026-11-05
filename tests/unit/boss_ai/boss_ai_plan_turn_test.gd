@@ -115,7 +115,9 @@ func _types(commands: Array) -> Array:
 	return commands.map(func(c: Dictionary) -> String: return str(c.type))
 
 
-## Ten boss turns from one seed: the plans, and the `ai_<floor>` draws per turn.
+## Ten boss turns from one seed: the plans, the `ai_<floor>` draws per turn, the
+## log, and `script`, the command list of the match: `{player, boss}` per turn,
+## after the mulligan [method BossAiBoard.started_match] submits.
 func _ten_turns(fixture: Dictionary) -> Dictionary:
 	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
 	var log: TestEventLog = TestEventLog.new()
@@ -127,8 +129,10 @@ func _ten_turns(fixture: Dictionary) -> Dictionary:
 	var ai_draws: Array[int] = []
 	var match_moved: Array[int] = []
 	var commands: Array = []
+	var script: Array = []
 	while plans.size() < int(fixture.boss_turns):
-		_script_player_turn(engine, fixture)
+		var player_commands: Array = []
+		_script_player_turn(engine, fixture, player_commands)
 		assert_str(String(engine.active_side())).is_equal(SIDE_BOSS)
 		var stream_before: int = stream.draws
 		var match_stream: RngStream = engine.rng_match()
@@ -140,20 +144,55 @@ func _ten_turns(fixture: Dictionary) -> Dictionary:
 		ai_draws.append(stream.draws - stream_before)
 		plans.append(plan)
 		commands.append_array(plan.commands)
+		script.append({"player": player_commands, "boss": plan.commands.duplicate(true)})
 		_replay(engine, plan)
 		assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
-	return {"plans": plans, "ai_draws": ai_draws, "match_moved": match_moved, "commands": commands, "engine": engine}
+	return {"plans": plans, "ai_draws": ai_draws, "match_moved": match_moved, "commands": commands, "engine": engine, "log": log, "script": script}
 
 
-func _script_player_turn(engine: RulesEngine, fixture: Dictionary) -> void:
+## One player turn of [param fixture], each command also appended to [param recorded].
+func _script_player_turn(engine: RulesEngine, fixture: Dictionary, recorded: Array = []) -> void:
 	for step: Variant in fixture.player_script:
 		if str(step) == "end":
-			assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+			var end: Dictionary = MatchRecords.end_turn(SIDE_PLAYER)
+			recorded.append(end.duplicate(true))
+			assert_bool(engine.submit(end).accepted).is_true()
 			continue
 		for command: Dictionary in engine.legal_commands():
 			if str(command.type) == MatchRecords.CMD_PLAY_CARD:
+				recorded.append(command.duplicate(true))
 				assert_bool(engine.submit(command).accepted).is_true()
 				break
+
+
+func _submit_all(engine: RulesEngine, commands: Array) -> void:
+	for command: Dictionary in commands:
+		assert_bool(engine.submit(command.duplicate(true)).accepted).is_true()
+
+
+## A3's replay of [param script]: a new match from the fixture's seed, so a new
+## `ai_<floor>` stream from its `stream_seed`, moved only by the recorded commands.
+## The planner never drives this engine: each boss turn it plans on a clone, as a
+## witness of the draw count, and the recorded commands are what is submitted.
+func _replay_turns(fixture: Dictionary, script: Array) -> Dictionary:
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var log: TestEventLog = TestEventLog.new()
+	var started: Dictionary = BossAiBoard.started_match(fixture, db, int(fixture.run_seed), log)
+	var engine: RulesEngine = started.engine
+	var stream: RngStream = started.config.rng_ai
+	var ai: BossAI = _ai(fixture, db, stream, log)
+	var ai_draws: Array[int] = []
+	var commands: Array = []
+	for turn: Dictionary in script:
+		_submit_all(engine, turn.player)
+		var stream_before: int = stream.draws
+		var sandbox: RulesEngine = engine.clone()
+		var plan: TurnPlan = _run(ai, sandbox)
+		sandbox.end_match()
+		ai_draws.append(stream.draws - stream_before)
+		commands.append_array(plan.commands)
+		_submit_all(engine, turn.boss)
+	return {"ai_draws": ai_draws, "commands": commands}
 
 
 func _canonical_decisions(result: Dictionary) -> String:
@@ -194,13 +233,33 @@ func test_turn_plan_to_dict_is_json_representable() -> void:
 
 # --- A3 / A5: draw accounting ------------------------------------------------------
 
-func test_ai_draws_per_turn_equal_tie_draws_plus_the_one_new_fork_and_replay_equally() -> void:
-	# Arrange — a tie set of size > 1 takes one draw; each turn forks sim_<turn> once
+func test_a_logged_match_replays_from_its_seed_and_command_list_with_no_planner() -> void:
+	# Arrange — the commands alone must rebuild the match: a planner that left a
+	# trace on the live engine could not be replayed without it
 	var fixture: Dictionary = BossAiBoard.read("scripted_player_10_turns")
+	var original: Dictionary = _ten_turns(fixture)
+	var log: TestEventLog = TestEventLog.new()
+	var started: Dictionary = BossAiBoard.started_match(fixture, BossAiBoard.database(fixture), int(fixture.run_seed), log)
+	var engine: RulesEngine = started.engine
 
 	# Act
+	for turn: Dictionary in original.script:
+		_submit_all(engine, turn.player)
+		_submit_all(engine, turn.boss)
+
+	# Assert — rng-event-log F6, and the stream stands where the original's does
+	EventLogAssertions.assert_replay_equal(log, original.log, "replayed and original logs")
+	assert_int((engine.rng_match() as RngStream).draws).is_equal(((original.engine as RulesEngine).rng_match() as RngStream).draws)
+	assert_int((engine.rng_match() as RngStream).draws).is_greater(0)
+
+
+func test_ai_draws_per_turn_replayed_from_the_seed_and_commands_equal_the_original_and_tie_draws_plus_the_new_fork() -> void:
+	# Arrange — a tie set of size > 1 takes one draw; each turn forks sim_<turn> once
+	var fixture: Dictionary = BossAiBoard.read("scripted_player_10_turns")
 	var original: Dictionary = _ten_turns(fixture)
-	var replayed: Dictionary = _ten_turns(fixture)
+
+	# Act
+	var replayed: Dictionary = _replay_turns(fixture, original.script)
 
 	# Assert
 	assert_that(replayed.ai_draws).is_equal(original.ai_draws)
