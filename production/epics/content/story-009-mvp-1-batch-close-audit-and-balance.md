@@ -1,7 +1,7 @@
 # Story 009: MVP-1 batch close — validate exits 0, `/content-audit` counts, `/balance-check` over sim and run logs
 
 > **Epic**: Content (MVP batch)
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature (data)
 > **Type**: Config/Data
 > **Estimate**: M
@@ -46,7 +46,7 @@ This story closes the MVP-1 batch against the CN-6 table: loads clean, `/balance
 *Derived from ADR-0002 / ADR-0003 / ADR-0006 Implementation Guidelines and CN-6:*
 
 - The order is: validate (exit 0) → `/content-audit` → sim harness for 5 bosses → `/balance-check`. Record each run (command, exit code, report path) in `production/qa/smoke-[date].md`.
-- MVP `W_COVERAGE` ops (fill from the F5 output at close; this list is the AC-7 MVP baseline): —
+- MVP `W_COVERAGE` ops (from the F5 output on the MVP data at 7f04a22, `production/qa/validate-mvp-1-2026-11-05.txt`; this list is the AC-7 MVP baseline): `set_stats`, `freeze`, `summon`, `transform`, `discover`, `add_to_hand`, `copy_to_hand`, `return_to_hand`, `mana`, `retrigger`, `set_counter`, plus `modify_value` on passives and treasures. `production/qa/validate-alpha-2026-11-05.txt` is the Alpha pool with lane bai's 11 `boss_overrides` stubbed outside the repo.
 - Rebalancing found here goes back to the authoring story's data as a new change, citing the F3/F4 figure. It is never patched silently in this story.
 - When this story closes, the card-database shipped-data test (card-database story 010) switches its expected counts from batch 0 to CN-1's MVP column.
 

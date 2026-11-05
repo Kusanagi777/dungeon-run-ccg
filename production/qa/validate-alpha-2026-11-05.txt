@@ -1,0 +1,53 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[warning] W_BUDGET cards_decay.json#decay_culling.budget — value 2.0 vs budget 4.0 (Δ -2.0, common tol 1.5; F3)
+[warning] W_BUDGET cards_decay.json#decay_feast_of_worms.budget — value 3.0 vs budget 6.0 (Δ -3.0, rare tol 2.0; F3)
+[warning] W_BUDGET cards_decay.json#decay_grave_titan.budget — value 18.4 vs budget 15.0 (Δ +3.4, legendary tol 3.0; F3)
+[warning] W_BUDGET cards_decay.json#decay_husk_herder.budget — not checked — buff on selector "all_friendly_minions" (partial value 6.0 vs budget 7.0)
+[warning] W_BUDGET cards_decay.json#decay_last_rites.budget — not checked — op retrigger has no F3 rate (partial value 0.0 vs budget 2.0)
+[warning] W_BUDGET cards_decay.json#decay_plague_of_rot.budget — not checked — op set_counter has no F3 rate, destroy on selector "", damage.amount is a value expression, damage on selector "" (partial value 0.0 vs budget 8.0)
+[warning] W_BUDGET cards_decay.json#decay_raise_dead.budget — not checked — summon.count is a value expression (partial value 0.0 vs budget 6.0)
+[warning] W_BUDGET cards_decay.json#decay_relic_keeper.budget — not checked — op add_to_hand has no F3 rate (partial value 4.0 vs budget 7.0)
+[warning] W_BUDGET cards_decay.json#decay_rot_beetle.budget — value 7.2 vs budget 5.0 (Δ +2.2, common tol 1.5; F3)
+[warning] W_BUDGET cards_decay.json#decay_soul_tithe.budget — not checked — mana.amount is a value expression (partial value -3.0 vs budget 2.0)
+[warning] W_BUDGET cards_knowledge.json#knowledge_apprentice.budget — not checked — op aura has no F3 rate (partial value 4.0 vs budget 5.0)
+[warning] W_BUDGET cards_knowledge.json#knowledge_deep_study.budget — value 7.5 vs budget 10.0 (Δ -2.5, common tol 1.5; F3)
+[warning] W_BUDGET cards_knowledge.json#knowledge_forbidden_tome.budget — value 6.0 vs budget 12.0 (Δ -6.0, legendary tol 3.0; F3)
+[warning] W_BUDGET cards_knowledge.json#knowledge_glacial_wind.budget — not checked — freeze on selector "all_enemy_minions" (partial value 0.0 vs budget 6.0)
+[warning] W_BUDGET cards_knowledge.json#knowledge_glyph_wards.budget — value 4.0 vs budget 2.0 (Δ +2.0, common tol 1.5; F3)
+[warning] W_BUDGET cards_knowledge.json#knowledge_scrying.budget — value 2.0 vs budget 4.0 (Δ -2.0, common tol 1.5; F3)
+[warning] W_BUDGET cards_knowledge.json#knowledge_spark.budget — value 4.0 vs budget 2.0 (Δ +2.0, common tol 1.5; F3)
+[warning] W_BUDGET cards_knowledge.json#knowledge_transmute.budget — value 4.0 vs budget 8.0 (Δ -4.0, rare tol 2.0; F3)
+[warning] W_BUDGET cards_knowledge.json#knowledge_vault_golem.budget — not checked — op aura has no F3 rate (partial value 13.0 vs budget 15.0)
+[warning] W_BUDGET cards_neutral.json#neutral_banner_captain.budget — not checked — op aura has no F3 rate (partial value 4.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_battle_plan.budget — value 6.0 vs budget 8.0 (Δ -2.0, common tol 1.5; F3)
+[warning] W_BUDGET cards_neutral.json#neutral_gravekeeper.budget — not checked — op add_counter has no F3 rate, damage.amount is a value expression (partial value 5.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_hex_doctor.budget — not checked — op set_stats has no F3 rate (partial value 5.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_hourglass_mage.budget — not checked — freeze on selector "all_enemy_minions" (partial value 9.0 vs budget 11.0)
+[warning] W_BUDGET cards_neutral.json#neutral_mimic.budget — not checked — op copy_to_hand has no F3 rate (partial value 5.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_old_lamplighter.budget — not checked — heal on selector "all_friendly_characters" (partial value 6.0 vs budget 9.0)
+[warning] W_BUDGET cards_neutral.json#neutral_powder_keg.budget — value 8.4 vs budget 5.0 (Δ +3.4, rare tol 2.0; F3)
+[warning] W_BUDGET cards_neutral.json#neutral_rockfall.budget — not checked — damage on selector "" (partial value 0.0 vs budget 6.0)
+[warning] W_BUDGET cards_neutral.json#neutral_spark_fiend.budget — not checked — damage on selector "" (partial value 5.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_the_collector.budget — not checked — op copy_to_hand has no F3 rate (partial value 8.0 vs budget 11.0)
+[warning] W_BUDGET cards_neutral.json#neutral_tunnel_shaman.budget — not checked — op return_to_hand has no F3 rate (partial value 4.0 vs budget 5.0)
+[warning] W_BUDGET cards_war.json#war_armorer.budget — not checked — armor.amount is a value expression (partial value 5.0 vs budget 5.0)
+[warning] W_BUDGET cards_war.json#war_blade_apprentice.budget — not checked — op equip has no F3 rate (partial value 4.0 vs budget 5.0)
+[warning] W_BUDGET cards_war.json#war_blade_strike.budget — not checked — damage.amount is a value expression (partial value 0.0 vs budget 2.0)
+[warning] W_BUDGET cards_war.json#war_cleave_through.budget — value 9.0 vs budget 6.0 (Δ +3.0, rare tol 2.0; F3)
+[warning] W_BUDGET cards_war.json#war_rally.budget — not checked — buff on selector "all_friendly_minions" (partial value 0.0 vs budget 6.0)
+[warning] W_BUDGET cards_war.json#war_warcry.budget — not checked — buff on selector "all_friendly_minions" (partial value 0.0 vs budget 4.0)
+[warning] W_BUDGET cards_war.json#war_warlord.budget — not checked — op aura has no F3 rate (partial value 10.0 vs budget 13.0)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.remove_keyword — exempt op remove_keyword is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.shuffle_into_deck — exempt op shuffle_into_deck is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.discard — exempt op discard is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.weapon_durability — exempt op weapon_durability is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.hero_power_refresh — exempt op hero_power_refresh is used by no collectible card (F5)
+[warning] E_DELEGATED match_ui.json — W_VALIDATOR_PENDING: configs.match_ui is not checked: its owner Match UI has not shipped validate_config
+[warning] E_DELEGATED profile_defaults.json — W_VALIDATOR_PENDING: configs.profile_defaults is not checked: its owner Meta Progression has not shipped validate_config
+[warning] E_DELEGATED reward_draft.json — W_VALIDATOR_PENDING: configs.reward_draft is not checked: its owner Reward Draft has not shipped validate_config
+[warning] E_DELEGATED run_structure.json — W_VALIDATOR_PENDING: configs.run_structure is not checked: its owner Run Structure has not shipped validate_config
+[warning] E_DELEGATED run_ui.json — W_VALIDATOR_PENDING: configs.run_ui is not checked: its owner Run UI has not shipped validate_config
+[warning] W_POOL_SIZE treasures.json — 0 < 6: treasures unlocked by default vs min_treasure_pool (2 treasure drafts × 3 offers, no repeats in a run)
+[warning] E_DELEGATED treasures_balance.json — W_VALIDATOR_PENDING: configs.treasures_balance is not checked: its owner Treasures has not shipped validate_config
+validate: Ready — 0 errors, 50 warnings (content checks 0 errors, 43 warnings), 221 records; load ms 151.92 (data_load_budget_ms 200) — root C:/Users/user/AppData/Local/Temp/claude/0a564ffc8743aeec/7ef1dc8b-e634-4e4a-aec4-ead51ee9bc51/scratchpad/overlay/
