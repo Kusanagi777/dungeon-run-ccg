@@ -1,12 +1,12 @@
 # Story 019: Rules engine performance pass
 
 > **Epic**: Match Rules
-> **Status**: Ready
+> **Status**: In Progress
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: L (several days: four engine changes, two new blocking suites and golden logs, a release-template re-measure)
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: Not started (set by `/dev-story`)
+> **Last Updated**: 2026-11-04
 > **Sprint**: candidate for sprint 5. Not in sprint 4.
 
 ## Context
@@ -167,3 +167,14 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 
 - Depends on: `production/epics/match-rules/story-017-clone-and-replay.md` (Complete); `production/epics/match-rules/story-018-performance-budgets.md` (its harness and fixtures are in the tree; the story stays In Progress until its AC-40 is re-taken)
 - Unlocks: `production/epics/match-rules/story-018-performance-budgets.md` (AC-40 re-measure); the boss-ai F7 `/propagate-design-change` follow-up (before weight tuning in `production/epics/boss-ai-match-driver/story-004-scorer-features-and-board-value.md` and `production/epics/boss-ai-match-driver/story-005-candidates-hero-power-rule-and-positions.md`)
+
+---
+
+## Readiness (2026-11-04, `/story-readiness` read by hand)
+
+**Verdict: READY** (tier `workflow: full`). ADR-0003/0005/0006/0007 Accepted; Manifest Version 2026-11-04 matches the manifest; TR-match-rules-003, -006 and -008 active; dependencies 017 Complete and 018's harness and fixtures in the tree; 4 criteria, each observable; Out of Scope stated; no open markers. QL-STORY-READY skipped: Lean mode.
+
+Three things this story text predates, settled here (a `DD-X` row wins, then the GDD, then the story):
+- **Perf files.** Wave 1 split the gates: submit, legal and fold moved to `match_rules_{submit,legal_commands,fold}_perf_test.gd`, and `match_rules_perf_test.gd` keeps the planner gate. AC-3 and AC-4 follow the code.
+- **AC-4's data source.** `runtime.planner_target_ms` in `assets/data/ai_profiles.json`, not the design registry a Godot test cannot read (QA plan MR-019 Gap, NC-8).
+- **Release figures.** No export template is installed on this machine and none is to be downloaded, so AC-3 and AC-4 are measured on the debug binary and every release figure is NOT ASSESSED until the owner re-measures after M2.
