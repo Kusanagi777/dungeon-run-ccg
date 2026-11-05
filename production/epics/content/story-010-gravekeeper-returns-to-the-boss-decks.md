@@ -120,4 +120,4 @@
 - ADVISORY: The story's Out of Scope leaves the F4 re-run to story 009, and the QA plan asks for it here. The deck term is recorded as an observation on partial values; the F4 verdict stays with story 009.
 **Open**:
 - `neutral_gravekeeper` adds a `W_BUDGET` "not checked" row: F3 has no rate for `add_counter` or a counter-read damage amount. Its partial value 5.0 is within tolerance of budget 7.0, so no accepted-deviation note is needed. Whether F3 gains a rate is a design question for story 009 or the owner.
-**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
+**Reviewed by**: independent `/code-review`, 2026-11-05 (`production/reviews/2026-11-05/code-review-s5-w2-effects-treasures.md`, summary scope, `9ad66b2`): no correctness risk. The Torchbearer swap (Q3) had the owner's sign-off on 2026-11-05 (`92e2307`).
