@@ -1264,7 +1264,7 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 	var id: int = int(minion.entity_id)
 	var summoned_seq: int = emit(&"minion_summoned", {
 		"side": side, "entity_id": id, "card_id": def_id, "position": index,
-		"attack": attack(minion), "health": health(minion),
+		"attack": attack(minion), "health": health(minion), "keywords": _effective_keywords(minion),
 	})
 	_run_inline_hooks(&"on_minion_summoned", side, {"entity_id": id, "card_id": def_id})
 	_raise(&"on_summon", {"side": side, "candidates": _candidates_in_order(), "subject": id, "card_id": def_id}, summoned_seq)
@@ -2385,7 +2385,7 @@ func _accept_minion(side: String, card: Dictionary, position: int, target: Varia
 	played.id = int(minion.entity_id)
 	emit(&"minion_summoned", {
 		"side": side, "entity_id": int(minion.entity_id), "card_id": def_id, "position": position,
-		"attack": attack(minion), "health": health(minion),
+		"attack": attack(minion), "health": health(minion), "keywords": _effective_keywords(minion),
 	})
 
 

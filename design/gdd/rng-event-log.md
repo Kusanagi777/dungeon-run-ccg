@@ -4,7 +4,7 @@
 
 > **Status**: Designed
 > **Author**: owner + Claude (`/design-system`, guided automation, Lean review — no specialist agents consulted)
-> **Last Updated**: 2026-11-04
+> **Last Updated**: 2026-11-05
 > **Last Verified**: 2026-11-03
 > **Implements Pillar**: Pillar 4 (Readable, deterministic rules); supports Pillar 3 (Lose fast, learn fast)
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `systems-designer` / `qa-lead` not consulted on Formulas and Acceptance Criteria — Lean mode and no Agent tool in this run; review manually before production.
@@ -17,6 +17,7 @@
 > **REVISED 2026-11-03 (DSL spike follow-up)**: §D adds `card_added_to_hand {side, instance_id, card_id, hand_size}`, mirroring the event match-rules C15 added for the `add_card_to_hand` primitive (DD-X04; `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` finding 2).
 > **REVISED 2026-11-04 (code review of rng-event-log story 008, sprint 4)**: §D `minion_summoned`, `weapon_equipped` and `weapon_destroyed` name the minion / weapon `entity_id`, not `instance_id` — match-rules C15 is the authoritative catalogue (DD-X04: "payloads always carry the acting `entity_id`s") and the engine emits `entity_id`; rule 14 distinguishes `entity_id` (characters and weapons, match-rules C1) from `instance_id` (card instances); rule 19's attribution map and its AC read `entity_id` from those two events. Only the id field was reconciled: the engine's `minion_summoned` also says `position` where this row says `board_index`, and carries no `keywords[]` (open).
 > **REVISED 2026-11-05 (DD-X29)**: §D `auras_recomputed` also lists non-aura cost changes: a new hero-power entry and an optional `hook_delta` on hand and hero-power entries.
+> **REVISED 2026-11-05 (sprint 6: MR-020)**: §D `minion_summoned.keywords[]` is emitted by the engine, closing that half of the 2026-11-04 note above, and the row states its meaning. `position` against `board_index` stays open. The `match_started` row is unchanged: starting hero health is undecided (match-rules story 020 open questions).
 
 ## Summary
 
@@ -171,7 +172,7 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `card_added_to_hand` | Match Rules | `side, instance_id, card_id, hand_size` (match-rules C15, added 2026-11-03 from the DSL spike; the `add_card_to_hand` primitive — Discover pick, `add_to_hand`, `copy_to_hand`; a full hand emits `card_burned` instead) |
 | `fatigue_damage` | Match Rules | `side, amount` (DD-M07; followed by `damage_dealt`) |
 | `card_played` | Match Rules | `side, instance_id, card_id, cost_paid, target_id, board_index` |
-| `minion_summoned` | Match Rules | `side, entity_id, card_id, board_index, attack, health, keywords[]` |
+| `minion_summoned` | Match Rules | `side, entity_id, card_id, board_index, attack, health, keywords[]` (`keywords`: the full effective set at that instant, each once, sorted, as in `auras_recomputed`; empty when it has none; match-rules C15; 2026-11-05, sprint 6: MR-020) |
 | `weapon_equipped` / `weapon_destroyed` | Match Rules | `side, entity_id, card_id, attack, durability` / `side, entity_id` |
 | `hero_power_used` | Match Rules | `side, power_id, target_id` (DD-M13) |
 | `attack_declared` / `attack_resolved` | Match Rules | `attacker_id, defender_id` / `attacker_id, defender_id` |

@@ -6,7 +6,9 @@
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-05
+
+> **BLOCKED IN PART (2026-11-05)**: the `keywords` half is built and committed. The starting-health half (AC-2, AC-3's health clause, AC-4's health clause) waits on the design owner: open questions 1 and 2 below. Neither match-rules C15 nor rng-event-log §D settles them. Status stays Ready until they do. See Completion Notes.
 
 ## Context
 
@@ -41,7 +43,7 @@ Both changes touch the same two events in the same file and the same goldens, so
 
 *From match-rules C3 / C15 and rng-event-log §D, scoped to this story:*
 
-- [ ] GIVEN a minion with printed keywords played from hand and another summoned by `summon_minion`, WHEN `minion_summoned` is emitted, THEN at both sites the payload holds `keywords`, the minion's effective set (printed plus enchantment-granted at that instant, each once, sorted: the same `_effective_keywords` that fills `auras_recomputed`), an empty array when it has none; no other field of the payload changes, and the event count and order of every sequence are unchanged.
+- [x] GIVEN a minion with printed keywords played from hand and another summoned by `summon_minion`, WHEN `minion_summoned` is emitted, THEN at both sites the payload holds `keywords`, the minion's effective set (printed plus enchantment-granted at that instant, each once, sorted: the same `_effective_keywords` that fills `auras_recomputed`), an empty array when it has none; no other field of the payload changes, and the event count and order of every sequence are unchanged.
 - [ ] GIVEN a match whose `on_match_start` hook changes a hero's starting health, WHEN `match_started` is emitted (C3 step 8), THEN its payload also holds `player_health` and `boss_health`, each the hero's `health()` at that instant (after the hook), and the existing five fields are unchanged; and WHEN a `MatchViewState` projects it, THEN both heroes' `hero.health` equal those values from the first projected step.
 - [ ] GIVEN the shipped War decks against all four MATCHES of `view_state_engine_parity_test.gd`, WHEN the suite runs with `NOT_PROJECTED` deleted, THEN token `keywords` are compared at every `seq` and `hero_health` is compared from the first step (no null skipped), and the suite passes; and match-rules C3 step 8 / C15 and rng-event-log §D list the new payload fields as implemented, with the `keywords[]` meaning stated.
 - [ ] GIVEN the goldens under `tests/fixtures/match_rules/golden_logs/`, WHEN they are regenerated with `tools/match_rules/record_golden_logs.gd` in this change's own commit, THEN removing the added fields (`keywords` from `minion_summoned`, `player_health` and `boss_health` from `match_started`) from the new files gives the old files byte for byte (the stripped-diff proof, recorded in the commit message), technical-director has read the diff before merge, and `match_rules_golden_log_test.gd` and `match_rules_op_budget_test.gd` pass with no budget raised.
@@ -83,6 +85,7 @@ Both changes touch the same two events in the same file and the same goldens, so
 - `src/ui/match/match_view_state.gd` (the `match_started` branch only; cross-epic, see Implementation Notes)
 - `design/gdd/match-rules.md` (C3 step 8, C15), `design/gdd/rng-event-log.md` (§D)
 - `tests/unit/match_rules/match_rules_event_payloads_test.gd` (new)
+- `tests/unit/match_rules/match_rules_primitives_test.gd` (added 2026-11-05: its exact `minion_summoned` payload assertion gains `keywords`)
 - `tests/unit/match_ui/match_view_state_projection_test.gd` (one added test)
 - `tests/integration/match_ui/view_state_engine_parity_test.gd` (`NOT_PROJECTED` removed, header comment updated)
 - `tests/fixtures/match_rules/golden_logs/*.jsonl` (regenerated)
@@ -102,7 +105,7 @@ Both changes touch the same two events in the same file and the same goldens, so
 - Logic: `tests/unit/match_rules/match_rules_event_payloads_test.gd` — must exist and pass. Watch the new tests fail on the unchanged engine first (test-standards: a test only ever seen passing is not known to test anything). A fixture needs a minion with at least two keywords and one with none, and an `on_match_start` hook that moves health.
 - Also: the parity suite (`view_state_engine_parity_test.gd`) and the golden suite pass; the stripped-diff proof is in the commit message.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created for the `keywords` half (7 tests); the `on_match_start` health fixture waits on the blocker
 
 ---
 
@@ -111,3 +114,46 @@ Both changes touch the same two events in the same file and the same goldens, so
 - Depends on: `production/epics/match-rules/story-003-match-setup.md` (`match_started`), `production/epics/match-rules/story-010-play-card-and-hero-power.md` (the minion play), `production/epics/match-rules/story-019-rules-engine-performance-pass.md` (the goldens and the op budgets exist; MR-019 is in close-out), `production/epics/match-ui/story-001-match-view-state-projection.md` (the projection it extends). All done except MR-019's close-out
 - Unlocks: `production/epics/match-ui/story-005-hero-panels-mana-and-end-turn.md` (AC-1 health stamps), `production/epics/match-ui/story-007-board-rows-and-tokens.md` (the keyword-badge clause of AC-1), `production/epics/match-ui/story-003-match-controller-and-match-query.md` L2 parity (keywords and health compared)
 - **Sprint 6 placement**: before W1, lane 9 in the plan's Pre-W1 story lanes, merged first at M0 (it is the only `rules_engine.gd` editor), about 1.5 links. MUI-005 (L1 W1) wants the health on events before its first capture. Fallback: L6 W1 (L6 merges first at M1, and this story needs that slot); then MUI-005's AC-1 health stamps close at the W2 fix slot and MUI-007 (L3 W2) is unaffected. [C] type: it changes recorded goldens, so the full suite runs against the merged state after it. If MR-019 / MR-018 close out in the same lane, keep them in separate commits.
+
+---
+
+## Readiness (2026-11-05, `/story-readiness` read by hand)
+
+**Verdict: BLOCKED in part.** Design, architecture, scope and dependencies pass, and MR-019's close-out does not gate this work. Open Questions blocks: questions 1 and 2 are written as undecided, and AC-2 depends on both.
+
+- **Ready:** AC-1, and the `keywords` clauses of AC-3 and AC-4. §D lists `keywords[]`, and C15 defines the field for `auras_recomputed`.
+- **Blocked:** AC-2, and the health clauses of AC-3 and AC-4. C15 gives `match_started` no payload, §D lists five fields with no health, and no DD-X row covers it. `player_health` / `boss_health` appear only in this story's proposal and as unrelated boss-ai formula variables. The engine's own precedent is split: `player_deck_size` is flat, while `match_ended` nests `final_health{player, boss}`. The sprint plan lists both questions as owner decisions for the Pre-W1 lane.
+- **Advisory:** the plan's readiness note says to regenerate after retro action 1 (Linux CI read on `d181790`). That item still reads open. The orchestrator ordered this regeneration, on a lane branch that is not merged.
+
+---
+
+## Completion Notes
+
+**Not closed: Status stays Ready** (lane brief stop rule, applied per field by the orchestrator, 2026-11-05).
+**Start**: 2026-11-05 16:29:03 UTC. **End**: 2026-11-05 16:40:16 UTC.
+
+**Built**: `keywords` on `minion_summoned` at both emit sites through `_effective_keywords`; `NOT_PROJECTED` deleted, so the parity suite compares token `keywords` at every `seq` that compares boards, on all four MATCHES; match-rules C15 and rng-event-log §D state the meaning; the goldens are re-recorded.
+
+**Not built, waiting on the blocker**: `player_health` / `boss_health` on `match_started`; the `match_view_state.gd` hunk; the `match_view_state_projection_test.gd` test; the `on_match_start` fixture; removing the null `hero.health` skip in the parity suite. `match_view_state.gd` is untouched.
+
+| Criterion | State |
+|---|---|
+| AC-1 keywords at both sites | Met, except as noted under Coverage |
+| AC-2 starting health | Blocked |
+| AC-3 parity and GDDs | Keywords clause met. `hero_health` from the first step blocked |
+| AC-4 goldens | Keywords-only regeneration, proof below. technical-director's read is still to come. `match_rules_golden_log_test.gd` and `match_rules_op_budget_test.gd` pass, no budget raised |
+
+**Golden proof** (standalone byte comparison against the parent commit, not engine code): `keywords` removed from each `minion_summoned` payload gives the old files byte for byte. 9 of 16 files changed, 185 of 4647 lines; the other 7 files and 4462 lines are identical. The nine are the nine files holding `minion_summoned`, as forecast. The proof was seen to fail on two deliberate tampers (a summon's `attack`, a `match_started` deck size).
+
+**Tests first**: on the unchanged engine, all 7 new unit tests failed against missing code, and both parity tests failed once `NOT_PROJECTED` was gone (`view [] engine ["battlecry"]`). After the engine change and before re-recording, five golden tests failed, as they should. A `minion.keywords` mutant failed 5 of the 7; the two empty-array tests are the ones it cannot reach. No mutant left in the tree.
+
+**Coverage**: a minion has no enchantment at either emit site, because it is created just before the emit. AC-1's "enchantment-granted" branch is therefore unreachable there and is not exercised by a test; it is the same `_effective_keywords` the aura pass tests cover.
+
+**Deviations**:
+- **Two regenerations, not one.** The health half needs a second one, touching the 12 files that hold `match_started`, with its own proof and read. The alternative was holding the `keywords` half back from M0.
+- `match_rules_primitives_test.gd` was not in Files: its exact-payload assertion had to gain the field.
+- A planned test, that changing the reported array leaves the minion alone, was removed before commit. It passed under a real aliasing mutant, because `EventLog.append` deep-copies, so it could not fail.
+
+**Effect on the plan**: MUI-007's keyword badges are unblocked. MUI-005 AC-1's health stamps are not, until the owner answers.
+
+**Result**: `Overall Summary: 2352 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans`; smoke exit 0, no SCRIPT ERROR; `gates.sh`, `no_global_rng.sh`, `parse-check.sh` and `ai_code_gates.sh` pass.
