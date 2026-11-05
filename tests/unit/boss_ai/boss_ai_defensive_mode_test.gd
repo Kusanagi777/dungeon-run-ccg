@@ -2,13 +2,10 @@
 ## (story boss-ai-match-driver/story-009; design/gdd/boss-ai.md C2, F6, States
 ## "Modes", Edge Cases "Lethal and defence", A15, A20; ADR-0006; TR-boss-ai-001).
 ##
-## A15's boards run on the production `EffectResolver` ([BossAiBoard]). A20's hook
-## runs on [TestEffectResolver]: until card-effects story 014 the production
-## `apply_value_hook` passes every value through, and `clone()` rebuilds a production
-## resolver, so no real `modify_heal` can fold in a sandbox yet. The double folds it
-## through the same `HookRegistry.copy()` and rebinding, and the engine's own
-## `apply_heal`. Re-point A20 at the production resolver once
-## `production/epics/card-effects/story-014-*.md` has merged.
+## Every board runs on the production `EffectResolver` ([BossAiBoard]). A20's hook is
+## a real `boss.hook_installers` entry, folded in the sandbox by the production
+## `apply_value_hook` (card-effects story 014): through `HookRegistry.copy()`, the
+## clone's own resolver and the engine's `apply_heal`.
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchRecords.SIDE_PLAYER
@@ -69,8 +66,8 @@ func _hand_card(board: Dictionary, index: int) -> String:
 	return str((board.engine as RulesEngine).state().players[SIDE_BOSS].hand[index].def_id)
 
 
-## The board of A20: the production-free engine on [TestEffectResolver], the
-## boss's passive in `boss.hook_installers` when [param with_passive].
+## The board of A20 on the production resolver, the boss's passive in
+## `boss.hook_installers` when [param with_passive].
 func _heal_board(with_passive: bool) -> Dictionary:
 	var fixture: Dictionary = BossAiBoard.read("heal_doubling_passive")
 	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
@@ -80,12 +77,12 @@ func _heal_board(with_passive: bool) -> Dictionary:
 	var installers: Array[HookInstaller] = []
 	if with_passive:
 		var effects: Array[Dictionary] = [{
-			"id": "%s.0" % PASSIVE_HOST, "trigger": str(fixture.passive.point), "scope": {}, "condition": {},
-			"ops": [{"op": TestEffectResolver.OP_MODIFY_VALUE, "mul": int(fixture.passive.mul)}], "once_per_turn": false,
+			"id": "%s.0" % PASSIVE_HOST, "trigger": str(fixture.passive.point), "scope": fixture.passive.scope, "condition": {},
+			"ops": [{"op": "modify_value", "mul": int(fixture.passive.mul)}], "once_per_turn": false,
 		}]
 		installers.append(HookInstaller.new(HookInstaller.HOST_KIND_PASSIVE, PASSIVE_HOST, StringName(SIDE_BOSS), effects))
 	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(BossAiBoard.SETUP_SEED), TestEventLog.new(), {"player": {"deck": deck}, "boss": {"deck": deck.duplicate(), "hook_installers": installers}})
-	var engine: RulesEngine = RulesEngine.new(db, MatchFactory.make_rules_config(), TestEffectResolver.new())
+	var engine: RulesEngine = RulesEngine.new(db, MatchFactory.make_rules_config(), EffectResolver.new(db, BossAiBoard.effects_config(), ""))
 	engine.start(config)
 	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
 	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
