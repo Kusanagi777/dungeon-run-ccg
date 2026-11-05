@@ -72,6 +72,11 @@
       "shake": 120,
       "slow": 400
     },
+    "impact": {
+      "heavy_hero_damage": 5,
+      "shake_px": 3,
+      "shake_cycles": 3
+    },
     "click_drag_px": 8,
     "end_turn_arm_ms": 300,
     "match_end_auto_s": 4,

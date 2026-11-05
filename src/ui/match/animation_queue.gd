@@ -411,8 +411,11 @@ func _start(step: AnimStep) -> void:
 	var d_eff: float = effective_duration(step) * scale
 	var hold: float = d_eff
 	var extras: Dictionary = effective_impact(step)
+	step.live_impact = {}
+	for key: String in IMPACT_KEYS:
+		step.live_impact[key] = float(extras[key]) * scale
 	for key: String in _HOLD_KEYS:
-		hold += float(extras[key]) / _MS_PER_S * scale
+		hold += float(step.live_impact[key]) / _MS_PER_S
 	_active.append(step)
 	_remaining.append(hold)
 	if _anim_speed != SPEED_INSTANT:

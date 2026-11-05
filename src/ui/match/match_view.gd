@@ -262,6 +262,11 @@ func _build_intent_banner() -> void:
 	add_child(_intent)
 	move_child(_intent, _banner.get_index())
 	_presenters.append(_intent)
+	var impact := ImpactPresenter.new()
+	impact.name = "Impact"
+	impact.target = self
+	add_child(impact)
+	_presenters.append(impact)
 
 
 ## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).

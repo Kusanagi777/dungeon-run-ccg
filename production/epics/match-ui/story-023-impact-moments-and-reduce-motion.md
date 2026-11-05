@@ -1,7 +1,7 @@
 # Story 023: Impact moments and reduce motion — hit-stop, shake, lethal slow-down, feel timings
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: Visual/Feel
 > **Estimate**: M

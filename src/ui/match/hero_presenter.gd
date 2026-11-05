@@ -364,11 +364,11 @@ func _lunge(step: AnimStep, d_eff: float) -> void:
 	var home: Vector2 = _portrait_rect.position
 	var aim: Vector2 = ui.locate.call(step.entity_ids[1]) - _portrait_rect.get_center()
 	var out_s: float = d_eff * float(board.lunge_out)
-	var hold_s: float = d_eff * float(board.lunge_hold)
+	var contact_s: float = d_eff * float(board.lunge_hold)
 	var lunge: Tween = step_tween(step)
 	lunge.tween_property(_portrait, "position", home + aim * float(board.lunge_reach), out_s)
-	lunge.tween_interval(hold_s)
-	lunge.tween_property(_portrait, "position", home, maxf(d_eff - out_s - hold_s, 0.0))
+	lunge.tween_interval(lunge_hold_s(step, d_eff))
+	lunge.tween_property(_portrait, "position", home, maxf(d_eff - out_s - contact_s, 0.0))
 
 
 func _is_hero(id: int) -> bool:

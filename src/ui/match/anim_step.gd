@@ -72,6 +72,10 @@ var data: Dictionary = {}
 ## Impact extras at `normal` speed, `{hit_stop_ms, shake_ms, slow_ms}` (F3; match-rules
 ## Game Feel). The queue drops them at `fast`, `instant` and under `reduce_motion`.
 var impact: Dictionary = {}
+## What the queue kept of [member impact] when the step started, in ms on its clock:
+## `{hit_stop_ms, shake_ms, slow_ms}`, 0 where dropped. Presenters read this, never
+## [member impact]; it is outside [method signature], being the queue's and not the view's.
+var live_impact: Dictionary = {}
 ## For a coalesced pop (U4.3): the original steps, in `seq` order; their
 ## `apply_final`s run, in that order, when this step ends. Empty otherwise.
 var members: Array[AnimStep] = []

@@ -23,6 +23,7 @@ extends Control
 
 ## The floating number every zone shares (story 005).
 const NUMBER_POP_SCENE: PackedScene = preload("res://src/ui/match/number_pop.tscn")
+const MS_PER_S: float = 1000.0
 
 ## The shared read-only values of this view: config, palette, query.
 var ui: MatchUiContext = null
@@ -85,9 +86,10 @@ func on_skipped() -> void:
 		end_step(step)
 
 
-## A tween on this presenter that lives and dies with [param step].
+## A tween on this presenter that lives and dies with [param step]. Ease-out: no ease-in
+## anywhere, which reads as lag on a 0.25 s tween (Weight and Responsiveness Profile).
 func step_tween(step: AnimStep) -> Tween:
-	var tween: Tween = create_tween()
+	var tween: Tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	if not _step_tweens.has(step):
 		_step_tweens[step] = []
 	(_step_tweens[step] as Array).append(tween)
@@ -123,5 +125,14 @@ func spawn_pop(step: AnimStep, pop: AnimStep, centre: Vector2, d_eff: float) -> 
 	add_child(number)
 	number.show_number(text, ui.color("state_danger" if damage else "state_buff"), ui.color("ink"), int(ui.config.pop.font_px), centre)
 	keep_for_step(step, number)
+	var held_s: float = d_eff + float(step.live_impact.get("slow_ms", 0.0)) / MS_PER_S
+	if ui.reduce_motion:
+		step_tween(step).tween_property(number, "modulate:a", 0.0, held_s)
+		return
 	var rise: Vector2 = number.position - Vector2(0, float(ui.config.pop.rise_px))
-	step_tween(step).tween_property(number, "position", rise, d_eff)
+	step_tween(step).tween_property(number, "position", rise, held_s)
+
+
+## The contact hold of a lunge of [param d_eff] seconds, its hit-stop included.
+func lunge_hold_s(step: AnimStep, d_eff: float) -> float:
+	return d_eff * float(ui.config.board.lunge_hold) + float(step.live_impact.get("hit_stop_ms", 0.0)) / MS_PER_S
