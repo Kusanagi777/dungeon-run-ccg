@@ -314,6 +314,15 @@ var _bound: bool = false
 ## True once [method end_match] tore a live (not Ended) match down: every
 ## later `submit` is `MATCH_ENDED`, unlogged (code review 2026-11-03).
 var _torn_down: bool = false
+## Diagnostic op counters (story 019 AC-1; [method op_counts]). Plain ints on
+## the engine, never in [MatchState]: nothing in the rules reads them, so
+## `state_snapshot()` and the log are unchanged, and a clone starts at zero.
+var _recompute_calls: int = 0
+var _drain_iterations: int = 0
+var _stat_map_passes: int = 0
+var _record_lookups: int = 0
+var _record_visits: int = 0
+var _candidate_buffers: int = 0
 
 
 ## Stores the collaborators (ADR-0001 constructor shape):
@@ -333,6 +342,38 @@ func _init(db: Variant, rules_config: Dictionary, resolver: Variant) -> void:
 ## reference passed to `_init`).
 func rules_config() -> Dictionary:
 	return _rules_config
+
+
+## A copy of the diagnostic op counters since [method reset_op_counts] (story
+## 019 AC-1, the budgets `match_rules_op_budget_test.gd` holds; ADR-0007
+## Performance). Allocations are counted at their sites because the engine
+## reference documents no `Array` / `Dictionary` allocation monitor.
+## `recompute_calls`: C10 `recompute_auras()` runs. `drain_iterations`: passes
+## of the C10 loop. `stat_map_passes`: [method _aura_values] walks.
+## `record_lookups`: entity lookups by id. `record_visits`: records a lookup
+## touched. `candidate_buffers`: `ctx.candidates` buffers allocated.
+## Diagnostics only: no rule reads them.
+## [codeblock]
+## engine.reset_op_counts()
+## engine.submit(command)
+## print(engine.op_counts().stat_map_passes)
+## [/codeblock]
+func op_counts() -> Dictionary:
+	return {
+		"recompute_calls": _recompute_calls, "drain_iterations": _drain_iterations,
+		"stat_map_passes": _stat_map_passes, "record_lookups": _record_lookups,
+		"record_visits": _record_visits, "candidate_buffers": _candidate_buffers,
+	}
+
+
+## Zeroes the counters [method op_counts] reports.
+func reset_op_counts() -> void:
+	_recompute_calls = 0
+	_drain_iterations = 0
+	_stat_map_passes = 0
+	_record_lookups = 0
+	_record_visits = 0
+	_candidate_buffers = 0
 
 
 ## The `match_rules` config validator (card-database CR-5 stage 7a; ADR-0002
@@ -2528,6 +2569,7 @@ func _enter_hook_point(point: StringName) -> bool:
 ## enchantments live on it), then the boss side the same way — player side
 ## first regardless of whose turn it is.
 func _candidates_in_order() -> Array[int]:
+	_candidate_buffers += 1
 	var ids: Array[int] = []
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
@@ -2825,6 +2867,7 @@ func _run_step(step: Callable, step_cause: int = -1) -> void:
 ## leaving the rest of Q for [method _park] (story 016).
 func _drain() -> void:
 	while not _halted() and not _suspended():
+		_drain_iterations += 1
 		var dead: Array[int] = _death_check()
 		if _halted():
 			break
@@ -3037,6 +3080,7 @@ func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
 ## that order — no event when nothing changed (C15, DD-X26).
 ## Aura loss leaves `damage_taken` alone (F6): the next death check kills.
 func _recompute_auras() -> void:
+	_recompute_calls += 1
 	var before: Dictionary = _aura_values()
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
@@ -3067,6 +3111,7 @@ func _recompute_auras() -> void:
 ## `{instance_id, zone: "hand", effective_cost}`. The boss hand is left out, so
 ## no entry and no event can show what it holds (match-ui U3 rule 2; DD-X26).
 func _aura_values() -> Dictionary:
+	_stat_map_passes += 1
 	var out: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
@@ -3127,17 +3172,21 @@ static func _strip_auras(enchantments: Array) -> void:
 ## [param entity_id] — a source "in play (or in hand for hand triggers)" at
 ## raise time (C10; a spell being cast counts, story 010) — else `{}`.
 func _live_record(entity_id: int) -> Dictionary:
+	_record_lookups += 1
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
 		for slot: String in ["hero", "weapon"]:
 			var record: Variant = player[slot]
+			_record_visits += 1
 			if record != null and int(record.entity_id) == entity_id:
 				return record
 		for minion: Dictionary in player.board:
+			_record_visits += 1
 			if int(minion.entity_id) == entity_id:
 				return minion
 		for zone: String in ["hand", "resolving"]:
 			for card: Dictionary in player[zone]:
+				_record_visits += 1
 				if int(card.instance_id) == entity_id:
 					return card
 	return {}
@@ -3343,15 +3392,19 @@ func _has_keyword(character: Dictionary, keyword: String) -> bool:
 func _character(entity_id: int) -> Dictionary:
 	for side: String in MatchRecords.SIDES:
 		var hero: Variant = _state.players[side].hero
+		_record_visits += 1
 		if hero != null and int(hero.entity_id) == entity_id:
+			_record_lookups += 1
 			return hero
 	return _minion(entity_id)
 
 
 ## The board minion [param entity_id], else `{}`.
 func _minion(entity_id: int) -> Dictionary:
+	_record_lookups += 1
 	for side: String in MatchRecords.SIDES:
 		for minion: Dictionary in _state.players[side].board:
+			_record_visits += 1
 			if int(minion.entity_id) == entity_id:
 				return minion
 	return {}
@@ -3359,8 +3412,10 @@ func _minion(entity_id: int) -> Dictionary:
 
 ## The equipped weapon [param entity_id], else `{}`.
 func _weapon(entity_id: int) -> Dictionary:
+	_record_lookups += 1
 	for side: String in MatchRecords.SIDES:
 		var weapon: Variant = _state.players[side].weapon
+		_record_visits += 1
 		if weapon != null and int(weapon.entity_id) == entity_id:
 			return weapon
 	return {}
@@ -3368,17 +3423,21 @@ func _weapon(entity_id: int) -> Dictionary:
 
 ## The side that holds [param entity_id] in any zone, or "" when none does.
 func _owner_of(entity_id: int) -> String:
+	_record_lookups += 1
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
 		for slot: String in ["hero", "weapon"]:
 			var record: Variant = player[slot]
+			_record_visits += 1
 			if record != null and int(record.entity_id) == entity_id:
 				return side
 		for minion: Dictionary in player.board:
+			_record_visits += 1
 			if int(minion.entity_id) == entity_id:
 				return side
 		for zone: String in ["hand", "resolving", "deck", "graveyard"]:
 			for card: Dictionary in player[zone]:
+				_record_visits += 1
 				if int(card.instance_id) == entity_id:
 					return side
 	return ""
@@ -3508,19 +3567,24 @@ func _raise(point: StringName, ctx: Dictionary, raise_seq: int) -> void:
 func _find_record(entity_id: int) -> Dictionary:
 	if _state == null:
 		return {}
+	_record_lookups += 1
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
 		var hero: Variant = player.hero
+		_record_visits += 1
 		if hero != null and int(hero.entity_id) == entity_id:
 			return hero
 		var weapon: Variant = player.weapon
+		_record_visits += 1
 		if weapon != null and int(weapon.entity_id) == entity_id:
 			return weapon
 		for minion: Dictionary in player.board:
+			_record_visits += 1
 			if int(minion.entity_id) == entity_id:
 				return minion
 		for zone: String in ["hand", "resolving", "deck", "graveyard"]:
 			for card: Dictionary in player[zone]:
+				_record_visits += 1
 				if int(card.instance_id) == entity_id:
 					return card
 	return {}
