@@ -1,0 +1,23 @@
+{
+  "name": "attackers_4_3",
+  "description": "boss-ai A19: boss attackers 4 + 3, empty hand, an open player at 20. The other cards are the hands the forecast tests lay out. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_squib", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_ogre", "type": "minion", "cost": 4, "attack": 4, "health": 4},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_lancer", "type": "minion", "cost": 3, "attack": 5, "health": 1, "keywords": ["charge"]},
+    {"id": "bai_giant", "type": "minion", "cost": 5, "attack": 5, "health": 5},
+    {"id": "bai_titan", "type": "minion", "cost": 6, "attack": 6, "health": 6},
+    {"id": "bai_axe", "type": "weapon", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_bolt", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"side": "enemy"}}, "ops": [{"op": "damage", "amount": 3}]}]},
+    {"id": "bai_nova", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_salve", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "friendly_hero", "ops": [{"op": "heal", "amount": 3}]}]}
+  ],
+  "boss": {"mana": 0, "board": ["bai_ogre", "bai_brute"], "hand": []},
+  "player": {"health": 20, "board": []},
+  "expect": {"amount": 7}
+}

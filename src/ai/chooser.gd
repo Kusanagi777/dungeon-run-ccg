@@ -30,14 +30,14 @@
 ## The request does not carry the offering effect's `targets`, so a Choose One
 ## op without its own `targets` counts one target (C6's single-target default).
 ## [codeblock]
-## var decision: Dictionary = Chooser.choose(sandbox, sandbox.pending_choice(), profile, op_values, ai_stream, db)
+## var decision: Dictionary = Chooser.choose(sandbox, sandbox.pending_choice(), profile, op_values, ai_stream, db, MatchRecords.SIDE_BOSS)
 ## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, decision.index))
 ## [/codeblock]
 class_name Chooser
 extends RefCounted
 
 ## The index [method choose] returns when it answers nothing: a request for
-## the player (C1.3: those options are hidden) or one with no options.
+## another side (C1.3: those options are hidden) or one with no options.
 const NO_OPTION: int = -1
 ## The `choice_preference` key of the tempo rule "lowest cost" (F9).
 const TAG_LOW_COST: String = "low_cost"
@@ -53,7 +53,8 @@ const NEXT_TURN: int = 1
 ## class doc). [param profile] is the resolved profile (`rules.tie_epsilon`,
 ## `choice_preference`, `synergy_tags`), [param op_values] the `ai_profiles`
 ## `op_values` map, [param ai_stream] the stream a tie draws from, [param db]
-## answers `card(id)`, [param mode] the planner mode to log. Returns `{index,
+## answers `card(id)`, [param own] the side answering (a request for any other is
+## left alone), [param mode] the planner mode to log. Returns `{index,
 ## diagnostic}`: `diagnostic` is the `ai_decision {kind: choice, chosen, mode,
 ## alternatives, draws, diagnostic: true}` payload, plain data, with `draws` the
 ## stream draws taken. `alternatives` holds the distinct options best first, at
@@ -62,12 +63,12 @@ const NEXT_TURN: int = 1
 ## the pick itself (A16, Edge Cases).
 ## [constant NO_OPTION] and an empty `diagnostic` when nothing is answered.
 ## [codeblock]
-## Chooser.choose(sandbox, request, profile, op_values, ai_stream, db).index   # 0 (A16)
+## Chooser.choose(sandbox, request, profile, op_values, ai_stream, db, MatchRecords.SIDE_BOSS).index   # 0 (A16)
 ## [/codeblock]
-static func choose(sandbox: RulesEngine, request: Dictionary, profile: Dictionary, op_values: Dictionary, ai_stream: RefCounted, db: Variant, mode: StringName = Scorer.MODE_NORMAL) -> Dictionary:
+static func choose(sandbox: RulesEngine, request: Dictionary, profile: Dictionary, op_values: Dictionary, ai_stream: RefCounted, db: Variant, own: String, mode: StringName = Scorer.MODE_NORMAL) -> Dictionary:
 	var side: String = str(request.get("side"))
 	var options: Array = request.get("options", [])
-	if side != MatchRecords.SIDE_BOSS or options.is_empty():
+	if side != own or options.is_empty():
 		return {"index": NO_OPTION, "diagnostic": {}}
 	var discover: bool = str(request.get("kind")) == MatchRecords.CHOICE_DISCOVER
 	var kept: Array[int] = _distinct(options, discover)
@@ -129,7 +130,7 @@ static func _distinct(options: Array, discover: bool) -> Array[int]:
 
 static func _discover_parts(def: Variant, values: CandidateSet, sandbox: RulesEngine, side: String, limit: int, lowest: int, preferences: Dictionary) -> Dictionary:
 	var fits: bool = _cost(def) <= limit
-	var tags: Dictionary = _card_tags(def)
+	var tags: Dictionary = card_tags(def)
 	if _cost(def) == lowest:
 		tags[TAG_LOW_COST] = true
 	return {
@@ -158,7 +159,7 @@ static func _preference(tags: Dictionary, preferences: Dictionary) -> float:
 
 
 ## The tags of the card definition [param def] (see the class doc), as a set.
-static func _card_tags(def: Variant) -> Dictionary:
+static func card_tags(def: Variant) -> Dictionary:
 	var tags: Dictionary = {}
 	if not def is Dictionary:
 		return tags

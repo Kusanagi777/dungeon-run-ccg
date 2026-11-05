@@ -75,6 +75,11 @@ const CONTEXT_CARD_PLAYABLE: String = "card_playable"
 ## the fork — every trial of a turn from the same fork position, the fork
 ## itself never advanced — instead of a copy of the live `rng_match`.
 const CONTEXT_SIM_STREAM: String = "sim_stream"
+## The [method score] context key naming the side being scored (BAI review N5):
+## `own` in F1, the side whose hand is read. Absent, the sandbox's `active_side()`,
+## which is the wrong side on a clone taken in `PlayerTurn.Main`, so the planner
+## always passes it.
+const CONTEXT_SIDE: String = "side"
 
 ## The eleven F1 features, in F1 order — the keys of every `features`
 ## Dictionary, so `ai_decision.features` can carry it verbatim.
@@ -97,7 +102,8 @@ const FEATURE_KEYS: Array[String] = ["f_board", "f_face", "f_self", "f_trade", "
 ## - `defensive_taunt_bv` 0.5 — States and Transitions `DEFENSIVE`: "Taunt
 ##   minions gain +0.5 board value in F2";
 ## - `cost_fit_full` 1 / `cost_fit_over` 0.5 — C7 `cost_fit` of an option within
-##   and beyond the boss's next-turn mana ([Chooser]).
+##   and beyond the boss's next-turn mana ([Chooser]);
+## - `big_minion_cost` 5 — C8.3 `play_big_minion` "(cost ≥ 5)" ([Intent]).
 const NORMALISERS: Dictionary = {
 	"taunt_bonus": 1.5,
 	"threat_windfury": 0.5,
@@ -112,6 +118,7 @@ const NORMALISERS: Dictionary = {
 	"defensive_taunt_bv": 0.5,
 	"cost_fit_full": 1.0,
 	"cost_fit_over": 0.5,
+	"big_minion_cost": 5,
 }
 
 ## Keyword and trigger names the F2 terms read (DD-M09 keywords; Card Effects
@@ -177,7 +184,8 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## for DEFENSIVE by story 009; `rules.BV_NORM`, `THREAT_NORM`, `trade_ratio`,
 ## `overextend_cap_aoe`, `assume_aoe` read from it); [param mode] one of the
 ## `MODE_*` constants; [param context] `{aoe_seen: bool, card_playable:
-## bool, sim_stream: RngStream}` (`sim_stream`: [constant CONTEXT_SIM_STREAM];
+## bool, sim_stream: RngStream, side: String}` (`sim_stream`: [constant CONTEXT_SIM_STREAM];
+## `side`: [constant CONTEXT_SIDE];
 ## `aoe_seen`: C1.3, F5 — see [method aoe_seen_in]; `card_playable`:
 ## whether a `play_card` is legal on the base, for the F9 `spare_mana` rule —
 ## [method score_all] fills it once, else a `use_hero_power` candidate reads it
@@ -191,8 +199,8 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## entry.features.f_mana   # −mana_left / mana_max
 ## [/codeblock]
 func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictionary, mode: StringName, context: Dictionary) -> Dictionary:
-	var own: String = String(sandbox_before.active_side())
-	var before: Dictionary = _measure(sandbox_before, mode)
+	var own: String = str(context.get(CONTEXT_SIDE, sandbox_before.active_side()))
+	var before: Dictionary = _measure(sandbox_before, mode, own)
 	var entry: Dictionary = {"command": candidate, "score": 0.0, "features": {}, "sim_overflow": false}
 	var after: Dictionary = before
 	if str(candidate.get("type")) != MatchRecords.CMD_END_TURN:
@@ -209,7 +217,7 @@ func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictiona
 			entry.score = -INF
 			entry.features = _zero_features()
 			return entry
-		after = _measure(trial, mode)
+		after = _measure(trial, mode, own)
 		trial.end_match()
 	var features: Dictionary = _features(candidate, own, before, after, profile, context, sandbox_before)
 	entry.features = features
@@ -378,7 +386,7 @@ func _answer_choices(trial: RulesEngine, own: String, profile: Dictionary) -> vo
 		var pending: Variant = trial.pending_choice()
 		if not pending is Dictionary or str(pending.side) != own:
 			return
-		var index: int = int(Chooser.choose(trial, pending, profile, _op_values, trial.rng_match(), _db).index)
+		var index: int = int(Chooser.choose(trial, pending, profile, _op_values, trial.rng_match(), _db, own).index)
 		if index == Chooser.NO_OPTION or not trial.submit(MatchRecords.choose(own, index)).accepted:
 			return
 
@@ -433,11 +441,9 @@ func _features(candidate: Dictionary, own: String, before: Dictionary, after: Di
 ## Per side of [param engine] (a sandbox clone): hero `health`, `max_health`,
 ## `effective_hp` (health + armor), mana, `count` (hand + board), `board_size`,
 ## `bv` (F2 over the board plus the weapon), `minions {entity_id: {bv,
-## threat}}` and `hand_defs` (definition ids; read for the active side only,
-## C1.3).
-func _measure(engine: RulesEngine, mode: StringName) -> Dictionary:
+## threat}}` and `hand_defs` (definition ids; read for [param own] only, C1.3).
+func _measure(engine: RulesEngine, mode: StringName, own: String) -> Dictionary:
 	var state: MatchState = engine.state()
-	var active: String = String(engine.active_side())
 	var out: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = state.players[side]
@@ -460,7 +466,7 @@ func _measure(engine: RulesEngine, mode: StringName) -> Dictionary:
 				weapon_attack += int(enchantment.attack_delta)
 			bv += weapon_value(weapon_attack, int(weapon.durability))
 		var hand_defs: Array = []
-		if side == active:
+		if side == own:
 			for card: Dictionary in player.hand:
 				hand_defs.append(str(card.def_id))
 		var health: int = engine.health(hero)

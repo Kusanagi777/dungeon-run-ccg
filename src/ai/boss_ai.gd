@@ -4,8 +4,9 @@
 ## knowledge and the two static, pure validators Card Database runs at CR-5 stage
 ## 7; [ProfileResolver] builds the profile. The planner (story 008): one instance
 ## per match, whose [method plan_turn] runs the C2 action loop on a
-## `RulesEngine.clone()` and returns a [TurnPlan] for the driver to replay.
-## `forecast` and `choose` arrive with stories 011 and 010.
+## `RulesEngine.clone()` and returns a [TurnPlan] for the driver to replay;
+## [method forecast] (story 011) runs the same loop as a dry run and returns an
+## [Intent], and [method choose] (story 010) answers a boss Choice.
 ##
 ## **The planner** reads the sandbox through `legal_commands()`, its derived
 ## values and, like [Scorer], its `state()`, and mutates only through `submit` on
@@ -20,6 +21,15 @@
 ## even when scoring opens the way; C3's "the AI may still stumble into lethal"
 ## says the same. So a pass searches only while a search is due: the first, and
 ## one more after `ai_plan_aborted`.
+##
+## **The forecast** (C8.1, story 011) needs the boss's Main, which a clone taken in
+## `PlayerTurn.Main` is not: `legal_commands()` and `submit` serve the side to move.
+## So [method forecast] submits the player's `end_turn` on a clone carrying the
+## `forecast_<turn>` fork, and the engine's own End and Start steps give it
+## `mana_max_by_turn(t_side + 1)`, the C13 thaw and the reset attacks with no write
+## to `MatchState`. The Start step also draws: the forecast is of the **current**
+## hand and the deck order is hidden (C1.3), so every card that is new to the hand
+## goes back out through the `discard` primitive before planning.
 ##
 ## **`alternatives`** (C9, review N4): what was scored, best first, at most
 ## [constant Scorer.ALTERNATIVES_MAX], the pick always among them (A16, Edge
@@ -170,6 +180,10 @@ const CONFIG_NAME: String = "ai_profiles"
 const EVENT_DECISION: String = "ai_decision"
 const EVENT_PLAN_ABORTED: String = "ai_plan_aborted"
 const EVENT_FAULT: String = "ai_fault"
+## The intent events (rng-event-log §D): the driver appends the first, a [TurnPlan]
+## carries the second as its first diagnostic. Neither is flagged `diagnostic`.
+const EVENT_INTENT_SHOWN: StringName = &"ai_intent_shown"
+const EVENT_INTENT_COMMITTED: StringName = &"ai_intent_committed"
 ## C9 `ai_decision.kind`.
 const KIND_ACTION: String = "action"
 const KIND_CHOICE: String = "choice"
@@ -184,6 +198,17 @@ const FAULT_END_TURN_REJECTED: String = "end_turn_rejected"
 const ABORT_DIVERGED: String = "diverged"
 const ABORT_REJECTED: String = "rejected"
 const ABORT_NOT_LETHAL: String = "not_lethal"
+## C8.4 `telegraph_mode` values (Meta Progression M9, DD-X03).
+const TELEGRAPH_FULL: String = "full"
+const TELEGRAPH_BRIEF: String = "brief"
+const TELEGRAPH_OFF: String = "off"
+## C8.4 `full > class_only ≡ brief > hidden ≡ off`: each setting's place in the
+## `effective_mode` order.
+const TELEGRAPH_AS_MODE: Dictionary = {
+	TELEGRAPH_FULL: Intent.MODE_FULL,
+	TELEGRAPH_BRIEF: Intent.MODE_CLASS_ONLY,
+	TELEGRAPH_OFF: Intent.MODE_HIDDEN,
+}
 ## C2: rejected commands in one turn before `end_turn` is forced. A guard on a
 ## state that cannot arise single-threaded (A23), not a tuning knob.
 const MAX_REJECTIONS: int = 3
@@ -209,7 +234,11 @@ class _Turn:
 	var sandbox: RulesEngine
 	var planner: PlannerTask
 	var side: String
-	## The turn's `sim_<turn>` fork (C4), shared by every sandbox of the turn.
+	## Where a tie or a Choice draws: the `ai_<floor>` stream, or in a forecast a copy
+	## of its fork (C8.1).
+	var stream: RngStream
+	## The turn's `sim_<turn>` fork (C4), shared by every sandbox of the turn; in a
+	## forecast the `forecast_<turn>` fork.
 	var sim: RngStream = null
 	var plan: TurnPlan = TurnPlan.new()
 	var mode: StringName = Scorer.MODE_NORMAL
@@ -222,17 +251,24 @@ class _Turn:
 	var finished: bool = false
 	## Keys for the next `ai_decision`: the last search's result, a mode change.
 	var note: Dictionary = {}
+	## `{entity_id: attack}` of the side's characters when the plan began: C8.3's
+	## "attackers that exist now", at the attack they have now.
+	var attackers: Dictionary = {}
 
-	func _init(engine: RulesEngine, task: PlannerTask) -> void:
+	func _init(engine: RulesEngine, task: PlannerTask, own: String, draws_from: RngStream) -> void:
 		sandbox = engine
 		planner = task
-		side = String(engine.active_side())
+		side = own
+		stream = draws_from
 
 
 ## The `ai_decision {kind: choice}` of the last [method choose], for the choose
 ## task to hand on (ADR-0008 Decision 3): `choose` itself returns the index alone
 ## (C1.4), and [method plan_turn] folds it into its own diagnostics.
 var last_choice: Dictionary = {}
+## The forecast the driver last told this AI of ([method note_forecast]), until a
+## plan commits against it (States `Idle`). A stale forecast never gets here.
+var last_forecast: Intent = null
 
 var _boss_def: Dictionary = {}
 var _profile: Dictionary = {}
@@ -247,6 +283,9 @@ var _lethal: LethalSearch = null
 ## C1.3: the one thing the AI remembers across turns, and how far it has read.
 var _aoe_seen: bool = false
 var _log_cursor: int = 0
+## C8.4: absent at MVP → `full`. Written only when no task is live (ADR-0008
+## Decision 7), so it takes no lock.
+var _telegraph_mode: String = TELEGRAPH_FULL
 
 
 ## C1.1, built once per match. [param ai_stream] is the injected `ai_<floor>`
@@ -436,8 +475,34 @@ static func range_problem(range_key: String, value: Variant) -> String:
 ## task.start(boss_ai.plan_task(sandbox, task))
 ## [/codeblock]
 func plan_task(sandbox: RulesEngine, planner: PlannerTask) -> Callable:
-	_read_public_log(sandbox)
+	_read_public_log()
 	return func() -> Variant: return await plan_turn(sandbox, planner)
+
+
+## The task body for one forecast: [method plan_task]'s shape, and like it called on
+## the main thread and given the running task, required (code review 2026-11-04,
+## BAI-008 D-1). [param sandbox] is a clone taken at `PlayerTurn.Main`; the caller
+## owns it and ends it once the [Intent] is back.
+## [codeblock]
+## task.start(boss_ai.forecast_task(sandbox, task))
+## [/codeblock]
+func forecast_task(sandbox: RulesEngine, planner: PlannerTask) -> Callable:
+	_read_public_log()
+	return func() -> Variant: return await forecast(sandbox, planner)
+
+
+## The task body for one boss Choice: [method choose] on [param sandbox], a clone
+## the caller owns, for the `ChoiceRequest` [param pending]. [param planner] is the
+## running task, required like [method plan_task]'s: the body yields to it once
+## before scoring. The task's result is the option index; the
+## `ai_decision {kind: choice}` is [member last_choice].
+## [codeblock]
+## task.start(boss_ai.choose_task(sandbox, sandbox.pending_choice(), task))
+## [/codeblock]
+func choose_task(sandbox: RulesEngine, pending: Dictionary, planner: PlannerTask) -> Callable:
+	return func() -> Variant:
+		await planner.checkpoint()
+		return choose(sandbox, pending)
 
 
 ## The C2 action loop on [param sandbox] (a `RulesEngine.clone()`, never the live
@@ -451,7 +516,7 @@ func plan_task(sandbox: RulesEngine, planner: PlannerTask) -> Callable:
 ## var plan: TurnPlan = await boss_ai.plan_turn(sandbox)
 ## [/codeblock]
 func plan_turn(sandbox: RulesEngine, planner: PlannerTask = null) -> TurnPlan:
-	var turn: _Turn = _Turn.new(sandbox, planner if planner != null else _NoYield.new())
+	var turn: _Turn = _Turn.new(sandbox, planner if planner != null else _NoYield.new(), String(sandbox.active_side()), _ai_stream)
 	turn.plan.mode_trace.append(turn.mode)
 	if not _is_own_main(turn):
 		return turn.plan
@@ -460,13 +525,86 @@ func plan_turn(sandbox: RulesEngine, planner: PlannerTask = null) -> TurnPlan:
 	var draws_before: int = _ai_stream.draws
 	turn.sim = _ai_stream.fork(TieBreak.sim_label(int(sandbox.state().turn)))
 	turn.plan.ai_draws = _ai_stream.draws - draws_before
-	while _is_own_main(turn) and not turn.finished:
-		await _plan_pass(turn)
-	var outcome: Variant = sandbox.result()
-	if outcome is Dictionary and str(outcome.get("result")) == MatchRecords.RESULT_FAULT:
-		_record(turn, _fault(str(outcome.get("reason"))))
+	await _run_loop(turn)
+	_commit_intent(turn)
 	turn.plan.expected_checksum = TurnPlan.checksum(scratch.events_since(scratch_start))
 	return turn.plan
+
+
+## C1.4 / C8.1: what the boss would do next turn, as an [Intent], from
+## [param sandbox], a clone taken at the opponent's Main: the C2 loop as a dry run
+## on its own clone, as if [param side]'s turn had begun (see the class doc). A
+## **coroutine** like [method plan_turn]. Every draw comes from
+## `ai_stream.fork("forecast_<turn>")`, working on copies, so the only live draw is
+## that label's first fork and a second forecast of the turn gives the same answer.
+## Stores nothing: the driver calls [method note_forecast] if it keeps the result.
+## Null outside the opponent's Main (States: `Idle` guard). The caller owns
+## [param sandbox]. With no [param planner] nothing yields: for tests, never a task
+## body.
+## [codeblock]
+## var intent: Intent = await boss_ai.forecast(sandbox)
+## [/codeblock]
+func forecast(sandbox: RulesEngine, planner: PlannerTask = null, side: String = MatchRecords.SIDE_BOSS) -> Intent:
+	if sandbox.phase() != MatchState.PHASE_MAIN or String(sandbox.active_side()) != Scorer.other_side(side):
+		return null
+	var fork: RngStream = _ai_stream.fork(TieBreak.forecast_label(int(sandbox.state().turn)))
+	var dry_run: RulesEngine = sandbox.clone(fork.copy())
+	var turn: _Turn = _Turn.new(dry_run, planner if planner != null else _NoYield.new(), side, fork.copy())
+	turn.sim = fork
+	turn.plan.mode_trace.append(turn.mode)
+	_begin_own_turn(turn)
+	await _run_loop(turn)
+	dry_run.end_match()
+	return intent_from_plan(turn.plan)
+
+
+## The dominant action of [param plan] as an [Intent] (C8.1, C8.3): the first step
+## of a proven lethal, else the highest-scoring action, the earlier on a tie, else
+## `pass`. `amount` sums the plan's face damage from the attackers that existed when
+## it began, for `attack_face` and `lethal`. Carries [method effective_mode].
+## [codeblock]
+## boss_ai.intent_from_plan(plan).intent_key   # "attack_face"
+## [/codeblock]
+func intent_from_plan(plan: TurnPlan) -> Intent:
+	var dominant: Dictionary = _dominant_row(plan.intent_rows)
+	var key: String = Intent.KEY_PASS
+	if not dominant.is_empty():
+		key = Intent.KEY_LETHAL if bool(dominant.lethal) else str(dominant.key)
+	var amount: Variant = null
+	if key == Intent.KEY_ATTACK_FACE or key == Intent.KEY_LETHAL:
+		amount = 0
+		for row: Dictionary in plan.intent_rows:
+			amount += int(row.face)
+	return Intent.new(str(_boss_def.get("id")), key, dominant.get("target_id"), amount, effective_mode())
+
+
+## Keeps [param intent] as the forecast the next plan commits against: the driver
+## calls it on the main thread for a forecast whose premise held (ADR-0008 Decision
+## 4), never for a stale one.
+func note_forecast(intent: Intent) -> void:
+	last_forecast = intent
+
+
+## Applies the player's `telegraph_mode` [param mode], one of
+## [constant TELEGRAPH_AS_MODE]. The driver calls it only when no task is live
+## (ADR-0008 Decision 7). An unknown value changes nothing.
+func set_telegraph_mode(mode: String) -> void:
+	if not TELEGRAPH_AS_MODE.has(mode):
+		push_warning("BossAI.set_telegraph_mode: unknown mode `%s`" % mode)
+		return
+	_telegraph_mode = mode
+
+
+## C8.4 `min(intent_mode, telegraph_mode)` over `full > class_only ≡ brief > hidden
+## ≡ off`.
+## [codeblock]
+## boss_ai.set_telegraph_mode(BossAI.TELEGRAPH_BRIEF)
+## boss_ai.effective_mode()   # "class_only" on a `full` boss
+## [/codeblock]
+func effective_mode() -> String:
+	var boss_rank: int = Intent.MODES.find(str(_profile.get("intent_mode", Intent.MODE_FULL)))
+	var player_rank: int = Intent.MODES.find(str(TELEGRAPH_AS_MODE[_telegraph_mode]))
+	return Intent.MODES[mini(boss_rank, player_rank)]
 
 
 ## C1.4 for the sim harness only, on the calling thread: [method plan_turn] on a
@@ -477,7 +615,7 @@ func plan_turn(sandbox: RulesEngine, planner: PlannerTask = null) -> TurnPlan:
 ## await boss_ai.play_turn(engine)
 ## [/codeblock]
 func play_turn(engine: RulesEngine, planner: PlannerTask = null) -> void:
-	_read_public_log(engine)
+	_read_public_log()
 	var sandbox: RulesEngine = engine.clone()
 	var plan: TurnPlan = await plan_turn(sandbox, planner)
 	sandbox.end_match()
@@ -501,9 +639,92 @@ func play_turn(engine: RulesEngine, planner: PlannerTask = null) -> void:
 ## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, index))
 ## [/codeblock]
 func choose(sandbox: RulesEngine, request: Dictionary, mode: StringName = Scorer.MODE_NORMAL) -> int:
-	var decision: Dictionary = Chooser.choose(sandbox, request, _profile, _op_values, _ai_stream, _db, mode)
+	return _choose_as(sandbox, request, MatchRecords.SIDE_BOSS, _ai_stream, mode)
+
+
+## [method choose] for [param side], a tie drawing from [param stream].
+func _choose_as(sandbox: RulesEngine, request: Dictionary, side: String, stream: RngStream, mode: StringName) -> int:
+	var decision: Dictionary = Chooser.choose(sandbox, request, _profile, _op_values, stream, _db, side, mode)
 	last_choice = decision.diagnostic
 	return int(decision.index)
+
+
+## The C2 loop on [param turn] from the side's Main to the end of its turn. A
+## coroutine.
+func _run_loop(turn: _Turn) -> void:
+	_note_attackers(turn)
+	while _is_own_main(turn) and not turn.finished:
+		await _plan_pass(turn)
+	var outcome: Variant = turn.sandbox.result()
+	if outcome is Dictionary and str(outcome.get("result")) == MatchRecords.RESULT_FAULT:
+		_record(turn, _fault(str(outcome.get("reason"))))
+
+
+## Takes the forecast's clone to the side's Main (see the class doc): the
+## opponent's `end_turn`, a Choice the side owes on the way, then the hand as it was.
+func _begin_own_turn(turn: _Turn) -> void:
+	var hand: Array = turn.sandbox.state().players[turn.side].hand
+	var held: Array = hand.map(func(card: Dictionary) -> int: return int(card.instance_id))
+	if turn.sandbox.submit(MatchRecords.end_turn(Scorer.other_side(turn.side))).accepted:
+		_answer_choices(turn)
+	turn.sandbox.run_action(_drop_new_cards.bind(turn.sandbox, turn.side, held))
+
+
+## Discards from [param side]'s hand every card not in [param held], right to left.
+func _drop_new_cards(sandbox: RulesEngine, side: String, held: Array) -> void:
+	var hand: Array = sandbox.state().players[side].hand
+	for index: int in range(hand.size() - 1, -1, -1):
+		if not held.has(int(hand[index].instance_id)):
+			@warning_ignore("return_value_discarded")
+			sandbox.discard(side, index)
+
+
+## Records the side's characters and their attack (see [member _Turn.attackers]).
+func _note_attackers(turn: _Turn) -> void:
+	var player: Dictionary = turn.sandbox.state().players[turn.side]
+	turn.attackers[int(player.hero.entity_id)] = turn.sandbox.attack(player.hero)
+	for minion: Dictionary in player.board:
+		turn.attackers[int(minion.entity_id)] = turn.sandbox.attack(minion)
+
+
+## C2 / C8.2: the plan's intent as its first diagnostic, routed before its first
+## command. Answers [member last_forecast] and spends it, so a later turn whose
+## forecast was discarded is not compared with an old one: with no forecast `kept`
+## is false.
+func _commit_intent(turn: _Turn) -> void:
+	var intent: Intent = intent_from_plan(turn.plan)
+	var kept: bool = last_forecast != null and last_forecast.intent_key == intent.intent_key
+	last_forecast = null
+	var diagnostic: Dictionary = intent.committed_payload(kept)
+	diagnostic[TurnPlan.EVENT_KEY] = String(EVENT_INTENT_COMMITTED)
+	diagnostic[TurnPlan.COMMAND_INDEX_KEY] = 0
+	turn.plan.diagnostics.insert(0, diagnostic)
+
+
+## The row of [param rows] an [Intent] names: the first proven lethal step, else the
+## best score, the earlier on a tie; `{}` for none.
+static func _dominant_row(rows: Array[Dictionary]) -> Dictionary:
+	var best: Dictionary = {}
+	for row: Dictionary in rows:
+		if bool(row.lethal):
+			return row
+		if best.is_empty() or float(row.score) > float(best.score):
+			best = row
+	return best
+
+
+## The [member TurnPlan.intent_rows] row of [param command], read before it is
+## submitted, while its hand index still names its card.
+func _intent_row(turn: _Turn, command: Dictionary, score: float) -> Dictionary:
+	var state: MatchState = turn.sandbox.state()
+	var enemy: Dictionary = state.players[Scorer.other_side(turn.side)]
+	var enemy_minions: Array = (enemy.board as Array).map(func(minion: Dictionary) -> int: return int(minion.entity_id))
+	var def: Variant = null
+	if str(command.type) == MatchRecords.CMD_PLAY_CARD:
+		def = _db.card(str(state.players[turn.side].hand[int(command.hand_index)].def_id))
+	var key: String = Intent.key_of(command, def, int(enemy.hero.entity_id), enemy_minions)
+	var face: int = int(turn.attackers.get(command.get("attacker_id"), 0)) if key == Intent.KEY_ATTACK_FACE else 0
+	return {"key": key, "target_id": Intent.named_target(key, command), "face": face, "score": score, "lethal": false}
 
 
 ## One pass of the C2 loop. A coroutine.
@@ -530,24 +751,28 @@ func _plan_pass(turn: _Turn) -> void:
 			_execute_lethal(turn, steps)
 			return
 	var candidates: Array = _open(turn, _picker.collect(turn.sandbox, _profile, _profile.budgets))
-	var context: Dictionary = {"aoe_seen": _aoe_seen, Scorer.CONTEXT_SIM_STREAM: turn.sim}
+	var context: Dictionary = {"aoe_seen": _aoe_seen, Scorer.CONTEXT_SIM_STREAM: turn.sim, Scorer.CONTEXT_SIDE: turn.side}
 	var scored: Array = await _scorer.score_all(turn.sandbox, candidates, _profile, turn.mode, context, turn.planner)
-	var picked: Dictionary = TieBreak.pick(scored, float(_profile.rules.tie_epsilon), _ai_stream)
+	var picked: Dictionary = TieBreak.pick(scored, float(_profile.rules.tie_epsilon), turn.stream)
 	turn.plan.ai_draws += int(picked.draws)
 	var decision: Dictionary = _decision(turn, picked.chosen.command, _alternatives(scored, picked.chosen))
 	decision["tie_set_size"] = (picked.ties as Array).size()
 	if scored.any(func(entry: Dictionary) -> bool: return bool(entry.sim_overflow)):
 		decision["sim_overflow"] = true
-	_submit_action(turn, picked.chosen.command, decision)
+	_submit_action(turn, picked.chosen.command, decision, float(picked.chosen.score))
 
 
 ## Submits the scored [param command]. A rejection is logged on [param decision],
 ## excludes that exact command, and after [constant MAX_REJECTIONS] forces
-## `end_turn` (C2); a rejected `end_turn` is `Faulted`.
-func _submit_action(turn: _Turn, command: Dictionary, decision: Dictionary) -> void:
+## `end_turn` (C2); a rejected `end_turn` is `Faulted`. [param score] is the
+## command's, for the intent.
+func _submit_action(turn: _Turn, command: Dictionary, decision: Dictionary, score: float) -> void:
+	var row: Dictionary = _intent_row(turn, command, score)
 	var result: Dictionary = turn.sandbox.submit(command.duplicate(true))
 	turn.actions += 1
 	if result.accepted:
+		if str(command.type) != MatchRecords.CMD_END_TURN:
+			turn.plan.intent_rows.append(row)
 		_accept(turn, command, decision)
 		_answer_choices(turn)
 		return
@@ -590,6 +815,7 @@ func _end_turn(turn: _Turn) -> void:
 ## sandbox rejects, or a plan that ends with the player alive, is a divergence: the
 ## search's randomness is only an estimate of the sandbox's.
 func _execute_lethal(turn: _Turn, steps: Array) -> void:
+	var first_row: int = turn.plan.intent_rows.size()
 	for index: int in steps.size():
 		if not _is_own_main(turn):
 			return
@@ -598,6 +824,7 @@ func _execute_lethal(turn: _Turn, steps: Array) -> void:
 			_abort_plan(turn, ABORT_DIVERGED, index)
 			return
 		var decision: Dictionary = _decision(turn, step, [])
+		var row: Dictionary = _intent_row(turn, step, -INF)
 		var result: Dictionary = turn.sandbox.submit(step.duplicate(true))
 		turn.actions += 1
 		if not result.accepted:
@@ -607,10 +834,14 @@ func _execute_lethal(turn: _Turn, steps: Array) -> void:
 			turn.rejections += 1
 			_abort_plan(turn, ABORT_REJECTED, index)
 			return
+		turn.plan.intent_rows.append(row)
 		_accept(turn, step, decision)
 		_answer_choices(turn)
 	if _is_own_main(turn):
 		_abort_plan(turn, ABORT_NOT_LETHAL, steps.size())
+		return
+	for index: int in range(first_row, turn.plan.intent_rows.size()):
+		turn.plan.intent_rows[index].lethal = true
 
 
 ## Discards the plan: `ai_plan_aborted`, and the one more search C3 allows.
@@ -626,15 +857,16 @@ func _abort_plan(turn: _Turn, reason: String, step: int) -> void:
 		turn.searches_due += 1
 
 
-## Answers boss-side Choices on the sandbox with [method choose] (C2's inner
-## `while`): the root sandbox, so a tie draws from the live `ai_<floor>` stream and
-## counts in `TurnPlan.ai_draws` (C9), and the command is replayed like any other.
+## Answers boss-side Choices on the sandbox like [method choose] (C2's inner
+## `while`): the root sandbox, so a tie draws from the turn's stream, in a real plan
+## the live `ai_<floor>` stream, counted in `TurnPlan.ai_draws` (C9), and the command
+## is replayed like any other.
 func _answer_choices(turn: _Turn) -> void:
 	while turn.sandbox.phase() == MatchState.PHASE_CHOICE:
 		var pending: Variant = turn.sandbox.pending_choice()
 		if not pending is Dictionary or str(pending.side) != turn.side:
 			return
-		var index: int = choose(turn.sandbox, pending, turn.mode)
+		var index: int = _choose_as(turn.sandbox, pending, turn.side, turn.stream, turn.mode)
 		if index == Chooser.NO_OPTION:
 			return
 		var command: Dictionary = MatchRecords.choose(turn.side, index)
@@ -722,15 +954,16 @@ func _is_own_main(turn: _Turn) -> bool:
 
 
 ## C1.3 / F5: folds the `card_played` events the live log gained since the last
-## turn into `aoe_seen`. Main thread only; [param engine] names the opponent.
-func _read_public_log(engine: RulesEngine) -> void:
+## read into `aoe_seen`. Main thread only. The opponent is the player whichever side
+## is to move: a forecast task is built on the player's turn.
+func _read_public_log() -> void:
 	if _log == null:
 		return
 	var events: Array = _log.events_since(_log_cursor)
 	if events.is_empty():
 		return
 	_log_cursor = int((events.back() as Dictionary).seq)
-	_aoe_seen = _aoe_seen or Scorer.aoe_seen_in(events, _db, Scorer.other_side(String(engine.active_side())))
+	_aoe_seen = _aoe_seen or Scorer.aoe_seen_in(events, _db, MatchRecords.SIDE_PLAYER)
 
 
 # --- schema walk ---------------------------------------------------------------

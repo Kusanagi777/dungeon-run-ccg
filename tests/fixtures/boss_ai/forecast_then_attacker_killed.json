@@ -1,0 +1,14 @@
+{
+  "name": "forecast_then_attacker_killed",
+  "description": "boss-ai A21: the boss's only attacker is a 3/3 and the forecast is attack_face; the player's 5/5 then attacks it on the player's turn, so the committed intent is pass. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_slayer", "type": "minion", "cost": 5, "attack": 5, "health": 5}
+  ],
+  "boss": {"mana": 0, "board": ["bai_brute"], "hand": []},
+  "player": {"health": 20, "board": ["bai_slayer"]}
+}

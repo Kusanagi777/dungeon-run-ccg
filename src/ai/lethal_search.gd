@@ -398,7 +398,7 @@ func _answer_choices(node: RulesEngine, profile: Dictionary) -> void:
 		var pending: Variant = node.pending_choice()
 		if not pending is Dictionary or str(pending.side) != own:
 			return
-		var index: int = int(Chooser.choose(node, pending, profile, _picker.op_values(), node.rng_match(), _db).index)
+		var index: int = int(Chooser.choose(node, pending, profile, _picker.op_values(), node.rng_match(), _db, own).index)
 		if index == Chooser.NO_OPTION or not node.submit(MatchRecords.choose(own, index)).accepted:
 			return
 
