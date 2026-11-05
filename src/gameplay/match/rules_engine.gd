@@ -547,7 +547,8 @@ func state() -> MatchState:
 ##    record.hero_power`; a `hero_def_id` with no record is a logged error that
 ##    seats C3's default, `starting_health_player`, with no hero power (heroes
 ##    story 001). Boss `base_health = config.boss.health` (never the boss
-##    definition's).
+##    definition's), and `hero_power.def_id = config.boss.hero_power` when that
+##    optional key holds an id: the driver fills it from `BossDef.hero_power`.
 ## 3. Each deck to `CardInstance`s in list order, shuffled with `rng_match` —
 ##    player first; one `deck_shuffled {side, instance_ids}` per side.
 ## 4. `on_match_start` hooks, player side then boss side.
@@ -596,6 +597,9 @@ func start(config: Dictionary) -> void:
 		_state.players[MatchRecords.SIDE_PLAYER].hero_power.def_id = str(hero_def.hero_power)
 	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, player_health)
 	_state.players[MatchRecords.SIDE_BOSS].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_BOSS, int(config.boss.health))
+	var boss_power: Variant = config.boss.get("hero_power")
+	if boss_power is String:
+		_state.players[MatchRecords.SIDE_BOSS].hero_power.def_id = boss_power
 	# C3 step 3: decks, player first
 	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck)
 	_build_deck(MatchRecords.SIDE_BOSS, config.boss.deck)

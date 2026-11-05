@@ -139,6 +139,9 @@ const AOE_SELECTORS: Array[String] = ["all_enemy_minions", "all_minions", "all_e
 ## The stat fields of a `buff` / `set_stats` op (Card Effects C5).
 const STAT_FIELDS: Array[String] = ["attack", "health"]
 
+## The op whose row prices a turn of a minion's threat (see [method _threat_answered]).
+const OP_FREEZE: String = "freeze"
+
 var _db: Variant
 var _keyword_values: Dictionary
 var _op_values: Dictionary
@@ -456,11 +459,7 @@ func _features(candidate: Dictionary, own: String, before: Dictionary, after: Di
 		if b_own.minions.has(attacker_id) and b_opp.minions.has(target_id):
 			features.f_trade = float(trade_quality(b_own.minions[attacker_id].bv, b_opp.minions[target_id].bv,
 				not a_own.minions.has(attacker_id), not a_opp.minions.has(target_id), float(rules.trade_ratio)))
-	var removed_threat: float = 0.0
-	for id: int in b_opp.minions:
-		if not a_opp.minions.has(id):
-			removed_threat += b_opp.minions[id].threat
-	features.f_threat = removed_threat / float(rules.THREAT_NORM)
+	features.f_threat = _threat_answered(b_opp.minions, a_opp.minions) / float(rules.THREAT_NORM)
 	if type == MatchRecords.CMD_END_TURN:
 		features.f_mana = -float(b_own.mana_current) / float(maxi(1, b_own.mana_max))
 	else:
@@ -482,10 +481,25 @@ func _features(candidate: Dictionary, own: String, before: Dictionary, after: Di
 	return features
 
 
+## F1's `Σ threat(m)` of the enemy minions removed between [param before] and
+## [param after], plus each minion the action froze at its threat times the `freeze` row.
+## F1 counts removal only, which leaves every Freeze target tied; content's Frost Hag
+## freezes the highest-attack target, and a frozen minion is answered for a turn.
+func _threat_answered(before: Dictionary, after: Dictionary) -> float:
+	var frozen_value: float = float(_op_values.get(OP_FREEZE, CandidateSet.OP_UNVALUED))
+	var answered: float = 0.0
+	for id: int in before:
+		if not after.has(id):
+			answered += before[id].threat
+		elif after[id].frozen and not before[id].frozen:
+			answered += before[id].threat * frozen_value
+	return answered
+
+
 ## Per side of [param engine] (a sandbox clone): hero `health`, `max_health`,
 ## `effective_hp` (health + armor), mana, `count` (hand + board), `board_size`,
 ## `bv` (F2 over the board plus the weapon), `minions {entity_id: {bv,
-## threat}}` and `hand_defs` (definition ids; read for [param own] only, C1.3).
+## threat, frozen}}` and `hand_defs` (definition ids; read for [param own] only, C1.3).
 func _measure(engine: RulesEngine, mode: StringName, own: String, rules: Dictionary) -> Dictionary:
 	var state: MatchState = engine.state()
 	var out: Dictionary = {}
@@ -501,7 +515,7 @@ func _measure(engine: RulesEngine, mode: StringName, own: String, rules: Diction
 			var spell_damage: int = int(def.get("spell_damage", 0)) if def is Dictionary and keywords.has(RulesEngine.KEYWORD_SPELL_DAMAGE) else 0
 			var has_aura: bool = not silenced and def is Dictionary and _has_trigger(def, TRIGGER_AURA)
 			var value: float = board_value(engine.attack(minion), engine.health(minion), keywords, _keyword_values, rules, spell_damage, has_aura, mode == MODE_DEFENSIVE)
-			minions[int(minion.entity_id)] = {"bv": value, "threat": threat(engine.attack(minion), keywords, engine.has_windfury(minion), rules)}
+			minions[int(minion.entity_id)] = {"bv": value, "threat": threat(engine.attack(minion), keywords, engine.has_windfury(minion), rules), "frozen": bool(minion.get("frozen", false))}
 			bv += value
 		var weapon: Variant = player.weapon
 		if weapon is Dictionary:

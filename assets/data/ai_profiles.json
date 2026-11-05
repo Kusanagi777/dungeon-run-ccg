@@ -21,7 +21,8 @@
       "mana": 1.5,
       "equip": 1.2,
       "retrigger": 1.5,
-      "add_counter": 0.5
+      "add_counter": 0.5,
+      "set_counter": 0.5
     },
     "keyword_values": {
       "taunt": 1.2,
@@ -117,6 +118,9 @@
       "passive_driven": {
         "weights": {
           "w_passive": 2.5
+        },
+        "choice_preference": {
+          "deathrattle": 0.5
         }
       }
     },
@@ -180,6 +184,53 @@
         "extends": "control",
         "weights": {
           "w_board": 3.0
+        }
+      },
+      "boss_cellar_hermit": {
+        "extends": "default",
+        "rules": {
+          "hero_power": "always"
+        }
+      },
+      "boss_scrap_golem": {
+        "extends": "control"
+      },
+      "boss_bog_witch": {
+        "extends": "passive_driven",
+        "synergy_tags": ["deathrattle"]
+      },
+      "boss_blood_abbess": {
+        "extends": "control"
+      },
+      "boss_iron_tollman": {
+        "extends": "tempo"
+      },
+      "boss_frost_hag": {
+        "extends": "control"
+      },
+      "boss_pyre_sergeant": {
+        "extends": "aggro",
+        "choice_preference": {
+          "weapon": 0.6
+        }
+      },
+      "boss_mirror_sage": {
+        "extends": "tempo"
+      },
+      "boss_lich_archivist": {
+        "extends": "control",
+        "rules": {
+          "assume_aoe": true
+        }
+      },
+      "boss_shadow_of_the_delve": {
+        "extends": "aggro",
+        "intent_mode": "class_only"
+      },
+      "boss_dungeon_heart": {
+        "extends": "control",
+        "weights": {
+          "w_threat": 3.5
         }
       }
     },
