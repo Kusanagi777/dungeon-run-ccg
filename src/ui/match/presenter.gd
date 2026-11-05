@@ -72,6 +72,11 @@ func present(_state: Dictionary) -> void:
 	return
 
 
+## `AnimationQueue.drained`, after the final [method present]: one layout pass.
+func on_drained() -> void:
+	return
+
+
 ## `AnimationQueue.skipped`: every live tween dies and every pop goes, now.
 func on_skipped() -> void:
 	for step: Variant in _step_tweens.keys():

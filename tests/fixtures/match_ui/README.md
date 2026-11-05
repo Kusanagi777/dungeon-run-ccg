@@ -23,6 +23,7 @@ show a state the rules cannot reach.
   - `{"macro": "end_turns", "count": n}`: end the turn n times.
   - `{"macro": "play_all", "keep_mana": m}`: play every legal card, last position,
     until the mana falls to m (default 0).
+  - `{"macro": "play_and_pass", "count": n}`: `play_all`, then end the turn, n times.
   - `{"macro": "attack_face"}`: every legal attack, at the boss hero when it can.
   - `{"macro": "aggro_to_end"}`: `play_all`, `attack_face`, `end_turn`, until the match ends.
 

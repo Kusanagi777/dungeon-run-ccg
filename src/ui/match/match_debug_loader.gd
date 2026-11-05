@@ -36,6 +36,7 @@ const POSE_HOVER: String = "hover"
 const MACRO_END_TURNS: String = "end_turns"
 const MACRO_PLAY_ALL: String = "play_all"
 const MACRO_ATTACK_FACE: String = "attack_face"
+const MACRO_PLAY_AND_PASS: String = "play_and_pass"
 const MACRO_AGGRO_TO_END: String = "aggro_to_end"
 ## The most turns a macro may run: a floor under a fixture that never ends.
 const MAX_MACRO_TURNS: int = 60
@@ -177,6 +178,10 @@ func _run(controller: MatchController, entry: Dictionary) -> void:
 			_play_all(controller, int(entry.get("keep_mana", 0)))
 		MACRO_ATTACK_FACE:
 			_attack_face(controller)
+		MACRO_PLAY_AND_PASS:
+			for _turn: int in int(entry.get("count", 1)):
+				_play_all(controller, 0)
+				_end_turn(controller)
 		MACRO_AGGRO_TO_END:
 			for _turn: int in MAX_MACRO_TURNS:
 				_play_all(controller, 0)

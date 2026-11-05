@@ -31,6 +31,8 @@ const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
 const TOP_BAR_MARGIN_PX: int = 24
+const INSPECT_GAP_PX: float = 60.0
+const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.tscn")
 
 ## Failed [method assert_in_sync] lines this match; a test reads it.
 var sync_failures: int = 0
@@ -57,6 +59,8 @@ var _floor_label: Label = null
 var _end_turn: Button = null
 var _end_turn_style: StyleBoxFlat = null
 var _last_state: StringName = &""
+var _inspect: CardFrame = null
+var _inspected: int = -1
 
 @onready var _table: ColorRect = %Table
 @onready var _player_panel: HeroPresenter = %PlayerPanel
@@ -171,6 +175,7 @@ func _build() -> void:
 	_router.command_requested.connect(_on_command_requested)
 	_table.color = _ui.color("table_lit")
 	_build_chrome()
+	_build_inspect()
 	_presenters = [_boss_panel, _player_panel, _boss_row, _player_row, _hand, _arrow, _feed, _choice, _mulligan, _banner]
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
@@ -206,6 +211,14 @@ func _build_chrome() -> void:
 	_end_turn.pressed.connect(func() -> void: _router.intent(InputRouter.INTENT_END_TURN))
 	_end_turn.disabled = true
 	_chrome.add_child(_end_turn)
+
+
+func _build_inspect() -> void:
+	_inspect = CARD_FRAME_SCENE.instantiate()
+	add_child(_inspect)
+	_inspect.configure(_ui)
+	_inspect.scale = Vector2.ONE * float(_config.hand.hover_scale)
+	_inspect.visible = false
 
 
 func _bar_label(rect: Rect2, alignment: HorizontalAlignment) -> Label:
@@ -354,15 +367,37 @@ func _show_legality() -> void:
 		if card.playable:
 			playable[int(card.instance_id)] = true
 	_hand.set_playable(playable, true)
+	_show_attackers(legal)
 	var mana: int = int(_view.side(&"player").mana.available)
 	_set_end_turn_lit(legal.size() <= 1 or mana == 0)
 	_player_panel.set_power_state(_ui.query.hero_power_state(MatchViewState.SIDE_PLAYER))
+
+
+## Can-attack outlines from the last `legal_commands()`, and the summoning-sick badge
+## from the query: both are highlighting, never numbers (U2).
+func _show_attackers(legal: Array[Dictionary]) -> void:
+	var attackers: Dictionary = {}
+	for command: Dictionary in legal:
+		if str(command.type) == MatchRecords.CMD_ATTACK:
+			attackers[int(command.attacker_id)] = true
+	var sick: Dictionary = {}
+	for token: Dictionary in _view.side(&"player").board:
+		var id: int = int(token.entity_id)
+		var entity: Dictionary = _ui.query.entity(id)
+		if not entity.is_empty() and entity.flags.summoning_sick:
+			sick[id] = true
+	_player_row.set_attackers(attackers, sick)
+	var hero_id: Variant = _view.side(&"player").hero.entity_id
+	_player_panel.set_can_attack(hero_id != null and attackers.has(int(hero_id)))
 
 
 func _clear_legality() -> void:
 	_set_end_turn_lit(false)
 	_hand.set_playable({}, false)
 	_hand.set_hover(-1, 0.0)
+	_player_row.set_attackers({}, {})
+	_player_panel.set_can_attack(false)
+	_show_inspect(-1)
 	_player_panel.set_power_state({})
 
 
@@ -373,6 +408,10 @@ func _set_end_turn_lit(on: bool) -> void:
 
 ## The screen centre of a drawn entity, or the centre of the table.
 func _locate(entity_id: int) -> Vector2:
+	if _player_row.has_token(entity_id):
+		return _player_row.center_of(entity_id)
+	if _boss_row.has_token(entity_id):
+		return _boss_row.center_of(entity_id)
 	if _player_panel.owns([entity_id]):
 		return _player_panel.portrait_rect().get_center()
 	if _boss_panel.owns([entity_id]):
@@ -384,8 +423,36 @@ func _locate(entity_id: int) -> Vector2:
 func _update_hover(point: Vector2) -> void:
 	if _router.view_state() != InputRouter.STATE_IDLE:
 		return
-	_hand.set_hover(_hand.card_at(point))
+	var card: int = _hand.card_at(point)
+	_hand.set_hover(card)
+	_show_inspect(_row_token_at(point) if card == -1 else -1)
 	_player_panel.show_power_tooltip(_player_panel.power_rect().has_point(point))
+
+
+func _row_token_at(point: Vector2) -> int:
+	var id: int = _player_row.token_at(point)
+	return id if id != -1 else _boss_row.token_at(point)
+
+
+## The 1.5x preview of a token (art bible §4), to the side of the token's row centre.
+func _show_inspect(entity_id: int) -> void:
+	if entity_id == _inspected:
+		return
+	_inspected = entity_id
+	var row: BoardPresenter = _player_row if _player_row.has_token(entity_id) else _boss_row
+	_inspect.visible = row.has_token(entity_id)
+	if not _inspect.visible:
+		return
+	var card_id: String = row.card_of(entity_id)
+	var face: Dictionary = _ui.card_face(card_id)
+	_inspect.show_card(face, int(face.get("cost", 0)) if face.get("cost") != null else 0)
+	var scale_by: float = float(_config.hand.hover_scale)
+	var preview: Vector2 = CardFrame.SIZE * scale_by
+	var centre: Vector2 = row.center_of(entity_id)
+	var left: bool = centre.x > _ui.rect("viewport").get_center().x
+	var x: float = centre.x - preview.x - INSPECT_GAP_PX if left else centre.x + INSPECT_GAP_PX
+	var y: float = clampf(centre.y - preview.y / 2.0, _ui.rect("top_bar").end.y, _ui.rect("viewport").end.y - preview.y)
+	_inspect.position = Vector2(x, y)
 
 
 func _on_skipped() -> void:
@@ -395,5 +462,7 @@ func _on_skipped() -> void:
 
 func _on_drained() -> void:
 	_present(_display())
+	for presenter: Presenter in _presenters:
+		presenter.on_drained()
 	if OS.is_debug_build():
 		assert_in_sync()
