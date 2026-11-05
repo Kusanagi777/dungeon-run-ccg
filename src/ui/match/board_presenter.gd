@@ -172,6 +172,12 @@ func set_attackers(attackers: Dictionary, sick: Dictionary) -> void:
 		token.set_summoning_sick(sick.has(id))
 
 
+## The `A` numerals: [param badges] maps entity id to numeral; `{}` clears them.
+func set_attack_badges(badges: Dictionary) -> void:
+	for id: Variant in _tokens:
+		(_tokens[id] as MinionToken).set_attack_badge(int(badges.get(id, 0)))
+
+
 ## The `state_target` outlines of a session; [param hovered] carries the 3 px ring.
 func set_targets(targets: Dictionary, hovered: int = -1) -> void:
 	for id: Variant in _tokens:

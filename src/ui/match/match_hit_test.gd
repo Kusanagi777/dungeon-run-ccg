@@ -71,6 +71,16 @@ func in_position_zone(point: Vector2) -> bool:
 	return _ui.rect("position_zone").has_point(point)
 
 
+## True over End Turn, which a session click leaves alone (§7.4 rank 5).
+func in_end_turn(point: Vector2) -> bool:
+	return _ui.rect("end_turn").has_point(point)
+
+
+## The screen centre of entity [param id], where the arrow's head rests.
+func centre_of(id: int) -> Vector2:
+	return _ui.locate.call(id)
+
+
 ## The summon gap under [param point] for a row of [param tokens].
 func gap_at(point: Vector2, tokens: int) -> int:
 	var board: Dictionary = _ui.config.board

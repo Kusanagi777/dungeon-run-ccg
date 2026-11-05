@@ -27,6 +27,10 @@ signal match_view_finished(result: Dictionary)
 const DEBUG_LOADER_PATH: String = "res://src/ui/match/match_debug_loader.gd"
 const SPEED_INSTANT: StringName = &"instant"
 const SETTING_ANIM_SPEED: StringName = &"anim_speed"
+const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
+## The event feed's drawer, which `FeedPresenter` answers for (MUI-014).
+const FEED_TOGGLE_METHOD: StringName = &"toggle_drawer"
+const FEED_OPEN_METHOD: StringName = &"drawer_open"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
@@ -114,17 +118,28 @@ func router() -> InputRouter:
 	return _router
 
 
+## U11 `select:<id>`: a click-to-select session on hand card or attacker [param id] (or
+## `hero_power` for -1), the arrow on the first legal target.
+func pose_select(id: int) -> void:
+	_refresh_interaction()
+	_router.intent(InputRouter.INTENT_SELECT, {"source": _pose_source(id), "pos": _ui.rect("viewport").get_center(), "entered_by": TargetingSession.ENTERED_POINTER, "first": true})
+
+
 ## U11 `drag:<id>`: an arrow session on hand card or attacker [param id] (or `hero_power`
 ## for -1), the pointer at screen centre.
 func pose_drag(id: int) -> void:
+	var centre: Vector2 = _ui.rect("viewport").get_center()
+	_refresh_interaction()
+	_router.intent(InputRouter.INTENT_DRAG_START, {"source": _pose_source(id), "pos": centre})
+
+
+func _pose_source(id: int) -> Dictionary:
 	var kind: String = InputRouter.SOURCE_ATTACKER
 	if id == -1:
 		kind = InputRouter.SOURCE_HERO_POWER
 	elif _hand.card(id) != null:
 		kind = InputRouter.SOURCE_CARD
-	var centre: Vector2 = _ui.rect("viewport").get_center()
-	_refresh_interaction()
-	_router.intent(InputRouter.INTENT_DRAG_START, {"source": {"kind": kind, "id": id}, "pos": centre})
+	return {"kind": kind, "id": id}
 
 
 ## U11 `end:<reason>`: the end banner as [param reason]; a match must have ended.
@@ -228,6 +243,10 @@ func _build() -> void:
 	_router.session_started.connect(_on_session_started)
 	_router.session_moved.connect(_on_session_moved)
 	_router.session_ended.connect(_on_session_ended)
+	_router.attackers_armed.connect(_player_row.set_attack_badges)
+	_router.feed_requested.connect(_toggle_feed)
+	_router.set_end_turn_arm(int(_config.end_turn_arm_ms))
+	_router.set_drawer_check(_feed_drawer_open)
 	_table.color = _ui.color("table_lit")
 	_build_chrome()
 	_build_inspect()
@@ -422,7 +441,7 @@ func _on_session_started(session: Dictionary) -> void:
 	var source: Dictionary = session.source
 	var kind: String = str(source.kind)
 	var targeted: bool = session.phase == InputRouter.SESSION_TARGET
-	_set_source_lifted(source, true, targeted)
+	_set_source_lifted(source, true, targeted or session.entered_by != TargetingSession.ENTERED_DRAG)
 	if targeted:
 		_arrow.start_from(_source_centre(source))
 		_light_targets(session.targets, InputRouter.NO_TARGET)
@@ -438,12 +457,14 @@ func _on_session_moved(session: Dictionary) -> void:
 		_hand.follow(pos)
 	match session.phase:
 		InputRouter.SESSION_TARGET:
-			_arrow.update_end(pos, int(session.hovered) != InputRouter.NO_TARGET)
+			_arrow.snap_to(pos, bool(session.lit), _snap_seconds() if session.snap else 0.0)
 			_light_targets(session.targets, int(session.hovered))
 		InputRouter.SESSION_POSITION:
 			if int(session.gap) != InputRouter.NO_GAP:
 				_player_row.set_gap(int(session.gap))
 				_arrow.show_slot.call_deferred(_player_row.gap_rect())
+		InputRouter.SESSION_CAST:
+			_arrow.set_zone_dim(bool(session.dim_zone))
 
 
 func _on_session_ended(session: Dictionary, submitted: bool) -> void:
@@ -452,6 +473,13 @@ func _on_session_ended(session: Dictionary, submitted: bool) -> void:
 	_player_row.set_gap(InputRouter.NO_GAP)
 	_light_targets({}, InputRouter.NO_TARGET)
 	_dropped_card = int(session.source.id) if submitted and str(session.source.kind) == InputRouter.SOURCE_CARD else -1
+
+
+## §10 "Arrow snap": 0 under `reduce_motion` and at `instant`.
+func _snap_seconds() -> float:
+	if _speed == SPEED_INSTANT or _settings.get(SETTING_REDUCE_MOTION) == true:
+		return 0.0
+	return float(_config.targeting.snap_s)
 
 
 ## [param flag] is the parked state on pickup and the submitted state on drop.
@@ -512,7 +540,25 @@ func _show_legality() -> void:
 	_show_attackers(legal)
 	var mana: int = int(_view.side(&"player").mana.available)
 	_set_end_turn_lit(legal.size() <= 1 or mana == 0)
+	_router.set_focus_stop(_default_stop(playable))
 	_player_panel.set_power_state(_ui.query.hero_power_state(MatchViewState.SIDE_PLAYER))
+
+
+## U5: End Turn when nothing is lit, else the left-most playable card.
+func _default_stop(playable: Dictionary) -> Dictionary:
+	for card: Dictionary in _view.side(&"player").hand:
+		if playable.has(int(card.instance_id)):
+			return {"kind": InputRouter.SOURCE_CARD, "id": int(card.instance_id)}
+	return {"kind": InputRouter.STOP_END_TURN, "id": 0}
+
+
+func _toggle_feed() -> void:
+	if _feed.has_method(FEED_TOGGLE_METHOD):
+		_feed.call(FEED_TOGGLE_METHOD)
+
+
+func _feed_drawer_open() -> bool:
+	return _feed.has_method(FEED_OPEN_METHOD) and bool(_feed.call(FEED_OPEN_METHOD))
 
 
 ## Can-attack outlines from the last `legal_commands()`, and the summoning-sick badge

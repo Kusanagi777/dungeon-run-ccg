@@ -226,7 +226,10 @@
       "ring_px": 3,
       "outline_px": 2,
       "dash_px": 8,
-      "unlit_alpha": 0.6
+      "unlit_alpha": 0.6,
+      "snap_s": 0.08,
+      "badge_px": 20,
+      "badge_gap_px": 6
     },
     "pop": {
       "rise_px": 20,

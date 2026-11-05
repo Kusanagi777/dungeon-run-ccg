@@ -33,6 +33,7 @@ const SETTLE_TIMEOUT_MS: int = 60000
 const SETTLE_POLL_USEC: int = 200
 const POSE_HOVER: String = "hover"
 const POSE_DRAG: String = "drag"
+const POSE_SELECT: String = "select"
 const POSE_END: String = "end"
 const POSE_HERO_POWER: String = "hero_power"
 ## Macro names a `commands` entry may hold in `macro`.
@@ -126,6 +127,8 @@ func apply_pose(view: MatchView, pose: String) -> void:
 			view.pose_end(value)
 		POSE_DRAG:
 			view.pose_drag(-1 if value == POSE_HERO_POWER else int(value))
+		POSE_SELECT:
+			view.pose_select(-1 if value == POSE_HERO_POWER else int(value))
 		_:
 			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
 
