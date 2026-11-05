@@ -117,6 +117,8 @@ func sync_report() -> Array[String]:
 func card_at(point: Vector2) -> int:
 	if not visible:
 		return -1
+	if _parked and _slots.has(_dragged) and HandLayout.contains(point, HandLayout.parked(float(_slots[_dragged].x), _cfg), _cfg):
+		return _dragged
 	if _hovered != -1 and _cards.has(_hovered) and HandLayout.contains(point, _hover_slot(_hovered), _cfg):
 		return _hovered
 	for i: int in range(_order.size() - 1, -1, -1):
@@ -183,6 +185,19 @@ func begin_drag(id: int, parked: bool) -> void:
 	card_frame.z_index = DRAG_Z
 	if parked:
 		_place(id, HandLayout.parked(float(_slots[id].x), _cfg), true)
+
+
+## Phase P → T: the card under the cursor returns to its parked place over `return_s`
+## (targeting.md §10). A card already parked stays.
+func park() -> void:
+	if _parked or not _cards.has(_dragged):
+		return
+	_parked = true
+	var slot: Dictionary = HandLayout.parked(float(_slots[_dragged].x), _cfg)
+	var seconds: float = float(_cfg.return_s)
+	var back: Tween = create_tween().set_parallel()
+	back.tween_property(_cards[_dragged], "position", _position_for(slot), seconds)
+	back.tween_property(_cards[_dragged], "rotation_degrees", float(slot.rot), seconds)
 
 
 ## The screen centre of card [param id] as it stands, for the arrow's start.

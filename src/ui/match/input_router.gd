@@ -22,9 +22,10 @@
 ##
 ## **A drag** opens a session on `drag_start`: legality is read from `legal_commands()`
 ## once, there, and the phase comes from those entries alone (targeting.md §6):
-## targets → `T`, positions → `P`, neither → `C`. A minion with a targeted Battlecry
-## plays as `T` at the row's end, so it stays playable. `drag_release` follows the §7.4
-## table; a cancel never calls the engine.
+## positions → `P`, targets → `T`, neither → `C`. A minion with a targeted Battlecry
+## plays `P` then `T`: the chosen gap holds a ghost, the session goes on hands-free, and
+## a cancel from there drops the whole play. `drag_release` follows the §7.4 table; a
+## cancel never calls the engine.
 ## [codeblock]
 ## router.intent(&"drag_start", {"source": {"kind": "card", "id": 12}, "pos": press})
 ## router.intent(&"drag_move", {"pos": mouse})
@@ -54,6 +55,8 @@ signal command_requested(command: Dictionary)
 signal session_started(session: Dictionary)
 ## The pointer moved in a session; [param session] holds the new `pos`, `gap`, `hovered`.
 signal session_moved(session: Dictionary)
+## Phase P became Phase T: [param session] holds the chosen `position` and its targets.
+signal session_phase_changed(session: Dictionary)
 ## The session ended; [param submitted] is true when a command follows.
 signal session_ended(session: Dictionary, submitted: bool)
 ## `A` armed attacker selection: [param badges] maps entity id to its slot numeral, and
@@ -460,7 +463,7 @@ func _drag_start(source: Dictionary, pos: Vector2) -> void:
 	var entries: Array[Dictionary] = _entries_for(source, legal)
 	if entries.is_empty():
 		return
-	_session = TargetingSession.open(source, entries, legal, TargetingSession.ENTERED_DRAG, pos)
+	_session = TargetingSession.open(source, entries, legal, TargetingSession.ENTERED_DRAG, pos, _view)
 	session_started.emit(_session)
 	_drag_move(pos)
 
@@ -476,8 +479,7 @@ func _select(source: Dictionary, pos: Vector2, entered_by: StringName, first: bo
 	if entries.is_empty():
 		return
 	_end_session(false)
-	_session = TargetingSession.open(source, entries, legal, entered_by, pos)
-	_session.stops = TargetingSession.target_stops(_view, _session.targets)
+	_session = TargetingSession.open(source, entries, legal, entered_by, pos, _view)
 	session_started.emit(_session)
 	_enter_phase(pos, entered_by == TargetingSession.ENTERED_KEY or first)
 
@@ -499,7 +501,7 @@ func _nearest_stop(pos: Vector2) -> int:
 	var best: int = NO_TARGET
 	var best_d: float = INF
 	for stop: int in _session.stops:
-		var d: float = pos.distance_squared_to(_hit.centre_of(stop)) if _hit != null else 0.0
+		var d: float = pos.distance_squared_to(_stop_centre(stop)) if _hit != null else 0.0
 		if d < best_d:
 			best_d = d
 			best = stop
@@ -509,11 +511,17 @@ func _nearest_stop(pos: Vector2) -> int:
 ## The arrow on the current stop. [param snap] tweens it (§10 "Arrow snap").
 func _show_current(snap: bool) -> void:
 	if _hit != null:
-		_session.pos = _hit.centre_of(int(_session.hovered))
+		_session.pos = _stop_centre(int(_session.hovered))
 	_session.lit = true
 	_session.snap = snap
 	session_moved.emit(_session)
 	_session.snap = false
+
+
+func _stop_centre(stop: int) -> Vector2:
+	if stop == TargetingSession.NO_TARGET_CHIP:
+		return (_session.chip_rect as Rect2).get_center()
+	return _hit.centre_of(stop)
 
 
 func _cycle(step: int) -> void:
@@ -534,11 +542,35 @@ func _confirm() -> void:
 		return
 	match _session.phase:
 		SESSION_TARGET:
-			_submit(_entry_where("target_id", int(_session.hovered)))
+			_submit(_target_entry())
 		SESSION_POSITION:
-			_submit(_entry_where("position", int(_session.gap)))
+			_place(int(_session.gap))
 		SESSION_CAST:
 			_submit((_session.entries as Array)[0])
+
+
+## The entry of the current stop: the null one on the chip.
+func _target_entry() -> Dictionary:
+	if int(_session.hovered) != TargetingSession.NO_TARGET_CHIP:
+		return _entry_where("target_id", int(_session.hovered))
+	for entry: Dictionary in _session.entries:
+		if entry.get("target_id") == null:
+			return entry
+	return {}
+
+
+## Phase P chose [param gap]: submit it, or go on to Phase T with the gap held. A drag
+## ends here, so its Phase T is a pointer session (§7.4 "or → Phase T").
+func _place(gap: int) -> void:
+	if not TargetingSession.narrows_to_target(_session, gap):
+		_submit(_entry_where("position", gap))
+		return
+	TargetingSession.narrow(_session, gap, _view)
+	var pos: Vector2 = _session.pos
+	if dragging():
+		_session.entered_by = TargetingSession.ENTERED_POINTER
+	session_phase_changed.emit(_session)
+	_enter_phase(pos, _session.entered_by == TargetingSession.ENTERED_KEY)
 
 
 func _submit(chosen: Dictionary) -> void:
@@ -553,12 +585,12 @@ func _session_click(pos: Vector2, double: bool) -> void:
 		return
 	var phase: StringName = _session.phase
 	if phase == SESSION_TARGET:
-		var target: int = _hit.target_at(pos)
-		if _session.targets.has(target):
+		var target: int = _target_under(pos)
+		if target != NO_TARGET:
 			_session.hovered = target
 			_confirm()
 			return
-	if TargetingSession.same_source(_hit.source_at(pos), _session.source):
+	if TargetingSession.same_source(_hit.source_at(pos), _session.source) or (_session.ghost_rect as Rect2).has_point(pos):
 		if phase == SESSION_CAST and not double:
 			_confirm()
 		return
@@ -572,6 +604,14 @@ func _session_click(pos: Vector2, double: bool) -> void:
 		_confirm()
 	elif not _hit.in_end_turn(pos):
 		_end_session(false)
+
+
+## The lit stop under [param pos], the chip included, or [constant NO_TARGET].
+func _target_under(pos: Vector2) -> int:
+	if bool(_session.null_allowed) and (_session.chip_rect as Rect2).has_point(pos):
+		return TargetingSession.NO_TARGET_CHIP
+	var target: int = _hit.target_at(pos) if _hit != null else NO_TARGET
+	return target if _session.targets.has(target) else NO_TARGET
 
 
 ## §7.4 rank 3: a different legal source at [param pos], or `{}`. In Phase P the row is
@@ -600,8 +640,7 @@ func _move_drag(pos: Vector2) -> void:
 	_session.pos = pos
 	match _session.phase:
 		SESSION_TARGET:
-			var target: int = _hit.target_at(pos) if _hit != null else NO_TARGET
-			_session.hovered = target if _session.targets.has(target) else NO_TARGET
+			_session.hovered = _target_under(pos)
 			_session.lit = _session.hovered != NO_TARGET
 		SESSION_POSITION:
 			if _hit != null and _hit.in_position_zone(pos):
@@ -615,8 +654,8 @@ func _move_pointer(pos: Vector2) -> void:
 	var over_source: bool = not _other_source(pos).is_empty()
 	match _session.phase:
 		SESSION_TARGET:
-			var target: int = _hit.target_at(pos)
-			if _session.targets.has(target):
+			var target: int = _target_under(pos)
+			if target != NO_TARGET:
 				_session.hovered = target
 				_show_current(false)
 				return
@@ -637,10 +676,11 @@ func _drag_release(pos: Vector2) -> void:
 	var chosen: Dictionary = {}
 	match _session.phase:
 		SESSION_TARGET:
-			chosen = _entry_where("target_id", _session.hovered)
+			chosen = _target_entry()
 		SESSION_POSITION:
 			if _hit.in_position_zone(pos):
-				chosen = _entry_where("position", _session.gap)
+				_place(int(_session.gap))
+				return
 		SESSION_CAST:
 			if _hit.in_cast_zone(pos):
 				chosen = (_session.entries as Array)[0]
@@ -655,8 +695,7 @@ func _end_session(submitted: bool) -> void:
 	session_ended.emit(ended, submitted)
 
 
-## The last entry whose [param field] is [param value], so a targeted minion lands at
-## the row's end.
+## The last entry whose [param field] is [param value].
 func _entry_where(field: String, value: int) -> Dictionary:
 	var found: Dictionary = {}
 	for entry: Dictionary in _session.entries:

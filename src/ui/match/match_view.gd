@@ -242,6 +242,7 @@ func _build() -> void:
 	_router.command_requested.connect(_on_command_requested)
 	_router.session_started.connect(_on_session_started)
 	_router.session_moved.connect(_on_session_moved)
+	_router.session_phase_changed.connect(_on_session_phase_changed)
 	_router.session_ended.connect(_on_session_ended)
 	_router.attackers_armed.connect(_player_row.set_attack_badges)
 	_router.feed_requested.connect(_toggle_feed)
@@ -443,12 +444,42 @@ func _on_session_started(session: Dictionary) -> void:
 	var targeted: bool = session.phase == InputRouter.SESSION_TARGET
 	_set_source_lifted(source, true, targeted or session.entered_by != TargetingSession.ENTERED_DRAG)
 	if targeted:
-		_arrow.start_from(_source_centre(source))
-		_light_targets(session.targets, InputRouter.NO_TARGET)
+		_open_target_phase(session, _source_centre(source))
 	elif session.phase == InputRouter.SESSION_CAST:
 		_arrow.show_cast_zone(_ui.rect("cast_zone"))
 	if kind == InputRouter.SOURCE_CARD and session.phase == InputRouter.SESSION_POSITION:
 		_player_row.set_gap((session.positions as Array).size() - 1)
+
+
+## Phase P → T: the card parks, a ghost holds the gap and the arrow starts from it. The
+## row keeps its gap; `Esc` from here cancels the whole play (targeting.md §6).
+func _on_session_phase_changed(session: Dictionary) -> void:
+	var ghost: Rect2 = _player_row.gap_rect_at(int(session.position))
+	_hand.park()
+	_arrow.show_slot(Rect2())
+	_player_row.set_gap(int(session.position))
+	_player_row.show_ghost(_hand_card_id(int(session.source.id)))
+	session.ghost_rect = ghost
+	_open_target_phase(session, ghost.get_center())
+
+
+## Lights the targets and starts the arrow at [param from], with the chip above it when
+## a null entry exists; the router reads the chip's rect from the session.
+func _open_target_phase(session: Dictionary, from: Vector2) -> void:
+	_arrow.start_from(from)
+	_light_targets(session.targets, InputRouter.NO_TARGET)
+	if bool(session.null_allowed):
+		var cfg: Dictionary = _config.targeting
+		var chip := Vector2(float(cfg.chip_w), float(cfg.chip_h))
+		session.chip_rect = Rect2(Vector2(from.x - chip.x / 2.0, from.y - float(_config.board.token_h) / 2.0 - float(cfg.chip_gap_px) - chip.y), chip)
+		_arrow.show_chip(session.chip_rect, false)
+
+
+func _hand_card_id(instance_id: int) -> String:
+	for card: Dictionary in _view.side(&"player").hand:
+		if int(card.instance_id) == instance_id:
+			return str(card.card_id)
+	return ""
 
 
 func _on_session_moved(session: Dictionary) -> void:
@@ -459,10 +490,12 @@ func _on_session_moved(session: Dictionary) -> void:
 		InputRouter.SESSION_TARGET:
 			_arrow.snap_to(pos, bool(session.lit), _snap_seconds() if session.snap else 0.0)
 			_light_targets(session.targets, int(session.hovered))
+			if bool(session.null_allowed):
+				_arrow.show_chip(session.chip_rect, int(session.hovered) == TargetingSession.NO_TARGET_CHIP)
 		InputRouter.SESSION_POSITION:
 			if int(session.gap) != InputRouter.NO_GAP:
 				_player_row.set_gap(int(session.gap))
-				_arrow.show_slot.call_deferred(_player_row.gap_rect())
+				_arrow.show_slot(_player_row.gap_rect_at(int(session.gap)))
 		InputRouter.SESSION_CAST:
 			_arrow.set_zone_dim(bool(session.dim_zone))
 

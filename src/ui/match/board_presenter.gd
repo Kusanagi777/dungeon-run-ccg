@@ -210,6 +210,33 @@ func gap_rect() -> Rect2:
 	return _gap.get_global_rect() if _gap != null else Rect2()
 
 
+## Where gap [param index] sits in the m + 1 layout the row is moving to (targeting.md
+## §7.4), from the layout and never from mid-tween token pixels.
+func gap_rect_at(index: int) -> Rect2:
+	var board: Dictionary = ui.config.board
+	var token_w: float = float(board.token_w)
+	var spacing: float = float(board.gap)
+	var m: int = _order.size()
+	var row: Rect2 = get_global_rect()
+	var left: float = row.get_center().x - ((m + 1) * token_w + m * spacing) / 2.0
+	return Rect2(left + index * (token_w + spacing), row.position.y, token_w, float(board.token_h))
+
+
+## Phase T after P: the 60 % ghost of [param card_id] holds the open gap (targeting.md
+## §5.3). It goes when the gap closes.
+func show_ghost(card_id: String) -> void:
+	if _gap == null:
+		return
+	var face: Dictionary = ui.card_face(card_id)
+	var ghost: MinionToken = TOKEN_SCENE.instantiate()
+	_gap.add_child(ghost)
+	ghost.configure(ui)
+	var attack: int = int(face.get("attack", 0)) if face.get("attack") != null else 0
+	var health: int = int(face.get("health", 0)) if face.get("health") != null else 0
+	ghost.show_token({"entity_id": 0, "card_id": card_id, "attack": attack, "health": health, "max_health": health, "keywords": []}, face)
+	ghost.modulate.a = float(ui.config.targeting.unlit_alpha)
+
+
 ## targeting.md §7.4: the gap under [param x], from the m + 1 layout the row is moving
 ## to, never from token pixels. [param m] is the tokens in the row.
 static func gap_index(x: float, m: int, row: Rect2, token_w: float, gap: float) -> int:

@@ -229,7 +229,11 @@
       "unlit_alpha": 0.6,
       "snap_s": 0.08,
       "badge_px": 20,
-      "badge_gap_px": 6
+      "badge_gap_px": 6,
+      "chip_w": 120,
+      "chip_h": 44,
+      "chip_gap_px": 8,
+      "chip_font_px": 14
     },
     "pop": {
       "rise_px": 20,
@@ -357,7 +361,8 @@
       "end.fault.line": "This floor is replayed, not lost.",
       "end.facts": "Turn {turns} · You {hero_hp} health · {boss} {boss_hp}",
       "end.fault_detail": "Error: {reason} · turn {turns}",
-      "end.continue": "Continue · %d"
+      "end.continue": "Continue · %d",
+      "targeting.no_target": "No target"
     }
   }
 }
