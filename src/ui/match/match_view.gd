@@ -283,18 +283,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _choice.is_open() and _choice.handle_action(MatchInput.read(event), MatchInput.hand_slot(event)):
 		return
-	if event is InputEventKey and event.pressed and not event.echo and _mulligan.is_open():
-		if _mulligan.handle_key((event as InputEventKey).keycode):
-			return
-		if (event as InputEventKey).keycode == KEY_ENTER:
-			_mulligan.confirm()
-			return
+	if _mulligan.is_open() and _mulligan.handle_action(MatchInput.read(event), MatchInput.hand_slot(event)):
+		return
 	_router.handle_input(event)
 	if event is InputEventMouseMotion:
 		_update_hover((event as InputEventMouseMotion).position)
 
 
 func _exit_tree() -> void:
+	if Input.joy_connection_changed.is_connected(_on_joy_connection_changed):
+		Input.joy_connection_changed.disconnect(_on_joy_connection_changed)
 	if _settings_bus != null and _settings_bus.settings_changed.is_connected(_on_setting_changed):
 		_settings_bus.settings_changed.disconnect(_on_setting_changed)
 	if _controller != null:
@@ -350,6 +348,8 @@ func _build() -> void:
 	_focus.configure(_hand, _player_row, _boss_row, _player_panel, _boss_panel)
 	_focus.changed.connect(_on_focus_changed)
 	_router.focus_step_requested.connect(_focus.move)
+	_router.focus_direction_requested.connect(_focus.move_direction)
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_reject.set_flash_targets({"taunts": _boss_row.flash_taunts, "mana_bar": _player_panel.flash_mana})
 	_banner.continued.connect(_finish_match)
 	_pause.configure(_pause_style(), _meta)
@@ -434,6 +434,13 @@ func _pause_style() -> Dictionary:
 		"ring_offset_px": _config.focus.ring_offset_px, "row_h": cfg.row_h, "gap": cfg.gap,
 		"font_px": cfg.font_px, "title_px": cfg.title_px, "label_w": cfg.label_w,
 	}
+
+
+## A pad that drops out takes its session with it; keyboard and mouse stay live
+## (targeting.md §15 "Controller disconnection").
+func _on_joy_connection_changed(_device: int, connected: bool) -> void:
+	if not connected and _started and not _router.dragging():
+		_router.intent(InputRouter.INTENT_CANCEL)
 
 
 func _on_menu_requested() -> void:
@@ -972,9 +979,8 @@ func _on_ended_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 			_banner.press_continue()
-	elif event is InputEventKey and event.pressed and not event.echo:
-		if (event as InputEventKey).keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
-			_banner.press_continue()
+	elif MatchInput.read(event) in [MatchInput.CONFIRM, MatchInput.END_TURN]:
+		_banner.press_continue()
 
 
 func _finish_match() -> void:

@@ -42,7 +42,10 @@
 ## router.intent(&"confirm")
 ## [/codeblock]
 ##
-## **Keys** come in as [MatchInput] names, so a gamepad reads the same. `Space` and
+## **Keys** come in as [MatchInput] names, so a gamepad reads the same: the shoulders are
+## `Tab`, `ui_accept` is `Enter`, `ui_cancel` is `Esc`, and the d-pad and stick move focus
+## spatially in `Idle` and cycle in a session. Nothing here needs a pad-only intent: the
+## focus graph reaches every action a key shortcut does. `Space` and
 ## `Enter` end the turn only once the queue has been idle for `end_turn_arm_ms`
 ## (U5 arm guard); a click on the button never waits.
 class_name InputRouter
@@ -64,6 +67,8 @@ signal session_ended(session: Dictionary, submitted: bool)
 signal attackers_armed(badges: Dictionary)
 ## `Tab` in `Idle`: move keyboard focus [param step] stops.
 signal focus_step_requested(step: int)
+## d-pad or stick in `Idle`: move keyboard focus toward [param direction].
+signal focus_direction_requested(direction: Vector2)
 ## `Esc` reached chain step 3 or 4, or the menu button: open the pause menu, or step
 ## back out of it.
 signal menu_requested()
@@ -240,6 +245,14 @@ func on_action(action: StringName, slot: int = -1) -> void:
 			intent(INTENT_CYCLE, {"step": 1})
 		MatchInput.PREVIOUS:
 			intent(INTENT_CYCLE, {"step": -1})
+		MatchInput.LEFT:
+			_on_direction(Vector2.LEFT, -1)
+		MatchInput.UP:
+			_on_direction(Vector2.UP, -1)
+		MatchInput.RIGHT:
+			_on_direction(Vector2.RIGHT, 1)
+		MatchInput.DOWN:
+			_on_direction(Vector2.DOWN, 1)
 		MatchInput.HERO_POWER:
 			_pick({"kind": SOURCE_HERO_POWER, "id": -1})
 		MatchInput.HAND:
@@ -435,6 +448,15 @@ func _on_accept(enter: bool) -> void:
 			intent(INTENT_FEED)
 		FocusPresenter.KIND_MENU:
 			intent(INTENT_MENU)
+
+
+## The d-pad and stick: spatial focus in `Idle`, the same cycle as `Tab` in a session
+## (targeting.md §7.1).
+func _on_direction(direction: Vector2, step: int) -> void:
+	if in_session():
+		intent(INTENT_CYCLE, {"step": step})
+	elif view_state() == STATE_IDLE:
+		focus_direction_requested.emit(direction)
 
 
 ## `1`–`0`: the hand card at [param slot] into targeting; a slot past the hand is ignored.
