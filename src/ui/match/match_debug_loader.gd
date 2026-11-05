@@ -33,6 +33,7 @@ const SETTLE_TIMEOUT_MS: int = 60000
 const SETTLE_POLL_USEC: int = 200
 const POSE_HOVER: String = "hover"
 const POSE_DRAG: String = "drag"
+const POSE_END: String = "end"
 const POSE_HERO_POWER: String = "hero_power"
 ## Macro names a `commands` entry may hold in `macro`.
 const MACRO_END_TURNS: String = "end_turns"
@@ -45,6 +46,8 @@ const MAX_MACRO_TURNS: int = 60
 
 ## `{floor, boss_def_id, hero_def_id}` of the loaded match, for the top bar.
 var match_info: Dictionary = {}
+## The fixture's own `pose`, used when the launch names none.
+var fixture_pose: String = ""
 ## Every command the engine refused, as `{command, result}`: empty on a good fixture.
 var rejections: Array[Dictionary] = []
 
@@ -94,6 +97,7 @@ func load_fixture(fixture_name: String) -> MatchController:
 	var services: Services = Boot.services()
 	for key: String in fixture.get("profile", {}):
 		services.meta.set_setting(StringName(key), fixture.profile[key])
+	fixture_pose = str(fixture.get("pose", ""))
 	var settings: Dictionary = fixture.get("config", {})
 	var config: Dictionary = _match_config(settings, services.card_database)
 	var factory: Callable = Boot.driver_factory(_planner_override, OS.get_cmdline_user_args())
@@ -107,7 +111,8 @@ func load_fixture(fixture_name: String) -> MatchController:
 
 
 ## U11: a view-only pose after loading. `hover:<instance_id>` is the 1.5x preview and
-## `drag:<instance_id>` an armed source with the arrow at screen centre. Poses
+## `drag:<instance_id>` an armed source with the arrow at screen centre, and
+## `end:<reason>` the end banner read as that reason. Poses
 ## arrive with the stories that need them; an unknown one is reported and skipped.
 func apply_pose(view: MatchView, pose: String) -> void:
 	if pose == "":
@@ -117,6 +122,8 @@ func apply_pose(view: MatchView, pose: String) -> void:
 	match parts[0]:
 		POSE_HOVER:
 			view.hand().set_hover(int(value), 0.0)
+		POSE_END:
+			view.pose_end(value)
 		POSE_DRAG:
 			view.pose_drag(-1 if value == POSE_HERO_POWER else int(value))
 		_:

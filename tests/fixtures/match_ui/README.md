@@ -17,6 +17,9 @@ show a state the rules cannot reach.
   reach quickly: `player_deck`, `boss_deck` (card id lists), `boss_health`,
   `max_events` (the log cap, which is how `match_end_fault` reaches a fault).
 - `profile`: settings applied before the match, as `MetaApi.set_setting` keys.
+- `pose`: optional, a U11 pose used when the launch names none. `match_end_both_dead`
+  needs it: no shipped card kills both heroes in one action, so it ends on a real
+  defeat and reads as `end:both_dead` (story 011's allowed fallback).
 - `commands`: run in order, and the loader ticks the planner to rest after each.
   An entry is a C2 command's fields, or a macro that expands against the live
   `legal_commands()`:

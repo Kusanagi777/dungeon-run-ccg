@@ -57,7 +57,7 @@ func rect(zone: String) -> Rect2:
 ## `{name_key, text_key, type, cost, attack, health, keywords, primary, secondary}`
 ## for [param card_id]: `card_text` plus its frame colours. `{}` for an unknown id.
 func card_face(card_id: String) -> Dictionary:
-	var face: Dictionary = query.card_text(card_id) if query != null else {}
+	var face: Dictionary = query.card_text(card_id) if query != null and card_id != "" else {}
 	if face.is_empty():
 		return {}
 	var card_set: String = ""

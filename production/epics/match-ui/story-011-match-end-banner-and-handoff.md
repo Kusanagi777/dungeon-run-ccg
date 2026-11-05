@@ -1,7 +1,7 @@
 # Story 011: Match-end banner and the match_view_finished hand-off
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

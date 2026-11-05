@@ -32,10 +32,14 @@ const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
 const TOP_BAR_MARGIN_PX: int = 24
 const INSPECT_GAP_PX: float = 60.0
+## match-end.md §10: the one colour ramp, on its own fixed time.
+const SATURATE_S: float = 0.4
 const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.tscn")
 
 ## Failed [method assert_in_sync] lines this match; a test reads it.
 var sync_failures: int = 0
+## The audio seam; a test reads its log.
+var sfx: SfxStub = SfxStub.new()
 
 var _controller: MatchController = null
 var _view: MatchViewState = null
@@ -63,6 +67,10 @@ var _inspect: CardFrame = null
 var _inspected: int = -1
 # The card of the drag that just submitted, until the engine has answered.
 var _dropped_card: int = -1
+var _ended: bool = false
+# True while events_since(0) is projected: nothing is shown until it has all landed.
+var _loading: bool = false
+var _finished: bool = false
 
 @onready var _table: ColorRect = %Table
 @onready var _player_panel: HeroPresenter = %PlayerPanel
@@ -119,6 +127,12 @@ func pose_drag(id: int) -> void:
 	_router.intent(InputRouter.INTENT_DRAG_START, {"source": {"kind": kind, "id": id}, "pos": centre})
 
 
+## U11 `end:<reason>`: the end banner as [param reason]; a match must have ended.
+func pose_end(reason: String) -> void:
+	if _view.result is Dictionary:
+		_banner.pose_reason(reason, _view.result)
+
+
 ## The mulligan screen, for tests.
 func mulligan() -> MulliganPresenter:
 	return _mulligan
@@ -153,6 +167,7 @@ func _process(delta: float) -> void:
 	_controller.tick()
 	_queue.advance(delta)
 	_refresh_interaction()
+	_banner.tick(delta)
 
 
 ## A drag owns the pointer: a disabled End Turn under it must not swallow the release.
@@ -164,6 +179,9 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _started:
+		return
+	if _router.view_state() == InputRouter.STATE_ENDED:
+		_on_ended_input(event)
 		return
 	if event is InputEventKey and event.pressed and not event.echo and _mulligan.is_open():
 		if _mulligan.handle_key((event as InputEventKey).keycode):
@@ -217,6 +235,7 @@ func _build() -> void:
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
 		presenter.bind(_view)
+	_banner.continued.connect(_finish_match)
 	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
 		_router.intent(InputRouter.INTENT_MULLIGAN_CONFIRM, {"keep_mask": keep_mask}))
 	_queue.step_started.connect(_on_step_started)
@@ -310,20 +329,24 @@ func _start() -> void:
 	_controller.bind_queue(_queue)
 	_apply_identity()
 	_queue.set_speed(SPEED_INSTANT)
+	_loading = true
 	for event: Dictionary in _controller.events_since(0):
 		_on_event(event)
+	_loading = false
 	_queue.advance(0.0)
 	_queue.set_speed(_speed)
 	_controller.subscribe(_on_event)
 	_present(_display())
 	if _loader != null:
-		_loader.call("apply_pose", self, str(_launch_args.pose))
+		var pose: String = str(_launch_args.pose)
+		_loader.call("apply_pose", self, pose if pose != "" else str(_loader.get("fixture_pose")))
 
 
 func _apply_identity() -> void:
 	_player_panel.set_identity(_ui.hero_identity(str(_match_info.get("hero_def_id", ""))))
 	var boss_id: String = str(_match_info.get("boss_def_id", ""))
 	_boss_panel.set_identity(_ui.boss_identity(boss_id))
+	_banner.set_boss(boss_id)
 	_floor_label.text = tr("hud.floor") % [int(_match_info.get("floor", 0)), tr(MatchStrings.BOSS_NAME_KEY % boss_id)]
 
 
@@ -337,9 +360,11 @@ func _on_event(event: Dictionary) -> void:
 		else:
 			_queue.exit_boss_turn()
 	var steps: Array[AnimStep] = _view.apply(event)
+	if _view.result != null:
+		_router.intent(InputRouter.INTENT_CANCEL)
 	var display: Dictionary = _display()
 	if steps.is_empty():
-		if _queue.is_idle():
+		if _queue.is_idle() and not _loading:
 			_present(display)
 		else:
 			_last_display.merge(display, true)
@@ -583,3 +608,39 @@ func _on_drained() -> void:
 		presenter.on_drained()
 	if OS.is_debug_build():
 		assert_in_sync()
+	if _view.result != null and not _ended:
+		_enter_ended()
+
+
+## `Ended`: the banner settles, the winner saturates, the stinger plays. Never on a
+## fault: it is not a defeat (U9).
+func _enter_ended() -> void:
+	_ended = true
+	_banner.settle()
+	match _banner.variant():
+		BannerPresenter.VARIANT_FAULT:
+			pass
+		BannerPresenter.VARIANT_VICTORY:
+			_player_panel.saturate(SATURATE_S)
+			sfx.play(SfxStub.CUE_VICTORY)
+		_:
+			_boss_panel.saturate(SATURATE_S)
+			sfx.play(SfxStub.CUE_DEFEAT)
+	_end_turn.disabled = true
+
+
+## DD-X09: in `Ended` only a fresh press continues; `Esc` and everything else do nothing.
+func _on_ended_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			_banner.press_continue()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		if (event as InputEventKey).keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+			_banner.press_continue()
+
+
+func _finish_match() -> void:
+	if _finished:
+		return
+	_finished = true
+	match_view_finished.emit(_view.result)

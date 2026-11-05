@@ -157,6 +157,15 @@ func is_shown() -> bool:
 	return _shown
 
 
+## U11 `end:<reason>`: re-reads the banner as [param reason] on the same result, for an
+## ending no shipped card can reach.
+func pose_reason(reason: String, result: Dictionary) -> void:
+	var posed: Dictionary = result.duplicate(true)
+	posed["reason"] = reason
+	_shown = false
+	_open(posed)
+
+
 ## The queue drained: the arm guard and the countdown start.
 func settle() -> void:
 	_settled = true
