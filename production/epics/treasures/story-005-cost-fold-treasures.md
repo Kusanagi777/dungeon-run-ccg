@@ -70,7 +70,7 @@ planned ones; `/dev-story` replaces the list with the files it changed; `/story-
 checks scope against it.*
 
 - `tests/integration/treasures/treasures_cost_folds_test.gd`
-- `tests/helpers/treasure_fixtures.gd` — additive: `database(ids, cards)` loads scripted `neutral` cards beside the root's own
+- `tests/helpers/treasure_fixtures.gd` â€” additive: `database(ids, cards)` loads scripted `neutral` cards beside the root's own
 - No production file changed: no case failed
 
 ---
