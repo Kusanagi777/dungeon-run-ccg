@@ -263,9 +263,8 @@ func ack_notification(key: String) -> void:
 	return
 
 
-## Returns `[]` at MVP.
-## TODO(meta-progression): the real M2.4 validator is Meta Progression's;
-## no rules are invented here.
+## Returns `[]`: the stub has no rules. The M2.4 validator is
+## `UnlockEvaluator.validate_defs`.
 func validate_unlock_defs(_defs: Array) -> Array:
 	return []
 
