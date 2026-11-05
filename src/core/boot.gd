@@ -259,8 +259,9 @@ func driver_factory(planner_override: Callable = Callable(), cmdline_args: Packe
 ## A new [RunMachine] over the services, with its [RewardDraft] and [Treasures], for
 ## `RunShell` or a harness to hold (ADR-0008 Decision 1). The machine's `run_config` is
 ## `config("run_structure")` plus what only the composition root computes:
-## `max_match_events` from `config("rng_event_log")` (F7) and `engine_version`. The two
-## parameters go to [method driver_factory]. Before [method boot], or after a `Failed`
+## `max_match_events` from `config("rng_event_log")` (F7) and `engine_version`. Its
+## [EventLogArchive] takes this build's `keep_match_logs`. The two parameters go to
+## [method driver_factory]. Before [method boot], or after a `Failed`
 ## load, this logs an error and returns null. It keeps nothing: `Boot` holds no run.
 ## [codeblock]
 ## var run: RunMachine = Boot.run_machine()
@@ -274,9 +275,12 @@ func run_machine(planner_override: Callable = Callable(), cmdline_args: PackedSt
 	var treasures: Treasures = Treasures.new(db, db.config("treasures_balance"))
 	var draft: RewardDraft = RewardDraft.new(db, treasures, _services.meta, db.config("reward_draft"))
 	var run_config: Dictionary = db.config("run_structure").duplicate(true)
-	run_config["max_match_events"] = EventLog.max_events_for(db.config("rng_event_log"))
+	var log_config: Dictionary = db.config("rng_event_log")
+	run_config["max_match_events"] = EventLog.max_events_for(log_config)
 	run_config["engine_version"] = Engine.get_version_info().string
-	return RunMachine.new(db, _services.meta, draft, treasures, run_config, factory)
+	var keep_match_logs: bool = log_config.keep_match_logs["debug" if OS.is_debug_build() else "release"]
+	var archive: EventLogArchive = EventLogArchive.new(AtomicFileWriter.new(), keep_match_logs)
+	return RunMachine.new(db, _services.meta, draft, treasures, run_config, factory, archive)
 
 
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5

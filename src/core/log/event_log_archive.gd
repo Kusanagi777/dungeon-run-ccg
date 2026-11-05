@@ -31,16 +31,15 @@ const FILE_NAME: String = "floor_%d_attempt_%d.json"
 ## The event that marks a log as overflowed (rule 16).
 const EVENT_OVERFLOW: String = "log_overflow"
 
-## An `AtomicFileWriter` (ADR-0004): `write(final_path: String, text: String) -> Error`.
-## Untyped only because `src/core/save/` has not shipped the class yet.
-var _writer: RefCounted
+## Owns the staged-rename write (ADR-0004).
+var _writer: AtomicFileWriter
 var _keep_match_logs: bool
 var _root: String
 
 
-## [param writer] is the `AtomicFileWriter`; [param keep_match_logs] the setting for this
-## build. [param root] replaces [constant LOGS_ROOT]; only a test passes one.
-func _init(writer: RefCounted, keep_match_logs: bool, root: String = LOGS_ROOT) -> void:
+## [param writer] does the writes; [param keep_match_logs] is the setting for this build.
+## [param root] replaces [constant LOGS_ROOT]; only a test passes one.
+func _init(writer: AtomicFileWriter, keep_match_logs: bool, root: String = LOGS_ROOT) -> void:
 	_writer = writer
 	_keep_match_logs = keep_match_logs
 	_root = root

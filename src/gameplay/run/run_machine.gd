@@ -91,6 +91,8 @@ var _draft: RewardDraft
 var _treasures: Treasures
 var _config: Dictionary
 var _driver_factory: Callable
+## Files each finished match log; null files none.
+var _archive: EventLogArchive
 ## `menu` or `hero_select` while [member state] is null.
 var _idle_phase: String = PHASE_MENU
 ## The pending offer; memory only, resume regenerates it (R5.3).
@@ -110,13 +112,15 @@ var _truncation_warned: bool = false
 ## plus what the composition root computes: `max_match_events` (F7, the cap of every
 ## log here) and `engine_version`. [param driver_factory] is a
 ## `func(config: Dictionary) -> MatchDriver`, `Boot.driver_factory()` in the game.
-func _init(db: CardDatabase, meta: MetaApi, draft: RewardDraft, treasures: Treasures, run_config: Dictionary, driver_factory: Callable) -> void:
+## [param archive] files match logs under `user://logs/` (rng-event-log rule 18).
+func _init(db: CardDatabase, meta: MetaApi, draft: RewardDraft, treasures: Treasures, run_config: Dictionary, driver_factory: Callable, archive: EventLogArchive = null) -> void:
 	_db = db
 	_meta = meta
 	_draft = draft
 	_treasures = treasures
 	_config = run_config
 	_driver_factory = driver_factory
+	_archive = archive
 
 
 ## The Reward Draft this run asks, which `RunController` also takes (ADR-0011).
@@ -418,6 +422,7 @@ func _on_match_ended(result: Dictionary) -> void:
 	_stop_clock()
 	var driver: MatchDriver = _driver
 	var attempt: int = state.attempts_on(state.floor)
+	_archive_match_log(attempt)
 	if str(result.get("result")) == MatchRecords.RESULT_FAULT:
 		_driver = null
 		_match_log = null
@@ -440,6 +445,16 @@ func _on_match_ended(result: Dictionary) -> void:
 		_save()
 		_start_clock()
 		_enter_reward_step()
+
+
+## rng-event-log rule 18 (ADR-0003 Decision 9): files the sealed match log, a faulted
+## one included, before it is reduced. A failed write warns and the run goes on.
+func _archive_match_log(attempt: int) -> void:
+	if _archive == null:
+		return
+	var archived: Error = _archive.archive_match(_match_log, state.run_id, state.floor, attempt)
+	if archived != OK:
+		push_warning("RunMachine: match log of floor %d attempt %d not archived (%s)" % [state.floor, attempt, error_string(archived)])
 
 
 ## R4, R10: the log's reduction, with the run's fields on top. A match the log could
