@@ -985,7 +985,7 @@ Found while mining. No document is edited here. Tests follow the source in the l
 
 **Open by nature**:
 - How the owner reads CDB-007's known answer on Windows (carried from sprint 4).
-- Whether `parse-check.sh` should cover `src/ui/` (open since sprint 3; MUI-003, MUI-004 and MUI-010 add `src/ui/` code).
+- Whether `parse-check.sh` should cover `src/ui/` (open since sprint 3; MUI-003, MUI-004 and MUI-010 add `src/ui/` code). Done 2026-11-05: it does.
 - Whether S3 is decided, and which option. The plan was written with it undecided. Decided 2026-11-05: DD-X26, option C.
 - Test counts are estimates from the ACs, not commitments. Paths marked "proposed" for the non-story items are this plan's suggestion.
 - Story `## QA Test Cases` sections were **not** back-filled (Phase 5 was not run; they still read "N/A").
