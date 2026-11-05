@@ -27,6 +27,9 @@ const ENTITY_ROOTS: Array[String] = ["source", "target", "trigger_subject", "tri
 const SIDE_ROOTS: Array[String] = ["owner", "opponent"]
 ## The per-turn tallies C4 names, kept in `EffectRuntime.per_turn[side]`.
 const TALLIES: Array[String] = ["cards_played_this_turn", "minions_died_this_turn", "spells_cast_this_turn"]
+## A pass context keys its snapshot of `trigger_subject` / `trigger_source` by the
+## root plus this (C3; the resolver's queue entry carries them).
+const SNAPSHOT_SUFFIX: String = "_snapshot"
 ## `effect_resolved.ops[i].values.read_from` (Edge Cases row 45).
 const READ_LIVE: String = "live"
 const READ_SNAPSHOT: String = "snapshot"
@@ -74,8 +77,9 @@ static func eval(expr: Variant, run: Dictionary) -> int:
 ## `source.*` / `counter.*` read live while the source is in play, else the
 ## raise-time snapshot `run.snapshot` ([method reads_snapshot]; a late write to
 ## the live bucket of a departed source never reaches it, Edge Cases row 45);
-## `target` / `trigger_*` read the entity in play — a dying one included —
-## else 0. Example: `EffectValues.ref("owner.hand_size", run)`.
+## `target` reads the entity in play — a dying one included — else 0;
+## `trigger_*` the same, else their raise-time snapshot (C3) when the queue entry
+## kept one. Example: `EffectValues.ref("owner.hand_size", run)`.
 static func ref(path: String, run: Dictionary) -> int:
 	var resolver: EffectResolver = run.resolver
 	var engine: RulesEngine = resolver.bound_engine()
@@ -105,17 +109,24 @@ static func ref(path: String, run: Dictionary) -> int:
 
 ## The record entity reference [param root] (`source`, `target`,
 ## `trigger_subject`, `trigger_source`) names: the entity in play (a dying
-## one included — C3 references), a character view of the source's raise-time
-## snapshot for a `source` no longer in play ([method _snapshot_view]), else `{}`.
+## one included — C3 references), else a character view of its raise-time
+## snapshot ([method _snapshot_view]): `run.snapshot` for a `source` that is no
+## longer the same `entity_id` in play (C6.5: the body it transformed into is not
+## the source of a queued pass), `run.<root>_snapshot` for a departed
+## `trigger_subject` / `trigger_source` (C3), else `{}`.
 static func entity(root: String, run: Dictionary) -> Dictionary:
+	if root == "source" and reads_snapshot(run):
+		return _snapshot_view(run.snapshot)
 	var resolver: EffectResolver = run.resolver
 	var state: MatchState = resolver.bound_engine().state()
 	var id: Variant = run.get({"source": "source_id", "target": "target_id"}.get(root, root))
 	if typeof(id) != TYPE_INT and typeof(id) != TYPE_FLOAT:
 		return {}
 	var found: Dictionary = EffectSelectors.find(state, int(id))
-	if found.is_empty() and root == "source" and reads_snapshot(run):
-		return _snapshot_view(run.snapshot)
+	if found.is_empty():
+		var kept: Variant = run.get(root + SNAPSHOT_SUFFIX)
+		if kept is Dictionary and not (kept as Dictionary).is_empty():
+			return _snapshot_view(kept)
 	return found
 
 
@@ -169,16 +180,19 @@ static func source_snapshot(resolver: EffectResolver, record: Dictionary, source
 
 
 ## True when pass [param run] reads `source.*` / `counter.*` from its raise-time
-## snapshot: it has one and the source is no longer the same `entity_id` in
-## play (C4, C6.5). A play pass has none: its counters are always live, its
-## source being a spell in `resolving` included (row 46).
+## snapshot: it has one and the entity snapshotted is no longer in play (C4,
+## C6.5). That is the snapshot's own id, not `run.source_id`: a self-transform
+## rebinds the pass's `self` to the new body, which is another `entity_id`. A play
+## pass has no snapshot: its counters are always live, its source being a spell in
+## `resolving` included (row 46); nor has a treasure or passive, always live (C9).
 ## Example: `if EffectValues.reads_snapshot(run): …`.
 static func reads_snapshot(run: Dictionary) -> bool:
 	var snapshot: Variant = run.get("snapshot")
 	if not snapshot is Dictionary or (snapshot as Dictionary).is_empty():
 		return false
 	var resolver: EffectResolver = run.resolver
-	return EffectSelectors.find(resolver.bound_engine().state(), EffectSelectors.run_source(run)).is_empty()
+	var raised: int = int((snapshot as Dictionary).get("source_id", EffectSelectors.run_source(run)))
+	return EffectSelectors.find(resolver.bound_engine().state(), raised).is_empty()
 
 
 ## `live` or `snapshot` when the value expression [param expr] holds a

@@ -24,11 +24,13 @@
 ##   it sees ([method bump]) and dropped at that side's Start step
 ##   ([method reset_turn]); an absent key reads 0 ([method tally]).
 ## - `pending_choice`: null, or the Discover / Choose One continuation (C8.1).
-## - `aura_hosts`: the treasures' and the passive's `aura` effects, `[{host_id,
-##   side, effects}]` in installation order ([method add_aura_host]; C7, C9;
-##   story 013). They are not hook entries (ADR-0005), and a clone's resolver is
-##   bound with no installers (ADR-0007 Decision 3), so they live here, where
-##   `clone()` copies them. Written once, at `bind`.
+## - `aura_hosts`: what the treasures and the passive host on their owner's hero
+##   slot, `[{host_id, host_kind, side, effects}]` in installation order
+##   ([method add_aura_host]; C7, C9; stories 013, 015): their `aura` effects and
+##   their hook-less event triggers, the hero-slot observers. Neither is a hook
+##   entry (ADR-0005), and a clone's resolver is bound with no installers
+##   (ADR-0007 Decision 3), so they live here, where `clone()` copies them.
+##   Written once, at `bind`.
 ## [codeblock]
 ## var runtime: Dictionary = EffectRuntime.make()
 ## assert(EffectRuntime.is_runtime(engine.state().effects))
@@ -142,12 +144,23 @@ static func write_counter(runtime: Dictionary, source_id: Variant, key: String, 
 	(counters[bucket_key] as Dictionary)[key] = value
 
 
-## Records the installed host [param host_id] of [param side] with its `aura`
-## [param effects], copied by value (C7, C9; story 013). The resolver's `bind`
-## calls this; nothing changes it afterwards.
-## Example: `EffectRuntime.add_aura_host(state.effects, "treasure_stampede_horn", "player", auras)`.
-static func add_aura_host(runtime: Dictionary, host_id: String, side: String, effects: Array) -> void:
-	(runtime.aura_hosts as Array).append({"host_id": host_id, "side": side, "effects": effects.duplicate(true)})
+## Records the installed host [param host_id] of [param side] with what it hosts
+## on the hero slot, [param effects] (its `aura` effects and hero-slot observers),
+## copied by value (C7, C9; stories 013, 015). The resolver's `bind` calls this;
+## nothing changes it afterwards.
+## Example: `EffectRuntime.add_aura_host(state.effects, "treasure_stampede_horn", "treasure", "player", hosted)`.
+static func add_aura_host(runtime: Dictionary, host_id: String, host_kind: String, side: String, effects: Array) -> void:
+	(runtime.aura_hosts as Array).append({"host_id": host_id, "host_kind": host_kind, "side": side, "effects": effects.duplicate(true)})
+
+
+## The hero-slot effects of host [param host_id] in [param runtime] (`[]` when it
+## has none): the array a queue entry's `effect_index` reads (story 015).
+## Example: `EffectRuntime.hosted_effects(state.effects, "treasure_grave_tithe")[0]`.
+static func hosted_effects(runtime: Dictionary, host_id: String) -> Array:
+	for host: Dictionary in runtime.aura_hosts:
+		if str(host.host_id) == host_id:
+			return host.effects
+	return []
 
 
 static func _is_plain(value: Variant) -> bool:

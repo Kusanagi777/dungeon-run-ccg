@@ -389,7 +389,7 @@ so only a reference can.
    | Attack declared | observers `on_attack` (then match-rules re-check) |
    | Damage step | inside F2: `modify_damage` value hooks → `on_hero_damaged` hook (synchronous) ; after the step: `on_damage_taken` / `on_damage_dealt` observers queued in damage order, **before** the death check (so they resolve before Deathrattles from the same hit, match-rules C10) |
    | Heal | `modify_heal` value hooks → `on_heal` observers queued |
-   | Death check | `minion_died` group → Deathrattles queued in DD-M11 order → `on_minion_died` observers queued (observers that died in the same check see nothing) |
+   | Death check | `minion_died` group → Deathrattles queued in DD-M11 order → `on_minion_died` observers queued (observers that died in the same check see nothing). With several deaths in one check they queue in candidate order across the check: each observer's triggers, one per death, then the next observer's, which is what AC-45's "after row 11's two" needs (2026-11-04, card-effects story 015) |
    | Draw | hook `on_draw` → observers `on_draw` (never on a burn, match-rules C11) |
    | Match start | hooks `on_match_start` only |
 
@@ -427,8 +427,8 @@ so only a reference can.
    `EffectRuntime` and need no reset (the turn counter moves on).
 8. **`EffectRuntime`** is the resolver's only state: `once_marks`, `counters`, per-side per-turn
    tallies (C4), the `pending_choice` continuation, and `aura_hosts`, the treasure and passive
-   `aura` effects a clone's resolver cannot get from its installers (2026-11-04, card-effects
-   story 013, ADR-0007 erratum). It is a plain-data member of `MatchState`
+   `aura` effects and hero-slot observers a clone's resolver cannot get from its installers
+   (2026-11-04, card-effects stories 013 and 015, ADR-0007 errata). It is a plain-data member of `MatchState`
    so `clone()` (Boss AI look-ahead) and a future `restore(log)` carry it; it holds no Node or
    callable (DD-T02).
 9. **Randomness.** Every random selection and Discover roll calls the `match_<floor>` stream the

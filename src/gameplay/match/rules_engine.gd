@@ -311,6 +311,8 @@ var _steps: int = 0
 ## otherwise. Plain data only (story 016): parked as is in `Choice`.
 var _stages: Array[Dictionary] = []
 var _frame: Dictionary = {}
+## The treasure or passive whose pass is running ([method set_event_source]), else null.
+var _event_source: Variant = null
 ## The trigger hook points whose entries are running right now (ADR-0005
 ## rule-4 exception, erratum 2026-11-03): a primitive that reaches the same
 ## point again inside one of them faults `resolution_overflow` instead of
@@ -884,9 +886,14 @@ func emit(type: StringName, payload: Dictionary) -> int:
 	# else would be an append to a sealed log (a caller bug, ADR-0003).
 	if _halted() and type != &"match_ended":
 		return -1
+	# card-effects C9: a treasure's or passive's pass names it on every event it
+	# emits; `match_ended` belongs to the match, whatever ended it.
+	var stamped: Dictionary = payload
+	if _event_source != null and type != &"match_ended" and not payload.has("source_id"):
+		stamped = payload.merged({"source_id": _event_source})
 	# TODO(rng-event-log story 005): type the log as `EventLog`.
 	var log: Variant = _state.log
-	var seq: int = log.append(type, payload, _cause_seq)
+	var seq: int = log.append(type, stamped, _cause_seq)
 	if seq > 0:
 		if _call_first_seq == 0:
 			_call_first_seq = seq
@@ -894,6 +901,23 @@ func emit(type: StringName, payload: Dictionary) -> int:
 	elif not _halted():
 		fault(MatchRecords.REASON_EVENT_CAP)
 	return seq
+
+
+## The resolver names the treasure or passive whose effect pass is running
+## ([param host_id], its String id; null between such passes): [method emit] adds
+## it as `source_id` to every event that has none, so the C15 primitives keep
+## their signatures and a hook-driven `armor_gained` still credits its host
+## (card-effects C9; 2026-11-04, story 015). Transient: set and cleared within
+## one pass, so a clone never carries it.
+## Example: the resolver's `engine.set_event_source("treasure_iron_hide")`.
+func set_event_source(host_id: Variant) -> void:
+	_event_source = host_id
+
+
+## The value [method set_event_source] left, for a pass that nests in another.
+## Example: `var outer: Variant = engine.event_source()`.
+func event_source() -> Variant:
+	return _event_source
 
 
 ## The injected `match_<floor>` stream from `MatchConfig.rng_match` (ADR-0007
@@ -1438,6 +1462,12 @@ func transform(target_id: int, def_id: String) -> int:
 	board[index] = minion
 	_zone_serial += 1
 	_where[int(minion.entity_id)] = _hint(_side_index(side), LOC_BOARD, index)
+	# card-effects Edge Cases: a source must have been in play before the raising
+	# event, so the body a played minion turned into does not observe its own
+	# entry ([method _fire_observers]). The subject stays the played entity: what
+	# an observer reads of it after a self-transform is an open question.
+	if int(_frame.get("became", _frame.get("id", NO_ENTITY))) == target_id:
+		_frame["became"] = int(minion.entity_id)
 	emit(&"minion_transformed", {
 		"side": side, "entity_id": int(minion.entity_id), "from_card_id": str(old.def_id),
 		"to_card_id": def_id, "old_entity_id": target_id, "position": index,
@@ -2469,12 +2499,16 @@ func _play_point(point: StringName, side: String, source_id: int, target: Varian
 ## joins the ctx as `instance_id` — the played card instance, card-effects C2's
 ## `trigger_subject` of `on_card_played` (a minion's or weapon's `subject` is
 ## its new entity, so the instance is named separately; code review 2026-11-03).
+## `entered` joins it when the played minion transformed itself: the new body, as
+## much an entrant as `subject` (2026-11-04, card-effects story 015).
 func _fire_observers(point: StringName, side: String, subject: int, card_id: String, cause: int, instance_id: int = NO_ENTITY) -> void:
 	if _halted():
 		return
 	var ctx: Dictionary = {"side": side, "candidates": _candidates_in_order(), "subject": subject, "card_id": card_id}
 	if instance_id != NO_ENTITY:
 		ctx["instance_id"] = instance_id
+	if _frame.has("became"):
+		ctx["entered"] = int(_frame.became)
 	_run_step(_resolve_step.bind(point, ctx), cause)
 
 
@@ -3074,7 +3108,8 @@ func _execute_queued(step: Dictionary) -> void:
 	var point: StringName = step.point
 	var ctx: Dictionary = step.ctx
 	_cause_seq = int(step.cause_seq)
-	var seq: int = emit(&"trigger_resolved", {"point": String(point), "source_id": int(ctx.source_id), "effect_id": str(ctx.get("effect_id", ""))})
+	var source_id: Variant = ctx.source_id if ctx.source_id is String else int(ctx.source_id)
+	var seq: int = emit(&"trigger_resolved", {"point": String(point), "source_id": source_id, "effect_id": str(ctx.get("effect_id", ""))})
 	if _halted():
 		return
 	_cause_seq = seq
@@ -3107,21 +3142,23 @@ func queue_triggers(point: StringName, entries: Array[Dictionary], reason: Strin
 ## optional `point` overrides [param point]); it keeps its own `snapshot` or
 ## gets one — [param dead_snapshot] for a Deathrattle (the source has just
 ## left play), else a value copy of the source now. Nothing is queued for a
-## source that is not in play (or in hand) at raise time (C10). An entry
-## without a whole-number `source_id` is a resolver defect: it is logged
-## (`push_error`) and skipped, and the entries after it still queue (code
-## review 2026-11-03). A non-empty [param reason] rides on each `trigger_queued`
-## ([method queue_triggers]).
+## source that is not in play (or in hand) at raise time (C10). A String
+## `source_id` is a treasure or passive on the hero slot: always a live source,
+## with no record to find (card-effects C9; 2026-11-04, story 015). Any other
+## non-whole `source_id` is a resolver defect: it is logged (`push_error`) and
+## skipped, and the entries after it still queue (code review 2026-11-03). A
+## non-empty [param reason] rides on each `trigger_queued` ([method queue_triggers]).
 func _enqueue(point: StringName, entries: Array[Dictionary], raise_seq: int, dead_snapshot: Dictionary = {}, reason: String = "") -> void:
 	for entry: Dictionary in entries:
 		if _halted():
 			return
-		if not _is_whole(entry.get("source_id")):
+		var hosted: bool = entry.get("source_id") is String
+		if not hosted and not _is_whole(entry.get("source_id")):
 			push_error("RulesEngine: skipped a malformed trigger entry from resolve(%s) (no integer source_id): %s" % [point, entry])
 			continue
-		var source_id: int = int(entry.source_id)
+		var source_id: Variant = entry.source_id if hosted else int(entry.source_id)
 		var snapshot: Dictionary = dead_snapshot
-		if snapshot.is_empty():
+		if snapshot.is_empty() and not hosted:
 			var live: Dictionary = _live_record(source_id)
 			if live.is_empty():
 				continue
@@ -3192,13 +3229,42 @@ func _death_check() -> Array[int]:
 	leaving.append_array(broken)
 	for i: int in leaving.size():
 		_queue_deathrattle(leaving[i], died_seqs[i])
-	for i: int in dead.size():
-		var snapshot: Dictionary = dead[i]
-		_raise(&"on_minion_died", {
-			"side": str(snapshot.controller), "candidates": _candidates_in_order(),
-			"subject": int(snapshot.entity_id), "snapshot": snapshot,
-		}, died_seqs[i])
+	_raise_deaths(dead, died_seqs)
 	return ids
+
+
+## C10: raises `on_minion_died` for each of [param dead] (its raise event
+## [param died_seqs] at the same index) and queues what they raise in **candidate
+## order across the whole check**: one observer's triggers, for each death, then
+## the next observer's (card-effects AC-45: a hero-slot observer resolves after
+## row 11's two; 2026-11-04, story 015). Each death still counts one raise, for
+## the tallies and the `once_per_turn` marks. An entry names its candidate
+## (`candidate`, else its `source_id`); one naming none queues last.
+func _raise_deaths(dead: Array[Dictionary], died_seqs: Array[int]) -> void:
+	var candidates: Array[int] = _candidates_in_order()
+	if dead.size() == 1:
+		_raise(&"on_minion_died", _death_ctx(dead[0], candidates), died_seqs[0])
+		return
+	var rank: Dictionary[int, int] = {}
+	for i: int in candidates.size():
+		rank[candidates[i]] = i
+	var by_rank: Array[Array] = []
+	by_rank.resize(candidates.size() + 1)
+	for i: int in dead.size():
+		if _halted():
+			return
+		for entry: Dictionary in _resolve_candidates(&"on_minion_died", _death_ctx(dead[i], candidates)):
+			var candidate: Variant = entry.get("candidate", entry.get("source_id"))
+			by_rank[rank.get(candidate, candidates.size())].append([entry, died_seqs[i]])
+	for raised: Array in by_rank:
+		for item: Array in raised:
+			var entries: Array[Dictionary] = [item[0]]
+			_enqueue(&"on_minion_died", entries, int(item[1]))
+
+
+## The `on_minion_died` ctx of the death [param snapshot].
+static func _death_ctx(snapshot: Dictionary, candidates: Array[int]) -> Dictionary:
+	return {"side": str(snapshot.controller), "candidates": candidates, "subject": int(snapshot.entity_id), "snapshot": snapshot}
 
 
 ## [param side]'s weapon leaves play: `player.weapon = null`; returns a value
