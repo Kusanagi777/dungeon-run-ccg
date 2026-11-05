@@ -1,0 +1,24 @@
+{
+ "overrides": {
+  "locked": [
+   {
+    "id": "hero_fortune",
+    "name": "Fortune",
+    "hint": "Win a run with any hero: 0 / 1"
+   },
+   {
+    "id": "hero_order",
+    "name": "Order",
+    "hint": "Defeat 16 bosses: 8 / 16"
+   },
+   {
+    "id": "hero_shadow",
+    "name": "Shadow",
+    "hint": "Reach floor 8 with Decay: 0 / 1"
+   }
+  ]
+ },
+ "settings": {
+  "text_scale": 1.5
+ }
+}

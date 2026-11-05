@@ -1,0 +1,21 @@
+{
+ "toasts": [
+  {
+   "kind": "unlock",
+   "key": "unlock.a",
+   "title": "New hero unlocked: Mother Wythe",
+   "subtitle": "Win 1 runs",
+   "swatch": "decay"
+  },
+  {
+   "kind": "warning",
+   "title": "The run could not be saved. Check disk space."
+  },
+  {
+   "kind": "unlock",
+   "key": "unlock.b",
+   "title": "New treasure unlocked: Plague Bell",
+   "subtitle": "Win 1 runs"
+  }
+ ]
+}
