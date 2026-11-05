@@ -1,7 +1,7 @@
 # Story 009: Mulligan screen — keep / replace any subset, Confirm
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

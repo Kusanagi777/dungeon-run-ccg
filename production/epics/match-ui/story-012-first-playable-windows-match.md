@@ -1,7 +1,7 @@
 # Story 012: First playable — one War match vs The Torchbearer, mouse-played, on the Windows export
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: Integration
 > **Estimate**: M

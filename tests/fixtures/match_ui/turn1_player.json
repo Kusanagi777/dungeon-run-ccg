@@ -1,0 +1,7 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": []},
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]}
+  ]
+}

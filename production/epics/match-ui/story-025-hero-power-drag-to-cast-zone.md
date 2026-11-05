@@ -1,7 +1,7 @@
 # Story 025: Hero power by drag — an untargeted Ready hero power is dragged to the cast zone (Phase C)
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: S

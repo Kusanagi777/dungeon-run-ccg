@@ -1,7 +1,7 @@
 # Story 007: Board rows — minion tokens, summon, death group, gap-close and the offset_transform lunge
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

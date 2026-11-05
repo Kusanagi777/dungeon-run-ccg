@@ -1,0 +1,11 @@
+{
+  "config": {
+    "hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [],
+    "boss_health": 8
+  },
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "aggro_to_end"}
+  ]
+}

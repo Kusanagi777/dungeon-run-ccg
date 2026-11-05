@@ -1,0 +1,13 @@
+{
+  "config": {
+    "hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [],
+    "player_deck": ["war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through", "war_cleave_through"],
+    "boss_deck": ["boss_tinder_imp", "neutral_torch_imp", "boss_rat", "neutral_tunnel_rat", "boss_tinder_imp", "neutral_torch_imp", "boss_rat", "neutral_tunnel_rat", "boss_tinder_imp", "neutral_torch_imp", "boss_rat", "neutral_tunnel_rat", "boss_tinder_imp", "neutral_torch_imp", "boss_rat", "neutral_tunnel_rat", "boss_tinder_imp", "neutral_torch_imp", "boss_rat", "neutral_tunnel_rat", "boss_tinder_imp", "neutral_torch_imp", "boss_rat", "neutral_tunnel_rat"]
+  },
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "end_turns", "count": 4},
+    {"type": "play_card", "hand_index": 0}
+  ]
+}

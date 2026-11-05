@@ -40,7 +40,7 @@ const OVERRIDE_KEYS: PackedStringArray = ["meta", "card_database"]
 ## (control manifest, Foundation). The owner named in each entry is the
 ## `DataLoader.FILE_MANIFEST` row's.
 const PENDING_CONFIG_OWNERS: PackedStringArray = [
-	"match_ui", "run_ui",
+	"run_ui",
 ]
 ## Stage-7b record validator keys whose owner has not shipped its validator;
 ## each is registered with [method _pending_record_validator] (one
@@ -321,6 +321,7 @@ func _collect_validators(meta: MetaApi, debug_build: bool = OS.is_debug_build())
 	configs["content_budgets"] = ContentValidator.validate_config
 	configs["heroes_balance"] = Heroes.validate_config
 	configs["treasures_balance"] = Treasures.validate_config
+	configs["match_ui"] = MatchUiConfig.validate_config
 	configs["profile_defaults"] = ProfileDefaults.validate_config
 	configs["run_structure"] = RunMachine.validate_config
 	configs["reward_draft"] = RewardDraft.validate_config.bind(debug_build)

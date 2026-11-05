@@ -24,6 +24,12 @@
 ## [codeblock]
 ## deckdelve.exe --headless -- --print-data-version
 ## [/codeblock]
+## Debug builds only: `--fixture=<name>` shows the match view instead of the shell, so
+## an exported debug build reaches a match through its main scene (match-ui story 012).
+## `MatchView` reads the argument itself. A release build ignores it.
+## [codeblock]
+## deckdelve-debug.exe -- --fixture=first_playable
+## [/codeblock]
 ## A release export needs no argument to reach `data_error`: Boot's validator
 ## map files every pending validator as an error there, so the shipped load
 ## ends `Failed` by design until `PENDING_CONFIG_OWNERS` / `PENDING_RECORD_OWNERS`
@@ -44,10 +50,17 @@ const FIXTURE_ROOT: String = "res://tests/fixtures/data/"
 ## Fixture names allowed after [constant FAIL_FIXTURE_ARG]: one folder name,
 ## no path separators, so the argument cannot point anywhere else.
 const FIXTURE_NAME_PATTERN: String = "^[a-z0-9_]+$"
+## The debug argument naming a match fixture (`MatchDebugLoader`).
+const MATCH_FIXTURE_ARG: String = "--fixture="
+## `load()`ed on that route only, so the shell's start pays nothing for it.
+const MATCH_VIEW_SCENE_PATH: String = "res://src/ui/match/match_view.tscn"
 
 
 func _ready() -> void:
 	var args: Array = Array(OS.get_cmdline_user_args())
+	if launches_match(args, OS.is_debug_build()):
+		add_child((load(MATCH_VIEW_SCENE_PATH) as PackedScene).instantiate())
+		return
 	var booted: BootResult = Boot.boot(boot_overrides(args, OS.is_debug_build()))
 	if args.has(PRINT_DATA_VERSION_ARG):
 		print(Boot.services().card_database.data_version() if booted.ok else "")
@@ -56,6 +69,15 @@ func _ready() -> void:
 	var shell: RunShell = RUN_SHELL_SCENE.instantiate() as RunShell
 	shell.bind(Boot.services())
 	add_child(shell)
+
+
+## True when [param args] (the user arguments) ask for a match fixture in a
+## [param debug_build].
+## Example: `Main.launches_match(["--fixture=first_playable"], true)`.
+static func launches_match(args: Array, debug_build: bool) -> bool:
+	if not debug_build:
+		return false
+	return args.any(func(arg: Variant) -> bool: return String(arg).begins_with(MATCH_FIXTURE_ARG))
 
 
 ## The `Boot.boot()` overrides [param args] (the user arguments) select:
