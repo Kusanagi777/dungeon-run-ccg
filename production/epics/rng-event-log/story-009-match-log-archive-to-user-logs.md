@@ -1,7 +1,7 @@
 # Story 009: Match log archive to `user://logs/` (keep_match_logs and the faults folder)
 
 > **Epic**: RNG & Event Log
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: M
