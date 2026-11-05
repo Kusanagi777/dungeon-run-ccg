@@ -12,10 +12,8 @@
 ##
 ## Story 006 ships `damage`, `heal`, `buff`, `destroy`, `draw`, `armor`,
 ## `equip`, `summon`, `silence`, `freeze`, `give_keyword` and `mana`; every
-## other C5 op is recorded `skipped` until its story lands
-## (TODO: `transform` /
-## `copy_to_hand` / keyword removal 013, the rest with the stories that own
-## them). Story 007 adds `conditional` / `repeat` ([method step]), value
+## other C5 op is recorded `skipped` until its story lands. Story 013 adds
+## `transform`, `copy_to_hand` and `return_to_hand`. Story 007 adds `conditional` / `repeat` ([method step]), value
 ## expressions — every value param ([constant VALUE_PARAMS]) is evaluated by
 ## `EffectValues.eval` in [method run] before the handler sees it, a negative
 ## result for a [constant NON_NEGATIVE] param clamped to 0 with
@@ -100,12 +98,18 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 	"freeze": ["minion", "hero"],
 	"give_keyword": ["minion", "hero", "weapon"],
 	"retrigger": ["minion", "weapon"],
+	"transform": ["minion"],
+	"return_to_hand": ["minion"],
+	"copy_to_hand": ["minion", EffectSelectors.KIND_CARD],
 }
 ## The ops that may target a card instance in hand or deck, and the param
 ## such a target needs (C5 `buff`: "card instances in hand **or deck**
 ## (`cost` only)"; story 011, row 25 Insight). Without it the instance is
 ## skipped like any other illegal target.
 const CARD_INSTANCE_PARAMS: Dictionary[String, String] = {"buff": "cost"}
+## The ops that take a card instance in hand or deck with no param to require
+## (C5 `copy_to_hand`: "characters (minions), hand/deck cards").
+const CARD_INSTANCE_OPS: Array[String] = ["copy_to_hand"]
 ## The static op `recompute_auras()` applies (C5 `aura`, C7; story 012).
 const OP_AURA: String = "aura"
 ## The one op of a value trigger (C5 `modify_value`, C2; story 014).
@@ -139,6 +143,9 @@ func _init() -> void:
 		"mana": _op_mana,
 	}
 	_table["add_to_hand"] = _op_add_to_hand
+	_table["transform"] = _op_transform
+	_table["copy_to_hand"] = _op_copy_to_hand
+	_table["return_to_hand"] = _op_return_to_hand
 	_table["add_counter"] = _op_add_counter
 	_table["set_counter"] = _op_set_counter
 
@@ -484,6 +491,67 @@ func _op_give_keyword(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) 
 		return APPLIED)
 
 
+## C5 `transform`: `transform(target, card_id)` per target. The primitive gives
+## the new `entity_id`, drops enchantments and damage, carries summoning
+## sickness and fires no Battlecry. `targets` are the old ids, `values.new_ids`
+## the new ones. A target that is the pass's source rebinds `self` to the new
+## body (C6.5, [method EffectResolver.rebind_source]); a definition the database
+## lacks transforms nothing (`skipped`).
+func _op_transform(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var card_id: String = str(op.get("card_id", ""))
+	var new_ids: Array[int] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"card_id": card_id}, func(id: int) -> String:
+		var new_id: int = engine.transform(id, card_id)
+		if new_id == RulesEngine.NO_ENTITY:
+			return SKIPPED
+		new_ids.append(new_id)
+		if run_ctx.get("resolver") is EffectResolver and EffectSelectors.run_source(run_ctx) == id:
+			(run_ctx.resolver as EffectResolver).rebind_source(run_ctx, id, new_id)
+		return APPLIED)
+	(result.values as Dictionary)["new_ids"] = new_ids
+	return result
+
+
+## C5 `copy_to_hand`: `add_card_to_hand(side, target.def_id)` × count per target,
+## a minion or a card instance in hand or deck. A copy is the **definition**,
+## never the instance: no enchantments, damage or Silence (Edge Cases). `side`
+## is the op's, else the owner ([method _side]). Per copy a full hand is
+## `burned` (the engine emits `card_burned`), else `applied`.
+func _op_copy_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var side: String = _side(op, run_ctx)
+	var count: int = _int(op.get("count", 1))
+	var state: MatchState = engine.state()
+	var added: Array[String] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"count": count, "side": side}, func(id: int) -> String:
+		var def_id: String = EffectSelectors.def_id_of(state, id)
+		var outcomes: Array[String] = []
+		for _i: int in count:
+			# The last copy may have hit the event cap: the resolver is unbound now.
+			if engine.phase() == MatchState.PHASE_ENDED:
+				break
+			outcomes.append(hand_add_outcome(engine, side))
+			@warning_ignore("return_value_discarded")
+			engine.add_card_to_hand(side, def_id)
+			added.append(def_id)
+		return fold_outcomes(outcomes) if count > 0 else APPLIED)
+	(result.values as Dictionary)["card_ids"] = added
+	return result
+
+
+## C5 `return_to_hand`: `return_to_hand(target)` per target. The minion leaves
+## play with no death and its controller gets a fresh instance of its `def_id`:
+## nothing is copied, so counters keyed by the old `entity_id` are simply out of
+## reach (story 009). A full hand is `burned`: the primitive emits
+## `minion_returned{burned: true}`, never `card_burned` (match-rules C15).
+func _op_return_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var state: MatchState = engine.state()
+	return _per_target(engine, op, run_ctx, {}, func(id: int) -> String:
+		var outcome: String = hand_add_outcome(engine, str(EffectSelectors.find(state, id).controller))
+		@warning_ignore("return_value_discarded")
+		engine.return_to_hand(id)
+		return outcome)
+
+
 ## C5 `retrigger` (sprint-4 review S5): queues each target's live effects with
 ## the op's `trigger` as if raised now, through the engine's
 ## [method RulesEngine.queue_triggers] (`trigger_queued{reason: retrigger}`) —
@@ -532,11 +600,13 @@ func _per_target(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary, value
 
 ## The kind [param id] counts as for op [param name]: [method
 ## EffectSelectors.kind_of] for an entity in play; for a card instance in
-## hand or deck, [constant EffectSelectors.KIND_CARD] when the op has the
-## param [constant CARD_INSTANCE_PARAMS] names, else "" (not a legal target).
+## hand or deck, [constant EffectSelectors.KIND_CARD] when the op is in
+## [constant CARD_INSTANCE_OPS] or has the param [constant CARD_INSTANCE_PARAMS]
+## names, else "" (not a legal target).
 static func _target_kind(state: MatchState, name: String, op: Dictionary, id: int) -> String:
 	var kind: String = EffectSelectors.kind_of(state, id)
-	if kind == "" and CARD_INSTANCE_PARAMS.has(name) and op.has(CARD_INSTANCE_PARAMS[name]) and EffectSelectors.is_card_instance(state, id):
+	var takes_card: bool = CARD_INSTANCE_OPS.has(name) or (CARD_INSTANCE_PARAMS.has(name) and op.has(CARD_INSTANCE_PARAMS[name]))
+	if kind == "" and takes_card and EffectSelectors.is_card_instance(state, id):
 		return EffectSelectors.KIND_CARD
 	return kind
 
@@ -787,7 +857,7 @@ static func pool_candidates(resolver: EffectResolver, spec: Dictionary, run_ctx:
 		if seen.has(id) or excluded.has(id):
 			continue
 		seen[id] = true
-		if EffectSelectors.matches(resolver, {"entity_id": -1, "def_id": id, "controller": owner}, filter, owner, int(run_ctx.get("source_id", -1)), run_ctx):
+		if EffectSelectors.matches(resolver, {"entity_id": -1, "def_id": id, "controller": owner}, filter, owner, EffectSelectors.run_source(run_ctx), run_ctx):
 			out.append(id)
 	out.sort()
 	return out

@@ -10,7 +10,9 @@
 ## - [method bind] keeps the engine, installs each `HookInstaller` through
 ##   `engine.state().hooks.install` in the order given (treasures in pick
 ##   order, then the boss passive; a refused duplicate is the **engine's**
-##   `hook_install_skipped`), then registers the bound methods
+##   `hook_install_skipped`), keeps each installed host's `aura` effects in
+##   `EffectRuntime.aura_hosts` (they are not hook entries; story 013), then
+##   registers the bound methods
 ##   [method apply_value_hook] / [method run_hook_effect] as the registry's
 ##   evaluators.
 ## - [method unbind] (the engine calls it once, at `Ended` or from
@@ -199,19 +201,31 @@ func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String
 
 ## Binds this resolver to [param engine] at `RulesEngine.start` (C3 step 1,
 ## after `state.hooks = HookRegistry.new()`, before `on_match_start`):
-## installs [param installers] in order through the engine's registry, then
+## installs [param installers] in order through the engine's registry, routes
+## each installed host's `aura` effects to `EffectRuntime.aura_hosts`, then
 ## registers [method apply_value_hook] and [method run_hook_effect] as its
 ## evaluators. A refused installer (duplicate `host_id`) is left for the
-## engine to log. Example: see the class description.
+## engine to log, and its auras stay out. A clone binds with no installers: its
+## aura hosts arrive in the copied `MatchState.effects`.
+## Example: see the class description.
 func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void:
 	assert(_engine == null, "EffectResolver.bind: already bound (one resolver per engine; a clone binds a fresh one)")
 	_engine = engine
 	_fold_run.resolver = self
 	var hooks: HookRegistry = engine.state().hooks
 	for installer: HookInstaller in installers:
-		@warning_ignore("return_value_discarded")
-		hooks.install(installer)
+		if hooks.install(installer):
+			_keep_auras(installer, engine.state().effects)
 	hooks.set_evaluators(apply_value_hook, run_hook_effect)
+
+
+## Routes [param installer]'s `aura` effects to [param runtime] (C7, C9; story
+## 013). ADR-0005: the registry holds only hook-bound effects, and a treasure
+## compiles into no card instance (Alt 3).
+func _keep_auras(installer: HookInstaller, runtime: Dictionary) -> void:
+	var auras: Array = installer.effects.filter(func(effect: Dictionary) -> bool: return str(effect.get("trigger", "")) == TRIGGER_AURA)
+	if not auras.is_empty():
+		EffectRuntime.add_aura_host(runtime, installer.host_id, str(installer.side), auras)
 
 
 ## Releases the engine: clears the registry's evaluators and the engine
@@ -385,15 +399,18 @@ func _keep_tallies(point: StringName, ctx: Dictionary) -> void:
 ## contract) — and while it keeps the re-applications silent (one
 ## `auras_recomputed` lists the net changes). Walks the sources in canonical
 ## order ([method _aura_sources]: player board left to right, boss board, then
-## the equipped weapons, player first; treasure / passive hosts on the hero
-## slot are story 013), skips a **silenced** source (Silence stops emission,
-## match-rules C13), and runs each definition effect with trigger `aura`
-## through [method EffectOps.apply_aura]: its `targets` evaluated afresh, one
-## `apply_enchantment(…, is_aura: true)` per (source, effect, target). Then
+## the equipped weapons, player first), skips a **silenced** source (Silence
+## stops emission, match-rules C13), and runs each definition effect with
+## trigger `aura` through [method EffectOps.apply_aura]: its `targets` evaluated
+## afresh, one `apply_enchantment(…, is_aura: true)` per (source, effect,
+## target). Then the treasures' and the passive's auras, hosted on their owner's
+## hero slot, in installation order (C7, C9; story 013): always live, never
+## Silenced, and the enchantment's `source_entity_id` is the host id. Then
 ## every hand card's own `passive_hand` effects, each on that card only
 ## (C7: the self-only hand aura, its value read now). Holds no state of its
-## own: what an aura grants is re-derived from the board every call, so a
-## `clone()` recomputes the same auras from its copied state.
+## own: what an aura grants is re-derived from the board and
+## `EffectRuntime.aura_hosts` every call, so a `clone()` recomputes the same
+## auras from its copied state.
 ## Example: the engine's `_resolver.recompute_auras()`.
 func recompute_auras() -> void:
 	assert(_engine != null, "EffectResolver.recompute_auras: not bound to an engine")
@@ -408,6 +425,10 @@ func recompute_auras() -> void:
 			var effect: Dictionary = effects[index]
 			if str(effect.get("trigger", "")) == TRIGGER_AURA:
 				_ops.apply_aura(_engine, _aura_run(effect, def_id, index, int(source.entity_id), owner), null)
+	for host: Dictionary in state.effects.get("aura_hosts", []):
+		var auras: Array = host.effects
+		for index: int in auras.size():
+			_ops.apply_aura(_engine, _aura_run(auras[index], str(host.host_id), index, str(host.host_id), str(host.side)), null)
 	for side: String in MatchRecords.SIDES:
 		for card: Dictionary in state.players[side].hand:
 			var effects: Array = effects_of(str(card.def_id))
@@ -433,7 +454,8 @@ func _aura_sources(state: MatchState) -> Array[Dictionary]:
 
 ## The pass context of one aura effect (plain run fields, as [method _run_pass]
 ## builds them, plus [constant EffectSelectors.RUN_AURA_RECOMPUTE]).
-func _aura_run(effect: Dictionary, def_id: String, index: int, source_id: int, owner: String) -> Dictionary:
+## [param source_id] is an entity id, or a treasure's or passive's String id.
+func _aura_run(effect: Dictionary, def_id: String, index: int, source_id: Variant, owner: String) -> Dictionary:
 	return {
 		"effect": effect,
 		"resolver": self,
@@ -487,6 +509,18 @@ func run_hook_effect(_entry: Dictionary, _side: StringName, _ctx: Dictionary) ->
 	pass
 
 
+## C6.5, story 013: the pass [param run_ctx]'s source [param old_id] was
+## transformed into [param new_id], so `self` is the new body for the ops left in
+## this pass and for the later effects of its play run, kept in [member _tail].
+## Queued triggers of the old entity keep their snapshot.
+## Example: `resolver.rebind_source(run, old_id, new_id)`.
+func rebind_source(run_ctx: Dictionary, old_id: int, new_id: int) -> void:
+	run_ctx.source_id = new_id
+	for play: Dictionary in _tail:
+		if int(play[PLAY_SOURCE]) == old_id:
+			play[PLAY_SOURCE] = new_id
+
+
 ## Runs every effect of the host `ctx.card_id` whose trigger is
 ## [param trigger] now, in `effects[]` order (C1 rule 3, C6.2).
 func _run_play_point(trigger: String, ctx: Dictionary) -> void:
@@ -535,6 +569,7 @@ func _run_play_from(play: Dictionary) -> bool:
 		_tail.pop_front()
 		if not finished:
 			return false
+		play[PLAY_SOURCE] = rest[PLAY_SOURCE]
 	return true
 
 

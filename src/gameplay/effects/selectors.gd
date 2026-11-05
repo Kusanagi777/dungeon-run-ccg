@@ -187,7 +187,7 @@ static func pool(resolver: EffectResolver, selector: Variant, run: Dictionary) -
 	var state: MatchState = engine.state()
 	var name: String = selector_name(selector)
 	var owner: String = str(run.owner)
-	var source_id: int = int(run.get("source_id", -1))
+	var source_id: int = run_source(run)
 	var filter: Dictionary = {}
 	if selector is Dictionary and (selector as Dictionary).get("filter") is Dictionary:
 		filter = selector.filter
@@ -247,13 +247,22 @@ static func hand_cards(resolver: EffectResolver, side: String, filter: Dictionar
 	var out: Array[int] = []
 	var owner: String = str(run.get("owner", side))
 	for card: Dictionary in resolver.bound_engine().state().players[side].hand:
-		if matches(resolver, _card_view(card, side), filter, owner, int(run.get("source_id", -1)), run):
+		if matches(resolver, _card_view(card, side), filter, owner, run_source(run), run):
 			out.append(int(card.instance_id))
 	return out
 
 
 static func _card_view(card: Dictionary, side: String) -> Dictionary:
 	return {"entity_id": int(card.instance_id), "def_id": str(card.def_id), "controller": side}
+
+
+## The entity id of pass [param run]'s source, or −1 when it has none on the
+## board: a treasure or passive source is its String id (C9), and `int()` of one
+## would read the digits in it as an entity id.
+## Example: `EffectSelectors.run_source({"source_id": "treasure_row_42"}) == -1`.
+static func run_source(run: Dictionary) -> int:
+	var id: Variant = run.get("source_id", -1)
+	return int(id) if typeof(id) == TYPE_INT or typeof(id) == TYPE_FLOAT else -1
 
 
 ## `n` of a selector (C3; default 1).
@@ -288,7 +297,7 @@ static func _neighbours(resolver: EffectResolver, name: String, selector: Varian
 				picks.append(index + 1)
 			for pick: int in picks:
 				var minion: Dictionary = board[pick]
-				if not _left_out(engine, minion, run) and matches(resolver, minion, filter, str(run.owner), int(run.get("source_id", -1)), run):
+				if not _left_out(engine, minion, run) and matches(resolver, minion, filter, str(run.owner), run_source(run), run):
 					out.append(int(minion.entity_id))
 			return out
 	return out
@@ -319,6 +328,21 @@ static func kind_of(state: MatchState, entity_id: int) -> String:
 	if found.has("kind"):
 		return str(found.kind)
 	return KIND_WEAPON
+
+
+## The `def_id` of [param id], a minion in play or a card instance in a hand or
+## deck ([constant CARD_TARGET_ZONES]); "" when it is neither (C5 `copy_to_hand`).
+## Example: `EffectSelectors.def_id_of(state, target_id)`.
+static func def_id_of(state: MatchState, id: int) -> String:
+	var record: Dictionary = find(state, id)
+	if not record.is_empty():
+		return str(record.get("def_id", ""))
+	for side: String in MatchRecords.SIDES:
+		for zone: String in CARD_TARGET_ZONES:
+			for card: Dictionary in state.players[side][zone]:
+				if int(card.instance_id) == id:
+					return str(card.def_id)
+	return ""
 
 
 ## True when [param instance_id] is a card instance in a hand or deck

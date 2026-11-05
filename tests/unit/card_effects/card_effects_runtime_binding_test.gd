@@ -120,7 +120,7 @@ func test_started_match_effects_is_an_effect_runtime_of_plain_data() -> void:
 func test_effect_runtime_make_is_the_shape_match_state_starts_with() -> void:
 	# Act / Assert — one shape, two factories: they must not drift
 	assert_dict(EffectRuntime.make()).is_equal(MatchState.make_effect_runtime())
-	assert_array(EffectRuntime.FIELDS).is_equal(["once_marks", "counters", "per_turn", "pending_choice"])
+	assert_array(EffectRuntime.FIELDS).is_equal(["once_marks", "counters", "per_turn", "pending_choice", "aura_hosts"])
 
 
 func test_effect_runtime_is_runtime_rejects_extra_missing_and_object_fields() -> void:

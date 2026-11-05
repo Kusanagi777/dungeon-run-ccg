@@ -13,6 +13,7 @@ Review record for this authoring run (2026-11-03, `/architecture-decision`,
 headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
 
 - **Erratum 2026-11-03 (code review of match-rules 009)**: queue entry returned by `resolve`: `{source_id: int, effect_id: String, point?: StringName, snapshot?: Dictionary}`. When `snapshot` is missing the engine fills it with a raise-time copy (for a Deathrattle, the death snapshot with `position`). The engine drops an entry whose source is not on the board, a hero, a weapon, in hand or in `resolving`. A popped entry runs as `resolve(point, ctx)` where `ctx` is the entry plus `snapshot`, with `ctx.queued = true` and no `candidates`.
+- **Erratum 2026-11-04 (card-effects story 013)**: `EffectRuntime` gains `aura_hosts: [{host_id, side, effects}]`, the treasures' and the passive's `aura` effects. They are not hook entries (ADR-0005), and Decision 3 binds a clone's resolver with no installers, so the resolver cannot keep them itself: they ride in `MatchState.effects`, which `clone()` copies by value. Plain data, written once at `bind`. No decision changes; status stays Accepted.
 - **TD-ADR skipped — Lean mode.**
 - **Engine specialist validation: NOT ASSESSED** — not spawned in this headless
   run (see ADR-0001 Status). This ADR uses no engine API beyond `RefCounted`,

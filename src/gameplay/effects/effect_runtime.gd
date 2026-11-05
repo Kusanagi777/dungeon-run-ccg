@@ -1,6 +1,6 @@
 ## `EffectRuntime` — the Card Effects runtime state of one match
 ## (design/gdd/card-effects.md C6.8, C8.1; ADR-0007 Decision 1 and Key
-## Interfaces): `{once_marks, counters, per_turn, pending_choice}`.
+## Interfaces): `{once_marks, counters, per_turn, pending_choice, aura_hosts}`.
 ##
 ## The data lives in `MatchState.effects`; the code that reads and writes it
 ## lives in `EffectResolver`. It is plain data — Dictionaries, Arrays, ints,
@@ -24,6 +24,11 @@
 ##   it sees ([method bump]) and dropped at that side's Start step
 ##   ([method reset_turn]); an absent key reads 0 ([method tally]).
 ## - `pending_choice`: null, or the Discover / Choose One continuation (C8.1).
+## - `aura_hosts`: the treasures' and the passive's `aura` effects, `[{host_id,
+##   side, effects}]` in installation order ([method add_aura_host]; C7, C9;
+##   story 013). They are not hook entries (ADR-0005), and a clone's resolver is
+##   bound with no installers (ADR-0007 Decision 3), so they live here, where
+##   `clone()` copies them. Written once, at `bind`.
 ## [codeblock]
 ## var runtime: Dictionary = EffectRuntime.make()
 ## assert(EffectRuntime.is_runtime(engine.state().effects))
@@ -32,17 +37,18 @@ class_name EffectRuntime
 extends RefCounted
 
 ## The record's keys, exactly these (ADR-0007 Key Interfaces).
-const FIELDS: Array[String] = ["once_marks", "counters", "per_turn", "pending_choice"]
+const FIELDS: Array[String] = ["once_marks", "counters", "per_turn", "pending_choice", "aura_hosts"]
 
 
-## An empty runtime: three empty Dictionaries and no pending choice.
+## An empty runtime: three empty Dictionaries, no pending choice, no aura host.
 ## Example: `state.effects = EffectRuntime.make()` (a fixture state).
 static func make() -> Dictionary:
-	return {"once_marks": {}, "counters": {}, "per_turn": {}, "pending_choice": null}
+	return {"once_marks": {}, "counters": {}, "per_turn": {}, "pending_choice": null, "aura_hosts": []}
 
 
 ## True when [param value] is an `EffectRuntime`: a Dictionary with exactly
-## [constant FIELDS], `once_marks` / `counters` / `per_turn` Dictionaries, and
+## [constant FIELDS], `once_marks` / `counters` / `per_turn` Dictionaries,
+## `aura_hosts` an Array, and
 ## nothing but plain data anywhere inside (no Object, Callable, Signal, RID or
 ## other engine type, no non-String key). Text is `String` only: a
 ## `StringName` value or key does not survive JSON (it reads back as a
@@ -60,6 +66,8 @@ static func is_runtime(value: Variant) -> bool:
 	for field: String in ["once_marks", "counters", "per_turn"]:
 		if not record[field] is Dictionary:
 			return false
+	if not record.aura_hosts is Array:
+		return false
 	return _is_plain(record)
 
 
@@ -132,6 +140,14 @@ static func write_counter(runtime: Dictionary, source_id: Variant, key: String, 
 	if not counters.get(bucket_key) is Dictionary:
 		counters[bucket_key] = {}
 	(counters[bucket_key] as Dictionary)[key] = value
+
+
+## Records the installed host [param host_id] of [param side] with its `aura`
+## [param effects], copied by value (C7, C9; story 013). The resolver's `bind`
+## calls this; nothing changes it afterwards.
+## Example: `EffectRuntime.add_aura_host(state.effects, "treasure_stampede_horn", "player", auras)`.
+static func add_aura_host(runtime: Dictionary, host_id: String, side: String, effects: Array) -> void:
+	(runtime.aura_hosts as Array).append({"host_id": host_id, "side": side, "effects": effects.duplicate(true)})
 
 
 static func _is_plain(value: Variant) -> bool:

@@ -178,7 +178,7 @@ static func reads_snapshot(run: Dictionary) -> bool:
 	if not snapshot is Dictionary or (snapshot as Dictionary).is_empty():
 		return false
 	var resolver: EffectResolver = run.resolver
-	return EffectSelectors.find(resolver.bound_engine().state(), int(run.get("source_id", -1))).is_empty()
+	return EffectSelectors.find(resolver.bound_engine().state(), EffectSelectors.run_source(run)).is_empty()
 
 
 ## `live` or `snapshot` when the value expression [param expr] holds a
@@ -238,7 +238,7 @@ static func holds(condition: Variant, run: Dictionary) -> bool:
 	if c.get("test") is Array and (c.test as Array).size() == 2:
 		var record: Dictionary = entity(str(c.test[0]), run)
 		var filter: Variant = c.test[1]
-		return not record.is_empty() and filter is Dictionary and EffectSelectors.matches(resolver, record, filter, str(run.owner), int(run.get("source_id", -1)), run)
+		return not record.is_empty() and filter is Dictionary and EffectSelectors.matches(resolver, record, filter, str(run.owner), EffectSelectors.run_source(run), run)
 	if c.get("holding") is Dictionary:
 		return not EffectSelectors.hand_cards(resolver, str(run.owner), c.holding, run).is_empty()
 	return false
