@@ -14,6 +14,7 @@
 > **REVISED 2026-11-03 (housekeeping)**: C5 defines `add_mana(side, n, temporary=true)` (temporary crystals, expire at the End step; "not used by v1 content" removed — Content's `decay_soul_tithe` / `neutral_treasure_map` use it) with new AC-45; Dependencies sentence about systems-index rows deleted; States `turn > TURN_CAP` row applies at `*Turn.Start` (both sides); AC-02 boss health → `MatchConfig.boss.health`; F3 `attacks_used` range → `0–MAX_ATTACKS_CAP`; Dependencies `match` stream → `match_<floor>`; Open Question added on defender-hero weapon damage (C8 step 4 unchanged).
 > **REVISED 2026-11-03 (DSL spike follow-ups, `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED)**: C15 adds `card_added_to_hand` for the `add_card_to_hand` primitive (Interactions primitive list names it; finding 2); C10 states an aura recompute with no net change emits no `auras_recomputed` (finding 8).
 > **REVISED 2026-11-04 (DD-X26, S3 option C)**: C10 and C15: `auras_recomputed` entries carry absolute values, including keywords and player hand costs; `production/reviews/2026-11-04/proposal-s3-aura-projection.md`.
+> **REVISED 2026-11-05 (DD-X29)**: C5, C10, C15, F1: every cost the player can see reaches the log. `auras_recomputed` also lists a hand card or the hero power whose cost moved by a `modify_cost` hook or a non-aura enchantment, compared with what the log last said; new hero-power entry; optional `hook_delta`.
 
 ## Summary
 
@@ -254,7 +255,8 @@ There is no action limit and no timer.
 - A card's **effective cost** is F1: base cost plus all modifiers, floored at 0. Modifier sources,
   applied in this order: enchantments on the card instance (Card Effects, e.g. "costs 1 less
   this turn"), auras from minions in play whose aura scope is `hand`, then every `modify_cost`
-  hook (Treasures, boss passive) in installation order.
+  hook (Treasures, boss passive) in installation order. Whatever moves a cost the player can see,
+  the log reports it (C10, C15; 2026-11-05, DD-X29).
 - Mana is paid at command acceptance, before any effect resolves, and is never refunded — a
   Battlecry that fizzles still cost its mana. Rationale: refunds make the log harder to read than
   the occasional wasted play.
@@ -443,6 +445,13 @@ run_action(initial_step):
   stats, the full effective keyword set and, for a player hand card, the effective cost. A recompute
   whose net changes are empty emits **no** event (2026-11-03, DSL spike finding 8 — the loop
   recomputes after every step, so an empty event would flood the log).
+- **Cost changes ride on the same event** (2026-11-05, DD-X29). A `modify_cost` hook moves a cost
+  with no write to compare (Vanguard's Banner moves on when a tally does; a drawn card arrives
+  discounted), so each recompute also compares the player's hand and hero power with **what the log
+  last reported**, and lists whatever differs. A cost nothing has reported is at its baseline: the
+  printed cost, or `hero_power_cost`. Two rests have no loop before them and report the same way:
+  the deal before `mulligan_offered` (C3 step 6) and a `Choice` pause. This keeps Match UI a pure
+  function of events (ADR-0001): nothing it shows needs a query.
 - **Summons during the loop** (Deathrattle "summon a 2/2") go through `summon_minion(side,
   def_id, position)`, which inserts at the dead minion's former index when it still fits, else at
   the rightmost slot; a full board makes the summon a no-op with a `summon_failed` event.
@@ -593,11 +602,15 @@ hand, or is burned when the hand is full (`burned: true`, no separate `card_burn
 `auras_recomputed {changes[]}` is the C10 recompute event, one per non-empty recompute
 (2026-11-04, DD-X26). Each entry is one changed entity, with absolute values: a character or weapon
 `{entity_id, attack, health, max_health, keywords[]}` (`keywords` is the full effective set, sorted);
-a player hand card `{instance_id, zone: "hand", effective_cost}`. Boss hand cards are left out
-(match-ui U3 rule 2). A weapon has no health, so its `health` and `max_health` both report its
+a player hand card `{instance_id, zone: "hand", effective_cost}`; the player's hero power
+`{side, zone: "hero_power", effective_cost}` (2026-11-05, DD-X29). Boss hand cards are left out
+(match-ui U3 rule 2). A hand or hero-power entry also carries `hook_delta`, F1's term, while the
+`modify_cost` fold moved that cost: the raw net before the floor, so −2 on a 1-cost card that costs 0.
+The key is absent when the fold moved nothing, so an entry without it means 0 (DD-X29). A weapon has
+no health, so its `health` and `max_health` both report its
 current durability, and its `attack` is the weapon's own, enchantments included. Entries run in
 candidate order (per side, player first: the board left to right, the hero, the weapon), then the
-player's hand left to right.
+player's hand left to right, then the hero power.
 
 ### States and Transitions
 
@@ -736,7 +749,7 @@ The `effective_cost` formula is defined as:
 | base_cost | int | 0–10 | data file (card definition) | Printed cost |
 | card_enchantment_delta | int | −10 to +10 | calculated | Sum of cost enchantments on the card instance (Card Effects) |
 | hand_aura_delta | int | −10 to +10 | calculated | Sum of hand-scoped auras from minions in play |
-| hook_delta | int | −10 to +10 | calculated | Net change applied by `modify_cost` hooks in installation order |
+| hook_delta | int | −10 to +10 | calculated | Net change applied by `modify_cost` hooks in installation order. Logged on `auras_recomputed` hand and hero-power entries (C15; 2026-11-05, DD-X29) |
 
 **Output Range:** 0 to 10 under normal play; negative sums clamp to 0 (a free card, never refunded
 mana). **Example:** a 4-cost spell with "costs 2 less" and a treasure "spells cost 1 less" →

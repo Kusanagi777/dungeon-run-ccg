@@ -201,6 +201,7 @@ func test_bind_installs_installers_in_order_and_registers_both_evaluators() -> v
 	var resolver: RecordingResolver = RecordingResolver.new(FakeCardDatabase.new(), _effects_config())
 	var engine: RulesEngine = _start(resolver, _installers("on_turn_start"))
 	var hooks: HookRegistry = engine.state().hooks
+	resolver.folds.clear()   # DD-X29: `start` folds the starting hand to report its costs
 
 	# Act
 	var folded: int = hooks.fold(&"modify_cost", &"boss", 3, {})
@@ -221,6 +222,7 @@ func test_end_match_unbinds_clearing_the_engine_reference_and_the_evaluators() -
 	var resolver: RecordingResolver = RecordingResolver.new(FakeCardDatabase.new(), _effects_config())
 	var engine: RulesEngine = _start(resolver, _installers("on_turn_start"))
 	var hooks: HookRegistry = engine.state().hooks
+	resolver.folds.clear()   # DD-X29: `start` folds the starting hand to report its costs
 
 	# Act
 	engine.end_match()

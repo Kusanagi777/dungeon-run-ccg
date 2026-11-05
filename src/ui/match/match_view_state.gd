@@ -66,6 +66,8 @@ const _KEYWORD_DIVINE_SHIELD: String = "divine_shield"
 const _KEYWORD_STEALTH: String = "stealth"
 ## `auras_recomputed` hand entries' `zone` (match-rules C15, DD-X26).
 const _ZONE_HAND: String = "hand"
+## `auras_recomputed` hero-power entries' `zone` (match-rules C15, DD-X29).
+const _ZONE_HERO_POWER: String = "hero_power"
 const _ENCHANT_REASON_SET_STATS: String = "set_stats"
 const _TYPE_COMMAND_REJECTED: String = "command_rejected"
 const _TYPE_AI_DECISION: String = "ai_decision"
@@ -129,7 +131,10 @@ func _init(ui_config: Dictionary) -> void:
 	_feed_max = int(ui_config.get("feed_max_lines", 0))
 	for side_name: String in [SIDE_PLAYER, SIDE_BOSS]:
 		_sides[side_name] = {
-			"hero": {"entity_id": null, "health": null, "armor": 0, "weapon": null, "power_state": POWER_READY, "frozen": false},
+			"hero": {
+					"entity_id": null, "health": null, "armor": 0, "weapon": null, "power_state": POWER_READY,
+					"power_cost": null, "power_hook_delta": 0, "frozen": false,
+				},
 			"mana": {"available": 0, "max": 0, "temporary": 0},
 			"deck": {},
 			"fatigue_next": _FIRST_FATIGUE,
@@ -172,11 +177,13 @@ func apply(event: Dictionary) -> Array[AnimStep]:
 
 
 ## U1 / ADR-0009: [param name]'s zone values as a deep value copy —
-## `{hero{entity_id, health, armor, weapon, power_state, frozen}, mana{available,
-## max, temporary}, deck_count, fatigue_next, hand, board}`. `hand` is
-## `[{instance_id, card_id}]` for the player, plus `effective_cost` once an
-## `auras_recomputed` entry has set it (the printed cost until then, DD-X26),
-## and an int count for the boss;
+## `{hero{entity_id, health, armor, weapon, power_state, power_cost,
+## power_hook_delta, frozen}, mana{available, max, temporary}, deck_count,
+## fatigue_next, hand, board}`. `hand` is `[{instance_id, card_id}]` for the
+## player, plus `effective_cost` once an `auras_recomputed` entry has set it (the
+## printed cost until then, DD-X26) and `hook_delta` while hooks moved it (DD-X29),
+## and an int count for the boss. `hero.power_cost` is null until an entry sets it
+## (`hero_power_cost` until then, DD-X29);
 ## `board` is `[{entity_id, card_id, attack, health, max_health, keywords,
 ## frozen, silenced, attacks_used}]` left to right. `hero.health` is null until
 ## an event reports it (`damage_dealt.health_after`). An unknown side gives `{}`.
@@ -561,19 +568,34 @@ func _apply_enchantment(applied: bool, p: Dictionary, group: int, seq: int, step
 	steps.append(_parallel(_step(kind, [int(target.entity_id)], group, seq)))
 
 
-## U3 `auras_recomputed` (match-rules C15, DD-X26): [param change] holds
+## U3 `auras_recomputed` (match-rules C15, DD-X26, DD-X29): [param change] holds
 ## absolute values, so its fields replace the view's and re-applying it changes
 ## nothing. One parallel step per entry: a recolour when a stat or cost changed,
 ## else a badge. A board token takes `attack`, `health`, `max_health` and
 ## `keywords`; a hero `health` (U1 keeps no other of them); a weapon `attack`
 ## and `keywords`, its durability staying with `weapon_durability_changed`; a
-## player hand card `effective_cost`. An id in play nowhere is ignored.
+## player hand card `effective_cost` and `hook_delta`; the hero power entry
+## `hero.power_cost` and `hero.power_hook_delta`, its step on the hero. A
+## `hook_delta` absent from an entry is 0. An id in play nowhere is ignored.
 func _apply_aura_change(change: Dictionary, group: int, seq: int, steps: Array[AnimStep]) -> void:
-	if str(change.get("zone", "")) == _ZONE_HAND:
+	var zone: String = str(change.get("zone", ""))
+	if zone == _ZONE_HERO_POWER:
+		var raw: Dictionary = _raw(change)
+		if raw.is_empty():
+			return
+		raw.hero.power_cost = int(change.get("effective_cost", 0))
+		raw.hero.power_hook_delta = int(change.get("hook_delta", 0))
+		steps.append(_parallel(_step(AnimStep.STAT_RECOLOUR, _hero_ids(raw), group, seq)))
+		return
+	if zone == _ZONE_HAND:
 		var instance_id: int = int(change.get("instance_id", 0))
 		for card: Dictionary in _sides[SIDE_PLAYER].hand:
 			if int(card.instance_id) == instance_id:
 				card["effective_cost"] = int(change.get("effective_cost", 0))
+				if change.has("hook_delta"):
+					card["hook_delta"] = int(change.hook_delta)
+				else:
+					card.erase("hook_delta")
 				steps.append(_parallel(_step(AnimStep.STAT_RECOLOUR, [instance_id], group, seq)))
 		return
 	var id: int = int(change.get("entity_id", 0))

@@ -207,6 +207,9 @@ const KEYWORD_SPELL_DAMAGE: String = "spell_damage"
 ## first only, `kind: hero_power` the second, `kind: any` both.
 const COST_KIND_CARD: String = "card"
 const COST_KIND_HERO_POWER: String = "hero_power"
+## `auras_recomputed` hero-power entries' `zone` (C15, DD-X29), and that entry's
+## key in [member _shown_costs].
+const ZONE_HERO_POWER: String = "hero_power"
 ## `auras_recomputed` hand entries' `zone` (C15, DD-X26).
 const ZONE_HAND: String = "hand"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
@@ -326,6 +329,13 @@ var _recomputing_auras: bool = false
 ## ([method _before_aura_write]), so a recompute that writes nothing takes none.
 var _aura_before: Dictionary = {}
 var _aura_before_taken: bool = false
+## What the log last said about each cost that sits off its baseline (DD-X29):
+## the `auras_recomputed` entry, by `instance_id` for a player hand card and
+## [constant ZONE_HERO_POWER] for the hero power. A cost at its baseline — printed,
+## or `hero_power_cost` — has no key, so this is empty while nothing is modified.
+## Not match state: it is what the log has said, so it stays out of snapshots, and
+## [method clone] copies it because a clone continues the same log.
+var _shown_costs: Dictionary = {}
 ## The `{source, target}` contexts of the `modify_damage` / `modify_heal`
 ## folds, reused on every call (ADR-0005: the fold allocates nothing; the
 ## engine does not build a context per hit either).
@@ -593,8 +603,9 @@ func start(config: Dictionary) -> void:
 	# C3 step 5: starting hands, fold then clamp once
 	_draw(MatchRecords.SIDE_PLAYER, _starting_hand_size(MatchRecords.SIDE_PLAYER, rule("starting_hand_player")), false)
 	_draw(MatchRecords.SIDE_BOSS, _starting_hand_size(MatchRecords.SIDE_BOSS, rule("starting_hand_boss")), false)
-	# C3 step 6
+	# C3 step 6. No C10 loop follows the deal, and the Mulligan screen shows costs.
 	_state.phase = MatchState.PHASE_MULLIGAN
+	_report_cost_changes()
 	emit(&"mulligan_offered", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(_state.players[MatchRecords.SIDE_PLAYER].hand)})
 	index_locations()
 	_resolving = false
@@ -768,11 +779,20 @@ func legal_commands() -> Array:
 ## if engine.effective_cost(card, "player") <= mana: highlight(card)
 ## [/codeblock]
 func effective_cost(card: Dictionary, side: String = "") -> int:
-	var total: int = int(_lookup_def(str(card.def_id)).get("cost", 0))
+	var holder: String = side if side != "" else _owner_of(int(card.instance_id))
+	return _fold_cost(holder, _modified_cost(card), card, COST_KIND_CARD)
+
+
+## F1 steps 1–2: [param card]'s printed cost plus its `cost_modifiers`.
+func _modified_cost(card: Dictionary) -> int:
+	var total: int = _printed_cost(card)
 	for modifier: Dictionary in card.cost_modifiers:
 		total += int(modifier.get("cost_delta", 0))
-	var holder: String = side if side != "" else _owner_of(int(card.instance_id))
-	return _fold_cost(holder, total, card, COST_KIND_CARD)
+	return total
+
+
+func _printed_cost(card: Dictionary) -> int:
+	return int(_lookup_def(str(card.def_id)).get("cost", 0))
 
 
 ## C5 / C7 (story 011): [param side]'s hero power cost — `hero_power_cost`
@@ -789,13 +809,19 @@ func hero_power_cost(side: String) -> int:
 ## F1 steps 3–4: `maxi(0, hooks.fold(&"modify_cost", side, cost_so_far,
 ## {card, kind}))`. A state without a registry (a bare fixture) folds nothing.
 func _fold_cost(side: String, cost_so_far: int, card: Dictionary, kind: String) -> int:
+	return maxi(0, _raw_cost_fold(side, cost_so_far, card, kind))
+
+
+## F1 step 3 alone: the `modify_cost` fold, before the clamp. Its distance from
+## [param cost_so_far] is the F1 `hook_delta` that [method _cost_entry] logs.
+func _raw_cost_fold(side: String, cost_so_far: int, card: Dictionary, kind: String) -> int:
 	var folded: int = cost_so_far
 	if _state.hooks != null:
 		_cost_ctx.card = card
 		_cost_ctx.kind = kind
 		folded = _state.hooks.fold(&"modify_cost", StringName(side), cost_so_far, _cost_ctx)
 		_cost_ctx.card = null
-	return maxi(0, folded)
+	return folded
 
 
 ## F7: [param side]'s Spell Damage total — `Σ CardDef.spell_damage` over its
@@ -2475,6 +2501,8 @@ func _mulligan_step(keep_mask: Array) -> void:
 			card.zone = "deck"
 			player.deck.append(card)
 			replaced.append(int(card.instance_id))
+			# It may be redrawn before any recompute, as a card the view has not costed.
+			_shown_costs.erase(int(card.instance_id))
 	player.hand.assign(kept)
 	_index_zone(MatchRecords.SIDE_PLAYER, LOC_HAND)
 	var stream: Variant = _state.rng_match
@@ -2891,6 +2919,11 @@ func _suspended() -> bool:
 ## and the remaining stages with their frame (added to the
 ## `suspended_action {origin_phase, cause_seq}` that [method discover] began).
 func _park() -> void:
+	# The pause is a rest with no C10 loop before it (DD-X29). A fault here leaves
+	# the stages for [method _abandon_stages], as an `event_cap` in `_do_choose` does.
+	_report_cost_changes()
+	if _halted():
+		return
 	_state.suspended_queue.assign(_queue)
 	_queue.clear()
 	_state.suspended_steps = _steps
@@ -3210,8 +3243,9 @@ func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
 ## weapons, hand `cost_modifiers`), then `resolver.recompute_auras()`
 ## re-applies the auras of every living source (its `apply_enchantment(…,
 ## is_aura = true)` calls are silent); one `auras_recomputed {changes}` lists
-## every entry of [method _aura_values] that changed, with absolute values, in
-## that order — no event when nothing changed (C15, DD-X26).
+## every entry of [method _aura_values] that changed, then every cost
+## [method _append_cost_changes] finds moved, all with absolute values, in that
+## order — no event when nothing changed (C15, DD-X26, DD-X29).
 ## Aura loss leaves `damage_taken` alone (F6): the next death check kills.
 ##
 ## **Both stat passes run only when a value can have moved** (story 019 R1):
@@ -3221,8 +3255,9 @@ func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
 ## between them are the strip and the resolver's primitives (ADR-0007: the
 ## resolver writes through primitives alone), and each takes `before` ahead of
 ## its first write. A recompute with no `is_aura` enchantment to strip and no
-## primitive from the resolver therefore makes no pass. `modify_cost` folds are
-## pure (ADR-0005), so skipping one is not observable.
+## primitive from the resolver therefore makes no pass. Costs are not part of
+## this skip: a `modify_cost` condition moves a cost with no write at all, so
+## they have their own guard, [method _costs_at_baseline].
 func _recompute_auras() -> void:
 	_recompute_calls += 1
 	_aura_before_taken = false
@@ -3240,16 +3275,95 @@ func _recompute_auras() -> void:
 	_resolver.recompute_auras()
 	_recomputing_auras = false
 	if not _aura_before_taken:
+		_report_cost_changes()
 		return
 	var before: Dictionary = _aura_before
 	_aura_before = {}
 	var after: Dictionary = _aura_values()
 	var changes: Array[Dictionary] = []
+	var hand_changed: Dictionary = {}
 	for id: int in after:
 		if before.get(id) != after[id]:
-			changes.append(after[id])
+			if after[id].has("zone"):
+				hand_changed[id] = true
+			else:
+				changes.append(after[id])
+	if not hand_changed.is_empty() or not _costs_at_baseline():
+		_append_cost_changes(changes, hand_changed)
 	if not changes.is_empty():
 		emit(&"auras_recomputed", {"changes": changes})
+
+
+## The cost half of `auras_recomputed` on its own (DD-X29), for a recompute with
+## no aura pass and the two rests no C10 loop precedes: the deal before the
+## Mulligan and a `Choice` pause.
+func _report_cost_changes() -> void:
+	if _costs_at_baseline():
+		return
+	var changes: Array[Dictionary] = []
+	_append_cost_changes(changes)
+	if not changes.is_empty():
+		emit(&"auras_recomputed", {"changes": changes})
+
+
+## True when no reportable cost can be off its baseline, so a recompute need not
+## fold anything: no `modify_cost` hook, no hand card holding a modifier, and
+## nothing left to put back. Keeps a match without them at story 019's budgets.
+func _costs_at_baseline() -> bool:
+	if not _shown_costs.is_empty():
+		return false
+	if _state.hooks != null and not _state.hooks.entries(&"modify_cost").is_empty():
+		return false
+	for card: Dictionary in _state.players[MatchRecords.SIDE_PLAYER].hand:
+		if not card.cost_modifiers.is_empty():
+			return false
+	return true
+
+
+## DD-X29: appends to [param changes] each cost that differs from what the log
+## last said, then makes [member _shown_costs] the present values. The player's
+## hand left to right, then the hero power (absent on a side with none). The
+## comparison is with the log, not with the aura pass's `before`, because a
+## `modify_cost` hook moves a cost with no write: Vanguard's Banner moves on when
+## a tally does, and a drawn card arrives already discounted. A card in
+## [param hand_changed] (the aura pass saw it change, or arrive in the pass) is
+## listed whatever the log said. The boss hand is never read, so no entry can show
+## what it holds (match-ui U3 rule 2).
+func _append_cost_changes(changes: Array[Dictionary], hand_changed: Dictionary = {}) -> void:
+	var shown: Dictionary = {}
+	var player: Dictionary = _state.players[MatchRecords.SIDE_PLAYER]
+	for card: Dictionary in player.hand:
+		var id: int = int(card.instance_id)
+		var head: Dictionary = {"instance_id": id, "zone": ZONE_HAND}
+		var entry: Dictionary = _cost_entry(head, _modified_cost(card), card, COST_KIND_CARD)
+		var printed: Dictionary = head.merged({"effective_cost": _printed_cost(card)})
+		_note_cost(id, entry, printed, hand_changed.has(id), shown, changes)
+	if str(player.hero_power.def_id) != "":
+		var head: Dictionary = {"side": MatchRecords.SIDE_PLAYER, "zone": ZONE_HERO_POWER}
+		var base: int = rule("hero_power_cost")
+		var entry: Dictionary = _cost_entry(head, base, player.hero_power, COST_KIND_HERO_POWER)
+		_note_cost(ZONE_HERO_POWER, entry, head.merged({"effective_cost": base}), false, shown, changes)
+	_shown_costs = shown
+
+
+## [param head] with `effective_cost` and, when a fold moved the cost, `hook_delta`:
+## the F1 term, the raw net before the clamp (treasures AC-8).
+func _cost_entry(head: Dictionary, cost_so_far: int, record: Dictionary, kind: String) -> Dictionary:
+	var folded: int = _raw_cost_fold(MatchRecords.SIDE_PLAYER, cost_so_far, record, kind)
+	var entry: Dictionary = head.merged({"effective_cost": maxi(0, folded)})
+	if folded != cost_so_far:
+		entry["hook_delta"] = folded - cost_so_far
+	return entry
+
+
+## Keeps [param entry] in [param shown] when it is off [param baseline], and lists
+## it when it differs from what the log holds under [param key] (the baseline if
+## nothing) or [param forced] says so.
+func _note_cost(key: Variant, entry: Dictionary, baseline: Dictionary, forced: bool, shown: Dictionary, changes: Array[Dictionary]) -> void:
+	if entry != baseline:
+		shown[key] = entry
+	if forced or entry != _shown_costs.get(key, baseline):
+		changes.append(entry)
 
 
 ## Every primitive's first line after its halted check: inside the resolver's
@@ -3297,8 +3411,9 @@ static func _any_aura(enchantments: Array) -> bool:
 ## weapon; then the player's hand left to right. A character or weapon is
 ## `{entity_id, attack, health, max_health, keywords}`; a weapon has no health,
 ## so `health` and `max_health` report its durability. A player hand card is
-## `{instance_id, zone: "hand", effective_cost}`. The boss hand is left out, so
-## no entry and no event can show what it holds (match-ui U3 rule 2; DD-X26).
+## `{instance_id, zone: "hand", effective_cost}`, and only marks the card as
+## changed: [method _append_cost_changes] writes its entry. The boss hand is left
+## out, so no entry and no event can show what it holds (match-ui U3 rule 2; DD-X26).
 func _aura_values() -> Dictionary:
 	_stat_map_passes += 1
 	var out: Dictionary = {}
@@ -3928,6 +4043,9 @@ func clone(rng_override: RngStream = null) -> RulesEngine:
 	# by value: the clone's zones move on their own. A flat copy, so a planner node
 	# does not pay a walk of every zone; hints are checked on read either way.
 	copy._where = _where.duplicate()
+	# by value too: the entries are never written, and the clone's scratch log
+	# continues this log, so it must not repeat what this one already said.
+	copy._shown_costs = _shown_costs.duplicate()
 	copy._audit_lookups = _audit_lookups
 	if _bound and resolver != null:
 		var no_installers: Array[HookInstaller] = []

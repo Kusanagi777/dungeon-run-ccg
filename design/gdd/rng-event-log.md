@@ -16,6 +16,7 @@
 > **REVISED 2026-11-03 (cross-review b)**: N-02 — §D `run_ended` row adopts Run Structure's nested `result` Dictionary (`result.outcome: victory | defeat | abandoned`, `result.abandon_reason`, …) with `run_seed_hex` beside it, matching run-structure R1/R6 and the path meta-progression F2 reads; the previous flat `result` enum would not have parsed in Meta's fold.
 > **REVISED 2026-11-03 (DSL spike follow-up)**: §D adds `card_added_to_hand {side, instance_id, card_id, hand_size}`, mirroring the event match-rules C15 added for the `add_card_to_hand` primitive (DD-X04; `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` finding 2).
 > **REVISED 2026-11-04 (code review of rng-event-log story 008, sprint 4)**: §D `minion_summoned`, `weapon_equipped` and `weapon_destroyed` name the minion / weapon `entity_id`, not `instance_id` — match-rules C15 is the authoritative catalogue (DD-X04: "payloads always carry the acting `entity_id`s") and the engine emits `entity_id`; rule 14 distinguishes `entity_id` (characters and weapons, match-rules C1) from `instance_id` (card instances); rule 19's attribution map and its AC read `entity_id` from those two events. Only the id field was reconciled: the engine's `minion_summoned` also says `position` where this row says `board_index`, and carries no `keywords[]` (open).
+> **REVISED 2026-11-05 (DD-X29)**: §D `auras_recomputed` also lists non-aura cost changes: a new hero-power entry and an optional `hook_delta` on hand and hero-power entries.
 
 ## Summary
 
@@ -177,7 +178,7 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `damage_dealt` | Match Rules | `source, target, requested, prevented, armor_absorbed, dealt, health_after` (match-rules C15; rule 19 reads `source` and `dealt`) |
 | `healed` | Match Rules | `source, target, amount, health_after` |
 | `enchantment_applied` / `enchantment_removed` | Match Rules (primitive; Card Effects and Treasures cause it) | `instance_id, attack, health, max_health, keywords_added[], keywords_removed[], reason` |
-| `auras_recomputed` | Match Rules | `changes[]`, absolute values per changed entity: `{entity_id, attack, health, max_health, keywords[]}` for a character or weapon, `{instance_id, zone: "hand", effective_cost}` for a player hand card; boss hand cards omitted (match-rules C15; 2026-11-04, DD-X26) |
+| `auras_recomputed` | Match Rules | `changes[]`, absolute values per changed entity: `{entity_id, attack, health, max_health, keywords[]}` for a character or weapon, `{instance_id, zone: "hand", effective_cost}` for a player hand card, `{side, zone: "hero_power", effective_cost}` for the player's hero power, either with `hook_delta` while the `modify_cost` fold moved that cost; boss hand cards omitted. Costs are listed whatever moved them, not only auras (match-rules C10, C15; 2026-11-04, DD-X26; 2026-11-05, DD-X29) |
 | `minion_died` | Match Rules | `instance_id, card_id, side, board_index` (order per DD-M11) |
 | `trigger_resolved` | Match Rules | `instance_id, card_id, effect_id, trigger` (covers Deathrattle; the former `deathrattle_triggered`) |
 | `effect_resolved` | Card Effects | `effect_id, host_id, host_kind, source_id, owner, trigger, depth, fizzled, ops[]` — extension point; card-effects owns the shape |

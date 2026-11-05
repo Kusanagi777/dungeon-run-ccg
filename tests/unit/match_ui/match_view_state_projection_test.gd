@@ -453,6 +453,70 @@ func test_an_aura_entry_sets_a_heroes_health_and_a_weapons_attack_and_keywords()
 	assert_array(steps.map(func(s: AnimStep) -> Array: return s.entity_ids)).is_equal([[PLAYER_HERO_ID], [weapon_id]])
 
 
+# --- DD-X29: hook costs and the hero power project from the same event ---------
+
+func test_a_hand_entry_replaces_the_hook_delta_and_clears_it_when_absent() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, [_event(1, "card_drawn", {"side": "player", "instance_id": 10, "card_id": "neutral_test_vanilla_2_2", "hand_size": 1})])
+
+	# Act
+	_project(view, [_event(2, "auras_recomputed", {"changes": [{"instance_id": 10, "zone": "hand", "effective_cost": 1, "hook_delta": -1}]})])
+	var discounted: Dictionary = view.side(SIDE_PLAYER).hand[0]
+	_project(view, [_event(3, "auras_recomputed", {"changes": [{"instance_id": 10, "zone": "hand", "effective_cost": 2}]})])
+
+	# Assert
+	assert_dict(discounted).is_equal({"instance_id": 10, "card_id": "neutral_test_vanilla_2_2", "effective_cost": 1, "hook_delta": -1})
+	assert_dict(view.side(SIDE_PLAYER).hand[0]).is_equal({"instance_id": 10, "card_id": "neutral_test_vanilla_2_2", "effective_cost": 2})
+
+
+func test_the_hero_power_cost_is_null_until_an_event_reports_it() -> void:
+	# Act
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+
+	# Assert: null reads as the configured cost, as an unstamped card reads as printed
+	assert_that(view.side(SIDE_PLAYER).hero.power_cost).is_null()
+	assert_int(int(view.side(SIDE_PLAYER).hero.power_hook_delta)).is_equal(0)
+
+
+func test_a_hero_power_entry_sets_the_cost_with_one_parallel_recolour_on_the_hero() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+	var entry: Dictionary = {"side": "player", "zone": "hero_power", "effective_cost": 1, "hook_delta": -1}
+
+	# Act
+	var steps: Array[AnimStep] = _project(view, [_event(6, "auras_recomputed", {"changes": [entry]})])
+
+	# Assert
+	var hero: Dictionary = view.side(SIDE_PLAYER).hero
+	assert_int(int(hero.power_cost)).is_equal(1)
+	assert_int(int(hero.power_hook_delta)).is_equal(-1)
+	assert_array(steps.map(func(s: AnimStep) -> Array: return [s.kind, s.entity_ids, s.parallel_ok])).is_equal([
+		[AnimStep.STAT_RECOLOUR, [PLAYER_HERO_ID], true],
+	])
+
+
+func test_a_hero_power_entry_is_absolute_and_clears_the_delta_when_absent() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+	var cheap: Dictionary = {"side": "player", "zone": "hero_power", "effective_cost": 1, "hook_delta": -1}
+	var base: Dictionary = {"side": "player", "zone": "hero_power", "effective_cost": 2}
+
+	# Act: the same event twice lands on the same numbers
+	_project(view, [_event(6, "auras_recomputed", {"changes": [cheap]})])
+	_project(view, [_event(7, "auras_recomputed", {"changes": [cheap]})])
+	var twice: Dictionary = view.side(SIDE_PLAYER).hero
+	_project(view, [_event(8, "auras_recomputed", {"changes": [base]})])
+
+	# Assert
+	assert_int(int(twice.power_cost)).is_equal(1)
+	assert_int(int(view.side(SIDE_PLAYER).hero.power_cost)).is_equal(2)
+	assert_int(int(view.side(SIDE_PLAYER).hero.power_hook_delta)).is_equal(0)
+
+
 func test_a_hand_entry_stamps_the_players_card_with_its_effective_cost() -> void:
 	# Arrange
 	var view: MatchViewState = _view()
