@@ -1,7 +1,7 @@
 # Story 015: Boss intent banner and the boss-turn view — commit beat, skip hint, hand dim, --pause-at
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: L

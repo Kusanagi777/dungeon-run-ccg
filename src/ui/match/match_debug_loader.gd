@@ -52,6 +52,9 @@ var match_info: Dictionary = {}
 var fixture_pose: String = ""
 ## Every command the engine refused, as `{command, result}`: empty on a good fixture.
 var rejections: Array[Dictionary] = []
+## The fixture's `profile`: settings for this launch only, which `MatchView` merges over
+## its own. They are never left in the player's profile.
+var profile_overrides: Dictionary = {}
 
 var _planner_override: Callable
 
@@ -97,8 +100,11 @@ func load_fixture(fixture_name: String) -> MatchController:
 		push_error("MatchDebugLoader: the data load failed, so no fixture can run")
 		return null
 	var services: Services = Boot.services()
-	for key: String in fixture.get("profile", {}):
-		services.meta.set_setting(StringName(key), fixture.profile[key])
+	profile_overrides = fixture.get("profile", {})
+	var saved: Dictionary = {}
+	for key: String in profile_overrides:
+		saved[key] = services.meta.get_setting(StringName(key))
+		services.meta.set_setting(StringName(key), profile_overrides[key])
 	fixture_pose = str(fixture.get("pose", ""))
 	var settings: Dictionary = fixture.get("config", {})
 	var config: Dictionary = _match_config(settings, services.card_database)
@@ -107,6 +113,9 @@ func load_fixture(fixture_name: String) -> MatchController:
 	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id), "hero_def_id": str(config.player.hero_def_id)}
 	for entry: Dictionary in fixture.get("commands", []):
 		_run(controller, entry)
+	# The driver took its settings snapshot above; nothing later reads these.
+	for key: String in saved:
+		services.meta.set_setting(StringName(key), saved[key])
 	for rejection: Dictionary in rejections:
 		push_error("MatchDebugLoader: fixture '%s' command refused: %s" % [fixture_name, str(rejection)])
 	return controller

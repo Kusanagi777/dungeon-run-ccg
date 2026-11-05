@@ -23,6 +23,8 @@ var config: Dictionary = {}
 var query: MatchQuery = null
 ## `func(entity_id: int) -> Vector2`, the screen centre of a drawn entity.
 var locate: Callable = Callable()
+## The DD-X07 `reduce_motion` setting: pulses go static and pops fade in place.
+var reduce_motion: bool = false
 
 var _db: CardDatabase = null
 var _colors: Dictionary = {}

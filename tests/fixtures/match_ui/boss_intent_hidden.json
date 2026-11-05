@@ -1,0 +1,8 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_hollow_king", "seed": 1, "floor": 7, "band": 3, "treasures": []},
+  "profile": {"telegraph_mode": "off"},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "end_turns", "count": 2}
+  ]
+}

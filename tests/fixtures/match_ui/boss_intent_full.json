@@ -1,0 +1,10 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [], "player_deck": ["neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel", "neutral_stone_sentinel"], "boss_deck": ["boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman"]},
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "end_turns", "count": 4},
+    {"macro": "play_all"},
+    {"macro": "end_turns", "count": 1}
+  ]
+}

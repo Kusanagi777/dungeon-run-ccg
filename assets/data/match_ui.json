@@ -219,6 +219,24 @@
         4,
         44,
         32
+      ],
+      "intent_banner": [
+        980,
+        52,
+        276,
+        36
+      ],
+      "skip_hint": [
+        980,
+        90,
+        152,
+        20
+      ],
+      "turn_banner": [
+        440,
+        215,
+        400,
+        48
       ]
     },
     "hero": {
@@ -304,6 +322,32 @@
       "continue_h": 44,
       "continue_y": 400
     },
+    "skip_hint": {
+      "delay_s": 1.0,
+      "fade_in_s": 0.12,
+      "fade_out_s": 0.08
+    },
+    "intent": {
+      "font_px": 16,
+      "icon_w": 36,
+      "reticle_px": 56,
+      "beat_bright": 1.3,
+      "hidden_glyph": "?",
+      "glyphs": {
+        "lethal": "L",
+        "attack_face": "F",
+        "attack_minion": "M",
+        "play_big_minion": "B",
+        "develop_board": "D",
+        "cast_removal": "R",
+        "cast_aoe": "A",
+        "heal": "H",
+        "hero_power": "P",
+        "equip_weapon": "W",
+        "pass": "—"
+      }
+    },
+    "hand_dim_alpha": 0.6,
     "palette": {
       "bg_edge": "#141820",
       "table_dark": "#2B2118",
@@ -393,6 +437,33 @@
       "end.continue": "Continue · %d",
       "hud.feed": "L",
       "hud.fatigue_next": "Fatigue: next %d",
+      "intent.lethal": "Lethal",
+      "intent.lethal.long": "The boss has lethal damage on the table: {amount}.",
+      "intent.attack_face": "Attack face",
+      "intent.attack_face.long": "The boss plans to attack your hero for {amount}.",
+      "intent.attack_minion": "Attack minion",
+      "intent.attack_minion.long": "The boss plans to attack one of your minions.",
+      "intent.play_big_minion": "Big minion",
+      "intent.play_big_minion.long": "The boss plans to play a big minion.",
+      "intent.develop_board": "Develop",
+      "intent.develop_board.long": "The boss plans to build its board.",
+      "intent.cast_removal": "Removal",
+      "intent.cast_removal.long": "The boss plans to remove one of your minions.",
+      "intent.cast_aoe": "Area spell",
+      "intent.cast_aoe.long": "The boss plans to hit the whole board.",
+      "intent.heal": "Heal",
+      "intent.heal.long": "The boss plans to heal.",
+      "intent.hero_power": "Hero power",
+      "intent.hero_power.long": "The boss plans to use its hero power.",
+      "intent.equip_weapon": "Weapon",
+      "intent.equip_weapon.long": "The boss plans to equip a weapon.",
+      "intent.pass": "Pass",
+      "intent.pass.long": "The boss plans to do nothing.",
+      "intent.plan_changed": "Plan changed",
+      "intent.thinking": "Boss thinking…",
+      "hud.skip_hint": "Click or Space to skip",
+      "hud.turn_banner": "Boss turn %d",
+      "hud.boss_discovers": "The boss discovers…",
       "feed.more": "+{n} more",
       "feed.someone": "Something",
       "feed.a_card": "a card",

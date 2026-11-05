@@ -1,0 +1,10 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [], "player_deck": ["neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer", "neutral_lantern_bearer"], "boss_deck": ["neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard", "neutral_cellar_guard"]},
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "end_turns", "count": 3},
+    {"macro": "play_all"},
+    {"macro": "end_turns", "count": 1}
+  ]
+}
