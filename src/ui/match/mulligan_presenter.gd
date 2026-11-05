@@ -20,7 +20,6 @@ const PILL_FONT_PX: int = 14
 const REPLACE_ALPHA: float = 0.45
 const FLIP_HALF: float = 0.5
 ## The number row: `1`–`9`, then `0` for the tenth card (mulligan.md §7.2).
-const NUMBER_KEYS: Array[Key] = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 
 var _view: MatchViewState = null
 var _cfg: Dictionary = {}
@@ -119,15 +118,6 @@ func toggle(index: int) -> void:
 	_keep[index] = not _keep[index]
 	_refresh(index)
 	queue_redraw()
-
-
-## `1`–`0` toggle their card; a key past the hand is ignored. True when it was a card key.
-func handle_key(keycode: Key) -> bool:
-	var index: int = NUMBER_KEYS.find(keycode)
-	if index < 0:
-		return false
-	toggle(index)
-	return true
 
 
 ## Takes [param action]; true when it was the screen's. `Esc` never is: the chain opens
