@@ -9,381 +9,224 @@
 #   done           ↔  Complete
 #   blocked        ↔  Blocked
 
-sprint: 5
-goal: "Land the match driver by M2 on the boss-ai critical lane (BAI-007 -> 008 -> 013 -> 015) so MatchController/MatchQuery (MUI-003) and boss-turn pacing (MUI-010) open in W3; the rest of the First Playable branch: boss-ai choice, forecast, defensive mode with A31, purity gates and phase schedule (BAI-009..012, 014); War hero seating and the Heroes accessor (heroes 001-004); treasures installers with the boss passive, stage-7b validator, pool and fold treasures (treasures 001, 003, 005, 006, 009); the card-effects hook chain so boss passives fire (CE-009, 014, 013, 015) and the destroy-before-silence check (CE-017); the rules engine performance pass in its own lane (MR-019, closing MR-018); Gravekeeper back in the boss decks (content 010); a W1 fix buffer for the sprint-4 review led by Mass Rites' retrigger op. Nothing new is playable; First Playable stays sprint 6 (2026-12-08), sprint 7 if BAI-015 has not merged by M3."
-start: "2026-11-25"
-end: "2026-12-01"
-generated: "2026-11-04"
-updated: "2026-11-04"
+sprint: 6
+goal: "Deliver First Playable: the owner plays one War match against The Torchbearer, mouse-played, on a Windows debug export launched with -- --fixture=first_playable (playtest #1), by 2026-12-08 (fallback sprint 7). The match-ui chain MUI-004 -> {005, 006, 007} -> 008 -> 012 (009 and 011 in parallel), the boss-ai chain BAI-016 -> 019 -> 017 -> 018 (the owner's Windows A30 run), content 006, and the MR-019/MR-018 close-out on the owner's R6 decision. Eight goal prerequisites are missing and reported, not planned: driver_factory, keywords[] on minion_summoned, starting hero health on an event, the untargeted hero-power confirm, a Windows screenshot path, godot on PATH with a per-worktree user://, export templates and a Windows debug export, and a release export past data_error."
+start: "2026-12-02"
+end: "2026-12-08"
+generated: "2026-11-05"
+updated: "2026-11-05"
 
-# Lanes (all general-purpose agents; role agents stop at 20 turns): L1 boss-ai A (critical: BAI-007->008 | 013->015 | slip slot),
-# L2 boss-ai B (BAI-010 | 011->009 | 014, +019), L3 heroes + content (heroes 001->002->003->004 | content-010 [C] | buffer),
-# L4 treasures (001->009 | 003 | 005->006, +008), L5 card-effects (CE-009 | CE-014->013 | CE-015),
-# L6 match-rules perf [S] (S6/S7 + DD-X19 | MR-019 | fix slot -> MR-018), L7 review fixes (sprint-4 review fix buffer [C] | CE-017 [C] + fix slot | BAI-012 + fix slot),
-# L8 match-ui (idle W1-W2 | MUI-003 -> MUI-010, +MUI-004). Waves = merge points M1-M3.
-# [S] serialised = merges first in its wave; [C] contract-tightening/shipped data = merges last.
-# rules_engine.gd: W1 heroes-001, CE-009, fix buffer (S1/S5); W2 MR-019 only; W3 MR-019 fix slot first.
-# boot.gd _collect_validators() is orchestrator-owned: heroes_balance at M1 (heroes-004), treasure adapter at M2 (treasures-003).
-# M3 CHECK: BAI-015 merged at M2 (2026-11-05). Not merged by M3 -> declare First Playable sprint 7 at the sprint-5 close.
-# Fix buffer (review work, not stories; code-review-s4-unreviewed.md): S5 retrigger, S1, S2->DD-X25, S4, X1, T1, T2, verdict lines; S6/S7 + DD-X19 in L6 W1; S3 after a W1 design call.
-# planner_target_ms shipped at M1 (ai_profiles.json runtime block, validated 50-1000, read-only for the UI): MUI-010 and BAI-016 read it there.
-# Owner: 12 h/week, 9.75 h budgeted (NC-5 Windows checks run by the owner 2026-11-04, before the sprint). No QA plan yet: run /qa-plan sprint first.
-# Carryover rows keep their previous priority (skill rule); CE-009 and CE-014 are scheduled as committed lane work.
+# Lanes (all general-purpose agents on Windows, one worktree per lane, per-worktree user:// through the session shim): L1 match-ui A (critical: MUI-004 -> 005 | fix slot | MUI-008 -> 012),
+# L2 match-ui B (MUI-006 -> 009 in W2), L3 match-ui C (MUI-007 -> 011 in W2), L4 boss-ai (BAI-016 -> 019 | BAI-017 | BAI-018, the owner's Windows run),
+# L5 content + treasures (content-006 | treasures-008 -> 002 | treasures-007, stretch), L6 match-rules perf close-out (MR-019/MR-018 on the owner's R6). Waves = merge points M1-M3, then a close slot.
+# [S] serialised = merges first in its wave (none planned); [C] contract/shipped data = merges last (content-006 and BAI-019 at M1; an ai_profiles.json retune at M3).
+# boot.gd _collect_validators() is orchestrator-owned; no picked story registers a validator. rules_engine.gd: no planned editor.
+# Decision points: M2 - if MUI-006 or MUI-007 has not merged, MUI-008 cannot start: declare sprint 7 early. M3 - if MUI-008 or MUI-012 has not merged, the sprint-6 close declares sprint 7.
+# GOAL PREREQUISITES MISSING (reported, no task planned, see production/sprints/sprint-006.md): driver_factory (row 8), keywords[] on minion_summoned (9), starting hero health event (10),
+# untargeted hero-power confirm (11), Windows screenshot path (12), godot on PATH + per-worktree user:// (13), export templates + Windows debug export (14), release export past data_error (15).
+# Owner: 12 h/week, 11.25 h budgeted (7 UI sign-offs, R6, NC-5, BAI-018 Windows run, playtest #1). Pre-wave owner-decision lanes: pre-W1, pre-W2, pre-W3. No QA plan yet: run /qa-plan sprint first.
+# PR-SPRINT skipped - Lean mode. Carryover rows keep their previous priority (skill rule); MUI-004, BAI-019, MR-019, MR-018 are scheduled as committed lane work, treasures-008 as stretch.
 
 stories:
-  # --- Must Have (critical path) ---
-  - id: "boss-ai-match-driver-007"
-    name: "Lethal search — damage subset DFS, F4 prune, node budget, shallow mode"
-    file: "production/epics/boss-ai-match-driver/story-007-lethal-search.md"
+  # --- Must Have (First Playable critical path) ---
+  - id: "match-ui-005"
+    name: "Hero panels, mana bar, deck piles, top bar, hero power and End Turn"
+    file: "production/epics/match-ui/story-005-hero-panels-mana-and-end-turn.md"
     priority: must-have
-    status: done
-    owner: "general-purpose (lane 1)"
-    estimate_days: 1
-    lane: 1
-    wave: 1
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "L1 critical opener; counts 2 links (first on the real engine); /code-review at M1"
-    completed: "2026-11-04"
-  - id: "boss-ai-match-driver-008"
-    name: "plan_turn — the C2 action loop, TurnPlan, plan_task and the caps"
-    file: "production/epics/boss-ai-match-driver/story-008-plan-turn-loop-and-turn-plan.md"
-    priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "general-purpose (lane 1)"
     estimate_days: 3
     lane: 1
     wave: 1
     serialised: false
     contract: false
-    blocker: ""
-    note: "L, 2 links; carries A3/A5 and the C4 sim stream (ae3b161); readiness adds BAI review N3/N4; edits boss_ai.gd (merges before L2 at M1); /code-review at M1"
-    completed: "2026-11-04"
-  - id: "boss-ai-match-driver-013"
-    name: "MatchDriver — construction order, command gate and the concede slot"
-    file: "production/epics/boss-ai-match-driver/story-013-match-driver-construction-and-command-gate.md"
+    blocker: "readiness: AC-1 health stamps need a starting-health event (Goal Prerequisites row 10, no story); AC-4 hero-power confirm is match-ui-017's KeyTargeting (row 11)"
+    note: "UI: retained screenshots + owner sign-off; L1 W1 after MUI-004 in the same lane; End Turn outline reads legal_commands() (Q-5 decided pre-W1); /code-review at M1"
+    completed: ""
+  - id: "match-ui-006"
+    name: "Hand fan and hover preview"
+    file: "production/epics/match-ui/story-006-hand-fan-and-hover-preview.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
+    owner: "general-purpose (lane 2)"
+    estimate_days: 1
+    lane: 2
+    wave: 2
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "UI: retained screenshots + owner sign-off; needs MUI-004 at M1; CardFrame feeds MUI-009; stale 'UX doc not authored' text: design/ux/hand.md is APPROVED; /code-review at M2"
+    completed: ""
+  - id: "match-ui-007"
+    name: "Board rows and tokens"
+    file: "production/epics/match-ui/story-007-board-rows-and-tokens.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 3)"
+    estimate_days: 1
+    lane: 3
+    wave: 2
+    serialised: false
+    contract: false
+    blocker: "readiness: the keyword-badge clause of AC-1 (O3) needs keywords[] on minion_summoned (Goal Prerequisites row 9, no story)"
+    note: "UI: retained screenshots + owner sign-off; needs MUI-004 at M1; /code-review at M2"
+    completed: ""
+  - id: "match-ui-008"
+    name: "Drag to play, drag to attack and the targeting arrow"
+    file: "production/epics/match-ui/story-008-drag-to-play-attack-and-targeting-arrow.md"
+    priority: must-have
+    status: ready-for-dev
     owner: "general-purpose (lane 1)"
-    estimate_days: 1
+    estimate_days: 3
     lane: 1
-    wave: 2
-    serialised: true
-    contract: false
-    blocker: ""
-    note: "re-open after M1; creates src/gameplay/run/match_driver.gd and tests/helpers/fake_planner_task.gd; merges first at M2; /code-review at M2"
-    completed: "2026-11-05"
-  - id: "boss-ai-match-driver-015"
-    name: "MatchDriver — tick(), bounded replay with checksum, match_ended and shutdown"
-    file: "production/epics/boss-ai-match-driver/story-015-match-driver-tick-replay-and-shutdown.md"
-    priority: must-have
-    status: done
-    owner: "general-purpose (lane 1)"
-    estimate_days: 1
-    lane: 1
-    wave: 2
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "THE M3 CHECK: planned M2; if not merged by M3, the sprint-5 close declares First Playable sprint 7 (retro-4 decision point); /code-review at M2"
-    completed: "2026-11-05"
-  - id: "boss-ai-match-driver-010"
-    name: "Choice phase — choose for Discover and choose_one"
-    file: "production/epics/boss-ai-match-driver/story-010-choice-phase.md"
-    priority: must-have
-    status: done
-    owner: "general-purpose (lane 2)"
-    estimate_days: 0.5
-    lane: 2
-    wave: 1
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "L2 opener; boss_ai.gd choose entry, rebases on L1 at M1; lands before a First Playable with Gatekeeper (review N10)"
-    completed: "2026-11-04"
-  - id: "boss-ai-match-driver-011"
-    name: "Forecast and telegraphing — Intent, intent keys, kept, effective_mode"
-    file: "production/epics/boss-ai-match-driver/story-011-forecast-and-telegraphing.md"
-    priority: must-have
-    status: done
-    owner: "general-purpose (lane 2)"
-    estimate_days: 1
-    lane: 2
-    wave: 2
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "needs BAI-008 at M1; BAI review N5 (explicit side for forecast clones); /code-review at M2"
-    completed: "2026-11-05"
-  - id: "boss-ai-match-driver-009"
-    name: "Defensive mode and sandbox fidelity"
-    file: "production/epics/boss-ai-match-driver/story-009-defensive-mode-and-sandbox-fidelity.md"
-    priority: must-have
-    status: done
-    owner: "general-purpose (lane 2)"
-    estimate_days: 1
-    lane: 2
-    wave: 2
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "S -> M: A31 non-lethal face attacks (DD-X22); scorer.gd + boss_ai.gd, sole editor in W2; /code-review at M2"
-    completed: "2026-11-05"
-  - id: "boss-ai-match-driver-014"
-    name: "MatchDriver — phase schedule: forecast, plan and choose tasks, stale premise, telegraph setting"
-    file: "production/epics/boss-ai-match-driver/story-014-match-driver-phase-schedule.md"
-    priority: must-have
-    status: done
-    owner: "general-purpose (lane 2)"
-    estimate_days: 1
-    lane: 2
     wave: 3
     serialised: false
     contract: false
     blocker: ""
-    note: "re-open after M2; needs BAI-013 (M2), BAI-010, BAI-011; match_driver.gd sole editor in W3; unlocks BAI-016 (sprint 6 W1); /code-review at M3"
-    completed: "2026-11-05"
-  - id: "boss-ai-match-driver-012"
-    name: "Hidden-information purity (A4) and the src/ai CI gates (A29, thread symbols)"
-    file: "production/epics/boss-ai-match-driver/story-012-hidden-information-and-purity-gates.md"
+    note: "UI: retained screenshots + owner sign-off; needs MUI-005 (M1) and MUI-006, MUI-007 (M2): if either misses M2, declare sprint 7 early; reads legal_commands() on pickup (Q-5); stale 'targeting.md not authored' text; /code-review at M3"
+    completed: ""
+  - id: "match-ui-009"
+    name: "Mulligan screen"
+    file: "production/epics/match-ui/story-009-mulligan-screen.md"
     priority: must-have
-    status: done
-    owner: "general-purpose (lane 7)"
-    estimate_days: 0.5
-    lane: 7
-    wave: 3
+    status: ready-for-dev
+    owner: "general-purpose (lane 2)"
+    estimate_days: 1
+    lane: 2
+    wave: 2
     serialised: false
     contract: false
     blocker: ""
-    note: "in the review-fix lane to keep L2 at 7 links; needs BAI-008 (M1), BAI-011 (M2); adds one tests.yml step; BAI review N6 literals; /code-review at M3"
-    completed: "2026-11-05"
-  - id: "heroes-001"
-    name: "War hero seated from its HeroDef — Whetstone on shipped data"
-    file: "production/epics/heroes/story-001-war-hero-seated-from-herodef.md"
+    note: "UI: three retained screenshots + owner sign-off; after MUI-006 in L2 (CardFrame); /code-review at M2"
+    completed: ""
+  - id: "match-ui-011"
+    name: "Match-end banner and the match_view_finished hand-off"
+    file: "production/epics/match-ui/story-011-match-end-banner-and-handoff.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "general-purpose (lane 3)"
     estimate_days: 1
     lane: 3
-    wave: 1
+    wave: 2
     serialised: false
     contract: false
     blocker: ""
-    note: "L3 opener; rules_engine.gd C3.2 cross-epic edit in W1 (MR-019 is W2 — different waves); [S] if it takes the card_factory fixture option; unlocks BAI-016; /code-review at M1"
-    completed: "2026-11-04"
-  - id: "heroes-002"
-    name: "Heroes accessor — hero, launch_heroes, plan_tags over CardDatabase"
-    file: "production/epics/heroes/story-002-heroes-accessor.md"
+    note: "UI: six retained screenshots + owner sign-off; needs MUI-005 at M1; sole match_view.gd editor in W2; /code-review at M2"
+    completed: ""
+  - id: "match-ui-012"
+    name: "First playable: one War match vs The Torchbearer, mouse-played, on the Windows export"
+    file: "production/epics/match-ui/story-012-first-playable-windows-match.md"
     priority: must-have
-    status: done
-    owner: "general-purpose (lane 3)"
-    estimate_days: 0.5
-    lane: 3
-    wave: 1
+    status: ready-for-dev
+    owner: "general-purpose (lane 1); owner plays"
+    estimate_days: 1
+    lane: 1
+    wave: 3
     serialised: false
     contract: false
-    blocker: ""
-    note: "War starter deck for BAI-016 (with heroes 001)"
-    completed: "2026-11-04"
-  - id: "treasures-001"
-    name: "Treasures installers — installers_for, passive_installer, collect_state"
-    file: "production/epics/treasures/story-001-installers-passive-and-collect-state.md"
+    blocker: "readiness: AC-1 includes the hero power (row 11); AC-2 needs a Windows debug export (row 14) and a launch route that is NOT ASSESSED (row 2); AC-3 release boot opens on data_error (row 15); needs BAI-018 evidence"
+    note: "THE GOAL. Integration test + playtest-001 report + owner-retained Windows screenshot; after MUI-008 in L1 W3; /code-review at M3; the sprint-6 close declares sprint 7 if it has not merged"
+    completed: ""
+  - id: "boss-ai-match-driver-016"
+    name: "Headless AI-vs-AI simulation harness (gate condition 6)"
+    file: "production/epics/boss-ai-match-driver/story-016-sim-harness.md"
     priority: must-have
-    status: done
+    status: ready-for-dev
     owner: "general-purpose (lane 4)"
-    estimate_days: 1
+    estimate_days: 3
     lane: 4
     wave: 1
     serialised: false
     contract: false
-    blocker: ""
-    note: "L4 opener; AC-T3.1 boss passive (all band-1 bosses have passives); unblocks CE-014, CE-013, CE-015; [S] if boss_test_taxman goes into card_factory.gd; /code-review at M1"
-    completed: "2026-11-04"
-  - id: "match-ui-003"
-    name: "MatchController and MatchQuery — the three channels, flush-before-submit and engine parity"
-    file: "production/epics/match-ui/story-003-match-controller-and-match-query.md"
+    blocker: "readiness: AC-4 builds drivers through the injected driver_factory, which no story builds (row 8)"
+    note: "L4 opener (new subsystem on the real engine, 2 links); writes five production/qa/sim/*.json; a late passive_driven preference row means re-running boss_rot_warden; /code-review at M1"
+    completed: ""
+  - id: "boss-ai-match-driver-017"
+    name: "Planner determinism across implementations"
+    file: "production/epics/boss-ai-match-driver/story-017-planner-determinism-across-implementations.md"
     priority: must-have
-    status: done
-    owner: "general-purpose (lane 8)"
+    status: ready-for-dev
+    owner: "general-purpose (lane 4)"
     estimate_days: 1
-    lane: 8
-    wave: 3
+    lane: 4
+    wave: 2
     serialised: false
     contract: false
     blocker: ""
-    note: "L8 opener after BAI-013 merges at M2; creates MatchQuery (BAI review S3 code half follows in sprint 6); /code-review at M3"
-    completed: "2026-11-05"
+    note: "re-open after M1; needs BAI-016 and BAI-019 (M1); the one place a real WorkerThreadPool runs under tests/; stop the driver clock for the byte-identical runs (wave-2 review Q-4); /code-review at M2"
+    completed: ""
+  - id: "boss-ai-match-driver-018"
+    name: "Windows planner A30 and determinism"
+    file: "production/epics/boss-ai-match-driver/story-018-windows-planner-a30-and-determinism.md"
+    priority: must-have
+    status: ready-for-dev
+    owner: "general-purpose (lane 4); owner runs the Windows session"
+    estimate_days: 3
+    lane: 4
+    wave: 3
+    serialised: false
+    contract: false
+    blocker: "readiness: needs the driver_factory to choose WorkerPoolPlannerTask (row 8), export templates and a debug export (row 14); AC-1 names a release export that opens on data_error (row 15)"
+    note: "evidence story: README + logs + profiler capture under production/qa/evidence/boss-ai-windows-<date>/; AC-4 may lower band-3 counts in ai_profiles.json ([C], merges last) after the pre-W3 DQ-2/DQ-3/R5 decision; MUI-012 depends on it; /code-review reads the evidence at M3"
+    completed: ""
   # --- Should Have ---
+  - id: "content-006"
+    name: "MVP-1 treasures"
+    file: "production/epics/content/story-006-mvp-1-treasures.md"
+    priority: should-have
+    status: backlog
+    owner: "general-purpose (lane 5), game-designer data brief"
+    estimate_days: 0.5
+    lane: 5
+    wave: 1
+    serialised: false
+    contract: true
+    blocker: ""
+    note: "Config/Data; not on the First Playable path; story file reads Ready, yaml backlog per the skill mapping for Should Have; shipped data, merges last at M1; its 'validator story path not yet assigned' is treasures-003"
+    completed: ""
+  # --- Carryover from sprint 5 (previous priority kept, status it has now; MUI-004, BAI-019, MR-019, MR-018 scheduled as committed lane work) ---
+  - id: "match-ui-004"
+    name: "MatchView skeleton, Presenter base, the --fixture loader, first capture and /perf-profile"
+    file: "production/epics/match-ui/story-004-match-view-skeleton-and-fixture-loader.md"
+    priority: nice-to-have
+    status: backlog
+    owner: "general-purpose (lane 1)"
+    estimate_days: 3
+    lane: 1
+    wave: 1
+    serialised: false
+    contract: false
+    blocker: "readiness: AC-2 builds the driver through driver_factory (row 8); AC-3 and its evidence need tools/capture.sh under Xvfb, no Windows path (row 12); trunk has an uncommitted project.godot change to decide first"
+    note: "carryover (sprint 5 stretch, not started); head of the match-ui chain, committed; UI: retained screenshot + perf-profile.md + owner sign-off; 2 links (new subsystem); /code-review at M1"
+    completed: ""
+  - id: "boss-ai-match-driver-019"
+    name: "CardDatabase.reload() refuses with E_BUSY while a PlannerTask is live"
+    file: "production/epics/boss-ai-match-driver/story-019-reload-busy-while-planning.md"
+    priority: nice-to-have
+    status: backlog
+    owner: "general-purpose (lane 4)"
+    estimate_days: 0.5
+    lane: 4
+    wave: 1
+    serialised: false
+    contract: true
+    blocker: "readiness: AC-3 and the boot.gd wiring assume a composition-root driver_factory that does not exist (row 8)"
+    note: "carryover (sprint 5 stretch, not started); lands before BAI-017; E_BUSY enforcement is a contract change, merges last at M1; /code-review at M1"
+    completed: ""
   - id: "match-rules-019"
     name: "Rules engine performance pass"
     file: "production/epics/match-rules/story-019-rules-engine-performance-pass.md"
     priority: should-have
     status: in-progress
     owner: "general-purpose (lane 6)"
-    estimate_days: 3
+    estimate_days: 0.5
     lane: 6
-    wave: 2
-    serialised: true
+    wave: 1
+    serialised: false
     contract: false
-    blocker: "AC-3 misses: chain 13.3 ms debug under load vs 10 ms gate; owner R6 decision after a quiet re-measure"
-    note: "own match-rules lane, never the boss-ai lane (retro-4 action 2); golden logs recorded on the M1 trunk before any src/ edit; only rules_engine.gd editor in W2; after L6 W1 perf fixes (S6/S7); counts 2.5 links; not on the band-1 path; /code-review at M2"
+    blocker: "AC-3 misses: chain about 14 to 18 ms debug under load vs the 10 ms gate; release not measured (no export template); waits on the owner's R6 decision"
+    note: "carryover; close-out only (bookkeeping on R6), no new engine work planned; if the owner chooses to optimise further that needs a new story; a summary review is enough"
     completed: ""
-  - id: "heroes-003"
-    name: "Heroes F2 plan-card count and F5 signature synergy"
-    file: "production/epics/heroes/story-003-plan-card-and-synergy-checks.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 3)"
-    estimate_days: 0.5
-    lane: 3
-    wave: 1
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "after heroes 002 in L3"
-    completed: "2026-11-04"
-  - id: "heroes-004"
-    name: "Heroes.validate_config — the heroes_balance.json stage-7a validator, registered at Boot"
-    file: "production/epics/heroes/story-004-heroes-balance-config-validator.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 3)"
-    estimate_days: 0.5
-    lane: 3
-    wave: 1
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "boot.gd registration is orchestrator-owned: the orchestrator adds heroes_balance and updates the boot_validator_map_test pinned list at M1"
-    completed: "2026-11-04"
-  - id: "treasures-009"
-    name: "Treasures.pool(unlocked_keys, exclude_ids) — the one membership predicate"
-    file: "production/epics/treasures/story-009-pool-membership-predicate.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 4)"
-    estimate_days: 0.5
-    lane: 4
-    wave: 1
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "after treasures 001 in L4"
-    completed: "2026-11-04"
-  - id: "treasures-003"
-    name: "TreasureValidator — T7 codes at Card Database stage 7b, registered at Boot"
-    file: "production/epics/treasures/story-003-treasure-validator-at-stage-7b.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 4)"
-    estimate_days: 1
-    lane: 4
-    wave: 2
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "re-open after M1; boot.gd treasure adapter orchestrator-owned at M2 (empties PENDING_RECORD_OWNERS); unlocks content 006 (sprint 6); /code-review at M2"
-    completed: "2026-11-05"
-  - id: "treasures-005"
-    name: "Cost-fold treasures — Worn Signet, Vanguard's Banner, stacked discounts"
-    file: "production/epics/treasures/story-005-cost-fold-treasures.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 4)"
-    estimate_days: 1
-    lane: 4
-    wave: 3
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "needs CE-014 at M2; test-only, a failing case is fixed where it lives; merges after L6 at M3"
-    completed: "2026-11-05"
-  - id: "treasures-006"
-    name: "Hand-size and attack-count folds — Bottomless Satchel, Twin Grip, the post-fold clamps"
-    file: "production/epics/treasures/story-006-hand-size-and-attack-fold-treasures.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 4)"
-    estimate_days: 1
-    lane: 4
-    wave: 3
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "needs CE-014 at M2; test-only; first in the Should Have cut order"
-    completed: "2026-11-05"
-  - id: "card-effects-013"
-    name: "Transform, copy-to-hand, bounce and keyword auras from a treasure host"
-    file: "production/epics/card-effects/story-013-transform-copy-keyword-aura.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 5)"
-    estimate_days: 1
-    lane: 5
-    wave: 2
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "after CE-014 in L5; needs CE-009 (L5) and treasures 001 (M1); /code-review at M2"
-    completed: "2026-11-05"
-  - id: "card-effects-015"
-    name: "Trigger hooks as synchronous steps and hero-slot observers (treasures, boss passives)"
-    file: "production/epics/card-effects/story-015-hook-trigger-steps-hero-slot-observers.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 5)"
-    estimate_days: 1
-    lane: 5
-    wave: 3
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "re-open after M2; boss passives fire from the hero slot (First Playable boss); last in the Should Have cut order; /code-review at M3"
-    completed: "2026-11-05"
-  - id: "card-effects-017"
-    name: "Validator — silence before destroy (AC-47)"
-    file: "production/epics/card-effects/story-017-validator-silence-before-destroy.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 7)"
-    estimate_days: 0.5
-    lane: 7
-    wave: 2
-    serialised: false
-    contract: true
-    blocker: ""
-    note: "DD-X21 content rule; after the DD-X25 validator change in the same lane (effect_validator.gd); merges last-but-one at M2"
-    completed: "2026-11-05"
-  - id: "content-010"
-    name: "Gravekeeper returns to the boss decks"
-    file: "production/epics/content/story-010-gravekeeper-returns-to-the-boss-decks.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 3), game-designer data brief"
-    estimate_days: 0.5
-    lane: 3
-    wave: 2
-    serialised: false
-    contract: true
-    blocker: ""
-    note: "DD-X20; AC-3 Torchbearer line KEPT (documented default under the owner's standing approval: matches DD-X20's intent; owner may strike in W1); runtime counters from CE-009 (M1); shipped data, merges last at M2"
-    completed: "2026-11-05"
-  - id: "match-ui-010"
-    name: "Boss-turn pacing — F4 gap and compression, boss-turn mode and control lock"
-    file: "production/epics/match-ui/story-010-boss-turn-pacing.md"
-    priority: should-have
-    status: done
-    owner: "general-purpose (lane 8)"
-    estimate_days: 1
-    lane: 8
-    wave: 3
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "needs BAI-015 at M2; DD-X23 commit beat; MISSING prerequisite: planner_target_ms has no shipped knob (sprint-005.md Goal Prerequisites, fixes a/b/c); creates input_router.gd controls_locked before MUI-004; /code-review at M3"
-    completed: "2026-11-05"
-  # --- Carryover from sprint 4 (previous priority kept; scheduled as committed lane work) ---
   - id: "match-rules-018"
     name: "Performance budgets"
     file: "production/epics/match-rules/story-018-performance-budgets.md"
@@ -392,86 +235,525 @@ stories:
     owner: "general-purpose (lane 6)"
     estimate_days: 0.5
     lane: 6
-    wave: 3
-    serialised: false
-    contract: false
-    blocker: "AC-40 worst-case submit 25.1 ms debug / 19.9 ms release vs 5 ms (sprint 4); waits for match-rules-019 to re-measure"
-    note: "carryover; closes on MR-019's re-measure, or on the owner's R6 decision if MR-019 AC-3 still misses"
-    completed: ""
-  - id: "card-effects-009"
-    name: "Deathrattle snapshot, once_per_turn, Silence-after-queue, counters"
-    file: "production/epics/card-effects/story-009-deathrattle-snapshot-counters.md"
-    priority: nice-to-have
-    status: done
-    owner: "general-purpose (lane 5)"
-    estimate_days: 1
-    lane: 5
     wave: 1
     serialised: false
     contract: false
-    blocker: ""
-    note: "carryover, committed this sprint (CE-013, CE-015, content 010 build on it); DD-X21 cleared the blocker; scope adds the match-rules silence C13.2 change and match-rules AC-46; rules_engine.gd edit in W1; carry review N7 C2 defaults to readiness; /code-review at M1"
-    completed: "2026-11-04"
-  - id: "card-effects-014"
-    name: "Value-hook folds"
-    file: "production/epics/card-effects/story-014-value-hook-folds.md"
+    blocker: "AC-40 worst-case submit open since sprint 4; waits on a release-template measure and the owner's R6 decision"
+    note: "carryover (second carry); re-measure AC-40 on a release template and close on R6"
+    completed: ""
+  # --- Nice to Have (stretch) ---
+  - id: "treasures-008"
+    name: "Aura treasures — Whetstone Wheel and Stampede Horn on the hero slot"
+    file: "production/epics/treasures/story-008-aura-treasures.md"
     priority: nice-to-have
-    status: done
+    status: backlog
+    owner: "general-purpose (lane 5)"
+    estimate_days: 0.5
+    lane: 5
+    wave: 2
+    serialised: false
+    contract: false
+    blocker: ""
+    note: "carryover (sprint 5 stretch, not started); stretch; needs CE-013 (done)"
+    completed: ""
+  - id: "treasures-002"
+    name: "Installation order, duplicates and clone"
+    file: "production/epics/treasures/story-002-installation-order-duplicates-and-clone.md"
+    priority: nice-to-have
+    status: backlog
     owner: "general-purpose (lane 5)"
     estimate_days: 1
     lane: 5
     wave: 2
     serialised: false
     contract: false
-    blocker: "until treasures-001 merges at M1 (HookInstaller / passive_installer)"
-    note: "carryover, committed this sprint (CE-015, treasures 005/006 build on it); re-open after M1; /code-review at M2"
-    completed: "2026-11-05"
-  # --- Nice to Have (stretch) ---
-  - id: "boss-ai-match-driver-019"
-    name: "CardDatabase.reload() refuses with E_BUSY while a PlannerTask is live"
-    file: "production/epics/boss-ai-match-driver/story-019-reload-busy-while-planning.md"
-    priority: nice-to-have
-    status: backlog
-    owner: "general-purpose (lane 2)"
-    estimate_days: 0.5
-    lane: 2
-    wave: 3
-    serialised: false
-    contract: false
     blocker: ""
-    note: "stretch after BAI-014; must land before BAI-017 (else sprint 6 W1)"
+    note: "stretch after treasures-008 in L5; authors against the open absent-side default (wave-2 review Q1)"
     completed: ""
-  - id: "treasures-008"
-    name: "Aura treasures — Whetstone Wheel and Stampede Horn on the hero slot"
-    file: "production/epics/treasures/story-008-aura-treasures.md"
+  - id: "treasures-007"
+    name: "Trigger-hook treasures"
+    file: "production/epics/treasures/story-007-trigger-hook-treasures.md"
     priority: nice-to-have
     status: backlog
-    owner: "general-purpose (lane 4)"
-    estimate_days: 0.5
-    lane: 4
+    owner: "general-purpose (lane 5)"
+    estimate_days: 1
+    lane: 5
     wave: 3
     serialised: false
     contract: false
     blocker: ""
-    note: "stretch; needs CE-013 at M2"
-    completed: ""
-  - id: "match-ui-004"
-    name: "MatchView skeleton, Presenter base, the --fixture loader, first capture and /perf-profile"
-    file: "production/epics/match-ui/story-004-match-view-skeleton-and-fixture-loader.md"
-    priority: nice-to-have
-    status: backlog
-    owner: "general-purpose (lane 8)"
-    estimate_days: 3
-    lane: 8
-    wave: 3
-    serialised: false
-    contract: false
-    blocker: ""
-    note: "stretch after MUI-003 and MUI-010; UI — retained screenshot + owner sign-off; landing it cuts sprint 6's match-ui chain by ~1.5 links"
+    note: "stretch; first cut"
     completed: ""
 
 # Previous sprints — kept for history; not part of the current sprint's story list.
 previous_sprints:
+  - sprint: 5
+    goal: "Land the match driver by M2 on the boss-ai critical lane (BAI-007 -> 008 -> 013 -> 015) so MatchController/MatchQuery (MUI-003) and boss-turn pacing (MUI-010) open in W3; the rest of the First Playable branch: boss-ai choice, forecast, defensive mode with A31, purity gates and phase schedule (BAI-009..012, 014); War hero seating and the Heroes accessor (heroes 001-004); treasures installers with the boss passive, stage-7b validator, pool and fold treasures (treasures 001, 003, 005, 006, 009); the card-effects hook chain so boss passives fire (CE-009, 014, 013, 015) and the destroy-before-silence check (CE-017); the rules engine performance pass in its own lane (MR-019, closing MR-018); Gravekeeper back in the boss decks (content 010); a W1 fix buffer for the sprint-4 review led by Mass Rites' retrigger op. Nothing new is playable; First Playable stays sprint 6 (2026-12-08), sprint 7 if BAI-015 has not merged by M3."
+    start: "2026-11-25"
+    end: "2026-12-01"
+    generated: "2026-11-04"
+    updated: "2026-11-05"
+
+    # Lanes (all general-purpose agents; role agents stop at 20 turns): L1 boss-ai A (critical: BAI-007->008 | 013->015 | slip slot),
+    # L2 boss-ai B (BAI-010 | 011->009 | 014, +019), L3 heroes + content (heroes 001->002->003->004 | content-010 [C] | buffer),
+    # L4 treasures (001->009 | 003 | 005->006, +008), L5 card-effects (CE-009 | CE-014->013 | CE-015),
+    # L6 match-rules perf [S] (S6/S7 + DD-X19 | MR-019 | fix slot -> MR-018), L7 review fixes (sprint-4 review fix buffer [C] | CE-017 [C] + fix slot | BAI-012 + fix slot),
+    # L8 match-ui (idle W1-W2 | MUI-003 -> MUI-010, +MUI-004). Waves = merge points M1-M3.
+    # [S] serialised = merges first in its wave; [C] contract-tightening/shipped data = merges last.
+    # rules_engine.gd: W1 heroes-001, CE-009, fix buffer (S1/S5); W2 MR-019 only; W3 MR-019 fix slot first.
+    # boot.gd _collect_validators() is orchestrator-owned: heroes_balance at M1 (heroes-004), treasure adapter at M2 (treasures-003).
+    # M3 CHECK: BAI-015 merged at M2 (2026-11-05). Not merged by M3 -> declare First Playable sprint 7 at the sprint-5 close.
+    # Fix buffer (review work, not stories; code-review-s4-unreviewed.md): S5 retrigger, S1, S2->DD-X25, S4, X1, T1, T2, verdict lines; S6/S7 + DD-X19 in L6 W1; S3 after a W1 design call.
+    # planner_target_ms shipped at M1 (ai_profiles.json runtime block, validated 50-1000, read-only for the UI): MUI-010 and BAI-016 read it there.
+    # Owner: 12 h/week, 9.75 h budgeted (NC-5 Windows checks run by the owner 2026-11-04, before the sprint). No QA plan yet: run /qa-plan sprint first.
+    # Carryover rows keep their previous priority (skill rule); CE-009 and CE-014 are scheduled as committed lane work.
+    # Closed 2026-11-05: committed 26/28 done (match-rules-019 and match-rules-018 in progress on the owner's R6 decision);
+    # stretch 0/3 (boss-ai-match-driver-019, treasures-008, match-ui-004 not started, backlog). Smoke NOT ASSESSED on one item only (CI on the sprint HEAD not read; 2345 tests passing):
+    # production/qa/smoke-2026-11-05-sprint-005.md. Retro: production/retrospectives/retro-sprint-5-2026-11-05.md.
+    # Carried into sprint 6 (production/sprints/sprint-006.md, Carryover): match-ui-004, boss-ai-match-driver-019, match-rules-019, match-rules-018, treasures-008.
+
+    stories:
+      # --- Must Have (critical path) ---
+      - id: "boss-ai-match-driver-007"
+        name: "Lethal search — damage subset DFS, F4 prune, node budget, shallow mode"
+        file: "production/epics/boss-ai-match-driver/story-007-lethal-search.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 1)"
+        estimate_days: 1
+        lane: 1
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "L1 critical opener; counts 2 links (first on the real engine); /code-review at M1"
+        completed: "2026-11-04"
+      - id: "boss-ai-match-driver-008"
+        name: "plan_turn — the C2 action loop, TurnPlan, plan_task and the caps"
+        file: "production/epics/boss-ai-match-driver/story-008-plan-turn-loop-and-turn-plan.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 1)"
+        estimate_days: 3
+        lane: 1
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "L, 2 links; carries A3/A5 and the C4 sim stream (ae3b161); readiness adds BAI review N3/N4; edits boss_ai.gd (merges before L2 at M1); /code-review at M1"
+        completed: "2026-11-04"
+      - id: "boss-ai-match-driver-013"
+        name: "MatchDriver — construction order, command gate and the concede slot"
+        file: "production/epics/boss-ai-match-driver/story-013-match-driver-construction-and-command-gate.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 1)"
+        estimate_days: 1
+        lane: 1
+        wave: 2
+        serialised: true
+        contract: false
+        blocker: ""
+        note: "re-open after M1; creates src/gameplay/run/match_driver.gd and tests/helpers/fake_planner_task.gd; merges first at M2; /code-review at M2"
+        completed: "2026-11-05"
+      - id: "boss-ai-match-driver-015"
+        name: "MatchDriver — tick(), bounded replay with checksum, match_ended and shutdown"
+        file: "production/epics/boss-ai-match-driver/story-015-match-driver-tick-replay-and-shutdown.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 1)"
+        estimate_days: 1
+        lane: 1
+        wave: 2
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "THE M3 CHECK: planned M2; if not merged by M3, the sprint-5 close declares First Playable sprint 7 (retro-4 decision point); /code-review at M2"
+        completed: "2026-11-05"
+      - id: "boss-ai-match-driver-010"
+        name: "Choice phase — choose for Discover and choose_one"
+        file: "production/epics/boss-ai-match-driver/story-010-choice-phase.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 2)"
+        estimate_days: 0.5
+        lane: 2
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "L2 opener; boss_ai.gd choose entry, rebases on L1 at M1; lands before a First Playable with Gatekeeper (review N10)"
+        completed: "2026-11-04"
+      - id: "boss-ai-match-driver-011"
+        name: "Forecast and telegraphing — Intent, intent keys, kept, effective_mode"
+        file: "production/epics/boss-ai-match-driver/story-011-forecast-and-telegraphing.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 2)"
+        estimate_days: 1
+        lane: 2
+        wave: 2
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "needs BAI-008 at M1; BAI review N5 (explicit side for forecast clones); /code-review at M2"
+        completed: "2026-11-05"
+      - id: "boss-ai-match-driver-009"
+        name: "Defensive mode and sandbox fidelity"
+        file: "production/epics/boss-ai-match-driver/story-009-defensive-mode-and-sandbox-fidelity.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 2)"
+        estimate_days: 1
+        lane: 2
+        wave: 2
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "S -> M: A31 non-lethal face attacks (DD-X22); scorer.gd + boss_ai.gd, sole editor in W2; /code-review at M2"
+        completed: "2026-11-05"
+      - id: "boss-ai-match-driver-014"
+        name: "MatchDriver — phase schedule: forecast, plan and choose tasks, stale premise, telegraph setting"
+        file: "production/epics/boss-ai-match-driver/story-014-match-driver-phase-schedule.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 2)"
+        estimate_days: 1
+        lane: 2
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "re-open after M2; needs BAI-013 (M2), BAI-010, BAI-011; match_driver.gd sole editor in W3; unlocks BAI-016 (sprint 6 W1); /code-review at M3"
+        completed: "2026-11-05"
+      - id: "boss-ai-match-driver-012"
+        name: "Hidden-information purity (A4) and the src/ai CI gates (A29, thread symbols)"
+        file: "production/epics/boss-ai-match-driver/story-012-hidden-information-and-purity-gates.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 7)"
+        estimate_days: 0.5
+        lane: 7
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "in the review-fix lane to keep L2 at 7 links; needs BAI-008 (M1), BAI-011 (M2); adds one tests.yml step; BAI review N6 literals; /code-review at M3"
+        completed: "2026-11-05"
+      - id: "heroes-001"
+        name: "War hero seated from its HeroDef — Whetstone on shipped data"
+        file: "production/epics/heroes/story-001-war-hero-seated-from-herodef.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 3)"
+        estimate_days: 1
+        lane: 3
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "L3 opener; rules_engine.gd C3.2 cross-epic edit in W1 (MR-019 is W2 — different waves); [S] if it takes the card_factory fixture option; unlocks BAI-016; /code-review at M1"
+        completed: "2026-11-04"
+      - id: "heroes-002"
+        name: "Heroes accessor — hero, launch_heroes, plan_tags over CardDatabase"
+        file: "production/epics/heroes/story-002-heroes-accessor.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 3)"
+        estimate_days: 0.5
+        lane: 3
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "War starter deck for BAI-016 (with heroes 001)"
+        completed: "2026-11-04"
+      - id: "treasures-001"
+        name: "Treasures installers — installers_for, passive_installer, collect_state"
+        file: "production/epics/treasures/story-001-installers-passive-and-collect-state.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 4)"
+        estimate_days: 1
+        lane: 4
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "L4 opener; AC-T3.1 boss passive (all band-1 bosses have passives); unblocks CE-014, CE-013, CE-015; [S] if boss_test_taxman goes into card_factory.gd; /code-review at M1"
+        completed: "2026-11-04"
+      - id: "match-ui-003"
+        name: "MatchController and MatchQuery — the three channels, flush-before-submit and engine parity"
+        file: "production/epics/match-ui/story-003-match-controller-and-match-query.md"
+        priority: must-have
+        status: done
+        owner: "general-purpose (lane 8)"
+        estimate_days: 1
+        lane: 8
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "L8 opener after BAI-013 merges at M2; creates MatchQuery (BAI review S3 code half follows in sprint 6); /code-review at M3"
+        completed: "2026-11-05"
+      # --- Should Have ---
+      - id: "match-rules-019"
+        name: "Rules engine performance pass"
+        file: "production/epics/match-rules/story-019-rules-engine-performance-pass.md"
+        priority: should-have
+        status: in-progress
+        owner: "general-purpose (lane 6)"
+        estimate_days: 3
+        lane: 6
+        wave: 2
+        serialised: true
+        contract: false
+        blocker: "AC-3 misses: chain 13.3 ms debug under load vs 10 ms gate; owner R6 decision after a quiet re-measure"
+        note: "own match-rules lane, never the boss-ai lane (retro-4 action 2); golden logs recorded on the M1 trunk before any src/ edit; only rules_engine.gd editor in W2; after L6 W1 perf fixes (S6/S7); counts 2.5 links; not on the band-1 path; /code-review at M2"
+        completed: ""
+      - id: "heroes-003"
+        name: "Heroes F2 plan-card count and F5 signature synergy"
+        file: "production/epics/heroes/story-003-plan-card-and-synergy-checks.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 3)"
+        estimate_days: 0.5
+        lane: 3
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "after heroes 002 in L3"
+        completed: "2026-11-04"
+      - id: "heroes-004"
+        name: "Heroes.validate_config — the heroes_balance.json stage-7a validator, registered at Boot"
+        file: "production/epics/heroes/story-004-heroes-balance-config-validator.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 3)"
+        estimate_days: 0.5
+        lane: 3
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "boot.gd registration is orchestrator-owned: the orchestrator adds heroes_balance and updates the boot_validator_map_test pinned list at M1"
+        completed: "2026-11-04"
+      - id: "treasures-009"
+        name: "Treasures.pool(unlocked_keys, exclude_ids) — the one membership predicate"
+        file: "production/epics/treasures/story-009-pool-membership-predicate.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 4)"
+        estimate_days: 0.5
+        lane: 4
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "after treasures 001 in L4"
+        completed: "2026-11-04"
+      - id: "treasures-003"
+        name: "TreasureValidator — T7 codes at Card Database stage 7b, registered at Boot"
+        file: "production/epics/treasures/story-003-treasure-validator-at-stage-7b.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 4)"
+        estimate_days: 1
+        lane: 4
+        wave: 2
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "re-open after M1; boot.gd treasure adapter orchestrator-owned at M2 (empties PENDING_RECORD_OWNERS); unlocks content 006 (sprint 6); /code-review at M2"
+        completed: "2026-11-05"
+      - id: "treasures-005"
+        name: "Cost-fold treasures — Worn Signet, Vanguard's Banner, stacked discounts"
+        file: "production/epics/treasures/story-005-cost-fold-treasures.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 4)"
+        estimate_days: 1
+        lane: 4
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "needs CE-014 at M2; test-only, a failing case is fixed where it lives; merges after L6 at M3"
+        completed: "2026-11-05"
+      - id: "treasures-006"
+        name: "Hand-size and attack-count folds — Bottomless Satchel, Twin Grip, the post-fold clamps"
+        file: "production/epics/treasures/story-006-hand-size-and-attack-fold-treasures.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 4)"
+        estimate_days: 1
+        lane: 4
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "needs CE-014 at M2; test-only; first in the Should Have cut order"
+        completed: "2026-11-05"
+      - id: "card-effects-013"
+        name: "Transform, copy-to-hand, bounce and keyword auras from a treasure host"
+        file: "production/epics/card-effects/story-013-transform-copy-keyword-aura.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 5)"
+        estimate_days: 1
+        lane: 5
+        wave: 2
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "after CE-014 in L5; needs CE-009 (L5) and treasures 001 (M1); /code-review at M2"
+        completed: "2026-11-05"
+      - id: "card-effects-015"
+        name: "Trigger hooks as synchronous steps and hero-slot observers (treasures, boss passives)"
+        file: "production/epics/card-effects/story-015-hook-trigger-steps-hero-slot-observers.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 5)"
+        estimate_days: 1
+        lane: 5
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "re-open after M2; boss passives fire from the hero slot (First Playable boss); last in the Should Have cut order; /code-review at M3"
+        completed: "2026-11-05"
+      - id: "card-effects-017"
+        name: "Validator — silence before destroy (AC-47)"
+        file: "production/epics/card-effects/story-017-validator-silence-before-destroy.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 7)"
+        estimate_days: 0.5
+        lane: 7
+        wave: 2
+        serialised: false
+        contract: true
+        blocker: ""
+        note: "DD-X21 content rule; after the DD-X25 validator change in the same lane (effect_validator.gd); merges last-but-one at M2"
+        completed: "2026-11-05"
+      - id: "content-010"
+        name: "Gravekeeper returns to the boss decks"
+        file: "production/epics/content/story-010-gravekeeper-returns-to-the-boss-decks.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 3), game-designer data brief"
+        estimate_days: 0.5
+        lane: 3
+        wave: 2
+        serialised: false
+        contract: true
+        blocker: ""
+        note: "DD-X20; AC-3 Torchbearer line KEPT (documented default under the owner's standing approval: matches DD-X20's intent; owner may strike in W1); runtime counters from CE-009 (M1); shipped data, merges last at M2"
+        completed: "2026-11-05"
+      - id: "match-ui-010"
+        name: "Boss-turn pacing — F4 gap and compression, boss-turn mode and control lock"
+        file: "production/epics/match-ui/story-010-boss-turn-pacing.md"
+        priority: should-have
+        status: done
+        owner: "general-purpose (lane 8)"
+        estimate_days: 1
+        lane: 8
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "needs BAI-015 at M2; DD-X23 commit beat; MISSING prerequisite: planner_target_ms has no shipped knob (sprint-005.md Goal Prerequisites, fixes a/b/c); creates input_router.gd controls_locked before MUI-004; /code-review at M3"
+        completed: "2026-11-05"
+      # --- Carryover from sprint 4 (previous priority kept; scheduled as committed lane work) ---
+      - id: "match-rules-018"
+        name: "Performance budgets"
+        file: "production/epics/match-rules/story-018-performance-budgets.md"
+        priority: should-have
+        status: in-progress
+        owner: "general-purpose (lane 6)"
+        estimate_days: 0.5
+        lane: 6
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: "AC-40 worst-case submit 25.1 ms debug / 19.9 ms release vs 5 ms (sprint 4); waits for match-rules-019 to re-measure"
+        note: "carryover; closes on MR-019's re-measure, or on the owner's R6 decision if MR-019 AC-3 still misses"
+        completed: ""
+      - id: "card-effects-009"
+        name: "Deathrattle snapshot, once_per_turn, Silence-after-queue, counters"
+        file: "production/epics/card-effects/story-009-deathrattle-snapshot-counters.md"
+        priority: nice-to-have
+        status: done
+        owner: "general-purpose (lane 5)"
+        estimate_days: 1
+        lane: 5
+        wave: 1
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "carryover, committed this sprint (CE-013, CE-015, content 010 build on it); DD-X21 cleared the blocker; scope adds the match-rules silence C13.2 change and match-rules AC-46; rules_engine.gd edit in W1; carry review N7 C2 defaults to readiness; /code-review at M1"
+        completed: "2026-11-04"
+      - id: "card-effects-014"
+        name: "Value-hook folds"
+        file: "production/epics/card-effects/story-014-value-hook-folds.md"
+        priority: nice-to-have
+        status: done
+        owner: "general-purpose (lane 5)"
+        estimate_days: 1
+        lane: 5
+        wave: 2
+        serialised: false
+        contract: false
+        blocker: "until treasures-001 merges at M1 (HookInstaller / passive_installer)"
+        note: "carryover, committed this sprint (CE-015, treasures 005/006 build on it); re-open after M1; /code-review at M2"
+        completed: "2026-11-05"
+      # --- Nice to Have (stretch) ---
+      - id: "boss-ai-match-driver-019"
+        name: "CardDatabase.reload() refuses with E_BUSY while a PlannerTask is live"
+        file: "production/epics/boss-ai-match-driver/story-019-reload-busy-while-planning.md"
+        priority: nice-to-have
+        status: backlog
+        owner: "general-purpose (lane 2)"
+        estimate_days: 0.5
+        lane: 2
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "stretch after BAI-014; must land before BAI-017 (else sprint 6 W1)"
+        completed: ""
+      - id: "treasures-008"
+        name: "Aura treasures — Whetstone Wheel and Stampede Horn on the hero slot"
+        file: "production/epics/treasures/story-008-aura-treasures.md"
+        priority: nice-to-have
+        status: backlog
+        owner: "general-purpose (lane 4)"
+        estimate_days: 0.5
+        lane: 4
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "stretch; needs CE-013 at M2"
+        completed: ""
+      - id: "match-ui-004"
+        name: "MatchView skeleton, Presenter base, the --fixture loader, first capture and /perf-profile"
+        file: "production/epics/match-ui/story-004-match-view-skeleton-and-fixture-loader.md"
+        priority: nice-to-have
+        status: backlog
+        owner: "general-purpose (lane 8)"
+        estimate_days: 3
+        lane: 8
+        wave: 3
+        serialised: false
+        contract: false
+        blocker: ""
+        note: "stretch after MUI-003 and MUI-010; UI — retained screenshot + owner sign-off; landing it cuts sprint 6's match-ui chain by ~1.5 links"
+        completed: ""
+
+    # Previous sprints — kept for history; not part of the current sprint's story list.
+
   - sprint: 4
     goal: "Land RulesEngine.clone() with replay equivalence (MR-017) by M2 on two match-rules lanes (MR-011..017, MR-018 in W3) so the Boss AI scorer and candidates (BAI-004/005) open in W3; card-effects observers, values/selectors, hero powers, auras and Discover (CE-007/008/010/011/012); MVP-1 War set, bundles and four bosses (content 002-005) with budget checks (content 008); load budget (CDB-009) and Boot responsibilities (BOOT-007). Nothing new is playable; First Playable accepted for sprint 6 (2026-12-08), fallback sprint 7."
     start: "2026-11-18"
