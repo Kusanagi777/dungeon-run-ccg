@@ -331,6 +331,30 @@ func test_deathrattle_summon_past_the_board_end_goes_rightmost() -> void:
 	assert_int(int(log.first(&"minion_summoned").payload.position)).is_equal(1)
 
 
+func test_a_weapon_aura_logs_the_weapon_and_its_hero_with_absolute_values() -> void:
+	# Arrange: the axe is 3 Attack, 2 Durability; an aura gives it +1 and Poisonous
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver)
+	engine.run_action(func() -> void: engine.equip_weapon(SIDE_PLAYER, DEF_AXE))
+	var axe: int = int(engine.state().players[SIDE_PLAYER].weapon.entity_id)
+	var hero: Dictionary = engine.state().players[SIDE_PLAYER].hero
+	var aura: Dictionary = {"attack_delta": 1, "health_delta": 0, "keywords_added": ["poisonous"], "source_entity_id": axe, "is_aura": true}
+	resolver.aura_scripts.append(func(e: RulesEngine) -> void: e.apply_enchantment(axe, aura))
+	var before: int = log.events.size()
+
+	# Act
+	engine.run_action(_noop.bind(engine))
+
+	# Assert: the hero's attack includes the weapon; a weapon's health is its durability
+	var events: Array[Dictionary] = _of(log, before, ["auras_recomputed"])
+	assert_int(events.size()).is_equal(1)
+	assert_array(events[0].payload.changes).is_equal([
+		{"entity_id": int(hero.entity_id), "attack": 4, "health": engine.health(hero), "max_health": engine.max_health(hero), "keywords": []},
+		{"entity_id": axe, "attack": 4, "health": 2, "max_health": 2, "keywords": ["poisonous"]},
+	])
+
+
 func test_aura_loss_kills_the_buffed_minion_in_the_next_pass_after_the_sources_deathrattle() -> void:
 	# Arrange: [S (aura +0/+1, dr), A 1/1 (dr)]; the aura is applied by a first action
 	var log: TestEventLog = TestEventLog.new()
@@ -353,14 +377,14 @@ func test_aura_loss_kills_the_buffed_minion_in_the_next_pass_after_the_sources_d
 
 	# Assert: one auras_recomputed per pass with net changes, none when nothing changed
 	assert_array(_types(applied)).is_equal(["auras_recomputed"])
-	assert_array(applied[0].payload.changes).is_equal([{"entity_id": a, "attack": 1, "health": 2, "max_health": 2}])
+	assert_array(applied[0].payload.changes).is_equal([{"entity_id": a, "attack": 1, "health": 2, "max_health": 2, "keywords": []}])
 	assert_array(log.events.slice(idle, before)).is_empty()
 	var events: Array[Dictionary] = _of(log, before, ["minion_died", "auras_recomputed", "trigger_resolved"])
 	assert_array(_tagged(events.filter(func(e: Dictionary) -> bool: return e.type != "auras_recomputed"))).is_equal([
 		["minion_died", s], ["trigger_resolved", s], ["minion_died", a], ["trigger_resolved", a],
 	])
 	assert_array(_types(events)).is_equal(["minion_died", "auras_recomputed", "trigger_resolved", "minion_died", "trigger_resolved"])
-	assert_array(events[1].payload.changes).is_equal([{"entity_id": a, "attack": 1, "health": 0, "max_health": 1}])
+	assert_array(events[1].payload.changes).is_equal([{"entity_id": a, "attack": 1, "health": 0, "max_health": 1, "keywords": []}])
 	assert_array(_board(engine, SIDE_PLAYER)).is_empty()
 
 

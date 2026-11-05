@@ -368,7 +368,7 @@ func test_minion_died_run_sharing_a_cause_projects_one_death_group_then_one_gap_
 	assert_array(view.side(SIDE_BOSS).board.map(func(t: Dictionary) -> int: return int(t.entity_id))).is_equal([MINION_IDS[1]])
 
 
-func test_mana_and_aura_events_produce_zero_steps() -> void:
+func test_mana_events_and_an_empty_aura_event_produce_zero_steps() -> void:
 	# Arrange
 	var view: MatchViewState = _view()
 	_project(view, _opening())
@@ -385,6 +385,107 @@ func test_mana_and_aura_events_produce_zero_steps() -> void:
 	# Assert
 	assert_array(steps).is_empty()
 	assert_dict(view.side(SIDE_PLAYER).mana).is_equal({"available": 1, "max": 3, "temporary": 0})
+
+
+# --- DD-X26: `auras_recomputed` replaces fields, one parallel step per entry ------
+
+func _aura_entry(id: int, attack: int, health: int, max_health: int, keywords: Array) -> Dictionary:
+	return {"entity_id": id, "attack": attack, "health": health, "max_health": max_health, "keywords": keywords}
+
+
+func test_an_aura_entry_replaces_a_tokens_fields_rather_than_adding_to_them() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+	var entry: Dictionary = _aura_entry(MINION_IDS[0], 3, 2, 3, ["charge", "taunt"])
+
+	# Act: the same absolute event twice lands on the same numbers
+	_project(view, [_event(6, "auras_recomputed", {"changes": [entry]})])
+	var first: Dictionary = view.entity(MINION_IDS[0])
+	_project(view, [_event(7, "auras_recomputed", {"changes": [entry]})])
+	var second: Dictionary = view.entity(MINION_IDS[0])
+
+	# Assert
+	assert_dict(second).is_equal(first)
+	assert_int(int(second.attack)).is_equal(3)
+	assert_int(int(second.health)).is_equal(2)
+	assert_int(int(second.max_health)).is_equal(3)
+	assert_array(second.keywords).is_equal(["charge", "taunt"])
+
+
+func test_each_aura_entry_is_one_parallel_step_recolour_for_stats_badge_for_keywords() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+
+	# Act: the player's token gains Attack; the boss's token only gains Taunt
+	var steps: Array[AnimStep] = _project(view, [_event(6, "auras_recomputed", {"changes": [
+		_aura_entry(MINION_IDS[0], 3, 2, 2, []),
+		_aura_entry(MINION_IDS[1], 1, 1, 1, ["taunt"]),
+	]})])
+
+	# Assert
+	assert_array(steps.map(func(s: AnimStep) -> Array: return [s.kind, s.entity_ids, s.parallel_ok])).is_equal([
+		[AnimStep.STAT_RECOLOUR, [MINION_IDS[0]], true],
+		[AnimStep.BADGE, [MINION_IDS[1]], true],
+	])
+
+
+func test_an_aura_entry_sets_a_heroes_health_and_a_weapons_attack_and_keywords() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	var weapon_id: int = 50
+	_project(view, _opening())
+	_project(view, [_event(6, "weapon_equipped", {"side": "player", "entity_id": weapon_id, "card_id": "war_test_axe", "attack": 3, "durability": 2})])
+
+	# Act
+	var steps: Array[AnimStep] = _project(view, [_event(7, "auras_recomputed", {"changes": [
+		_aura_entry(PLAYER_HERO_ID, 4, 21, 30, []),
+		_aura_entry(weapon_id, 4, 2, 2, ["poisonous"]),
+	]})])
+
+	# Assert: durability stays with `weapon_durability_changed`
+	var hero: Dictionary = view.side(SIDE_PLAYER).hero
+	assert_int(int(hero.health)).is_equal(21)
+	assert_int(int(hero.weapon.attack)).is_equal(4)
+	assert_int(int(hero.weapon.durability)).is_equal(2)
+	assert_array(hero.weapon.keywords).is_equal(["poisonous"])
+	assert_array(steps.map(func(s: AnimStep) -> Array: return s.entity_ids)).is_equal([[PLAYER_HERO_ID], [weapon_id]])
+
+
+func test_a_hand_entry_stamps_the_players_card_with_its_effective_cost() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+	_project(view, [_event(6, "card_drawn", {"side": "player", "instance_id": 10, "card_id": "neutral_test_vanilla_2_2", "hand_size": 1})])
+
+	# Act
+	var steps: Array[AnimStep] = _project(view, [_event(7, "auras_recomputed", {"changes": [
+		{"instance_id": 10, "zone": "hand", "effective_cost": 2},
+	]})])
+
+	# Assert
+	assert_array(view.side(SIDE_PLAYER).hand).is_equal([{"instance_id": 10, "card_id": "neutral_test_vanilla_2_2", "effective_cost": 2}])
+	assert_array(steps.map(func(s: AnimStep) -> Array: return [s.kind, s.entity_ids, s.parallel_ok])).is_equal([
+		[AnimStep.STAT_RECOLOUR, [10], true],
+	])
+
+
+func test_an_aura_entry_for_an_unknown_id_changes_nothing_and_yields_no_step() -> void:
+	# Arrange: 41 is a boss card, hidden and never in the player's hand
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+	var before: Dictionary = view.side(SIDE_PLAYER)
+
+	# Act
+	var steps: Array[AnimStep] = _project(view, [_event(6, "auras_recomputed", {"changes": [
+		_aura_entry(999, 1, 1, 1, []),
+		{"instance_id": 41, "zone": "hand", "effective_cost": 1},
+	]})])
+
+	# Assert
+	assert_array(steps).is_empty()
+	assert_dict(view.side(SIDE_PLAYER)).is_equal(before)
 
 
 ## An `effect_resolved` payload in the shape `EffectResolver._run_pass` emits

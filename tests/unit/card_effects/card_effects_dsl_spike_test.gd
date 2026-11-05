@@ -333,6 +333,10 @@ func test_rows26_27_stacked_auras_give_ac26_stats() -> void:
 	_assert_stats(lord_b, 3, 3)
 	_assert_stats(adjacent, 4, 4)
 	EventLogAssertions.assert_count(_log, &"auras_recomputed", 1)
+	# DD-X26: absolute values, in the engine's entry shape
+	var entry: Dictionary = (_log.first(&"auras_recomputed").payload.changes as Array).filter(
+		func(c: Dictionary) -> bool: return int(c.entity_id) == int(vanilla.entity_id))[0]
+	assert_dict(entry).is_equal({"entity_id": int(vanilla.entity_id), "attack": 5, "health": 3, "max_health": 3, "keywords": []})
 
 
 func test_row27_adjacency_follows_neighbour_change_and_recompute_is_idempotent() -> void:

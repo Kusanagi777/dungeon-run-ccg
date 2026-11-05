@@ -34,7 +34,7 @@
 
 - [ ] **AC-30** GIVEN row 31 ("Transform an enemy minion into a 1/1 Sheep") cast on an enemy 5/5 with Taunt and a Deathrattle, WHEN resolved, THEN the target is a new `entity_id` 1/1 Sheep with no keywords, no `battlecry` of the Sheep fires, and when the Sheep later dies no Deathrattle fires; a minion transformed during its own Battlecry has its remaining `self` ops land on the new body, and queued triggers of the old entity still resolve from their snapshot.
 - [ ] **AC-31** GIVEN row 32 ("Add a copy of a friendly minion to your hand") targeting a friendly minion buffed +2/+2 and damaged 1, WHEN resolved, THEN the card added to hand has the printed cost and, when played, printed stats and full health; `return_to_hand` on a minion with `until_end_of_turn` buffs yields a fresh instance at printed cost with the enchantments gone, and its counters read 0 when replayed.
-- [ ] **AC-32** GIVEN row 42 (treasure "Your minions have Rush", `aura` with `keywords: [rush]`) installed, WHEN a minion is played and attacks an enemy minion the same turn, THEN accepted; WHEN it attacks the hero, THEN `RUSH_CANNOT_HIT_HERO`; WHEN the treasure is absent, THEN `SUMMONING_SICK`; the aura's `source_id` in `enchantment_applied` is the treasure id.
+- [ ] **AC-32** GIVEN row 42 (treasure "Your minions have Rush", `aura` with `keywords: [rush]`) installed, WHEN a minion is played and attacks an enemy minion the same turn, THEN accepted; WHEN it attacks the hero, THEN `RUSH_CANNOT_HIT_HERO`; WHEN the treasure is absent, THEN `SUMMONING_SICK`; the minion's `auras_recomputed` entry lists `rush` in `keywords[]`, and `entity().enchantments[].source_id` is the treasure id (reworded 2026-11-04, DD-X26: a recompute emits no `enchantment_applied`).
 
 ---
 

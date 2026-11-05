@@ -13,6 +13,7 @@
 > **REVISED 2026-11-03 (cross-review)**: C-02 / S-02 (`crystal_bonus` — permanent `add_mana` at `on_match_start` for Hollow Crown: C1, C4 Start step 2, C5, F4, AC-06); C-04 (no stored `targeting` field — Card Effects derives `targeting_spec(def_id)`: Interactions, Dependencies, Cross-References); C-05 (RNG stream handle API per rng-event-log F4: Interactions, Cross-References); C-16 (Card Effects' three questions answered in C4: `until_end_of_turn` expiry covers card instances in hand/deck, expires at the recipient's controller's End step; observer candidate order is player side first everywhere); C-18 (`MAX_ATTACKS_CAP` rationale aligned to Treasures F3); C-07 / DD-X04 (C15 spelling authoritative; OQ closed); C-30 (OQs on DD-M11 and rng rule 12a closed; 12a cited in C15).
 > **REVISED 2026-11-03 (housekeeping)**: C5 defines `add_mana(side, n, temporary=true)` (temporary crystals, expire at the End step; "not used by v1 content" removed — Content's `decay_soul_tithe` / `neutral_treasure_map` use it) with new AC-45; Dependencies sentence about systems-index rows deleted; States `turn > TURN_CAP` row applies at `*Turn.Start` (both sides); AC-02 boss health → `MatchConfig.boss.health`; F3 `attacks_used` range → `0–MAX_ATTACKS_CAP`; Dependencies `match` stream → `match_<floor>`; Open Question added on defender-hero weapon damage (C8 step 4 unchanged).
 > **REVISED 2026-11-03 (DSL spike follow-ups, `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md`, PROCEED)**: C15 adds `card_added_to_hand` for the `add_card_to_hand` primitive (Interactions primitive list names it; finding 2); C10 states an aura recompute with no net change emits no `auras_recomputed` (finding 8).
+> **REVISED 2026-11-04 (DD-X26, S3 option C)**: C10 and C15: `auras_recomputed` entries carry absolute values, including keywords and player hand costs; `production/reviews/2026-11-04/proposal-s3-aura-projection.md`.
 
 ## Summary
 
@@ -434,7 +435,9 @@ run_action(initial_step):
 - **recompute_auras()** strips every `is_aura` enchantment, then re-applies auras from every
   living aura source in board order (player left to right, then boss). Aura loss reduces
   `max_health` while `damage_taken` is untouched (F6), so a minion kept alive by an aura dies in
-  the next pass of the loop. One `auras_recomputed` event lists net stat changes; a recompute
+  the next pass of the loop. One `auras_recomputed` event lists every entity the recompute changed,
+  each entry carrying that entity's absolute values, not deltas (payload in C15; 2026-11-04, DD-X26):
+  stats, the full effective keyword set and, for a player hand card, the effective cost. A recompute
   whose net changes are empty emits **no** event (2026-11-03, DSL spike finding 8 — the loop
   recomputes after every step, so an empty event would flood the log).
 - **Summons during the loop** (Deathrattle "summon a 2/2") go through `summon_minion(side,
@@ -584,6 +587,14 @@ hand, or is burned when the hand is full (`burned: true`, no separate `card_burn
 `transform`.
 `silenced {entity_id, removed_enchantments, removed_keywords}` is the Silence event (C13)
 (2026-11-04, sprint 4: MR-015).
+`auras_recomputed {changes[]}` is the C10 recompute event, one per non-empty recompute
+(2026-11-04, DD-X26). Each entry is one changed entity, with absolute values: a character or weapon
+`{entity_id, attack, health, max_health, keywords[]}` (`keywords` is the full effective set, sorted);
+a player hand card `{instance_id, zone: "hand", effective_cost}`. Boss hand cards are left out
+(match-ui U3 rule 2). A weapon has no health, so its `health` and `max_health` both report its
+current durability, and its `attack` is the weapon's own, enchantments included. Entries run in
+candidate order (per side, player first: the board left to right, the hero, the weapon), then the
+player's hand left to right.
 
 ### States and Transitions
 

@@ -64,6 +64,8 @@ const FEED_COMMAND_REJECTED: String = "feed.command_rejected"
 
 const _KEYWORD_DIVINE_SHIELD: String = "divine_shield"
 const _KEYWORD_STEALTH: String = "stealth"
+## `auras_recomputed` hand entries' `zone` (match-rules C15, DD-X26).
+const _ZONE_HAND: String = "hand"
 const _ENCHANT_REASON_SET_STATS: String = "set_stats"
 const _TYPE_COMMAND_REJECTED: String = "command_rejected"
 const _TYPE_AI_DECISION: String = "ai_decision"
@@ -172,7 +174,9 @@ func apply(event: Dictionary) -> Array[AnimStep]:
 ## U1 / ADR-0009: [param name]'s zone values as a deep value copy —
 ## `{hero{entity_id, health, armor, weapon, power_state, frozen}, mana{available,
 ## max, temporary}, deck_count, fatigue_next, hand, board}`. `hand` is
-## `[{instance_id, card_id}]` for the player and an int count for the boss;
+## `[{instance_id, card_id}]` for the player, plus `effective_cost` once an
+## `auras_recomputed` entry has set it (the printed cost until then, DD-X26),
+## and an int count for the boss;
 ## `board` is `[{entity_id, card_id, attack, health, max_health, keywords,
 ## frozen, silenced, attacks_used}]` left to right. `hero.health` is null until
 ## an event reports it (`damage_dealt.health_after`). An unknown side gives `{}`.
@@ -473,7 +477,8 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 						(flagged.keywords as Array).erase(str(p.get("keyword", "")))
 			steps.append(_parallel(_step(AnimStep.BADGE, [id], group, seq)))
 		"auras_recomputed":
-			pass
+			for change: Variant in p.get("changes", []):
+				_apply_aura_change(change, group, seq, steps)
 		"counter_changed":
 			var source: Variant = p.get("source_id")
 			if not counters.has(source):
@@ -554,6 +559,45 @@ func _apply_enchantment(applied: bool, p: Dictionary, group: int, seq: int, step
 		target.health = int(target.health) + direction * health_delta
 	var kind: StringName = AnimStep.STAT_RECOLOUR if attack_delta != 0 or health_delta != 0 else AnimStep.BADGE
 	steps.append(_parallel(_step(kind, [int(target.entity_id)], group, seq)))
+
+
+## U3 `auras_recomputed` (match-rules C15, DD-X26): [param change] holds
+## absolute values, so its fields replace the view's and re-applying it changes
+## nothing. One parallel step per entry: a recolour when a stat or cost changed,
+## else a badge. A board token takes `attack`, `health`, `max_health` and
+## `keywords`; a hero `health` (U1 keeps no other of them); a weapon `attack`
+## and `keywords`, its durability staying with `weapon_durability_changed`; a
+## player hand card `effective_cost`. An id in play nowhere is ignored.
+func _apply_aura_change(change: Dictionary, group: int, seq: int, steps: Array[AnimStep]) -> void:
+	if str(change.get("zone", "")) == _ZONE_HAND:
+		var instance_id: int = int(change.get("instance_id", 0))
+		for card: Dictionary in _sides[SIDE_PLAYER].hand:
+			if int(card.instance_id) == instance_id:
+				card["effective_cost"] = int(change.get("effective_cost", 0))
+				steps.append(_parallel(_step(AnimStep.STAT_RECOLOUR, [instance_id], group, seq)))
+		return
+	var id: int = int(change.get("entity_id", 0))
+	var weapon: Dictionary = _weapon(id)
+	var target: Dictionary = weapon if not weapon.is_empty() else _character(id)
+	if target.is_empty():
+		return
+	var kind: StringName = AnimStep.STAT_RECOLOUR
+	if not weapon.is_empty():
+		if int(weapon.attack) == int(change.get("attack", 0)):
+			kind = AnimStep.BADGE
+		weapon.attack = int(change.get("attack", 0))
+		weapon["keywords"] = (change.get("keywords", []) as Array).duplicate()
+	elif target.has("max_health"):
+		var stats_same: bool = true
+		for field: String in ["attack", "health", "max_health"]:
+			stats_same = stats_same and int(target[field]) == int(change.get(field, 0))
+			target[field] = int(change.get(field, 0))
+		if stats_same:
+			kind = AnimStep.BADGE
+		target.keywords = (change.get("keywords", []) as Array).duplicate()
+	else:
+		target.health = int(change.get("health", 0))
+	steps.append(_parallel(_step(kind, [id], group, seq)))
 
 
 ## U3 `silenced` (match-rules C13; code review 2026-11-04, MR-015 S1): Silence
@@ -670,6 +714,15 @@ func _character(id: int) -> Dictionary:
 		var token: Dictionary = _token_in(raw.board, id)
 		if not token.is_empty():
 			return token
+	return {}
+
+
+## The live weapon with [param id] on either side, or `{}`.
+func _weapon(id: int) -> Dictionary:
+	for side_name: String in [SIDE_PLAYER, SIDE_BOSS]:
+		var held: Variant = _sides[side_name].hero.weapon
+		if held != null and int(held.entity_id) == id:
+			return held
 	return {}
 
 

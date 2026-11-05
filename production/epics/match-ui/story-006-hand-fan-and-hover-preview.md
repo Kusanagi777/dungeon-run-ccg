@@ -42,7 +42,7 @@
 ## Implementation Notes
 
 - `src/ui/match/hand_layout.gd` — static pure F1 / F2 functions (unit-testable without a scene); `src/ui/match/hand_presenter.gd` on `hand_fan.tscn` calls them.
-- `src/ui/common/card_frame.gd` / `.tscn` — 150x210 slot layout per art bible §4 "Card frame slot layout" (cost stamp x 3–37, attack / health corner stamps, name, text keys, keyword badges); placeholder art per art bible §7. Text through `tr()` and `card_text(card_id)` name / text keys.
+- `src/ui/common/card_frame.gd` / `.tscn` — 150x210 slot layout per art bible §4 "Card frame slot layout" (cost stamp x 3–37, attack / health corner stamps, name, text keys, keyword badges); placeholder art per art bible §7. The cost stamp's number comes from the projection: the `MatchViewState` hand card's `effective_cost`, which `auras_recomputed` replaces, and the printed cost until an entry has set it (2026-11-04, DD-X26). Text through `tr()` and `card_text(card_id)` name / text keys.
 - Implement the `hover:<id>` pose in `MatchDebugLoader.apply_pose` (first pose; others arrive with their stories).
 - Draw / play travel steps (`draw` 0.2, `play_card` 0.25) are tweens toward the F1 slot / board slot; `apply_final` snaps.
 - Hand dims to 60 % during `BossTurn` — Story 015.

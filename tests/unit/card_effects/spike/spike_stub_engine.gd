@@ -302,7 +302,7 @@ func _recompute_auras() -> void:
 	var changes: Array = []
 	for key: Variant in after:
 		if not before.has(key) or before[key] != after[key]:
-			changes.append({"instance_id": int(key), "attack": after[key][0], "health": after[key][1]})
+			changes.append({"entity_id": int(key), "attack": after[key][0], "health": after[key][1], "max_health": after[key][2], "keywords": after[key][3]})
 	trace.append({"kind": "recompute_auras"})
 	if not changes.is_empty():
 		emit("auras_recomputed", {"changes": changes})
@@ -354,12 +354,26 @@ func _find(entity_id: int) -> Dictionary:
 func _stat_map() -> Dictionary:
 	var out: Dictionary = {}
 	for character: Dictionary in _all_characters():
-		out[str(int(character.entity_id))] = [_attack(character), _health(character)]
+		out[str(int(character.entity_id))] = [_attack(character), _health(character), _max_health(character), _effective_keywords(character)]
 	return out
 
 
 static func _is_not_aura(enchantment: Variant) -> bool:
 	return not bool((enchantment as Dictionary).get("is_aura", false))
+
+
+## The sorted, de-duplicated printed and granted keywords (match-rules C15, DD-X26).
+static func _effective_keywords(character: Dictionary) -> Array:
+	var out: Array = []
+	for keyword: Variant in character.keywords:
+		if not out.has(str(keyword)):
+			out.append(str(keyword))
+	for enchantment: Dictionary in character.enchantments:
+		for keyword: Variant in enchantment.keywords_added:
+			if not out.has(str(keyword)):
+				out.append(str(keyword))
+	out.sort()
+	return out
 
 
 func _max_health(character: Dictionary) -> int:

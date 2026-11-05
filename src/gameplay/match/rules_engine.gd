@@ -207,6 +207,8 @@ const KEYWORD_SPELL_DAMAGE: String = "spell_damage"
 ## first only, `kind: hero_power` the second, `kind: any` both.
 const COST_KIND_CARD: String = "card"
 const COST_KIND_HERO_POWER: String = "hero_power"
+## `auras_recomputed` hand entries' `zone` (C15, DD-X26).
+const ZONE_HAND: String = "hand"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
 ## start at `MatchState.FIRST_ENTITY_ID`).
 const NO_ENTITY: int = -1
@@ -3028,12 +3030,12 @@ func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
 ## C10 `recompute_auras()`: strips every `is_aura` enchantment (characters,
 ## weapons, hand `cost_modifiers`), then `resolver.recompute_auras()`
 ## re-applies the auras of every living source (its `apply_enchantment(…,
-## is_aura = true)` calls are silent); one `auras_recomputed {changes:
-## [{entity_id, attack, health, max_health}]}` lists the characters whose
-## derived stats changed, in candidate order — none when nothing changed.
+## is_aura = true)` calls are silent); one `auras_recomputed {changes}` lists
+## every entry of [method _aura_values] that changed, with absolute values, in
+## that order — no event when nothing changed (C15, DD-X26).
 ## Aura loss leaves `damage_taken` alone (F6): the next death check kills.
 func _recompute_auras() -> void:
-	var before: Dictionary = _stat_map()
+	var before: Dictionary = _aura_values()
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
 		for character: Dictionary in _characters_of(side):
@@ -3045,19 +3047,24 @@ func _recompute_auras() -> void:
 	_recomputing_auras = true
 	_resolver.recompute_auras()
 	_recomputing_auras = false
-	var after: Dictionary = _stat_map()
+	var after: Dictionary = _aura_values()
 	var changes: Array[Dictionary] = []
-	for entity_id: int in after:
-		var stats: Array = after[entity_id]
-		if before.get(entity_id) != stats:
-			changes.append({"entity_id": entity_id, "attack": int(stats[0]), "health": int(stats[1]), "max_health": int(stats[2])})
+	for id: int in after:
+		if before.get(id) != after[id]:
+			changes.append(after[id])
 	if not changes.is_empty():
 		emit(&"auras_recomputed", {"changes": changes})
 
 
-## `entity_id → [attack, health, max_health]` for every character in play,
-## in candidate order (board left to right, then the hero; player first).
-func _stat_map() -> Dictionary:
+## The C15 `auras_recomputed` entry of everything an aura can change, keyed by
+## id (`entity_id` and `instance_id` share `next_entity_id`, C1), in candidate
+## order: per side, player first, the board left to right, the hero, the
+## weapon; then the player's hand left to right. A character or weapon is
+## `{entity_id, attack, health, max_health, keywords}`; a weapon has no health,
+## so `health` and `max_health` report its durability. A player hand card is
+## `{instance_id, zone: "hand", effective_cost}`. The boss hand is left out, so
+## no entry and no event can show what it holds (match-ui U3 rule 2; DD-X26).
+func _aura_values() -> Dictionary:
 	var out: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
@@ -3065,8 +3072,47 @@ func _stat_map() -> Dictionary:
 		if player.hero != null:
 			characters.append(player.hero)
 		for character: Dictionary in characters:
-			out[int(character.entity_id)] = [attack(character), health(character), max_health(character)]
+			var id: int = int(character.entity_id)
+			out[id] = {
+				"entity_id": id, "attack": attack(character), "health": health(character),
+				"max_health": max_health(character), "keywords": _effective_keywords(character),
+			}
+		if player.weapon != null:
+			var weapon: Dictionary = player.weapon
+			var durability: int = int(weapon.durability)
+			out[int(weapon.entity_id)] = {
+				"entity_id": int(weapon.entity_id), "attack": _weapon_attack(weapon), "health": durability,
+				"max_health": durability, "keywords": _effective_keywords(weapon),
+			}
+	for card: Dictionary in _state.players[MatchRecords.SIDE_PLAYER].hand:
+		out[int(card.instance_id)] = {
+			"instance_id": int(card.instance_id), "zone": ZONE_HAND,
+			"effective_cost": effective_cost(card, MatchRecords.SIDE_PLAYER),
+		}
 	return out
+
+
+## [param record]'s printed and enchantment-granted keywords, each once and
+## sorted, so the order sources applied them in is never a change (C15).
+static func _effective_keywords(record: Dictionary) -> Array:
+	var out: Array = []
+	for keyword: Variant in record.keywords:
+		if not out.has(str(keyword)):
+			out.append(str(keyword))
+	for enchantment: Dictionary in record.enchantments:
+		for keyword: Variant in enchantment.keywords_added:
+			if not out.has(str(keyword)):
+				out.append(str(keyword))
+	out.sort()
+	return out
+
+
+## A weapon's own Attack: its printed value plus its enchantments (C1).
+static func _weapon_attack(weapon: Dictionary) -> int:
+	var total: int = int(weapon.attack)
+	for enchantment: Dictionary in weapon.enchantments:
+		total += int(enchantment.attack_delta)
+	return maxi(0, total)
 
 
 static func _strip_auras(enchantments: Array) -> void:

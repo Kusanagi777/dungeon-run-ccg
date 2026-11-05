@@ -56,6 +56,10 @@ const BANNER_BLADE: String = "war_test_banner_blade"
 ## A minion: "All minions have +1 Attack": one host on each board shows the
 ## C7 source order on a recipient.
 const WAR_DRUM: String = "neutral_test_war_drum"
+## DD-X26. A minion: "Your minions have Taunt" (a keyword-only aura), and one
+## for "Your minions have Windfury", so two sources can trade places.
+const TAUNT_LORD: String = "neutral_test_taunt_lord"
+const WINDFURY_LORD: String = "neutral_test_windfury_lord"
 
 
 ## `has` / `card` / `hero_power` from a map (the engine and the resolver ask
@@ -134,6 +138,10 @@ func _db() -> FakeCardDatabase:
 		'{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","attack":%d}]}' % LORD_DELTA)})
 	by_id[WAR_DRUM] = CardFactory.make_minion(WAR_DRUM, 1, 1, 1, ["aura"], {"effects": _fx(
 		'{"trigger":"aura","targets":"all_minions","ops":[{"op":"aura","attack":%d}]}' % LORD_DELTA)})
+	by_id[TAUNT_LORD] = CardFactory.make_minion(TAUNT_LORD, 1, 1, 1, ["aura"], {"effects": _fx(
+		'{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","keywords":["taunt"]}]}')})
+	by_id[WINDFURY_LORD] = CardFactory.make_minion(WINDFURY_LORD, 1, 1, 1, ["aura"], {"effects": _fx(
+		'{"trigger":"aura","targets":"all_friendly_minions","ops":[{"op":"aura","keywords":["windfury"]}]}')})
 	return FakeCardDatabase.new(by_id)
 
 
@@ -537,3 +545,162 @@ func test_a_recipient_of_both_boards_lists_the_player_source_before_the_boss_sou
 
 	# Assert — C7: player board left to right, then boss
 	assert_array(_aura_sources(recipient)).is_equal([player_drum, boss_drum])
+
+
+# --- DD-X26: `auras_recomputed` carries absolute values --------------------------
+
+func _aura_changes(from_seq: int) -> Array:
+	var events: Array = _of_types(_since(from_seq), ["auras_recomputed"])
+	assert_int(events.size()).is_equal(1)
+	return events[0].payload.changes
+
+
+func test_a_keyword_aura_logs_each_minions_full_keyword_set_in_one_event() -> void:
+	# Arrange — no stat changes at all: before DD-X26 this logged nothing
+	_main_phase()
+	var lord: int = _put(SIDE_PLAYER, TAUNT_LORD, 1, 1)
+	var charger: int = _put(SIDE_PLAYER, VANILLA, 1, 1, ["windfury", "charge"])
+	var before: int = _last_seq()
+
+	# Act
+	_settle()
+
+	# Assert — sorted, printed and granted together
+	assert_array(_aura_changes(before)).is_equal([
+		{"entity_id": lord, "attack": 1, "health": 1, "max_health": 1, "keywords": ["taunt"]},
+		{"entity_id": charger, "attack": 1, "health": 1, "max_health": 1, "keywords": ["charge", "taunt", "windfury"]},
+	])
+
+
+func test_losing_a_keyword_aura_logs_the_set_without_the_keyword() -> void:
+	# Arrange
+	_main_phase()
+	var lord: int = _put(SIDE_PLAYER, TAUNT_LORD, 1, 1)
+	var other: int = _put(SIDE_PLAYER, VANILLA, 1, 1, ["charge"])
+	_settle()
+	var before: int = _last_seq()
+
+	# Act — Silence stops the aura and strips the lord's own printed keywords
+	_engine.run_action(func() -> void: _engine.silence(lord))
+
+	# Assert
+	assert_array(_aura_changes(before)).is_equal([
+		{"entity_id": lord, "attack": 1, "health": 1, "max_health": 1, "keywords": []},
+		{"entity_id": other, "attack": 1, "health": 1, "max_health": 1, "keywords": ["charge"]},
+	])
+
+
+func test_a_printed_keyword_the_aura_also_grants_is_no_net_change() -> void:
+	# Arrange — the only recipient already has printed Taunt
+	_main_phase()
+	var lord: int = _put(SIDE_PLAYER, TAUNT_LORD, 1, 1, ["taunt"])
+	var before: int = _last_seq()
+
+	# Act
+	_settle()
+
+	# Assert — listed once, so no entry and no event
+	assert_array(_of_types(_since(before), ["auras_recomputed"])).is_empty()
+	assert_bool(_engine.state_snapshot(lord).has("keywords")).is_true()
+
+
+func test_two_keyword_auras_trading_places_are_no_net_change() -> void:
+	# Arrange — the keyword set is the same whichever source applies first
+	_main_phase()
+	var left: int = _put(SIDE_PLAYER, TAUNT_LORD, 1, 1)
+	var right: int = _put(SIDE_PLAYER, WINDFURY_LORD, 1, 1)
+	_settle()
+	var board: Array = _engine.state().players[SIDE_PLAYER].board
+	assert_array(board.map(func(m: Dictionary) -> int: return int(m.entity_id))).is_equal([left, right])
+	board.reverse()
+	var before: int = _last_seq()
+
+	# Act
+	_settle()
+
+	# Assert
+	assert_array(_of_types(_since(before), ["auras_recomputed"])).is_empty()
+
+
+func test_a_hand_cost_aura_logs_the_player_hand_card_and_never_the_boss_hand() -> void:
+	# Arrange — one Archivist each, a spell in each hand
+	_main_phase()
+	_put(SIDE_BOSS, ROW_24, ROW_ATTACK, ROW_HEALTH, KEYWORDS_AURA)
+	var boss_spell: Dictionary = _to_hand(SIDE_BOSS, SPELL_3)
+	_put(SIDE_PLAYER, ROW_24, ROW_ATTACK, ROW_HEALTH, KEYWORDS_AURA)
+	var spell: Dictionary = _to_hand(SIDE_PLAYER, SPELL_3)
+	var before: int = _last_seq()
+
+	# Act
+	_settle()
+
+	# Assert — U3 rule 2: the boss's discount is in the engine, not in the log
+	assert_int(_cost(boss_spell, SIDE_BOSS)).is_equal(SPELL_3_COST + ARCHIVIST_COST_DELTA)
+	assert_array(_aura_changes(before)).is_equal([
+		{"instance_id": int(spell.instance_id), "zone": "hand", "effective_cost": SPELL_3_COST + ARCHIVIST_COST_DELTA},
+	])
+
+
+func test_a_cost_change_only_in_the_boss_hand_logs_no_event() -> void:
+	# Arrange
+	_main_phase()
+	_put(SIDE_BOSS, ROW_24, ROW_ATTACK, ROW_HEALTH, KEYWORDS_AURA)
+	var boss_spell: Dictionary = _to_hand(SIDE_BOSS, SPELL_3)
+	var before: int = _last_seq()
+
+	# Act
+	_settle()
+
+	# Assert — an event here would itself show that the boss holds a spell
+	assert_int(_cost(boss_spell, SIDE_BOSS)).is_equal(SPELL_3_COST + ARCHIVIST_COST_DELTA)
+	assert_array(_of_types(_since(before), ["auras_recomputed"])).is_empty()
+
+
+func test_a_lost_cost_aura_logs_the_printed_cost_as_an_absolute_value() -> void:
+	# Arrange
+	_main_phase()
+	var archivist: int = _put(SIDE_PLAYER, ROW_24, ROW_ATTACK, ROW_HEALTH, KEYWORDS_AURA)
+	var spell: Dictionary = _to_hand(SIDE_PLAYER, SPELL_3)
+	_settle()
+	var before: int = _last_seq()
+
+	# Act
+	_engine.run_action(func() -> void: _engine.silence(archivist))
+
+	# Assert — the Archivist's entry is its printed `aura` keyword going away
+	var hand_entries: Array = _aura_changes(before).filter(func(c: Dictionary) -> bool: return c.has("zone"))
+	assert_array(hand_entries).is_equal([
+		{"instance_id": int(spell.instance_id), "zone": "hand", "effective_cost": SPELL_3_COST},
+	])
+
+
+func test_the_log_alone_projects_the_aura_keywords_and_costs_the_engine_holds() -> void:
+	# Arrange — everything arrives through events, so the view can see it
+	_main_phase()
+	_engine.run_action(func() -> void:
+		_engine.add_card_to_hand(SIDE_PLAYER, SPELL_3)
+		_engine.summon_minion(SIDE_PLAYER, TAUNT_LORD, 0)
+		_engine.summon_minion(SIDE_PLAYER, VANILLA, 1)
+		_engine.summon_minion(SIDE_PLAYER, ROW_26, 2)
+		_engine.summon_minion(SIDE_PLAYER, ROW_24, 3))
+	var view: MatchViewState = MatchViewState.new(MatchUiTestConfig.body())
+
+	# Act
+	for event: Dictionary in _log.events:
+		view.apply(event)
+
+	# Assert — the projection equals the engine, token by token
+	var player: Dictionary = _engine.state().players[SIDE_PLAYER]
+	var tokens: Array = view.side(&"player").board
+	assert_int(tokens.size()).is_equal(player.board.size())
+	for index: int in tokens.size():
+		var minion: Dictionary = player.board[index]
+		assert_int(int(tokens[index].entity_id)).is_equal(int(minion.entity_id))
+		assert_int(int(tokens[index].attack)).is_equal(_engine.attack(minion))
+		assert_int(int(tokens[index].health)).is_equal(_engine.health(minion))
+		assert_int(int(tokens[index].max_health)).is_equal(_engine.max_health(minion))
+		assert_bool(tokens[index].keywords.has("taunt")).is_true()
+	var card: Dictionary = player.hand.back()
+	var shown: Array = view.side(&"player").hand.filter(func(c: Dictionary) -> bool: return int(c.instance_id) == int(card.instance_id))
+	assert_int(int(shown[0].effective_cost)).is_equal(_cost(card))
+	assert_int(int(shown[0].effective_cost)).is_equal(SPELL_3_COST + ARCHIVIST_COST_DELTA)

@@ -155,7 +155,7 @@ are the cross-system index and were realigned to those tables on 2026-11-03. Mat
 further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`, `crystal_gained`,
 `mana_spent`, `spell_cast`, `card_to_graveyard`, `summon_failed`, `weapon_durability_changed`,
 `attack_resolved`, `divine_shield_popped`, `armor_*`, `frozen`/`thawed`, `silenced`,
-`stealth_lost`, `auras_recomputed`, `trigger_queued`, `choice_requested`/`choice_made`,
+`stealth_lost`, `trigger_queued`, `choice_requested`/`choice_made`,
 `resolution_overflow`); all obey rules 11–14.
 
 | Type | Owner | Payload fields |
@@ -177,6 +177,7 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 | `damage_dealt` | Match Rules | `source, target, requested, prevented, armor_absorbed, dealt, health_after` (match-rules C15; rule 19 reads `source` and `dealt`) |
 | `healed` | Match Rules | `source, target, amount, health_after` |
 | `enchantment_applied` / `enchantment_removed` | Match Rules (primitive; Card Effects and Treasures cause it) | `instance_id, attack, health, max_health, keywords_added[], keywords_removed[], reason` |
+| `auras_recomputed` | Match Rules | `changes[]`, absolute values per changed entity: `{entity_id, attack, health, max_health, keywords[]}` for a character or weapon, `{instance_id, zone: "hand", effective_cost}` for a player hand card; boss hand cards omitted (match-rules C15; 2026-11-04, DD-X26) |
 | `minion_died` | Match Rules | `instance_id, card_id, side, board_index` (order per DD-M11) |
 | `trigger_resolved` | Match Rules | `instance_id, card_id, effect_id, trigger` (covers Deathrattle; the former `deathrattle_triggered`) |
 | `effect_resolved` | Card Effects | `effect_id, host_id, host_kind, source_id, owner, trigger, depth, fizzled, ops[]` — extension point; card-effects owns the shape |
