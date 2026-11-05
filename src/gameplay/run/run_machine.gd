@@ -57,6 +57,16 @@ const STREAM_DRAFT: String = "draft_%d"
 const MSEC_PER_SEC: int = 1000
 ## The two words of a 64-bit seed from the 32-bit `randi()`.
 const SEED_WORD_BITS: int = 32
+## The `run_structure.json` keys (Tuning Knobs).
+const CONFIG_KEYS: Array[String] = [
+	"floors_per_run", "band_split", "treasure_floors", "floor_health_bonus",
+	"no_adjacent_shared_theme", "allow_custom_seed", "abandon_counts_as_loss",
+	"target_win_rate_by_floor", "min_sample", "seconds_per_turn_pair", "intro_s",
+	"draft_s", "select_s", "summary_top_cards", "max_run_record_bytes",
+]
+## The safe range of `target_win_rate_by_floor` (Tuning Knobs).
+const MIN_TARGET_WIN_RATE: float = 0.2
+const MAX_TARGET_WIN_RATE: float = 0.95
 
 ## The run, or null at `Menu` and in `hero_select`. Read-only to everyone else.
 var state: RunState = null
@@ -321,6 +331,78 @@ static func seed_preview(seed_input: String) -> String:
 	if seed_input.strip_edges().is_empty():
 		return ""
 	return RngService.to_hex_u64(RngService.run_seed_from_input(seed_input, Callable()))
+
+
+## The `run_structure` config validator (card-database CR-5 stage 7a; ADR-0002
+## Decision 4: `call(body, db) -> Array`). Static and pure. Every Tuning Knobs row is
+## checked against its safe range, and the layout against F1: three positive bands
+## summing to `floors_per_run`, one target win rate per floor, monotone non-increasing.
+## A treasure floor at or past the last is a warning, since it is ignored by rule
+## (Edge Cases) and is how the MVP layout reads.
+## [codeblock]
+## RunMachine.validate_config({"floors_per_run": 2}, null)   # rows, E_RANGE among them
+## [/codeblock]
+static func validate_config(body: Dictionary, _db: Variant) -> Array:
+	var rows: Array[Dictionary] = []
+	ConfigRows.check_unknown_keys(rows, body, CONFIG_KEYS)
+	ConfigRows.check_int(rows, body, "floors_per_run", 3, 12)
+	ConfigRows.check_int(rows, body, "floor_health_bonus", 0, 5)
+	ConfigRows.check_int(rows, body, "min_sample", 20, 200)
+	ConfigRows.check_int(rows, body, "seconds_per_turn_pair", 15, 45)
+	ConfigRows.check_int(rows, body, "intro_s", 5, 20)
+	ConfigRows.check_int(rows, body, "draft_s", 15, 60)
+	ConfigRows.check_int(rows, body, "select_s", 15, 60)
+	ConfigRows.check_int(rows, body, "summary_top_cards", 5, 36)
+	ConfigRows.check_int(rows, body, "max_run_record_bytes", 65536, 1048576)
+	ConfigRows.check_bool(rows, body, "no_adjacent_shared_theme")
+	ConfigRows.check_bool(rows, body, "allow_custom_seed")
+	ConfigRows.check_bool(rows, body, "abandon_counts_as_loss")
+	var floors: Variant = body.get("floors_per_run")
+	if ConfigRows.is_whole(floors):
+		_check_band_split(rows, body.get("band_split"), int(floors))
+		_check_treasure_floors(rows, body.get("treasure_floors"), int(floors))
+		_check_win_rates(rows, body.get("target_win_rate_by_floor"), int(floors))
+	return rows
+
+
+static func _check_band_split(rows: Array[Dictionary], split: Variant, floors: int) -> void:
+	if not split is Array or (split as Array).size() != RunRecord.BAND_COUNT:
+		rows.append(ConfigRows.error(ConfigRows.E_CONFIG, "band_split", "`band_split` must list %d bands (F1)" % RunRecord.BAND_COUNT))
+		return
+	var total: int = 0
+	for s: Variant in split:
+		if not ConfigRows.is_whole(s) or int(s) < 1:
+			rows.append(ConfigRows.error(ConfigRows.E_CONFIG, "band_split", "every band needs a whole number of floors, at least 1"))
+			return
+		total += int(s)
+	if total != floors:
+		rows.append(ConfigRows.error(ConfigRows.E_CONFIG, "band_split", "`band_split` sums to %d, not floors_per_run %d" % [total, floors]))
+
+
+static func _check_treasure_floors(rows: Array[Dictionary], treasure_floors: Variant, floors: int) -> void:
+	if not treasure_floors is Array:
+		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "treasure_floors", "`treasure_floors` must be a list"))
+		return
+	for f: Variant in treasure_floors:
+		if not ConfigRows.is_whole(f) or int(f) < 1:
+			rows.append(ConfigRows.error(ConfigRows.E_RANGE, "treasure_floors", "`%s` is not a floor" % str(f)))
+		elif int(f) >= floors:
+			rows.append(ConfigRows.warning(ConfigRows.E_RANGE, "treasure_floors", "floor %d is ignored: no draft follows the last floor" % int(f)))
+
+
+static func _check_win_rates(rows: Array[Dictionary], rates: Variant, floors: int) -> void:
+	if not rates is Array or (rates as Array).size() != floors:
+		rows.append(ConfigRows.error(ConfigRows.E_CONFIG, "target_win_rate_by_floor", "one target win rate per floor: %d expected" % floors))
+		return
+	var previous: float = 1.0
+	for rate: Variant in rates:
+		if not (rate is int or rate is float) or float(rate) < MIN_TARGET_WIN_RATE or float(rate) > MAX_TARGET_WIN_RATE:
+			rows.append(ConfigRows.error(ConfigRows.E_RANGE, "target_win_rate_by_floor", "`%s` is outside %s-%s" % [str(rate), str(MIN_TARGET_WIN_RATE), str(MAX_TARGET_WIN_RATE)]))
+			return
+		if float(rate) > previous:
+			rows.append(ConfigRows.error(ConfigRows.E_RANGE, "target_win_rate_by_floor", "the targets must not rise from one floor to the next"))
+			return
+		previous = float(rate)
 
 
 ## Builds the run's RNG service. The one construction seam: a test double overrides it

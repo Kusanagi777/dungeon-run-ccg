@@ -35,6 +35,18 @@ const BUCKET_HIGH: int = 2
 ## Percent scale of `affinity_step`, `band_cost_curve` and `treasure_affinity`: the
 ## data stores percentages as integers (reward-draft Formulas).
 const PERCENT: int = 100
+## The `reward_draft.json` keys (Tuning Knobs).
+const CONFIG_KEYS: Array[String] = [
+	"base_weight", "affinity_step", "affinity_cap", "band_cost_curve", "cost_low",
+	"cost_high", "pity_window", "reoffer_after_floors", "universal_slot",
+	"treasure_rarity_weights", "treasure_affinity", "treasure_short_policy",
+	"allow_skip", "bundle_offers_per_draft", "treasure_offers_per_draft",
+]
+## The two treasure rarities (DD-H04).
+const TREASURE_RARITIES: Array[String] = ["common", "rare"]
+## The safe range of a `band_cost_curve` entry (Tuning Knobs).
+const MIN_BAND_MULT: int = 50
+const MAX_BAND_MULT: int = 200
 
 var _db: CardDatabase
 var _treasures: Treasures
@@ -83,6 +95,66 @@ func init_run(_run_state: RunState) -> Dictionary:
 ## [method init_run] at resume (run-structure R8.2).
 static func draft_state_is_usable(draft_state: Dictionary) -> bool:
 	return draft_state.get("schema_version") == DRAFT_STATE_SCHEMA_VERSION and draft_state.get("treasure_pool") is Array
+
+
+## The `reward_draft` config validator (card-database CR-5 stage 7a; ADR-0002
+## Decision 4: `call(body, db) -> Array`). Static and pure. Every Tuning Knobs row is
+## checked against its safe range. `treasure_short_policy = reoffer` is `E_CONFIG`
+## outside a debug build (DD-X06, D8; AC-11); [param debug_build] is a parameter so a
+## test can ask for the release answer.
+## [codeblock]
+## RewardDraft.validate_config(body, null, false)   # a release build's rows
+## [/codeblock]
+static func validate_config(body: Dictionary, _db: Variant, debug_build: bool = OS.is_debug_build()) -> Array:
+	var rows: Array[Dictionary] = []
+	ConfigRows.check_unknown_keys(rows, body, CONFIG_KEYS)
+	ConfigRows.check_int(rows, body, "base_weight", 10, 1000)
+	ConfigRows.check_int(rows, body, "affinity_step", 10, 50)
+	ConfigRows.check_int(rows, body, "affinity_cap", 4, 12)
+	ConfigRows.check_number(rows, body, "cost_low", 2.0, 3.0)
+	ConfigRows.check_number(rows, body, "cost_high", 3.5, 5.0)
+	ConfigRows.check_int(rows, body, "pity_window", 1, 4)
+	ConfigRows.check_int(rows, body, "reoffer_after_floors", 0, 3)
+	ConfigRows.check_int(rows, body, "treasure_affinity", 0, 200)
+	ConfigRows.check_int(rows, body, "bundle_offers_per_draft", 2, 4)
+	ConfigRows.check_int(rows, body, "treasure_offers_per_draft", 2, 4)
+	ConfigRows.check_bool(rows, body, "universal_slot")
+	ConfigRows.check_bool(rows, body, "allow_skip")
+	_check_cost_curve(rows, body.get("band_cost_curve"))
+	_check_rarity_weights(rows, body.get("treasure_rarity_weights"))
+	if body.has("treasure_short_policy"):
+		var policy: Variant = body.treasure_short_policy
+		if policy != POLICY_FEWER and policy != POLICY_REOFFER:
+			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "treasure_short_policy", "`%s` is not a short policy" % str(policy)))
+		elif policy == POLICY_REOFFER and not debug_build:
+			rows.append(ConfigRows.error(ConfigRows.E_CONFIG, "treasure_short_policy", "`reoffer` is debug-only (DD-X06)"))
+	return rows
+
+
+## One `[low, mid, high]` row of percentages in the safe range for each band.
+static func _check_cost_curve(rows: Array[Dictionary], curve: Variant) -> void:
+	if not curve is Dictionary:
+		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "band_cost_curve", "`band_cost_curve` must be an object"))
+		return
+	for band: int in range(1, RunRecord.BAND_COUNT + 1):
+		var row: Variant = (curve as Dictionary).get(str(band))
+		var field: String = "band_cost_curve.%d" % band
+		if not row is Array or (row as Array).size() != BUCKET_HIGH + 1:
+			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, field, "`%s` must list low, mid and high" % field))
+			continue
+		for value: Variant in row:
+			if not ConfigRows.is_whole(value) or int(value) < MIN_BAND_MULT or int(value) > MAX_BAND_MULT:
+				rows.append(ConfigRows.error(ConfigRows.E_RANGE, field, "`%s` is outside %d-%d" % [str(value), MIN_BAND_MULT, MAX_BAND_MULT]))
+
+
+static func _check_rarity_weights(rows: Array[Dictionary], weights: Variant) -> void:
+	if not weights is Dictionary:
+		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "treasure_rarity_weights", "`treasure_rarity_weights` must be an object"))
+		return
+	for rarity: String in TREASURE_RARITIES:
+		ConfigRows.check_int(rows, weights, rarity, 1, 100)
+		if not (weights as Dictionary).has(rarity):
+			rows.append(ConfigRows.error(ValidationReport.E_MISSING_FIELD, "treasure_rarity_weights.%s" % rarity, "missing rarity weight"))
 
 
 ## D1: the offer of [param kind] for `run_state.floor`, drawing from [param stream].
