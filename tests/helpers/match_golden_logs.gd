@@ -127,6 +127,7 @@ func capture(name: String) -> String:
 func _capture_chain(lines: PackedStringArray) -> void:
 	var log: TestEventLog = TestEventLog.new()
 	var engine: RulesEngine = _fx.make_chain_engine(_fx.make_resolver(false), log)
+	engine.set_lookup_audit(true)
 	var sandbox: RulesEngine = engine.clone()
 	var on_clone: Dictionary = sandbox.submit(_fx.chain_command(sandbox))
 	_row(lines, {"clone_result": on_clone})
@@ -150,6 +151,7 @@ func _capture_state(name: String, lines: PackedStringArray) -> void:
 	var fixture: Dictionary = _fixture_named(name.trim_prefix(STATE_PREFIX))
 	var engine: RulesEngine = _fx.engine_for(fixture, false, REPLAY_POWER)
 	assert(engine != null, "golden %s: %s" % [name, _fx.last_error])
+	engine.set_lookup_audit(true)
 	var log: TestEventLog = engine.state().log
 	_rows(lines, "event", log.events)
 	var legal: Array = engine.legal_commands()
@@ -171,6 +173,7 @@ func _capture_scripted(lines: PackedStringArray) -> void:
 	var boss: Dictionary = {"deck": MatchBudgetFixtures._deck(REPLAY_BOSS_DECK), "hook_installers": [], "health": REPLAY_BOSS_HEALTH}
 	var overrides: Dictionary = {"player": {"deck": MatchBudgetFixtures._deck(REPLAY_PLAYER_DECK), "hook_installers": []}, "boss": boss}
 	var engine: RulesEngine = MatchFactory.make_started_engine(TestRngService.new(MatchBudgetFixtures.REPLAY_SEED), log, overrides, {"starting_health_player": REPLAY_PLAYER_HEALTH}, _fx.make_resolver(false), _fx.make_db())
+	engine.set_lookup_audit(true)
 	for side: String in MatchRecords.SIDES:
 		engine.state().players[side].hero_power.def_id = REPLAY_POWER
 	for step: int in COMMAND_COUNT - 1:
@@ -193,6 +196,7 @@ func _capture_auras(lines: PackedStringArray) -> void:
 		var log: TestEventLog = TestEventLog.new()
 		var resolver: TestEffectResolver = _fx.make_resolver(false)
 		var engine: RulesEngine = _fx.make_aura_board(resolver, log)
+		engine.set_lookup_audit(true)
 		var mark: int = log.events.size()
 		resolver.aura_scripts.append(primitive_once.bind(primitive))
 		engine.run_action(_no_step)
@@ -289,6 +293,7 @@ func _capture_triggers(lines: PackedStringArray) -> void:
 	var log: TestEventLog = TestEventLog.new()
 	var resolver: TestEffectResolver = _fx.make_resolver(false)
 	var engine: RulesEngine = _fx.make_aura_board(resolver, log)
+	engine.set_lookup_audit(true)
 	var state: MatchState = engine.state()
 	# before the ids below: dealing the hand takes entity ids too
 	MatchBudgetFixtures._set_hand(state, SIDE_PLAYER, [MatchBudgetFixtures.GRUNT, MatchBudgetFixtures.BLANK, MatchBudgetFixtures.AXE])

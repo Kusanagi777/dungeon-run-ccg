@@ -163,3 +163,181 @@ func test_a_clone_starts_its_op_counts_at_zero() -> void:
 	fresh.end_match()
 	live_ran.end_match()
 	engine.end_match()
+
+
+# --- R2: a lookup touches one record ---------------------------------------------------
+
+func test_on_the_chain_each_lookup_touches_at_most_one_record() -> void:
+	# Act
+	var counts: Dictionary = _chain_counts()
+
+	# Assert: baseline 13,944 visits over 917 lookups
+	assert_int(int(counts.record_lookups)).is_greater(0)
+	assert_int(int(counts.record_visits)).is_less_equal(int(counts.record_lookups))
+
+
+## Asserts [param id] is found in one touch and answers [param expected_side].
+func _assert_one_touch(engine: RulesEngine, id: int, expected_side: String, move: String) -> void:
+	engine.reset_op_counts()
+	var snapshot: Dictionary = engine.state_snapshot(id)
+	var counts: Dictionary = engine.op_counts()
+	assert_bool(snapshot.is_empty()).override_failure_message("%s: %d is gone" % [move, id]).is_false()
+	assert_int(int(counts.record_visits)).override_failure_message("%s: %d took %d touches" % [move, id, counts.record_visits]).is_equal(int(counts.record_lookups))
+	assert_str(engine._owner_of(id)).override_failure_message(move).is_equal(expected_side)
+
+
+func test_every_zone_move_leaves_the_records_it_moved_one_touch_away() -> void:
+	# Arrange
+	var resolver: TestEffectResolver = _fx.make_resolver(false)
+	var engine: RulesEngine = _fx.make_aura_board(resolver)
+	var state: MatchState = engine.state()
+	var player: Dictionary = state.players[MatchRecords.SIDE_PLAYER]
+	var boss: Dictionary = state.players[MatchRecords.SIDE_BOSS]
+	var side: String = MatchRecords.SIDE_PLAYER
+
+	# Act / Assert: each move, then each record it shifted
+	var summoned: int = engine.summon_minion(side, MatchBudgetFixtures.GRUNT, 0)
+	for minion: Dictionary in player.board:
+		_assert_one_touch(engine, int(minion.entity_id), side, "summon")
+
+	engine.draw(side, 1)
+	_assert_one_touch(engine, int(player.hand.back().instance_id), side, "draw")
+
+	var bounced_to: int = engine.return_to_hand(summoned)
+	_assert_one_touch(engine, bounced_to, side, "bounce into hand")
+	for minion: Dictionary in player.board:
+		_assert_one_touch(engine, int(minion.entity_id), side, "bounce off the board")
+
+	var discarded: int = engine.discard(side, 0)
+	_assert_one_touch(engine, discarded, side, "discard into the graveyard")
+	for card: Dictionary in player.hand:
+		_assert_one_touch(engine, int(card.instance_id), side, "discard shifts the hand")
+
+	var transformed: int = engine.transform(int(player.board[0].entity_id), MatchBudgetFixtures.WALL)
+	_assert_one_touch(engine, transformed, side, "transform")
+
+	var added: int = engine.add_card_to_hand(side, MatchBudgetFixtures.GRUNT)
+	_assert_one_touch(engine, added, side, "add to hand")
+
+	var equipped: int = engine.equip_weapon(side, MatchBudgetFixtures.AXE)
+	_assert_one_touch(engine, equipped, side, "equip")
+
+	var victim: int = int(boss.board[0].entity_id)
+	var left: Array[int] = []
+	for minion: Dictionary in player.board:
+		left.append(int(minion.entity_id))
+	engine.run_action(func() -> void: engine.destroy(left[0]))
+	left.remove_at(0)
+	for id: int in left:
+		_assert_one_touch(engine, id, side, "death shifts the board")
+	_assert_one_touch(engine, victim, MatchRecords.SIDE_BOSS, "the other board is untouched")
+
+	engine.end_match()
+
+
+func test_playing_a_card_leaves_the_hand_and_the_board_one_touch_away() -> void:
+	# Arrange: hand [grunt, blank, nova]
+	var engine: RulesEngine = _fx.make_aura_board(_fx.make_resolver(false))
+	var player: Dictionary = engine.state().players[MatchRecords.SIDE_PLAYER]
+	var side: String = MatchRecords.SIDE_PLAYER
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(side, 0, 0, null)).accepted).is_true()
+
+	# Assert
+	for minion: Dictionary in player.board:
+		_assert_one_touch(engine, int(minion.entity_id), side, "play a minion")
+	for card: Dictionary in player.hand:
+		_assert_one_touch(engine, int(card.instance_id), side, "the play shifts the hand")
+
+	# Act: a spell passes through `resolving` to the graveyard
+	var spell: int = int(player.hand[0].instance_id)
+	assert_bool(engine.submit(MatchRecords.play_card(side, 0)).accepted).is_true()
+
+	# Assert
+	_assert_one_touch(engine, spell, side, "a cast spell in the graveyard")
+	engine.end_match()
+
+
+func test_a_zone_written_directly_gets_the_scans_answer_not_a_stale_one() -> void:
+	# Arrange: every record hinted, then the boards rewritten behind the engine's back
+	var engine: RulesEngine = _fx.make_aura_board(_fx.make_resolver(false))
+	var player: Dictionary = engine.state().players[MatchRecords.SIDE_PLAYER]
+	var board: Array = player.board
+	var first: Dictionary = board[0]
+	var last: Dictionary = board[board.size() - 1]
+	var first_id: int = int(first.entity_id)
+	var last_id: int = int(last.entity_id)
+	board.reverse()
+	var gone: Dictionary = board.pop_back()
+	var fresh_hero: Dictionary = MatchRecords.hero(int(player.hero.entity_id), MatchRecords.SIDE_PLAYER, TestConstants.PLAYER_STARTING_HEALTH)
+	player.hero = fresh_hero
+
+	# Act / Assert: the moved record is found where it now is, the removed one is not
+	assert_bool(is_same(engine._minion(last_id), last)).is_true()
+	assert_bool(is_same(engine._minion(int(gone.entity_id)), {})).is_false()
+	assert_dict(engine._minion(first_id)).is_empty()
+	assert_bool(is_same(engine._character(int(fresh_hero.entity_id)), fresh_hero)).override_failure_message("a replaced hero must be read from the state").is_true()
+	engine.end_match()
+
+
+func test_a_stale_hint_in_any_zone_never_answers_with_the_record_now_there() -> void:
+	# Arrange: every zone hinted, then each one rewritten directly
+	var engine: RulesEngine = _fx.make_aura_board(_fx.make_resolver(false))
+	var state: MatchState = engine.state()
+	var player: Dictionary = state.players[MatchRecords.SIDE_PLAYER]
+	var old_hero: int = int(player.hero.entity_id)
+	var old_weapon: int = int(player.weapon.entity_id)
+	var hand: Array = player.hand
+	var first_card: Dictionary = hand[0]
+	var first_card_id: int = int(first_card.instance_id)
+	var gone_card_id: int = int(hand[hand.size() - 1].instance_id)
+	player.hero = MatchRecords.hero(MatchFactory.alloc_entity_id(state), MatchRecords.SIDE_PLAYER, TestConstants.PLAYER_STARTING_HEALTH)
+	player.weapon = MatchRecords.weapon(MatchFactory.alloc_entity_id(state), MatchBudgetFixtures.AXE, MatchBudgetFixtures.AURA_WEAPON_ATTACK, MatchBudgetFixtures.AURA_WEAPON_DURABILITY, [])
+	hand.reverse()
+	@warning_ignore("return_value_discarded")
+	hand.pop_front()
+
+	# Act / Assert: the old ids answer nothing, and a shifted card is found
+	assert_dict(engine._find_record(old_hero)).is_empty()
+	assert_dict(engine._find_record(old_weapon)).is_empty()
+	assert_dict(engine._find_record(gone_card_id)).is_empty()
+	assert_bool(is_same(engine._find_record(first_card_id), first_card)).is_true()
+	engine.end_match()
+
+
+func test_a_finder_refuses_a_record_outside_its_zones() -> void:
+	# Arrange
+	var engine: RulesEngine = _fx.make_aura_board(_fx.make_resolver(false))
+	var player: Dictionary = engine.state().players[MatchRecords.SIDE_PLAYER]
+	var weapon_id: int = int(player.weapon.entity_id)
+	var card_id: int = int(player.hand[0].instance_id)
+	var deck_id: int = int(player.deck[0].instance_id)
+
+	# Act / Assert: a hint in another zone answers nothing
+	assert_dict(engine._character(weapon_id)).is_empty()
+	assert_dict(engine._minion(card_id)).is_empty()
+	assert_dict(engine._weapon(card_id)).is_empty()
+	assert_dict(engine._live_record(deck_id)).is_empty()
+	assert_bool(engine._find_record(deck_id).is_empty()).is_false()
+	assert_bool(engine._live_record(card_id).is_empty()).is_false()
+	engine.end_match()
+
+
+func test_a_clones_location_index_is_its_own() -> void:
+	# Arrange
+	var engine: RulesEngine = _fx.make_aura_board(_fx.make_resolver(false))
+	var sandbox: RulesEngine = engine.clone()
+	var board: Array = engine.state().players[MatchRecords.SIDE_PLAYER].board
+	var moved: int = int(board[board.size() - 1].entity_id)
+
+	# Act: a summon at the left shifts the clone's board only
+	@warning_ignore("return_value_discarded")
+	sandbox.summon_minion(MatchRecords.SIDE_PLAYER, MatchBudgetFixtures.GRUNT, 0)
+
+	# Assert: the live engine's hint was not moved with it
+	assert_bool(is_same(engine._where, sandbox._where)).is_false()
+	_assert_one_touch(engine, moved, MatchRecords.SIDE_PLAYER, "the live board did not shift")
+	_assert_one_touch(sandbox, moved, MatchRecords.SIDE_PLAYER, "the clone's board did")
+	sandbox.end_match()
+	engine.end_match()

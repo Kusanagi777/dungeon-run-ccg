@@ -198,6 +198,7 @@ func make_chain_engine(resolver: TestEffectResolver, log: TestEventLog = null) -
 		wall.summoning_sick = false
 	_set_hand(state, SIDE_PLAYER, [NOVA])
 	_fill_mana(state, SIDE_PLAYER)
+	engine.index_locations()
 	return engine
 
 
@@ -235,6 +236,7 @@ func make_full_board_engine(resolver: TestEffectResolver) -> RulesEngine:
 	targets.append_array(BOLT_TARGETS)
 	for bolt: String in [BOLT_A, BOLT_B]:
 		resolver.targets_by_def[bolt] = targets
+	engine.index_locations()
 	return engine
 
 
@@ -260,6 +262,7 @@ func make_aura_board(resolver: TestEffectResolver, log: TestEventLog = null) -> 
 	_fill_mana(state, SIDE_PLAYER)
 	state.players[SIDE_PLAYER].hero_power.def_id = FULL_BOARD_POWER
 	state.players[SIDE_PLAYER].hero_power.used_this_turn = true
+	engine.index_locations()
 	return engine
 
 

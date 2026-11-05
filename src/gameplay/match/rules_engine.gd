@@ -212,6 +212,28 @@ const ZONE_HAND: String = "hand"
 ## What an entity-creating primitive returns when it created nothing (C1 ids
 ## start at `MatchState.FIRST_ENTITY_ID`).
 const NO_ENTITY: int = -1
+## The zones of [member _where]: the two slots, then the lists.
+const LOC_HERO: int = 0
+const LOC_WEAPON: int = 1
+const LOC_BOARD: int = 2
+const LOC_HAND: int = 3
+const LOC_RESOLVING: int = 4
+const LOC_DECK: int = 5
+const LOC_GRAVEYARD: int = 6
+## `PlayerState` keys of the zones above, in that order.
+const LOC_KEYS: Array[String] = ["hero", "weapon", "board", "hand", "resolving", "deck", "graveyard"]
+## What each finder searches, as bit masks over the zones above.
+const LOC_ANY: int = 0b1111111
+const LOC_LIVE: int = 0b0011111
+const LOC_CHARACTER: int = 0b0000101
+const LOC_MINION: int = 0b0000100
+const LOC_WEAPON_SLOT: int = 0b0000010
+## [member _where] field widths and the value that means no hint.
+const LOC_ZONE_SHIFT: int = 1
+const LOC_ZONE_MASK: int = 0b111
+const LOC_POSITION_SHIFT: int = 4
+const LOC_NO_HINT: int = -1
+const LOOKUP_DISAGREES: String = "RulesEngine: the location index disagrees with the linear scan"
 ## Stage kinds (story 016): every command handler builds its steps as a list
 ## of plain-data stages `{stage, side, …}` over one frame, run in order by
 ## [method _run_stages], so a `Choice` can park the rest of the command on
@@ -319,6 +341,17 @@ var _bound: bool = false
 ## True once [method end_match] tore a live (not Ended) match down: every
 ## later `submit` is `MATCH_ENDED`, unlogged (code review 2026-11-03).
 var _torn_down: bool = false
+## Where each entity was last seen (story 019 R2): `entity_id → side index | zone
+## << 1 | position << 4` ([method _locate]). Engine-side and transient, never in
+## [MatchState]: a location is no derived value, so C1 holds, and the snapshot and
+## the clone contract are untouched. Every read checks the id it finds there, so
+## a hint can only ever be stale, never wrong: a fixture that writes a zone
+## directly costs a rescan, not a bad answer.
+var _where: Dictionary[int, int] = {}
+## Whether each lookup is also checked against the linear scan, in debug builds
+## ([method set_lookup_audit]). Off by default: on, every lookup pays for the scan
+## this index replaces, and the performance job runs the debug build.
+var _audit_lookups: bool = false
 ## Diagnostic op counters (story 019 AC-1; [method op_counts]). Plain ints on
 ## the engine, never in [MatchState]: nothing in the rules reads them, so
 ## `state_snapshot()` and the log are unchanged, and a clone starts at zero.
@@ -546,6 +579,7 @@ func start(config: Dictionary) -> void:
 	# C3 step 6
 	_state.phase = MatchState.PHASE_MULLIGAN
 	emit(&"mulligan_offered", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(_state.players[MatchRecords.SIDE_PLAYER].hand)})
+	index_locations()
 	_resolving = false
 
 
@@ -872,10 +906,12 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 		if player.hand.size() >= rule("hand_size"):
 			card.zone = "graveyard"
 			player.graveyard.append(card)
+			_index_appended(side, LOC_GRAVEYARD, instance_id)
 			emit(&"card_burned", {"side": side, "instance_id": instance_id, "card_id": def_id})
 			continue
 		card.zone = "hand"
 		player.hand.append(card)
+		_index_appended(side, LOC_HAND, instance_id)
 		var drawn_seq: int = emit(&"card_drawn", {"side": side, "instance_id": instance_id, "card_id": def_id, "hand_size": player.hand.size()})
 		if _halted():
 			return
@@ -1154,6 +1190,7 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 	var minion: Dictionary = _minion_from_def(def_id, def, side)
 	var index: int = board.size() if position < 0 or position > board.size() else position
 	board.insert(index, minion)
+	_index_zone(side, LOC_BOARD)
 	player.stats.minions_summoned = int(player.stats.minions_summoned) + 1
 	var id: int = int(minion.entity_id)
 	var summoned_seq: int = emit(&"minion_summoned", {
@@ -1307,14 +1344,17 @@ func return_to_hand(target_id: int) -> int:
 	var player: Dictionary = _state.players[side]
 	var board: Array = player.board
 	board.remove_at(board.find(minion))
+	_index_zone(side, LOC_BOARD)
 	var def_id: String = str(minion.def_id)
 	var card: Dictionary = MatchRecords.card_instance(_take_entity_id(), def_id, "hand")
 	var burned: bool = player.hand.size() >= rule("hand_size")
 	if burned:
 		card.zone = "graveyard"
 		player.graveyard.append(card)
+		_index_appended(side, LOC_GRAVEYARD, int(card.instance_id))
 	else:
 		player.hand.append(card)
+		_index_appended(side, LOC_HAND, int(card.instance_id))
 	emit(&"minion_returned", {
 		"side": side, "entity_id": target_id, "card_id": def_id,
 		"instance_id": int(card.instance_id), "burned": burned,
@@ -1351,6 +1391,7 @@ func transform(target_id: int, def_id: String) -> int:
 	minion.summoned_on_turn = old.summoned_on_turn
 	minion.attacks_used = old.attacks_used
 	board[index] = minion
+	_where[int(minion.entity_id)] = _hint(_side_index(side), LOC_BOARD, index)
 	emit(&"minion_transformed", {
 		"side": side, "entity_id": int(minion.entity_id), "from_card_id": str(old.def_id),
 		"to_card_id": def_id, "old_entity_id": target_id, "position": index,
@@ -1381,6 +1422,7 @@ func equip_weapon(side: String, def_id: String) -> int:
 			return NO_ENTITY
 	var weapon: Dictionary = MatchRecords.weapon(_take_entity_id(), def_id, int(def.get("attack", 0)), int(def.get("durability", 0)), def.get("keywords", []))
 	player.weapon = weapon
+	_where[int(weapon.entity_id)] = _hint(_side_index(side), LOC_WEAPON, 0)
 	emit(&"weapon_equipped", {
 		"side": side, "entity_id": int(weapon.entity_id), "card_id": def_id,
 		"attack": int(weapon.attack), "durability": int(weapon.durability),
@@ -1630,8 +1672,10 @@ func discard(side: String, which: Variant = MatchRecords.PICK_RANDOM) -> int:
 		return NO_ENTITY
 	var card: Dictionary = hand[index]
 	hand.remove_at(index)
+	_index_zone(side, LOC_HAND)
 	card.zone = "graveyard"
 	player.graveyard.append(card)
+	_index_appended(side, LOC_GRAVEYARD, int(card.instance_id))
 	emit(&"card_discarded", {"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id), "hand_index": index})
 	return int(card.instance_id)
 
@@ -2219,6 +2263,7 @@ func _accept_minion(side: String, card: Dictionary, position: int, target: Varia
 	var def_id: String = str(card.def_id)
 	var minion: Dictionary = _minion_from_def(def_id, _lookup_def(def_id), side)
 	player.board.insert(position, minion)
+	_index_zone(side, LOC_BOARD)
 	player.stats.minions_summoned = int(player.stats.minions_summoned) + 1
 	played.id = int(minion.entity_id)
 	emit(&"minion_summoned", {
@@ -2264,8 +2309,10 @@ func _spell_done(stage: Dictionary) -> void:
 	if card.is_empty():
 		return
 	player.resolving.erase(card)
+	_index_zone(side, LOC_RESOLVING)
 	card.zone = "graveyard"
 	player.graveyard.append(card)
+	_index_appended(side, LOC_GRAVEYARD, id)
 	if _halted():
 		return
 	emit(&"card_to_graveyard", {"side": side, "instance_id": id, "card_id": str(stage.def_id)})
@@ -2278,6 +2325,7 @@ func _accept_spell(side: String, card: Dictionary, target: Variant, cast: Dictio
 	# left the hand, and [method _cast_spell] moves it on from here.
 	card.zone = "resolving"
 	_state.players[side].resolving.append(card)
+	_index_appended(side, LOC_RESOLVING, int(card.instance_id))
 	if _halted():
 		return
 	cast.cause = emit(&"spell_cast", {
@@ -2323,6 +2371,7 @@ func _accept_card(side: String, card: Dictionary, type: String, target: Variant)
 	player.mana_current = int(player.mana_current) - cost
 	emit(&"mana_spent", {"side": side, "amount": cost, "mana_current": int(player.mana_current)})
 	player.hand.remove_at(index)
+	_index_zone(side, LOC_HAND)
 	player.stats.cards_played = int(player.stats.cards_played) + 1
 	return emit(&"card_played", {
 		"side": side, "instance_id": int(card.instance_id), "card_id": str(card.def_id),
@@ -2406,6 +2455,7 @@ func _mulligan_step(keep_mask: Array) -> void:
 			player.deck.append(card)
 			replaced.append(int(card.instance_id))
 	player.hand.assign(kept)
+	_index_zone(MatchRecords.SIDE_PLAYER, LOC_HAND)
 	var stream: Variant = _state.rng_match
 	stream.shuffle(player.deck)
 	emit(&"deck_shuffled", {"side": MatchRecords.SIDE_PLAYER, "instance_ids": _instance_ids(player.deck)})
@@ -3028,6 +3078,7 @@ func _death_check() -> Array[int]:
 				kept.append(minion)
 		if kept.size() != board.size():
 			board.assign(kept)
+			_index_zone(side, LOC_BOARD)
 	var broken: Array[Dictionary] = []
 	for side: String in MatchRecords.SIDES:
 		var player: Dictionary = _state.players[side]
@@ -3255,24 +3306,7 @@ static func _strip_auras(enchantments: Array) -> void:
 ## [param entity_id] — a source "in play (or in hand for hand triggers)" at
 ## raise time (C10; a spell being cast counts, story 010) — else `{}`.
 func _live_record(entity_id: int) -> Dictionary:
-	_record_lookups += 1
-	for side: String in MatchRecords.SIDES:
-		var player: Dictionary = _state.players[side]
-		for slot: String in ["hero", "weapon"]:
-			var record: Variant = player[slot]
-			_record_visits += 1
-			if record != null and int(record.entity_id) == entity_id:
-				return record
-		for minion: Dictionary in player.board:
-			_record_visits += 1
-			if int(minion.entity_id) == entity_id:
-				return minion
-		for zone: String in ["hand", "resolving"]:
-			for card: Dictionary in player[zone]:
-				_record_visits += 1
-				if int(card.instance_id) == entity_id:
-					return card
-	return {}
+	return _locate(entity_id, LOC_LIVE)
 
 
 ## C14 `win_loss_check()` — the one place a match ends on health, run at the
@@ -3473,57 +3507,24 @@ func _has_keyword(character: Dictionary, keyword: String) -> bool:
 
 ## The hero or board minion [param entity_id] (a character in play), else `{}`.
 func _character(entity_id: int) -> Dictionary:
-	for side: String in MatchRecords.SIDES:
-		var hero: Variant = _state.players[side].hero
-		_record_visits += 1
-		if hero != null and int(hero.entity_id) == entity_id:
-			_record_lookups += 1
-			return hero
-	return _minion(entity_id)
+	return _locate(entity_id, LOC_CHARACTER)
 
 
 ## The board minion [param entity_id], else `{}`.
 func _minion(entity_id: int) -> Dictionary:
-	_record_lookups += 1
-	for side: String in MatchRecords.SIDES:
-		for minion: Dictionary in _state.players[side].board:
-			_record_visits += 1
-			if int(minion.entity_id) == entity_id:
-				return minion
-	return {}
+	return _locate(entity_id, LOC_MINION)
 
 
 ## The equipped weapon [param entity_id], else `{}`.
 func _weapon(entity_id: int) -> Dictionary:
-	_record_lookups += 1
-	for side: String in MatchRecords.SIDES:
-		var weapon: Variant = _state.players[side].weapon
-		_record_visits += 1
-		if weapon != null and int(weapon.entity_id) == entity_id:
-			return weapon
-	return {}
+	return _locate(entity_id, LOC_WEAPON_SLOT)
 
 
 ## The side that holds [param entity_id] in any zone, or "" when none does.
 func _owner_of(entity_id: int) -> String:
-	_record_lookups += 1
-	for side: String in MatchRecords.SIDES:
-		var player: Dictionary = _state.players[side]
-		for slot: String in ["hero", "weapon"]:
-			var record: Variant = player[slot]
-			_record_visits += 1
-			if record != null and int(record.entity_id) == entity_id:
-				return side
-		for minion: Dictionary in player.board:
-			_record_visits += 1
-			if int(minion.entity_id) == entity_id:
-				return side
-		for zone: String in ["hand", "resolving", "deck", "graveyard"]:
-			for card: Dictionary in player[zone]:
-				_record_visits += 1
-				if int(card.instance_id) == entity_id:
-					return side
-	return ""
+	if _locate(entity_id, LOC_ANY).is_empty():
+		return ""
+	return MatchRecords.SIDES[_where[entity_id] & 1]
 
 
 ## The Card Database definition of [param def_id] (`CardDatabase.card(id)`),
@@ -3621,9 +3622,11 @@ func _add_to_hand(side: String, def_id: String) -> int:
 	if player.hand.size() >= rule("hand_size"):
 		card.zone = "graveyard"
 		player.graveyard.append(card)
+		_index_appended(side, LOC_GRAVEYARD, int(card.instance_id))
 		emit(&"card_burned", payload)
 		return int(card.instance_id)
 	player.hand.append(card)
+	_index_appended(side, LOC_HAND, int(card.instance_id))
 	payload["hand_size"] = player.hand.size()
 	emit(&"card_added_to_hand", payload)
 	return int(card.instance_id)
@@ -3650,27 +3653,146 @@ func _raise(point: StringName, ctx: Dictionary, raise_seq: int) -> void:
 func _find_record(entity_id: int) -> Dictionary:
 	if _state == null:
 		return {}
+	return _locate(entity_id, LOC_ANY)
+
+
+# --- The location index (story 019 R2) -------------------------------------------
+
+## The record [param entity_id] in one of [param zones], else `{}`: the one
+## lookup under every finder. A hint from [member _where] is read and its id
+## checked, which touches one record; anything else (no hint, or a hint the id
+## check refuses because the zones moved under it) falls to [method _scan], which
+## repairs the hint. So the answer is always the scan's, at the cost of one read.
+## The hit path is written flat on purpose, and measured: a helper call, a `{}`
+## default and a String-keyed zone read made a hit cost as much as the scan.
+func _locate(entity_id: int, zones: int) -> Dictionary:
 	_record_lookups += 1
-	for side: String in MatchRecords.SIDES:
-		var player: Dictionary = _state.players[side]
-		var hero: Variant = player.hero
-		_record_visits += 1
-		if hero != null and int(hero.entity_id) == entity_id:
-			return hero
-		var weapon: Variant = player.weapon
-		_record_visits += 1
-		if weapon != null and int(weapon.entity_id) == entity_id:
-			return weapon
-		for minion: Dictionary in player.board:
+	var hint: int = _where.get(entity_id, LOC_NO_HINT)
+	if hint != LOC_NO_HINT:
+		var zone: int = (hint >> LOC_ZONE_SHIFT) & LOC_ZONE_MASK
+		if (zones >> zone) & 1 == 1:
 			_record_visits += 1
-			if int(minion.entity_id) == entity_id:
-				return minion
-		for zone: String in ["hand", "resolving", "deck", "graveyard"]:
-			for card: Dictionary in player[zone]:
+			var player: Dictionary = _state.players[MatchRecords.SIDES[hint & 1]]
+			if zone == LOC_BOARD:
+				var board: Array = player.board
+				var slot: int = hint >> LOC_POSITION_SHIFT
+				if slot < board.size():
+					var minion: Dictionary = board[slot]
+					if int(minion.entity_id) == entity_id:
+						assert(not _audit_lookups or _lookup_agrees(entity_id, zones, minion), LOOKUP_DISAGREES)
+						return minion
+			elif zone == LOC_HERO:
+				var hero: Variant = player.hero
+				if hero != null and int(hero.entity_id) == entity_id:
+					assert(not _audit_lookups or _lookup_agrees(entity_id, zones, hero), LOOKUP_DISAGREES)
+					return hero
+			elif zone == LOC_WEAPON:
+				var weapon: Variant = player.weapon
+				if weapon != null and int(weapon.entity_id) == entity_id:
+					assert(not _audit_lookups or _lookup_agrees(entity_id, zones, weapon), LOOKUP_DISAGREES)
+					return weapon
+			else:
+				var cards: Array = player[LOC_KEYS[zone]]
+				var at: int = hint >> LOC_POSITION_SHIFT
+				if at < cards.size():
+					var card: Dictionary = cards[at]
+					if int(card.instance_id) == entity_id:
+						assert(not _audit_lookups or _lookup_agrees(entity_id, zones, card), LOOKUP_DISAGREES)
+						return card
+	return _scan(entity_id, zones)
+
+
+## The linear search of [param zones], per side, player first, repairing the
+## hint of what it finds.
+func _scan(entity_id: int, zones: int) -> Dictionary:
+	for side_index: int in MatchRecords.SIDES.size():
+		var player: Dictionary = _state.players[MatchRecords.SIDES[side_index]]
+		for zone: int in LOC_KEYS.size():
+			if (zones >> zone) & 1 == 0:
+				continue
+			if zone <= LOC_WEAPON:
+				var slot: Variant = player[LOC_KEYS[zone]]
 				_record_visits += 1
-				if int(card.instance_id) == entity_id:
-					return card
+				if slot != null and int(slot.entity_id) == entity_id:
+					_where[entity_id] = _hint(side_index, zone, 0)
+					return slot
+				continue
+			var list: Array = player[LOC_KEYS[zone]]
+			var id_key: String = _id_key(zone)
+			for position: int in list.size():
+				_record_visits += 1
+				if int(list[position][id_key]) == entity_id:
+					_where[entity_id] = _hint(side_index, zone, position)
+					return list[position]
 	return {}
+
+
+## Whether the hit [param found] is what [method _scan] answers. The audit's own
+## scan is kept out of the visit count.
+func _lookup_agrees(entity_id: int, zones: int, found: Dictionary) -> bool:
+	var visits: int = _record_visits
+	var scanned: Dictionary = _scan(entity_id, zones)
+	_record_visits = visits
+	return is_same(scanned, found)
+
+
+static func _hint(side_index: int, zone: int, position: int) -> int:
+	return side_index | (zone << LOC_ZONE_SHIFT) | (position << LOC_POSITION_SHIFT)
+
+
+## The field a record of [param zone] is identified by: a character or a weapon
+## has an `entity_id`, a card instance an `instance_id`.
+static func _id_key(zone: int) -> String:
+	return "entity_id" if zone <= LOC_BOARD else "instance_id"
+
+
+static func _side_index(side: String) -> int:
+	return 0 if side == MatchRecords.SIDES[0] else 1
+
+
+## Hints every record of [param side]'s list [param zone] at its position: the
+## zone moves that shift a list (a summon, a death, a play, a bounce, a discard).
+func _index_zone(side: String, zone: int) -> void:
+	var side_index: int = _side_index(side)
+	var list: Array = _state.players[side][LOC_KEYS[zone]]
+	var id_key: String = _id_key(zone)
+	for position: int in list.size():
+		_where[int(list[position][id_key])] = _hint(side_index, zone, position)
+
+
+## Hints the record [param entity_id] just appended to [param side]'s [param zone].
+func _index_appended(side: String, zone: int, entity_id: int) -> void:
+	_where[entity_id] = _hint(_side_index(side), zone, (_state.players[side][LOC_KEYS[zone]] as Array).size() - 1)
+
+
+## Hints everything in play and in hand: the end of [method start], and a fixture
+## that placed records directly and wants lookups to touch one record from the
+## first. Decks and graveyards are left to [method _scan]: a draw shifts a whole
+## deck, and nothing looks a deck card up in the hot path.
+## [codeblock]
+## MatchFactory.summon(engine.state(), "boss", 1, 1)
+## engine.index_locations()
+## [/codeblock]
+func index_locations() -> void:
+	for side_index: int in MatchRecords.SIDES.size():
+		var side: String = MatchRecords.SIDES[side_index]
+		var player: Dictionary = _state.players[side]
+		for zone: int in [LOC_HERO, LOC_WEAPON]:
+			var slot: Variant = player[LOC_KEYS[zone]]
+			if slot != null:
+				_where[int(slot.entity_id)] = _hint(side_index, zone, 0)
+		for zone: int in [LOC_BOARD, LOC_HAND, LOC_RESOLVING]:
+			_index_zone(side, zone)
+
+
+## Turns the debug check of every lookup against the linear scan on or off (story
+## 019 R2): the golden suite runs with it on. A clone inherits it. Asserts compile
+## out of a release build, so it costs nothing there.
+## [codeblock]
+## engine.set_lookup_audit(true)
+## [/codeblock]
+func set_lookup_audit(on: bool) -> void:
+	_audit_lookups = on
 
 
 # --- clone(): the Boss AI sandbox (story 017) ---------------------------------
@@ -3746,6 +3868,10 @@ func clone(rng_override: RngStream = null) -> RulesEngine:
 	var stream: RefCounted = rng_override if rng_override != null else _copy_stream(_state.rng_match)
 	copy._state = _state.clone(_scratch_log(), stream)
 	copy._torn_down = _torn_down
+	# by value: the clone's zones move on their own. A flat copy, so a planner node
+	# does not pay a walk of every zone; hints are checked on read either way.
+	copy._where = _where.duplicate()
+	copy._audit_lookups = _audit_lookups
 	if _bound and resolver != null:
 		var no_installers: Array[HookInstaller] = []
 		resolver.bind(copy, no_installers)
