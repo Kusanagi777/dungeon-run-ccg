@@ -28,12 +28,15 @@ const DEBUG_LOADER_PATH: String = "res://src/ui/match/match_debug_loader.gd"
 const SPEED_INSTANT: StringName = &"instant"
 const SETTING_ANIM_SPEED: StringName = &"anim_speed"
 const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
+const SETTING_ACTION_DELAY: StringName = &"action_delay_ms"
 ## The event feed's drawer, which `FeedPresenter` answers for (MUI-014).
 const FEED_TOGGLE_METHOD: StringName = &"toggle"
 const FEED_OPEN_METHOD: StringName = &"is_open"
 const POSE_CHOICE: String = "choice"
 const POSE_REJECT: String = "reject"
 const POSE_FOCUS: String = "focus"
+const POSE_MENU: String = "menu"
+const POSE_MENU_CONCEDE: String = "concede"
 const POSE_TREASURE_PREFIX: String = "treasure:"
 ## `focus:<n>` below this is a hand index, at or above it a token's instance id.
 const HAND_SLOTS: int = 10
@@ -73,6 +76,9 @@ var _turn_label: Label = null
 var _floor_label: Label = null
 var _end_turn: Button = null
 var _end_turn_style: StyleBoxFlat = null
+var _menu_button: Button = null
+var _meta: MetaApi = null
+var _settings_bus: SettingsBus = null
 var _last_state: StringName = &""
 var _inspect: CardFrame = null
 var _inspected: int = -1
@@ -102,6 +108,7 @@ var _finished: bool = false
 @onready var _choice: OverlayPresenter = %ChoiceOverlay
 @onready var _mulligan: MulliganPresenter = %MulliganScreen
 @onready var _banner: BannerPresenter = %Banner
+@onready var _pause: PauseMenu = %PauseMenu
 
 
 ## Injects the controller and starts the match, now or at `_ready`.
@@ -167,6 +174,11 @@ func apply_pose(pose: String, _value: String) -> bool:
 			return true
 		POSE_FOCUS:
 			_pose_focus(_value)
+			return true
+		POSE_MENU:
+			_open_menu()
+			if _value == POSE_MENU_CONCEDE:
+				_pause.show_concede_confirm()
 			return true
 	return false
 
@@ -260,6 +272,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _router.view_state() == InputRouter.STATE_ENDED:
 		_on_ended_input(event)
 		return
+	if _router.view_state() == InputRouter.STATE_MENU:
+		_router.handle_input(event)
+		return
 	if _choice.is_open() and _choice.handle_action(MatchInput.read(event), MatchInput.hand_slot(event)):
 		return
 	if event is InputEventKey and event.pressed and not event.echo and _mulligan.is_open():
@@ -274,6 +289,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _exit_tree() -> void:
+	if _settings_bus != null and _settings_bus.settings_changed.is_connected(_on_setting_changed):
+		_settings_bus.settings_changed.disconnect(_on_setting_changed)
 	if _controller != null:
 		_controller.shutdown()
 
@@ -290,6 +307,8 @@ func _read_services() -> void:
 	_config = db.config(CONFIG_NAME)
 	_ai_config = db.config(AI_CONFIG_NAME)
 	_settings = services.meta.get_settings()
+	_meta = services.meta
+	_settings_bus = services.settings_bus
 	MatchStrings.install(db, _config)
 	_ui = MatchUiContext.new(_config, db)
 
@@ -312,6 +331,8 @@ func _build() -> void:
 	_router.feed_requested.connect(_toggle_feed)
 	_router.set_end_turn_arm(int(_config.end_turn_arm_ms))
 	_router.set_drawer_check(_feed_drawer_open)
+	_router.menu_requested.connect(_on_menu_requested)
+	_settings_bus.settings_changed.connect(_on_setting_changed)
 	_table.color = _ui.color("table_lit")
 	_build_chrome()
 	_build_inspect()
@@ -325,6 +346,9 @@ func _build() -> void:
 	_router.focus_step_requested.connect(_focus.move)
 	_reject.set_flash_targets({"taunts": _boss_row.flash_taunts, "mana_bar": _player_panel.flash_mana})
 	_banner.continued.connect(_finish_match)
+	_pause.configure(_pause_style(), _meta)
+	_pause.closed.connect(_on_menu_closed)
+	_pause.concede_confirmed.connect(func() -> void: _router.intent(InputRouter.INTENT_CONCEDE))
 	_choice.chosen.connect(func(index: int) -> void:
 		_router.intent(InputRouter.CHOICE_INTENT, {"index": index}))
 	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
@@ -371,6 +395,69 @@ func _build_chrome() -> void:
 	_end_turn.pressed.connect(func() -> void: _router.intent(InputRouter.INTENT_END_TURN))
 	_end_turn.disabled = true
 	_chrome.add_child(_end_turn)
+	_build_menu_button()
+
+
+## hud.md §4.2: a 44x32 button whose hit rect is 44x44 at y 0-44.
+func _build_menu_button() -> void:
+	var rect: Rect2 = _ui.rect("menu_button")
+	_menu_button = Button.new()
+	_menu_button.text = tr("hud.menu")
+	_menu_button.position = rect.position
+	_menu_button.size = rect.size
+	_menu_button.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.bg_color = _ui.color("table_dark")
+	for state: String in ["normal", "hover", "pressed"]:
+		_menu_button.add_theme_stylebox_override(state, style)
+	_menu_button.add_theme_color_override("font_color", _ui.color("text_light"))
+	_menu_button.pressed.connect(func() -> void: _router.intent(InputRouter.INTENT_MENU))
+	_chrome.add_child(_menu_button)
+
+
+func _pause_style() -> Dictionary:
+	var cfg: Dictionary = _config.pause
+	return {
+		"rect": _ui.rect("pause_menu"), "fill": _ui.color("table_dark"), "text": _ui.color("text_light"),
+		"ring": _ui.color("state_actionable"), "ring_px": _config.focus.ring_px,
+		"ring_offset_px": _config.focus.ring_offset_px, "row_h": cfg.row_h, "gap": cfg.gap,
+		"font_px": cfg.font_px, "title_px": cfg.title_px, "label_w": cfg.label_w,
+	}
+
+
+func _on_menu_requested() -> void:
+	if _pause.is_open():
+		_pause.back()
+	else:
+		_open_menu()
+
+
+func _open_menu() -> void:
+	_router.intent(InputRouter.INTENT_CANCEL)
+	_router.set_menu_open(true)
+	_pause.open()
+	_table.color = _ui.color("table_dark")
+
+
+func _on_menu_closed() -> void:
+	_router.set_menu_open(false)
+	_present(_last_display if not _queue.is_idle() else _display())
+
+
+## A setting moved: applied from `settings_changed`, so on the next frame (ADR-0011).
+func _on_setting_changed(key: StringName, value: Variant) -> void:
+	_settings[key] = value
+	if _controller != null:
+		_controller.on_setting_changed(key, value)
+	match key:
+		SETTING_ANIM_SPEED:
+			_speed = StringName(str(value))
+			_queue.set_speed(_speed)
+		SETTING_REDUCE_MOTION:
+			_queue.set_reduce_motion(value == true)
+			_reject.reduce_motion = value == true
+		SETTING_ACTION_DELAY:
+			_boss_pacing = AnimationQueue.boss_pacing(_config, _ai_config, _settings)
 
 
 func _build_inspect() -> void:
@@ -507,7 +594,7 @@ func _finish_step(step: AnimStep) -> void:
 func _present(display: Dictionary) -> void:
 	for presenter: Presenter in _presenters:
 		presenter.present(display)
-	var dimmed: bool = display.pending_mulligan != null or _choice.is_open()
+	var dimmed: bool = display.pending_mulligan != null or _choice.is_open() or _pause.is_open()
 	_table.color = _ui.color("table_dark" if dimmed else "table_lit")
 	var key: String = "hud.turn.player" if str(display.active_side) == MatchViewState.SIDE_PLAYER else "hud.turn.boss"
 	_turn_label.text = tr("hud.turn.setup") if int(display.turn) == 0 else tr(key) % int(display.turn)
@@ -825,6 +912,8 @@ func _on_drained() -> void:
 ## fault: it is not a defeat (U9).
 func _enter_ended() -> void:
 	_ended = true
+	_pause.close()
+	_menu_button.disabled = true
 	_banner.settle()
 	match _banner.variant():
 		BannerPresenter.VARIANT_FAULT:

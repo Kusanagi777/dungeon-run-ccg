@@ -64,6 +64,9 @@ signal session_ended(session: Dictionary, submitted: bool)
 signal attackers_armed(badges: Dictionary)
 ## `Tab` in `Idle`: move keyboard focus [param step] stops.
 signal focus_step_requested(step: int)
+## `Esc` reached chain step 3 or 4, or the menu button: open the pause menu, or step
+## back out of it.
+signal menu_requested()
 ## `L`, or `Esc` / RMB with the drawer open: toggle the feed drawer.
 signal feed_requested()
 
@@ -76,6 +79,7 @@ const STATE_KEY_TARGETING: StringName = &"KeyTargeting"
 const STATE_PLAYBACK: StringName = &"Playback"
 const STATE_BOSS_TURN: StringName = &"BossTurn"
 const STATE_CHOICE_OPEN: StringName = &"ChoiceOpen"
+const STATE_MENU: StringName = &"Menu"
 const STATE_ENDED: StringName = &"Ended"
 const PHASE_MAIN: String = "main"
 const INTENT_END_TURN: StringName = &"end_turn"
@@ -89,6 +93,8 @@ const INTENT_CYCLE: StringName = &"cycle"
 const INTENT_CONFIRM: StringName = &"confirm"
 const INTENT_CLICK: StringName = &"click"
 const INTENT_FEED: StringName = &"feed"
+const INTENT_MENU: StringName = &"menu"
+const INTENT_CONCEDE: StringName = &"concede"
 const INTENT_MULLIGAN_CONFIRM: StringName = &"mulligan_confirm"
 ## `source.kind` values.
 const SOURCE_CARD: String = "card"
@@ -134,6 +140,8 @@ var _press_double: bool = false
 var _press_in_session: bool = false
 # `A` is waiting for a number.
 var _armed: bool = false
+# The pause menu is up: the base takes nothing but the chain.
+var _menu_open: bool = false
 # The focused stop `{kind, id}`; empty is End Turn's default (U5).
 var _focus: Dictionary = {}
 
@@ -170,6 +178,11 @@ func set_end_turn_arm(arm_ms: int, clock: Callable = Callable()) -> void:
 ## Tells the router how to ask whether the feed drawer is open.
 func set_drawer_check(is_open: Callable) -> void:
 	_drawer_open = is_open
+
+
+## Tells the router the pause menu opened or closed (States `Menu`).
+func set_menu_open(on: bool) -> void:
+	_menu_open = on
 
 
 ## The stop holding keyboard focus: `{kind, id}`, or `{}` for none. A source kind opens
@@ -209,6 +222,10 @@ func handle_input(event: InputEvent) -> void:
 func on_action(action: StringName, slot: int = -1) -> void:
 	if action == MatchInput.NONE:
 		return
+	if _menu_open:
+		if action == MatchInput.CANCEL:
+			escape()
+		return
 	if _armed:
 		_on_armed_action(action, slot)
 		return
@@ -233,13 +250,19 @@ func on_action(action: StringName, slot: int = -1) -> void:
 			intent(INTENT_FEED)
 
 
-## The `Esc` chain, first match wins (U5, Escape / Cancel): the session, then the feed
-## drawer. [param max_step] stops it there for RMB.
-func escape(_max_step: int = CHAIN_FULL) -> void:
+## The `Esc` chain, first match wins (U5, Escape / Cancel): the session, the feed
+## drawer, the top-most overlay with a cancel, then the pause menu. Mulligan and Choice
+## have no cancel, so they fall through to the menu. [param max_step] stops the chain at
+## the drawer for RMB; once `result` is set it opens nothing (DD-X09).
+func escape(max_step: int = CHAIN_FULL) -> void:
 	if in_session():
 		_end_session(false)
+	elif _menu_open:
+		menu_requested.emit()
 	elif _drawer_open.is_valid() and _drawer_open.call():
 		feed_requested.emit()
+	elif max_step > CHAIN_POINTER and _view != null and _view.result == null:
+		menu_requested.emit()
 
 
 ## True once the queue has been idle for `end_turn_arm_ms`: a skip press landing on the
@@ -269,6 +292,8 @@ func view_state() -> StringName:
 		return STATE_LOADING
 	if _view.result != null and _queue.is_idle():
 		return STATE_ENDED
+	if _menu_open:
+		return STATE_MENU
 	if in_session():
 		return STATE_DRAGGING if dragging() else STATE_KEY_TARGETING
 	if _view.pending_mulligan != null:
@@ -326,6 +351,12 @@ func intent(intent_name: StringName, args: Dictionary = {}) -> void:
 		INTENT_FEED:
 			if allows(INTENT_FEED):
 				feed_requested.emit()
+		INTENT_MENU:
+			if _view.result == null:
+				menu_requested.emit()
+		INTENT_CONCEDE:
+			if _view.result == null:
+				command_requested.emit(MatchRecords.concede())
 		CHOICE_INTENT:
 			if _player_owes_choice():
 				command_requested.emit(MatchRecords.choose(MatchViewState.SIDE_PLAYER, int(args.get("index", 0))))
@@ -402,6 +433,8 @@ func _on_accept(enter: bool) -> void:
 				_select(_focus, Vector2.ZERO, TargetingSession.ENTERED_KEY, false)
 		FocusPresenter.KIND_FEED:
 			intent(INTENT_FEED)
+		FocusPresenter.KIND_MENU:
+			intent(INTENT_MENU)
 
 
 ## `1`–`0`: the hand card at [param slot] into targeting; a slot past the hand is ignored.

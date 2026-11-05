@@ -195,6 +195,12 @@
         0,
         44,
         44
+      ],
+      "pause_menu": [
+        440,
+        160,
+        400,
+        400
       ]
     },
     "hero": {
@@ -307,6 +313,13 @@
       "plate_font_px": 20,
       "plate_corner_px": 4
     },
+    "pause": {
+      "row_h": 36,
+      "gap": 8,
+      "font_px": 16,
+      "title_px": 20,
+      "label_w": 110
+    },
     "focus": {
       "ring_px": 2,
       "ring_offset_px": 3
@@ -417,6 +430,21 @@
       "end.continue": "Continue · %d",
       "targeting.no_target": "No target",
       "choice.confirm": "Confirm",
+      "hud.menu": "≡",
+      "pause.title": "Paused",
+      "pause.resume": "Resume",
+      "pause.concede": "Concede",
+      "pause.volume_master": "Master",
+      "pause.volume_music": "Music",
+      "pause.volume_sfx": "Effects",
+      "pause.speed.normal": "Normal",
+      "pause.speed.fast": "Fast",
+      "pause.speed.instant": "Instant",
+      "pause.reduce_motion": "Reduce motion",
+      "pause.concede_title": "Concede the match?",
+      "pause.concede_body": "The run is recorded as a defeat on this floor.",
+      "pause.cancel": "Cancel",
+      "pause.concede_confirm": "Concede",
       "choice.boss_discovers": "Boss discovers…",
       "opt.smite": "Smite\nDeal 2 damage",
       "opt.mend": "Mend\nRestore 4 health"
