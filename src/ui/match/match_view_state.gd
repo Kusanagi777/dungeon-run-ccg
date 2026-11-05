@@ -421,7 +421,7 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 		"attack_resolved":
 			_count_attack(int(_attacker_of(p)))
 		"attack_cancelled":
-			_count_attack(int(_attacker_of(p)))
+			# Its `attack_resolved` follows and counts the swing (C8; U3 "none").
 			steps.append(_step(AnimStep.ATTACK_RETURN, _ids([_attacker_of(p)]), group, seq))
 		"damage_dealt":
 			var target: int = int(p.get("target", 0))

@@ -350,6 +350,24 @@ func test_group_id_is_the_seq_of_the_command_root() -> void:
 		["attack_lunge", "damage_pop", "death_group", "gap_close", "heal_pop", "heal_pop"])
 
 
+func test_a_cancelled_attack_counts_once_as_the_engine_does() -> void:
+	# Arrange: the engine logs `attack_cancelled` then `attack_resolved` for one swing
+	var view: MatchViewState = _view()
+	_project(view, _opening())
+	var payload: Dictionary = {"attacker": MINION_IDS[0], "defender": MINION_IDS[1]}
+
+	# Act
+	var steps: Array[AnimStep] = _project(view, [
+		_event(6, "attack_declared", payload),
+		_event(7, "attack_cancelled", payload, 6),
+		_event(8, "attack_resolved", payload, 6),
+	])
+
+	# Assert: U3 gives `attack_cancelled` no field, only its return step
+	assert_int(int(view.entity(MINION_IDS[0]).attacks_used)).is_equal(1)
+	assert_array(steps.map(func(s: AnimStep) -> String: return String(s.kind))).is_equal(["attack_lunge", "attack_return"])
+
+
 func test_minion_died_run_sharing_a_cause_projects_one_death_group_then_one_gap_close() -> void:
 	# Arrange: summon four more player minions, then an AoE effect kills all four
 	var view: MatchViewState = _view()
