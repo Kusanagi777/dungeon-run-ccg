@@ -29,6 +29,7 @@ const DEFAULT_RULES: Dictionary = {
 	"hero_power": "spare_mana", "lethal_search": "full", "defensive": false, "assume_aoe": false,
 	"trade_ratio": 1.0, "tie_epsilon": 0.05, "overextend_cap_aoe": 4.0, "burn_per_mana": 1.0,
 	"defensive_margin": 3.0, "BV_NORM": 10.0, "THREAT_NORM": 12.0,
+	"taunt_bonus": 1.5, "flat_spell_damage": 2.0, "flat_deathrattle": 1.0, "flat_aura": 2.0,
 	"defensive_multipliers": {"w_face": 0.25, "w_self": 2.0, "w_heal": 2.0, "w_threat": 1.5},
 }
 ## Story 003 AC-3 overlays beyond `extends` (content.md B1 `ai_profile` column).
@@ -267,6 +268,17 @@ func test_band_overlays_carry_f9s_rules_and_f7s_budgets() -> void:
 		expected["budgets"] = budgets[band]
 		assert_dict(bands[band]).override_failure_message("band %s" % band).is_equal(expected)
 	assert_float(bands["3"].budgets.lethal_max_nodes).is_equal(4000.0)
+
+
+func test_f2_bonuses_ship_in_the_default_rules_at_f2s_values() -> void:
+	# Arrange: A29, review D-3: these moved out of `Scorer.NORMALISERS` unchanged
+	var rules: Dictionary = _body().profiles.default.rules
+
+	# Act and Assert
+	assert_float(float(rules.taunt_bonus)).is_equal(1.5)
+	assert_float(float(rules.flat_spell_damage)).is_equal(2.0)
+	assert_float(float(rules.flat_deathrattle)).is_equal(1.0)
+	assert_float(float(rules.flat_aura)).is_equal(2.0)
 
 
 func test_presentation_and_runtime_are_f9s_lines() -> void:

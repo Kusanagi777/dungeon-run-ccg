@@ -61,6 +61,10 @@ src/ai/boss_ai.gd RANGES BV_NORM 5.0 20.0
 src/ai/boss_ai.gd RANGES THREAT_NORM 5.0 20.0
 src/ai/boss_ai.gd RANGES trade_ratio 0.5 2.0
 src/ai/boss_ai.gd RANGES tie_epsilon 0.0 0.5
+src/ai/boss_ai.gd RANGES taunt_bonus 0.0 3.0
+src/ai/boss_ai.gd RANGES flat_spell_damage 0.0 3.0
+src/ai/boss_ai.gd RANGES flat_deathrattle 0.0 3.0
+src/ai/boss_ai.gd RANGES flat_aura 0.0 3.0
 src/ai/boss_ai.gd RANGES overextend_cap_aoe 2.0 7.0
 src/ai/boss_ai.gd RANGES burn_per_mana 0.0 2.0
 src/ai/boss_ai.gd RANGES defensive_margin 0.0 10.0
@@ -75,15 +79,11 @@ src/ai/boss_ai.gd RANGES max_turn_playback_s 6.0 20.0
 src/ai/boss_ai.gd RANGES intent_banner_s 0.2 0.6
 src/ai/boss_ai.gd RANGES plan_changed_s 0.6 2.0
 src/ai/boss_ai.gd RANGES planner_target_ms 50.0 1000.0
-# NORMALISERS: what A29 calls normalisers. taunt_bonus and the flat_* rows are F2
-# values whose GDD source is the data file (BAI-012 review D-3): they stay here
-# only until that is settled, and a row moved to data comes out of this list.
-src/ai/scorer.gd NORMALISERS taunt_bonus 1.5
+# NORMALISERS: what A29 calls normalisers. A row moved to data comes out of this
+# list, as F2's taunt_bonus and flat_* rows did (BAI-012 review D-3): their values
+# are in ai_profiles.json now, and only their RANGES bounds are pinned above.
 src/ai/scorer.gd NORMALISERS threat_windfury 0.5
 src/ai/scorer.gd NORMALISERS threat_deathrattle 1.0
-src/ai/scorer.gd NORMALISERS flat_spell_damage 2.0
-src/ai/scorer.gd NORMALISERS flat_deathrattle 1.0
-src/ai/scorer.gd NORMALISERS flat_aura 2.0
 src/ai/scorer.gd NORMALISERS weapon_bv 0.8
 src/ai/scorer.gd NORMALISERS card_norm 3.0
 src/ai/scorer.gd NORMALISERS trade_even_band 0.2

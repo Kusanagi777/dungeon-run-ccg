@@ -62,6 +62,10 @@
             "w_threat": 1.5
           },
           "lethal_search": "full",
+          "taunt_bonus": 1.5,
+          "flat_spell_damage": 2.0,
+          "flat_deathrattle": 1.0,
+          "flat_aura": 2.0,
           "BV_NORM": 10.0,
           "THREAT_NORM": 12.0
         },

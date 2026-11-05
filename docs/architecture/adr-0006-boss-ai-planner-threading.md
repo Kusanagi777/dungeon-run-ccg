@@ -46,6 +46,7 @@ Review record for this authoring run (2026-11-03, `review_mode: lean`,
 - **Erratum 2026-11-04 (DD-X18, `/propagate-design-change design/gdd/boss-ai.md`)**: boss-ai `planner_target_ms` rose from 50 ms per round (forecast + play_turn together) to **500 ms per planner run**, `play_turn` and `forecast` each measured separately (A22); F7's `t_sim` is now the measured ~0.37 ms release / ~0.45 ms debug (`production/qa/perf-match-rules-2026-11-04.md`), not 0.01 ms, so F7's band-3 worst case at today's counts is ≈ 2,190 ms until the counts are re-tuned after match-rules story 019. **The Decision is unchanged and strengthened**: a run of up to 500 ms (and more before re-tuning) can only be off the main thread or sliced; the 2 ms main-thread rule (A30), `slice_ms` and `replay_budget_ms` are unchanged. A run longer than the 300 ms banner beat shows the existing "boss thinking" state (diagram below, U6.1). Text fixed in Summary, Constraints, Problem Statement, Negative, GDD Requirements Addressed, Performance Implications and Validation Criteria; Alternative 3's frame estimate (probe A based) is kept as historical reasoning — at 500 ms per run the time-sliced fallback shows "thinking" for ≥ 30 frames, which the same state covers. TD-CHANGE-IMPACT skipped — Lean mode.
 - **Erratum 2026-11-04 (DD-X23, `/propagate-design-change design/gdd/match-ui.md`)**: the commit beat now stretches over planning. It lasts `max(intent_banner_s, planner run)`, capped at `planner_target_ms` (500 ms), and "boss thinking" shows only past that cap (match-ui U6.2 and Input Responsiveness; boss-ai Game Feel). The Decision is unchanged. Performance Implications and Validation Criteria were updated.
 - **Erratum 2026-11-04 (sprint 5 code review D-1, `production/reviews/2026-11-04/code-review-s5-w1-bossai.md`)**: `BossAI.plan_task(sandbox)` is now `BossAI.plan_task(sandbox, task)`, and `task` is required. It is the `PlannerTask` that will run the Callable, because `checkpoint()` yields on it: with no task, `plan_turn` used a no-yield planner, so a `TimeSlicedPlannerTask` ran the whole plan inside `start()` on the main thread and reported success. The Callable is `func() -> Variant: return await boss_ai.plan_turn(sandbox, task)`. `plan_turn` keeps its optional `planner` argument. The architecture diagram and Key Interfaces are updated. No decision changes; status stays Accepted.
+- **Erratum 2026-11-04 (DD-X31, boss-ai story 014; closes `s5-review-matchdriver` Q-1, Q-4)**: two changes. (1) "exactly once per task object" holds: `Boot` hands the driver a **factory**, `Callable() -> PlannerTask`, and the driver calls it for every task; `MatchDriver._init` and the guideline below are updated (ADR-0008 owns the rest). (2) **`tick_over_budget` measures replay, not a slice.** This ADR gives each budget its own job: `slice_ms` bounds the time-sliced step and `replay_budget_ms` bounds `tick()`'s replay (GDD Requirements, TR-boss-ai-005), and a slice is verified at `slice_ms` plus one evaluation (Verification). A slice suspends only once it has used `slice_ms`, so with `slice_ms` and `replay_budget_ms` both 2 every suspended slice passed the replay budget and logged a false `ai_fault`. A task that runs its work inside `poll()` now says so (`PlannerTask.slices_main_thread()`, new, `true` on `TimeSlicedPlannerTask` alone), and the driver leaves that poll, and a task's `clone()` and `start()`, out of its own work. A worker's poll still counts. A30 still measures the frame: at `slice_ms` 2 a slice runs 2.09-2.11 ms (Probe A), so the time-sliced fallback cannot meet A30's 2 ms as tuned. That is the fallback's tuning, an open point, and this ADR's Tuning note had proposed 1.5. No decision changes; status stays Accepted.
 - **Erratum 2026-11-05 (sprint 5 wave 2 code review, `production/reviews/2026-11-05/code-review-s5-w2-bossai-mr019.md` D1; lane 7 record)**: two planner uses of the engine that were built but never written down. `RulesEngine.clone(rng_override: RngStream = null)` takes the stream the clone's `rng_match` becomes: the planner passes a copy of its `sim_<turn>` or `forecast_<turn>` fork, so a sandbox never draws from a copy of the live stream. And a **forecast's** sandbox removes the cards it drew through `run_action` and the `discard` primitive (`LethalSearch.drop_unseen`), the one write on a sandbox that is not `submit`: it keeps the undrawn deck out of the forecast (boss-ai C1.3), never touches the live engine, and a real plan never does it. No decision changes; status stays Accepted.
 
 ## Date
@@ -288,6 +289,8 @@ func result() -> Variant:                         # new — valid only after pol
     return _result
 func is_live() -> bool:                           # new — started and not yet finished
     return _live
+func slices_main_thread() -> bool:                # new (2026-11-04, DD-X31) — true when poll() runs the work for a slice; only TimeSlicedPlannerTask
+    return false
 func checkpoint() -> void:                        # new — cooperative yield point; BossAI awaits it between
     pass                                          #       candidate evaluations and lethal-search nodes.
                                                   #       Base and worker implementations: plain no-op (no await),
@@ -347,7 +350,7 @@ class_name TurnPlan extends RefCounted                   # new — plain data, J
 
 # src/gameplay/run/match_driver.gd — the protocol this ADR fixes (API owned by ADR-0008)
 class_name MatchDriver extends RefCounted
-func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask, clock: Callable = Time.get_ticks_usec) -> void   # `clock` ADDED (erratum 2026-11-05): the replay budget's time source
+func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_factory: Callable, clock: Callable = Time.get_ticks_usec) -> void   # planner_factory: Callable() -> a new PlannerTask per task (2026-11-04, DD-X31); `clock` ADDED (erratum 2026-11-05): the replay budget's time source
 func tick() -> void              # ≤ 2 ms of AI work: one poll(); replay bounded by replay_budget_ms, carried to the next tick
 func submit(command: Command) -> CommandResult   # always to the live engine (main thread); concede while any task is live → queued, ENGINE_BUSY/concede_queued (ADR-0008 Decision 2)
 func is_planning() -> bool                       # ADR-0008 addition (owned there): true while any task is live or a plan is pending replay
@@ -386,9 +389,9 @@ func shutdown() -> void          # new — if a task is live, blocks on poll()/w
   implementation makes this a no-op, the time-sliced one a yield.
 - `MatchView._exit_tree` **must** call `MatchDriver.shutdown()`; a
   `WorkerThreadPool` task cannot be cancelled, only awaited.
-- `Boot` **must** construct `WorkerPoolPlannerTask` by default and
-  `TimeSlicedPlannerTask` when `config("ai_profiles").runtime.planner_mode ==
-  "time_sliced"` or the debug flag `--ai-sync` is present; `tests/unit/**` and
+- `Boot`'s task factory **must** make a new `WorkerPoolPlannerTask` per call by
+  default and a new `TimeSlicedPlannerTask` when `config("ai_profiles").runtime.planner_mode ==
+  "time_sliced"` or the debug flag `--ai-sync` is present (2026-11-04, DD-X31); `tests/unit/**` and
   the sim harness **must** inject `ImmediatePlannerTask` and **must never**
   start a worker (gdUnit4 runs headless; TD-012).
 - All numbers (`slice_ms`, `replay_budget_ms`, `planner_mode`) **must** come

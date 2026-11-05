@@ -86,8 +86,8 @@ func test_board_value_and_threat_match_the_f2_example() -> void:
 	var keywords: Array = [MatchRecords.KEYWORD_DIVINE_SHIELD, MatchRecords.KEYWORD_TAUNT]
 
 	# Act
-	var bv: float = Scorer.board_value(3, 2, keywords, keyword_values)
-	var threat: float = Scorer.threat(3, keywords, false)
+	var bv: float = Scorer.board_value(3, 2, keywords, keyword_values, _default_rules())
+	var threat: float = Scorer.threat(3, keywords, false, _default_rules())
 
 	# Assert — (3+2)·1.3·1.2 = 7.8; threat 3 + 1.5 = 4.5
 	assert_float(bv).is_equal_approx(7.8, EPSILON)
@@ -412,13 +412,33 @@ func test_defensive_mode_adds_the_taunt_board_value_bonus() -> void:
 	var taunt: Array = [MatchRecords.KEYWORD_TAUNT]
 
 	# Act
-	var normal: float = Scorer.board_value(2, 3, taunt, keyword_values, 0, false, false)
-	var defensive: float = Scorer.board_value(2, 3, taunt, keyword_values, 0, false, true)
-	var plain: float = Scorer.board_value(2, 3, [], keyword_values, 0, false, true)
+	var normal: float = Scorer.board_value(2, 3, taunt, keyword_values, _default_rules(), 0, false, false)
+	var defensive: float = Scorer.board_value(2, 3, taunt, keyword_values, _default_rules(), 0, false, true)
+	var plain: float = Scorer.board_value(2, 3, [], keyword_values, _default_rules(), 0, false, true)
 
 	# Assert
 	assert_float(defensive - normal).is_equal_approx(0.5, EPSILON)
 	assert_float(plain).is_equal_approx(5.0, EPSILON)
+
+
+func test_f2_bonuses_are_read_from_the_rules_not_the_code() -> void:
+	# Arrange: A29, review D-3: every value differs from the default, so a literal shows
+	var rules: Dictionary = {"taunt_bonus": 0.25, "flat_spell_damage": 0.5, "flat_deathrattle": 0.75, "flat_aura": 1.5}
+	var deathrattle: Array = [Scorer.KEYWORD_DEATHRATTLE]
+
+	# Act
+	var value: float = Scorer.board_value(1, 1, deathrattle, {}, rules, 2, true)
+	var threat: float = Scorer.threat(3, [MatchRecords.KEYWORD_TAUNT], false, rules)
+
+	# Assert: 2 + 2 x 0.5 + 0.75 + 1.5, and 3 + 0.25
+	assert_float(value).is_equal_approx(5.25, EPSILON)
+	assert_float(threat).is_equal_approx(3.25, EPSILON)
+
+
+func test_no_f2_data_value_is_left_in_the_normaliser_table() -> void:
+	# Act and Assert
+	for key: String in BossAI.F2_RULE_KEYS:
+		assert_bool(Scorer.NORMALISERS.has(key)).is_false()
 
 
 func test_sandbox_resolution_overflow_scores_negative_infinity_and_leaves_live_untouched() -> void:
@@ -543,3 +563,8 @@ func test_trial_random_effect_draws_from_the_sim_fork_not_the_live_stream() -> v
 	assert_int(live_giant_destroyed.size()).is_equal(2)
 	assert_int(trial_threats.size()).is_equal(1)
 	assert_int(sim.draws).is_equal(sim_draws)
+
+
+## The stub's default `rules`, which carry F2's values.
+func _default_rules() -> Dictionary:
+	return BossAiBoard.stub_config().profiles.default.rules

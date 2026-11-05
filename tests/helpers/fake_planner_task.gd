@@ -12,7 +12,7 @@
 ## var task := FakePlannerTask.new()
 ## task.polls_before_done = 2
 ## task.scripted_result = plan
-## var driver := MatchDriver.new(config, db, {}, task)
+## var driver := MatchDriver.new(config, db, {}, MatchDriverFixture.same_task(task))
 ## [/codeblock]
 class_name FakePlannerTask extends PlannerTask
 
@@ -46,6 +46,14 @@ func start(_work: Callable) -> void:
 ## Lets a running task finish at its next [method poll].
 func finish() -> void:
 	_left = 0
+	return
+
+
+## Re-reads [member polls_before_done] for a task already running and clears the poll
+## counts: a test scripts a task the driver's schedule has started by itself.
+func rearm() -> void:
+	_left = polls_before_done
+	polls = 0
 	return
 
 

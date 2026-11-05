@@ -460,32 +460,76 @@ func test_a_request_is_answered_for_the_side_named_and_no_other() -> void:
 	assert_int(int(other.index)).is_equal(Chooser.NO_OPTION)
 
 
-func test_choose_task_answers_through_the_immediate_task() -> void:
-	# Arrange
-	var fixture: Dictionary = _discover_fixture()
+## The fixture's match on the player's turn, a boss Deathrattle's Choose One pending
+## on the live engine: `{fixture, db, engine}`. `jab` scores over `mend`.
+func _boss_choice_on_the_players_turn() -> Dictionary:
+	var fixture: Dictionary = _choose_one_fixture()
+	fixture.profile = "default"
+	fixture.boss.board = ["bai_oracle"]
 	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
 	var engine: RulesEngine = _engine(fixture, db)
+	var oracle: int = BossAiBoard.ids_of(engine, SIDE_BOSS, "bai_oracle")[0]
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_BOSS)).accepted).is_true()
+	@warning_ignore("return_value_discarded")
+	BossAiBoard.add_to_hand(engine, SIDE_PLAYER, "bai_snipe")
+	var last: int = (engine.state().players[SIDE_PLAYER].hand as Array).size() - 1
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, last, null, oracle)).accepted).is_true()
+	assert_str(str(engine.pending_choice().side)).is_equal(SIDE_BOSS)
+	return {"fixture": fixture, "db": db, "engine": engine}
+
+
+func test_a_plan_opening_on_a_boss_choice_answers_it_and_leaves_the_players_turn_alone() -> void:
+	# Arrange: DD-X31: the plan replaces the choose task, and this was its case
+	var board: Dictionary = _boss_choice_on_the_players_turn()
+	var engine: RulesEngine = board.engine
 	var sandbox: RulesEngine = engine.clone()
-	var boss_ai: BossAI = _boss_ai(fixture, db, _stream())
+	var boss_ai: BossAI = _boss_ai(board.fixture, board.db, _stream())
 	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
 
 	# Act
-	task.start(boss_ai.choose_task(sandbox, _request(DISCOVER, fixture.options), task))
-	var index: Variant = task.result()
+	task.start(boss_ai.plan_task(sandbox, task))
+	var plan: TurnPlan = task.result()
 	sandbox.end_match()
 
-	# Assert — the task's result is `choose`'s, and `last_choice` carries the decision
-	assert_int(int(index)).is_equal(0)
+	# Assert: the `choose` alone, its decision routed before it, and it replays
+	assert_array(plan.commands).is_equal([MatchRecords.choose(SIDE_BOSS, 1)])
+	assert_int(plan.diagnostics.size()).is_equal(1)
+	assert_str(str(plan.diagnostics[0].kind)).is_equal(BossAI.KIND_CHOICE)
+	assert_int(int(plan.diagnostics[0][TurnPlan.COMMAND_INDEX_KEY])).is_equal(0)
 	assert_str(str(boss_ai.last_choice.kind)).is_equal(BossAI.KIND_CHOICE)
+	var mark: int = int(engine.state().log.size())
+	assert_bool(engine.submit(plan.commands[0].duplicate(true)).accepted).is_true()
+	assert_int(TurnPlan.checksum(engine.state().log.events_since(mark))).is_equal(plan.expected_checksum)
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_str(String(engine.active_side())).is_equal(SIDE_PLAYER)
 
 
-func test_choose_task_yields_to_a_time_sliced_task_before_it_scores() -> void:
-	# Arrange — a clock always past the slice
-	var fixture: Dictionary = _discover_fixture()
-	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
-	var engine: RulesEngine = _engine(fixture, db)
-	var sandbox: RulesEngine = engine.clone()
-	var boss_ai: BossAI = _boss_ai(fixture, db, _stream())
+func test_a_plan_of_a_choice_alone_commits_no_intent_and_spends_no_forecast() -> void:
+	# Arrange
+	var board: Dictionary = _boss_choice_on_the_players_turn()
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	var stream: TestRngStream = _stream()
+	var boss_ai: BossAI = _boss_ai(board.fixture, board.db, stream)
+	var forecast: Intent = Intent.new("boss_test", Intent.KEY_PASS, null, null, Intent.MODE_FULL)
+	boss_ai.note_forecast(forecast)
+	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
+
+	# Act
+	task.start(boss_ai.plan_task(sandbox, task))
+	var plan: TurnPlan = task.result()
+	sandbox.end_match()
+
+	# Assert: the turn is the player's, so nothing forked and the forecast stands
+	assert_object(boss_ai.last_forecast).is_same(forecast)
+	assert_bool(plan.diagnostics.any(func(d: Dictionary) -> bool: return str(d[TurnPlan.EVENT_KEY]) == String(BossAI.EVENT_INTENT_COMMITTED))).is_false()
+	assert_int(stream.draws).is_equal(plan.ai_draws)
+
+
+func test_a_plan_opening_on_a_choice_yields_to_a_time_sliced_task_before_it_scores() -> void:
+	# Arrange: a clock always past the slice
+	var board: Dictionary = _boss_choice_on_the_players_turn()
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	var boss_ai: BossAI = _boss_ai(board.fixture, board.db, _stream())
 	var ticks: Array[int] = [0]
 	var clock: Callable = func() -> int:
 		ticks[0] += 1
@@ -493,7 +537,7 @@ func test_choose_task_yields_to_a_time_sliced_task_before_it_scores() -> void:
 	var task: TimeSlicedPlannerTask = TimeSlicedPlannerTask.new(1, clock)
 
 	# Act
-	task.start(boss_ai.choose_task(sandbox, _request(DISCOVER, fixture.options), task))
+	task.start(boss_ai.plan_task(sandbox, task))
 	var scored_inside_start: bool = not boss_ai.last_choice.is_empty()
 	var live_after_start: bool = task.is_live()
 	while not task.poll():
@@ -503,7 +547,27 @@ func test_choose_task_yields_to_a_time_sliced_task_before_it_scores() -> void:
 	# Assert
 	assert_bool(scored_inside_start).is_false()
 	assert_bool(live_after_start).is_true()
-	assert_int(int(task.result())).is_equal(0)
+	assert_int((task.result() as TurnPlan).commands.size()).is_equal(1)
+
+
+func test_a_plan_with_a_choice_it_cannot_answer_ends_with_a_fault() -> void:
+	# Arrange: a request with no options is one `choose` leaves alone
+	var board: Dictionary = _boss_choice_on_the_players_turn()
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	(sandbox.state().pending_choice.options as Array).clear()
+	var boss_ai: BossAI = _boss_ai(board.fixture, board.db, _stream())
+	var task: ImmediatePlannerTask = ImmediatePlannerTask.new()
+
+	# Act
+	task.start(boss_ai.plan_task(sandbox, task))
+	var plan: TurnPlan = task.result()
+	sandbox.end_match()
+
+	# Assert: never the silent stop it was (review `boss_ai.gd:636`)
+	assert_array(plan.commands).is_empty()
+	assert_int(plan.diagnostics.size()).is_equal(1)
+	assert_str(str(plan.diagnostics[0][TurnPlan.EVENT_KEY])).is_equal(BossAI.EVENT_FAULT)
+	assert_str(str(plan.diagnostics[0].reason)).is_equal(BossAI.FAULT_CHOICE_UNANSWERED)
 
 
 func test_a_players_pending_choice_is_never_scored() -> void:

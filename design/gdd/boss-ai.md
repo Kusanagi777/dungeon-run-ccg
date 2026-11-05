@@ -336,7 +336,7 @@ set it scores with). Both are observable in `ai_decision` payloads; neither is s
 | `Executing` | plan step diverged | second search not yet used | `Planning` (`ai_plan_aborted`) |
 | `Choosing` | `choose` accepted | phase returns to `BossTurn.Main` | `Planning` |
 | `Choosing` | `choose` accepted | phase is `Ended` | `Idle` |
-| `Choosing` | `choose` accepted | phase is `PlayerTurn.*` (the Choice was raised by a boss trigger during the player's turn; the driver called `choose` directly) | `Idle` |
+| `Choosing` | `choose` accepted | phase is `PlayerTurn.*` (the Choice was raised by a boss trigger during the player's turn; a plan holding that `choose` alone answered it (2026-11-04, DD-X31; was "the driver called `choose` directly")) | `Idle` |
 | `Planning` | `cmds == [end_turn]` or `end_turn` scores best | — | `Ending` |
 | `Ending` | engine phase ≠ `BossTurn.Main` | — | `Idle` |
 | any | engine phase `Ended` | — | `Idle` |
@@ -463,8 +463,8 @@ BV(weapon)= attack · durability · 0.8
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | keyword_mult | float | 1.0–1.5 | data file (`keyword_values`) | taunt 1.2, divine_shield 1.3, windfury 1.3, lifesteal 1.15, poisonous 1.25, stealth 1.1 |
-| flat_bonus | float | 0–3 | data file | spell_damage +2 per point, deathrattle +1, aura +2 |
-| taunt_bonus | float | 0–3 | data file | 1.5 (Taunt blocks the boss's own face plan) |
+| flat_bonus | float | 0–3 | data file (`rules`: `flat_spell_damage`, `flat_deathrattle`, `flat_aura`; key names 2026-11-05, A29, review D-3) | spell_damage +2 per point, deathrattle +1, aura +2 |
+| taunt_bonus | float | 0–3 | data file (`rules`: `taunt_bonus`; 2026-11-05, A29, review D-3) | 1.5 (Taunt blocks the boss's own face plan) |
 | attack, health | int | 0–99 | calculated | Match Rules C1 derived values |
 
 **Output Range:** BV 0–~60 per minion; a 7-minion board ≤ ~200. **Example:** a 3/2 Divine Shield
@@ -580,7 +580,8 @@ Profile = { extends?: key,
             weights:  {w_board, w_face, w_self, w_trade, w_threat, w_mana, w_card, w_over, w_heal, w_hp, w_passive},
             rules:    {hero_power: always|spare_mana|never|value, trade_ratio, tie_epsilon, overextend_cap_aoe,
                        assume_aoe, defensive, defensive_margin, burn_per_mana, defensive_multipliers{w_*: float},
-                       lethal_search: shallow|full|off, BV_NORM, THREAT_NORM},
+                       lethal_search: shallow|full|off, BV_NORM, THREAT_NORM,
+                       taunt_bonus, flat_spell_damage, flat_deathrattle, flat_aura (F2's values; added 2026-11-05, A29, review D-3)},
             budgets:  {lethal_max_nodes, max_evals_per_action, max_actions_per_turn},
             intent_mode: full|class_only|hidden,   (hidden: boss_overrides only, concealment passive — C8.4, D-04)
             choice_preference: {<tag>: float 0–1},
@@ -618,7 +619,15 @@ budget), `off`.
   `phase == Choice ∧ pending_choice.side == BOSS` after `submit` and answers with `choose` (C7)
   before planning its next action; the player's commands are meanwhile `CHOICE_PENDING` (Match
   Rules). A Choice raised during the **player's** turn for the boss (a boss Deathrattle that
-  Discovers) is answered by the same `choose` entry point, called by the driver.
+  Discovers) is answered the same way (C7), inside a plan the driver starts for it: the plan
+  is that `choose` alone, commits no intent, and the player's turn resumes (2026-11-04, DD-X31;
+  was "by the same `choose` entry point, called by the driver").
+- **If the planner gives the driver no way forward** (a null result, or a plan with no commands):
+  `ai_fault {reason: null_result | empty_plan}`, then the boss's turn ends. The engine refuses
+  `end_turn` while a Choice is open, so a boss Choice still open is closed first on its first
+  option. A boss Choice the planner itself cannot answer is `ai_fault {reason:
+  choice_unanswered}` in the plan, and takes this path. A null forecast is the fault alone. The
+  match never hangs (2026-11-04, DD-X31).
 - **If all Discover options are identical**: collapsed to index 0, no RNG draw, logged as a
   choice with one alternative.
 - **If an effect requires a target but none is legal**: Match Rules already excludes it from
@@ -732,6 +741,7 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `trade_ratio` | 1.0 | 0.5–2.0 | Only trades up | Trades down freely | `w_trade` |
 | `overextend_cap_aoe` | 4 | 2–7 | Cap irrelevant at 7 | At 2 the boss never commits | `w_over`, `BOARD_SIZE` |
 | `defensive_margin` / `burn_per_mana` | 3 / 1.0 | 0–10 / 0–2 | Defensive mode earlier and more often | Boss ignores lethal threats | F6, `defensive_multipliers`; `defensive_margin` also sets F1's `unsafe` threshold (2026-11-04, DD-X22) |
+| `taunt_bonus` / `flat_spell_damage` / `flat_deathrattle` / `flat_aura` | 1.5 / 2 / 1 / 2 | 0–3 | The boss clears Taunts first / values those minions more on its board | Taunts and those minions read as vanilla bodies | `w_threat`, `w_board`, `BV_NORM`, `THREAT_NORM` |
 | `tie_epsilon` | 0.05 | 0–0.5 | More RNG in play; less predictable | Fully deterministic ordering by canonical sort | `ai_<floor>` draw count |
 | `lethal_max_nodes` | 50 / 500 / 4000 | 10–20,000 | Finds deeper lethals; planner time up | Misses multi-step lethals | `planner_target_ms` |
 | `max_evals_per_action` | 40 / 120 / 250 | 10–1,000 | Better target choice on wide boards; time up | Pre-filter decides more; weaker play | `op_values`, `planner_target_ms` |

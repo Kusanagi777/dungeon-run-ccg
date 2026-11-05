@@ -8,7 +8,7 @@
 ## [codeblock]
 ## var db := MatchDriverFixture.database()
 ## var task := FakePlannerTask.new()
-## var driver := MatchDriver.new(MatchDriverFixture.match_config(TestEventLog.new()), db, {}, task)
+## var driver := MatchDriver.new(MatchDriverFixture.match_config(TestEventLog.new()), db, {}, MatchDriverFixture.same_task(task))
 ## MatchDriverFixture.to_boss_main(driver)
 ## MatchDriverFixture.start_plan(driver, task, MatchDriverFixture.scripted_plan(driver, [
 ##     MatchRecords.end_turn(MatchRecords.SIDE_BOSS),
@@ -25,6 +25,9 @@ const POWER_ID: String = "power_test"
 const VANILLA: String = "fixture_driver_vanilla"
 ## A 0-cost spell that Discovers from `pool: collectible`.
 const DISCOVER: String = "fixture_driver_discover"
+## A 0-cost 1/1 whose Deathrattle Discovers: killed on the other side's turn, its
+## owner owes a Choice there (boss-ai Edge Cases).
+const RATTLE: String = "fixture_driver_rattle"
 ## What `collectible_pool` answers; the Discover offers from these.
 const POOL: Array[String] = ["fixture_driver_pool_a", "fixture_driver_pool_b", "fixture_driver_pool_c"]
 ## Cards per deck: the starting hands plus a few turns of draws, no fatigue.
@@ -62,6 +65,24 @@ class FixtureDatabase:
 		return pool
 
 
+## A task factory for a driver, as DD-X31 has it: a fresh [FakePlannerTask] per call,
+## each one kept, so a test scripts the task the driver has just started.
+class TaskFactory:
+	extends RefCounted
+
+	## Every task made, oldest first.
+	var made: Array[FakePlannerTask] = []
+
+	func make() -> PlannerTask:
+		var task := FakePlannerTask.new()
+		made.append(task)
+		return task
+
+	## The task made last, which is the driver's running one if any is.
+	func last() -> FakePlannerTask:
+		return made.back()
+
+
 ## A [FixtureDatabase] with [param rules_overrides] on `match_rules`.
 static func database(rules_overrides: Dictionary = {}) -> FixtureDatabase:
 	var discover_op: Dictionary = CardFactory.make_op("discover", {"pool": "collectible"})
@@ -71,6 +92,7 @@ static func database(rules_overrides: Dictionary = {}) -> FixtureDatabase:
 		POWER_ID: CardFactory.make_hero_power_def(POWER_ID),
 		VANILLA: CardFactory.make_minion(VANILLA, 0, 1, 1),
 		DISCOVER: CardFactory.make_spell(DISCOVER, 0, [CardFactory.make_effect("cast", [discover_op])]),
+		RATTLE: CardFactory.make_minion(RATTLE, 0, 1, 1, ["deathrattle"], {"effects": [CardFactory.make_effect("deathrattle", [discover_op])]}),
 	}
 	for id: String in POOL:
 		by_id[id] = CardFactory.make_minion(id, 1, 1, 1)
@@ -101,17 +123,27 @@ static func match_config(log: Variant, player_deck: Array = [], boss_deck: Array
 	})
 
 
+## A factory that always answers [param task], for a suite that drives one
+## [FakePlannerTask], which unlike a real task can restart. Production factories make
+## a fresh task per call (DD-X31).
+static func same_task(task: PlannerTask) -> Callable:
+	return func() -> PlannerTask: return task
+
+
 ## Keeps every card, leaving the player at Main of turn 1.
 static func past_mulligan(driver: MatchDriver) -> void:
 	var kept: Dictionary = driver.submit(driver.legal_commands()[0])
 	GameAssertions.fail_if(not kept.accepted, "mulligan rejected")
 
 
-## The keep-all mulligan and the player's `end_turn`, through the driver.
+## The keep-all mulligan and the player's `end_turn`, through the driver, then one
+## tick: the turn's forecast returns stale and the `BossTurn.Main` row starts the plan
+## task, live when this returns.
 static func to_boss_main(driver: MatchDriver) -> void:
 	past_mulligan(driver)
 	var ended: Dictionary = driver.submit(MatchRecords.end_turn(MatchRecords.SIDE_PLAYER))
 	GameAssertions.fail_if(not ended.accepted, "player end_turn rejected")
+	driver.tick()
 
 
 ## [param count] boss plays of the leftmost hand card.
@@ -143,10 +175,9 @@ static func scripted_plan(driver: MatchDriver, commands: Array) -> TurnPlan:
 	return plan
 
 
-## Starts a plan task on [param driver] whose [param task] (a [FakePlannerTask])
-## will return [param plan]. Stands in for the `BossTurn.Main` schedule row, which
-## is story 014's; once that row exists the task is already running here.
-static func start_plan(driver: MatchDriver, task: FakePlannerTask, plan: TurnPlan) -> void:
+## Scripts the running [param task] (a [FakePlannerTask]) to return [param plan] after
+## its [member FakePlannerTask.polls_before_done]. The schedule started the task
+## ([method to_boss_main]), so nothing is started here.
+static func start_plan(_driver: MatchDriver, task: FakePlannerTask, plan: TurnPlan) -> void:
 	task.scripted_result = plan
-	if not driver.is_planning():
-		driver._start_plan_task()
+	task.rearm()
