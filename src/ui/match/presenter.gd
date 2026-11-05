@@ -65,7 +65,7 @@ func claims(step: AnimStep) -> bool:
 
 
 ## Shows [param state], the view-state as of the step that just ended:
-## `{player, boss, turn, active_side, phase, pending_mulligan, result}`, its sides in
+## `{player, boss, turn, active_side, phase, pending_mulligan, pending_choice, result}`, its sides in
 ## the shape of [method MatchViewState.side]. Runs for every presenter after every
 ## step, so it must be cheap and idempotent.
 func present(_state: Dictionary) -> void:

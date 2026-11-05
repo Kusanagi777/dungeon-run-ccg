@@ -324,6 +324,9 @@ func intent(intent_name: StringName, args: Dictionary = {}) -> void:
 		INTENT_FEED:
 			if allows(INTENT_FEED):
 				feed_requested.emit()
+		CHOICE_INTENT:
+			if _player_owes_choice():
+				command_requested.emit(MatchRecords.choose(MatchViewState.SIDE_PLAYER, int(args.get("index", 0))))
 		INTENT_MULLIGAN_CONFIRM:
 			if view_state() == STATE_MULLIGAN:
 				command_requested.emit(MatchRecords.mulligan(args.get("keep_mask", [])))

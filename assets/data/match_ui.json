@@ -183,6 +183,12 @@
         260,
         600,
         200
+      ],
+      "choice_row": [
+        278,
+        202,
+        723,
+        315
       ]
     },
     "hero": {
@@ -275,6 +281,19 @@
       "continue_h": 44,
       "continue_y": 400
     },
+    "choice": {
+      "card_scale": 1.5,
+      "gap": 24,
+      "confirm_w": 160,
+      "confirm_h": 44,
+      "confirm_gap": 12,
+      "plate_font_px": 20,
+      "plate_corner_px": 4
+    },
+    "focus": {
+      "ring_px": 2,
+      "ring_offset_px": 3
+    },
     "palette": {
       "bg_edge": "#141820",
       "table_dark": "#2B2118",
@@ -362,7 +381,11 @@
       "end.facts": "Turn {turns} · You {hero_hp} health · {boss} {boss_hp}",
       "end.fault_detail": "Error: {reason} · turn {turns}",
       "end.continue": "Continue · %d",
-      "targeting.no_target": "No target"
+      "targeting.no_target": "No target",
+      "choice.confirm": "Confirm",
+      "choice.boss_discovers": "Boss discovers…",
+      "opt.smite": "Smite\nDeal 2 damage",
+      "opt.mend": "Mend\nRestore 4 health"
     }
   }
 }

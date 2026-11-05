@@ -130,7 +130,8 @@ func apply_pose(view: MatchView, pose: String) -> void:
 		POSE_SELECT:
 			view.pose_select(-1 if value == POSE_HERO_POWER else int(value))
 		_:
-			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
+			if not view.apply_pose(parts[0], value):
+				push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
 
 
 func _read(path: String) -> Variant:

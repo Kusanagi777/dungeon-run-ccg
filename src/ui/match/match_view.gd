@@ -29,8 +29,9 @@ const SPEED_INSTANT: StringName = &"instant"
 const SETTING_ANIM_SPEED: StringName = &"anim_speed"
 const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
 ## The event feed's drawer, which `FeedPresenter` answers for (MUI-014).
-const FEED_TOGGLE_METHOD: StringName = &"toggle_drawer"
-const FEED_OPEN_METHOD: StringName = &"drawer_open"
+const FEED_TOGGLE_METHOD: StringName = &"toggle"
+const FEED_OPEN_METHOD: StringName = &"is_open"
+const POSE_CHOICE: String = "choice"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
@@ -142,10 +143,24 @@ func _pose_source(id: int) -> Dictionary:
 	return {"kind": kind, "id": id}
 
 
+## U11: the poses the debug loader does not name itself. False for an unknown
+## [param pose]. `choice:open` needs nothing: the fixture ends in the Choice.
+func apply_pose(pose: String, _value: String) -> bool:
+	match pose:
+		POSE_CHOICE:
+			return true
+	return false
+
+
 ## U11 `end:<reason>`: the end banner as [param reason]; a match must have ended.
 func pose_end(reason: String) -> void:
 	if _view.result is Dictionary:
 		_banner.pose_reason(reason, _view.result)
+
+
+## The Choice overlay, for tests.
+func choice() -> OverlayPresenter:
+	return _choice
 
 
 ## The mulligan screen, for tests.
@@ -197,6 +212,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _router.view_state() == InputRouter.STATE_ENDED:
 		_on_ended_input(event)
+		return
+	if _choice.is_open() and _choice.handle_action(MatchInput.read(event), MatchInput.hand_slot(event)):
 		return
 	if event is InputEventKey and event.pressed and not event.echo and _mulligan.is_open():
 		if _mulligan.handle_key((event as InputEventKey).keycode):
@@ -256,6 +273,8 @@ func _build() -> void:
 		presenter.setup(_ui)
 		presenter.bind(_view)
 	_banner.continued.connect(_finish_match)
+	_choice.chosen.connect(func(index: int) -> void:
+		_router.intent(InputRouter.CHOICE_INTENT, {"index": index}))
 	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
 		_router.intent(InputRouter.INTENT_MULLIGAN_CONFIRM, {"keep_mask": keep_mask}))
 	_queue.step_started.connect(_on_step_started)
@@ -404,6 +423,7 @@ func _display() -> Dictionary:
 		"active_side": _view.active_side,
 		"phase": _view.phase,
 		"pending_mulligan": _view.pending_mulligan,
+		"pending_choice": _view.pending_choice,
 		"result": _view.result,
 	}
 
@@ -424,7 +444,8 @@ func _finish_step(step: AnimStep) -> void:
 func _present(display: Dictionary) -> void:
 	for presenter: Presenter in _presenters:
 		presenter.present(display)
-	_table.color = _ui.color("table_dark" if display.pending_mulligan != null else "table_lit")
+	var dimmed: bool = display.pending_mulligan != null or _choice.is_open()
+	_table.color = _ui.color("table_dark" if dimmed else "table_lit")
 	var key: String = "hud.turn.player" if str(display.active_side) == MatchViewState.SIDE_PLAYER else "hud.turn.boss"
 	_turn_label.text = tr("hud.turn.setup") if int(display.turn) == 0 else tr(key) % int(display.turn)
 
@@ -433,6 +454,7 @@ func _on_command_requested(command: Dictionary) -> void:
 	var result: Dictionary = _controller.submit(command)
 	if not result.accepted:
 		_mulligan.on_rejected()
+		_choice.on_rejected()
 		if _dropped_card != -1:
 			_hand.reset_card(_dropped_card)
 	_dropped_card = -1

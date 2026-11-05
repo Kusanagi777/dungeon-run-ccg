@@ -1,0 +1,46 @@
+{
+  "config": {
+    "hero": "hero_war",
+    "boss": "boss_torchbearer",
+    "seed": 1,
+    "floor": 1,
+    "band": 1,
+    "treasures": [],
+    "player_deck": [
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page",
+      "knowledge_lost_page"
+    ]
+  },
+  "profile": {},
+  "commands": [
+    {
+      "type": "mulligan",
+      "keep_mask": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "macro": "play_all"
+    }
+  ]
+}
