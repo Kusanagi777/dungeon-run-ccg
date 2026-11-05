@@ -143,7 +143,9 @@ func services() -> Services:
 ## The `driver_factory` a `RunMachine`, a debug loader or the sim harness receives by
 ## argument (ADR-0008 Decisions 1 and 11): a `func(config: Dictionary) -> MatchDriver`
 ## that builds a new [MatchDriver] over `Services.card_database`, with the settings
-## snapshot `Services.meta.get_settings()` taken at that call.
+## snapshot `Services.meta.get_settings()` taken at that call. An optional second
+## argument replaces the driver's clock: only a harness or test passes one, so that
+## replay pacing and `tick_over_budget` do not depend on the machine (boss-ai A28).
 ##
 ## Each driver gets a `Callable() -> PlannerTask` that makes a **new** task per call,
 ## because `PlannerTask.start` runs once per object (DD-X31). The first that applies
@@ -181,8 +183,8 @@ func driver_factory(planner_override: Callable = Callable(), cmdline_args: Packe
 			planner_factory = func() -> PlannerTask: return TimeSlicedPlannerTask.new(slice_usec)
 		else:
 			planner_factory = func() -> PlannerTask: return WorkerPoolPlannerTask.new()
-	return func(config: Dictionary) -> MatchDriver:
-		return MatchDriver.new(config, db, meta.get_settings(), planner_factory)
+	return func(config: Dictionary, clock: Callable = Time.get_ticks_usec) -> MatchDriver:
+		return MatchDriver.new(config, db, meta.get_settings(), planner_factory, clock)
 
 
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5

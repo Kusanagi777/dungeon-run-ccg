@@ -307,6 +307,9 @@ var _lethal: LethalSearch = null
 ## C1.3: the one thing the AI remembers across turns, and how far it has read.
 var _aoe_seen: bool = false
 var _log_cursor: int = 0
+## The side whose plays C1.3 reads: the player, unless the sim harness seats this
+## instance as the hero-script.
+var _opponent: String = MatchRecords.SIDE_PLAYER
 ## C8.4: absent at MVP → `full`. Written only when no task is live (ADR-0008
 ## Decision 7), so it takes no lock.
 var _telegraph_mode: String = TELEGRAPH_FULL
@@ -316,11 +319,13 @@ var _telegraph_mode: String = TELEGRAPH_FULL
 ## stream; [param log] the match log, read on the main thread for `card_played`
 ## alone (C1.3) and never handed to a worker; [param db] and
 ## [param keyword_values] (`ai_profiles.keyword_values`) serve the [Scorer] and
-## [CandidateSet], which the C1.1 list leaves out.
+## [CandidateSet], which the C1.1 list leaves out. [param opponent] is the side whose
+## plays it watches; only the sim harness's hero-script, seated as the player, passes
+## one (C11).
 ## [codeblock]
 ## var ai := BossAI.new(boss_def, profile, band, config.rng_ai, body.op_values, config.log, db, body.keyword_values)
 ## [/codeblock]
-func _init(boss_def: Dictionary, resolved_profile: Dictionary, band: int, ai_stream: RngStream, op_values: Dictionary, log: Variant, db: Variant, keyword_values: Dictionary) -> void:
+func _init(boss_def: Dictionary, resolved_profile: Dictionary, band: int, ai_stream: RngStream, op_values: Dictionary, log: Variant, db: Variant, keyword_values: Dictionary, opponent: String = MatchRecords.SIDE_PLAYER) -> void:
 	_boss_def = boss_def
 	_profile = resolved_profile
 	_band = band
@@ -328,6 +333,7 @@ func _init(boss_def: Dictionary, resolved_profile: Dictionary, band: int, ai_str
 	_log = log
 	_db = db
 	_op_values = op_values
+	_opponent = opponent
 	_picker = CandidateSet.new(db, op_values, resolved_profile.synergy_tags)
 	_scorer = Scorer.new(db, keyword_values, op_values)
 	_lethal = LethalSearch.new(db, _picker)
@@ -1014,8 +1020,8 @@ func _is_own_main(turn: _Turn) -> bool:
 
 
 ## C1.3 / F5: folds the `card_played` events the live log gained since the last
-## read into `aoe_seen`. Main thread only. The opponent is the player whichever side
-## is to move: a forecast task is built on the player's turn.
+## read into `aoe_seen`. Main thread only. The opponent is [member _opponent] whichever
+## side is to move: a forecast task is built on the player's turn.
 func _read_public_log() -> void:
 	if _log == null:
 		return
@@ -1023,7 +1029,7 @@ func _read_public_log() -> void:
 	if events.is_empty():
 		return
 	_log_cursor = int((events.back() as Dictionary).seq)
-	_aoe_seen = _aoe_seen or Scorer.aoe_seen_in(events, _db, MatchRecords.SIDE_PLAYER)
+	_aoe_seen = _aoe_seen or Scorer.aoe_seen_in(events, _db, _opponent)
 
 
 # --- schema walk ---------------------------------------------------------------
