@@ -71,8 +71,7 @@ func before_test() -> void:
 
 func after_test() -> void:
 	if _driver != null:
-		_driver._release_task()
-		_driver._engine.end_match()
+		_driver.shutdown()
 	_driver = null
 
 
