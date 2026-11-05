@@ -61,6 +61,8 @@ var _end_turn_style: StyleBoxFlat = null
 var _last_state: StringName = &""
 var _inspect: CardFrame = null
 var _inspected: int = -1
+# The card of the drag that just submitted, until the engine has answered.
+var _dropped_card: int = -1
 
 @onready var _table: ColorRect = %Table
 @onready var _player_panel: HeroPresenter = %PlayerPanel
@@ -104,6 +106,19 @@ func router() -> InputRouter:
 	return _router
 
 
+## U11 `drag:<id>`: an arrow session on hand card or attacker [param id] (or `hero_power`
+## for -1), the pointer at screen centre.
+func pose_drag(id: int) -> void:
+	var kind: String = InputRouter.SOURCE_ATTACKER
+	if id == -1:
+		kind = InputRouter.SOURCE_HERO_POWER
+	elif _hand.card(id) != null:
+		kind = InputRouter.SOURCE_CARD
+	var centre: Vector2 = _ui.rect("viewport").get_center()
+	_refresh_interaction()
+	_router.intent(InputRouter.INTENT_DRAG_START, {"source": {"kind": kind, "id": id}, "pos": centre})
+
+
 ## The hand fan, for poses and tests.
 func hand() -> HandPresenter:
 	return _hand
@@ -135,9 +150,17 @@ func _process(delta: float) -> void:
 	_refresh_interaction()
 
 
+## A drag owns the pointer: a disabled End Turn under it must not swallow the release.
+func _input(event: InputEvent) -> void:
+	if _started and _router.in_session():
+		_router.handle_input(event)
+		get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not _started:
 		return
+	_router.handle_input(event)
 	if event is InputEventMouseMotion:
 		_update_hover((event as InputEventMouseMotion).position)
 
@@ -173,6 +196,9 @@ func _build() -> void:
 	add_child(_router)
 	_router.bind(_view, _queue)
 	_router.command_requested.connect(_on_command_requested)
+	_router.session_started.connect(_on_session_started)
+	_router.session_moved.connect(_on_session_moved)
+	_router.session_ended.connect(_on_session_ended)
 	_table.color = _ui.color("table_lit")
 	_build_chrome()
 	_build_inspect()
@@ -267,6 +293,7 @@ func _start() -> void:
 	_ui.query = _controller.query()
 	_ui.locate = _locate
 	_router.set_controller(_controller)
+	_router.set_hit_test(MatchHitTest.new(_ui, _view, _hand, _player_row, _boss_row, _player_panel, _boss_panel), float(_config.click_drag_px))
 	_controller.bind_queue(_queue)
 	_apply_identity()
 	_queue.set_speed(SPEED_INSTANT)
@@ -344,7 +371,81 @@ func _present(display: Dictionary) -> void:
 
 
 func _on_command_requested(command: Dictionary) -> void:
-	_controller.submit(command)
+	var result: Dictionary = _controller.submit(command)
+	if not result.accepted and _dropped_card != -1:
+		_hand.reset_card(_dropped_card)
+	_dropped_card = -1
+
+
+func _on_session_started(session: Dictionary) -> void:
+	var source: Dictionary = session.source
+	var kind: String = str(source.kind)
+	var targeted: bool = session.phase == InputRouter.SESSION_TARGET
+	_set_source_lifted(source, true, targeted)
+	if targeted:
+		_arrow.start_from(_source_centre(source))
+		_light_targets(session.targets, InputRouter.NO_TARGET)
+	elif session.phase == InputRouter.SESSION_CAST:
+		_arrow.show_cast_zone(_ui.rect("cast_zone"))
+	if kind == InputRouter.SOURCE_CARD and session.phase == InputRouter.SESSION_POSITION:
+		_player_row.set_gap((session.positions as Array).size() - 1)
+
+
+func _on_session_moved(session: Dictionary) -> void:
+	var pos: Vector2 = session.pos
+	if str(session.source.kind) == InputRouter.SOURCE_CARD:
+		_hand.follow(pos)
+	match session.phase:
+		InputRouter.SESSION_TARGET:
+			_arrow.update_end(pos, int(session.hovered) != InputRouter.NO_TARGET)
+			_light_targets(session.targets, int(session.hovered))
+		InputRouter.SESSION_POSITION:
+			if int(session.gap) != InputRouter.NO_GAP:
+				_player_row.set_gap(int(session.gap))
+				_arrow.show_slot.call_deferred(_player_row.gap_rect())
+
+
+func _on_session_ended(session: Dictionary, submitted: bool) -> void:
+	_set_source_lifted(session.source, false, submitted)
+	_arrow.stop()
+	_player_row.set_gap(InputRouter.NO_GAP)
+	_light_targets({}, InputRouter.NO_TARGET)
+	_dropped_card = int(session.source.id) if submitted and str(session.source.kind) == InputRouter.SOURCE_CARD else -1
+
+
+## [param flag] is the parked state on pickup and the submitted state on drop.
+func _set_source_lifted(source: Dictionary, on: bool, flag: bool) -> void:
+	var id: int = int(source.id)
+	match str(source.kind):
+		InputRouter.SOURCE_CARD:
+			if on:
+				_hand.begin_drag(id, flag)
+			else:
+				_hand.end_drag(flag)
+		InputRouter.SOURCE_HERO_POWER:
+			_player_panel.set_power_lifted(on)
+		InputRouter.SOURCE_ATTACKER:
+			if _player_row.has_token(id):
+				_player_row.set_lifted(id, on)
+			else:
+				_player_panel.set_portrait_lifted(on)
+
+
+func _source_centre(source: Dictionary) -> Vector2:
+	match str(source.kind):
+		InputRouter.SOURCE_CARD:
+			return _hand.card_centre(int(source.id))
+		InputRouter.SOURCE_HERO_POWER:
+			return _player_panel.power_rect().get_center()
+	return _locate(int(source.id))
+
+
+func _light_targets(targets: Dictionary, hovered: int) -> void:
+	_player_row.set_targets(targets, hovered)
+	_boss_row.set_targets(targets, hovered)
+	for panel: HeroPresenter in [_player_panel, _boss_panel]:
+		var hero_id: Variant = _view.side(panel.side).hero.entity_id
+		panel.set_targeted(hero_id != null and targets.has(int(hero_id)), hero_id != null and int(hero_id) == hovered)
 
 
 ## The controls follow the view state. Legality is read on entering `Idle` only (U2).

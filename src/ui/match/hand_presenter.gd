@@ -185,6 +185,14 @@ func begin_drag(id: int, parked: bool) -> void:
 		_place(id, HandLayout.parked(float(_slots[id].x), _cfg), true)
 
 
+## The screen centre of card [param id] as it stands, for the arrow's start.
+func card_centre(id: int) -> Vector2:
+	if not _cards.has(id):
+		return Vector2.ZERO
+	var frame: CardFrame = _cards[id]
+	return frame.position + frame.size / 2.0
+
+
 ## The dragged card follows [param point] exactly; a parked card stays.
 func follow(point: Vector2) -> void:
 	if _dragged == -1 or _parked or not _cards.has(_dragged):

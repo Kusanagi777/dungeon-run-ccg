@@ -178,6 +178,12 @@ func set_targets(targets: Dictionary, hovered: int = -1) -> void:
 		(_tokens[id] as MinionToken).set_target(targets.has(id), int(id) == hovered)
 
 
+## The dragged attacker's 4 px lift, through `offset_transform` (the row is a Container).
+func set_lifted(id: int, on: bool) -> void:
+	if _tokens.has(id):
+		(_tokens[id] as MinionToken).offset_transform_position = Vector2(0, -float(ui.config.hero.lift_px) if on else 0.0)
+
+
 ## Opens the summon gap at [param index], or closes it for -1 (targeting.md §6 Phase P).
 func set_gap(index: int) -> void:
 	if index < 0:

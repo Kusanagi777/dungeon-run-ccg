@@ -32,6 +32,8 @@ const DEFAULT_FLOOR: int = 1
 const SETTLE_TIMEOUT_MS: int = 60000
 const SETTLE_POLL_USEC: int = 200
 const POSE_HOVER: String = "hover"
+const POSE_DRAG: String = "drag"
+const POSE_HERO_POWER: String = "hero_power"
 ## Macro names a `commands` entry may hold in `macro`.
 const MACRO_END_TURNS: String = "end_turns"
 const MACRO_PLAY_ALL: String = "play_all"
@@ -104,7 +106,8 @@ func load_fixture(fixture_name: String) -> MatchController:
 	return controller
 
 
-## U11: a view-only pose after loading. `hover:<instance_id>` is the 1.5x preview. Poses
+## U11: a view-only pose after loading. `hover:<instance_id>` is the 1.5x preview and
+## `drag:<instance_id>` an armed source with the arrow at screen centre. Poses
 ## arrive with the stories that need them; an unknown one is reported and skipped.
 func apply_pose(view: MatchView, pose: String) -> void:
 	if pose == "":
@@ -114,6 +117,8 @@ func apply_pose(view: MatchView, pose: String) -> void:
 	match parts[0]:
 		POSE_HOVER:
 			view.hand().set_hover(int(value), 0.0)
+		POSE_DRAG:
+			view.pose_drag(-1 if value == POSE_HERO_POWER else int(value))
 		_:
 			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
 

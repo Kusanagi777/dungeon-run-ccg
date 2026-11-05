@@ -1,7 +1,7 @@
 # Story 008: Drag to play, drag to attack and the targeting arrow
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: L
