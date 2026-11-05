@@ -20,6 +20,878 @@
         "en": ""
       },
       "token": true
+    },
+    {
+      "id": "decay_grave_rat",
+      "name": "Grave Rat",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle",
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_grave_rat.text",
+        "en": "Deathrattle: Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "decay_plague_rat",
+      "name": "Plague Rat",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_plague_rat.text",
+        "en": "Poisonous."
+      }
+    },
+    {
+      "id": "decay_soul_tithe",
+      "name": "Soul Tithe",
+      "set": "decay",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "mana",
+              "amount": {
+                "ref": "target.cost"
+              },
+              "duration": "this_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_soul_tithe.text",
+        "en": "Destroy a friendly minion. Gain Mana Crystals this turn equal to its Cost."
+      }
+    },
+    {
+      "id": "decay_last_rites",
+      "name": "Last Rites",
+      "set": "decay",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_trigger": "deathrattle"
+            }
+          },
+          "ops": [
+            {
+              "op": "retrigger",
+              "trigger": "deathrattle"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_last_rites.text",
+        "en": "Trigger a friendly minion's Deathrattle."
+      }
+    },
+    {
+      "id": "decay_carrion_crow",
+      "name": "Carrion Crow",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_carrion_crow.text",
+        "en": "Deathrattle: Draw a card."
+      }
+    },
+    {
+      "id": "decay_culling",
+      "name": "Culling",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_culling.text",
+        "en": "Destroy a friendly minion. Draw 2 cards."
+      }
+    },
+    {
+      "id": "decay_rot_beetle",
+      "name": "Rot Beetle",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": {
+            "selector": "random_friendly_minion"
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_rot_beetle.text",
+        "en": "Deathrattle: Give a random friendly minion +2/+2."
+      }
+    },
+    {
+      "id": "decay_grave_robber",
+      "name": "Grave Robber",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 2,
+              "targets": "self"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_grave_robber.text",
+        "en": "Battlecry: Destroy a friendly minion to gain +2/+2."
+      }
+    },
+    {
+      "id": "decay_mass_grave",
+      "name": "Mass Grave",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_mass_grave.text",
+        "en": "Summon two 1/1 Husks."
+      }
+    },
+    {
+      "id": "decay_husk_tender",
+      "name": "Husk Tender",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_husk_tender.text",
+        "en": "Battlecry: Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "decay_grave_warden",
+      "name": "Grave Warden",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 1,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.decay_grave_warden.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "decay_husk_herder",
+      "name": "Husk Herder",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "tag": "husk"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_husk_herder.text",
+        "en": "Battlecry: Give your Husks +1/+1."
+      }
+    },
+    {
+      "id": "decay_crypt_leech",
+      "name": "Crypt Leech",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_crypt_leech.text",
+        "en": "Lifesteal. Deathrattle: Restore 3 Health to your hero."
+      }
+    },
+    {
+      "id": "decay_relic_keeper",
+      "name": "Relic Keeper",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "from": {
+                "pool": "collectible",
+                "filter": {
+                  "set": "decay"
+                }
+              },
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_relic_keeper.text",
+        "en": "Deathrattle: Add a random Decay card to your hand."
+      }
+    },
+    {
+      "id": "decay_feast_of_worms",
+      "name": "Feast of Worms",
+      "set": "decay",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "sacrifice",
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_feast_of_worms.text",
+        "en": "Destroy a friendly minion. Summon three 1/1 Husks."
+      }
+    },
+    {
+      "id": "decay_raise_dead",
+      "name": "Raise Dead",
+      "set": "decay",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": {
+                "ref": "owner.minions_died_this_turn"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_raise_dead.text",
+        "en": "Summon a 1/1 Husk for each friendly minion that died this turn."
+      }
+    },
+    {
+      "id": "decay_shambling_heap",
+      "name": "Shambling Heap",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 2,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle",
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_shambling_heap.text",
+        "en": "Deathrattle: Summon two 1/1 Husks."
+      }
+    },
+    {
+      "id": "decay_corpse_collector",
+      "name": "Corpse Collector",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly_minion"
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle",
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_corpse_collector.text",
+        "en": "Whenever a friendly minion dies, gain +1/+1."
+      }
+    },
+    {
+      "id": "decay_tomb_spider",
+      "name": "Tomb Spider",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 1,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_tomb_spider.text",
+        "en": "Taunt. Poisonous."
+      }
+    },
+    {
+      "id": "decay_blight",
+      "name": "Blight",
+      "set": "decay",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle",
+        "sacrifice"
+      ],
+      "text": {
+        "key": "card.decay_blight.text",
+        "en": "Deal 2 damage to all minions."
+      }
+    },
+    {
+      "id": "decay_plague_of_rot",
+      "name": "Plague of Rot",
+      "set": "decay",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "set_counter",
+              "key": "n",
+              "value": {
+                "count": {
+                  "selector": "all_friendly_minions",
+                  "filter": {
+                    "tag": "husk"
+                  }
+                }
+              }
+            },
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "tag": "husk"
+                }
+              }
+            },
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "counter.n"
+              },
+              "targets": "all_enemy_characters"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_plague_of_rot.text",
+        "en": "Destroy all your Husks. Deal 1 damage to all enemies for each."
+      }
+    },
+    {
+      "id": "decay_husk_mother",
+      "name": "Husk Mother",
+      "set": "decay",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly_minion"
+          },
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "husk",
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_husk_mother.text",
+        "en": "Whenever a friendly minion dies, summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "decay_boneyard_brute",
+      "name": "Boneyard Brute",
+      "set": "decay",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_skeleton",
+              "count": 1,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_boneyard_brute.text",
+        "en": "Deathrattle: Summon a 3/3 Skeleton."
+      }
+    },
+    {
+      "id": "decay_plaguebearer",
+      "name": "Plaguebearer",
+      "set": "decay",
+      "type": "minion",
+      "cost": 6,
+      "attack": 5,
+      "health": 5,
+      "rarity": "legendary",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_plaguebearer.text",
+        "en": "Deathrattle: Deal 2 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "decay_grave_titan",
+      "name": "Grave Titan",
+      "set": "decay",
+      "type": "minion",
+      "cost": 7,
+      "attack": 6,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_ghoul",
+              "count": 2,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "deathrattle"
+      ],
+      "text": {
+        "key": "card.decay_grave_titan.text",
+        "en": "Deathrattle: Summon two 2/2 Ghouls."
+      }
+    },
+    {
+      "id": "decay_skeleton",
+      "name": "Skeleton",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.decay_skeleton.text",
+        "en": ""
+      },
+      "token": true
+    },
+    {
+      "id": "decay_ghoul",
+      "name": "Ghoul",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.decay_ghoul.text",
+        "en": ""
+      },
+      "token": true
     }
   ]
 }

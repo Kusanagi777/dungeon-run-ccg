@@ -256,6 +256,134 @@
         "key": "bundle.bundle_neutral_value_2.text",
         "en": "Keep your health and your hand topped up."
       }
+    },
+    {
+      "id": "bundle_decay_deathrattle_1",
+      "name": "Carrion",
+      "set": "decay",
+      "theme": "deathrattle",
+      "cards": [
+        "decay_grave_rat",
+        "decay_carrion_crow",
+        "decay_last_rites"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_deathrattle_1.text",
+        "en": "Cheap deaths that pay you back."
+      }
+    },
+    {
+      "id": "bundle_decay_deathrattle_2",
+      "name": "Grave Goods",
+      "set": "decay",
+      "theme": "deathrattle",
+      "cards": [
+        "decay_rot_beetle",
+        "decay_crypt_leech",
+        "decay_relic_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_deathrattle_2.text",
+        "en": "What the dead leave behind."
+      }
+    },
+    {
+      "id": "bundle_decay_deathrattle_3",
+      "name": "The Boneyard",
+      "set": "decay",
+      "theme": "deathrattle",
+      "cards": [
+        "decay_boneyard_brute",
+        "decay_plaguebearer",
+        "decay_grave_titan"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_deathrattle_3.text",
+        "en": "Big bodies that rise again in pieces."
+      }
+    },
+    {
+      "id": "bundle_decay_husk_1",
+      "name": "Husk Tide",
+      "set": "decay",
+      "theme": "husk",
+      "cards": [
+        "decay_mass_grave",
+        "decay_husk_tender",
+        "decay_raise_dead"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_husk_1.text",
+        "en": "Fill the board with Husks."
+      }
+    },
+    {
+      "id": "bundle_decay_husk_2",
+      "name": "Mother's Brood",
+      "set": "decay",
+      "theme": "husk",
+      "cards": [
+        "decay_husk_herder",
+        "decay_shambling_heap",
+        "decay_husk_mother"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_husk_2.text",
+        "en": "Grow your Husks and breed more."
+      }
+    },
+    {
+      "id": "bundle_decay_husk_3",
+      "name": "Rot Bloom",
+      "set": "decay",
+      "theme": "husk",
+      "cards": [
+        "decay_grave_rat",
+        "decay_feast_of_worms",
+        "decay_plague_of_rot"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_husk_3.text",
+        "en": "Sow Husks, then burst them all."
+      }
+    },
+    {
+      "id": "bundle_decay_sacrifice_1",
+      "name": "Tithe",
+      "set": "decay",
+      "theme": "sacrifice",
+      "cards": [
+        "decay_plague_rat",
+        "decay_soul_tithe",
+        "decay_culling"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_sacrifice_1.text",
+        "en": "Spend a minion, buy a turn."
+      }
+    },
+    {
+      "id": "bundle_decay_sacrifice_2",
+      "name": "Offering",
+      "set": "decay",
+      "theme": "sacrifice",
+      "cards": [
+        "decay_grave_robber",
+        "decay_tomb_spider",
+        "decay_blight"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_sacrifice_2.text",
+        "en": "Feed the board to what stays on it."
+      }
     }
   ]
 }

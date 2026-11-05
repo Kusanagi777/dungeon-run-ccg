@@ -531,6 +531,188 @@
         "key": "card.boss_soul_bolt.text",
         "en": "Deal 2 damage. Restore 2 Health to your hero."
       }
+    },
+    {
+      "id": "boss_bog_toad",
+      "name": "Bog Toad",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_bog_toad.text",
+        "en": "Deathrattle: Draw a card."
+      }
+    },
+    {
+      "id": "boss_witchs_brew",
+      "name": "Witch's Brew",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "draw",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_witchs_brew.text",
+        "en": "Destroy a friendly minion. Draw 3 cards."
+      }
+    },
+    {
+      "id": "boss_frostbite",
+      "name": "Frostbite",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_frostbite.text",
+        "en": "Destroy a Frozen minion."
+      }
+    },
+    {
+      "id": "boss_hag_servant",
+      "name": "Hag Servant",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_hag_servant.text",
+        "en": "Battlecry: Freeze an enemy minion."
+      }
+    },
+    {
+      "id": "boss_lurker",
+      "name": "Lurker",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 3,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_lurker.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "boss_knife_in_the_dark",
+      "name": "Knife in the Dark",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_knife_in_the_dark.text",
+        "en": "Deal 4 damage to a damaged minion."
+      }
     }
   ]
 }

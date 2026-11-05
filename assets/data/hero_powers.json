@@ -88,6 +88,50 @@
         "key": "power.power_drain.text",
         "en": "Deal 2 damage to a minion. Restore 2 Health to your hero."
       }
+    },
+    {
+      "id": "power_rot",
+      "name": "Rot",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "test": [
+                  "target",
+                  {
+                    "is_dying": true
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "op": "summon",
+                  "card_id": "decay_husk",
+                  "position": "end"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_rot.text",
+        "en": "Deal 1 damage to a minion. If it dies, summon a 1/1 Husk."
+      }
     }
   ]
 }
