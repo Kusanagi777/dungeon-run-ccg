@@ -200,6 +200,29 @@ func driver_factory(planner_override: Callable = Callable(), cmdline_args: Packe
 		return MatchDriver.new(config, db, meta.get_settings(), planner_factory, clock)
 
 
+## A new [RunMachine] over the services, with its [RewardDraft] and [Treasures], for
+## `RunShell` or a harness to hold (ADR-0008 Decision 1). The machine's `run_config` is
+## `config("run_structure")` plus what only the composition root computes:
+## `max_match_events` from `config("rng_event_log")` (F7) and `engine_version`. The two
+## parameters go to [method driver_factory]. Before [method boot], or after a `Failed`
+## load, this logs an error and returns null. It keeps nothing: `Boot` holds no run.
+## [codeblock]
+## var run: RunMachine = Boot.run_machine()
+## var controller := RunController.new(run, run.draft(), services.meta, services.card_database, ui_config)
+## [/codeblock]
+func run_machine(planner_override: Callable = Callable(), cmdline_args: PackedStringArray = OS.get_cmdline_user_args()) -> RunMachine:
+	var factory: Callable = driver_factory(planner_override, cmdline_args)
+	if not factory.is_valid():
+		return null
+	var db: CardDatabase = _services.card_database
+	var treasures: Treasures = Treasures.new(db, db.config("treasures_balance"))
+	var draft: RewardDraft = RewardDraft.new(db, treasures, _services.meta, db.config("reward_draft"))
+	var run_config: Dictionary = db.config("run_structure").duplicate(true)
+	run_config["max_match_events"] = EventLog.max_events_for(db.config("rng_event_log"))
+	run_config["engine_version"] = Engine.get_version_info().string
+	return RunMachine.new(db, _services.meta, draft, treasures, run_config, factory)
+
+
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5
 ## step 2; ADR-0002 Decision 4): `{effects, ai_profile, unlock, treasure,
 ## configs: {<every config file but card_database>}}`. A key missing here is
