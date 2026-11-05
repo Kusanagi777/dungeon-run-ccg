@@ -15,7 +15,8 @@
 ##
 ## States (card-database States and Transitions, story 008), exactly:
 ## `UNLOADED → LOADING` on `load()`; `LOADING → READY | FAILED`;
-## `READY | FAILED → RELOADING` on `reload()` in a debug build only;
+## `READY | FAILED → RELOADING` on `reload()` in a debug build only, and not
+## while the predicate of [method set_reload_busy] answers `true`;
 ## `RELOADING → READY` on success (the new snapshot replaces the old in one
 ## assignment) or back to the previous state on failure (`READY` keeps its
 ## snapshot, `FAILED` stays `FAILED`). `READY → LOADING` never happens: a
@@ -75,6 +76,8 @@ var _stage7_lookups_open: bool = false
 var _validators: Dictionary = {}
 ## The report of the last debug `reload()`, `null` before one ran.
 var _last_reload_report: ValidationReport = null
+## A `Callable() -> bool`, `true` while a reload must wait; empty when none is set.
+var _reload_busy: Callable = Callable()
 
 
 ## A database that will load through `loader`, or through a `DataLoader` over
@@ -126,7 +129,9 @@ func load(validators: Dictionary) -> ValidationReport:
 ## `report()` becomes the new full report. Release builds: returns a report
 ## whose one entry is `E_NOT_SUPPORTED` and touches nothing. Before any
 ## `load()` finished (`UNLOADED`, or re-entered while loading): a report
-## whose one entry is `E_NOT_LOADED`, nothing touched.
+## whose one entry is `E_NOT_LOADED`, nothing touched. While the predicate of
+## [method set_reload_busy] answers `true`: a report whose one entry is
+## `E_BUSY`, nothing touched and the loader not run.
 ## Holds two snapshots briefly (≤ 2 × `data_memory_budget_mb`).
 ## Example: `var r: ValidationReport = db.reload(); toast("Data reloaded: %d records" % r.record_count())`.
 func reload() -> ValidationReport:
@@ -138,6 +143,10 @@ func reload() -> ValidationReport:
 	if _state != State.READY and _state != State.FAILED:
 		refused.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_NOT_LOADED, "", null, null,
 			"reload() needs a finished load(); state is %s" % State.keys()[_state])
+		return refused
+	if _reload_busy.is_valid() and _reload_busy.call():
+		refused.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_BUSY, "", null, null,
+			"reload() refused: a reader of the snapshot is running; try again when it has finished")
 		return refused
 	var previous: State = _state
 	_state = State.RELOADING
@@ -152,6 +161,15 @@ func reload() -> ValidationReport:
 		if previous == State.FAILED:
 			_report = result.report
 	return result.report
+
+
+## Installs [param busy], a `Callable() -> bool` read on the main thread at the top
+## of [method reload]: while it answers `true`, a debug reload is refused with
+## `E_BUSY`. The composition root sets it, so this class names none of what it
+## waits for (ADR-0001). An empty `Callable` clears it.
+## Example: `db.set_reload_busy(tracker.any_live)`.
+func set_reload_busy(busy: Callable) -> void:
+	_reload_busy = busy
 
 
 ## The report of the last debug `reload()` (success or failure) for the debug
