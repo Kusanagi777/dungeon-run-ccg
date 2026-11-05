@@ -13,7 +13,8 @@
 # ~/.local/share/godot/export_templates/4.7.2.stable/ (~2 GB unpacked). Tests do
 # not need the templates, so CI leaves it unset; see tests/README.md.
 #
-# Safe to re-run. Designed for the cloud dev container and CI; on Windows install Godot by hand.
+# Safe to re-run. Designed for the cloud dev container and CI; on Windows install Godot by hand,
+# then run it through tools/bin/godot (tests/README.md, "Running Godot on a dev machine").
 
 set -euo pipefail
 
