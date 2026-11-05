@@ -6,7 +6,7 @@
 > **Type**: Config/Data
 > **Estimate**: S
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: 2026-11-04 (implemented, sprint 5 lane 3 wave 2; owner data sign-off pending)
+> **Last Updated**: 2026-11-05 (owner signed off the deck diffs and validator record)
 
 ## Context
 
@@ -91,7 +91,7 @@
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-[date].md`) with the validate output; the updated data tests pass.
 
-**Status**: [x] `production/qa/smoke-2026-11-04-content-010.md` (owner sign-off pending)
+**Status**: [x] `production/qa/smoke-2026-11-04-content-010.md` (owner sign-off 2026-11-05)
 
 ---
 
@@ -107,7 +107,8 @@
 **Completed**: 2026-11-04
 **Start / end (UTC)**: 2026-11-05T00:38:41Z to 2026-11-05T00:50:37Z
 **Readiness**: READY (2026-11-04). ADR-0002, 0006 and 0007 Accepted, manifest 2026-11-04 matches, dependencies Complete, card-effects story 009 Complete on trunk. AC-3's Torchbearer line is kept (sprint-005 Readiness notes).
-**Criteria**: 4/4 passing. Owner sign-off on the deck diffs and validator record comes after the wave.
+**Criteria**: 4/4 passing.
+**Owner sign-off**: 2026-11-05, Jacob: the deck diffs and the validator record, `production/qa/smoke-2026-11-04-content-010.md` sections 1 and 2. Section 1 lists all four decks, The Torchbearer included.
 **Test Evidence**: `production/qa/smoke-2026-11-04-content-010.md`. `content_mvp1_data_test.gd`: 3 tests added, 4 changed (3 renamed for the deck recipes, 1 for the neutral set of 15). `content_batch0_data_test.gd`: the batch-0 neutral list and Torchbearer pin changed. `boss_ai_profiles_data_test.gd`: `op_values` test renamed to twenty. Full suite: 1732 cases, 0 failures; smoke exit 0.
 **Seen failing**: all 10 target tests failed on the old data before any data edit, including the 3 new ones (missing card). They pass after it.
 **Validate command**: `Ready — 0 errors, 50 warnings (content checks 0 errors, 43 warnings), 70 records`. Before: 50 / 43, 69 records. No new warning code; every changed row is diffed in the smoke record.

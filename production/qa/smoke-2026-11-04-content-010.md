@@ -5,7 +5,7 @@
 **QA Plan**: `production/qa/qa-plan-sprint-005-2026-11-04.md`, content-010 sections.
 **Run by**: sprint-5 lane 3 wave 2, `s5/l3-w2`, cut from trunk `6694a41`. Per-story Config/Data record, not the sprint's `/smoke-check` report. It merges last at M2; the orchestrator's after-merge load (QA plan "content-010 Config/Data smoke record") is still to run.
 
-**Owner sign-off (W2, 0.25 h)**: PENDING. Sections 1 and 2 are what you sign.
+**Owner sign-off (W2, 0.25 h)**: signed 2026-11-05 (sections 1 and 2).
 
 ### 1. Deck diffs
 
@@ -142,6 +142,6 @@ On the old data, before any data edit, all 10 target tests failed: the 7 in `con
 validate: Ready — 0 errors, 50 warnings (content checks 0 errors, 43 warnings), 70 records; load ms 36.16 (data_load_budget_ms 200) — root res://assets/data/
 ```
 
-**Sign-off**: game-designer (data author): lane 3, acting as game-designer. Owner: PENDING (W2).
+**Sign-off**: game-designer (data author): lane 3, acting as game-designer. Owner: signed 2026-11-05.
 
 **Result**: PASS (Config/Data, ADVISORY at story level). State `Ready`, 0 errors, no new warning code. The orchestrator's after-merge load at M2 is still to run.
