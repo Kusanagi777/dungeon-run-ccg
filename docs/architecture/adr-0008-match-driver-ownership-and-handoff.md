@@ -606,7 +606,7 @@ regresses.
   scripted win → `RunMachine` status is `post_match_reward` and S2 saved
   **before** a later-connected listener receives `match_ended`; `_driver` is null
   afterwards.
-- `tests/unit/run/match_driver_gate_test.gd`: with a fake `PlannerTask` that
+- `tests/unit/match_driver/match_driver_gate_test.gd` (path per the epic's test root, 2026-11-04, BAI-013): with a fake `PlannerTask` that
   stays live during a boss turn, `submit(play_card)` → engine `NOT_YOUR_TURN`;
   `submit(concede)` → `ENGINE_BUSY/concede_queued`; after `poll()` returns true
   the plan is discarded, the concede applied and `match_ended{reason: concede}`

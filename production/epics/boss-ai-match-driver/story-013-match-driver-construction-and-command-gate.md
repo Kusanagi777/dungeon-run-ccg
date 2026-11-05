@@ -1,12 +1,12 @@
 # Story 013: MatchDriver — construction order, command gate and the concede slot
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Core
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-03
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-04
 
 ## Context
 
@@ -28,14 +28,25 @@
 
 ---
 
+## Readiness (`/story-readiness`, by hand, 2026-11-04)
+
+**READY, with four readings recorded here** (sprint 5 lane 1 wave 2). Tier: workflow standard. ADR-0006 and ADR-0008 Accepted; TR-run-structure-005 active; stories 001, 002 and 008 Complete; `story-facts.sh --lint` clean. Advisory: the story embeds Manifest Version 2026-11-03, the manifest is 2026-11-04. Each reading below is settled by the docs; none is a new rule.
+
+- **`player_hero_set`.** AC-1 and the embedded manifest rule omit it. F4 and the ADR-0008 erratum 2026-11-04 win: the driver passes it, read from the `HeroDef` of `config.player.hero_def_id` (`MatchConfig` carries no set).
+- **First forecast.** AC-1 reads as if construction schedules it, but C3 stops at `Mulligan`. C3 wins for the timing. The story's Out of Scope gives the forecast row to story 014, and `BossAI` has no `forecast` until story 011, so here the half that can be tested is "no task after construction". "One after the mulligan" is **NOT ASSESSED until story 014**.
+- **"Spy-recorded" order.** The seam is one overridable method per construction step, so a test subclass records them. Nothing production-only was added.
+- **`MatchQuery`.** The story requires `query()`, MUI-003 creates the class in W3, and `match_driver.gd` has no other editor than story 014 in W3. So this story creates the file at the path the ADR-0008 erratum names, with the three engine pass-throughs, and passes `db` and `settings` so that MUI-003 need not touch the driver.
+
+---
+
 ## Acceptance Criteria
 
 *From ADR-0008 Decisions 1–2 and Validation Criteria (`match_driver_gate_test`), tracing run-structure's Interactions "Boss AI" row (TR-run-structure-005):*
 
-- [ ] GIVEN a `MatchConfig`, a `CardDatabase` double, a settings snapshot and a fake `PlannerTask`, WHEN `MatchDriver.new(config, db, settings, planner_task)` runs, THEN it constructs `ProfileResolver.resolve`, `EffectResolver`, `RulesEngine`, `BossAI` and calls `engine.start(config)` in that order (spy-recorded), then `_after_engine_step()` schedules the first forecast at `PlayerTurn.Main`; `legal_commands()` and `events_since(seq)` are pass-throughs and `subscribe(cb)` registers directly on the match `EventLog` (no buffer).
-- [ ] GIVEN a boss-turn task that stays live, WHEN the UI calls `submit(play_card)`, THEN the command reaches the live engine with `issuer = "player"` and the engine answers `NOT_YOUR_TURN` (`CHOICE_PENDING` during a boss Choice); no driver-side lock exists and `query()` still answers.
-- [ ] GIVEN the same live task, WHEN `submit(concede)` arrives, THEN the result is `{accepted: false, rejection: {code: ENGINE_BUSY, detail: "concede_queued"}, events: [-1, -1]}`; a second concede does not grow the slot; after `poll()` returns true the plan is discarded unreplayed, the concede is applied and `match_ended{reason: concede}` is emitted with no boss command in the log.
-- [ ] GIVEN no task live and a plan partly replayed, WHEN `submit(concede)` arrives, THEN it goes straight to the engine, the in-flight boss command has already completed, and the remaining plan is dropped; `is_planning()` is `false` afterwards.
+- [x] GIVEN a `MatchConfig`, a `CardDatabase` double, a settings snapshot and a fake `PlannerTask`, WHEN `MatchDriver.new(config, db, settings, planner_task)` runs, THEN it constructs `ProfileResolver.resolve`, `EffectResolver`, `RulesEngine`, `BossAI` and calls `engine.start(config)` in that order (spy-recorded), then `_after_engine_step()` schedules the first forecast at `PlayerTurn.Main`; `legal_commands()` and `events_since(seq)` are pass-throughs and `subscribe(cb)` registers directly on the match `EventLog` (no buffer).
+- [x] GIVEN a boss-turn task that stays live, WHEN the UI calls `submit(play_card)`, THEN the command reaches the live engine with `issuer = "player"` and the engine answers `NOT_YOUR_TURN` (`CHOICE_PENDING` during a boss Choice); no driver-side lock exists and `query()` still answers.
+- [x] GIVEN the same live task, WHEN `submit(concede)` arrives, THEN the result is `{accepted: false, rejection: {code: ENGINE_BUSY, detail: "concede_queued"}, events: [-1, -1]}`; a second concede does not grow the slot; after `poll()` returns true the plan is discarded unreplayed, the concede is applied and `match_ended{reason: concede}` is emitted with no boss command in the log.
+- [x] GIVEN no task live and a plan partly replayed, WHEN `submit(concede)` arrives, THEN it goes straight to the engine, the in-flight boss command has already completed, and the remaining plan is dropped; `is_planning()` is `false` afterwards.
 
 ---
 
@@ -63,13 +74,15 @@
 
 ## Files
 
-*The code and test files this story creates or changes. `/create-stories` lists the
-planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
-checks scope against it.*
+*The code and test files this story changed.*
 
 - `src/gameplay/run/match_driver.gd`
+- `src/gameplay/match/match_query.gd` (the three pass-throughs; MUI-003 owns the rest; see Readiness)
 - `tests/helpers/fake_planner_task.gd`
+- `tests/helpers/match_driver_fixture.gd` (additive; shared by stories 014 and 015)
+- `tests/helpers/test_event_log.gd` (additive: `size()`, as `EventLog`)
 - `tests/unit/match_driver/match_driver_gate_test.gd`
+- `docs/architecture/adr-0008-match-driver-ownership-and-handoff.md` (the test path in Validation Criteria, as this story asks)
 
 ---
 
@@ -87,7 +100,7 @@ checks scope against it.*
 **Required evidence**:
 - Logic: `tests/unit/match_driver/match_driver_gate_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later)
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created, 17 test cases passing
 
 ---
 
@@ -95,3 +108,20 @@ checks scope against it.*
 
 - Depends on: `production/epics/boss-ai-match-driver/story-001-planner-task-seam.md`, `production/epics/boss-ai-match-driver/story-002-profile-resolver-and-validator.md`, `production/epics/boss-ai-match-driver/story-008-plan-turn-loop-and-turn-plan.md`; `match-rules` epic's `RulesEngine` and `card-effects` epic's `EffectResolver` (cross-epic)
 - Unlocks: `production/epics/boss-ai-match-driver/story-014-match-driver-phase-schedule.md`, `production/epics/boss-ai-match-driver/story-015-match-driver-tick-replay-and-shutdown.md`
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-05 (start 00:38 UTC, end 00:57 UTC; sprint 5 lane 1 wave 2, branch `s5/l1-w2`)
+**Criteria**: 4/4 in `match_driver_gate_test.gd`, with one half deferred. AC-1's "first forecast after the mulligan" is NOT ASSESSED until story 014 (see Readiness): the test covers no task after construction.
+**Tests seen failing**: the suite was written first and failed on missing code (exit 105, `Could not find base class "MatchDriver"`). Then 12 deliberate mutants of `match_driver.gd`, all killed: no issuer stamp, caller's command mutated, concede never queued, any command queued, `events` not `[-1, -1]`, concede lost at task end, plan kept at `Ended`, no step after `submit`, empty hero set, `BossAI` after `start`, `query()` rebuilt per call, a task taken as done without `poll()`. One test failed on first run because it was wrong: it sent `choose`, the AC says `play_card`; a `choose` from the wrong side is correctly `NOT_YOUR_TURN`.
+**Verification**: import exit 0; `gates.sh` (G1 to G7, 0 hits), `no_global_rng.sh`, `parse-check.sh` exit 0; `commands.test` 1746 test cases, 0 errors, 0 failures, 0 orphans, exit 0; `godot --headless --quit-after 5` exit 0, no `SCRIPT ERROR`. The suite's 88 `SCRIPT ERROR` lines are none of them from the driver suite.
+**Run result**: N/A: nothing reaches the screen; the driver has no view until MUI-004.
+**Deviations** (advisory):
+- **`tick()` step (a) is here**, not in story 015: AC-3 ("after `poll()` returns true") and the QA plan's two-tick case need it. Replay is story 015's.
+- **`_start_plan_task()` exists but nothing in production calls it** until story 014's `BossTurn.Main` row. Tests call it through `MatchDriverFixture.start_plan`. It holds the `plan_task(sandbox, task)` call and the sandbox's ownership, so the row is one line.
+- **`BossAI.new` takes eight arguments** (`db`, `keyword_values`), as story 008 recorded; the manifest shows six.
+- **Commands, results and `MatchConfig` are Dictionaries**, so the signal is `match_ended(result: Dictionary)`.
+- **`_forecast_turn` and `_telegraph_pending`** are left to story 014, which uses them.
+- `submit` stamps a copy, so the caller's command is left as given.
+**Open for story 014**: `PlannerTask.start` is "exactly once per task object" but the driver is handed one object for the whole match. `TimeSlicedPlannerTask` keeps `_done` across a second `start`, so it cannot run a second task. See the lane report.
