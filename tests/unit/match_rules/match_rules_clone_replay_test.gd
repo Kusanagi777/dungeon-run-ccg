@@ -64,6 +64,8 @@ const REPLAY_PLAYER_HEALTH: int = 40
 ## power, attacks, then ends.
 const POLICY_ORDER: Array[String] = [MatchRecords.CMD_PLAY_CARD, MatchRecords.CMD_USE_HERO_POWER, MatchRecords.CMD_ATTACK, MatchRecords.CMD_END_TURN]
 ## AC-38: the command types the scripted match must contain.
+## The hero power both seats hold, so scripts and samples can reach the command.
+const DEF_REPLAY_POWER: String = "war_test_power"
 const REQUIRED_TYPES: Array[String] = [
 	MatchRecords.CMD_MULLIGAN, MatchRecords.CMD_PLAY_CARD, MatchRecords.CMD_ATTACK,
 	MatchRecords.CMD_USE_HERO_POWER, MatchRecords.CMD_CHOOSE, MatchRecords.CMD_END_TURN,
@@ -234,6 +236,9 @@ func _start(seed_value: int, log: TestEventLog, player_deck: Array, boss_deck: A
 		boss["health"] = int(boss_health)
 	var overrides: Dictionary = {"player": {"deck": _deck(player_deck), "hook_installers": player_hooks}, "boss": boss}
 	var engine: RulesEngine = MatchFactory.make_started_engine(TestRngService.new(seed_value), log, overrides, rules_overrides, resolver, _db())
+	# Both seats hold a power: a side with none is never offered `use_hero_power`
+	for side: String in MatchRecords.SIDES:
+		engine.state().players[side].hero_power.def_id = DEF_REPLAY_POWER
 	return [engine, resolver]
 
 

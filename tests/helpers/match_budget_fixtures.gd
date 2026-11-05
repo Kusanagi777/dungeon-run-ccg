@@ -200,6 +200,11 @@ func chain_command(engine: RulesEngine) -> Dictionary:
 	return MatchRecords.play_card(SIDE_PLAYER, 0)
 
 
+## The full board's hero power: a side with none is never offered the command,
+## so the list [method make_full_board_engine] gives would lose its width.
+const FULL_BOARD_POWER: String = "war_test_power"
+
+
 ## AC-40 Input Responsiveness: 7 v 7 (every player minion ready, the
 ## leftmost Windfury), the 10-card [constant FULL_HAND], the hero power
 ## affordable and unused, both bolts able to target every character.
@@ -214,6 +219,7 @@ func make_full_board_engine(resolver: TestEffectResolver) -> RulesEngine:
 		MatchFactory.summon(state, SIDE_BOSS, GRUNT_ATTACK, GRUNT_HEALTH, -1, [], GRUNT)
 	_set_hand(state, SIDE_PLAYER, FULL_HAND)
 	_fill_mana(state, SIDE_PLAYER)
+	state.players[SIDE_PLAYER].hero_power.def_id = FULL_BOARD_POWER
 	var targets: Array[int] = []
 	for side: String in MatchRecords.SIDES:
 		for minion: Dictionary in state.players[side].board:

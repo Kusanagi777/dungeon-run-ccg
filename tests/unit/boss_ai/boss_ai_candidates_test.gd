@@ -78,6 +78,23 @@ func test_spare_mana_plays_the_three_cost_card_instead_of_the_hero_power() -> vo
 	assert_float(power[0].features.f_hp).is_equal(-1.0)
 
 
+func test_a_boss_with_no_hero_power_collects_no_hero_power_candidate() -> void:
+	# Arrange — every MVP boss: `hero_power: null` seats an empty, unused power
+	var fixture: Dictionary = BossAiBoard.read("hero_power_spare_mana")
+	var db: BossAiBoard.FakeCardDatabase = BossAiBoard.database(fixture)
+	var engine: RulesEngine = BossAiBoard.engine(fixture, db)
+	var profile: Dictionary = BossAiBoard.profile(fixture)
+	engine.state().players[SIDE_BOSS].hero_power = {"def_id": "", "used_this_turn": false}
+
+	# Act
+	var scored: Array = await _score_collected(db, engine, profile, ImmediatePlannerTask.new())
+
+	# Assert
+	assert_array(_of_type(engine.legal_commands(), MatchRecords.CMD_USE_HERO_POWER)).is_empty()
+	assert_array(scored.filter(func(e: Dictionary) -> bool: return str(e.command.type) == MatchRecords.CMD_USE_HERO_POWER)).is_empty()
+	assert_int(scored.size()).is_greater(0)
+
+
 func test_spare_mana_uses_the_hero_power_when_no_card_is_playable() -> void:
 	# Arrange — 2 mana and no 2-cost card
 	var fixture: Dictionary = BossAiBoard.read("hero_power_spare_mana")

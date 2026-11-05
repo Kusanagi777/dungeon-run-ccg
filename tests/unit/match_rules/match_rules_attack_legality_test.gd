@@ -321,6 +321,7 @@ func test_a_frozen_hero_with_a_weapon_is_attacker_frozen_and_keeps_its_durabilit
 	var player: Dictionary = engine.state().players[SIDE_PLAYER]
 	player.hero.frozen = true
 	player.mana_current = TestConstants.HERO_POWER_COST
+	player.hero_power.def_id = "war_test_power"
 
 	# Act
 	var result: Dictionary = _attack(engine, _hero_id(engine, SIDE_PLAYER), _hero_id(engine, SIDE_BOSS))

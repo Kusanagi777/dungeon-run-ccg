@@ -637,8 +637,8 @@ func legal_commands() -> Array:
 			for index: int in player.hand.size():
 				_append_play_commands(legal, side, index)
 			_append_attack_commands(legal, side)
-			if not player.hero_power.used_this_turn and hero_power_cost(side) <= int(player.mana_current):
-				var power_id: String = str(player.hero_power.def_id)
+			var power_id: String = str(player.hero_power.def_id)
+			if power_id != "" and not player.hero_power.used_this_turn and hero_power_cost(side) <= int(player.mana_current):
 				for target: Variant in _listed_targets(power_id, _power_source(side), true):
 					legal.append(MatchRecords.use_hero_power(side, target))
 			legal.append(MatchRecords.end_turn(side))
@@ -1987,13 +1987,15 @@ func _validate_play_card(command: Dictionary) -> String:
 	return _target_rejection(str(card.def_id), _card_source(side, card), command.get("target_id"), type == CARD_SPELL)
 
 
-## C7 validation after the phase guard: `used_this_turn` (`HERO_POWER_USED`,
-## before cost — a 0-cost power is still once per turn) → cost → targeting by
-## the spell rule.
+## C7 validation after the phase guard: no power to use, or `used_this_turn`
+## (`HERO_POWER_USED`, before cost — a 0-cost power is still once per turn) →
+## cost → targeting by the spell rule. A side with no hero power (BossDef
+## `hero_power: null`, an empty `def_id`) is never listed, so `submit` refuses
+## it too (AC-39).
 func _validate_hero_power(command: Dictionary) -> String:
 	var side: String = str(command.issuer)
 	var player: Dictionary = _state.players[side]
-	if player.hero_power.used_this_turn:
+	if str(player.hero_power.def_id) == "" or player.hero_power.used_this_turn:
 		return R_HERO_POWER_USED
 	if hero_power_cost(side) > int(player.mana_current):
 		return R_NOT_ENOUGH_MANA

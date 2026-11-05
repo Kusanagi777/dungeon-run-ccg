@@ -324,7 +324,10 @@ There is no action limit and no timer.
 #### C7. Hero power
 
 The hero power is a 2-mana, once-per-turn effect defined in the effect DSL exactly like a spell
-(DD-M13). Validation: phase/turn → `used_this_turn` is false else `HERO_POWER_USED` → effective
+(DD-M13). A side with no hero power (BossDef `hero_power: null`, card-database CR-3) has no
+`use_hero_power`: `legal_commands()` never lists it and `submit` rejects it `HERO_POWER_USED`,
+C2's set being closed (2026-11-04, independent review; AC-39). Validation: phase/turn →
+`used_this_turn` is false else `HERO_POWER_USED` → effective
 cost ≤ mana → targeting rules identical to spells (a `required` power with no legal target is not
 usable). On acceptance: pay cost, set `used_this_turn = true`, emit `hero_power_used`, resolve
 through Card Effects (trigger point `hero_power`). Its content (what War's power does) lives in

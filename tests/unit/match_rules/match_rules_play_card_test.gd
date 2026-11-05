@@ -695,3 +695,36 @@ func test_on_card_played_observers_get_the_card_instance_id() -> void:
 	assert_int(int(calls[0].get("instance_id", RulesEngine.NO_ENTITY))).is_equal(minion_card)
 	assert_int(int(calls[0].subject)).is_equal(int(_player(engine).board[0].entity_id))
 	assert_int(int(calls[1].get("instance_id", RulesEngine.NO_ENTITY))).is_equal(spell_card)
+
+
+# --- A side with no hero power (independent review; every MVP boss) -----------------
+
+func test_a_side_with_no_hero_power_is_never_offered_use_hero_power() -> void:
+	# Arrange — BossDef `hero_power: null` seats as an empty `def_id` (CR-3)
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(TestEventLog.new(), resolver, [], MANA_POOL)
+	_player(engine).hero_power.def_id = ""
+
+	# Act
+	var legal: Array = engine.legal_commands()
+
+	# Assert
+	assert_array(legal).is_equal([MatchRecords.end_turn(SIDE_PLAYER)])
+
+
+func test_submitting_use_hero_power_with_no_hero_power_is_rejected_and_costs_nothing() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, [], MANA_POOL)
+	_player(engine).hero_power.def_id = ""
+	var before: int = log.events.size()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.use_hero_power(SIDE_PLAYER))
+
+	# Assert — AC-39: what `legal_commands()` does not list, `submit` rejects
+	_assert_rejected(result, "HERO_POWER_USED")
+	assert_int(int(_player(engine).mana_current)).is_equal(MANA_POOL)
+	assert_bool(_player(engine).hero_power.used_this_turn).is_false()
+	assert_array(_of(log, before, ["mana_spent", "hero_power_used"])).is_empty()
