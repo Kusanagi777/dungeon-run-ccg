@@ -20,7 +20,7 @@
 ## handle; tests that need a fresh instance `preload` this script.
 ##
 ## [codeblock]
-## var result: BootResult = Boot.boot()                      # MVP: MetaStub over the real data
+## var result: BootResult = Boot.boot()                      # MetaFacade over the real data
 ## var result: BootResult = Boot.boot({"meta": stub})        # RunDebugLoader / tests
 ## if result.ok:
 ##     var services: Services = Boot.services()
@@ -40,7 +40,7 @@ const OVERRIDE_KEYS: PackedStringArray = ["meta", "card_database"]
 ## (control manifest, Foundation). The owner named in each entry is the
 ## `DataLoader.FILE_MANIFEST` row's.
 const PENDING_CONFIG_OWNERS: PackedStringArray = [
-	"match_ui", "run_ui", "profile_defaults",
+	"match_ui", "run_ui",
 ]
 ## Stage-7b record validator keys whose owner has not shipped its validator;
 ## each is registered with [method _pending_record_validator] (one
@@ -64,11 +64,9 @@ var _result: BootResult = null
 ## object alive.
 var _planner_tasks: PlannerTaskTracker = null
 
-# Meta Progression epic (ADR-0004 Decisions 6/8): `Boot` gains two `Timer`
-# children — the profile-lock heartbeat (`lock_heartbeat_s`) and the settings
-# debounce — created and started in `boot()`, never in `_ready()`, plus a
-# `NOTIFICATION_WM_CLOSE_REQUEST` / `_exit_tree` hook calling
-# `profile_store.release_lock()`. They exist only once `ProfileStore` does.
+var _profile_store: ProfileStore = null
+var _debounce_timer: Timer = null
+var _input_bindings: InputBindings = null
 
 
 ## Does nothing: composition is lazy and starts at [method boot] (ADR-0001).
@@ -76,14 +74,26 @@ func _ready() -> void:
 	return
 
 
+## The clean-exit hook (ADR-0004 Decision 6): a window close releases the lock.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_release_profile()
+
+
+## The clean-exit hook when the tree goes first (ADR-0004 Decision 6).
+func _exit_tree() -> void:
+	_release_profile()
+
+
 ## Runs initialisation steps 2-4 once (architecture.md §Data Flow 5) and
 ## returns the outcome:
 ## 1. the Card Database — the `card_database` override, or a `CardDatabase`
 ##    over the shipped data — loaded with [method _collect_validators] unless
 ##    the override arrives already loaded;
-## 2. when the load ends `Ready`, the Meta seam — the `meta` override, or
-##    `MetaStub.new(card_database)` (the MVP line);
-## 3. the settings bus — the Meta implementation's own `settings_bus`.
+## 2. when the load ends `Ready`, the Meta seam — the `meta` override, or a
+##    `MetaFacade` with its profile loaded;
+## 3. the settings bus — the Meta implementation's own `settings_bus` — then,
+##    for a `MetaFacade`, [method _start_profile_upkeep].
 ## A `Failed` load constructs nothing that reads data: `ok` is false, the
 ## report is in the result, and `Services.meta` holds only a `meta` override.
 ## Override keys are [constant OVERRIDE_KEYS]; any other key, or a value of the
@@ -114,25 +124,72 @@ func boot(overrides: Dictionary = {}) -> BootResult:
 	services.card_database = card_database
 	var loaded: bool = card_database.state() == CardDatabase.State.READY
 
-	# Step 3 — the Meta seam (ADR-0011 Decision 4).
-	# TODO(meta-progression): the one-line switch — construct
-	# `ProfileStore` into `services.profile_store` and `MetaFacade.new(...)`
-	# here instead of `MetaStub`, reading `config("profile_defaults")` only to
-	# hand it to them. `config("rng_event_log")` goes to the RNG service the
-	# same way when that epic constructs it here.
+	# Step 3 — the Meta seam (ADR-0011 Decision 4), and the profile load.
+	# `config("rng_event_log")` goes to the RNG service the same way when that
+	# epic constructs it here.
 	services.profile_store = null
 	if meta_override != null:
 		services.meta = meta_override
 	elif loaded:
-		services.meta = MetaStub.new(card_database)
+		var facade: MetaFacade = MetaFacade.compose(card_database)
+		facade.load_profile()
+		services.meta = facade
+		services.profile_store = facade.store()
 
 	# Step 4 — the settings bus: the profile owner's, shared, never a second one.
 	if services.meta != null:
 		services.settings_bus = services.meta.settings_bus
+	if services.profile_store != null:
+		_start_profile_upkeep(services.profile_store)
 
 	_services = services
 	_result = BootResult.new(loaded, card_database.report(), _state_name(card_database.state()))
 	return _result
+
+
+## ADR-0004 Decisions 6 and 8, addendum 2: the heartbeat and debounce `Timer`
+## children, and `settings.bindings` applied to `InputMap`, once now and again on
+## each `settings_changed{bindings}`. A `Timer` outside the tree cannot start, so
+## there a settings change is written at once.
+func _start_profile_upkeep(store: ProfileStore) -> void:
+	_profile_store = store
+	var heartbeat: Timer = Timer.new()
+	heartbeat.wait_time = store.heartbeat_s()
+	heartbeat.autostart = true
+	heartbeat.timeout.connect(store.heartbeat)
+	add_child(heartbeat)
+	_debounce_timer = Timer.new()
+	_debounce_timer.one_shot = true
+	_debounce_timer.timeout.connect(store.flush_settings)
+	add_child(_debounce_timer)
+	store.settings_dirty.connect(_on_settings_dirty)
+	_input_bindings = InputBindings.new()
+	_apply_bindings(store.get_setting(&"bindings"))
+	store.settings_bus.settings_changed.connect(_on_setting_changed)
+
+
+func _on_settings_dirty() -> void:
+	var debounce_ms: int = _profile_store.debounce_ms()
+	if debounce_ms <= 0 or not _debounce_timer.is_inside_tree():
+		_profile_store.flush_settings()
+		return
+	_debounce_timer.start(debounce_ms / 1000.0)
+
+
+func _on_setting_changed(key: StringName, value: Variant) -> void:
+	if key == &"bindings":
+		_apply_bindings(value)
+
+
+func _apply_bindings(bindings: Variant) -> void:
+	_input_bindings.apply(bindings if bindings is Dictionary else {})
+
+
+## Writes a pending settings change and deletes the lock, once.
+func _release_profile() -> void:
+	if _profile_store != null:
+		_profile_store.release_lock()
+		_profile_store = null
 
 
 ## The service bag the first [method boot] built, the same instance on every
@@ -264,6 +321,7 @@ func _collect_validators(meta: MetaApi, debug_build: bool = OS.is_debug_build())
 	configs["content_budgets"] = ContentValidator.validate_config
 	configs["heroes_balance"] = Heroes.validate_config
 	configs["treasures_balance"] = Treasures.validate_config
+	configs["profile_defaults"] = ProfileDefaults.validate_config
 	configs["run_structure"] = RunMachine.validate_config
 	configs["reward_draft"] = RewardDraft.validate_config.bind(debug_build)
 	var unlock_defs: Callable = meta.validate_unlock_defs if meta != null else _validate_unlock_defs_mvp
@@ -292,19 +350,29 @@ static func _effects_adapter(host_kind: StringName, host_id: String, effects: Va
 	return EffectValidator.validate_effects(host_kind, host_id, effects, db, EffectValidator.stage7_caps(bodies))
 
 
-## The stage-7b `unlock` adapter: one `{host_kind, host_id, unlock}` def per
-## call to [param unlock_defs] (the Meta seam's `validate_unlock_defs`).
-static func _unlock_adapter(host_kind: StringName, host_id: String, unlock: Variant, _db: Variant, _bodies: Dictionary, unlock_defs: Callable) -> Array:
-	return unlock_defs.call([{"host_kind": host_kind, "host_id": host_id, "unlock": unlock}])
+## The stage-7b `unlock` adapter: one `{host_kind, host_id, unlock, db, bodies}`
+## def per call to [param unlock_defs] (the Meta seam's `validate_unlock_defs`).
+static func _unlock_adapter(host_kind: StringName, host_id: String, unlock: Variant, db: Variant, bodies: Dictionary, unlock_defs: Callable) -> Array:
+	return unlock_defs.call([{"host_kind": host_kind, "host_id": host_id, "unlock": unlock, "db": db, "bodies": bodies}])
 
 
-## The MVP unlock validator when no `meta` override is given: `MetaStub` is
-## built after the load (it reads `config("profile_defaults")`), so its
-## answer — no rules, `[]` (story 003) — stands in for it here. Receives one
-## `{host_kind, host_id, unlock}` def per stage-7b call.
-## TODO(meta-progression): replace with the real M2.4 validator.
-static func _validate_unlock_defs_mvp(_defs: Array) -> Array:
-	return []
+## The M2.4 unlock validator when no `meta` override is given: `MetaFacade` is
+## built after the load, so its rules run here over the stage-7 lookups. The
+## limits are the knobs of the `profile_defaults` body; when that body failed
+## stage 7a a non-null unlock is not checked against guessed limits but gets one
+## `E_DELEGATED` entry, as in [method _effects_adapter].
+static func _validate_unlock_defs_mvp(defs: Array) -> Array:
+	var rows: Array = []
+	for def: Dictionary in defs:
+		if def.get("unlock") == null:
+			continue
+		var body: Variant = Dictionary(def.get("bodies", {})).get("profile_defaults")
+		if not body is Dictionary or not body.get(ProfileStore.KNOBS_KEY) is Dictionary:
+			rows.append({"code": ValidationReport.E_DELEGATED, "host_id": def.get("host_id"),
+				"message": "not checked: the profile_defaults config failed stage 7a, so the unlock limits are unknown (owner: Meta Progression)"})
+			continue
+		rows.append_array(UnlockEvaluator.validate_defs([def], def.get("db"), body[ProfileStore.KNOBS_KEY]))
+	return rows
 
 
 ## Pending stage-7b record validator for a [constant PENDING_RECORD_OWNERS]

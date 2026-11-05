@@ -12,11 +12,8 @@
 ## names — M1.3 "Name mapping"). Every override must end in an explicit
 ## `return` (Godot 4.7: an override of a typed method inherits its return type).
 ##
-## Error vocabulary (ADR-0004): `E_RANGE` = `ERR_PARAMETER_RANGE_ERROR`,
-## `E_READONLY` = `ERR_LOCKED`, `E_IO` = `ERR_CANT_CREATE`.
-## TODO(meta-progression): map these once in src/core/save/save_errors.gd and
-## point implementations at it; until then compare against the `Error`
-## constants directly, never a numeric literal.
+## Error vocabulary (ADR-0004): `SaveErrors.E_RANGE`, `SaveErrors.E_READONLY` and
+## `SaveErrors.E_IO` (src/core/save/save_errors.gd), never a numeric literal.
 ##
 ## Usage (a consumer receives an implementation; it never constructs one):
 ## [codeblock]
@@ -185,3 +182,29 @@ var settings_bus: SettingsBus
 ## [code]&"FRESH_AFTER_CORRUPT"[/code], [code]&"E_SCHEMA_NEWER"[/code],
 ## [code]&"E_LOCKED"[/code].
 @abstract func load_status() -> StringName
+
+
+# --- Additions with a default (not abstract, so a test double need not carry them)
+
+## True when the profile is `ReadOnly`: the banner's input (M5.2, M6). A mutator
+## then answers `E_READONLY`. Example: `if meta.is_read_only(): show_banner()`.
+func is_read_only() -> bool:
+	return false
+
+
+## The global counters of `stats` (M7.1; M1.3 "Name mapping" `get_stats()`), as a
+## copy. Example: `meta.get_stats().get("runs_won", 0)`.
+func get_stats() -> Dictionary:
+	return {}
+
+
+## How many archived runs [method run_log] can page through (M8).
+## Example: `var pages: int = ceili(meta.run_log_count() / float(page_size))`.
+func run_log_count() -> int:
+	return 0
+
+
+## "Clear run records": deletes the full records under `user://runs/` (M8.2).
+## Returns `OK`, `E_IO` or `E_READONLY`. Example: `meta.clear_run_records()`.
+func clear_run_records() -> Error:
+	return OK

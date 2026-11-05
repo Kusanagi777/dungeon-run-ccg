@@ -12,10 +12,10 @@ extends RefCounted
 
 ## The one owner of game data (ADR-0002); `Ready` when `BootResult.ok`.
 var card_database: CardDatabase
-## The profile owner (ADR-0004). `null` until the Meta Progression epic lands.
-## TODO(meta-progression): type as `ProfileStore` once that class exists.
-var profile_store: RefCounted
-## The Meta Progression seam: `MetaStub` for the MVP (ADR-0011 Decision 4).
+## The profile owner (ADR-0004). `null` when a `meta` override or a failed load
+## left no `MetaFacade`.
+var profile_store: ProfileStore
+## The Meta Progression seam: `MetaFacade`, or a `meta` override (ADR-0011 Decision 4).
 ## `null` when the data load failed and no `meta` override was given.
 var meta: MetaApi
 ## The settings channel; always the same object as `meta.settings_bus`.
