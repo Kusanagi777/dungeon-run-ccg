@@ -39,6 +39,10 @@ func _stub() -> Dictionary:
 	return (parsed as Dictionary)["config"]
 
 
+## F2's data values among the rules (A29, review D-3).
+const F2_RULES: Array[String] = ["taunt_bonus", "flat_spell_damage", "flat_deathrattle", "flat_aura"]
+
+
 func _boss(ai_profile: Variant, band: int) -> Dictionary:
 	return CardFactory.make_boss_def("boss_test", band, {"ai_profile": ai_profile})
 
@@ -427,6 +431,53 @@ func test_validate_default_profile_must_carry_every_weight_and_rule() -> void:
 	# Assert
 	assert_array(_codes(rows)).contains_exactly_in_any_order([BossAI.E_AI_WEIGHT_RANGE, BossAI.E_AI_UNKNOWN_FIELD])
 	assert_array(_fields(rows)).contains_exactly_in_any_order(["weights.w_hp", "rules.hero_power"])
+
+
+func test_validate_default_profile_must_carry_each_f2_bonus() -> void:
+	for key: String in F2_RULES:
+		# Arrange: A29: no code default exists for these either
+		var config: Dictionary = _stub()
+		config.profiles.default.rules.erase(key)
+
+		# Act
+		var rows: Array = _validate(config)
+
+		# Assert
+		assert_array(_codes(rows)).contains_exactly([BossAI.E_AI_WEIGHT_RANGE])
+		assert_array(_fields(rows)).contains_exactly(["rules.%s" % key])
+
+
+func test_validate_an_f2_bonus_holds_zero_to_three_and_no_further() -> void:
+	for key: String in F2_RULES:
+		# Arrange: F2's Range column
+		var low: Dictionary = _stub()
+		low.profiles.default.rules[key] = 0
+		var high: Dictionary = _stub()
+		high.profiles.default.rules[key] = 3
+		var over: Dictionary = _stub()
+		over.profiles.default.rules[key] = 3.5
+		var under: Dictionary = _stub()
+		under.profiles.default.rules[key] = -0.5
+
+		# Act and Assert
+		assert_array(_validate(low)).is_empty()
+		assert_array(_validate(high)).is_empty()
+		assert_array(_codes(_validate(over))).contains_exactly([BossAI.E_AI_WEIGHT_RANGE])
+		assert_array(_codes(_validate(under))).contains_exactly([BossAI.E_AI_WEIGHT_RANGE])
+
+
+func test_resolve_an_f2_bonus_is_tunable_by_a_band_like_any_rule() -> void:
+	# Arrange
+	var config: Dictionary = _stub()
+	config.bands["3"].rules["taunt_bonus"] = 2.5
+
+	# Act
+	var tuned: Dictionary = ProfileResolver.resolve(config, _boss("default", 3), 3)
+	var untouched: Dictionary = ProfileResolver.resolve(config, _boss("default", 2), 2)
+
+	# Assert
+	assert_float(float(tuned.rules.taunt_bonus)).is_equal(2.5)
+	assert_float(float(untouched.rules.taunt_bonus)).is_equal(1.5)
 
 
 func test_validate_every_band_must_carry_every_budget() -> void:

@@ -105,7 +105,7 @@
 **Started / ended (UTC)**: 00:41:20 / 00:51:41
 **Criteria**: 4/4 passing, all by automated test (none deferred)
 **Test Evidence**: `tests/unit/card_effects/card_effects_validator_schema_test.gd` (+21)
-**Reviewed by**: self, no independent review (the orchestrator runs `/code-review` at the end of the wave; a lane does not review its own work)
+**Reviewed by**: independent `/code-review`, 2026-11-05 (`production/reviews/2026-11-05/code-review-s5-w2-effects-treasures.md`, summary scope, `52c7b5e`): no correctness or contract risk found.
 **Run result**: N/A: a Logic story changes nothing visible; the full suite and `godot --headless --quit-after 5` are the evidence.
 
 **Traceability**

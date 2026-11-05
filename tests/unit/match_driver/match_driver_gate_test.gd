@@ -4,8 +4,8 @@
 ##
 ## The driver is built over [MatchDriverFixture]'s database double, on the
 ## production `EffectResolver`, `RulesEngine` and `BossAI`. Tasks are
-## [FakePlannerTask]s: no worker starts here. The schedule rows are story 014's,
-## so a boss task is started by [method MatchDriverFixture.start_plan].
+## [FakePlannerTask]s: no worker starts here. The schedule starts every task (story
+## 014), and [method MatchDriverFixture.start_plan] scripts the one that is running.
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchRecords.SIDE_PLAYER
@@ -36,8 +36,8 @@ class SpyDriver:
 
 	var order: Array[String] = []
 
-	func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, task: PlannerTask) -> void:
-		super(config, db, settings, task)
+	func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, factory: Callable) -> void:
+		super(config, db, settings, factory)
 
 	func _resolve_profile(profiles: Dictionary, boss_def: Dictionary, band: int) -> Dictionary:
 		order.append("profile")
@@ -76,7 +76,7 @@ func after_test() -> void:
 
 
 func _build(player_deck: Array = [], boss_deck: Array = []) -> MatchDriver:
-	_driver = MatchDriver.new(MatchDriverFixture.match_config(_log, player_deck, boss_deck), _db, {}, _task)
+	_driver = MatchDriver.new(MatchDriverFixture.match_config(_log, player_deck, boss_deck), _db, {}, MatchDriverFixture.same_task(_task))
 	return _driver
 
 
@@ -101,7 +101,7 @@ func _finish_task() -> void:
 
 func test_construction_runs_profile_resolver_engine_boss_ai_start_then_the_step() -> void:
 	# Act
-	var spy := SpyDriver.new(MatchDriverFixture.match_config(_log), _db, {}, _task)
+	var spy := SpyDriver.new(MatchDriverFixture.match_config(_log), _db, {}, MatchDriverFixture.same_task(_task))
 	_driver = spy
 
 	# Assert
@@ -351,6 +351,7 @@ func test_a_concede_with_no_task_live_and_a_plan_part_replayed_drops_the_rest() 
 	MatchDriverFixture.to_boss_main(_driver)
 	var plan: TurnPlan = MatchDriverFixture.scripted_plan(_driver, MatchDriverFixture.boss_plays(3))
 	assert_bool(_driver._engine.submit(plan.commands[0]).accepted).is_true()
+	_driver._release_task()
 	_driver._pending_plan = plan
 	_driver._replay_index = 1
 	assert_bool(_driver.is_planning()).is_true()
@@ -371,6 +372,7 @@ func test_a_concede_during_a_boss_choice_with_no_task_drops_the_choice() -> void
 	MatchDriverFixture.to_boss_main(_driver)
 	assert_bool(_driver._engine.submit(MatchRecords.play_card(SIDE_BOSS, 0)).accepted).is_true()
 	assert_str(_driver.query().phase()).is_equal(MatchState.PHASE_CHOICE)
+	_driver._release_task()
 
 	# Act
 	var result: Dictionary = _driver.submit(MatchRecords.concede())

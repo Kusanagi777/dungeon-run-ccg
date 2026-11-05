@@ -68,6 +68,13 @@ func is_live() -> bool:
 	return _live
 
 
+## `true` when [method poll] runs the work itself, on the main thread, for a slice.
+## That time is `slice_ms`'s to bound; a poll that only asks is the driver's own work
+## (ADR-0006). The base answers `false`.
+func slices_main_thread() -> bool:
+	return false
+
+
 ## Cooperative yield point. Planning code awaits it between candidate
 ## evaluations and between lethal-search nodes. The base (and the worker and
 ## immediate implementations) is a plain no-op with no await inside, so

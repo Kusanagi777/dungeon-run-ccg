@@ -60,7 +60,7 @@ jobs:
       # the per-file parse check (ADR-0001 Implementation Guidelines).
       # gates.sh prints `<gate> hits: <n>` per gate and no_global_rng.sh
       # `no_global_rng hits: <n>`; each exits 1 on any hit, 2 when it could not
-      # run. parse-check.sh prints `ok:` / `PARSE FAIL:` per rules file, one
+      # run. parse-check.sh prints `ok:` / `PARSE FAIL:` per rules or UI file, one
       # godot run per file, and needs the class cache built above. All three
       # run even when one fails, so the log shows every finding.
       - name: Lint gates G1-G7, no-global-RNG lint and per-file parse check
@@ -71,6 +71,12 @@ jobs:
           bash tools/lint/no_global_rng.sh . || status=1
           bash tools/lint/parse-check.sh || status=1
           exit "$status"
+
+      # Blocking: the src/ai gates (boss-ai A29, ADR-0006 Validation Criteria;
+      # boss-ai story 012). Prints `<rule> hits: <n>` per rule; exits 1 on any
+      # hit, 2 when it could not run, as gates.sh does.
+      - name: Boss AI code gates
+        run: bash tools/ci/ai_code_gates.sh .
 
       # Exactly project.yaml commands.test. Exit 0 = all passed; 100 = a test
       # failed; 101 = passed with leaked nodes (warning, but fails this job so

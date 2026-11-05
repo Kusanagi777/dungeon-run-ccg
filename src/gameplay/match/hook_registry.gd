@@ -38,6 +38,19 @@ const TRIGGER_POINTS: Array[StringName] = [
 	&"on_match_start", &"on_turn_start", &"on_turn_end", &"on_card_played",
 	&"on_minion_summoned", &"on_hero_damaged", &"on_draw",
 ]
+## The DSL triggers whose hook point has another name (card-effects C2, hook
+## column). `on_damage_taken` is not here: it binds only under a hero scope
+## ([method hook_point]). Every other hook-bound trigger is spelled as its point.
+const DSL_HOOK_POINTS: Dictionary[String, StringName] = {
+	"turn_start": &"on_turn_start",
+	"turn_end": &"on_turn_end",
+	"on_summon": &"on_minion_summoned",
+}
+## The DSL trigger bound to `on_hero_damaged` under the hero scope (C2).
+const TRIGGER_DAMAGE_TAKEN: String = "on_damage_taken"
+## The `who` value that is C2's "hero scope only": any other can name a minion,
+## so it is a hero-slot observer (C9).
+const SCOPE_OWNER_HERO: String = "owner_hero"
 ## Value points (match-rules hook table): entries fold an `int`.
 const VALUE_POINTS: Array[StringName] = [
 	&"modify_cost", &"modify_damage", &"modify_heal",
@@ -66,12 +79,27 @@ func _init() -> void:
 		_entries[point] = [] as Array[Dictionary]
 
 
+## The hook point card-effects C2 binds [param effect] to on a treasure or
+## passive host, or `&""` when it has none. This reads the binding table only:
+## evaluating an entry's `scope` stays the resolver's.
+## Example: `HookRegistry.hook_point({"trigger": "turn_end"}) == &"on_turn_end"`.
+static func hook_point(effect: Dictionary) -> StringName:
+	var trigger: String = str(effect.get("trigger", ""))
+	if trigger == TRIGGER_DAMAGE_TAKEN:
+		var scope: Variant = effect.get("scope")
+		var who: String = str((scope as Dictionary).get("who", "")) if scope is Dictionary else ""
+		return &"on_hero_damaged" if who == SCOPE_OWNER_HERO else &""
+	var point: StringName = DSL_HOOK_POINTS.get(trigger, StringName(trigger))
+	return point if TRIGGER_POINTS.has(point) or VALUE_POINTS.has(point) else &""
+
+
 ## Installs [param installer]: one `HookEntry` per effect in its `effects[]`,
-## in array order, appended to the list of the effect's `trigger` point.
-## `effect_id` is the effect's `id`, defaulting to `<host_id>.<index>`
-## (card-effects C1). An effect whose trigger is not a hook point (a hook-less
-## event trigger such as `on_minion_died`) is not a hook: it stays with the
-## resolver's hero-slot observers (ADR-0005 rule 9) and installs nothing here.
+## in array order, appended to the list of its [method hook_point] (2026-11-04,
+## card-effects story 015: `turn_start` keys on `on_turn_start`, not on the raw
+## trigger). `effect_id` is the effect's `id`, defaulting to `<host_id>.<index>`
+## (card-effects C1). An effect with no hook point (a hook-less event trigger
+## such as `on_minion_died`, or an `aura`) is not a hook: it stays with the
+## resolver's hero-slot hosts (ADR-0005 rule 9) and installs nothing here.
 ## The host itself is recorded for [method hosts] either way.
 ## Returns `false`, and installs nothing, when the `host_id` is already
 ## installed; the engine logs `hook_install_skipped` (the registry has no log).
@@ -91,7 +119,7 @@ func install(installer: HookInstaller) -> bool:
 	})
 	for index: int in installer.effects.size():
 		var effect: Dictionary = installer.effects[index]
-		var point: StringName = StringName(str(effect.get("trigger", "")))
+		var point: StringName = hook_point(effect)
 		if not _entries.has(point):
 			continue
 		_entries[point].append(_frozen({

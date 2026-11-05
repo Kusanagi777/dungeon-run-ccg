@@ -92,6 +92,23 @@ func test_aura_minion_scores_the_aura_flat_bonus_above_a_vanilla_twin() -> void:
 	assert_float(lord.features.f_board - pup.features.f_board).is_equal_approx(GDD_FLAT_AURA / _bv_norm(setup[2]), EPSILON)
 
 
+func test_a_tuned_aura_bonus_reaches_the_score_from_the_profile() -> void:
+	# Arrange: A29: the value comes through `profile.rules`, all the way to `f_board`
+	var setup: Array = _board()
+	var engine: RulesEngine = setup[0]
+	var expect: Dictionary = setup[3].expect
+	var profile: Dictionary = (setup[2] as Dictionary).duplicate(true)
+	profile.rules.flat_aura = GDD_FLAT_AURA / 2.0
+
+	# Act
+	var scored: Array = await _score_all(engine, setup[1], profile)
+
+	# Assert
+	var lord: Dictionary = _play(scored, engine, str(expect.aura))
+	var pup: Dictionary = _play(scored, engine, str(expect.vanilla))
+	assert_float(lord.features.f_board - pup.features.f_board).is_equal_approx(float(profile.rules.flat_aura) / _bv_norm(profile), EPSILON)
+
+
 func test_weapon_play_scores_the_f2_weapon_board_value() -> void:
 	# Arrange
 	var setup: Array = _board()

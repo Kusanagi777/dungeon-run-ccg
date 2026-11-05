@@ -80,9 +80,10 @@ godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin
 
 In CI the `performance` job of `tests.yml` runs that command with
 `continue-on-error: true` and one retry, and writes the `PERF` lines to the job
-summary: read the timings there, not just the job colour. First suite:
-`tests/performance/rng_event_log/rng_event_log_perf_test.gd` (rng-event-log
-story 010).
+summary: read the timings there, not just the job colour. Every gate has its own
+suite, so a failing gate cannot hide another. `tests/performance/rng_event_log/`
+holds `rng_event_log_perf_test.gd` (the append gate) and
+`rng_event_log_restore_perf_test.gd` (the restore gate; rng-event-log story 010).
 
 `tests/performance/match_rules/` holds one gate per suite, so a failing gate
 cannot hide another (gdUnit4 without `-c` stops a suite at its first failure):

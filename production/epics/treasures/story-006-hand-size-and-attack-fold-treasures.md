@@ -1,12 +1,13 @@
 # Story 006: Hand-size and attack-count folds — Bottomless Satchel, Twin Grip, the post-fold clamps
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-05
+> **Readiness**: READY (2026-11-05, by hand: story 001 and CE-014 Complete, match-rules 003, 004 and 012 Complete, manifest 2026-11-04 current, TR-treasures-001 active. AC-19 and AC-23's missing GIVENs come from T8/T9 and the AC preamble; QL-STORY-READY skipped, Lean mode)
 > **First Playable path**: no
 
 ## Context
@@ -33,9 +34,9 @@
 
 *From GDD `design/gdd/treasures.md` (AC-13, AC-19, AC-23), scoped to this story:*
 
-- [ ] **AC-19** Bottomless Satchel: THEN `mulligan_offered` lists 5 cards, a `keep_mask` of length 5 is accepted and one of length 3 is `INVALID_MASK`; the boss still draws 4.
-- [ ] **AC-13** GIVEN `[treasure_bottomless_satchel]` and a passive `modify_starting_hand_size delta +6`, WHEN starting hands are dealt, THEN the player's hand is exactly 10 (`clamp(3 + 2 + 6, 0, HAND_SIZE)`), no `card_burned` is emitted during C3 step 5, and the match reaches `Mulligan` without a fault.
-- [ ] **AC-23** Twin Grip: GIVEN a weapon with 2 durability, THEN the hero attacks twice in one turn (two `attack_resolved`), the weapon is destroyed at the second swing, and a third `attack` is rejected; GIVEN a Windfury weapon, THEN still two attacks (`set 2` replaces the base 2; no third swing).
+- [x] **AC-19** Bottomless Satchel: THEN `mulligan_offered` lists 5 cards, a `keep_mask` of length 5 is accepted and one of length 3 is `INVALID_MASK`; the boss still draws 4.
+- [x] **AC-13** GIVEN `[treasure_bottomless_satchel]` and a passive `modify_starting_hand_size delta +6`, WHEN starting hands are dealt, THEN the player's hand is exactly 10 (`clamp(3 + 2 + 6, 0, HAND_SIZE)`), no `card_burned` is emitted during C3 step 5, and the match reaches `Mulligan` without a fault.
+- [x] **AC-23** Twin Grip: GIVEN a weapon with 2 durability, THEN the hero attacks twice in one turn (two `attack_resolved`), the weapon is destroyed at the second swing, and a third `attack` is rejected; GIVEN a Windfury weapon, THEN still two attacks (`set 2` replaces the base 2; no third swing).
 
 ---
 
@@ -66,7 +67,7 @@ planned ones; `/dev-story` replaces the list with the files it changed; `/story-
 checks scope against it.*
 
 - `tests/integration/treasures/treasures_hand_and_attack_folds_test.gd`
-- No production file planned
+- No production file changed: no case failed
 
 ---
 
@@ -84,7 +85,7 @@ checks scope against it.*
 **Required evidence**:
 - Integration: `tests/integration/treasures/treasures_hand_and_attack_folds_test.gd` — must exist and pass
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created, 23 tests, passing
 
 ---
 
@@ -92,3 +93,24 @@ checks scope against it.*
 
 - Depends on: `production/epics/treasures/story-001-installers-passive-and-collect-state.md`. Cross-epic: `production/epics/card-effects/story-014-value-hook-folds.md`; Complete: `production/epics/match-rules/story-003-match-setup.md`, `production/epics/match-rules/story-004-command-channel-and-mulligan.md`, `production/epics/match-rules/story-012-attack-legality.md`
 - Unlocks: content story 006 behaviour sign-off for rows 7 and 12
+
+---
+
+## Completion Notes
+
+**Completed**: 2026-11-05
+**Start / end (UTC)**: 2026-11-05T04:13:30Z to 2026-11-05T04:30:54Z (the test file was drafted earlier, while story 005's mutants ran)
+**Criteria**: 3/3 passing
+**Test Evidence**: `tests/integration/treasures/treasures_hand_and_attack_folds_test.gd`, 23 tests
+**Run result**: N/A: no scene or screen, and nothing player-observable changed. Full suite 2116 tests, 0 failures; smoke exit 0
+**Reviewed by**: pending, the orchestrator's independent `/code-review` at the end of the wave
+
+**Seen failing.** All 23 passed on first run because the call sites already existed, so each was seen failing against a deliberate mutant in `rules_engine.gd`, `ops.gd` or `scope.gd`, restored after each run. Eighteen mutants: no hand fold, no hand clamp, a full hand skipping the offer, the mask checked against the rule, the legal mask at the rule's length, no mulligan redraw, the hand scope ignoring side, two extra cards for every player hand, `set` read as `delta`, base attacks always two, no attack fold, `who` ignored, no attack clamp, the zero-Attack term dropped, the count term dropped, both dropped, the weapon as damage source, no durability loss.
+
+**Finding.** `test_ac13_satchel_and_passive_fill_the_hand_exactly_to_hand_size` still passes with the hand clamp removed: `_draw` burns the 11th card, so the hand stops at 10 anyway. `test_ac13_no_card_burns_during_the_deal` is the case that proves the clamp, and it alone failed that mutant.
+
+**Deviations (ADVISORY).**
+- The clean root's `match_rules.json` and `card_effects.json` hold no knobs, so the bodies are `MatchFactory.make_rules_config()` and the inline config the card-effects suites use. Bounds are read back with `RulesEngine.rule`, so no test names 10 or 4.
+- The weapon reaches the hand by a state edit and is equipped by a real `play_card`. Scripted weapons load through `TreasureFixtures.database(ids, cards)`, added in story 005.
+
+**Beyond the ACs**: the Edge Cases 1-durability case (story Implementation Notes); DD-X15's swing source; a third swing stopped by the count alone, with durability left; Twin Grip reaching neither a minion nor the boss hero; the `max_attacks_cap` clamp; a partial mulligan of the five; the 10-card mask; the controls without Satchel, with the passive alone and without Twin Grip.

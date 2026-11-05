@@ -803,7 +803,7 @@ func test_n5_a_scored_clone_reads_the_hand_of_the_side_it_scores() -> void:
 	(engine.state().players[SIDE_PLAYER].hand as Array).clear()
 	BossAiBoard.add_to_hand(engine, SIDE_PLAYER, "bai_titan")
 	var scorer: Scorer = Scorer.new(board.db, BossAiBoard.keyword_values())
-	var measured: Dictionary = scorer._measure(engine, Scorer.MODE_NORMAL, SIDE_BOSS)
+	var measured: Dictionary = scorer._measure(engine, Scorer.MODE_NORMAL, SIDE_BOSS, BossAiBoard.stub_config().profiles.default.rules)
 
 	# Act / Assert
 	assert_array(measured[SIDE_BOSS].hand_defs as Array).is_equal(["bai_filler"])

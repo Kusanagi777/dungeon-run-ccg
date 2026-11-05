@@ -36,6 +36,27 @@ class RejectingEngine:
 		return super(command)
 
 
+## A [PlannerTask] that counts `checkpoint()` calls and never yields.
+class CountingPlanner:
+	extends ImmediatePlannerTask
+
+	var checkpoints: int = 0
+
+	func checkpoint() -> void:
+		checkpoints += 1
+		return
+
+
+## A sandbox that refuses every `choose`, as a stale list would.
+class ChoiceRefusingEngine:
+	extends RulesEngine
+
+	func submit(command: Dictionary) -> Dictionary:
+		if str(command.type) == MatchRecords.CMD_CHOOSE:
+			return MatchRecords.command_result(false, RejectingEngine.CODE, "scripted")
+		return super(command)
+
+
 ## A [Scorer] that remembers each `score_all` context.
 class SpyScorer:
 	extends Scorer
@@ -470,6 +491,89 @@ func test_lethal_on_an_open_board_is_taken_in_every_band_and_logged_lethal() -> 
 		assert_str(str(_decisions(plan)[0].mode)).is_equal(String(Scorer.MODE_LETHAL))
 		assert_array(plan.mode_trace).contains_exactly([Scorer.MODE_NORMAL, Scorer.MODE_LETHAL])
 		assert_str((board.engine as RulesEngine).phase()).is_equal(MatchState.PHASE_ENDED)
+
+
+func test_each_lethal_step_has_a_checkpoint_ahead_of_it() -> void:
+	# Arrange: review `boss_ai.gd:590`: a long lethal must yield to a time-sliced task
+	var board: Dictionary = _board("lethal_open_face", 3)
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	var planner: CountingPlanner = CountingPlanner.new()
+
+	# Act
+	planner.start((board.ai as BossAI).plan_task(sandbox, planner))
+	var plan: TurnPlan = planner.result()
+	sandbox.end_match()
+
+	# Assert: one per search node, then one per step
+	var nodes: int = int(_decisions(plan)[0].lethal_nodes)
+	assert_bool(plan.commands.size() >= 2).is_true()
+	assert_int(planner.checkpoints).is_equal(nodes + plan.commands.size())
+
+
+## A board at the boss's Main with its Discover spell played on the live engine, the
+## Choice standing, as a boss Start-step trigger leaves one. The options tie and differ
+## by id, so answering takes a draw.
+func _boss_choice_standing() -> Dictionary:
+	var fixture: Dictionary = BossAiBoard.read("f1_worked_example")
+	fixture.cards.append({"id": "bai_twin_a", "type": "minion", "cost": 2, "attack": 2, "health": 2})
+	fixture.cards.append({"id": "bai_twin_b", "type": "minion", "cost": 2, "attack": 2, "health": 2})
+	fixture.cards.append({"id": "bai_seek", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "ops": [{"op": "discover", "pool": "list", "list": ["bai_twin_a", "bai_twin_b"]}]}]})
+	fixture.boss.hand = ["bai_seek"]
+	fixture.boss.board = []
+	var board: Dictionary = _laid_out(fixture)
+	assert_bool((board.engine as RulesEngine).submit(MatchRecords.play_card(SIDE_BOSS, 0)).accepted).is_true()
+	assert_str(str((board.engine as RulesEngine).pending_choice().side)).is_equal(SIDE_BOSS)
+	return board
+
+
+func test_a_plan_opening_on_a_choice_on_the_boss_turn_goes_on_to_plan_the_turn() -> void:
+	# Arrange
+	var board: Dictionary = _boss_choice_standing()
+	var draws_before: int = (board.stream as RngStream).draws
+
+	# Act
+	var plan: TurnPlan = _plan(board)
+
+	# Assert: the `choose` opens it, `end_turn` closes it, every draw counted, and it replays
+	assert_str(str(plan.commands[0].type)).is_equal(MatchRecords.CMD_CHOOSE)
+	assert_str(str(plan.commands.back().type)).is_equal(MatchRecords.CMD_END_TURN)
+	assert_str(str(plan.diagnostics[0][TurnPlan.EVENT_KEY])).is_equal(String(BossAI.EVENT_INTENT_COMMITTED))
+	assert_int(int(_decisions(plan)[0].draws)).is_equal(1)
+	assert_int(plan.ai_draws).is_equal((board.stream as RngStream).draws - draws_before)
+	_replay(board.engine, plan)
+
+
+func test_a_refused_choose_ends_the_plan_with_a_fault() -> void:
+	# Arrange: the boss's own Discover, its `choose` refused by the sandbox
+	var board: Dictionary = _boss_choice_standing()
+	var sandbox: RulesEngine = BossAiBoard.adopt(ChoiceRefusingEngine, board.engine, board.db)
+
+	# Act
+	var plan: TurnPlan = _run(board.ai, sandbox)
+	sandbox.end_match()
+
+	# Assert: the decision says what was refused, and the plan stops there
+	assert_array(plan.commands).is_empty()
+	var decisions: Array = _decisions(plan)
+	assert_int(decisions.size()).is_equal(1)
+	assert_str(str(decisions[0].rejection)).is_equal(RejectingEngine.CODE)
+	assert_str(str(_events(plan, BossAI.EVENT_FAULT)[0].reason)).is_equal(BossAI.FAULT_CHOICE_UNANSWERED)
+
+
+func test_a_choice_for_the_other_side_stops_the_answering_with_no_fault() -> void:
+	# Arrange: a plan that reaches the player's Discover: theirs to answer
+	var board: Dictionary = _boss_choice_standing()
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	sandbox.state().pending_choice.side = SIDE_PLAYER
+	var turn: BossAI._Turn = BossAI._Turn.new(sandbox, ImmediatePlannerTask.new(), SIDE_BOSS, board.stream)
+
+	# Act
+	(board.ai as BossAI)._answer_choices(turn)
+	sandbox.end_match()
+
+	# Assert
+	assert_array(turn.plan.diagnostics).is_empty()
+	assert_bool(turn.finished).is_false()
 
 
 func test_lethal_through_a_taunt_is_taken_in_bands_two_and_three() -> void:

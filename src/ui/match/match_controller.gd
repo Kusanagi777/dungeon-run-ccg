@@ -75,10 +75,9 @@ func tick() -> void:
 
 
 ## A setting moved (`SettingsBus.settings_changed`). The driver takes the keys it
-## knows, `telegraph_mode` today, and ignores the rest. A dynamic call because the
-## method arrives with `boss-ai-match-driver/story-014`.
+## knows, `telegraph_mode` today, and ignores the rest.
 func on_setting_changed(key: StringName, value: Variant) -> void:
-	_driver.call(&"on_setting_changed", key, value)
+	_driver.on_setting_changed(key, value)
 
 
 ## `MatchView._exit_tree`: ends the driver's use of the planner.
@@ -86,6 +85,7 @@ func shutdown() -> void:
 	_driver.shutdown()
 
 
-## True while the boss plans or a plan replays: a UI hint, not a lock.
+## True while a boss task is live or a plan replays, a forecast on the player's turn
+## included: a UI hint, not a lock. `InputRouter.controls_locked` does not read it.
 func is_planning() -> bool:
 	return _driver.is_planning()

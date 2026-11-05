@@ -61,6 +61,11 @@ func poll() -> bool:
 	return _done
 
 
+## `true`: each [method poll] runs one slice of the work.
+func slices_main_thread() -> bool:
+	return true
+
+
 ## Suspends the work until the next [method poll] once the current slice has
 ## used [member slice_usec] or more; otherwise returns at once.
 func checkpoint() -> void:

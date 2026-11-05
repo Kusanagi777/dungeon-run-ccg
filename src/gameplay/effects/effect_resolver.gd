@@ -10,9 +10,9 @@
 ## - [method bind] keeps the engine, installs each `HookInstaller` through
 ##   `engine.state().hooks.install` in the order given (treasures in pick
 ##   order, then the boss passive; a refused duplicate is the **engine's**
-##   `hook_install_skipped`), keeps each installed host's `aura` effects in
-##   `EffectRuntime.aura_hosts` (they are not hook entries; story 013), then
-##   registers the bound methods
+##   `hook_install_skipped`), keeps each installed host's `aura` effects and
+##   hero-slot observers in `EffectRuntime.aura_hosts` (they are not hook entries;
+##   stories 013, 015), then registers the bound methods
 ##   [method apply_value_hook] / [method run_hook_effect] as the registry's
 ##   evaluators.
 ## - [method unbind] (the engine calls it once, at `Ended` or from
@@ -32,6 +32,14 @@
 ## op raises the engine's `ChoiceRequest` and suspends its pass, keeping the
 ## rest as plain data in `EffectRuntime.pending_choice`; the engine calls
 ## [method resume] on `choose` (ADR-0007 Decision 1).
+##
+## **Treasures and passives** (story 015; card-effects C2 hook column, C9): an
+## event trigger with a hook column is a registry entry, run as one pass at the
+## hook point by [method run_hook_effect]. One without is a **hero-slot observer**:
+## [method _collect] reads the owner's hosts where the engine's candidates name
+## that side's hero, so the slot needs no id of its own (the story's "resolver
+## appends at that position"; `ctx.candidates` stays entity ids). Either way the
+## source is the host's String id, always live, and the pass's events name it.
 ##
 ## Every Tuning Knob is read from the injected config body (the `config` of
 ## `assets/data/card_effects.json`), never from a literal: [method knob],
@@ -100,6 +108,29 @@ const ENTRY_SUBJECT: String = "trigger_subject"
 const ENTRY_TRIGGER_SOURCE: String = "trigger_source"
 const ENTRY_AMOUNT: String = "amount"
 const ENTRY_DEPTH: String = "depth"
+## `host_kind` of a hero-slot entry (a card's is [constant HOST_KIND_CARD]).
+const ENTRY_HOST_KIND: String = "host_kind"
+## The candidate an entry was collected from: the hero for a hero-slot entry.
+## The engine orders a death check's entries by it (2026-11-04, AC-45).
+const ENTRY_CANDIDATE: String = "candidate"
+## C3: what a departed `trigger_subject` / `trigger_source` reads, kept only for
+## an effect that names one ([method _keep_trigger_snapshots]).
+const ENTRY_SUBJECT_SNAPSHOT: String = ENTRY_SUBJECT + EffectValues.SNAPSHOT_SUFFIX
+const ENTRY_SOURCE_SNAPSHOT: String = ENTRY_TRIGGER_SOURCE + EffectValues.SNAPSHOT_SUFFIX
+## The text every `trigger_subject` / `trigger_source` reference holds.
+const TRIGGER_ENTITY_TEXT: String = "trigger_s"
+## A hook-point name authored as a trigger → the DSL trigger whose scope keys it
+## answers to. Shipped data spells the DSL trigger (C2); the hook point's own
+## name reaches here only from a fixture, and is not a DSL word.
+const HOOK_SCOPE_TRIGGERS: Dictionary[String, String] = {
+	"on_turn_start": "turn_start",
+	"on_turn_end": "turn_end",
+	"on_minion_summoned": "on_summon",
+	"on_hero_damaged": "on_damage_taken",
+}
+## The trigger the engine fires once per side, each time with every entry (C3
+## step 4): an entry runs for its own side.
+const TRIGGER_MATCH_START: String = "on_match_start"
 ## The resolver's own event, one per effect pass (card-effects C6.6).
 const EVENT_EFFECT_RESOLVED: StringName = &"effect_resolved"
 ## `effect_resolved.host_kind` values (card-effects Interactions).
@@ -124,6 +155,9 @@ const TRIGGER_PASSIVE_HAND: String = "passive_hand"
 ## `effects[]`, so a resumed pass re-reads the effect from the memo instead of
 ## carrying it in the continuation.
 const RUN_EFFECT_INDEX: String = "effect_index"
+## Continuation field: the running effect of a treasure or passive, which no
+## definition memo can give back to [method resume].
+const RUN_HOST_EFFECT: String = "host_effect"
 ## `EffectRuntime.pending_choice` — the continuation (C8.1; ADR-0007 Decision
 ## 1), plain data only: `{effect_id, side, kind, options, op_index, item,
 ## remaining_ops, entries, run, source_snapshot, tail}` (see [method _offer]).
@@ -165,9 +199,13 @@ var _memo: Dictionary[String, Dictionary] = {}
 ## The C5 op dispatch table (stateless; story 006).
 var _ops: EffectOps = EffectOps.new()
 ## `effect_resolved.depth` of the pass running now (0 between passes): a
-## trigger raised inside a pass queues with `depth + 1` (story 008). Passes
-## never nest — a raise inside one only collects — so one field suffices.
+## trigger raised inside a pass queues with `depth + 1` (story 008). A raise
+## inside a pass only collects; the one pass that nests is an in-primitive hook's
+## ([method run_hook_effect]), which puts this field back when it ends.
 var _depth: int = 0
+## `"<def_id>:<index>" → bool`: does this effect name a trigger entity (derived
+## data, like [member _memo]; [method _keep_trigger_snapshots]).
+var _names_trigger_entity: Dictionary[String, bool] = {}
 ## The pass context of one [method apply_value_hook] call, refilled in place
 ## because a fold allocates nothing (ADR-0005 rule 4). `resolver` is set by
 ## [method bind] and cleared by [method unbind]: it is a reference to this
@@ -201,12 +239,13 @@ func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String
 
 ## Binds this resolver to [param engine] at `RulesEngine.start` (C3 step 1,
 ## after `state.hooks = HookRegistry.new()`, before `on_match_start`):
-## installs [param installers] in order through the engine's registry, routes
-## each installed host's `aura` effects to `EffectRuntime.aura_hosts`, then
-## registers [method apply_value_hook] and [method run_hook_effect] as its
-## evaluators. A refused installer (duplicate `host_id`) is left for the
-## engine to log, and its auras stay out. A clone binds with no installers: its
-## aura hosts arrive in the copied `MatchState.effects`.
+## installs [param installers] in order through the engine's registry (the
+## effects with a C2 hook column, [method HookRegistry.hook_point]), routes each
+## installed host's `aura` effects and hero-slot observers to
+## `EffectRuntime.aura_hosts`, then registers [method apply_value_hook] and
+## [method run_hook_effect] as its evaluators. A refused installer (duplicate
+## `host_id`) is left for the engine to log, and its effects stay out. A clone
+## binds with no installers: its hosts arrive in the copied `MatchState.effects`.
 ## Example: see the class description.
 func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void:
 	assert(_engine == null, "EffectResolver.bind: already bound (one resolver per engine; a clone binds a fresh one)")
@@ -215,17 +254,32 @@ func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void:
 	var hooks: HookRegistry = engine.state().hooks
 	for installer: HookInstaller in installers:
 		if hooks.install(installer):
-			_keep_auras(installer, engine.state().effects)
+			_keep_hosted(installer, engine.state().effects)
 	hooks.set_evaluators(apply_value_hook, run_hook_effect)
 
 
-## Routes [param installer]'s `aura` effects to [param runtime] (C7, C9; story
-## 013). ADR-0005: the registry holds only hook-bound effects, and a treasure
-## compiles into no card instance (Alt 3).
-func _keep_auras(installer: HookInstaller, runtime: Dictionary) -> void:
-	var auras: Array = installer.effects.filter(func(effect: Dictionary) -> bool: return str(effect.get("trigger", "")) == TRIGGER_AURA)
-	if not auras.is_empty():
-		EffectRuntime.add_aura_host(runtime, installer.host_id, str(installer.side), auras)
+## Routes what [param installer] hosts on the hero slot to [param runtime] (C7,
+## C9; stories 013, 015): its `aura` effects and its event triggers with no hook
+## column, each with its id settled from its index in the installer. ADR-0005:
+## the registry holds only hook-bound effects, and a treasure compiles into no
+## card instance (Alt 3).
+func _keep_hosted(installer: HookInstaller, runtime: Dictionary) -> void:
+	var hosted: Array = []
+	for index: int in installer.effects.size():
+		var effect: Dictionary = installer.effects[index]
+		if str(effect.get("trigger", "")) == TRIGGER_AURA or _is_hero_slot_observer(effect):
+			var kept: Dictionary = effect.duplicate(true)
+			kept["id"] = _effect_id(effect, installer.host_id, index)
+			hosted.append(kept)
+	if not hosted.is_empty():
+		EffectRuntime.add_aura_host(runtime, installer.host_id, str(installer.host_kind), str(installer.side), hosted)
+
+
+## Whether [param effect], on a treasure or passive, is a hero-slot observer: an
+## event trigger (C2) with no hook column.
+static func _is_hero_slot_observer(effect: Dictionary) -> bool:
+	var row: Dictionary = EffectSchema.TRIGGERS.get(str(effect.get("trigger", "")), {})
+	return row.get("class") == EffectSchema.CLASS_EVENT and HookRegistry.hook_point(effect) == &""
 
 
 ## Releases the engine: clears the registry's evaluators and the engine
@@ -426,9 +480,10 @@ func recompute_auras() -> void:
 			if str(effect.get("trigger", "")) == TRIGGER_AURA:
 				_ops.apply_aura(_engine, _aura_run(effect, def_id, index, int(source.entity_id), owner), null)
 	for host: Dictionary in state.effects.get("aura_hosts", []):
-		var auras: Array = host.effects
-		for index: int in auras.size():
-			_ops.apply_aura(_engine, _aura_run(auras[index], str(host.host_id), index, str(host.host_id), str(host.side)), null)
+		var hosted: Array = host.effects
+		for index: int in hosted.size():
+			if str((hosted[index] as Dictionary).get("trigger", "")) == TRIGGER_AURA:
+				_ops.apply_aura(_engine, _aura_run(hosted[index], str(host.host_id), index, str(host.host_id), str(host.side)), null)
 	for side: String in MatchRecords.SIDES:
 		for card: Dictionary in state.players[side].hand:
 			var effects: Array = effects_of(str(card.def_id))
@@ -503,10 +558,61 @@ func apply_value_hook(entry: Dictionary, side: StringName, value: int, ctx: Dict
 	return folded
 
 
-## One trigger-hook step at a hook point (card-effects C9). Story 015 runs
-## the entry's effect as one pass; until then it does nothing.
-func run_hook_effect(_entry: Dictionary, _side: StringName, _ctx: Dictionary) -> void:
-	pass
+## One trigger-hook step at a hook point (card-effects C9; story 015): the
+## entry's effect as **one pass now**, not queued, when its `scope` matches this
+## occurrence relative to `entry.side` (ADR-0005 rule 3) and its `once_per_turn`
+## mark is clear. [param side] is the side the point concerns; [param ctx] is the
+## engine's hook payload ([method _hook_occurrence]). The engine owns what comes
+## after: at a step boundary this call is the whole step and the C10 loop follows;
+## inside a primitive it nests in the running pass, one `depth` below it, and
+## hands that pass its depth back. The host id is `source_id` throughout (C9).
+## Example: `hooks.set_evaluators(resolver.apply_value_hook, resolver.run_hook_effect)`.
+func run_hook_effect(entry: Dictionary, side: StringName, ctx: Dictionary) -> void:
+	assert(_engine != null, "EffectResolver.run_hook_effect: not bound to an engine")
+	var effect: Dictionary = entry.effect
+	var owner: String = str(entry.side)
+	var trigger: String = str(effect.get("trigger", ""))
+	var bound: String = HOOK_SCOPE_TRIGGERS.get(trigger, trigger)
+	if bound == TRIGGER_MATCH_START and str(side) != owner:
+		return
+	var occurrence: Dictionary = _hook_occurrence(bound, str(side), ctx)
+	if not EffectScope.matches(self, bound, effect.get("scope"), occurrence, EffectSelectors.NO_SOURCE, owner):
+		return
+	var host_id: String = str(entry.host_id)
+	var effect_id: String = str(entry.effect_id)
+	if not _claim_once(effect, effect_id, host_id):
+		return
+	var outer: int = _depth
+	@warning_ignore("return_value_discarded")
+	_run_pass(effect, {
+		"effect_id": effect_id,
+		"host_id": host_id,
+		"host_kind": str(entry.host_kind),
+		"source_id": host_id,
+		"owner": owner,
+		"trigger": trigger,
+		"target_id": null,
+		ENTRY_SUBJECT: occurrence.get("instance_id", occurrence.get("subject")),
+		ENTRY_TRIGGER_SOURCE: occurrence.get("source"),
+		ENTRY_AMOUNT: occurrence.get("amount"),
+		ENTRY_DEPTH: outer + 1,
+	})
+	_depth = outer
+
+
+## The trigger `ctx` [method EffectScope.matches] reads for one hook occurrence,
+## from the engine's hook payload (match-rules hook table): the side is the
+## call's, and the subject is the played or summoned entity, the drawn card, or
+## for `on_damage_taken` the hero of [param side], with `amount_dealt` as `amount`.
+func _hook_occurrence(trigger: String, side: String, ctx: Dictionary) -> Dictionary:
+	var occurrence: Dictionary = ctx.duplicate()
+	occurrence["side"] = side
+	if trigger == HookRegistry.TRIGGER_DAMAGE_TAKEN:
+		occurrence["subject"] = int(_engine.state().players[side].hero.entity_id)
+		occurrence[ENTRY_AMOUNT] = ctx.get("amount_dealt")
+	else:
+		occurrence["subject"] = ctx.get("entity_id", ctx.get("instance_id"))
+	return occurrence
 
 
 ## C6.5, story 013: the pass [param run_ctx]'s source [param old_id] was
@@ -551,7 +657,7 @@ func _run_play_from(play: Dictionary) -> bool:
 	var effects: Array = effects_of(host_id)
 	for index: int in range(int(play[PLAY_NEXT]), effects.size()):
 		var effect: Dictionary = effects[index]
-		if str(effect.get("trigger", "")) != trigger or not _claim_once(effect, host_id, index, int(play[PLAY_SOURCE])):
+		if str(effect.get("trigger", "")) != trigger or not _claim_once(effect, _effect_id(effect, host_id, index), int(play[PLAY_SOURCE])):
 			continue
 		var rest: Dictionary = play.duplicate(true)
 		rest[PLAY_NEXT] = index + 1
@@ -577,15 +683,22 @@ func _run_play_from(play: Dictionary) -> bool:
 ## every candidate effect that responds, in candidate order, then
 ## `effects[]` order within one candidate (definition effects; the
 ## enchantment-granted ones after them arrive with story 012). The engine
-## decides candidates and their order; this never re-sorts them.
+## decides candidates and their order; this never re-sorts them. A hero in the
+## candidates stands for its side's hero slot ([method _collect_hero_slot]).
 func _collect(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 	assert(_engine != null, "EffectResolver.resolve: not bound to an engine")
 	var queued: Array[Dictionary] = []
 	var triggers: Array = EVENT_TRIGGERS[point]
 	var subject: Variant = ctx.get("subject")
+	var hosts: Array = _engine.state().effects.aura_hosts
 	for candidate: Variant in ctx.get("candidates", []):
 		var source_id: int = int(candidate)
-		if ENTRY_POINTS.has(point) and subject != null and int(subject) == source_id:
+		if not hosts.is_empty():
+			var slot: String = _hero_slot(source_id)
+			if slot != "":
+				_collect_hero_slot(point, ctx, slot, source_id, triggers, queued)
+				continue
+		if ENTRY_POINTS.has(point) and (subject != null and int(subject) == source_id or int(ctx.get("entered", RulesEngine.NO_ENTITY)) == source_id):
 			continue
 		var host: Dictionary = _candidate_host(point, source_id, ctx)
 		if host.is_empty():
@@ -597,10 +710,45 @@ func _collect(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 			var trigger: String = str(effect.get("trigger", ""))
 			if not triggers.has(trigger) or not _responds(trigger, effect, ctx, source_id, str(host.owner)):
 				continue
-			if not _claim_once(effect, def_id, index, source_id):
+			if not _claim_once(effect, _effect_id(effect, def_id, index), source_id):
 				continue
-			queued.append(_queue_entry(point, ctx, source_id, def_id, index, effect, str(host.owner), trigger))
+			queued.append(_queue_entry(point, ctx, source_id, def_id, index, effect, str(host.owner), trigger, source_id))
 	return queued
+
+
+## The side whose hero is [param candidate], or "" for any other entity.
+func _hero_slot(candidate: int) -> String:
+	for side: String in MatchRecords.SIDES:
+		var hero: Variant = _engine.state().players[side].hero
+		if hero != null and int(hero.entity_id) == candidate:
+			return side
+	return ""
+
+
+## C9: [param slot]'s hero-slot observers on [param point], appended to
+## [param queued]: its hosts in installation order, each host's effects in order.
+## A treasure or passive is always a live source, never Silenced, so only `scope`
+## and the mark decide; both are keyed on the host id. [param hero] is the
+## candidate they answer for. The entry's snapshot is empty: a host has no stats
+## to keep, and its counters stay live.
+func _collect_hero_slot(point: StringName, ctx: Dictionary, slot: String, hero: int, triggers: Array, queued: Array[Dictionary]) -> void:
+	for host: Dictionary in _engine.state().effects.aura_hosts:
+		if str(host.side) != slot:
+			continue
+		var host_id: String = str(host.host_id)
+		var effects: Array = host.effects
+		for index: int in effects.size():
+			var effect: Dictionary = effects[index]
+			var trigger: String = str(effect.get("trigger", ""))
+			if not triggers.has(trigger) or not _is_hero_slot_observer(effect):
+				continue
+			if not _responds(trigger, effect, ctx, EffectSelectors.NO_SOURCE, slot):
+				continue
+			if not _claim_once(effect, _effect_id(effect, host_id, index), host_id):
+				continue
+			var entry: Dictionary = _queue_entry(point, ctx, host_id, host_id, index, effect, slot, trigger, hero)
+			entry[ENTRY_HOST_KIND] = str(host.host_kind)
+			queued.append(entry)
 
 
 ## The candidate's host `{def_id, owner}`, or `{}` when it cannot respond:
@@ -611,8 +759,9 @@ func _collect(point: StringName, ctx: Dictionary) -> Array[Dictionary]:
 ## 2026-11-04, DD-X21). A Deathrattle's candidate has just left play, so it is
 ## read from the death snapshot `ctx.snapshot` (match-rules C10); every other
 ## candidate is a minion or weapon in play. Heroes host no definition
-## effects (hero-slot observers — hero power, treasures, passive — are story
-## 015).
+## effects: a hero candidate's treasures and passive are [method
+## _collect_hero_slot]'s (a hero power's event triggers are not hosted yet: no
+## shipped power has one).
 func _candidate_host(point: StringName, source_id: int, ctx: Dictionary) -> Dictionary:
 	var record: Dictionary = {}
 	var owner: String = ""
@@ -643,17 +792,18 @@ func _responds(trigger: String, effect: Dictionary, ctx: Dictionary, source_id: 
 	return EffectScope.matches(self, trigger, effect.get("scope"), ctx, source_id, owner)
 
 
-## C6.7: true when [param effect] (index [param index] of [param def_id]) may
-## be queued or run for [param source_id] now. Without `once_per_turn` that is
-## always; with it the first call of a global `turn` sets the mark and says
-## yes, and any later one says no — a dropped raise emits nothing (Edge Cases:
-## nothing mutated). The mark is set here, when queued or run, so two raises
-## in one step produce one resolution; a false `condition` still spends it.
-func _claim_once(effect: Dictionary, def_id: String, index: int, source_id: int) -> bool:
+## C6.7: true when [param effect] (id [param effect_id]) may be queued or run for
+## [param source_id] now: an entity id, or the id of a treasure or passive (C9).
+## Without `once_per_turn` that is always; with it the first call of a global
+## `turn` sets the mark and says yes, and any later one says no — a dropped raise
+## emits nothing (Edge Cases: nothing mutated). The mark is set here, when queued
+## or run, so two raises in one step produce one resolution; a false `condition`
+## still spends it.
+func _claim_once(effect: Dictionary, effect_id: String, source_id: Variant) -> bool:
 	if not bool(effect.get("once_per_turn", false)):
 		return true
 	var state: MatchState = _engine.state()
-	var key: String = EffectRuntime.once_key(_effect_id(effect, def_id, index), source_id, int(state.turn))
+	var key: String = EffectRuntime.once_key(effect_id, source_id, int(state.turn))
 	if EffectRuntime.once_marked(state.effects, key):
 		return false
 	EffectRuntime.mark_once(state.effects, key)
@@ -672,8 +822,10 @@ static func _effect_id(effect: Dictionary, def_id: String, index: int) -> String
 ## damager / healer (`ctx.source`) or the attacker. `snapshot` is the C6.5
 ## raise-time snapshot ([method EffectValues.source_snapshot]) of the source as
 ## it is now: the death record for a Deathrattle, so post-Silence stats for a
-## kept one; the live record otherwise.
-func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: String, index: int, effect: Dictionary, owner: String, trigger: String) -> Dictionary:
+## kept one; the live record otherwise; empty for a treasure or passive, whose
+## [param source_id] is its String id. [param candidate] is the candidate it came
+## from ([constant ENTRY_CANDIDATE]).
+func _queue_entry(point: StringName, ctx: Dictionary, source_id: Variant, def_id: String, index: int, effect: Dictionary, owner: String, trigger: String, candidate: int) -> Dictionary:
 	var subject: Variant = ctx.get("subject")
 	var trigger_source: Variant = null
 	match point:
@@ -684,11 +836,14 @@ func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: St
 			trigger_source = ctx.get("attacker")
 		&"on_damage", &"on_heal":
 			trigger_source = ctx.get("source")
-	var record: Dictionary = ctx.snapshot if point == &"deathrattle" else EffectSelectors.find(_engine.state(), source_id)
-	return {
+	var snapshot: Dictionary = {}
+	if not source_id is String:
+		var record: Dictionary = ctx.snapshot if point == &"deathrattle" else EffectSelectors.find(_engine.state(), source_id)
+		snapshot = EffectValues.source_snapshot(self, record, source_id, def_id, owner)
+	var entry: Dictionary = {
 		"source_id": source_id,
 		"effect_id": _effect_id(effect, def_id, index),
-		"snapshot": EffectValues.source_snapshot(self, record, source_id, def_id, owner),
+		"snapshot": snapshot,
 		ENTRY_DEF_ID: def_id,
 		ENTRY_EFFECT_INDEX: index,
 		ENTRY_OWNER: owner,
@@ -697,7 +852,37 @@ func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: St
 		ENTRY_TRIGGER_SOURCE: trigger_source,
 		ENTRY_AMOUNT: ctx.get("amount"),
 		ENTRY_DEPTH: _depth + 1,
+		ENTRY_CANDIDATE: candidate,
 	}
+	_keep_trigger_snapshots(entry, effect, def_id, index, ctx)
+	return entry
+
+
+## C3: `trigger_subject` / `trigger_source` read the raise-time snapshot once the
+## entity has left play, so [param entry] keeps one of each, for an effect that
+## names either. The rest skip the copy: this runs per queued trigger.
+func _keep_trigger_snapshots(entry: Dictionary, effect: Dictionary, def_id: String, index: int, ctx: Dictionary) -> void:
+	var key: String = "%s:%d" % [def_id, index]
+	if not _names_trigger_entity.has(key):
+		_names_trigger_entity[key] = str(effect).contains(TRIGGER_ENTITY_TEXT)
+	if _names_trigger_entity[key]:
+		entry[ENTRY_SUBJECT_SNAPSHOT] = _entity_snapshot(entry[ENTRY_SUBJECT], ctx)
+		entry[ENTRY_SOURCE_SNAPSHOT] = _entity_snapshot(entry[ENTRY_TRIGGER_SOURCE], ctx)
+
+
+## The C6.5-shaped snapshot of [param id] now: the death record `ctx.snapshot`
+## when it names [param id], else the character in play; `{}` for anything with no
+## stats to keep (a card instance, a host's String id, null).
+func _entity_snapshot(id: Variant, ctx: Dictionary) -> Dictionary:
+	if typeof(id) != TYPE_INT and typeof(id) != TYPE_FLOAT:
+		return {}
+	var dead: Variant = ctx.get("snapshot")
+	var named: bool = dead is Dictionary and int((dead as Dictionary).get("entity_id", -1)) == int(id)
+	var record: Dictionary = dead if named else EffectSelectors.find(_engine.state(), int(id))
+	var owner: String = str(record.get("controller", ""))
+	if owner == "":
+		return {}
+	return EffectValues.source_snapshot(self, record, int(id), str(record.get("def_id", "")), owner)
 
 
 ## The engine popped one of this resolver's queue entries (`ctx` is the
@@ -707,7 +892,9 @@ func _queue_entry(point: StringName, ctx: Dictionary, source_id: int, def_id: St
 func _run_queued(ctx: Dictionary) -> void:
 	assert(_engine != null, "EffectResolver.resolve: not bound to an engine")
 	var def_id: String = str(ctx.get(ENTRY_DEF_ID, ""))
-	var effects: Array = effects_of(def_id)
+	var source: Variant = ctx.source_id
+	var hosted: bool = source is String
+	var effects: Array = EffectRuntime.hosted_effects(_engine.state().effects, def_id) if hosted else effects_of(def_id)
 	var index: int = int(ctx.get(ENTRY_EFFECT_INDEX, -1))
 	assert(index >= 0 and index < effects.size(), "EffectResolver: queued entry %s names no effect of %s" % [ctx.get("effect_id"), def_id])
 	if index < 0 or index >= effects.size():
@@ -716,13 +903,15 @@ func _run_queued(ctx: Dictionary) -> void:
 	_run_pass(effects[index], {
 		"effect_id": str(ctx.effect_id),
 		"host_id": def_id,
-		"host_kind": HOST_KIND_CARD,
-		"source_id": int(ctx.source_id),
+		"host_kind": str(ctx.get(ENTRY_HOST_KIND, HOST_KIND_CARD)),
+		"source_id": source if hosted else int(source),
 		"owner": str(ctx.get(ENTRY_OWNER, "")),
 		"trigger": str(ctx.get(ENTRY_TRIGGER, "")),
 		"target_id": null,
 		ENTRY_SUBJECT: ctx.get(ENTRY_SUBJECT),
 		ENTRY_TRIGGER_SOURCE: ctx.get(ENTRY_TRIGGER_SOURCE),
+		ENTRY_SUBJECT_SNAPSHOT: ctx.get(ENTRY_SUBJECT_SNAPSHOT),
+		ENTRY_SOURCE_SNAPSHOT: ctx.get(ENTRY_SOURCE_SNAPSHOT),
 		ENTRY_AMOUNT: ctx.get(ENTRY_AMOUNT),
 		ENTRY_DEPTH: int(ctx.get(ENTRY_DEPTH, 1)),
 		"snapshot": ctx.get("snapshot", {}),
@@ -738,12 +927,13 @@ func _run_queued(ctx: Dictionary) -> void:
 ## snapshot [method _candidate_host] reads. `[]` when it has no such effect, or
 ## is Silenced: C3 "live (unsilenced)" holds here, so a Deathrattle kept through
 ## Silence fires from the death and nothing else (2026-11-04, DD-X21; M1 review H1).
+## A hero has no effects of its own: it never stands for its hero slot here.
 ## Queues nothing itself: the op hands the entries to the engine.
 ## Example: `var entries: Array[Dictionary] = resolver.retrigger_entries("deathrattle", id)`.
 func retrigger_entries(trigger: String, target_id: int) -> Array[Dictionary]:
 	var state: MatchState = _engine.state()
 	var candidates: Array[int] = [target_id]
-	if bool(EffectSelectors.find(state, target_id).get("silenced", false)):
+	if bool(EffectSelectors.find(state, target_id).get("silenced", false)) or _hero_slot(target_id) != "":
 		var none: Array[Dictionary] = []
 		return none
 	return _collect(StringName(trigger), {
@@ -798,7 +988,22 @@ func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> bool:
 ## An emit that hits the event cap ends the match and unbinds this resolver in
 ## its own frame (sprint-4 review S1): [member _engine] goes null, the rest of
 ## the list is dropped and it returns false, so no owed play run follows.
+## A treasure's or passive's pass runs with the engine naming it on every event
+## (C9: `source_id` is the host's id); the source a nesting pass interrupted comes
+## back after it.
 func _continue_pass(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary], fizzled: Variant) -> bool:
+	if not run_ctx.source_id is String:
+		return _work_through(run_ctx, entries, todo, fizzled)
+	var engine: RulesEngine = _engine
+	var outer: Variant = engine.event_source()
+	engine.set_event_source(run_ctx.source_id)
+	var finished: bool = _work_through(run_ctx, entries, todo, fizzled)
+	engine.set_event_source(outer)
+	return finished
+
+
+## The body of [method _continue_pass].
+func _work_through(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary], fizzled: Variant) -> bool:
 	while not todo.is_empty() and _engine != null:
 		var item: Dictionary = todo.front()
 		var name: String = str((item.op as Dictionary).get("op", ""))
@@ -842,8 +1047,9 @@ func _continue_pass(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array
 ## left, the `ops[]` entries so far, the play runs still owed). Returns true
 ## when the pass is now suspended. No candidate: one `empty_pool` entry, no
 ## Choice, false (the effect continues — AC-11). A request the engine refuses
-## (the match ended, or one already pending — the engine logs that defect):
-## one `skipped` entry, false.
+## (Setup, an in-primitive hook, the match ended, or one already pending — the
+## engine logs why): one `skipped` entry, false, and [param todo] is emptied, so
+## the effect's later ops do not run (C6.0; match-rules C3 step 4; review N2).
 func _offer(item: Dictionary, run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[Dictionary]) -> bool:
 	var op: Dictionary = item.op
 	var name: String = str(op.get("op", ""))
@@ -866,6 +1072,7 @@ func _offer(item: Dictionary, run_ctx: Dictionary, entries: Array[Dictionary], t
 		var refused: Dictionary = EffectOps.entry(name, none, {}, EffectOps.SKIPPED)
 		EffectOps.tag_condition(refused, item)
 		entries.append(refused)
+		todo.clear()
 		return false
 	var offered: Dictionary = {"side": owner, "source_id": run_ctx.source_id, "effect_id": str(run_ctx.effect_id), "kind": kind}
 	if kind == ChoiceRequest.KIND_CHOOSE_ONE:
@@ -879,9 +1086,11 @@ func _offer(item: Dictionary, run_ctx: Dictionary, entries: Array[Dictionary], t
 	var run: Dictionary = run_ctx.duplicate()
 	run.erase("effect")
 	run.erase("resolver")
+	if run_ctx.source_id is String:
+		run[RUN_HOST_EFFECT] = run_ctx.effect
 	var snapshot: Variant = run_ctx.get("snapshot")
 	if not snapshot is Dictionary or (snapshot as Dictionary).is_empty():
-		snapshot = EffectSelectors.find(_engine.state(), int(run_ctx.source_id)).duplicate(true)
+		snapshot = EffectSelectors.find(_engine.state(), EffectSelectors.run_source(run_ctx)).duplicate(true)
 	_engine.state().effects.pending_choice = {
 		CONT_EFFECT_ID: str(run_ctx.effect_id),
 		CONT_SIDE: owner,
@@ -922,7 +1131,7 @@ func resume(choice: Variant, option_index: int) -> void:
 	var pending: Dictionary = cont
 	assert(not choice is Dictionary or str((choice as Dictionary).get("effect_id", "")) == str(pending[CONT_EFFECT_ID]), "EffectResolver.resume: the ChoiceRequest is not this continuation's")
 	var run_ctx: Dictionary = (pending[CONT_RUN] as Dictionary).duplicate(true)
-	run_ctx["effect"] = effects_of(str(run_ctx.host_id))[int(run_ctx[RUN_EFFECT_INDEX])]
+	run_ctx["effect"] = run_ctx[RUN_HOST_EFFECT] if run_ctx.has(RUN_HOST_EFFECT) else effects_of(str(run_ctx.host_id))[int(run_ctx[RUN_EFFECT_INDEX])]
 	run_ctx["resolver"] = self
 	_depth = int(run_ctx.get(ENTRY_DEPTH, 0))
 	var entries: Array[Dictionary] = []
@@ -932,8 +1141,12 @@ func resume(choice: Variant, option_index: int) -> void:
 	var tail: Array[Dictionary] = []
 	tail.assign(pending[CONT_TAIL])
 	_tail = tail
+	var engine: RulesEngine = _engine
+	if run_ctx.source_id is String:
+		engine.set_event_source(run_ctx.source_id)
 	_apply_pick(pending, option_index, run_ctx, entries, todo)
-	if _continue_pass(run_ctx, entries, todo, null):
+	engine.set_event_source(null)
+	if _engine != null and _continue_pass(run_ctx, entries, todo, null):
 		while not tail.is_empty():
 			if not _run_play_from(tail.pop_front()):
 				break

@@ -117,7 +117,8 @@
 - **`entity()` answers `{}` for a card in a deck or the boss's hand.** The GDD is silent; hidden information (U3 rule 2) requires it for the boss, and deck order for the player.
 - **`hero_power_state()` is `{state, reason_code}`,** and a side with no power reads `HERO_POWER_USED`, as `_validate_hero_power` does.
 - **`bind_queue(queue)`** carries the queue handle: `MatchView` builds the queue after the controller is injected. With none bound, `submit` flushes nothing.
-- **`on_setting_changed` is a dynamic call.** `MatchDriver` gains the method with BAI-014, which merges first; a typed call does not compile on this branch. Tested through a spy; replace with a direct call after M3.
+- **`on_setting_changed`** was a dynamic call until BAI-014 reached this branch at the M3 merge; it is now direct. Tests build the driver with `planner_factory` (DD-X31).
+- **Real planning, verified after the merge:** `test_real_boss_turns_plan_replay_and_pace_through_the_controller` plays four boss turns on the shipped data through `ImmediatePlannerTask`, the controller, the view, the queue and the router.
 - **`match_view_state.gd` changed** (not in the planned Files): it read the catalogue's `attacker_id`, and the engine sends `attacker`, so `attacks_used` never moved and `attack_lunge` carried no ids on a real match. It now reads both.
 - **L2 is per `seq` for hero armour and health, mana, deck counts and hands, and for boards at every `seq` outside `MID_BATCH`.** The engine applies a batch and then reports it: every death of a pass, and the Start step's reset. `attacks_used` compares after each command, because it moves before `attack_resolved`. Every command boundary compares everything.
 - **`hero.health` is null in the view until an event reports it** (story 001): no event carries starting health, so a presenter has nothing to draw before the first damage. Parity counts those and compares the rest.

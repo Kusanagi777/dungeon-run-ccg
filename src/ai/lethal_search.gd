@@ -102,8 +102,9 @@ func _init(db: Variant, picker: CandidateSet) -> void:
 ## **coroutine** (ADR-0006 erratum): it awaits [param planner]`.checkpoint()`
 ## after each node, so every caller awaits it. [param sim_stream] is the turn's
 ## `sim_<turn>` fork; null falls back to each clone's copy of `rng_match`.
-## [param unseen] is a forecast's undrawn deck ([method drop_unseen]): each node loses
-## those cards as it draws them, so no line runs through one.
+## [param unseen] is the side's undrawn deck ([method drop_unseen]), in a real plan as
+## in a forecast: each node loses those cards as it draws them, so no line runs through
+## one (C1.3).
 ## [codeblock]
 ## var plan: Variant = await lethal.search(base, profile, profile.budgets, planner, sim)
 ## [/codeblock]
@@ -449,8 +450,8 @@ static func _has_taunt(node: RulesEngine) -> bool:
 
 
 ## Drops from [param side]'s hand every card of [param unseen], the instance ids of
-## its deck when a forecast began, so nothing downstream of a draw reads an undrawn
-## card (C1.3, C8.1; BAI-011 review D1). A card the hand held, or one an effect made,
+## its deck when a forecast or a search began, so nothing downstream of a draw reads an
+## undrawn card (C1.3, C8.1; BAI-011 review D1). A card the hand held, or one an effect made,
 ## stays. Only at a Main: a pending Choice's stages must not be disturbed. Through
 ## `run_action`, so auras settle; `discard` raises no trigger.
 ## [codeblock]

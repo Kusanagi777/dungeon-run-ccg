@@ -50,12 +50,12 @@
 ## already-multiplied weights and branches on mode only for the Taunt BV bonus);
 ## `choose` scoring ([Chooser], story 010 — a boss-side Choice raised in a
 ## trial is answered with it from the trial's own stream, C4); forking
-## `ai_<floor>.fork("sim_<turn>")` and
-## passing it as `context[CONTEXT_SIM_STREAM]` (story 008 `plan_turn`). Until
-## a caller passes it, a trial falls back to a copy of the base's
-## `rng_match` — the live outcome of a random effect, which C4 forbids (code
-## review 2026-11-04, BAI-004 S1); the root sandbox itself keeps its
-## `rng_match` copy, or replay diverges (ADR-0006).
+## `ai_<floor>.fork("sim_<turn>")` and passing it as
+## `context[CONTEXT_SIM_STREAM]` ([method BossAI.plan_turn]; every planner call
+## passes it). A context without one is a scoring test's: its trial falls back to
+## a copy of the base's `rng_match`, the live outcome of a random effect, which C4
+## forbids a plan (code review 2026-11-04, BAI-004 S1). The root sandbox itself
+## keeps its `rng_match` copy, or replay diverges (ADR-0006).
 ## [codeblock]
 ## var scorer := Scorer.new(db, db.config("ai_profiles").keyword_values)
 ## var base: RulesEngine = engine.clone()
@@ -94,12 +94,10 @@ const FEATURE_KEYS: Array[String] = ["f_board", "f_face", "f_self", "f_trade", "
 
 ## The normaliser table (A29: the only numbers in `src/ai/**` that are not
 ## read from `ai_profiles.json`). Each value is a GDD constant that F9's
-## closed schema has no key for; promote a row to `rules` when F9 gains it.
-## - `taunt_bonus` 1.5 — F2 `taunt_bonus` (threat of a Taunt);
+## closed schema has no key for; promote a row to `rules` when F9 gains it, as
+## F2's `taunt_bonus` and `flat_bonus` were ([constant BossAI.F2_RULE_KEYS]).
 ## - `threat_windfury` 0.5 — F2 `threat(m) = attack · (1 + 0.5·windfury) …`;
 ## - `threat_deathrattle` 1 — F2 `threat(m) … + (deathrattle ? 1 : 0)`;
-## - `flat_spell_damage` 2 / `flat_deathrattle` 1 / `flat_aura` 2 — F2
-##   `flat_bonus` (per Spell Damage point, Deathrattle, aura);
 ## - `weapon_bv` 0.8 — F2 `BV(weapon) = attack · durability · 0.8`;
 ## - `card_norm` 3 — F1 `f_card` divisor;
 ## - `trade_even_band` 0.2 — F3 "`|BV(D) − BV(A)| ≤ 0.2·BV(A)` → 0";
@@ -112,12 +110,8 @@ const FEATURE_KEYS: Array[String] = ["f_board", "f_face", "f_self", "f_trade", "
 ##   and beyond the boss's next-turn mana ([Chooser]);
 ## - `big_minion_cost` 5 — C8.3 `play_big_minion` "(cost ≥ 5)" ([Intent]).
 const NORMALISERS: Dictionary = {
-	"taunt_bonus": 1.5,
 	"threat_windfury": 0.5,
 	"threat_deathrattle": 1.0,
-	"flat_spell_damage": 2.0,
-	"flat_deathrattle": 1.0,
-	"flat_aura": 2.0,
 	"weapon_bv": 0.8,
 	"card_norm": 3.0,
 	"trade_even_band": 0.2,
@@ -210,7 +204,7 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## [/codeblock]
 func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictionary, mode: StringName, context: Dictionary) -> Dictionary:
 	var own: String = str(context.get(CONTEXT_SIDE, sandbox_before.active_side()))
-	var before: Dictionary = _measure(sandbox_before, mode, own)
+	var before: Dictionary = _measure(sandbox_before, mode, own, profile.rules)
 	var entry: Dictionary = {"command": candidate, "score": 0.0, "features": {}, "sim_overflow": false}
 	var after: Dictionary = before
 	if str(candidate.get("type")) != MatchRecords.CMD_END_TURN:
@@ -227,7 +221,7 @@ func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictiona
 			entry.score = -INF
 			entry.features = _zero_features()
 			return entry
-		after = _measure(trial, mode, own)
+		after = _measure(trial, mode, own, profile.rules)
 		if str(candidate.get("type")) == MatchRecords.CMD_ATTACK:
 			entry["exposure"] = _exposure(candidate, trial, profile, own, after, sandbox_before)
 		trial.end_match()
@@ -288,30 +282,31 @@ static func weighted_sum(features: Dictionary, weights: Dictionary) -> float:
 ## [param has_aura] whether it holds an aura, [param defensive] adds the
 ## DEFENSIVE Taunt bonus.
 ## [codeblock]
-## Scorer.board_value(3, 2, ["divine_shield", "taunt"], {"taunt": 1.2, "divine_shield": 1.3})   # 7.8 (F2 example)
+## Scorer.board_value(3, 2, ["divine_shield", "taunt"], {"taunt": 1.2, "divine_shield": 1.3}, profile.rules)   # 7.8 (F2 example)
 ## [/codeblock]
-static func board_value(attack: int, health: int, keywords: Array, keyword_values: Dictionary, spell_damage: int = 0, has_aura: bool = false, defensive: bool = false) -> float:
+static func board_value(attack: int, health: int, keywords: Array, keyword_values: Dictionary, rules: Dictionary, spell_damage: int = 0, has_aura: bool = false, defensive: bool = false) -> float:
 	var value: float = float(attack + health)
 	for keyword: Variant in keywords:
 		value *= float(keyword_values.get(keyword, 1.0))
-	value += float(spell_damage) * float(NORMALISERS.flat_spell_damage)
+	value += float(spell_damage) * float(rules.flat_spell_damage)
 	if keywords.has(KEYWORD_DEATHRATTLE):
-		value += float(NORMALISERS.flat_deathrattle)
+		value += float(rules.flat_deathrattle)
 	if has_aura:
-		value += float(NORMALISERS.flat_aura)
+		value += float(rules.flat_aura)
 	if defensive and keywords.has(MatchRecords.KEYWORD_TAUNT):
 		value += float(NORMALISERS.defensive_taunt_bv)
 	return value
 
 
-## F2 `threat(m) = attack · (1 + 0.5·windfury) + taunt_bonus + (deathrattle ? 1 : 0)`.
+## F2 `threat(m) = attack · (1 + 0.5·windfury) + taunt_bonus + (deathrattle ? 1 : 0)`,
+## `taunt_bonus` from [param rules], the resolved profile's.
 ## [codeblock]
-## Scorer.threat(3, ["taunt"], false)   # 4.5 (F2 example)
+## Scorer.threat(3, ["taunt"], false, profile.rules)   # 4.5 (F2 example)
 ## [/codeblock]
-static func threat(attack: int, keywords: Array, windfury: bool) -> float:
+static func threat(attack: int, keywords: Array, windfury: bool, rules: Dictionary) -> float:
 	var value: float = float(attack) * (1.0 + (float(NORMALISERS.threat_windfury) if windfury else 0.0))
 	if keywords.has(MatchRecords.KEYWORD_TAUNT):
-		value += float(NORMALISERS.taunt_bonus)
+		value += float(rules.taunt_bonus)
 	if keywords.has(KEYWORD_DEATHRATTLE):
 		value += float(NORMALISERS.threat_deathrattle)
 	return value
@@ -491,7 +486,7 @@ func _features(candidate: Dictionary, own: String, before: Dictionary, after: Di
 ## `effective_hp` (health + armor), mana, `count` (hand + board), `board_size`,
 ## `bv` (F2 over the board plus the weapon), `minions {entity_id: {bv,
 ## threat}}` and `hand_defs` (definition ids; read for [param own] only, C1.3).
-func _measure(engine: RulesEngine, mode: StringName, own: String) -> Dictionary:
+func _measure(engine: RulesEngine, mode: StringName, own: String, rules: Dictionary) -> Dictionary:
 	var state: MatchState = engine.state()
 	var out: Dictionary = {}
 	for side: String in MatchRecords.SIDES:
@@ -505,8 +500,8 @@ func _measure(engine: RulesEngine, mode: StringName, own: String) -> Dictionary:
 			var silenced: bool = bool(minion.get("silenced", false))
 			var spell_damage: int = int(def.get("spell_damage", 0)) if def is Dictionary and keywords.has(RulesEngine.KEYWORD_SPELL_DAMAGE) else 0
 			var has_aura: bool = not silenced and def is Dictionary and _has_trigger(def, TRIGGER_AURA)
-			var value: float = board_value(engine.attack(minion), engine.health(minion), keywords, _keyword_values, spell_damage, has_aura, mode == MODE_DEFENSIVE)
-			minions[int(minion.entity_id)] = {"bv": value, "threat": threat(engine.attack(minion), keywords, engine.has_windfury(minion))}
+			var value: float = board_value(engine.attack(minion), engine.health(minion), keywords, _keyword_values, rules, spell_damage, has_aura, mode == MODE_DEFENSIVE)
+			minions[int(minion.entity_id)] = {"bv": value, "threat": threat(engine.attack(minion), keywords, engine.has_windfury(minion), rules)}
 			bv += value
 		var weapon: Variant = player.weapon
 		if weapon is Dictionary:

@@ -5,7 +5,8 @@
 ## The driver is a real `MatchDriver` over [MatchDriverFixture]'s database with
 ## `ImmediatePlannerTask`. It is built directly: the `driver_factory` the story names
 ## has no owning story yet (QA plan, MUI-003 "Gaps"). [method _planner] is the one
-## place that says what the driver is planned with.
+## place that says what the driver is planned with. The last section plays real boss
+## turns on the shipped data through the whole UI side, as `MatchView` will.
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchRecords.SIDE_PLAYER
@@ -15,10 +16,26 @@ const SEQ_ZERO: int = 0
 const PLENTY_OF_MANA: int = 9
 ## An id no record has.
 const NO_SUCH_ID: int = 9_999_999
+const BOOT_SCRIPT := preload("res://src/core/boot.gd")
+const SHIPPED_ROOT: String = "res://assets/data/"
+const REAL_BOSS: String = "boss_torchbearer"
+const REAL_SEED: int = 21
+const REAL_ROUNDS: int = 4
+## A 60 fps frame on the fake clock.
+const FRAME_S: float = 1.0 / 60.0
+## More frames than any boss turn takes: `max_turn_playback_s` plus planning.
+const FRAME_CAP: int = 1200
+## A task that stays live for the whole test.
+const STAYS_LIVE: int = 1000
 
 var _db: MatchDriverFixture.FixtureDatabase
 var _log: TestEventLog
 var _driver: MatchDriver
+# The UI side of the real matches, as `MatchView` holds it.
+var _view: MatchViewState
+var _queue: AnimationQueue
+var _router: InputRouter
+var _pacing: Dictionary = {}
 
 
 ## A driver that records each call and answers with what it was told to.
@@ -35,7 +52,7 @@ class SpyDriver:
 	var events: Array = []
 	var planning: bool = false
 
-	func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, planner: Variant) -> void:
+	func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, planner: Callable) -> void:
 		super(config, db, settings, planner)
 
 	func submit(command: Dictionary) -> Dictionary:
@@ -88,9 +105,9 @@ func after_test() -> void:
 	_driver = null
 
 
-## What `MatchDriver`'s construction is given to plan with.
-func _planner() -> Variant:
-	return ImmediatePlannerTask.new()
+## What `MatchDriver`'s construction is given to plan with (DD-X31).
+func _planner() -> Callable:
+	return func() -> PlannerTask: return ImmediatePlannerTask.new()
 
 
 func _real_driver() -> MatchDriver:
@@ -567,3 +584,129 @@ func test_submit_with_no_queue_bound_still_reaches_the_driver() -> void:
 
 	# Assert
 	assert_that(spy.trail).is_equal(["submit"])
+
+
+# --- Real planning through the UI side ---------------------------------------------------
+
+func test_a_forecast_on_the_players_turn_reads_as_planning_and_locks_nothing() -> void:
+	# Arrange: a forecast task that never returns, on the player's Main
+	var task: FakePlannerTask = FakePlannerTask.new()
+	task.polls_before_done = STAYS_LIVE
+	_driver = MatchDriver.new(MatchDriverFixture.match_config(_log), _db, {}, MatchDriverFixture.same_task(task))
+	var controller: MatchController = MatchController.new(_driver)
+	var view: MatchViewState = MatchViewState.new(MatchUiTestConfig.body())
+	var queue: AnimationQueue = AnimationQueue.new(MatchUiTestConfig.body(), MatchUiTestConfig.settings())
+	var router: InputRouter = auto_free(InputRouter.new())
+	router.bind(view, queue)
+
+	# Act
+	MatchDriverFixture.past_mulligan(_driver)
+	for event: Dictionary in controller.events_since(SEQ_ZERO):
+		@warning_ignore("return_value_discarded")
+		view.apply(event)
+	var planning: bool = controller.is_planning()
+	var locked: bool = router.controls_locked()
+	task.finish()
+
+	# Assert
+	assert_bool(planning).override_failure_message("the forecast is not live").is_true()
+	assert_bool(locked).override_failure_message("a forecast locked the player's controls").is_false()
+
+
+func _shipped() -> CardDatabase:
+	var boot: Node = auto_free(BOOT_SCRIPT.new())
+	var db: CardDatabase = CardDatabase.new(DataLoader.new(SHIPPED_ROOT))
+	db.load(boot._collect_validators(null, true))
+	return db
+
+
+## What `MatchView` does with an event: the mode first, then the projection.
+func _project(event: Dictionary) -> void:
+	if str(event.type) == "turn_started":
+		if str(event.payload.side) == SIDE_BOSS:
+			_queue.enter_boss_turn(_pacing)
+		else:
+			_queue.exit_boss_turn()
+	for step: AnimStep in _view.apply(event):
+		_queue.enqueue(step)
+
+
+## The player's Main, nothing replaying and nothing playing.
+func _at_rest(controller: MatchController) -> bool:
+	var main: bool = controller.query().phase() == MatchState.PHASE_MAIN and controller.query().active_side() == SIDE_PLAYER
+	return main and not controller.is_planning() and _queue.is_idle() and not _queue.boss_turn_active()
+
+
+## `MatchView._process`, until at rest or the match ended. Answers the frames run;
+## [param locked] gains the lock as read on each of them.
+func _play_frames(controller: MatchController, locked: Array[bool]) -> int:
+	var frames: int = 0
+	while frames < FRAME_CAP and not _at_rest(controller) and controller.query().phase() != MatchState.PHASE_ENDED:
+		controller.tick()
+		_queue.advance(FRAME_S)
+		frames += 1
+		if not _at_rest(controller):
+			locked.append(_router.controls_locked())
+	return frames
+
+
+func test_real_boss_turns_plan_replay_and_pace_through_the_controller() -> void:
+	# Arrange: the shipped data and `ImmediatePlannerTask`; only the budget clock is fake
+	var db: CardDatabase = _shipped()
+	var boss_def: Dictionary = db.boss(REAL_BOSS)
+	var hero: Dictionary = db.hero("hero_war")
+	var log: EventLog = EventLog.new(TestConstants.MAX_MATCH_EVENTS, EventLog.SCOPE_MATCH)
+	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(REAL_SEED), null, {
+		"log": log,
+		"player": {"deck": hero.starter_deck},
+		"boss": {"boss_def_id": REAL_BOSS, "deck": boss_def.deck, "health": boss_def.health, "ai_id": boss_def.ai_profile},
+	})
+	_driver = MatchDriver.new(config, db, {}, _planner(), func() -> int: return 0)
+	var controller: MatchController = MatchController.new(_driver)
+	var ui: Dictionary = db.config("match_ui")
+	_view = MatchViewState.new(ui)
+	_queue = AnimationQueue.new(ui, MatchUiTestConfig.settings())
+	_pacing = AnimationQueue.boss_pacing(ui, db.config("ai_profiles"), {})
+	_router = auto_free(InputRouter.new())
+	_router.bind(_view, _queue)
+	controller.bind_queue(_queue)
+	var starts: Array[StringName] = []
+	_queue.step_started.connect(func(step: AnimStep, _d_eff: float) -> void: starts.append(step.kind))
+	for event: Dictionary in controller.events_since(SEQ_ZERO):
+		_project(event)
+	controller.subscribe(_project)
+	var kept: Dictionary = controller.submit(controller.legal_commands()[0])
+	assert_bool(kept.accepted).is_true()
+	var unlocked_after_round: Array[bool] = []
+	var locked_frames: Array[bool] = []
+
+	# Act
+	@warning_ignore("return_value_discarded")
+	_play_frames(controller, [] as Array[bool])
+	for _round: int in REAL_ROUNDS:
+		var ended: Dictionary = controller.submit(MatchRecords.end_turn(SIDE_PLAYER))
+		assert_bool(ended.accepted).is_true()
+		@warning_ignore("return_value_discarded")
+		_play_frames(controller, locked_frames)
+		if controller.query().phase() == MatchState.PHASE_ENDED:
+			break
+		unlocked_after_round.append(not _router.controls_locked())
+
+	# Assert
+	var types: Array[String] = []
+	for event: Dictionary in log.events_since(SEQ_ZERO):
+		types.append(str(event.type))
+	assert_int(types.count("ai_intent_committed")).override_failure_message("no plan committed").is_greater_equal(REAL_ROUNDS)
+	assert_int(types.count("ai_fault")).is_equal(0)
+	assert_int(types.count("command_rejected")).is_equal(0)
+	assert_int(types.count("card_played")).is_greater(0)
+	assert_int(starts.count(AnimStep.INTENT_COMMIT)).is_greater_equal(REAL_ROUNDS)
+	assert_int(starts.count(AnimStep.PLAY_CARD)).is_greater(0)
+	assert_bool(locked_frames.has(false)).override_failure_message("unlocked during a boss turn").is_false()
+	assert_int(locked_frames.size()).is_greater(0)
+	assert_that(unlocked_after_round).is_equal([true, true, true, true])
+	for side: String in MatchRecords.SIDES:
+		var truth: Dictionary = controller.query().snapshot(side)
+		var shown: Dictionary = _view.side(StringName(side))
+		assert_int(int(shown.mana.available)).is_equal(int(truth.mana.available))
+		assert_int(int(shown.deck_count)).is_equal(int(truth.deck_count))

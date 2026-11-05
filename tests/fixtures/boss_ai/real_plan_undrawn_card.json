@@ -1,0 +1,17 @@
+{
+  "name": "real_plan_undrawn_card",
+  "description": "boss-ai C1.3, the real plan: the boss's own deck order is hidden too. A one-ply trial of the draw spell draws the real next card, and `bai_watcher` fires on a drawn spell, so the trial's `f_face` says which card is next. `deck_orders` are two orders of the same cards, the first one the Start step's draw. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_watcher", "type": "minion", "cost": 2, "attack": 1, "health": 5, "effects": [{"trigger": "on_draw", "scope": {"side": "owner", "card": {"type": "spell"}}, "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 5}]}]},
+    {"id": "bai_ember", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "ops": [{"op": "damage", "targets": "enemy_hero", "amount": 1}, {"op": "draw", "count": 1}]}]},
+    {"id": "bai_tome", "type": "spell", "cost": 9, "effects": [{"trigger": "cast", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_lump", "type": "minion", "cost": 9, "attack": 1, "health": 1}
+  ],
+  "boss": {"mana": 0, "board": ["bai_watcher"], "hand": ["bai_ember"]},
+  "player": {"health": 30, "board": []},
+  "deck_orders": [["bai_filler", "bai_tome", "bai_lump"], ["bai_filler", "bai_lump", "bai_tome"]]
+}
