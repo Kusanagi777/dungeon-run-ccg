@@ -166,6 +166,17 @@ var _ops: EffectOps = EffectOps.new()
 ## trigger raised inside a pass queues with `depth + 1` (story 008). Passes
 ## never nest — a raise inside one only collects — so one field suffices.
 var _depth: int = 0
+## The pass context of one [method apply_value_hook] call, refilled in place
+## because a fold allocates nothing (ADR-0005 rule 4). `resolver` is set by
+## [method bind] and cleared by [method unbind]: it is a reference to this
+## object, so it must not outlive the match.
+var _fold_run: Dictionary = {
+	"resolver": null, "owner": "", "source_id": "", "target_id": null,
+	ENTRY_SUBJECT: null, ENTRY_TRIGGER_SOURCE: null, "value": 0,
+}
+## The filter view of a card instance, hero power or weapon in a fold, refilled
+## in place ([method EffectScope.matches_value]).
+var _fold_view: Dictionary = {"entity_id": -1, "def_id": "", "controller": "", "kind": ""}
 
 
 ## Keeps [param db] (the frozen `CardDatabase`; lookups by `card(def_id)`)
@@ -195,6 +206,7 @@ func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String
 func bind(engine: RulesEngine, installers: Array[HookInstaller]) -> void:
 	assert(_engine == null, "EffectResolver.bind: already bound (one resolver per engine; a clone binds a fresh one)")
 	_engine = engine
+	_fold_run.resolver = self
 	var hooks: HookRegistry = engine.state().hooks
 	for installer: HookInstaller in installers:
 		@warning_ignore("return_value_discarded")
@@ -215,6 +227,7 @@ func unbind() -> void:
 	if state != null and state.effects.has("pending_choice"):
 		state.effects.pending_choice = null
 	_tail.clear()
+	_fold_run.resolver = null
 	_engine = null
 
 
@@ -433,11 +446,39 @@ func _aura_run(effect: Dictionary, def_id: String, index: int, source_id: int, o
 	}
 
 
-## One value-hook fold step (ADR-0005 `set_evaluators` shape; card-effects
-## C9). Story 014 applies the entry's `modify_value` ops; until then the
-## value passes through unchanged.
-func apply_value_hook(_entry: Dictionary, _side: StringName, value: int, _ctx: Dictionary) -> int:
-	return value
+## One value-hook fold step (ADR-0005 `set_evaluators` shape; card-effects C2
+## value class, C9; story 014): [param value] after the entry's `modify_value`
+## ops, or [param value] unchanged when the entry's `scope` does not match this
+## occurrence ([method EffectScope.matches_value], relative to `entry.side`,
+## ADR-0005 rule 3) or its `condition` is false — evaluated on every call, so it
+## sees `context.value`, the previous entry's output, and the live tallies (C1;
+## Treasures R-2). An entry whose trigger is not a value trigger never matches.
+## [param side] is the fold's side, read only by the `side` scope of
+## `modify_starting_hand_size` and as a hero power's controller. Never clamps:
+## the engine clamps once after the whole fold (ADR-0005 rule 4). Mutates no
+## match state and builds nothing: it refills [member _fold_run] and
+## [member _fold_view] in place.
+## Example: `hooks.set_evaluators(resolver.apply_value_hook, resolver.run_hook_effect)`.
+func apply_value_hook(entry: Dictionary, side: StringName, value: int, ctx: Dictionary) -> int:
+	var effect: Dictionary = entry.effect
+	var owner: String = str(entry.side)
+	var run: Dictionary = _fold_run
+	run.owner = owner
+	run.source_id = entry.get("host_id", "")
+	run.value = value
+	run[ENTRY_TRIGGER_SOURCE] = ctx.get("source")
+	run[ENTRY_SUBJECT] = ctx.get("target")
+	if not EffectScope.matches_value(self, str(effect.get("trigger", "")), effect.get("scope"), str(side), ctx, owner, _fold_view, run):
+		return value
+	if not EffectValues.holds(effect.get("condition"), run):
+		return value
+	var folded: int = value
+	var ops: Variant = effect.get("ops")
+	if ops is Array:
+		for op: Dictionary in ops:
+			folded = EffectOps.modify_value(op, folded, run)
+			run.value = folded
+	return folded
 
 
 ## One trigger-hook step at a hook point (card-effects C9). Story 015 runs

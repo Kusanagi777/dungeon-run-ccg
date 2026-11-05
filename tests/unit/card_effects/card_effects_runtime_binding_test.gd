@@ -233,14 +233,18 @@ func test_end_match_unbinds_clearing_the_engine_reference_and_the_evaluators() -
 	assert_array(resolver.runs).is_empty()
 
 
-func test_base_resolver_evaluators_are_identity_until_stories_014_and_015() -> void:
+## Was the story-002 pass-through pin, "identity until stories 014 and 015".
+## Story 014 replaced the pass-through (card_effects_value_hooks_test.gd holds
+## the folds), so what stays true here is the scope-miss path.
+func test_base_resolver_value_hook_outside_its_scope_returns_its_input() -> void:
 	# Arrange
 	var resolver: EffectResolver = EffectResolver.new(FakeCardDatabase.new(), _effects_config())
 	var engine: RulesEngine = _start(resolver, _installers("on_match_start"))
 	var entry: Dictionary = engine.state().hooks.entries(&"modify_cost")[0]
+	var ctx: Dictionary = {"card": {"def_id": ""}, "kind": RulesEngine.COST_KIND_HERO_POWER}
 
-	# Act / Assert — the value hook returns its input unchanged
-	assert_int(resolver.apply_value_hook(entry, &"boss", 5, {})).is_equal(5)
+	# Act / Assert — a `card` scope without `kind` never matches the hero power
+	assert_int(resolver.apply_value_hook(entry, &"boss", 5, ctx)).is_equal(5)
 	engine.end_match()
 
 

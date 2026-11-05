@@ -27,6 +27,8 @@
 ## [method draw_options]); the pause itself is the resolver's. Story 009 adds
 ## `add_counter` / `set_counter`, `values.read_from` on an op whose value read
 ## `source.*` or `counter.*`, and `source_slot` from the raise-time snapshot.
+## Story 014 adds [method modify_value], the one op of a value trigger (a fold
+## step, never a pass op), and `values.hook_delta` on `damage` / `heal`.
 ## [codeblock]
 ## var ops := EffectOps.new()
 ## var todo: Array[Dictionary] = EffectOps.work([{"op": "draw", "count": 2}])
@@ -106,6 +108,11 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 const CARD_INSTANCE_PARAMS: Dictionary[String, String] = {"buff": "cost"}
 ## The static op `recompute_auras()` applies (C5 `aura`, C7; story 012).
 const OP_AURA: String = "aura"
+## The one op of a value trigger (C5 `modify_value`, C2; story 014).
+const OP_MODIFY_VALUE: String = "modify_value"
+## The engine fold each op's primitive runs (match-rules hook table).
+const POINT_MODIFY_DAMAGE: StringName = &"modify_damage"
+const POINT_MODIFY_HEAL: StringName = &"modify_heal"
 ## The kinds an `aura` op accepts (C5 Legal targets: "as for `buff`"); a card
 ## instance only with `cost` ([method apply_aura]).
 const AURA_KINDS: Array[String] = ["minion", "hero", "weapon", EffectSelectors.KIND_CARD]
@@ -285,16 +292,22 @@ static func fold_outcomes(outcomes: Array[String]) -> String:
 ## 0)`, `scales = spell_damage == true ∨ (spell_damage == auto ∧ host.type
 ## == spell)`; an absent `spell_damage` is the `spell_damage_default` knob.
 ## `spell_damage(owner)` is match-rules F7, read through the engine once per
-## op (re-read per op, added once — not per target).
+## op (re-read per op, added once — not per target). When a `modify_damage`
+## hook changed `requested` the entry also carries `values.hook_delta` and
+## `values.dealt` ([method _record_folds]).
 func _op_damage(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var amount: int = _int(op.get("amount", 0))
 	var requested: int = amount
 	if _scales(op, run_ctx):
 		requested += engine.spell_damage(str(run_ctx.owner))
-	return _per_target(engine, op, run_ctx, {"amount": amount, "requested": requested}, func(id: int) -> String:
-		@warning_ignore("return_value_discarded")
-		engine.apply_damage(id, requested, run_ctx.source_id)
+	var deltas: Array[int] = []
+	var dealt: Array[int] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"amount": amount, "requested": requested}, func(id: int) -> String:
+		deltas.append(_hook_delta(engine, POINT_MODIFY_DAMAGE, requested, id, run_ctx))
+		dealt.append(engine.apply_damage(id, requested, run_ctx.source_id))
 		return APPLIED)
+	_record_folds(result, deltas, "dealt", dealt)
+	return result
 
 
 ## F1 `scales` for a `damage` op of the pass [param run_ctx] (no resolver in
@@ -311,12 +324,60 @@ static func _scales(op: Dictionary, run_ctx: Dictionary) -> bool:
 	return false
 
 
+## C5 `heal`: `apply_heal` per target. When a `modify_heal` hook changed the
+## amount the entry also carries `values.hook_delta` and `values.restored`
+## ([method _record_folds]).
 func _op_heal(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var amount: int = _int(op.get("amount", 0))
-	return _per_target(engine, op, run_ctx, {"amount": amount}, func(id: int) -> String:
-		@warning_ignore("return_value_discarded")
-		engine.apply_heal(id, amount, run_ctx.source_id)
+	var deltas: Array[int] = []
+	var restored: Array[int] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"amount": amount}, func(id: int) -> String:
+		deltas.append(_hook_delta(engine, POINT_MODIFY_HEAL, amount, id, run_ctx))
+		restored.append(engine.apply_heal(id, amount, run_ctx.source_id))
 		return APPLIED)
+	_record_folds(result, deltas, "restored", restored)
+	return result
+
+
+## The net change the hooks on [param point] make to [param requested] for this
+## target, before the engine's clamp (treasures Edge Cases: a fold of −1 from 1
+## logs −2). The fold is pure, so reading it ahead of the primitive changes
+## nothing; the primitive folds again with the same inputs.
+static func _hook_delta(engine: RulesEngine, point: StringName, requested: int, target_id: int, run_ctx: Dictionary) -> int:
+	var ctx: Dictionary = {"source": run_ctx.source_id, "target": target_id}
+	return engine.state().hooks.fold(point, StringName(str(run_ctx.owner)), requested, ctx) - requested
+
+
+## Story 014 (ADR-0005 Events; treasures Edge Cases, AC-27): when a fold changed
+## the value for any target, `values.hook_delta` and `values[key]` of
+## [param result] hold one int per entry of `targets`, in that order, so the
+## feed can name the treasure. With no change neither key exists, and the entry
+## keeps the shape it has with no hooks installed.
+static func _record_folds(result: Dictionary, deltas: Array[int], key: String, amounts: Array[int]) -> void:
+	for delta: int in deltas:
+		if delta != 0:
+			(result.values as Dictionary)["hook_delta"] = deltas
+			(result.values as Dictionary)[key] = amounts
+			return
+
+
+## C5 `modify_value`, one step of a value fold (C2, C9; story 014): [param value]
+## with the op's one param applied — `delta` adds, `set` replaces, `mul`
+## multiplies; `delta` and `set` are C4 value expressions read in
+## [param run_ctx], so `context.value` is the value coming in. Never clamps:
+## the engine clamps once after the whole fold (ADR-0005 rule 4). Any other op
+## leaves the value alone (the validator rejects one at load, `E_FX_OP`).
+## Example: `folded = EffectOps.modify_value({"op": "modify_value", "delta": -1}, 3, run)`.
+static func modify_value(op: Dictionary, value: int, run_ctx: Dictionary) -> int:
+	if str(op.get("op", "")) != OP_MODIFY_VALUE:
+		return value
+	if op.has("delta"):
+		return value + EffectValues.eval(op["delta"], run_ctx)
+	if op.has("set"):
+		return EffectValues.eval(op["set"], run_ctx)
+	if op.has("mul"):
+		return value * _int(op["mul"])
+	return value
 
 
 ## C5 `buff`: `apply_enchantment(target, {attack_delta, health_delta,
