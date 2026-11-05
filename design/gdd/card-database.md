@@ -197,7 +197,8 @@ later stages still run on the rest, so one report lists everything.
    `E_TOKEN_IN_LIST`, `E_TAG_MISMATCH`).
 7. **Delegated validators**, injected at composition time. Record validators: Card Effects
    (`effects[]`, `passive`), Boss AI (`ai_profile`), Meta Progression (`unlock`), Treasures
-   (`rarity`, `tags`, effect count — its `E_TR_*` set). Config validators: one per config file in
+   (`tags`, effect count — its `E_TR_*` set; stage 4 stays the gate for `rarity` and `text.en`,
+   so a load reports `E_BAD_ENUM` or `E_MISSING_FIELD` first; 2026-11-05, DD-X30). Config validators: one per config file in
    CR-1, registered under the file name by the owning system; it receives the frozen `config`
    body and returns its own errors. `card_database.json` is the exception: it is this system's
    own, so its body (five integer knobs within the ranges in Formulas) is schema-checked at stage

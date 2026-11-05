@@ -55,7 +55,7 @@ Requirements covered by Accepted ADRs: 5 / 5. Untraced Requirements: None.
 |---|-------|------|--------|-----|
 | 001 | [Installers — `installers_for`, `passive_installer`, `collect_state`](story-001-installers-passive-and-collect-state.md) | Logic | Ready | ADR-0005 |
 | 002 | [Live match — installation order, duplicate skip, no back-reference, clone](story-002-installation-order-duplicates-and-clone.md) | Integration | Ready | ADR-0005, ADR-0007 |
-| 003 | [`TreasureValidator` — T7 codes at stage 7b, registered at Boot](story-003-treasure-validator-at-stage-7b.md) | Logic | Ready | ADR-0005, ADR-0002 |
+| 003 | [`TreasureValidator` — T7 codes at stage 7b, registered at Boot](story-003-treasure-validator-at-stage-7b.md) | Logic | Complete | ADR-0005, ADR-0002 |
 | 004 | [F5 hook-chain cost bound and the Node-free treasures tree](story-004-hook-chain-cost-bound-and-purity.md) | Logic | Ready | ADR-0005 |
 | 005 | [Cost-fold treasures — Worn Signet, Vanguard's Banner, stacking](story-005-cost-fold-treasures.md) | Integration | Ready | ADR-0005, ADR-0007 |
 | 006 | [Hand-size and attack folds — Bottomless Satchel, Twin Grip](story-006-hand-size-and-attack-fold-treasures.md) | Integration | Ready | ADR-0005, ADR-0007 |

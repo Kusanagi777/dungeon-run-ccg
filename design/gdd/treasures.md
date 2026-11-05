@@ -11,6 +11,7 @@
 > **REVISED 2026-11-03 (cross-review)**: C-06 (T1 `unlock` is the `{key, condition}` object, DD-X01; R-17 resolved) · C-02 (Hollow Crown rides match-rules' new `crystal_bonus`: T8 row 1, T9 sketch, Edge Cases, AC-9, AC-15 reworded to `mana_added` / `crystal_gained`; R-1 resolved) · C-19 (States: `unlock_granted`, meta M3.6) · C-26 ("contract — to be confirmed" markers removed from Interactions, Dependencies, F4; `unlocked_keys()` read once at `init_run`; `w_rarity` per item; F2 clamp markers and `MAX_ATTACKS_CAP = 4`; R-2, R-3, R-4, R-5, R-6, R-7, R-9, R-10, R-11, R-13, R-14, R-16, R-19, R-20 and the `aura`-on-weapon row closed against card-effects / match-rules / card-database / rng / run-structure / meta / reward-draft / run-ui / content; AC-13 re-issued in its post-R-5 form, AC-17's R-13 clause settled) · C-30 (States "Passed" row cites `drafts[]`; systems-index row closed per V-29). D-01 and D-03 assign no change to this GDD (D-03 is a Content/Meta choice still open with the owner).
 > **REVISED 2026-11-04 (DD-X28)**: AC preamble: `boss_test_taxman` taxes the player (`side: enemy`), as AC-2 and AC-16 expect; it read "friendly".
 > **REVISED 2026-11-05 (DD-X29)**: Edge Cases, AC-8, UI Requirements: "the F1 event" is `auras_recomputed`, whose hand and hero-power entries carry `hook_delta`; the discount reaches Match UI from that event, not from a state read.
+> **REVISED 2026-11-05 (DD-X30)**: T7, AC-5: Card Database stage 4 stays the gate for `rarity` and `text.en`. A load reports `E_BAD_ENUM` or `E_MISSING_FIELD`; `E_TR_RARITY` and `W_TR_TEXT` are raised only when the validator is called directly.
 > **REVISED 2026-11-03 (housekeeping)**: tray capacity is three chips (match-ui F6; ≤ 3 treasures per run, DD-R05) — Tuning Knobs `MAX_TREASURES_HELD` row and UI Requirements no longer say "≤ 4" / "fits 4"; T6 signature unified as `pool(unlocked_keys, exclude_ids)`; Dependencies paragraph's stale "undesigned / provisional" sentence dropped.
 > **Review notes**: `CD-GDD-ALIGN skipped — Lean mode.` `systems-designer` and `qa-lead` not consulted for Formulas / Acceptance Criteria — Lean mode, no Agent tool in this session; review manually before production. Technical feasibility: category `Gameplay`, rule-only → Scripting domain; no engine reference for `scripting` under `docs/engine-reference/godot/modules/`, so feasibility was **not** checked against the pinned engine (the design has no engine surface: plain `RefCounted` data, DD-T02). Prior art: `docs/architecture/modifier-hook-chain.md` (reverse-documented prototype, not an ADR).
 
@@ -211,12 +212,12 @@ including an effect whose trigger has no treasure binding (`E_FX_TRIGGER`) and `
 
 | Code | Raised when |
 |---|---|
-| `E_TR_RARITY` | `rarity` not `common` or `rare` (legendary is a card rarity, never a treasure rarity in v1) |
+| `E_TR_RARITY` | `rarity` not `common` or `rare` (legendary is a card rarity, never a treasure rarity in v1). Called directly only: in a load, stage 4 rejects it first as `E_BAD_ENUM` (2026-11-05, DD-X30) |
 | `E_TR_TAGS` | Zero or more than one affinity tag; unknown tag |
 | `E_TR_EFFECT_COUNT` | `effects` empty or > `MAX_EFFECTS_PER_TREASURE` (3) |
 | `E_TR_TOKEN_REF` | A `summon` / `add_to_hand` / `equip` `card_id` whose record has `set: boss` — boss-only tokens never come from a player treasure |
 | `W_TR_POWER` | F1 power outside the rarity's band (warning; an observation for `/balance-check`, never a block) |
-| `W_TR_TEXT` | `text` missing a locale the project ships (warning) |
+| `W_TR_TEXT` | `text` missing a locale the project ships (warning). Called directly only: a missing `text.en` fails the load at stage 4 as `E_MISSING_FIELD` (2026-11-05, DD-X30) |
 
 Unlock keys are validated by Meta Progression's validator (M2.4); an unknown key is its error,
 surfaced by Card Database's data-error screen like any other (CR-8).
@@ -799,7 +800,7 @@ retained screenshots in `production/qa/evidence/`.
 - [ ] AC-2 **GIVEN** those two installers plus `boss_test_taxman`'s passive, **WHEN** the match starts, **THEN** `MatchState.hooks.modify_cost` holds entries in the order `[signet, taxman]` and `on_match_start` holds `[crown]`; the hero power's displayed cost is `fold(2) = set 1 → +1 = 2`.
 - [ ] AC-3 **GIVEN** installers `[signet, signet]`, **WHEN** bound, **THEN** exactly one `modify_cost` entry exists and one `hook_install_skipped{host_id: treasure_worn_signet, reason: duplicate}` is logged.
 - [ ] AC-4 **GIVEN** `installers_for([signet, crown, signet])`, **THEN** two installers are returned and one `run_warning{code: duplicate_treasure, treasure_id: treasure_worn_signet}` is emitted.
-- [ ] AC-5 **GIVEN** fixture records with (a) trigger `battlecry`, (b) a `summon` of a `set: boss` card, (c) tags `[war, decay]`, (d) `rarity: legendary`, **WHEN** loaded, **THEN** the report contains `E_FX_TRIGGER`, `E_TR_TOKEN_REF`, `E_TR_TAGS`, `E_TR_RARITY` respectively and the load is `Failed`.
+- [ ] AC-5 **GIVEN** fixture records with (a) trigger `battlecry`, (b) a `summon` of a `set: boss` card, (c) tags `[war, decay]`, (d) `rarity: legendary`, **WHEN** loaded, **THEN** the report contains `E_FX_TRIGGER`, `E_TR_TOKEN_REF`, `E_TR_TAGS`, `E_BAD_ENUM` respectively and the load is `Failed` (2026-11-05, DD-X30: (d) read `E_TR_RARITY`; stage 4 stays the gate for `rarity`).
 - [ ] AC-6 **GIVEN** a headless unit test with no `SceneTree` and no autoload, **WHEN** a `HookRegistry` is built from `installers_for` and `on_turn_start` is invoked, **THEN** the entries run and no object in the chain holds a `Node` or a reference back to the registry (reflection check on `HookEntry`).
 - [ ] AC-7 **GIVEN** a match with `[crown, cloak]` installed, **WHEN** `MatchState.clone()` is advanced one boss action, **THEN** the clone's hook results equal a real advance's results and the real log gained no event.
 - [ ] AC-8 **GIVEN** `[treasure_vanguards_banner, treasure_dogeared_grimoire]` and a 1-cost spell as the first card of the turn, **THEN** its displayed and paid cost is 0 and its `auras_recomputed` hand entry logs `hook_delta: −2` (2026-11-05, DD-X29: "the F1 event" named).

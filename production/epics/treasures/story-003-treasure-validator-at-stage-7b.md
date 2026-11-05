@@ -1,12 +1,12 @@
 # Story 003: `TreasureValidator` — T7 codes at Card Database stage 7b, registered at Boot
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: M
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: 2026-11-04
+> **Last Updated**: 2026-11-05 (closed under DD-X30)
 > **First Playable path**: no — the First Playable ships an empty `treasures.json`. It unblocks content story 006 (the 10 MVP treasures)
 
 ## Context
@@ -35,10 +35,10 @@
 
 *From GDD `design/gdd/treasures.md` (T7, AC-5) and `card-database.md` CR-3, scoped to this story:*
 
-- [ ] **AC-5** GIVEN fixture records with (a) trigger `battlecry`, (b) a `summon` of a `set: boss` card, (c) tags `[war, decay]`, (d) `rarity: legendary`, WHEN loaded, THEN the report contains `E_FX_TRIGGER`, `E_TR_TOKEN_REF`, `E_TR_TAGS`, `E_TR_RARITY` respectively and the load is `Failed`.
-- [ ] **AC-T7a (count and tags)** GIVEN a record with `effects: []`, and another with 4 effects (more than `max_effects_per_treasure` = 3 in `treasures_balance.json`), THEN each raises `E_TR_EFFECT_COUNT`; GIVEN a record with tags `[universal, frobnicate]` (an unknown tag) or with plan tags but no affinity tag, THEN `E_TR_TAGS`; GIVEN the 20-record fixture `tests/fixtures/data/treasures_v1.json`, THEN zero `E_TR_*` entries.
-- [ ] **AC-T7b (text)** GIVEN a record whose `text` has no `en` (the one locale CR-3 ships), THEN `W_TR_TEXT` is reported and the load is `OK`.
-- [ ] **AC-REG (registration)** GIVEN `Boot._collect_validators`, THEN `treasure` is the adapter over `Treasures.validate_treasure_defs` and `Boot.PENDING_RECORD_OWNERS` is empty (the pinned lists in `tests/integration/boot/boot_validator_map_test.gd` are updated); a load of a root with one valid treasure reports no `W_VALIDATOR_PENDING` for the `treasure` key.
+- [x] **AC-5** GIVEN fixture records with (a) trigger `battlecry`, (b) a `summon` of a `set: boss` card, (c) tags `[war, decay]`, (d) `rarity: legendary`, WHEN loaded, THEN the report contains `E_FX_TRIGGER`, `E_TR_TOKEN_REF`, `E_TR_TAGS`, `E_BAD_ENUM` respectively and the load is `Failed`. (2026-11-05, DD-X30: (d) read `E_TR_RARITY`. Stage 4 stays the gate for `rarity`, so a load stops at the schema enum; the validator still raises `E_TR_RARITY` when called directly.)
+- [x] **AC-T7a (count and tags)** GIVEN a record with `effects: []`, and another with 4 effects (more than `max_effects_per_treasure` = 3 in `treasures_balance.json`), THEN each raises `E_TR_EFFECT_COUNT`; GIVEN a record with tags `[universal, frobnicate]` (an unknown tag) or with plan tags but no affinity tag, THEN `E_TR_TAGS`; GIVEN the 20-record fixture `tests/fixtures/data/treasures_v1.json`, THEN zero `E_TR_*` entries.
+- [x] **AC-T7b (text)** GIVEN a record whose `text` has no `en` (the one locale CR-3 ships), WHEN loaded, THEN the report contains `E_MISSING_FIELD` and the load is `Failed`. (2026-11-05, DD-X30: read "`W_TR_TEXT` is reported and the load is `OK`". Stage 4 stays the gate for `text.en`; the validator still raises `W_TR_TEXT` when called directly.)
+- [x] **AC-REG (registration)** GIVEN `Boot._collect_validators`, THEN `treasure` is the adapter over `Treasures.validate_treasure_defs` and `Boot.PENDING_RECORD_OWNERS` is empty (the pinned lists in `tests/integration/boot/boot_validator_map_test.gd` are updated); a load of a root with one valid treasure reports no `W_VALIDATOR_PENDING` for the `treasure` key.
 
 ---
 
@@ -105,7 +105,9 @@ checks scope against it.*
 
 ---
 
-## Blocker (2026-11-04)
+## Blocker (2026-11-04), resolved 2026-11-05
+
+**Resolved by DD-X30 (owner, 2026-11-05):** stage 4 stays the gate for both fields, so AC-5 (d) and AC-T7b are reworded above and the story closes. The text below is the record of the question.
 
 The story stays **Ready**. The validator is committed and does not depend on this, and the Boot registration can land at M2 without it. Two clauses cannot be met through a load, and no `DD-X` row decides them:
 
@@ -118,14 +120,15 @@ The validator raises both codes when called directly. `test_legendary_in_a_load_
 
 ## Completion Notes
 
-**Implemented**: 2026-11-04. Not closed: see Blocker. AC-REG closes at the M2 merge.
+**Implemented**: 2026-11-04. **Completed**: 2026-11-05, under DD-X30.
+**Boot registration**: `ee42d77` (`feat(boot): register the treasure record validator`), merged at M2: `"treasure": Treasures.validate_treasure_record` in `_collect_validators()`, `PENDING_RECORD_OWNERS` empty. AC-REG is closed.
 **Start / end (UTC)**: 2026-11-05T00:39:03Z to 2026-11-05T01:03:34Z
 **Readiness**: READY (2026-11-04), with the two conflicts above found during implementation. ADR-0002 and ADR-0005 Accepted at the story's version, manifest 2026-11-04 matches, treasures 001 and the cross-epic dependencies Complete. The sprint plan's readiness note applies: AC-REG is met by the orchestrator's line.
 **Criteria**:
-- AC-5: (a), (b), (c) and `Failed` pass through a real load. (d) passes directly and is blocked through a load.
+- AC-5: (a), (b), (c) and `Failed` pass through a real load. (d) as reworded (DD-X30) passes through a real load: `test_legendary_in_a_load_stops_at_the_stage_4_enum_before_the_validator`. `E_TR_RARITY` passes directly.
 - AC-T7a: passes, including exactly 3 accepted, the knob read from data, and zero `E_TR_*` on the 20-record fixture.
-- AC-T7b: `W_TR_TEXT` passes directly; the load clause is blocked.
-- AC-REG: passes in the dry run below; closes at M2.
+- AC-T7b: as reworded (DD-X30) passes through a real load: `test_no_en_in_a_load_stops_at_stage_4_before_the_validator`. `W_TR_TEXT` passes directly.
+- AC-REG: passes; registered by `ee42d77` at M2.
 - DD-X25 boundary (QA plan): a `divine_shield` aura is `E_FX_OP` alone.
 **AC-REG lines for the orchestrator, one commit**:
 - `src/core/boot.gd`: `const PENDING_RECORD_OWNERS: PackedStringArray = []`

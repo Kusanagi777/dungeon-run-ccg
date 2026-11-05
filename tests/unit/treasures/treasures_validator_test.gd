@@ -132,8 +132,8 @@ func test_common_and_rare_are_accepted() -> void:
 	assert_array(_validate(_def({"rarity": "rare"}))).is_empty()
 
 
-## Open blocker on AC-5 (d), story Completion Notes: stage 4 drops the record, so
-## stage 7b never sees it. Pins what a load does today, not what AC-5 asks.
+## AC-5 (d) as DD-X30 reworded it: stage 4 stays the gate for `rarity`, so it
+## drops the record and stage 7b never sees it.
 func test_legendary_in_a_load_stops_at_the_stage_4_enum_before_the_validator() -> void:
 	# Act
 	var db: CardDatabase = _load_root()
@@ -359,8 +359,8 @@ func test_an_empty_en_is_present() -> void:
 	assert_array(_validate(_def({"text": {"key": "treasure.treasure_test.text", "en": ""}}))).is_empty()
 
 
-## Open deviation from AC-T7b, story Completion Notes: `text.en` is required at
-## stage 4, so a load fails before W_TR_TEXT can run.
+## AC-T7b as DD-X30 reworded it: stage 4 stays the gate for `text.en`, so a load
+## fails before W_TR_TEXT can run.
 func test_no_en_in_a_load_stops_at_stage_4_before_the_validator() -> void:
 	# Act
 	var db: CardDatabase = _load_root()
