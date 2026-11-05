@@ -5,7 +5,8 @@
 ## A loaded record is all floats: `JSON.parse_string` knows one number type. The
 ## seed therefore persists as `run_seed_hex` only, and [method normalised] turns every
 ## whole float back to an int, so `to_dict` -> `from_dict` -> `to_dict` is byte-identical
-## JSON (run-structure AC-28).
+## JSON (run-structure AC-28). `match_attempts` is the one map keyed by a number:
+## [method from_dict] gives it canonical `"<floor>"` keys, however they arrived.
 ##
 ## [method from_dict] never fails: a damaged save still has to reach `archive_run`
 ## (R8.1), so a field of the wrong shape takes its default. [method validate] is what
@@ -124,7 +125,7 @@ static func from_dict(raw: Dictionary) -> RunState:
 	for row: Variant in _array_of(d, "drafts"):
 		if row is Dictionary:
 			state.drafts.append(DraftRecord.from_dict(row))
-	state.match_attempts = _dictionary_of(d, "match_attempts")
+	state.match_attempts = _attempts_of(d)
 	for row: Variant in _array_of(d, "match_summaries"):
 		if row is Dictionary:
 			state.match_summaries.append(row)
@@ -151,7 +152,8 @@ static func from_dict(raw: Dictionary) -> RunState:
 ## unknown version is repaired on resume and is not rejected here (R1).
 static func validate(raw: Dictionary, db: CardDatabase) -> Error:
 	var d: Dictionary = normalised(raw)
-	if d.get("schema_version") != SCHEMA_VERSION or not _has_required_fields(d):
+	var version: Variant = d.get("schema_version")
+	if not version is int or version != SCHEMA_VERSION or not _has_required_fields(d):
 		return RunCodes.E_SCHEMA
 	if d.data_version != db.data_version():
 		return RunCodes.E_DATA_VERSION
@@ -248,7 +250,7 @@ static func _invariants_hold(d: Dictionary) -> bool:
 		return false
 	if not RunState.STATUSES.has(d.status) or not _reward_step_fits(d):
 		return false
-	if not is_seed_hex(d.run_seed_hex) or d.rng_snapshot.get("run_seed_hex") != d.run_seed_hex:
+	if not is_seed_hex(d.run_seed_hex) or str(d.rng_snapshot.get("run_seed_hex")) != d.run_seed_hex:
 		return false
 	if not d.run_log.get("events") is Array:
 		return false
@@ -296,6 +298,20 @@ static func _array_of(d: Dictionary, key: String) -> Array:
 
 static func _dictionary_of(d: Dictionary, key: String) -> Dictionary:
 	return d[key] if d.get(key) is Dictionary else {}
+
+
+## `match_attempts` as [RunState] holds it: `"<floor>"` keys and int counts. A key may
+## arrive as an int, a float or a number's text, by whichever road the record took; an
+## entry that names no whole floor, or counts nothing whole, is dropped.
+static func _attempts_of(d: Dictionary) -> Dictionary:
+	var source: Dictionary = _dictionary_of(d, "match_attempts")
+	var attempts: Dictionary = {}
+	for key: Variant in source:
+		var text: String = str(key)
+		var floor_number: float = text.to_float()
+		if text.is_valid_float() and floor_number == floorf(floor_number) and source[key] is int:
+			attempts[str(int(floor_number))] = source[key]
+	return attempts
 
 
 static func _ints_of(d: Dictionary, key: String) -> Array:
