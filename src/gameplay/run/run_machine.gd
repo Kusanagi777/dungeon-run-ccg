@@ -92,6 +92,8 @@ var _match_started_at: int = 0
 var _clock_mark: int = -1
 ## Milliseconds of play not yet a whole second.
 var _play_msec: int = 0
+## `record_truncated` is said once per run.
+var _truncation_warned: bool = false
 
 
 ## ADR-0008 Decision 1. [param run_config] is the `config("run_structure")` body
@@ -138,10 +140,11 @@ func new_run(hero_id: String, seed_input: String) -> Error:
 		return RunCodes.E_UNKNOWN_ID
 	if not _meta.is_hero_unlocked(hero_id):
 		return RunCodes.E_HERO_LOCKED
+	_clear_run()
+	_abandon_saved_run()
 	var warnings: Array[Dictionary] = []
 	var run_seed: int = _resolve_seed(seed_input, warnings)
 	var run_state: RunState = _fresh_state(hero, run_seed, seed_input)
-	_clear_run()
 	state = run_state
 	rng = _make_rng(run_seed, state.data_version)
 	_open_log(EventLog.new(_max_events(), EventLog.SCOPE_RUN, _log_meta()))
@@ -178,6 +181,9 @@ func begin_match() -> MatchDriver:
 	last_error = OK
 	state.match_attempts[str(state.floor)] = state.attempts_on(state.floor) + 1
 	_rewind_match_streams()
+	# Not an S-point of R7: without it the slot forgets the attempt on a mid-match
+	# quit, and the R8.2 `attempt` and AC-19 cannot hold. The record is still `pre_match`.
+	_save()
 	state.status = RunState.STATUS_IN_MATCH
 	_match_log = EventLog.new(_max_events(), EventLog.SCOPE_MATCH, _log_meta(state.floor))
 	var config: Dictionary = _build_match_config()
@@ -237,11 +243,31 @@ func abandon() -> Error:
 	return OK
 
 
-## T15, T16 (R8): continues the saved run.
+## T15, T16 (R8): continues the saved run, from where its last S-save left it.
+## `E_NO_SAVE` when the slot is empty. A record that fails `RunRecord.validate`, or
+## whose RNG snapshot or log will not restore, is ended as `abandoned` and archived,
+## never a loss and never a crash: that code comes back, and [method phase] is
+## `abandoned` for the reason dialog, or `Menu` when nothing in it could be archived.
 func resume() -> Error:
 	if not _is_legal("resume"):
 		return RunCodes.E_BAD_PHASE
-	return RunCodes.E_NO_SAVE
+	var raw: Variant = _meta.load_active_run()
+	if raw == null:
+		return RunCodes.E_NO_SAVE
+	if not raw is Dictionary:
+		_meta.clear_active_run()
+		return RunCodes.E_CORRUPT
+	if _already_archived(raw):
+		_meta.clear_active_run()
+		return RunCodes.E_NO_SAVE
+	var code: Error = RunRecord.validate(raw, _db)
+	if code == OK:
+		code = _restore_run(raw)
+	if code != OK:
+		_end_saved_record(raw, code, true)
+		return code
+	_enter_resumed_state()
+	return OK
 
 
 ## T3, T21 (R8.7): "Quit to menu". Drops the run with no event and no save; the last
@@ -580,6 +606,121 @@ func _fresh_state(hero: Dictionary, run_seed: int, seed_input: String) -> RunSta
 	return run_state
 
 
+## R8.2: rebuilds the service and the log from a validated record and makes it the
+## run. `OK`, or `E_CORRUPT` with nothing changed when either will not restore, or when
+## the status is one no save point writes.
+func _restore_run(raw: Dictionary) -> Error:
+	var restored: RunState = RunRecord.from_dict(raw)
+	if restored.is_terminal() or restored.status == RunState.STATUS_HERO_SELECT:
+		return RunCodes.E_CORRUPT
+	var service: RngService = _make_rng(restored.run_seed, restored.data_version)
+	var snapshot: Dictionary = RngService.snapshot_from_json_dict(restored.rng_snapshot)
+	if snapshot.is_empty() or service.restore(snapshot) != OK:
+		return RunCodes.E_CORRUPT
+	var log: EventLog = _reopened_log(restored.run_log)
+	if log == null or log.is_sealed():
+		return RunCodes.E_CORRUPT
+	state = restored
+	rng = service
+	_open_log(log)
+	return OK
+
+
+## R8.2, R8.6: says the run is back and enters its state. `in_match` cannot come from
+## this system, and is coerced. `pre_match` shows the boss intro again; the reward
+## phase asks for the same offer, from the restored stream position.
+func _enter_resumed_state() -> void:
+	var coerced: bool = state.status == RunState.STATUS_IN_MATCH
+	if coerced:
+		state.status = RunState.STATUS_PRE_MATCH
+		state.reward_step = null
+	_emit(RunCodes.EVENT_RUN_RESUMED, {"floor": state.floor, "phase": state.status, "attempt": state.attempts_on(state.floor) + 1})
+	if coerced:
+		RunCodes.warn(run_log, RunCodes.W_COERCED_STATUS, {"floor": state.floor})
+	if not _meta.is_hero_unlocked(state.hero_id):
+		RunCodes.warn(run_log, RunCodes.W_HERO_LOCKED_AT_RESUME, {"hero_id": state.hero_id})
+	var engine_version: String = str(_config.get("engine_version", ""))
+	if engine_version != state.engine_version:
+		RunCodes.warn(run_log, RunCodes.W_ENGINE_VERSION_CHANGED, {"saved": state.engine_version, "installed": engine_version})
+	if not RewardDraft.draft_state_is_usable(state.draft_state):
+		state.draft_state = _draft.init_run(state)
+		RunCodes.warn(run_log, RunCodes.W_DRAFT_STATE_INIT_LATE)
+	if state.status == RunState.STATUS_PRE_MATCH:
+		_enter_pre_match()
+	else:
+		_start_clock()
+		_enter_reward_step()
+
+
+## T2's guard: a run left in the slot ends as `abandoned / player` before a new one
+## starts, the UI having confirmed it (R2 step 1). A record that would not resume ends
+## the way resume would have ended it, and is not a loss.
+func _abandon_saved_run() -> void:
+	var raw: Variant = _meta.load_active_run()
+	if raw == null:
+		return
+	if not raw is Dictionary or _already_archived(raw):
+		_meta.clear_active_run()
+		return
+	_end_saved_record(raw, RunRecord.validate(raw, _db), false)
+	_clear_run()
+
+
+## T13 on a record in the slot, or T16: ends [param raw] as `abandoned` with the reason
+## [param code] maps to, `OK` being the player's. A record with nothing to identify it
+## is cleared with a console warning (Edge Cases). [param announce] tells listeners
+## about the log, for a record the player is shown the fate of.
+func _end_saved_record(raw: Dictionary, code: Error, announce: bool) -> void:
+	if not _has_identity(raw):
+		push_warning("RunMachine: an active run with no run_id, hero_id or started_at was cleared (%s)" % RunCodes.code_name(code))
+		_meta.clear_active_run()
+		return
+	state = RunRecord.from_dict(raw)
+	var log: EventLog = _reopened_log(state.run_log)
+	if log == null or log.is_sealed():
+		log = EventLog.new(_max_events(), EventLog.SCOPE_RUN, _log_meta())
+	if announce:
+		_open_log(log)
+	else:
+		run_log = log
+	var cleared: int = state.floor if state.status == RunState.STATUS_POST_MATCH_REWARD else maxi(state.floor - 1, 0)
+	_end_run(RunState.STATUS_ABANDONED, cleared, cleared + 1, null, _abandon_reason_for(code))
+
+
+## R8.1: which reason a validation result is archived under.
+func _abandon_reason_for(code: Error) -> String:
+	match code:
+		OK:
+			return RunState.REASON_PLAYER
+		RunCodes.E_DATA_VERSION, RunCodes.E_UNKNOWN_ID:
+			return RunState.REASON_DATA_VERSION_MISMATCH
+	return RunState.REASON_SAVE_CORRUPT
+
+
+## Edge Cases: a save is worth archiving if any of these parse.
+func _has_identity(raw: Dictionary) -> bool:
+	var run_id: Variant = raw.get("run_id")
+	var hero_id: Variant = raw.get("hero_id")
+	var started_at: Variant = raw.get("started_at")
+	var named: bool = run_id is String and not (run_id as String).is_empty()
+	var heroic: bool = hero_id is String and not (hero_id as String).is_empty()
+	return named or heroic or started_at is int or started_at is float
+
+
+## A crash between `archive_run` and `clear_active_run` leaves the run's last S-save in
+## the slot (R6): Meta already holds the ending, so that save must not play on.
+func _already_archived(raw: Dictionary) -> bool:
+	var run_id: Variant = raw.get("run_id")
+	return run_id is String and not (run_id as String).is_empty() and _meta.run_log_entry(run_id) != null
+
+
+## A new log instance from a saved `run_log` (R8.2), or null when it will not parse.
+func _reopened_log(saved: Dictionary) -> EventLog:
+	if saved.is_empty():
+		return null
+	return EventLog.from_json(JSON.stringify(saved), _max_events())
+
+
 ## R7: writes the record at a save point. A refusal warns and the run goes on.
 func _save() -> void:
 	_fold_play_time()
@@ -592,9 +733,15 @@ func _save() -> void:
 		RunCodes.warn(run_log, RunCodes.W_SAVE_FAILED, {"floor": state.floor, "code": String(RunCodes.code_name(saved))})
 
 
-## The record as Meta receives it.
+## The record as Meta receives it: past `max_run_record_bytes` its summaries are cut,
+## in this copy only, so the totals still see every card (Edge Cases).
 func _record_to_store() -> Dictionary:
-	return RunRecord.to_dict(state)
+	var record: Dictionary = RunRecord.to_dict(state)
+	var size: int = JSON.stringify(record).to_utf8_buffer().size()
+	if size > int(_config.max_run_record_bytes) and RunRecord.truncate_summaries(record) and not _truncation_warned:
+		_truncation_warned = true
+		RunCodes.warn(run_log, RunCodes.W_RECORD_TRUNCATED, {"bytes": size})
+	return record
 
 
 ## Refreshes the two fields a save carries from their owners (R1). The log's text is
@@ -648,6 +795,7 @@ func _clear_run() -> void:
 	_match_log = null
 	_clock_mark = -1
 	_play_msec = 0
+	_truncation_warned = false
 	unlocks_granted = []
 	_idle_phase = PHASE_MENU
 

@@ -77,8 +77,11 @@ var result: Variant = null
 var totals: Dictionary = {}
 
 
-## F1 `band(f)` for [param split]: 1, 2, or 3.
+## F1 `band(f)` for [param split]: 1, 2, or 3; 1 for the split of a damaged save,
+## which reaches here only on its way to the summary.
 static func band_of(floor_number: int, split: Array) -> int:
+	if split.size() < RunRecord.BAND_COUNT:
+		return 1
 	if floor_number <= int(split[0]):
 		return 1
 	if floor_number <= int(split[0]) + int(split[1]):
