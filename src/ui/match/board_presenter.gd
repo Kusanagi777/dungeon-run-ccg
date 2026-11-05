@@ -115,6 +115,13 @@ func present(state: Dictionary) -> void:
 			_row.move_child(_tokens[_order[i]], i)
 
 
+## The stat numerals are coloured when shown.
+func restyle() -> void:
+	for id: Variant in _tokens:
+		var minion: MinionToken = _tokens[id]
+		minion.show_token(minion.shown(), ui.card_face(minion.card_id))
+
+
 ## The queue is idle: any slot still held closes now.
 func on_drained() -> void:
 	for id: Variant in _leaving.keys():

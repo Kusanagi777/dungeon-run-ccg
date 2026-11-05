@@ -98,6 +98,16 @@ func present(state: Dictionary) -> void:
 	_lay_out()
 
 
+## A modified cost is coloured when the card is shown.
+func restyle() -> void:
+	var cards: Dictionary = {}
+	for card: Dictionary in _view.side(&"player").hand:
+		cards[int(card.instance_id)] = str(card.card_id)
+	for id: Variant in _cards:
+		if cards.has(id):
+			(_cards[id] as CardFrame).show_card(ui.card_face(cards[id]), int(_shown_costs.get(id, 0)))
+
+
 func sync_report() -> Array[String]:
 	var report: Array[String] = []
 	var truth: Array = _view.side(&"player").hand

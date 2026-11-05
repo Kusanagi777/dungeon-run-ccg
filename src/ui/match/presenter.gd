@@ -72,6 +72,12 @@ func present(_state: Dictionary) -> void:
 	return
 
 
+## The palette changed (`high_contrast_states`): repaint what was coloured at build or
+## at the last change. A presenter that reads colours when it draws has nothing to do.
+func restyle() -> void:
+	return
+
+
 ## `AnimationQueue.drained`, after the final [method present]: one layout pass.
 func on_drained() -> void:
 	return

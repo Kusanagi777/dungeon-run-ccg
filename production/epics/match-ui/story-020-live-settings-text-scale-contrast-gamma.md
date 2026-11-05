@@ -1,7 +1,7 @@
 # Story 020: Live settings — text_scale variants, high-contrast states, gamma and letterboxing
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: L

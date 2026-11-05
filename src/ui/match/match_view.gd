@@ -29,6 +29,9 @@ const SPEED_INSTANT: StringName = &"instant"
 const SETTING_ANIM_SPEED: StringName = &"anim_speed"
 const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
 const SETTING_ACTION_DELAY: StringName = &"action_delay_ms"
+const SETTING_TEXT_SCALE: StringName = &"text_scale"
+const SETTING_HIGH_CONTRAST: StringName = &"high_contrast_states"
+const SETTING_GAMMA: StringName = &"gamma"
 ## The event feed's drawer, which `FeedPresenter` answers for (MUI-014).
 const FEED_TOGGLE_METHOD: StringName = &"toggle"
 const FEED_OPEN_METHOD: StringName = &"is_open"
@@ -84,6 +87,7 @@ var _inspect: CardFrame = null
 var _inspected: int = -1
 # The card of the drag that just submitted, until the engine has answered.
 var _dropped_card: int = -1
+var _display_settings: MatchDisplay = null
 var _reject: RejectPresenter = null
 var _focus: FocusPresenter = null
 # The turn focus last took its default on.
@@ -353,6 +357,8 @@ func _build() -> void:
 		_router.intent(InputRouter.CHOICE_INTENT, {"index": index}))
 	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
 		_router.intent(InputRouter.INTENT_MULLIGAN_CONFIRM, {"keep_mask": keep_mask}))
+	_display_settings = MatchDisplay.new(self, _ui)
+	_apply_read_settings()
 	_queue.step_started.connect(_on_step_started)
 	_queue.skipped.connect(_on_skipped)
 	_queue.drained.connect(_on_drained)
@@ -444,6 +450,23 @@ func _on_menu_closed() -> void:
 	_present(_last_display if not _queue.is_idle() else _display())
 
 
+## The settings read once at `_ready`; a change comes through [method _on_setting_changed].
+func _apply_read_settings() -> void:
+	for key: StringName in [SETTING_REDUCE_MOTION, SETTING_TEXT_SCALE, SETTING_HIGH_CONTRAST, SETTING_GAMMA]:
+		if _settings.has(key):
+			_on_setting_changed(key, _settings[key])
+
+
+func _apply_text_scale(scale: float) -> void:
+	_display_settings.set_text_scale(scale)
+	_player_panel.set_text_scale(scale)
+	_boss_panel.set_text_scale(scale)
+	var rect: Rect2 = _ui.rect("end_turn")
+	var width: float = minf(rect.size.x * scale, float(_config.text_scale.end_turn_max_w))
+	_end_turn.position = Vector2(rect.end.x - width, rect.position.y)
+	_end_turn.size = Vector2(width, rect.size.y)
+
+
 ## A setting moved: applied from `settings_changed`, so on the next frame (ADR-0011).
 func _on_setting_changed(key: StringName, value: Variant) -> void:
 	_settings[key] = value
@@ -458,6 +481,14 @@ func _on_setting_changed(key: StringName, value: Variant) -> void:
 			_reject.reduce_motion = value == true
 		SETTING_ACTION_DELAY:
 			_boss_pacing = AnimationQueue.boss_pacing(_config, _ai_config, _settings)
+		SETTING_TEXT_SCALE:
+			_apply_text_scale(float(value))
+		SETTING_HIGH_CONTRAST:
+			_ui.set_high_contrast(value == true)
+			for presenter: Presenter in _presenters:
+				presenter.restyle()
+		SETTING_GAMMA:
+			_display_settings.set_gamma(float(value))
 
 
 func _build_inspect() -> void:
@@ -900,6 +931,7 @@ func _on_skipped() -> void:
 
 func _on_drained() -> void:
 	_present(_display())
+	_display_settings.refresh()
 	for presenter: Presenter in _presenters:
 		presenter.on_drained()
 	if OS.is_debug_build():

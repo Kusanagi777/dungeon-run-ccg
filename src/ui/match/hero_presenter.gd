@@ -23,6 +23,7 @@ const USED_GLYPH: String = "✓"
 const LETHAL_RAMP_S: float = 0.4
 const TOOLTIP_SIZE: Vector2 = Vector2(260, 96)
 const TOOLTIP_GAP: float = 8.0
+const TOOLTIP_PADDING: Vector2 = Vector2(16, 12)
 
 ## Which side's panel this is; set on the instance in `match_view.tscn`.
 @export var side: StringName = SIDE_PLAYER
@@ -88,7 +89,7 @@ func setup(context: MatchUiContext) -> void:
 	else:
 		_build_boss_strip()
 	_tooltip = _panel(Rect2(Vector2.ZERO, TOOLTIP_SIZE), _style(ui.color("parchment"), 2, ui.color("ink")))
-	_tooltip_text = _label(Rect2(Vector2(8, 6), TOOLTIP_SIZE - Vector2(16, 12)), SMALL_FONT_PX, "text_ink", _tooltip)
+	_tooltip_text = _label(Rect2(Vector2(8, 6), TOOLTIP_SIZE - TOOLTIP_PADDING), SMALL_FONT_PX, "text_ink", _tooltip)
 	_tooltip_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tooltip.visible = false
 
@@ -210,6 +211,27 @@ func set_power_state(state: Dictionary) -> void:
 	_power.queue_redraw()
 	var dim: bool = str(state.get("state", "")) == MatchQuery.POWER_BLOCKED
 	_power.modulate.a = BLOCKED_ALPHA if dim else (USED_ALPHA if str(_shown.get("power_state", "")) == MatchViewState.POWER_USED else 1.0)
+
+
+## The fatigue label and the flash outline hold a state colour from build.
+func restyle() -> void:
+	_fatigue.add_theme_color_override("font_color", ui.color("state_danger"))
+	if _mana_flash != null:
+		(_mana_flash.get_theme_stylebox("panel") as StyleBoxFlat).border_color = ui.color("state_danger")
+
+
+## hud.md §10.2 at [param scale]: the tooltip grows, and from `boss_mana_moves_at` the
+## boss's mana leaves the strip for a pill inside the portrait panel.
+func set_text_scale(scale: float) -> void:
+	_tooltip.size = TOOLTIP_SIZE * scale
+	_tooltip_text.size = _tooltip.size - TOOLTIP_PADDING
+	if side == SIDE_BOSS:
+		var moved: bool = scale >= float(ui.config.text_scale.boss_mana_moves_at)
+		var rect: Rect2 = ui.rect("boss_mana_scaled" if moved else "boss_mana")
+		var box: Control = _mana_text.get_parent()
+		box.position = rect.position
+		box.size = rect.size
+		_mana_text.size = rect.size
 
 
 ## Rejection Feedback: the mana bar's outline flashes while [param on].

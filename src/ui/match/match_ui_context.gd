@@ -45,6 +45,15 @@ func color(token: String) -> Color:
 	return _colors[token]
 
 
+## `high_contrast_states`: the tokens of `palette_high_contrast` take their swap, or
+## go back to the palette (hud.md §10.1). Target, freeze and actionable never swap.
+func set_high_contrast(on: bool) -> void:
+	var swaps: Dictionary = config.get("palette_high_contrast", {})
+	var palette: Dictionary = config.get("palette", {})
+	for token: String in swaps:
+		_colors[token] = Color.html(str(swaps[token] if on else palette[token]))
+
+
 ## The F6 rectangle [param zone] of `layout`.
 func rect(zone: String) -> Rect2:
 	var values: Array = (config.layout as Dictionary).get(zone, [])

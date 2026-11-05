@@ -201,6 +201,12 @@
         160,
         400,
         400
+      ],
+      "boss_mana_scaled": [
+        1196,
+        152,
+        56,
+        24
       ]
     },
     "hero": {
@@ -319,6 +325,15 @@
       "font_px": 16,
       "title_px": 20,
       "label_w": 110
+    },
+    "text_scale": {
+      "base_font_px": 16,
+      "end_turn_max_w": 200,
+      "boss_mana_moves_at": 1.25
+    },
+    "palette_high_contrast": {
+      "state_danger": "#FF8C42",
+      "state_buff": "#4FA3FF"
     },
     "focus": {
       "ring_px": 2,
