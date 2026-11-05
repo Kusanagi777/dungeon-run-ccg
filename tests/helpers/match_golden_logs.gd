@@ -17,6 +17,9 @@
 ## - [constant SCRIPTED]: the AC-38 200-command match.
 ## - [constant AURAS]: the C10 aura pass: an aura source's whole life, then each
 ##   primitive in [constant RulesEngine.PRIMITIVES] called from inside the pass.
+## - [constant AURA_HOLDERS]: one aura on one holder alone, for each kind the C10
+##   strip walks, so a holder the strip or its scan misses shows as an aura that
+##   stacks on every recompute. In [constant AURAS] a source always holds several.
 ## - [constant TRIGGERS]: the engine's observer order. Every other golden has no
 ##   observer responding, so `ctx.candidates` could change unseen: here every
 ##   character and weapon answers every observer point, so the `trigger_queued`
@@ -40,6 +43,7 @@ const CHAIN: String = "chain_submit"
 const FULL_BOARD: String = "full_board_legal"
 const SCRIPTED: String = "scripted_match"
 const AURAS: String = "aura_passes"
+const AURA_HOLDERS: String = "aura_holders"
 const TRIGGERS: String = "trigger_order"
 const STATE_PREFIX: String = "state_"
 
@@ -66,6 +70,13 @@ const OBSERVER_POINTS: Array[StringName] = [
 	&"turn_end", &"on_attack", &"on_card_played", &"on_play", &"after_cast", &"on_hero_power",
 	&"on_weapon_equipped",
 ]
+## Every kind of aura holder the C10 strip walks (characters, weapons, hands).
+const HOLDER_KINDS: Array[String] = ["player_hero", "player_minion", "player_weapon", "player_hand", "boss_hero", "boss_minion", "boss_weapon", "boss_hand"]
+## `state().effects.counters` key: the holder's aura is live while it is set.
+const HOLDER_AURA_KEY: String = "golden_holder_aura"
+## How many recomputes [constant AURA_HOLDERS] runs with the aura on, then off:
+## a second recompute is what shows an unstripped aura stacking.
+const HOLDER_RECOMPUTES: int = 2
 ## How far past `next_entity_id` the trigger golden's new entities land.
 const NEW_ENTITIES: Array[int] = [0, 1, 2]
 ## `state().effects.counters` key of [method _summon_inside_resolve].
@@ -79,7 +90,7 @@ var _fx: MatchBudgetFixtures = MatchBudgetFixtures.new()
 ## Every golden's name, sorted within each kind: the file stem under
 ## [constant GOLDEN_DIR].
 func names() -> Array[String]:
-	var out: Array[String] = [CHAIN, FULL_BOARD, SCRIPTED, AURAS, TRIGGERS]
+	var out: Array[String] = [CHAIN, FULL_BOARD, SCRIPTED, AURAS, AURA_HOLDERS, TRIGGERS]
 	for path: String in MatchBudgetFixtures.fixture_paths():
 		out.append(STATE_PREFIX + str(MatchBudgetFixtures.read_fixture(path).name))
 	return out
@@ -102,6 +113,8 @@ func capture(name: String) -> String:
 			_capture_scripted(lines)
 		AURAS:
 			_capture_auras(lines)
+		AURA_HOLDERS:
+			_capture_aura_holders(lines)
 		TRIGGERS:
 			_capture_triggers(lines)
 		_:
@@ -181,7 +194,7 @@ func _capture_auras(lines: PackedStringArray) -> void:
 		var resolver: TestEffectResolver = _fx.make_resolver(false)
 		var engine: RulesEngine = _fx.make_aura_board(resolver, log)
 		var mark: int = log.events.size()
-		resolver.aura_scripts.append(_primitive_once.bind(primitive))
+		resolver.aura_scripts.append(primitive_once.bind(primitive))
 		engine.run_action(_no_step)
 		_row(lines, {"scenario": String(primitive)})
 		_rows(lines, "event", log.events.slice(mark))
@@ -219,6 +232,55 @@ func _capture_aura_source_life(lines: PackedStringArray) -> void:
 		_rows(lines, "event", log.events.slice(mark))
 		_row(lines, {"dump": _dump(engine)})
 	engine.end_match()
+
+
+## One aura on one holder and nothing else on the board: on for two recomputes
+## (the second must change nothing), then off for two.
+func _capture_aura_holders(lines: PackedStringArray) -> void:
+	for holder: String in HOLDER_KINDS:
+		var log: TestEventLog = TestEventLog.new()
+		var resolver: TestEffectResolver = _fx.make_resolver(false)
+		var engine: RulesEngine = _fx.make_aura_board(resolver, log)
+		var state: MatchState = engine.state()
+		state.players[SIDE_BOSS].weapon = MatchRecords.weapon(MatchFactory.alloc_entity_id(state), MatchBudgetFixtures.AXE, MatchBudgetFixtures.AURA_WEAPON_ATTACK, MatchBudgetFixtures.AURA_WEAPON_DURABILITY, [])
+		MatchBudgetFixtures._set_hand(state, SIDE_BOSS, [MatchBudgetFixtures.GRUNT, MatchBudgetFixtures.BLANK])
+		var aura: Dictionary = {"is_aura": true}
+		if holder.ends_with("_hand"):
+			aura["cost_delta"] = MatchBudgetFixtures.AURA_COST
+		else:
+			aura["attack_delta"] = MatchBudgetFixtures.AURA_ATTACK
+		resolver.aura_scripts.append(_holder_aura.bind(_holder_id(state, holder), aura))
+		var mark: int = log.events.size()
+		_row(lines, {"scenario": holder})
+		state.effects.counters[HOLDER_AURA_KEY] = 1
+		for _i: int in HOLDER_RECOMPUTES:
+			engine.run_action(_no_step)
+		_row(lines, {"aura_on": _dump(engine)})
+		@warning_ignore("return_value_discarded")
+		state.effects.counters.erase(HOLDER_AURA_KEY)
+		for _i: int in HOLDER_RECOMPUTES:
+			engine.run_action(_no_step)
+		_rows(lines, "event", log.events.slice(mark))
+		_row(lines, {"aura_off": _dump(engine)})
+		engine.end_match()
+
+
+## The id of the first holder of [param holder]'s kind.
+func _holder_id(state: MatchState, holder: String) -> int:
+	var player: Dictionary = state.players[SIDE_PLAYER if holder.begins_with(SIDE_PLAYER) else SIDE_BOSS]
+	if holder.ends_with("_hero"):
+		return int(player.hero.entity_id)
+	if holder.ends_with("_minion"):
+		return int(player.board[0].entity_id)
+	if holder.ends_with("_weapon"):
+		return int(player.weapon.entity_id)
+	return int(player.hand[0].instance_id)
+
+
+## An aura-script entry: [param aura] on [param target] while the key is set.
+func _holder_aura(engine: RulesEngine, target: int, aura: Dictionary) -> void:
+	if engine.state().effects.counters.has(HOLDER_AURA_KEY):
+		engine.apply_enchantment(target, aura)
 
 
 ## Each observer point fired with every candidate answering, on the live engine
@@ -303,8 +365,9 @@ func _no_step() -> void:
 	pass
 
 
-## An aura-script entry: calls [param primitive] once, on the first recompute.
-func _primitive_once(engine: RulesEngine, primitive: StringName) -> void:
+## An aura-script entry: calls [param primitive] once, on the first recompute,
+## on the aura board ([method MatchBudgetFixtures.make_aura_board]).
+func primitive_once(engine: RulesEngine, primitive: StringName) -> void:
 	var counters: Dictionary = engine.state().effects.counters
 	if counters.has(ONCE_KEY):
 		return

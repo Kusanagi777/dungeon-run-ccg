@@ -299,6 +299,11 @@ var _inline_hook_depth: int = 0
 ## True while `resolver.recompute_auras()` runs: the aura enchantments it
 ## re-applies are silent (one `auras_recomputed` lists the net changes).
 var _recomputing_auras: bool = false
+## The `before` of the running [method _recompute_auras] and whether it was
+## taken: it is taken lazily, ahead of the recompute's first write
+## ([method _before_aura_write]), so a recompute that writes nothing takes none.
+var _aura_before: Dictionary = {}
+var _aura_before_taken: bool = false
 ## The `{source, target}` contexts of the `modify_damage` / `modify_heal`
 ## folds, reused on every call (ADR-0005: the fold allocates nothing; the
 ## engine does not build a context per hit either).
@@ -848,6 +853,7 @@ func draw(side: String, n: int) -> void:
 ## [method draw] with [param fire_on_draw] false for the setup and mulligan
 ## draws (DD-X13).
 func _draw(side: String, n: int, fire_on_draw: bool) -> void:
+	_before_aura_write()
 	var player: Dictionary = _state.players[side]
 	for _i: int in n:
 		if _halted():
@@ -901,6 +907,7 @@ func _draw(side: String, n: int, fire_on_draw: bool) -> void:
 func add_mana(side: String, n: int, temporary: bool = false) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var player: Dictionary = _state.players[side]
 	if temporary:
 		var cap: int = rule("max_mana")
@@ -954,6 +961,7 @@ func apply_damage(target_id: int, requested: int, source: Variant) -> int:
 func _apply_damage(target_id: int, requested: int, source: Variant, keyword_source: Variant) -> int:
 	if _halted():
 		return 0
+	_before_aura_write()
 	var target: Dictionary = _character(target_id)
 	if target.is_empty():
 		return 0
@@ -1025,6 +1033,7 @@ func _after_damage_dealt(target: Dictionary, source: Variant, source_side: Strin
 func apply_heal(target_id: int, amount: int, source: Variant) -> int:
 	if _halted():
 		return 0
+	_before_aura_write()
 	var target: Dictionary = _character(target_id)
 	if target.is_empty():
 		return 0
@@ -1048,6 +1057,7 @@ func apply_heal(target_id: int, amount: int, source: Variant) -> int:
 func apply_armor(side: String, amount: int) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var hero: Dictionary = _state.players[side].hero
 	hero.armor = int(hero.armor) + amount
 	emit(&"armor_gained", {"side": side, "entity_id": int(hero.entity_id), "amount": amount, "armor": int(hero.armor)})
@@ -1066,6 +1076,7 @@ func apply_armor(side: String, amount: int) -> void:
 func apply_enchantment(target_id: int, enchantment: Dictionary) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var record: Dictionary = _find_record(target_id)
 	if record.is_empty():
 		return
@@ -1095,6 +1106,7 @@ func apply_enchantment(target_id: int, enchantment: Dictionary) -> void:
 func remove_enchantment(target_id: int, index: int) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var record: Dictionary = _find_record(target_id)
 	if record.is_empty():
 		return
@@ -1130,6 +1142,7 @@ func remove_enchantment(target_id: int, index: int) -> void:
 func summon_minion(side: String, def_id: String, position: int) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	var player: Dictionary = _state.players[side]
 	var board: Array = player.board
 	if board.size() >= rule("board_size"):
@@ -1162,6 +1175,7 @@ func summon_minion(side: String, def_id: String, position: int) -> int:
 func destroy(target_id: int) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var record: Dictionary = _minion(target_id)
 	if record.is_empty():
 		record = _weapon(target_id)
@@ -1203,6 +1217,7 @@ func destroy(target_id: int) -> void:
 func silence(target_id: int) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return
@@ -1242,6 +1257,7 @@ func silence(target_id: int) -> void:
 func freeze(target_id: int) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var character: Dictionary = _character(target_id)
 	if character.is_empty():
 		return
@@ -1260,6 +1276,7 @@ func freeze(target_id: int) -> void:
 func add_keyword(target_id: int, keyword: String) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var record: Dictionary = _character(target_id)
 	if record.is_empty():
 		record = _weapon(target_id)
@@ -1282,6 +1299,7 @@ func add_keyword(target_id: int, keyword: String) -> void:
 func return_to_hand(target_id: int) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return NO_ENTITY
@@ -1318,6 +1336,7 @@ func return_to_hand(target_id: int) -> int:
 func transform(target_id: int, def_id: String) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	var old: Dictionary = _minion(target_id)
 	if old.is_empty():
 		return NO_ENTITY
@@ -1351,6 +1370,7 @@ func transform(target_id: int, def_id: String) -> int:
 func equip_weapon(side: String, def_id: String) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	var def: Dictionary = _card_def(def_id)
 	if def.is_empty():
 		return NO_ENTITY
@@ -1422,6 +1442,7 @@ func equip_weapon(side: String, def_id: String) -> int:
 func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_DISCOVER, source_id: Variant = null, effect_id: String = "") -> Dictionary:
 	if _halted():
 		return {}
+	_before_aura_write()
 	if _state.pending_choice != null:
 		push_error("RulesEngine.discover: a ChoiceRequest is already pending (card-effects C8: exactly one outstanding)")
 		return {}
@@ -1454,6 +1475,7 @@ func discover(side: String, options: Array, kind: String = MatchRecords.CHOICE_D
 func add_card_to_hand(side: String, def_id: String) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	return _add_to_hand(side, def_id)
 
 
@@ -1468,6 +1490,7 @@ func add_card_to_hand(side: String, def_id: String) -> int:
 func set_stats(target_id: int, new_attack: Variant = null, new_health: Variant = null) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var minion: Dictionary = _minion(target_id)
 	if minion.is_empty():
 		return
@@ -1493,6 +1516,7 @@ func set_stats(target_id: int, new_attack: Variant = null, new_health: Variant =
 func remove_keyword(target_id: int, keyword: String) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var record: Dictionary = _character(target_id)
 	if record.is_empty():
 		record = _weapon(target_id)
@@ -1515,6 +1539,7 @@ func remove_keyword(target_id: int, keyword: String) -> void:
 func add_card_to_deck(side: String, def_id: String, position: String = MatchRecords.POSITION_RANDOM) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	var deck: Array = _state.players[side].deck
 	var index: int
 	match position:
@@ -1547,6 +1572,7 @@ func add_card_to_deck(side: String, def_id: String, position: String = MatchReco
 func modify_durability(weapon_id: int, delta: int) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var weapon: Dictionary = _weapon(weapon_id)
 	if weapon.is_empty():
 		return
@@ -1566,6 +1592,7 @@ func modify_durability(weapon_id: int, delta: int) -> void:
 func refresh_hero_power(side: String) -> void:
 	if _halted():
 		return
+	_before_aura_write()
 	var power: Dictionary = _state.players[side].hero_power
 	if not power.used_this_turn:
 		return
@@ -1586,6 +1613,7 @@ func refresh_hero_power(side: String) -> void:
 func discard(side: String, which: Variant = MatchRecords.PICK_RANDOM) -> int:
 	if _halted():
 		return NO_ENTITY
+	_before_aura_write()
 	var player: Dictionary = _state.players[side]
 	var hand: Array = player.hand
 	if hand.is_empty():
@@ -3079,20 +3107,36 @@ func _queue_deathrattle(snapshot: Dictionary, died_seq: int) -> void:
 ## every entry of [method _aura_values] that changed, with absolute values, in
 ## that order — no event when nothing changed (C15, DD-X26).
 ## Aura loss leaves `damage_taken` alone (F6): the next death check kills.
+##
+## **Both stat passes run only when a value can have moved** (story 019 R1):
+## every field of an [method _aura_values] entry — stats, keywords, hand cost —
+## is a function of the match state, so with no write between `before` and
+## `after` they are equal and there is nothing to report. The only writers
+## between them are the strip and the resolver's primitives (ADR-0007: the
+## resolver writes through primitives alone), and each takes `before` ahead of
+## its first write. A recompute with no `is_aura` enchantment to strip and no
+## primitive from the resolver therefore makes no pass. `modify_cost` folds are
+## pure (ADR-0005), so skipping one is not observable.
 func _recompute_auras() -> void:
 	_recompute_calls += 1
-	var before: Dictionary = _aura_values()
-	for side: String in MatchRecords.SIDES:
-		var player: Dictionary = _state.players[side]
-		for character: Dictionary in _characters_of(side):
-			_strip_auras(character.enchantments)
-		if player.weapon != null:
-			_strip_auras(player.weapon.enchantments)
-		for card: Dictionary in player.hand:
-			_strip_auras(card.cost_modifiers)
+	_aura_before_taken = false
+	if _holds_aura_enchantment():
+		_take_aura_before()
+		for side: String in MatchRecords.SIDES:
+			var player: Dictionary = _state.players[side]
+			for character: Dictionary in _characters_of(side):
+				_strip_auras(character.enchantments)
+			if player.weapon != null:
+				_strip_auras(player.weapon.enchantments)
+			for card: Dictionary in player.hand:
+				_strip_auras(card.cost_modifiers)
 	_recomputing_auras = true
 	_resolver.recompute_auras()
 	_recomputing_auras = false
+	if not _aura_before_taken:
+		return
+	var before: Dictionary = _aura_before
+	_aura_before = {}
 	var after: Dictionary = _aura_values()
 	var changes: Array[Dictionary] = []
 	for id: int in after:
@@ -3100,6 +3144,45 @@ func _recompute_auras() -> void:
 			changes.append(after[id])
 	if not changes.is_empty():
 		emit(&"auras_recomputed", {"changes": changes})
+
+
+## Every primitive's first line after its halted check: inside the resolver's
+## aura pass, takes the recompute's `before` ahead of the first write (story 019
+## R1). A primitive added to [constant PRIMITIVES] must call it too; the aura
+## golden runs each one inside the pass.
+func _before_aura_write() -> void:
+	if _recomputing_auras and not _aura_before_taken:
+		_take_aura_before()
+
+
+func _take_aura_before() -> void:
+	_aura_before = _aura_values()
+	_aura_before_taken = true
+
+
+## Whether [method _recompute_auras]' strip has anything to remove: the same
+## lists it walks, read only.
+func _holds_aura_enchantment() -> bool:
+	for side: String in MatchRecords.SIDES:
+		var player: Dictionary = _state.players[side]
+		if player.hero != null and _any_aura(player.hero.enchantments):
+			return true
+		for minion: Dictionary in player.board:
+			if _any_aura(minion.enchantments):
+				return true
+		if player.weapon != null and _any_aura(player.weapon.enchantments):
+			return true
+		for card: Dictionary in player.hand:
+			if _any_aura(card.cost_modifiers):
+				return true
+	return false
+
+
+static func _any_aura(enchantments: Array) -> bool:
+	for enchantment: Dictionary in enchantments:
+		if bool(enchantment.get("is_aura", false)):
+			return true
+	return false
 
 
 ## The C15 `auras_recomputed` entry of everything an aura can change, keyed by

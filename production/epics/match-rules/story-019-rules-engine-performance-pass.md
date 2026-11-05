@@ -178,3 +178,16 @@ Three things this story text predates, settled here (a `DD-X` row wins, then the
 - **Perf files.** Wave 1 split the gates: submit, legal and fold moved to `match_rules_{submit,legal_commands,fold}_perf_test.gd`, and `match_rules_perf_test.gd` keeps the planner gate. AC-3 and AC-4 follow the code.
 - **AC-4's data source.** `runtime.planner_target_ms` in `assets/data/ai_profiles.json`, not the design registry a Godot test cannot read (QA plan MR-019 Gap, NC-8).
 - **Release figures.** No export template is installed on this machine and none is to be downloaded, so AC-3 and AC-4 are measured on the debug binary and every release figure is NOT ASSESSED until the owner re-measures after M2.
+
+## Baseline counters (2026-11-04, the 56-pass chain `submit`, counters reset before it)
+
+Read on the unchanged engine plus the diagnostic counters alone (`4d2b046`, then the counter commit), whose goldens all stayed byte-identical:
+
+| Counter | Baseline | Budget (AC-1) |
+|---|---|---|
+| `drain_iterations` | 61 | n/a |
+| `recompute_calls` | 61 | equal to `drain_iterations` |
+| `stat_map_passes` | 122 | 0 |
+| `record_lookups` | 917 | n/a |
+| `record_visits` | 13,944 | at most `record_lookups` |
+| `candidate_buffers` | 555 | at most `drain_iterations` + 1 |

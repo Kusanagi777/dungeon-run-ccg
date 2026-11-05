@@ -133,6 +133,18 @@ func test_the_aura_passes_are_byte_identical_to_their_golden() -> void:
 	_assert_matches(MatchGoldenLogs.AURAS)
 
 
+func test_an_aura_on_each_kind_of_holder_alone_is_byte_identical_to_its_golden() -> void:
+	_assert_matches(MatchGoldenLogs.AURA_HOLDERS)
+
+
+func test_the_holder_golden_covers_every_kind_the_strip_walks() -> void:
+	# Act
+	var scenarios: Array = _rows_with(MatchGoldenLogs.AURA_HOLDERS, "scenario").map(func(r: Dictionary) -> String: return str(r.scenario))
+
+	# Assert
+	assert_array(scenarios).is_equal(Array(MatchGoldenLogs.HOLDER_KINDS))
+
+
 func test_the_observer_order_is_byte_identical_to_its_golden() -> void:
 	_assert_matches(MatchGoldenLogs.TRIGGERS)
 
