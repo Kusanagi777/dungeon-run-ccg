@@ -59,6 +59,31 @@ const BOSS_SET: String = "boss"
 const CONFIG_TREASURES_BALANCE: String = "treasures_balance"
 const KNOB_MAX_EFFECTS: String = "max_effects_per_treasure"
 
+## `treasures_balance.json` knob outside its safe range (Tuning Knobs).
+const E_RANGE: StringName = &"E_RANGE"
+## The rarity bands of `treasures_balance.json`, low band first.
+const KNOB_COMMON_BAND: String = "common_band"
+const KNOB_RARE_BAND: String = "rare_band"
+## Tuning Knobs: the safe range of [constant KNOB_MAX_EFFECTS].
+const MAX_EFFECTS_RANGE: Array[int] = [1, 5]
+## Tuning Knobs: a band is at least this wide.
+const MIN_BAND_WIDTH: float = 1.0
+## The number knobs of `treasures_balance.json`, key to Tuning Knobs safe range:
+## format knowledge, never a knob's value, which is the file's (ADR-0002). The
+## `v_*` rows are the GDD's stated value ±50 %.
+const NUMBER_KNOB_RANGES: Dictionary[String, Array] = {
+	"v_card": [0.75, 2.25],
+	"v_dmg": [0.25, 0.75],
+	"v_hp": [0.175, 0.525],
+	"v_stat": [0.25, 0.75],
+	"v_token": [0.5, 1.5],
+	"v_rush": [0.25, 0.75],
+	"eta_mana": [0.4, 1.0],
+	"eta_crystal": [0.4, 1.0],
+	"eta_first": [0.4, 1.0],
+	"eta_overheal": [0.4, 1.0],
+}
+
 ## The owning side of a treasure and of a boss passive (ADR-0005 rule 3).
 const _SIDE_PLAYER: StringName = &"player"
 const _SIDE_BOSS: StringName = &"boss"
@@ -198,6 +223,79 @@ static func validate_treasure_defs(defs: Array, db: Variant, balance: Dictionary
 ## Example, the Boot map entry: `"treasure": Treasures.validate_treasure_record`.
 static func validate_treasure_record(_host_kind: StringName, _host_id: String, rec: Dictionary, db: Variant, bodies: Dictionary) -> Array:
 	return validate_treasure_defs([rec], db, bodies.get(CONFIG_TREASURES_BALANCE, {}))
+
+
+## The stage-7a validator of `treasures_balance.json` (ADR-0002 Decision 4;
+## Tuning Knobs; card-database CR-5): `[]` for a body holding exactly the shipped
+## keys, of the right type and inside their safe ranges. Otherwise one
+## `{code, host_id: null, field, message}` per fault: `E_MISSING_FIELD` for an
+## absent key, `E_UNKNOWN_FIELD` for an extra one, `E_SCHEMA` for a wrong type,
+## [constant E_RANGE] for a value outside its range. A band that is not a
+## `[low, high]` pair of numbers is `E_SCHEMA`; one narrower than
+## [constant MIN_BAND_WIDTH] is [constant E_RANGE]; `common_band` reaching past
+## the start of `rare_band` is one [constant E_RANGE] on `common_band`, and the
+## two bands may touch. Static and pure, and it reads no default.
+## Example, the Boot map entry: `configs.treasures_balance = Treasures.validate_config`.
+## [codeblock]
+## Treasures.validate_config(db.config("treasures_balance"), null)   # []
+## Treasures.validate_config({}, null)[0].code                       # &"E_MISSING_FIELD"
+## [/codeblock]
+static func validate_config(body: Dictionary, _db: Variant) -> Array:
+	var rows: Array = []
+	for key: Variant in body:
+		if key != KNOB_MAX_EFFECTS and key != KNOB_COMMON_BAND and key != KNOB_RARE_BAND and not NUMBER_KNOB_RANGES.has(key):
+			rows.append(_config_row(ValidationReport.E_UNKNOWN_FIELD, str(key), "`%s` is not a treasures_balance key" % key))
+	_check_max_effects(rows, body)
+	var common_ok: bool = _check_band(rows, body, KNOB_COMMON_BAND)
+	var rare_ok: bool = _check_band(rows, body, KNOB_RARE_BAND)
+	if common_ok and rare_ok and float(body[KNOB_COMMON_BAND][1]) > float(body[KNOB_RARE_BAND][0]):
+		rows.append(_config_row(E_RANGE, KNOB_COMMON_BAND, "`%s` %s overlaps `%s` %s" % [KNOB_COMMON_BAND, str(body[KNOB_COMMON_BAND]), KNOB_RARE_BAND, str(body[KNOB_RARE_BAND])]))
+	for knob: String in NUMBER_KNOB_RANGES:
+		_check_number_knob(rows, body, knob, NUMBER_KNOB_RANGES[knob])
+	return rows
+
+
+static func _check_max_effects(rows: Array, body: Dictionary) -> void:
+	if not body.has(KNOB_MAX_EFFECTS):
+		rows.append(_config_row(ValidationReport.E_MISSING_FIELD, KNOB_MAX_EFFECTS, "missing `%s`" % KNOB_MAX_EFFECTS))
+	elif not RecordSchemas.is_whole_number(body[KNOB_MAX_EFFECTS]):
+		rows.append(_config_row(ValidationReport.E_SCHEMA, KNOB_MAX_EFFECTS, "`%s` must be a whole number, found %s" % [KNOB_MAX_EFFECTS, str(body[KNOB_MAX_EFFECTS])]))
+	elif int(body[KNOB_MAX_EFFECTS]) < MAX_EFFECTS_RANGE[0] or int(body[KNOB_MAX_EFFECTS]) > MAX_EFFECTS_RANGE[1]:
+		rows.append(_config_row(E_RANGE, KNOB_MAX_EFFECTS, "`%s` is %s, outside the safe range %s" % [KNOB_MAX_EFFECTS, str(body[KNOB_MAX_EFFECTS]), str(MAX_EFFECTS_RANGE)]))
+
+
+## True when [param knob] is a well-formed band wide enough to compare with its
+## neighbour; a fault adds one row and returns false.
+static func _check_band(rows: Array, body: Dictionary, knob: String) -> bool:
+	if not body.has(knob):
+		rows.append(_config_row(ValidationReport.E_MISSING_FIELD, knob, "missing `%s`" % knob))
+		return false
+	var band: Variant = body[knob]
+	if not band is Array or (band as Array).size() != 2 or not _is_number(band[0]) or not _is_number(band[1]):
+		rows.append(_config_row(ValidationReport.E_SCHEMA, knob, "`%s` must be a [low, high] pair of numbers, found %s" % [knob, str(band)]))
+		return false
+	if float(band[1]) - float(band[0]) < MIN_BAND_WIDTH:
+		rows.append(_config_row(E_RANGE, knob, "`%s` %s is narrower than %s" % [knob, str(band), str(MIN_BAND_WIDTH)]))
+		return false
+	return true
+
+
+static func _check_number_knob(rows: Array, body: Dictionary, knob: String, safe: Array) -> void:
+	if not body.has(knob):
+		rows.append(_config_row(ValidationReport.E_MISSING_FIELD, knob, "missing `%s`" % knob))
+	elif not _is_number(body[knob]):
+		rows.append(_config_row(ValidationReport.E_SCHEMA, knob, "`%s` must be a number, found %s" % [knob, str(body[knob])]))
+	elif float(body[knob]) < float(safe[0]) or float(body[knob]) > float(safe[1]):
+		rows.append(_config_row(E_RANGE, knob, "`%s` is %s, outside the safe range %s" % [knob, str(body[knob]), str(safe)]))
+
+
+static func _is_number(value: Variant) -> bool:
+	return value is int or value is float
+
+
+## One stage-7a entry: a config fault has no host.
+static func _config_row(code: StringName, field: String, message: String) -> Dictionary:
+	return {"code": code, "host_id": null, "field": field, "message": message}
 
 
 static func _check_rarity(rows: Array, id: String, rarity: Variant) -> void:

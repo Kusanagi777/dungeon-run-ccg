@@ -1,7 +1,7 @@
 # Story 012: Non-MVP treasure spot checks — Grave Tithe, Living Armory, Focusing Prism, Mending Charm
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M

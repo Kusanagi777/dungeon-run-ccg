@@ -1,7 +1,7 @@
 # Story 010: `Treasures.validate_config` for `treasures_balance.json`, and magnitudes read from data
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S

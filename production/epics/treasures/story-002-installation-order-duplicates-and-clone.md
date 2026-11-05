@@ -1,7 +1,7 @@
 # Story 002: Treasures in a live match — installation order, duplicate skip, no back-reference, clone
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M

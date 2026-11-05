@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Grep gates G1–G7: the rules / presentation split, enforced in CI.
+# Grep gates G1–G8: the rules / presentation split, enforced in CI.
 #
 #   bash tools/lint/gates.sh [root]      # root defaults to the current directory
 #
@@ -192,6 +192,22 @@ g7_writes="$(cat <<'G7_PATTERN'
 G7_PATTERN
 )"
 run_gate G7 -e "$g7_writes" -e 'log\.append\(' -e 'RandomNumberGenerator' -- src/gameplay/effects
+
+# G8 — the treasures chain stays Node-free (treasures story 004, AC-T2.1; the
+# TD-009 defect): nothing under src/gameplay/treasures, nor hook_registry.gd or
+# hook_installer.gd, reaches a Node, the tree, an autoload or Boot. G4 pins Boot
+# as the one autoload, so `Boot.` is every autoload name. Globs are last-match-
+# wins: the match directory is dropped, then its two chain files are put back.
+# Comment lines are dropped, as for G3: they may name what the chain must not do.
+if g8_raw="$(rg_hits --glob '!src/gameplay/match/*.gd' \
+	--glob 'src/gameplay/match/hook_registry.gd' --glob 'src/gameplay/match/hook_installer.gd' \
+	-e 'extends\s+Node|:\s*Node\b|\bas\s+Node\b|\bNode\.new\(|get_tree\(|Engine\.get_main_loop\(|\bBoot\.' \
+	-- src/gameplay/treasures src/gameplay/match)"; then
+	report G8 "$(printf '%s\n' "$g8_raw" | rg -v '^[^:]+:[0-9]+:\s*#' | sed '/^$/d')"
+else
+	echo "G8: could not run" >&2
+	broken=1
+fi
 
 if [ "$broken" -ne 0 ]; then
 	echo "gates.sh: at least one gate could not run — not a pass" >&2

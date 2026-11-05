@@ -1,7 +1,7 @@
 # Story 006: MVP-1 — the 10 MVP treasures
 
 > **Epic**: Content (MVP batch)
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature (data)
 > **Type**: Config/Data
 > **Estimate**: S
