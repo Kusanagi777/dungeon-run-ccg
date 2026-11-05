@@ -61,6 +61,7 @@ const INTENT_DRAG_START: StringName = &"drag_start"
 const INTENT_DRAG_MOVE: StringName = &"drag_move"
 const INTENT_DRAG_RELEASE: StringName = &"drag_release"
 const INTENT_CANCEL: StringName = &"cancel"
+const INTENT_MULLIGAN_CONFIRM: StringName = &"mulligan_confirm"
 ## `source.kind` values.
 const SOURCE_CARD: String = "card"
 const SOURCE_ATTACKER: String = "attacker"
@@ -195,6 +196,9 @@ func intent(intent_name: StringName, args: Dictionary = {}) -> void:
 			_drag_release(args.get("pos", Vector2.ZERO))
 		INTENT_CANCEL:
 			_end_session(false)
+		INTENT_MULLIGAN_CONFIRM:
+			if view_state() == STATE_MULLIGAN:
+				command_requested.emit(MatchRecords.mulligan(args.get("keep_mask", [])))
 		INTENT_END_TURN:
 			if can_end_turn():
 				command_requested.emit(MatchRecords.end_turn(MatchViewState.SIDE_PLAYER))

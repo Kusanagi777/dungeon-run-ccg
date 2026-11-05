@@ -119,6 +119,11 @@ func pose_drag(id: int) -> void:
 	_router.intent(InputRouter.INTENT_DRAG_START, {"source": {"kind": kind, "id": id}, "pos": centre})
 
 
+## The mulligan screen, for tests.
+func mulligan() -> MulliganPresenter:
+	return _mulligan
+
+
 ## The hand fan, for poses and tests.
 func hand() -> HandPresenter:
 	return _hand
@@ -160,6 +165,12 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _started:
 		return
+	if event is InputEventKey and event.pressed and not event.echo and _mulligan.is_open():
+		if _mulligan.handle_key((event as InputEventKey).keycode):
+			return
+		if (event as InputEventKey).keycode == KEY_ENTER:
+			_mulligan.confirm()
+			return
 	_router.handle_input(event)
 	if event is InputEventMouseMotion:
 		_update_hover((event as InputEventMouseMotion).position)
@@ -206,6 +217,8 @@ func _build() -> void:
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
 		presenter.bind(_view)
+	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
+		_router.intent(InputRouter.INTENT_MULLIGAN_CONFIRM, {"keep_mask": keep_mask}))
 	_queue.step_started.connect(_on_step_started)
 	_queue.skipped.connect(_on_skipped)
 	_queue.drained.connect(_on_drained)
@@ -366,14 +379,17 @@ func _finish_step(step: AnimStep) -> void:
 func _present(display: Dictionary) -> void:
 	for presenter: Presenter in _presenters:
 		presenter.present(display)
+	_table.color = _ui.color("table_dark" if display.pending_mulligan != null else "table_lit")
 	var key: String = "hud.turn.player" if str(display.active_side) == MatchViewState.SIDE_PLAYER else "hud.turn.boss"
 	_turn_label.text = tr("hud.turn.setup") if int(display.turn) == 0 else tr(key) % int(display.turn)
 
 
 func _on_command_requested(command: Dictionary) -> void:
 	var result: Dictionary = _controller.submit(command)
-	if not result.accepted and _dropped_card != -1:
-		_hand.reset_card(_dropped_card)
+	if not result.accepted:
+		_mulligan.on_rejected()
+		if _dropped_card != -1:
+			_hand.reset_card(_dropped_card)
 	_dropped_card = -1
 
 
