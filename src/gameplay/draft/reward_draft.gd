@@ -94,7 +94,8 @@ func init_run(_run_state: RunState) -> Dictionary:
 ## True when [param draft_state] has the D3 shape; otherwise the run calls
 ## [method init_run] at resume (run-structure R8.2).
 static func draft_state_is_usable(draft_state: Dictionary) -> bool:
-	return draft_state.get("schema_version") == DRAFT_STATE_SCHEMA_VERSION and draft_state.get("treasure_pool") is Array
+	var version: Variant = draft_state.get("schema_version")
+	return (version is int or version is float) and version == DRAFT_STATE_SCHEMA_VERSION and draft_state.get("treasure_pool") is Array
 
 
 ## The `reward_draft` config validator (card-database CR-5 stage 7a; ADR-0002
