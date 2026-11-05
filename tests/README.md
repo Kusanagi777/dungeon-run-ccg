@@ -221,10 +221,10 @@ a parse error, so read its output, and a missing main scene makes it hang.
 loads the boot scene; `main_scene_test.gd` covers the `RunShell` states and
 the debug `--boot-fail-fixture=<name>` override without booting the autoload.
 
-## Run and observe (Linux/CI)
+## Run and observe (Linux/CI and Windows)
 
 `.claude/docs/run-and-observe.md` is the procedure; `tools/capture.sh` is the
-Linux/CI implementation of its Godot row:
+implementation of its Godot row, on Linux/CI and on a Windows desktop:
 
 ```bash
 bash tools/capture.sh <scene-res-path> <out-dir> [frames]
@@ -232,21 +232,40 @@ bash tools/capture.sh res://src/scenes/boot.tscn production/qa/evidence/<story-s
 # → prints production/qa/evidence/<story-slug>/01-<scene-basename>.png
 CAPTURE_LABEL=02-data_error bash tools/capture.sh res://src/scenes/main.tscn <out-dir> 60 -- --boot-fail-fixture=boot_data_error
 # → <out-dir>/02-data_error.png; the arguments after `--` reach the scene's OS.get_cmdline_user_args()
+CAPTURE_RENDERER=opengl3 bash tools/capture.sh ...    # Windows: Compatibility on the real GPU
+# → beside every kept frame, <name>.renderer.txt: the OS, the exact Godot arguments, the engine's renderer lines
 ```
 
-It runs the command observed to work on this container
+On Linux it runs the command observed to work on this container
 (`docs/architecture/spikes/2026-11-03-engine-probes.md`, Probe C):
 `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --windowed --resolution
 1280x720 --rendering-driver opengl3 --write-movie <dir>/f.png --quit-after 60
 res://<scene>.tscn`, keeps the **last** frame as `01-<scene-basename>.png`,
 deletes the other frames and the `.wav`, and exits non-zero when Godot failed
-(3) or when the frame is a single colour (4, a blank capture — checked by a
-dependency-free PNG reader run with `python3 -I`). `frames` defaults to 60;
-raise it for a scene that animates in.
+or logged no renderer line (3) or when the frame is a single colour (4, a blank
+capture — checked by a dependency-free PNG reader run with `python3 -I`). `frames`
+defaults to 60; raise it for a scene that animates in. Godot's output is shown
+once it has exited, on the stream it was written to.
+
+On Windows (Git Bash) it is the same run without `xvfb-run` and without
+`--rendering-driver`, which is ADR-0010 Decision 3's Forward+ form, launched through
+`tools/bin/godot` from the worktree root (`GODOT_BIN` as in "Running Godot on a dev
+machine", naming the `*_console.exe`: the GUI build logs no renderer line, so its
+frames are not kept). **It opens a real window on the desktop** for the length of
+the run, about 5 s at 60 frames. A session with no display is exit 3 with Godot's
+error shown. The blank check runs under the first of `python3`, `python`, `py -3`
+that starts; none starting is exit 2, as is no Godot. A Windows frame with its
+sidecar is BLOCKING UI evidence, in either renderer (DD-X32); the reviewer says
+which one the sidecar's `renderer:` line names. The first frames are in
+`production/qa/evidence/story-011-windows-screenshot-capture/`.
+
+`tests/integration/boot/capture_script_test.gd` runs both branches on any host with
+stubs in place of `uname`, `xvfb-run` and the engine, so it opens no window. Its
+Linux tests pin the line; they do not stand in for a run on a Linux host.
 
 Things to know:
 
-- **CI evidence is Compatibility/llvmpipe output.** There is no Vulkan device
+- **The Linux path's evidence is Compatibility/llvmpipe output.** There is no Vulkan device
   under Xvfb, so every frame is rendered by the Compatibility (OpenGL 3)
   renderer on Mesa's software rasteriser, not the project's Forward+ renderer.
   2D `Control`/`Label`/`ColorRect` output matched expected colours exactly;
