@@ -94,8 +94,10 @@ var counters: Dictionary = {}
 var armed_sources: Dictionary = {}
 ## Once-per-turn trigger sources spent this turn (dimmed): `{instance_id: true}`; cleared on `turn_started`.
 var exhausted_sources: Dictionary = {}
-## Feed content `{key, params, group_id}`, newest last, at most `feed_max_lines`; rendering is story 014.
+## Feed content `{key, params, group_id, seq}`, newest last, at most `feed_max_lines`; `FeedPresenter` renders it.
 var feed_lines: Array[Dictionary] = []
+## Every feed line ever added, dropped ones included: a display's place in the feed.
+var feed_total: int = 0
 ## The `match_ended` payload (match-rules C14 `MatchResult`), or null while the match runs.
 var result: Variant = null
 ## `ai_decision` events `{seq, type, payload}`, filled only while the debug overlay is on.
@@ -170,9 +172,9 @@ func apply(event: Dictionary) -> Array[AnimStep]:
 	if _silent.has(type):
 		return steps
 	if not _project(type, seq, group, cause, payload, steps):
-		_feed(FEED_UNKNOWN, {"type": type}, group)
+		_feed(FEED_UNKNOWN, {"type": type}, group, seq)
 		return steps
-	_feed(FEED_PREFIX + type, _public_params(type, payload), group)
+	_feed(FEED_PREFIX + type, _public_params(type, payload), group, seq)
 	return steps
 
 
@@ -285,13 +287,13 @@ func _apply_diagnostic(type: String, seq: int, group: int, payload: Dictionary, 
 		var shake: AnimStep = _step(AnimStep.REJECT_SHAKE, [], group, seq)
 		shake.data = {"code": str(payload.get("code", ""))}
 		steps.append(shake)
-		_feed(FEED_COMMAND_REJECTED, {"command": _copy(payload.get("command")), "code": str(payload.get("code", ""))}, group)
+		_feed(FEED_COMMAND_REJECTED, {"command": _copy(payload.get("command")), "code": str(payload.get("code", ""))}, group, seq)
 		return
 	if not _debug_overlay:
 		return
 	if type == _TYPE_AI_DECISION:
 		debug_buffer.append({"seq": seq, "type": type, "payload": payload.duplicate(true)})
-	_feed(FEED_DIAG_PREFIX + type, payload.duplicate(true), group)
+	_feed(FEED_DIAG_PREFIX + type, payload.duplicate(true), group, seq)
 
 
 # --- the U3 table ------------------------------------------------------------------
@@ -368,7 +370,9 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			(raw.deck as Dictionary).erase(int(p.get("instance_id", 0)))
 			if p.has("returned_entity_id"):
 				_remove_token(raw, int(p.returned_entity_id))
-			steps.append(_step(AnimStep.BURN, [int(p.get("instance_id", 0))], group, seq))
+			var flash: AnimStep = _step(AnimStep.BURN, [int(p.get("instance_id", 0))], group, seq)
+			flash.data = {"side": str(p.get("side", "")), "card_id": str(p.get("card_id", ""))}
+			steps.append(flash)
 		"card_added_to_deck":
 			_raw(p).deck[int(p.get("instance_id", 0))] = true
 			steps.append(_step(AnimStep.DECK_TICK, [int(p.get("instance_id", 0))], group, seq))
@@ -709,8 +713,9 @@ func _parallel(step: AnimStep) -> AnimStep:
 	return step
 
 
-func _feed(key: String, params: Dictionary, group: int) -> void:
-	feed_lines.append({"key": key, "params": params, "group_id": group})
+func _feed(key: String, params: Dictionary, group: int, seq: int) -> void:
+	feed_lines.append({"key": key, "params": params, "group_id": group, "seq": seq})
+	feed_total += 1
 	if _feed_max > 0 and feed_lines.size() > _feed_max:
 		feed_lines.pop_front()
 

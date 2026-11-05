@@ -25,6 +25,8 @@ const RANGES: Dictionary = {
 	"hand.theta_total_max": [20.0, 40.0],
 	"hand.hover_in_s": [0.05, 0.2],
 	"targeting.arrow_lift_px": [20, 100],
+	"feed_group_collapse": [4, 10],
+	"feed_ticker_lines": [2, 4],
 }
 ## Sections and keys the view reads with no range of their own.
 const REQUIRED: Array[String] = [

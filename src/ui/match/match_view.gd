@@ -143,6 +143,11 @@ func hand() -> HandPresenter:
 	return _hand
 
 
+## The event feed, for poses and tests.
+func feed() -> FeedPresenter:
+	return _feed
+
+
 ## Debug builds: every presenter's display equals the view-state (U4.6).
 func assert_in_sync() -> void:
 	for presenter: Presenter in _presenters:
@@ -347,6 +352,7 @@ func _apply_identity() -> void:
 	var boss_id: String = str(_match_info.get("boss_def_id", ""))
 	_boss_panel.set_identity(_ui.boss_identity(boss_id))
 	_banner.set_boss(boss_id)
+	_feed.set_names(str(_match_info.get("hero_def_id", "")), boss_id)
 	_floor_label.text = tr("hud.floor") % [int(_match_info.get("floor", 0)), tr(MatchStrings.BOSS_NAME_KEY % boss_id)]
 
 
@@ -385,6 +391,7 @@ func _display() -> Dictionary:
 		"phase": _view.phase,
 		"pending_mulligan": _view.pending_mulligan,
 		"result": _view.result,
+		"feed_total": _view.feed_total,
 	}
 
 

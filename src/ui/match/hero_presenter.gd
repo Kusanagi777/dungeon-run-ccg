@@ -23,6 +23,9 @@ const USED_GLYPH: String = "✓"
 const LETHAL_RAMP_S: float = 0.4
 const TOOLTIP_SIZE: Vector2 = Vector2(260, 96)
 const TOOLTIP_GAP: float = 8.0
+## hud.md §4.2: the pile is a 0.5x card.
+const BURN_CARD_SCALE: float = 0.5
+const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.tscn")
 
 ## Which side's panel this is; set on the instance in `match_view.tscn`.
 @export var side: StringName = SIDE_PLAYER
@@ -80,6 +83,7 @@ func setup(context: MatchUiContext) -> void:
 	_center(_deck)
 	_fatigue = _label(Rect2(deck_rect.position + Vector2(0, deck_rect.size.y), Vector2(deck_rect.size.x, 18)), SMALL_FONT_PX, "state_danger")
 	_center(_fatigue)
+	_fatigue.autowrap_mode = TextServer.AUTOWRAP_WORD
 	if player:
 		_build_player_slots()
 	else:
@@ -109,6 +113,11 @@ func set_identity(identity: Dictionary) -> void:
 		_passive.text = tr(str(identity.get("passive_key", "")))
 
 
+## A burn has a card's id, which no hero owns: it is claimed by side.
+func claims(step: AnimStep) -> bool:
+	return super(step) or (step.kind == AnimStep.BURN and str(step.data.get("side", "")) == String(side))
+
+
 func owns(entity_ids: Array[int]) -> bool:
 	var ids: Dictionary = _own_ids()
 	for id: int in entity_ids:
@@ -134,6 +143,8 @@ func on_step_started(step: AnimStep, d_eff: float) -> void:
 		AnimStep.WEAPON_SHATTER:
 			if _weapon != null:
 				step_tween(step).tween_property(_weapon, "modulate:a", 0.0, d_eff)
+		AnimStep.BURN:
+			_show_burn(step, d_eff)
 
 
 func apply_final(step: AnimStep) -> void:
@@ -163,7 +174,7 @@ func present(state: Dictionary) -> void:
 	_armor.text = tr("hud.armor") % int(hero.armor)
 	_deck.text = str(int(data.deck_count))
 	_fatigue.visible = int(data.deck_count) == 0
-	_fatigue.text = tr("hud.fatigue") % int(data.fatigue_next)
+	_fatigue.text = tr("hud.fatigue_next") % int(data.fatigue_next)
 	if side == SIDE_PLAYER:
 		_present_player(hero, data.mana)
 	else:
@@ -328,6 +339,22 @@ func _present_player(hero: Dictionary, mana: Dictionary) -> void:
 		elif i < int(mana.max):
 			token = "crystal_spent"
 		_crystals[i].color = ui.color(token)
+
+
+## hud.md §4.2: the burned card face up over the player's pile, dissolving. A boss burn
+## is told by the feed alone.
+func _show_burn(step: AnimStep, d_eff: float) -> void:
+	var face: Dictionary = ui.card_face(str(step.data.get("card_id", "")))
+	if side != SIDE_PLAYER or face.is_empty():
+		return
+	var card: CardFrame = CARD_FRAME_SCENE.instantiate()
+	add_child(card)
+	card.configure(ui)
+	card.show_card(face, int(face.get("cost", 0)) if face.get("cost") != null else 0)
+	card.scale = Vector2.ONE * BURN_CARD_SCALE
+	card.position = ui.rect("player_deck").get_center() - CardFrame.SIZE * BURN_CARD_SCALE / 2.0
+	keep_for_step(step, card)
+	step_tween(step).tween_property(card, "modulate:a", 0.0, d_eff)
 
 
 func _lunge(step: AnimStep, d_eff: float) -> void:
