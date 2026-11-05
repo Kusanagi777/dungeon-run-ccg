@@ -79,6 +79,20 @@ func card_face(card_id: String) -> Dictionary:
 	return face
 
 
+## `{name_key, text_key, rarity, tags}` of treasure [param treasure_id]; `{}` when unknown.
+func treasure_face(treasure_id: String) -> Dictionary:
+	var record: Variant = _db.treasure(treasure_id) if _db != null else null
+	if not record is Dictionary:
+		return {}
+	var text: Variant = record.get("text")
+	return {
+		"name_key": MatchStrings.TREASURE_NAME_KEY % treasure_id,
+		"text_key": str(text.get("key", "")) if text is Dictionary else "",
+		"rarity": str(record.get("rarity", "")),
+		"tags": record.get("tags", []),
+	}
+
+
 ## The panel identity of hero [param hero_def_id]: `{primary, initial, power_id}`.
 func hero_identity(hero_def_id: String) -> Dictionary:
 	var record: Variant = _db.hero(hero_def_id) if _db != null and _db.has(hero_def_id) else null

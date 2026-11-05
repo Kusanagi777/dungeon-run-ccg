@@ -1,7 +1,7 @@
 # Story 021: Treasure tray — chips, 44x44 hit rects, tooltip on hover or focus, hook flare
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: S

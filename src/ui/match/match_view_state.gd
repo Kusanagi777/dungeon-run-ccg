@@ -61,6 +61,8 @@ const FEED_PREFIX: String = "feed."
 const FEED_UNKNOWN: String = "feed.unknown"
 const FEED_DIAG_PREFIX: String = "feed.diag."
 const FEED_COMMAND_REJECTED: String = "feed.command_rejected"
+## `effect_resolved.host_kind` of a treasure's hook (the tray flare).
+const HOST_KIND_TREASURE: String = "treasure"
 
 const _KEYWORD_DIVINE_SHIELD: String = "divine_shield"
 const _KEYWORD_STEALTH: String = "stealth"
@@ -518,6 +520,10 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 				var wisp: AnimStep = _step(AnimStep.FIZZLE, _ids([p.get("source_id")]), group, seq)
 				wisp.data = {"reason": _copy(fizzled)}
 				steps.append(wisp)
+			if str(p.get("host_kind", "")) == HOST_KIND_TREASURE:
+				var flare: AnimStep = _step(AnimStep.TREASURE_FLARE, [], group, seq)
+				flare.data = {"host_id": str(p.get("host_id", ""))}
+				steps.append(flare)
 		"discover_offered", "choice_requested":
 			_apply_choice_open(type == "discover_offered", p, group, seq, steps)
 		"choice_made", "discover_picked":

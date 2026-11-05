@@ -89,6 +89,7 @@ var _inspected: int = -1
 var _dropped_card: int = -1
 var _display_settings: MatchDisplay = null
 var _reject: RejectPresenter = null
+var _tray: TreasureTray = null
 var _focus: FocusPresenter = null
 # The turn focus last took its default on.
 var _focus_turn: int = -1
@@ -122,8 +123,9 @@ func set_controller(controller: MatchController) -> void:
 		_start()
 
 
-## What the panels and the top bar name: `{floor, boss_def_id, hero_def_id}` from the
-## `MatchConfig`. Call it before [method set_controller].
+## What the panels, the top bar and the tray name: `{floor, boss_def_id, hero_def_id,
+## treasures}` from the `MatchConfig`, `treasures` being the held ids in pick order. Call
+## it before [method set_controller].
 func set_match_info(info: Dictionary) -> void:
 	_match_info = info
 
@@ -369,10 +371,13 @@ func _build_extra_presenters() -> Array[Presenter]:
 	_reject = RejectPresenter.new()
 	_reject.name = "RejectFeedback"
 	add_child(_reject)
+	_tray = TreasureTray.new()
+	_tray.name = "TreasureTray"
+	add_child(_tray)
 	_focus = FocusPresenter.new()
 	_focus.name = "Focus"
 	add_child(_focus)
-	return [_reject, _focus]
+	return [_reject, _tray, _focus]
 
 
 ## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).
@@ -567,6 +572,8 @@ func _apply_identity() -> void:
 	var boss_id: String = str(_match_info.get("boss_def_id", ""))
 	_boss_panel.set_identity(_ui.boss_identity(boss_id))
 	_banner.set_boss(boss_id)
+	_tray.set_treasures(_match_info.get("treasures", []))
+	_focus.set_treasures(_tray.count(), _tray.hit_rect)
 	_floor_label.text = tr("hud.floor") % [int(_match_info.get("floor", 0)), tr(MatchStrings.BOSS_NAME_KEY % boss_id)]
 
 
@@ -891,6 +898,7 @@ func _show_info(card: int, token: int, over_power: bool) -> void:
 	if kind == InputRouter.SOURCE_ATTACKER and not held_token:
 		_player_panel.show_portrait_tooltip(true)
 	_boss_panel.show_portrait_tooltip(kind == FocusPresenter.KIND_BOSS_PORTRAIT)
+	_tray.show_tooltip(held_id if kind == FocusPresenter.KIND_TREASURE else TreasureTray.NO_CHIP)
 
 
 func _on_focus_changed(stop: Dictionary) -> void:

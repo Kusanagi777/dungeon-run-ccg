@@ -34,7 +34,8 @@
       "rim_glow": 0.15,
       "fizzle": 0.2,
       "intent_commit": 0.3,
-      "boss_discovers": 0.4
+      "boss_discovers": 0.4,
+      "treasure_flare": 0.15
     },
     "min_action_gap_s": 0.15,
     "k_min": 0.25,
@@ -207,6 +208,12 @@
         152,
         56,
         24
+      ],
+      "treasure_tray": [
+        24,
+        502,
+        136,
+        40
       ]
     },
     "hero": {
@@ -335,6 +342,20 @@
       "state_danger": "#FF8C42",
       "state_buff": "#4FA3FF"
     },
+    "treasure": {
+      "chip_px": 40,
+      "hit_px": 44,
+      "pitch_px": 48,
+      "flare_grow_px": 2,
+      "glyph_font_px": 18,
+      "tooltip_font_px": 14,
+      "tooltip_max_w": 300,
+      "hover_delay_s": 0.3,
+      "rarity_frame": {
+        "common": "neutral",
+        "rare": "knowledge2"
+      }
+    },
     "focus": {
       "ring_px": 2,
       "ring_offset_px": 3
@@ -445,6 +466,8 @@
       "end.continue": "Continue · %d",
       "targeting.no_target": "No target",
       "choice.confirm": "Confirm",
+      "treasure.rarity.common": "Common",
+      "treasure.rarity.rare": "Rare",
       "hud.menu": "≡",
       "pause.title": "Paused",
       "pause.resume": "Resume",
