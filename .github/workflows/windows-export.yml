@@ -104,6 +104,21 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # ADR-0009 Decision 4 / match-ui story 012: the release pack must not list the
+      # debug loader or the fixtures. The export filter's syntax is not sourceable, so
+      # this grep of the pack's file table is the test. The debug preset ships both.
+      - name: Check the release pack holds no debug seam
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          godot --headless --path . --export-pack 'Windows Desktop' build/release-check.pck
+          for needle in match_debug_loader tests/fixtures/; do
+            if grep -aq "$needle" build/release-check.pck; then
+              echo "release pack lists $needle" >&2
+              exit 1
+            fi
+          done
+          rm build/release-check.pck
+
       # The playtest build. A release build fails its data load while any
       # config validator is still pending (W_VALIDATOR_PENDING is an error in
       # exported release builds — card-database story 004 review fix), and
@@ -114,7 +129,7 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           mkdir -p build/windows-debug
-          godot --headless --path . --export-debug 'Windows Desktop' build/windows-debug/deckdelve-debug.exe
+          godot --headless --path . --export-debug 'Windows Desktop Debug' build/windows-debug/deckdelve-debug.exe
           f=build/windows-debug/deckdelve-debug.exe
           test -f "$f" || { echo "$f missing" >&2; exit 1; }
           size=$(stat -c %s "$f")
