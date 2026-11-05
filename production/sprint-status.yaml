@@ -275,16 +275,16 @@ stories:
     name: "TreasureValidator — T7 codes at Card Database stage 7b, registered at Boot"
     file: "production/epics/treasures/story-003-treasure-validator-at-stage-7b.md"
     priority: should-have
-    status: review
+    status: done
     owner: "general-purpose (lane 4)"
     estimate_days: 1
     lane: 4
     wave: 2
     serialised: false
     contract: false
-    blocker: "owner: does stage 4 or stage 7b gate rarity and text.en"
+    blocker: ""
     note: "re-open after M1; boot.gd treasure adapter orchestrator-owned at M2 (empties PENDING_RECORD_OWNERS); unlocks content 006 (sprint 6); /code-review at M2"
-    completed: ""
+    completed: "2026-11-05"
   - id: "treasures-005"
     name: "Cost-fold treasures — Worn Signet, Vanguard's Banner, stacked discounts"
     file: "production/epics/treasures/story-005-cost-fold-treasures.md"
