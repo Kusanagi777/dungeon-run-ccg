@@ -64,8 +64,8 @@ Every story's `Type` is declared in its header and accepted as-is. **None was in
 | CE-013 | L5 W2 | Transform, copy, bounce, keyword aura from a treasure | Logic | `tests/unit/card_effects/card_effects_transform_copy_test.gd` | BLOCKING | None |
 | CE-015 | L5 W3 | Trigger hooks as steps, hero-slot observers | Logic | `tests/unit/card_effects/card_effects_hook_triggers_observers_test.gd` | BLOCKING | None |
 | CE-017 | L7 W2 [C] | Validator: silence before destroy | Logic | `tests/unit/card_effects/card_effects_validator_schema_test.gd` (AC-47 cases) | BLOCKING | None |
-| MR-019 | L6 W2 [S] | Rules-engine performance pass (**NC-3**) | Logic | `tests/unit/match_rules/match_rules_op_budget_test.gd`, `match_rules_golden_log_test.gd` + `tests/performance/match_rules/match_rules_perf_test.gd` (**non-blocking**) | BLOCKING (unit) · non-blocking (perf) | Perf record |
-| MR-018 | L6 W3 [carryover] | Performance budgets: AC-40 re-measure | Logic | Existing `match_rules_hook_fold_budget_test.gd` (blocking) + `match_rules_perf_test.gd` (non-blocking); no new file | BLOCKING (unit) · non-blocking (perf) | `perf-match-rules-<date>.md`, release template |
+| MR-019 | L6 W2 [S] | Rules-engine performance pass (**NC-3**) | Logic | `tests/unit/match_rules/match_rules_op_budget_test.gd`, `match_rules_golden_log_test.gd` + `tests/performance/match_rules/`: `match_rules_submit_perf_test.gd` (AC-3), `match_rules_perf_test.gd` (AC-4) (**non-blocking**) | BLOCKING (unit) · non-blocking (perf) | Perf record |
+| MR-018 | L6 W3 [carryover] | Performance budgets: AC-40 re-measure | Logic | Existing `match_rules_hook_fold_budget_test.gd` (blocking) + the four suites of `tests/performance/match_rules/` (non-blocking); no new file | BLOCKING (unit) · non-blocking (perf) | `perf-match-rules-<date>.md`, release template |
 | content-010 | L3 W2 [C] | Gravekeeper returns to the boss decks | Config/Data | Edited pinned tests (3 files) | ADVISORY · BLOCKING inside `/smoke-check` | Smoke record; owner data sign-off |
 | MUI-003 | L8 W3 | MatchController and MatchQuery | Integration | `tests/integration/match_ui/match_controller_channels_test.gd`, `view_state_engine_parity_test.gd` + L13 timing in `tests/performance/match_ui/` (gap) | BLOCKING | None |
 | MUI-010 | L8 W3 | Boss-turn pacing, DD-X23 (**NC-7**) | Logic | `tests/unit/match_ui/boss_turn_pacing_test.gd` | BLOCKING | None |
@@ -531,7 +531,7 @@ The story lists two rows from two documents: **Match-rules AC-46** (`design/gdd/
 **Estimated test count**: ~13
 
 ### MR-019 Rules-engine performance pass — Logic [L6 W2 **[S]**, L; the only `rules_engine.gd` editor in W2; `/code-review` at M2] — NC-3
-**Test file paths**: `tests/unit/match_rules/match_rules_op_budget_test.gd` (AC-1, R1 aura-primitive test, R4 no-alias walk); `tests/unit/match_rules/match_rules_golden_log_test.gd` (AC-2); `tests/fixtures/match_rules/golden_logs/`; `tests/helpers/match_budget_fixtures.gd` (additive aura fixture); **non-blocking** `tests/performance/match_rules/match_rules_perf_test.gd` (AC-3, AC-4).
+**Test file paths**: `tests/unit/match_rules/match_rules_op_budget_test.gd` (AC-1, R1 aura-primitive test, R4 no-alias walk); `tests/unit/match_rules/match_rules_golden_log_test.gd` (AC-2); `tests/fixtures/match_rules/golden_logs/`; `tests/helpers/match_budget_fixtures.gd` (additive aura fixture); **non-blocking** `tests/performance/match_rules/`: `match_rules_submit_perf_test.gd` (AC-3), `match_rules_perf_test.gd` (AC-4).
 
 **What to test (blocking)**:
 - **AC-1**, with the engine's diagnostic counters reset before the measured `submit` of the 56-pass Deathrattle chain:
@@ -559,7 +559,7 @@ The story lists two rows from two documents: **Match-rules AC-46** (`design/gdd/
 **Estimated test count**: ~12 blocking (AC-1 x6, AC-2 x5 groups, R1 x1, R4 x1) + 4 perf
 
 ### MR-018 Performance budgets — Logic [L6 W3 close, carryover; In Progress]
-**Test file paths**: existing `match_rules_hook_fold_budget_test.gd` (blocking, 8 tests) and `match_rules_perf_test.gd` (non-blocking). No new file.
+**Test file paths**: existing `match_rules_hook_fold_budget_test.gd` (blocking, 8 tests) and the four suites of `tests/performance/match_rules/` (non-blocking). No new file.
 
 **What to verify**:
 - After MR-019, re-take AC-40: the 56-pass chain `submit` median against 5 ms (2x gate 10 ms), `legal_commands()` against 2 ms (4 ms), the fold against 0.05 ms. Median, p95 and max in `production/qa/perf-match-rules-<date>.md`, with the runner, the commit, and **debug editor versus release template** (the sprint-4 record measured 25.1 ms debug / 19.9 ms release).
@@ -721,9 +721,11 @@ Confirm all three with game-designer before the lane writes the op. The sprint p
 - CE-008's N7 C2 defaults are in CE-009's readiness.
 - The BAI review S3 docs half (optional): a TD register entry and an ADR-0007 erratum naming the read API Boss AI may use until `MatchQuery`.
 
-**9. S3 aura projection** is not in L7 W1. It needs the owner's W1 design call (the handoff recommends option C). If decided, L7 W3 implements it in `rules_engine.gd`; Cross-cutting 3 covers its collision with NC-3.
+**9. S3 aura projection** is not in L7 W1. It went to the owner's design call. **Decided (2026-11-05 update): DD-X26, option C, landed before W2 with DD-X27 and DD-X28, so MR-019's golden logs record the new payload. No W3 slot remains.**
 
 ### L6 W1 perf harness (`tests/performance/` only)
+
+**2026-11-05 update:** done at M1, by S7's second option: every gate has its own suite. `match_rules_perf_test.gd` now holds only the planner gate, beside `match_rules_submit_perf_test.gd`, `match_rules_legal_commands_perf_test.gd`, `match_rules_fold_perf_test.gd` and `rng_event_log_restore_perf_test.gd` (`tests/README.md`). The file and constant names below are the W1 starting point.
 
 **S6 — the planner-node gate uses retired numbers**
 - File: `tests/performance/match_rules/match_rules_perf_test.gd` (`PLANNER_TARGET_USEC = 50_000`, `F7_T_SIM_USEC = 10.0`, `GATE_BAND = "3"`).
@@ -846,7 +848,7 @@ Performance (critical-paths 7-8): N/A for frames. No timing assertion in the blo
    - **MUI-004** `/perf-profile`: manual evidence, not a test.
 3. **`rules_engine.gd` byte-identical claims have an end date.**
    - NC-3 holds through M2: MR-019's goldens are recorded on the M1 trunk, after heroes 001, CE-009 and the fix buffer.
-   - **S3 option C changes the `auras_recomputed` payload** (full absolute values and a keyword list per entry) and the proposal says five test files assert the old shape. If the owner picks it, it lands in L7 W3 in `rules_engine.gd`, after MR-019. NC-3's R1 test ("same `auras_recomputed` payload as the golden log") and the golden files then change by design. Do not let a golden-log failure at M3 be read as an MR-019 regression, or auto-regenerated: regenerate in the S3 commit, with the payload diff reviewed by technical-director, and note that MR-019's byte-identical claim is "through M2".
+   - **S3 option C changes the `auras_recomputed` payload** (full absolute values and a keyword list per entry) and the proposal says five test files assert the old shape. **2026-11-05 update: this did not happen as planned.** The owner picked option C (DD-X26) and it landed before W2, so the goldens were recorded with the new payload and there is no M3 change to them. A golden-log failure at M3 is a regression: never regenerate one to pass (`tests/README.md`).
    - Any M3 fix from treasures 005/006 in `rules_engine.gd` must also keep NC-3 green.
    - CE-013 AC-32 is also written against the pre-S3 log (see untestable ACs).
 4. **Merge protocol is a QA control.**
@@ -881,7 +883,7 @@ Performance (critical-paths 7-8): N/A for frames. No timing assertion in the blo
 | `retrigger` is built from a GDD row with no story and three undefined edges | Rot Warden plays wrong, and the review would pass whatever the lane chose | Confirm the three edges with game-designer before the op is written; NC-1 on shipped data; a W1 review |
 | NC-2's sweep cannot see a null-base call because the harness does not fail on it | S1 reads fixed while the error still prints | Prove the harness fails on the unfixed tree first; scan run output for `SCRIPT ERROR` |
 | Golden logs recorded after the wrong merge, or regenerated to make a failure go away | MR-019 "byte-identical" proves nothing | Goldens in their own commit on the M1 trunk; any change after is a reviewed diff (Cross-cutting 3) |
-| S3 option C changes `auras_recomputed` after MR-019's goldens exist | A planned change reads as a regression, or a regression hides inside the planned diff | Land S3 in its own commit with the payload diff reviewed; list the five test files first |
+| ~~S3 option C changes `auras_recomputed` after MR-019's goldens exist~~ | Retired 2026-11-05: S3 landed before W2 (DD-X26), ahead of the goldens | None |
 | BAI-015's budget criteria depend on the real clock | Flaky BLOCKING failures on a loaded runner or the owner's Windows machine | Injected clock, or move the criteria to `tests/performance/` |
 | New `src/` base class without `_teardown_anchor` (MUI-004 `Presenter`) | Intermittent Windows access violation at exit returns | `boot_script_teardown_test.gd` after every merge; NC-5 repeated quit |
 | Real export-template builds were never measured for TD-013 | The Windows playtest build still crashes on exit | NC-5 repeated quit on the debug artifact |
@@ -984,6 +986,6 @@ Found while mining. No document is edited here. Tests follow the source in the l
 **Open by nature**:
 - How the owner reads CDB-007's known answer on Windows (carried from sprint 4).
 - Whether `parse-check.sh` should cover `src/ui/` (open since sprint 3; MUI-003, MUI-004 and MUI-010 add `src/ui/` code).
-- Whether S3 is decided, and which option. The plan assumes "undecided" and carries the contingency.
+- Whether S3 is decided, and which option. The plan was written with it undecided. Decided 2026-11-05: DD-X26, option C.
 - Test counts are estimates from the ACs, not commitments. Paths marked "proposed" for the non-story items are this plan's suggestion.
 - Story `## QA Test Cases` sections were **not** back-filled (Phase 5 was not run; they still read "N/A").

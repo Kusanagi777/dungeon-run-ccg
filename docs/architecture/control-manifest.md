@@ -41,6 +41,10 @@ rows changed by hand, no regeneration. `BossAI.plan_task` takes the running task
 (`code-review-s5-w1-bossai.md` D-1), and `RulesEngine.queue_triggers` gains its
 directory restriction (`code-review-s5-w1-ce009-fixbuffer.md`, ADR Compliance).
 
+**Erratum 2026-11-05 (sprint 5 wave 2 code review, `production/reviews/2026-11-05/`)**: the
+`EffectRuntime` row names its fifth field, `aura_hosts`, which card-effects story 013
+added under ADR-0007's erratum (`code-review-s5-w2-effects-treasures.md` N1).
+
 ---
 
 ## Foundation Layer Rules
@@ -167,7 +171,7 @@ directory restriction (`code-review-s5-w1-ce009-fixbuffer.md`, ADR Compliance).
 - **`choice_made` is logged under the paused pass's `cause_seq`** (the same as its `choice_requested` / `discover_offered` / `discover_picked`), never cause 0 — source: ADR-0007 (erratum 2026-11-04)
 - **`EffectResolver` mutates match state only through engine primitives, emits only through `engine.emit(type, payload)`, draws only through `engine.rng_match()`**; `RulesEngine.state()` is called only from `src/gameplay/effects/**`, plus read-only from `src/ai/**` on a sandbox clone until `MatchQuery` exists (ADR-0007 erratum 2026-11-04, TD-014) — source: ADR-0007
 - **`RulesEngine.queue_triggers(point, entries, reason)` is called only from `src/gameplay/effects/**`** (C5 `retrigger`): it appends the resolver's plain-data entries to Q and emits `trigger_queued {…, reason}`, so Q stays engine-owned; it is not one of the 24 primitives — source: ADR-0007 (erratum 2026-11-04, sprint-4 review S5)
-- **`EffectRuntime {once_marks, counters, per_turn, pending_choice}` is plain data in `MatchState.effects`** (Dictionaries, Arrays, ints, Strings); `clone()` copies it by value; `counter_changed` is emitted for each counter change — source: ADR-0007
+- **`EffectRuntime {once_marks, counters, per_turn, pending_choice, aura_hosts}` is plain data in `MatchState.effects`** (Dictionaries, Arrays, ints, Strings); `clone()` copies it by value; `counter_changed` is emitted for each counter change — source: ADR-0007
 - **One effect pass = one C10 step**; the resolver orders effects only *within* one entity (array order, definition before enchantment-granted) — source: ADR-0007
 - **`EffectValidator.validate_effects(host_kind, host_id, effects, db, caps) -> Array` is `static`, pure, allocates its own report**; `caps` is the `card_effects` config body passed as a parameter; codes are the closed `E_FX_*` / `W_FX_*` set; `targeting_spec` is derived via `derive_targeting_spec`, memoised per `def_id` — source: ADR-0007
 - **Tests inject the five-parameter accept-all stub `func(_k, _id, _fx, _db, _configs): return []` into `CardDatabase.load`** — source: ADR-0007, ADR-0002

@@ -185,7 +185,7 @@ static func make_player_state(hero: Variant = null, hero_power_def_id: String = 
 
 
 ## An empty `EffectRuntime` (ADR-0007 Decision 1): `once_marks`, `counters`,
-## `per_turn` and `pending_choice`. Never holds a Callable, a Node or an object
+## `per_turn`, `pending_choice` and `aura_hosts`. Never holds a Callable, a Node or an object
 ## reference — `clone()` copies it by value.
 static func make_effect_runtime() -> Dictionary:
 	return {"once_marks": {}, "counters": {}, "per_turn": {}, "pending_choice": null, "aura_hosts": []}
