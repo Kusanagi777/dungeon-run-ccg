@@ -7,7 +7,7 @@
 > **Estimate**: L (several days: four engine changes, two new blocking suites and golden logs, a release-template re-measure)
 > **Manifest Version**: 2026-11-04
 > **Last Updated**: 2026-11-04
-> **Sprint**: candidate for sprint 5. Not in sprint 4.
+> **Sprint**: 5, wave 2, lane 6.
 
 ## Context
 
@@ -41,7 +41,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 | **R1** | `_recompute_auras`: skip both `_stat_map` passes when the strip removed no `is_aura` enchantment **and** no primitive ran during `resolver.recompute_auras()`. This is about 60 % of a plain command. | **Core** |
 | **R2** | An `entity_id → {side, zone}` location index for `_find_record`, `_live_record` and `_character`, kept up to date by the zone moves. It holds no derived values, so C1 holds. | **Core** |
 | **R3** | One reused candidate buffer per drain iteration instead of a new `Array[int]` per trigger point. | **Core** (small) |
-| **R4** | A cheaper `clone()`: do not deep-copy data that is never mutated once created. The `RngStream` copy is unchanged (see Out of Scope). | **Stretch**. Headroom for AC-4, no longer a precondition (2026-11-04, DD-X18): AC-4's target is now 340 µs, a ≈ 7 % cut from today's 365 µs, and `clone()` alone (72–153 µs on release) is under half of it. R1 (≈ 60 % of a plain command's `submit`) is expected to carry AC-4; R4 matters if R1–R3 land short. |
+| **R4** | A cheaper `clone()`: do not deep-copy data that is never mutated once created. The `RngStream` copy is unchanged (see Out of Scope). | **Stretch**. Headroom for AC-4, no longer a precondition (2026-11-04, DD-X18): AC-4's target is now 340 µs, a ≈ 7 % cut from today's 365 µs, and `clone()` alone (72–153 µs on release) is under half of it. R1 (≈ 60 % of a plain command's `submit`) is expected to carry AC-4; R4 matters if R1–R3 land short. **Not landed (2026-11-05):** see Completion Notes. |
 | **R5** | Re-derive boss-ai F7 `t_sim` and re-budget the band counts. | **Not this story.** It is the follow-up below. |
 | **R6** | Decide whether 5 ms is realistic in GDScript for the 56-pass chain. | **Not this story.** The owner decides it only if AC-3 still misses after R1–R4 (see Close rule). |
 
@@ -51,7 +51,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 
 *From GDD `design/gdd/match-rules.md` (AC-38, AC-40, Input Responsiveness) and boss-ai F7 / A22, scoped to this story. AC-1 and AC-2 are deterministic and run in the blocking suite. AC-3 and AC-4 are wall-clock targets that run only in `tests/performance/match_rules/`, the non-blocking `performance` job.*
 
-- [ ] **AC-1: Op-count and allocation-count budgets (blocking, `tests/unit/match_rules/match_rules_op_budget_test.gd`).**
+- [x] **AC-1: Op-count and allocation-count budgets (blocking, `tests/unit/match_rules/match_rules_op_budget_test.gd`).**
   - **GIVEN** the story-018 fixtures (`tests/helpers/match_budget_fixtures.gd`), with the engine's diagnostic counters reset before the measured `submit`.
   - **WHEN** the 56-pass Deathrattle chain `submit` runs once.
   - **THEN** `recompute_calls == drain_iterations` (the C10 loop shape is unchanged; 61 today).
@@ -60,20 +60,20 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
   - **THEN, R3:** `candidate_buffers ≤ drain_iterations + 1`. Today `_candidates_in_order` makes 555 calls, each allocating.
   - **AND GIVEN** a new aura fixture (one aura source on the board), **THEN** each recompute that strips an aura or runs a primitive makes ≤ 2 `stat_map_passes`, and every other recompute makes 0.
   - Each budget is a named test constant that cites its source. Each assertion has been seen failing with its optimisation reverted.
-- [ ] **AC-2: Behaviour identical (blocking).**
-  - **GIVEN** golden event logs recorded on the **unchanged** engine, before any `src/` edit and in a commit of their own. They cover: the chain `submit`; the full-board `legal_commands()` list; every legal command of the 10 `tests/fixtures/match_states/` states, each submitted on a fresh clone; and the 200-command scripted match of AC-38.
+- [x] **AC-2: Behaviour identical (blocking).**
+  - **GIVEN** golden event logs recorded on the **unchanged** engine, before any `src/` edit and in a commit of their own. They cover: the chain `submit`; the full-board `legal_commands()` list; every legal command of the 10 `tests/fixtures/match_states/` states, each submitted on a fresh clone; and the 200-command scripted match of AC-38. Also recorded, beyond this list: `aura_passes` (each primitive inside the aura pass, for R1's own test), and, because mutants survived without them, `trigger_order` (candidate order and aliasing) and `aura_holders` (see Deviations).
   - **WHEN** the same inputs run on the changed engine.
   - **THEN** each event log, `legal_commands()` list, `state_snapshot()` and `MatchResult` is byte-identical to its golden file.
   - **AND** the full suite is green, including AC-38 (`test_a_200_command_match_replays_byte_identical_with_an_equal_result`) and every story-017 isolation test in `match_rules_clone_replay_test.gd`.
   - **AND** R1 has a test of its own: an `aura_scripts` entry in the test double that calls a non-enchantment primitive during the aura pass still produces the same `auras_recomputed` payload as the golden log.
-  - **AND** if R4 lands: a no-alias walk shows that every container the engine mutates is not `is_same` between the clone and the live state. The containers shared by reference are exactly the immutable set listed in `MatchState.clone`'s doc comment.
-- [ ] **AC-3: Worst-case `submit` (performance job; AC-40).**
+  - **AND** if R4 lands (it did not): a no-alias walk shows that every container the engine mutates is not `is_same` between the clone and the live state. The containers shared by reference are exactly the immutable set listed in `MatchState.clone`'s doc comment.
+- [ ] **AC-3: Worst-case `submit` (performance job; AC-40).** `match_rules_submit_perf_test.gd`, with `match_rules_legal_commands_perf_test.gd` and `match_rules_fold_perf_test.gd` for its last clause (wave 1 split the gates, 2026-11-04). **MISSED on the debug binary, release NOT ASSESSED: the owner's R6.**
   - **GIVEN** the 56-pass chain, with a fresh `clone()` per sample.
   - **WHEN** `submit` is timed over 100 samples.
   - **THEN** the median is ≤ 5 ms (the target, `SUBMIT_BUDGET_USEC`). Above 10 ms (2×) the job fails.
   - **AND** `legal_commands()` (full board) stays ≤ 2 ms and the 12-entry fold stays < 0.05 ms, so neither regresses.
   - Median, p95 and max are printed. They are recorded in `production/qa/perf-match-rules-<date>.md` for the debug editor and the release template, and on the reference machine when it is available.
-- [ ] **AC-4: Planner node cost `t_sim` = `clone()` + one `submit` (performance job; boss-ai F7, A22).**
+- [ ] **AC-4: Planner node cost `t_sim` = `clone()` + one `submit` (performance job; boss-ai F7, A22).** `match_rules_perf_test.gd`. **273 µs on the debug binary, under target; release NOT ASSESSED, and the AC is judged there.**
   - **GIVEN** the 12 fixture states of `test_clone_and_one_command_node_cost_per_fixture_state_against_the_f7_planner_budget`.
   - **WHEN** `clone()` plus one `submit` is timed over 100 samples per state.
   - **THEN** the median of the state medians is ≤ **340 µs** on the release template. Above 680 µs (2×) the job fails.
@@ -84,7 +84,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
     - Band 1 (370 nodes) already fits: 370 × 365 µs ≈ 135 ms.
     - Today's release figure is 365 µs, so this needs a ≈ 7 % cut (1.07×).
     - Band 3 (6,000 nodes, ≈ 2,190 ms at 365 µs; it would need ≈ 83 µs) is **not** targeted here: boss-ai F7 lowers band 3's counts after the follow-up re-measure, until A22 passes.
-  - The perf test's gate band changes from 3 to 2, per planner run (no per-round factor), and the test prints all three bands as it does now.
+  - The perf test's gate band changes from 3 to 2, per planner run (no per-round factor), and the test prints all three bands as it does now. Its target is read from `runtime.planner_target_ms` in `ai_profiles.json` and is required: a file without it fails, where it used to print NOT ASSESSED.
 
 **Close rule.** AC-1 and AC-2 close the implementation. If AC-3 or AC-4 still misses after R1–R4, `/story-done` records the measured figures and returns BLOCKED, as story 018 did. The fix is not widened inside this story. Instead, R6 (the owner re-budgets the 5 ms) and the follow-up below decide. R6 already expects the chain at about 8–12 ms after R1–R3. Against the DD-X18 target of 340 µs (2026-11-04), AC-4 is expected to pass after R1 alone: it asks for a ≈ 7 % cut and R1 removes about 60 % of a plain command; the perf record's warning that `submit` dominates a node now bears on band 3, which is re-budgeted by counts, not by this story.
 
@@ -133,14 +133,17 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 *The code and test files this story is planned to create or change. `/dev-story` replaces the list with the files it changed, and `/story-done` checks scope against it.*
 
 - `src/gameplay/match/rules_engine.gd` (R1–R3, the location index, the diagnostic counters)
-- `src/gameplay/match/match_state.gd` (R4, stretch: `clone()` and its doc comment)
-- `tests/unit/match_rules/match_rules_op_budget_test.gd` (new: AC-1, the R1 aura-primitive test, the R4 no-alias walk)
+- `tests/unit/match_rules/match_rules_op_budget_test.gd` (new: AC-1, the R1 aura-primitive test)
 - `tests/unit/match_rules/match_rules_golden_log_test.gd` (new: AC-2 golden comparisons)
-- `tests/fixtures/match_rules/golden_logs/` (new: recorded on the unchanged engine, committed before any `src/` edit)
-- `tests/helpers/match_budget_fixtures.gd` (additive: the aura fixture)
-- `tests/performance/match_rules/match_rules_perf_test.gd` (AC-4 gate on band 2 per planner run — was band 1 per round, 2026-11-04, DD-X18; target and gate printed)
-- `tests/README.md` (new suites, golden-log rule)
-- `production/qa/perf-match-rules-<date>.md` (new record)
+- `tests/fixtures/match_rules/golden_logs/` (new: 16 files, recorded on the unchanged engine)
+- `tests/helpers/match_golden_logs.gd` (new: builds a golden's text, for the test and the recorder)
+- `tools/match_rules/record_golden_logs.gd` (new: writes the goldens)
+- `tests/helpers/match_budget_fixtures.gd` (additive: the aura board, `engine_for`'s `hero_power`, `index_locations` after direct placement)
+- `tests/performance/match_rules/match_rules_perf_test.gd` (AC-4 gate on band 2 per planner run, target required and printed)
+- `tests/README.md` (the split gates, golden-log rule, new helpers)
+- `production/qa/perf-match-rules-2026-11-05.md` (new record)
+
+Not changed: `src/gameplay/match/match_state.gd` (R4 did not land).
 
 ---
 
@@ -159,7 +162,7 @@ Story 018 built the timing harness and found two budgets missed: the worst-case 
 - Logic: `tests/unit/match_rules/match_rules_op_budget_test.gd` and `tests/unit/match_rules/match_rules_golden_log_test.gd` must exist and pass. `/story-done` checks that they exist; pass or fail is established by `/gate-check` and `/smoke-check`, both later. At `qa.level: standard` this is BLOCKING.
 - AC-3 and AC-4: recorded medians in `production/qa/perf-match-rules-<date>.md`, judged against the targets (not the 2× gate) on the release template.
 
-**Status**: [ ] Not yet created
+**Status**: [x] Created and passing: `match_rules_op_budget_test.gd` (22 tests) and `match_rules_golden_log_test.gd` (15 tests). AC-3 and AC-4 medians are in `production/qa/perf-match-rules-2026-11-05.md`, on the debug binary only.
 
 ---
 
@@ -181,7 +184,7 @@ Three things this story text predates, settled here (a `DD-X` row wins, then the
 
 ## Baseline counters (2026-11-04, the 56-pass chain `submit`, counters reset before it)
 
-Read on the unchanged engine plus the diagnostic counters alone (`4d2b046`, then the counter commit), whose goldens all stayed byte-identical:
+Read on the unchanged engine plus the diagnostic counters alone (`4d2b046`, then the counter commit `05aa6d2`), whose goldens all stayed byte-identical:
 
 | Counter | Baseline | Budget (AC-1) |
 |---|---|---|
@@ -191,3 +194,47 @@ Read on the unchanged engine plus the diagnostic counters alone (`4d2b046`, then
 | `record_lookups` | 917 | n/a |
 | `record_visits` | 13,944 | at most `record_lookups` |
 | `candidate_buffers` | 555 | at most `drain_iterations` + 1 |
+
+## Completion Notes
+
+**Verdict: BLOCKED, as story 018 was.** AC-1 and AC-2 close the implementation. AC-3 still misses after R1 to R3, which is the owner's R6 decision, and neither AC-3 nor AC-4 can be judged without the release template. No budget was changed. Status stays In Progress.
+**Time**: started 2026-11-05T00:43:25Z (the session's local date was 2026-11-04), ended 2026-11-05T01:45:57Z.
+**Final run**: `--import` exit 0; `gates.sh`, `no_global_rng.sh` and `parse-check.sh` clean; `commands.test` 1,766 test cases, 0 failures, exit 0; smoke exit 0, no SCRIPT ERROR.
+**Criteria**: 2 of 4 closed.
+- AC-1: passing. Chain counts: `recompute_calls` 61 = `drain_iterations` 61; `stat_map_passes` 122 → 0; `record_visits` 13,944 → 917, equal to `record_lookups`; `candidate_buffers` 555 → 1.
+- AC-2: passing. All 16 goldens byte-identical on the final engine, with the lookup audit on; the full suite is green, AC-38 and the story-017 isolation tests included. No-alias walk N/A: R4 did not land.
+- AC-3: **MISSED on debug**: 13.3 ms median against 5 ms, over the 10 ms gate; release NOT ASSESSED. `legal_commands()` 0.52 ms and the fold 19 µs hold.
+- AC-4: 273 µs on debug against 340 µs; release NOT ASSESSED, and it is judged there.
+
+**R4 not landed.** Keywords, enchantments, cost modifiers and deck cards are all written in place. Graveyard entries are the one candidate, and sharing them measured slower than the deep copy (32 against 28 µs, in all ten states). Details in the record.
+
+**Seen failing.** New tests failed against missing code or a deliberate mutant; each mutant was restored and `git diff` checked.
+- Goldens, on the unchanged engine: legal list loses `end_turn`; `auras_recomputed` drops keywords; drops hand cost; summon always rightmost; a state-only change with no event; candidate order reversed; one shared in-place candidate buffer.
+- R1: budget tests failed on the unoptimised engine. Mutants: R1 reverted; primitives unhooked (the record's first proposal); `before` taken after the strip; one primitive unhooked; the scan missing each of hero, board, weapon and hand.
+- R2: budget red on the scanning engine (13,944 visits). Mutants: no id check on each of board, hero, weapon and card; no zone filter; clone shares the index; each of nine zone moves unindexed. The audit assertion was seen firing.
+- Perf gate: the target key removed; `NODE_TARGET_USEC` past the shipped data (343); the gate below `t_sim` (100).
+- R3: budget red on the allocating engine (555). Mutants: no depth; allocating per call; serial trusted between calls; no bump on each of board move, transform, equip, weapon loss, `run_action`, `submit` (the last caught by `match_rules_resolution_loop_test.gd`, not this story's suites).
+
+**Found by mutants and the suite, worth keeping.**
+- The story's four golden inputs could not see candidate order at all: no fixture has an observer responding. A reversed order passed every golden, hence `trigger_order`.
+- A cost aura alone in hand passed everything, because a source always held other auras: if the scan missed it, it would stack each recompute. Hence `aura_holders`.
+- The zone serial first trusted itself across actions, and 45 tests failed: a fixture write between actions bumps nothing. Every action now starts by bumping it.
+- Op-count budgets did not show that R2's and R3's first cuts bought nothing. Only the A/B did (see the record).
+
+**Deviations.**
+- ADVISORY. `aura_holders.jsonl` did not land in the goldens' commit: it came with R1 (`7be107f`), after `src/` edits began. It was still recorded on the unchanged engine, in a frozen tree of `4d2b046` (engine compared byte for byte with `6694a41`), where the 15 committed goldens also reproduced byte for byte.
+- ADVISORY. R2 holds `{side, zone, position}`, not `{side, zone}`: AC-1 needs one record touched per lookup. Hints are id-checked on read and not trusted, because tests write zones directly.
+- ADVISORY. `clone()` copies the flat index instead of rebuilding it: a rebuild walks every zone on each planner node. A fixture that places records directly calls the new `index_locations()`.
+- ADVISORY. The debug audit against the linear scan is opt-in (`set_lookup_audit`): always on, it would put the scan back in the debug perf job. The golden suite runs with it on.
+- ADVISORY. Dead ids are not cached, so a lookup of a departed entity still scans, as today.
+- ADVISORY. The commits follow this story's Order of Work, one per step, not the lane's one per story. `4596f34`'s message says buffers fell to 3; the measured figure is 1.
+- ADVISORY. New files outside the planned list: `tests/helpers/match_golden_logs.gd`, `tools/match_rules/record_golden_logs.gd`.
+- ADVISORY. Record named by UTC date, 2026-11-05: 2026-11-04's already exists.
+
+**Open.**
+- R6 (owner): AC-3, after a quiet-machine and release re-measure.
+- AC-3, AC-4, AC-40 on the release template: NOT ASSESSED, no template here.
+- Goldens compared on one OS only (Windows): QA plan MR-019 asks for a cross-OS check. NOT ASSESSED until Linux CI runs them.
+- R5 follow-up is unchanged: band 3 is 1,638 ms at this `t_sim`.
+
+**Run result**: N/A: an engine change with no scene or screen; its behaviour is observable through the state and the event logs the goldens compare.

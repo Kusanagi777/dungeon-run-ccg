@@ -80,13 +80,20 @@ summary: read the timings there, not just the job colour. First suite:
 `tests/performance/rng_event_log/rng_event_log_perf_test.gd` (rng-event-log
 story 010).
 
-`tests/performance/match_rules/match_rules_perf_test.gd` (match-rules story
-018) times `submit()` on the 56-pass Deathrattle chain, `legal_commands()` on a
-7 v 7 full board, a 12-entry `hooks.fold`, and `clone()` + one `submit` on
-every `tests/fixtures/match_states/` state, against boss-ai F7's planner node
-budget. Each test asserts `median < 2 × budget` (AC-40's gate) and prints
-median / p95 / max. Results and the release-template comparison:
-`production/qa/perf-match-rules-<date>.md`. Two rules for timing a scripted
+`tests/performance/match_rules/` holds one gate per suite, so a failing gate
+cannot hide another (gdUnit4 without `-c` stops a suite at its first failure):
+- `match_rules_submit_perf_test.gd`: `submit()` on the 56-pass Deathrattle chain;
+- `match_rules_legal_commands_perf_test.gd`: `legal_commands()` on a 7 v 7 full
+  board;
+- `match_rules_fold_perf_test.gd`: a 12-entry `hooks.fold`;
+- `match_rules_perf_test.gd`: the planner gate. `clone()` + one `submit` on
+  every `tests/fixtures/match_states/` state, against 340 µs per node on band 2
+  per planner run (match-rules story 019 AC-4). The target comes from
+  `runtime.planner_target_ms` in `ai_profiles.json`, and is required.
+
+Each asserts `median < 2 × budget` (AC-40's gate) and prints median / p95 / max.
+Results and the release-template comparison:
+`production/qa/perf-match-rules-<date>.md`. Three rules for timing a scripted
 match:
 - Build its fixtures with `tests/helpers/match_budget_fixtures.gd`. The
   blocking `tests/unit/match_rules/match_rules_hook_fold_budget_test.gd` runs
@@ -96,6 +103,26 @@ match:
   double's deep-copied call records. Keep a reference to any resolver whose
   evaluators a `HookRegistry` holds: a Callable does not keep its object
   alive, and a freed evaluator turns `fold` into a silent no-op.
+- Leave `RulesEngine.set_lookup_audit` off. It checks every lookup against the
+  linear scan in debug builds, so a timed sample would pay for the scan the
+  location index replaces. The golden suite turns it on.
+
+### Golden logs (match-rules story 019)
+
+`tests/fixtures/match_rules/golden_logs/*.jsonl` hold what the rules engine does,
+recorded on the engine before the performance pass:
+`tests/unit/match_rules/match_rules_golden_log_test.gd` rebuilds each one with
+`MatchGoldenLogs` and compares it byte for byte. One canonical-JSON object per
+line, LF. `tools/match_rules/record_golden_logs.gd` writes them.
+
+**A failing golden is a rules change, not a stale file.** Never regenerate one to
+make the suite pass. Regenerate only with a reviewed rules change, in that
+change's own commit, with the diff read by technical-director (QA plan sprint 5,
+Cross-cutting 3).
+
+The op-count and allocation budgets beside them are
+`tests/unit/match_rules/match_rules_op_budget_test.gd`: counts from
+`RulesEngine.op_counts()`, never a clock.
 
 ### Reports
 
@@ -180,7 +207,8 @@ never a bare `assert()`.
 | `event_log_assertions.gd` | `EventLogAssertions` | `assert_order`, `assert_consecutive`, `assert_contains_type`, `assert_count`, `assert_last_type`, `assert_payload`, `assert_seq_contiguous`, `assert_cause_seq_valid`, `assert_envelopes_valid`, `assert_replay_equal` (F6). Accepts a `TestEventLog` or an Array of events. |
 | `card_factory.gd` | `CardFactory` | CR-3 records (`make_minion` / `make_spell` / `make_weapon` / `make_hero_def` / `make_boss_def` / `make_treasure_def` / `make_bundle_def`), C1 effects (`make_effect`, `make_op`), CR-1 envelopes, the match-rules fixture card set, `validate_card_def`. |
 | `match_factory.gd` | `MatchFactory` | C1 data model as Dictionaries: `make_match_state`, `make_player_state`, `summon` (ids from `next_entity_id`, board-full returns `{}`), `deal_deck`, `draw_top`, `make_match_config(floor, rng, log)`, `make_command_result`, `make_match_result`, derived `health_of` / `max_health_of` / `attack_of`, `REJECTION_CODES`. |
-| `match_budget_fixtures.gd` | `MatchBudgetFixtures` | Match-rules story 018 budget fixtures, as an instance: `make_chain_engine` + `chain_command` (the 56-pass Deathrattle chain), `make_full_board_engine` (7 v 7, a 10-card hand), `make_fold_registry` / `make_hooked_engine` (12 `modify_damage` entries), `engine_for(fixture)` (a `tests/fixtures/match_states/` state replayed from `start`, with story 017's pool and scripts), `deathrattle_passes(events)`. |
+| `match_budget_fixtures.gd` | `MatchBudgetFixtures` | Match-rules story 018 budget fixtures, as an instance: `make_chain_engine` + `chain_command` (the 56-pass Deathrattle chain), `make_full_board_engine` (7 v 7, a 10-card hand), `make_fold_registry` / `make_hooked_engine` (12 `modify_damage` entries), `engine_for(fixture)` (a `tests/fixtures/match_states/` state replayed from `start`, with story 017's pool and scripts), `deathrattle_passes(events)`, and story 019's `make_aura_board` + `add_aura_source`. |
+| `match_golden_logs.gd` | `MatchGoldenLogs` | Match-rules story 019 AC-2: `capture(name)` builds a golden's text from the engine under test, `names()` lists them, `path_of(name)` is the committed file. See "Golden logs". |
 | `run_factory.gd` | `RunFactory` | R1 `make_run_state` (invariants hold by default), `make_draft_record`, `apply_bundle_pick` / `apply_treasure_pick`, `make_offer`, `make_match_summary`, the 6/6/4 fixture boss pool, `band_of`, `deck_size_at_floor`, `effective_treasure_floors`, `validate_invariants` / `assert_invariants`. |
 | `treasure_fixtures.gd` | `TreasureFixtures` | The treasures GDD fixtures: `records()` (the 20 T8 records in `tests/fixtures/data/treasures_v1.json`), `database(ids)` (a `Ready` `CardDatabase` over them, or over a subset such as `MVP_IDS`, through the real pipeline), `make_boss_test_taxman()`. Exercised by `tests/unit/treasures/`. |
 | `scene_runner_helper.gd` | `SceneRunnerHelper` | `load_scene_and_wait(self, path_or_packed_scene)` for UI integration tests; wrap the result in `auto_free`. |
