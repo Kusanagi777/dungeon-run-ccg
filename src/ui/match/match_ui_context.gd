@@ -14,6 +14,7 @@ extends RefCounted
 const SET_PRIMARY: Dictionary = {"war": "war", "decay": "decay", "knowledge": "knowledge", "boss": "boss_band_1"}
 const SET_SECONDARY: Dictionary = {"war": "war2", "decay": "decay2", "knowledge": "knowledge2", "boss": "boss_band_1"}
 const FALLBACK_TOKEN: String = "neutral"
+const BAND_TOKEN: String = "boss_band_%d"
 
 ## The `config("match_ui")` body. Read only.
 var config: Dictionary = {}
@@ -67,6 +68,31 @@ func card_face(card_id: String) -> Dictionary:
 	face["primary"] = color(str(SET_PRIMARY.get(card_set, FALLBACK_TOKEN)))
 	face["secondary"] = color(str(SET_SECONDARY.get(card_set, FALLBACK_TOKEN)))
 	return face
+
+
+## The panel identity of hero [param hero_def_id]: `{primary, initial, power_id}`.
+func hero_identity(hero_def_id: String) -> Dictionary:
+	var record: Variant = _db.hero(hero_def_id) if _db != null and _db.has(hero_def_id) else null
+	if not record is Dictionary:
+		return {"primary": color(FALLBACK_TOKEN), "initial": "", "power_id": ""}
+	return {
+		"primary": color(str(SET_PRIMARY.get(str(record.get("set", "")), FALLBACK_TOKEN))),
+		"initial": str(record.get("name", "")).left(1),
+		"power_id": str(record.get("hero_power", "")),
+	}
+
+
+## The panel identity of boss [param boss_def_id]: `{primary, initial, passive_key}`.
+func boss_identity(boss_def_id: String) -> Dictionary:
+	var record: Variant = _db.boss(boss_def_id) if _db != null and _db.has(boss_def_id) else null
+	if not record is Dictionary:
+		return {"primary": color(FALLBACK_TOKEN), "initial": "", "passive_key": ""}
+	var passive: Variant = record.get("passive_text")
+	return {
+		"primary": color(BAND_TOKEN % int(record.get("band", 1))),
+		"initial": str(record.get("name", "")).left(1),
+		"passive_key": str(passive.get("key", "")) if passive is Dictionary else "",
+	}
 
 
 ## The letter badge of [param keyword]: a glyph is the non-colour backup (art bible §7).

@@ -30,6 +30,7 @@ const SETTING_ANIM_SPEED: StringName = &"anim_speed"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
+const TOP_BAR_MARGIN_PX: int = 24
 
 ## Failed [method assert_in_sync] lines this match; a test reads it.
 var sync_failures: int = 0
@@ -51,12 +52,18 @@ var _presenters: Array[Presenter] = []
 var _last_display: Dictionary = {}
 var _loader: RefCounted = null
 var _launch_args: Dictionary = {}
+var _turn_label: Label = null
+var _floor_label: Label = null
+var _end_turn: Button = null
+var _end_turn_style: StyleBoxFlat = null
+var _last_state: StringName = &""
 
 @onready var _table: ColorRect = %Table
 @onready var _player_panel: HeroPresenter = %PlayerPanel
 @onready var _boss_panel: HeroPresenter = %BossPanel
 @onready var _player_row: BoardPresenter = %PlayerRow
 @onready var _boss_row: BoardPresenter = %BossRow
+@onready var _chrome: Control = %Chrome
 @onready var _hand: HandPresenter = %HandFan
 @onready var _arrow: TargetingArrow = %TargetingArrow
 @onready var _feed: FeedPresenter = %EventFeed
@@ -72,7 +79,8 @@ func set_controller(controller: MatchController) -> void:
 		_start()
 
 
-## What the top bar names: `{floor, boss_def_id}` from the `MatchConfig`.
+## What the panels and the top bar name: `{floor, boss_def_id, hero_def_id}` from the
+## `MatchConfig`. Call it before [method set_controller].
 func set_match_info(info: Dictionary) -> void:
 	_match_info = info
 
@@ -115,6 +123,7 @@ func _process(delta: float) -> void:
 		return
 	_controller.tick()
 	_queue.advance(delta)
+	_refresh_interaction()
 
 
 func _exit_tree() -> void:
@@ -147,7 +156,9 @@ func _build() -> void:
 	_router.name = "InputRouter"
 	add_child(_router)
 	_router.bind(_view, _queue)
+	_router.command_requested.connect(_on_command_requested)
 	_table.color = _ui.color("table_lit")
+	_build_chrome()
 	_presenters = [_boss_panel, _player_panel, _boss_row, _player_row, _hand, _arrow, _feed, _choice, _mulligan, _banner]
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
@@ -155,6 +166,55 @@ func _build() -> void:
 	_queue.step_started.connect(_on_step_started)
 	_queue.skipped.connect(_on_skipped)
 	_queue.drained.connect(_on_drained)
+
+
+## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).
+func _build_chrome() -> void:
+	var bar_rect: Rect2 = _ui.rect("top_bar")
+	var bar := ColorRect.new()
+	bar.color = _ui.color("bg_edge")
+	bar.position = bar_rect.position
+	bar.size = bar_rect.size
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chrome.add_child(bar)
+	_turn_label = _bar_label(bar_rect, HORIZONTAL_ALIGNMENT_CENTER)
+	_floor_label = _bar_label(bar_rect.grow_individual(-TOP_BAR_MARGIN_PX, 0, 0, 0), HORIZONTAL_ALIGNMENT_LEFT)
+	var rect: Rect2 = _ui.rect("end_turn")
+	_end_turn = Button.new()
+	_end_turn.text = tr("hud.end_turn")
+	_end_turn.position = rect.position
+	_end_turn.size = rect.size
+	_end_turn.focus_mode = Control.FOCUS_NONE
+	_end_turn_style = _button_style()
+	for state: String in ["normal", "hover", "pressed"]:
+		_end_turn.add_theme_stylebox_override(state, _end_turn_style)
+	_end_turn.add_theme_stylebox_override("disabled", _button_style())
+	_end_turn.add_theme_color_override("font_color", _ui.color("text_light"))
+	_end_turn.add_theme_color_override("font_disabled_color", _ui.color("text_muted"))
+	_end_turn.pressed.connect(func() -> void: _router.intent(InputRouter.INTENT_END_TURN))
+	_end_turn.disabled = true
+	_chrome.add_child(_end_turn)
+
+
+func _bar_label(rect: Rect2, alignment: HorizontalAlignment) -> Label:
+	var label := Label.new()
+	label.position = rect.position
+	label.size = rect.size
+	label.horizontal_alignment = alignment
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", _ui.color("text_light"))
+	_chrome.add_child(label)
+	return label
+
+
+func _button_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = _ui.color("table_dark")
+	style.set_corner_radius_all(4)
+	style.set_border_width_all(2)
+	style.border_color = _ui.color("table_dark")
+	return style
 
 
 func _launch_from_args() -> void:
@@ -180,7 +240,10 @@ func _start() -> void:
 		return
 	_started = true
 	_ui.query = _controller.query()
+	_ui.locate = _locate
+	_router.set_controller(_controller)
 	_controller.bind_queue(_queue)
+	_apply_identity()
 	_queue.set_speed(SPEED_INSTANT)
 	for event: Dictionary in _controller.events_since(0):
 		_on_event(event)
@@ -190,6 +253,13 @@ func _start() -> void:
 	_present(_display())
 	if _loader != null:
 		_loader.call("apply_pose", self, str(_launch_args.pose))
+
+
+func _apply_identity() -> void:
+	_player_panel.set_identity(_ui.hero_identity(str(_match_info.get("hero_def_id", ""))))
+	var boss_id: String = str(_match_info.get("boss_def_id", ""))
+	_boss_panel.set_identity(_ui.boss_identity(boss_id))
+	_floor_label.text = tr("hud.floor") % [int(_match_info.get("floor", 0)), tr(MatchStrings.BOSS_NAME_KEY % boss_id)]
 
 
 # --- the event path ---------------------------------------------------------------
@@ -244,6 +314,51 @@ func _finish_step(step: AnimStep) -> void:
 func _present(display: Dictionary) -> void:
 	for presenter: Presenter in _presenters:
 		presenter.present(display)
+	var key: String = "hud.turn.player" if str(display.active_side) == MatchViewState.SIDE_PLAYER else "hud.turn.boss"
+	_turn_label.text = tr("hud.turn.setup") if int(display.turn) == 0 else tr(key) % int(display.turn)
+
+
+func _on_command_requested(command: Dictionary) -> void:
+	_controller.submit(command)
+
+
+## The controls follow the view state. Legality is read on entering `Idle` only (U2).
+func _refresh_interaction() -> void:
+	var state: StringName = _router.view_state()
+	if state == _last_state:
+		return
+	_last_state = state
+	_end_turn.disabled = not _router.can_end_turn()
+	if state == InputRouter.STATE_IDLE:
+		_show_legality()
+	else:
+		_clear_legality()
+
+
+func _show_legality() -> void:
+	var legal: Array[Dictionary] = _router.player_commands()
+	var mana: int = int(_view.side(&"player").mana.available)
+	_set_end_turn_lit(legal.size() <= 1 or mana == 0)
+	_player_panel.set_power_state(_ui.query.hero_power_state(MatchViewState.SIDE_PLAYER))
+
+
+func _clear_legality() -> void:
+	_set_end_turn_lit(false)
+	_player_panel.set_power_state({})
+
+
+## U5: the `state_actionable` outline, "nothing left to do".
+func _set_end_turn_lit(on: bool) -> void:
+	_end_turn_style.border_color = _ui.color("state_actionable") if on else _ui.color("table_dark")
+
+
+## The screen centre of a drawn entity, or the centre of the table.
+func _locate(entity_id: int) -> Vector2:
+	if _player_panel.owns([entity_id]):
+		return _player_panel.portrait_rect().get_center()
+	if _boss_panel.owns([entity_id]):
+		return _boss_panel.portrait_rect().get_center()
+	return _ui.rect("viewport").get_center()
 
 
 func _on_skipped() -> void:

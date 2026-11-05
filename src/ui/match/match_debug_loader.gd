@@ -39,7 +39,7 @@ const MACRO_AGGRO_TO_END: String = "aggro_to_end"
 ## The most turns a macro may run: a floor under a fixture that never ends.
 const MAX_MACRO_TURNS: int = 60
 
-## `{floor, boss_def_id}` of the loaded match, for the top bar.
+## `{floor, boss_def_id, hero_def_id}` of the loaded match, for the top bar.
 var match_info: Dictionary = {}
 ## Every command the engine refused, as `{command, result}`: empty on a good fixture.
 var rejections: Array[Dictionary] = []
@@ -94,7 +94,7 @@ func load_fixture(fixture_name: String) -> MatchController:
 	var config: Dictionary = _match_config(settings, services.card_database)
 	var factory: Callable = Boot.driver_factory(_planner_override, OS.get_cmdline_user_args())
 	var controller := MatchController.new(factory.call(config))
-	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id)}
+	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id), "hero_def_id": str(config.player.hero_def_id)}
 	for entry: Dictionary in fixture.get("commands", []):
 		_run(controller, entry)
 	for rejection: Dictionary in rejections:

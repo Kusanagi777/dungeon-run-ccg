@@ -17,6 +17,7 @@ const BANDS: Array[int] = [1, 2, 3]
 const HERO_NAME_KEY: String = "hero.%s.name"
 const BOSS_NAME_KEY: String = "boss.%s.name"
 const POWER_NAME_KEY: String = "power.%s.name"
+const POWER_TEXT_KEY: String = "power.%s.text"
 
 static var _installed: bool = false
 

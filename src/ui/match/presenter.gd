@@ -21,6 +21,9 @@
 @abstract class_name Presenter
 extends Control
 
+## The floating number every zone shares (story 005).
+const NUMBER_POP_SCENE: PackedScene = preload("res://src/ui/match/number_pop.tscn")
+
 ## The shared read-only values of this view: config, palette, query.
 var ui: MatchUiContext = null
 
@@ -103,3 +106,17 @@ func end_step(step: AnimStep) -> void:
 		if is_instance_valid(child):
 			child.queue_free()
 	_step_children.erase(step)
+
+
+## U3 pops: [param pop]'s `amount`, as `−n` or `+n`, on an `ink` pill rising from
+## [param centre] for [param d_eff] seconds, a child of this presenter until
+## [param step] ends. [param centre] is in this presenter's coordinates.
+func spawn_pop(step: AnimStep, pop: AnimStep, centre: Vector2, d_eff: float) -> void:
+	var damage: bool = pop.kind == AnimStep.DAMAGE_POP
+	var text: String = ("−%d" if damage else "+%d") % int(pop.data.get("amount", 0))
+	var number: NumberPop = NUMBER_POP_SCENE.instantiate()
+	add_child(number)
+	number.show_number(text, ui.color("state_danger" if damage else "state_buff"), ui.color("ink"), int(ui.config.pop.font_px), centre)
+	keep_for_step(step, number)
+	var rise: Vector2 = number.position - Vector2(0, float(ui.config.pop.rise_px))
+	step_tween(step).tween_property(number, "position", rise, d_eff)

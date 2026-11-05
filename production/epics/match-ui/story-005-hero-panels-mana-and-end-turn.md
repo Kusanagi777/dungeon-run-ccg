@@ -1,7 +1,7 @@
 # Story 005: Hero panels, mana bar, deck piles, top bar, hero power and End Turn
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: L
