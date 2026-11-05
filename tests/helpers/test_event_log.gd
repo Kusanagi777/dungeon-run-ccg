@@ -71,6 +71,11 @@ func events_since(since_seq: int) -> Array[Dictionary]:
 	return later
 
 
+## Number of events stored, as `EventLog.size()`; the last `seq` (F7).
+func size() -> int:
+	return events.size()
+
+
 ## Rule 13: `callback(event)` is called once per event, in order, after append.
 func subscribe(callback: Callable) -> void:
 	_subscribers.append(callback)
