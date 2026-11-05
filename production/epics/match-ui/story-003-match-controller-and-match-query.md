@@ -71,10 +71,12 @@
 
 - `src/ui/match/match_controller.gd`
 - `src/gameplay/match/match_query.gd` (ADR-0008 erratum 2026-11-03)
+- `src/gameplay/match/rules_engine.gd`, `src/gameplay/run/match_driver.gd` (review B1: the value reads)
 - `src/ui/match/match_view_state.gd` (L2: the engine's `attacker` / `defender` spelling)
 - `tests/integration/match_ui/match_controller_channels_test.gd`
 - `tests/integration/match_ui/view_state_engine_parity_test.gd`
 - `tests/performance/match_ui/match_query_perf_test.gd` (L13)
+- `tests/unit/match_rules/match_rules_read_api_test.gd` (review B1)
 
 ---
 
@@ -113,7 +115,8 @@
 **Deviations** (advisory):
 - **`phase()` stays a String, and `active_side()` is added.** U2's row returns the pair; the existing driver suites read `phase()` as a String.
 - **`MatchQuery.snapshot(side)` is new.** L2 names "the `MatchQuery` snapshot", but U2's table has no read for mana, deck counts or armour. It is for parity, never for rendering.
-- **`MatchQuery` calls `engine.state()`**, against ADR-0007 Decision 4, which names `state_snapshot()` and `clone()`. The engine has no per-side read, and `rules_engine.gd` is outside this story. Nothing live leaves the class. A `RulesEngine` per-side value read would close this.
+- **`RulesEngine` gains `turn()`, `hooks()`, `side_snapshot(side)` and `owner_of(id)`** (2026-11-05, wave 3 review B1). `MatchQuery` and `MatchDriver` read through them and no longer call `state()`, as ADR-0007 Decision 4 requires; a test pins it. `side_snapshot` is a value copy with the deck as a count. Golden logs unchanged. The first three are additions to the ADR's interface, not yet written there.
+- **`attack_cancelled` no longer counts the attack** (2026-11-05, review B2): its `attack_resolved` does, as U3 says.
 - **`entity()` answers `{}` for a card in a deck or the boss's hand.** The GDD is silent; hidden information (U3 rule 2) requires it for the boss, and deck order for the player.
 - **`hero_power_state()` is `{state, reason_code}`,** and a side with no power reads `HERO_POWER_USED`, as `_validate_hero_power` does.
 - **`bind_queue(queue)`** carries the queue handle: `MatchView` builds the queue after the controller is injected. With none bound, `submit` flushes nothing.
@@ -123,4 +126,4 @@
 - **L2 is per `seq` for hero armour and health, mana, deck counts and hands, and for boards at every `seq` outside `MID_BATCH`.** The engine applies a batch and then reports it: every death of a pass, and the Start step's reset. `attacks_used` compares after each command, because it moves before `attack_resolved`. Every command boundary compares everything.
 - **`hero.health` is null in the view until an event reports it** (story 001): no event carries starting health, so a presenter has nothing to draw before the first damage. Parity counts those and compares the rest.
 - **The boss Choice option count** still shows through `legal_commands()`: review question Q-5, open for the owner.
-**Reviewed by**: pending, independent `/code-review` at the end of the wave.
+**Reviewed by**: independent `/code-review` 2026-11-05: CHANGES REQUIRED (B1, B2), fixed on this branch.

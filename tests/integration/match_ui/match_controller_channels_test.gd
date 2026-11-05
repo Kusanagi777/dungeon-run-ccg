@@ -555,6 +555,27 @@ func test_snapshot_is_a_copy_and_gives_the_boss_a_hand_count() -> void:
 	assert_int(int(boss.hand)).is_equal((_boss_state().hand as Array).size())
 
 
+# --- ADR-0007 Decision 4: no live state outside the engine -------------------------------
+
+## The code lines of [param path] calling `.state()`.
+static func _state_calls(path: String) -> Array[String]:
+	var hits: Array[String] = []
+	for line: String in FileAccess.get_file_as_string(path).split("\n"):
+		if line.contains(".state()") and not line.strip_edges().begins_with("#"):
+			hits.append(line.strip_edges())
+	return hits
+
+
+func test_the_read_model_and_the_driver_never_call_state() -> void:
+	# Act
+	var query: Array[String] = _state_calls("res://src/gameplay/match/match_query.gd")
+	var driver: Array[String] = _state_calls("res://src/gameplay/run/match_driver.gd")
+
+	# Assert
+	assert_array(query).is_empty()
+	assert_array(driver).is_empty()
+
+
 # --- AC-2: U4.7 flush before submit ------------------------------------------------------
 
 func test_submit_runs_every_pending_final_before_the_command_reaches_the_driver() -> void:

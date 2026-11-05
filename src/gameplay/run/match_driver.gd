@@ -210,7 +210,7 @@ func events_since(seq: int) -> Array:
 
 ## The match's hook registry, for `Treasures.collect_state`. Read after `Ended` only.
 func hooks() -> HookRegistry:
-	return _engine.state().hooks
+	return _engine.hooks()
 
 
 ## `true` while a task is live or a plan is pending replay, a forecast on the player's
@@ -297,8 +297,8 @@ func _schedule() -> void:
 		MatchState.PHASE_MAIN:
 			if String(_engine.active_side()) == MatchRecords.SIDE_BOSS:
 				_start_task(TASK_PLAN)
-			elif _forecast_turn != _engine.state().turn:
-				_forecast_turn = _engine.state().turn
+			elif _forecast_turn != _engine.turn():
+				_forecast_turn = _engine.turn()
 				_start_task(TASK_FORECAST)
 		MatchState.PHASE_CHOICE:
 			if _boss_owes_choice():
@@ -321,7 +321,7 @@ func _start_task(kind: StringName) -> void:
 ## What a task's clone took for granted. The side counts: `PHASE_MAIN` names both
 ## sides' Main.
 func _premise_now() -> Dictionary:
-	return {"turn": _engine.state().turn, "side": String(_engine.active_side()), "phase": _engine.phase()}
+	return {"turn": _engine.turn(), "side": String(_engine.active_side()), "phase": _engine.phase()}
 
 
 func _premise_moved(premise: Dictionary) -> bool:

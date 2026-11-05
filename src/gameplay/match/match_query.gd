@@ -17,10 +17,9 @@
 ## the projection (`MatchViewState`, U3); [method snapshot] exists to prove the two
 ## agree (match-ui AC L2), not to render from.
 ##
-## Hands, boards and heroes have no per-side read on [RulesEngine], so
-## [method _player] reads `engine.state()` for them, against ADR-0007 Decision 4,
-## which names [method RulesEngine.state_snapshot] and `clone()` for this class.
-## Nothing live leaves this file: what it answers is built here or duplicated.
+## It reads through value copies only (ADR-0007 Decision 4):
+## [method RulesEngine.state_snapshot] and [method RulesEngine.side_snapshot], so no
+## live record is held here.
 ## [codeblock]
 ## var query: MatchQuery = driver.query()
 ## var choice: Variant = query.pending_choice()
@@ -206,15 +205,15 @@ func snapshot(side: String) -> Dictionary:
 	return {
 		"hero": {"entity_id": int(hero.entity_id), "health": _engine.health(hero), "armor": int(hero.armor)},
 		"mana": {"available": int(player.mana_current), "max": int(player.mana_max)},
-		"deck_count": (player.deck as Array).size(),
+		"deck_count": int(player.deck_count),
 		"hand": ids.size() if side == MatchRecords.SIDE_BOSS else ids,
 		"board": board,
 	}
 
 
-## The live `PlayerState` of [param side]: read here, never handed out.
+## A value copy of [param side]'s `PlayerState` in play.
 func _player(side: String) -> Dictionary:
-	return _engine.state().players[side]
+	return _engine.side_snapshot(side)
 
 
 func _character_view(record: Dictionary) -> Dictionary:
@@ -228,12 +227,7 @@ func _character_view(record: Dictionary) -> Dictionary:
 
 
 func _weapon_view(record: Dictionary) -> Dictionary:
-	var side: String = ""
-	for name: String in MatchRecords.SIDES:
-		var held: Variant = _player(name).weapon
-		if held != null and int(held.entity_id) == int(record.entity_id):
-			side = name
-	var view: Dictionary = _view(str(record.def_id), side, ZONE_WEAPON)
+	var view: Dictionary = _view(str(record.def_id), _engine.owner_of(int(record.entity_id)), ZONE_WEAPON)
 	var attack: int = int(record.attack)
 	for enchantment: Dictionary in record.enchantments:
 		attack += int(enchantment.attack_delta)
@@ -247,7 +241,7 @@ func _weapon_view(record: Dictionary) -> Dictionary:
 ## `card_id` is what the log hides.
 func _card_view(record: Dictionary) -> Dictionary:
 	var zone: String = str(record.zone)
-	var side: String = _holder_of(int(record.instance_id), zone)
+	var side: String = _engine.owner_of(int(record.instance_id))
 	if zone == ZONE_DECK or (zone == ZONE_HAND and side == MatchRecords.SIDE_BOSS):
 		return {}
 	var card_id: String = str(record.def_id)
@@ -259,16 +253,6 @@ func _card_view(record: Dictionary) -> Dictionary:
 		view.max_health = definition.get("health")
 		view.keywords = (definition.get("keywords", []) as Array).duplicate()
 	return view
-
-
-## The side whose [param zone] (a [constant MatchRecords.ZONES] name other than
-## `board`) holds [param instance_id], else `""`.
-func _holder_of(instance_id: int, zone: String) -> String:
-	for side: String in MatchRecords.SIDES:
-		for card: Dictionary in _player(side)[zone]:
-			if int(card.instance_id) == instance_id:
-				return side
-	return ""
 
 
 static func _view(card_id: String, side: String, zone: String) -> Dictionary:

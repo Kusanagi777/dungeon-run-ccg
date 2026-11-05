@@ -2055,6 +2055,46 @@ func state_snapshot(entity_id: int) -> Dictionary:
 	return record.duplicate(true)
 
 
+## The global turn counter (C1): 0 during Setup and Mulligan, first turn = 1.
+func turn() -> int:
+	return _state.turn
+
+
+## The match's hook registry, for `MatchDriver.hooks()` (`Treasures.collect_state`
+## reads it after `Ended`).
+func hooks() -> HookRegistry:
+	return _state.hooks
+
+
+## A value copy of [param side]'s `PlayerState` in play, for `MatchQuery`: `{hero,
+## weapon, hero_power, mana_current, mana_max, hand, board, deck_count}`, `weapon`
+## null when the slot is empty. The deck is a count: no reader gets its order.
+## [codeblock]
+## var mana: int = engine.side_snapshot("player").mana_current
+## [/codeblock]
+func side_snapshot(side: String) -> Dictionary:
+	var player: Dictionary = _state.players[side]
+	var weapon: Variant = player.weapon
+	return {
+		"hero": (player.hero as Dictionary).duplicate(true),
+		"weapon": (weapon as Dictionary).duplicate(true) if weapon != null else null,
+		"hero_power": (player.hero_power as Dictionary).duplicate(true),
+		"mana_current": int(player.mana_current),
+		"mana_max": int(player.mana_max),
+		"hand": (player.hand as Array).duplicate(true),
+		"board": (player.board as Array).duplicate(true),
+		"deck_count": (player.deck as Array).size(),
+	}
+
+
+## The side holding the record with [param entity_id], in any zone, or `""`.
+## [codeblock]
+## var side: String = engine.owner_of(instance_id)
+## [/codeblock]
+func owner_of(entity_id: int) -> String:
+	return _owner_of(entity_id)
+
+
 static func _config_error(code: StringName, key: String, message: String) -> Dictionary:
 	return {
 		"severity": ValidationReport.SEVERITY_ERROR,
