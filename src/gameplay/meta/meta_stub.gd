@@ -26,28 +26,8 @@
 class_name MetaStub extends MetaApi
 
 
-## M9 range / enum per settings key (meta-progression M9; DD-X07, DD-X10; the
-## `bindings` map per the ADR-0004 addendum). These are the GDD's declared
-## ranges, not tuning knobs — defaults come from data, never from here.
-## `language` is checked for type only (M9 lists `"en"`, no enum).
-## TODO(meta-progression): move to the shared M9 validator (the
-## `profile_defaults` config validator) when ProfileStore lands.
-const SETTINGS_SCHEMA: Dictionary = {
-	"volume_master": {"kind": "float", "min": 0.0, "max": 1.0},
-	"volume_music": {"kind": "float", "min": 0.0, "max": 1.0},
-	"volume_sfx": {"kind": "float", "min": 0.0, "max": 1.0},
-	"fullscreen": {"kind": "bool"},
-	"anim_speed": {"kind": "enum", "values": ["instant", "fast", "normal"]},
-	"reduce_motion": {"kind": "bool"},
-	"text_scale": {"kind": "number_enum", "values": [1.0, 1.25, 1.5]},
-	"high_contrast_states": {"kind": "bool"},
-	"telegraph_mode": {"kind": "enum", "values": ["full", "brief", "off"]},
-	"action_delay_ms": {"kind": "int", "min": 0, "max": 2000},
-	"gamma": {"kind": "float", "min": 0.8, "max": 1.4},
-	"keep_run_records": {"kind": "bool"},
-	"language": {"kind": "string"},
-	"bindings": {"kind": "bindings"},
-}
+## M9 range / enum per settings key: the shared rules (ProfileSchema).
+const SETTINGS_SCHEMA: Dictionary = ProfileSchema.SETTINGS
 
 ## The one `InputMap` action a `bindings` map may never carry (ADR-0004
 ## addendum 3: `cancel` / Esc is never rebindable).
@@ -68,19 +48,17 @@ var _active_run: Variant = null
 
 
 ## Builds the stub from [param db], a `Ready` `CardDatabase`, alone. Reads
-## `config("profile_defaults")` once and keeps a writable deep copy as the
-## settings record (the body itself is frozen, card-database CR-7); creates
+## `config("profile_defaults")` once and keeps a writable deep copy of its M9
+## keys as the settings record (the body itself is frozen, card-database CR-7); creates
 ## [member MetaApi.settings_bus]. [param mirror] (a `ProfileStore`) is stored
 ## for a later write-through build and unused here.
-##
-## TODO(meta-progression): type [param mirror] as `ProfileStore`.
 ## [codeblock]
 ## var stub := MetaStub.new(card_database)
 ## [/codeblock]
 func _init(db: CardDatabase, mirror: RefCounted = null) -> void:
 	_db = db
 	_mirror = mirror
-	_defaults = (db.config("profile_defaults") as Dictionary).duplicate(true)
+	_defaults = ProfileStore.settings_defaults(db.config("profile_defaults"))
 	_settings = _defaults.duplicate(true)
 	settings_bus = SettingsBus.new()
 
@@ -99,7 +77,7 @@ static func from_fixture(db: CardDatabase, fixture: Dictionary) -> MetaStub:
 	var overrides: Dictionary = fixture.get("settings", {})
 	for raw_key: Variant in overrides:
 		var key: String = String(raw_key)
-		stub._settings[key] = stub._repaired(key, overrides[raw_key])
+		stub._settings[key] = ProfileSchema.repaired_setting(key, overrides[raw_key], stub._defaults)
 	var active_run: Variant = fixture.get("active_run")
 	if active_run is Dictionary:
 		stub._active_run = (active_run as Dictionary).duplicate(true)
@@ -213,7 +191,6 @@ func unlock_hint(_key_or_id: String) -> Dictionary:
 ## [member calls] whatever the outcome.
 ## Note: ADR-0011 Decision 4 says the stub "clamps"; this follows M1.3's
 ## `OK | E_RANGE` (the GDD is the design authority — story 003 notes).
-## TODO(meta-progression): name E_RANGE via src/core/save/save_errors.gd.
 ## [codeblock]
 ## meta.set_setting(&"anim_speed", "fast")   # OK
 ## meta.set_setting(&"gamma", 2.0)           # ERR_PARAMETER_RANGE_ERROR
@@ -221,9 +198,9 @@ func unlock_hint(_key_or_id: String) -> Dictionary:
 func set_setting(key: StringName, value: Variant) -> Error:
 	_record(&"set_setting", [key, value])
 	var name: String = String(key)
-	var checked: Dictionary = _checked(name, value)
+	var checked: Dictionary = ProfileSchema.check_setting(name, value)
 	if not checked.ok:
-		return ERR_PARAMETER_RANGE_ERROR
+		return SaveErrors.E_RANGE
 	_settings[name] = checked.value
 	settings_bus.publish(key, checked.value)
 	return OK
@@ -317,74 +294,3 @@ func _ids_of(records: Array) -> Array:
 	var ids: Array = records.map(func(record: Dictionary) -> String: return record.get("id", ""))
 	ids.sort()
 	return ids
-
-
-## `{ok: bool, value}` — whether [param value] is acceptable for [param key]
-## under M9, and the value to store. Used by set_setting (strict, no clamp).
-func _checked(key: String, value: Variant) -> Dictionary:
-	var rejected: Dictionary = {"ok": false, "value": null}
-	if not SETTINGS_SCHEMA.has(key):
-		return rejected
-	var rule: Dictionary = SETTINGS_SCHEMA[key]
-	match rule.kind:
-		"float":
-			if not (value is float or value is int):
-				return rejected
-			var number: float = float(value)
-			if number < rule.min or number > rule.max:
-				return rejected
-			return {"ok": true, "value": number}
-		"int":
-			if not (value is int or (value is float and float(value) == floorf(value))):
-				return rejected
-			var whole: int = int(value)
-			if whole < rule.min or whole > rule.max:
-				return rejected
-			return {"ok": true, "value": whole}
-		"bool":
-			if not value is bool:
-				return rejected
-			return {"ok": true, "value": value}
-		"enum":
-			if not (value is String or value is StringName) or not (rule.values as Array).has(String(value)):
-				return rejected
-			return {"ok": true, "value": String(value)}
-		"number_enum":
-			if not (value is float or value is int):
-				return rejected
-			for allowed: float in rule.values:
-				if is_equal_approx(float(value), allowed):
-					return {"ok": true, "value": allowed}
-			return rejected
-		"string":
-			if not (value is String or value is StringName):
-				return rejected
-			return {"ok": true, "value": String(value)}
-		"bindings":
-			if not value is Dictionary:
-				return rejected
-			var bindings: Dictionary = (value as Dictionary).duplicate(true)
-			if bindings.erase(UNREBINDABLE_ACTION):
-				push_warning("profile_repaired{path: settings.bindings.%s, from: <events>, to: absent}" % UNREBINDABLE_ACTION)
-			return {"ok": true, "value": bindings}
-	return rejected
-
-
-## M5.3 load repair of one fixture value: unknown keys verbatim; a value
-## [method _checked] accepts is kept; an out-of-range number of the right type
-## is clamped to M9's range; anything else becomes the default (or `{}` for
-## `bindings`, which has no default — absent means engine defaults).
-func _repaired(key: String, value: Variant) -> Variant:
-	if not SETTINGS_SCHEMA.has(key):
-		return value
-	var checked: Dictionary = _checked(key, value)
-	if checked.ok:
-		return checked.value
-	var rule: Dictionary = SETTINGS_SCHEMA[key]
-	if rule.kind == "float" and (value is float or value is int):
-		return clampf(float(value), rule.min, rule.max)
-	if rule.kind == "int" and (value is float or value is int):
-		return clampi(int(value), rule.min, rule.max)
-	if rule.kind == "bindings":
-		return {}
-	return _defaults.get(key)

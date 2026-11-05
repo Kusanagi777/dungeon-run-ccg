@@ -12,11 +12,8 @@
 ## names — M1.3 "Name mapping"). Every override must end in an explicit
 ## `return` (Godot 4.7: an override of a typed method inherits its return type).
 ##
-## Error vocabulary (ADR-0004): `E_RANGE` = `ERR_PARAMETER_RANGE_ERROR`,
-## `E_READONLY` = `ERR_LOCKED`, `E_IO` = `ERR_CANT_CREATE`.
-## TODO(meta-progression): map these once in src/core/save/save_errors.gd and
-## point implementations at it; until then compare against the `Error`
-## constants directly, never a numeric literal.
+## Error vocabulary (ADR-0004): `SaveErrors.E_RANGE`, `SaveErrors.E_READONLY` and
+## `SaveErrors.E_IO` (src/core/save/save_errors.gd), never a numeric literal.
 ##
 ## Usage (a consumer receives an implementation; it never constructs one):
 ## [codeblock]
