@@ -114,6 +114,10 @@ const RANGES: Dictionary = {
 	"THREAT_NORM": {"min": 5.0, "max": 20.0, "integral": false, "row": "F1 BV_NORM, THREAT_NORM"},
 	"trade_ratio": {"min": 0.5, "max": 2.0, "integral": false, "row": "F3 trade_ratio"},
 	"tie_epsilon": {"min": 0.0, "max": 0.5, "integral": false, "row": "F8 tie_epsilon"},
+	"taunt_bonus": {"min": 0.0, "max": 3.0, "integral": false, "row": "F2 taunt_bonus"},
+	"flat_spell_damage": {"min": 0.0, "max": 3.0, "integral": false, "row": "F2 flat_bonus"},
+	"flat_deathrattle": {"min": 0.0, "max": 3.0, "integral": false, "row": "F2 flat_bonus"},
+	"flat_aura": {"min": 0.0, "max": 3.0, "integral": false, "row": "F2 flat_bonus"},
 	"overextend_cap_aoe": {"min": 2.0, "max": 7.0, "integral": true, "row": "F5 overextend_cap_aoe"},
 	"burn_per_mana": {"min": 0.0, "max": 2.0, "integral": false, "row": "F6 burn_per_mana"},
 	"defensive_margin": {"min": 0.0, "max": 10.0, "integral": true, "row": "F6 defensive_margin"},
@@ -141,7 +145,10 @@ const DEFAULT_PROFILE: String = "default"
 ## F1's eleven weights, in F1 order.
 const WEIGHT_KEYS: Array[String] = ["w_board", "w_face", "w_self", "w_trade", "w_threat", "w_mana", "w_card", "w_over", "w_heal", "w_hp", "w_passive"]
 ## F9 `rules` keys, in F9 order.
-const RULE_KEYS: Array[String] = ["hero_power", "trade_ratio", "tie_epsilon", "overextend_cap_aoe", "assume_aoe", "defensive", "defensive_margin", "burn_per_mana", "defensive_multipliers", "lethal_search", "BV_NORM", "THREAT_NORM"]
+const RULE_KEYS: Array[String] = ["hero_power", "trade_ratio", "tie_epsilon", "overextend_cap_aoe", "assume_aoe", "defensive", "defensive_margin", "burn_per_mana", "defensive_multipliers", "lethal_search", "BV_NORM", "THREAT_NORM", "taunt_bonus", "flat_spell_damage", "flat_deathrattle", "flat_aura"]
+## F2's data values among [constant RULE_KEYS] (A29): [Scorer] reads them from the
+## resolved profile, and no code default exists.
+const F2_RULE_KEYS: Array[String] = ["taunt_bonus", "flat_spell_damage", "flat_deathrattle", "flat_aura"]
 ## F9 `rules` enums.
 const RULE_ENUMS: Dictionary = {
 	"hero_power": ["always", "spare_mana", "never", "value"],

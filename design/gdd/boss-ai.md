@@ -463,8 +463,8 @@ BV(weapon)= attack · durability · 0.8
 | Variable | Type | Range | Source | Description |
 |----------|------|-------|--------|-------------|
 | keyword_mult | float | 1.0–1.5 | data file (`keyword_values`) | taunt 1.2, divine_shield 1.3, windfury 1.3, lifesteal 1.15, poisonous 1.25, stealth 1.1 |
-| flat_bonus | float | 0–3 | data file | spell_damage +2 per point, deathrattle +1, aura +2 |
-| taunt_bonus | float | 0–3 | data file | 1.5 (Taunt blocks the boss's own face plan) |
+| flat_bonus | float | 0–3 | data file (`rules`: `flat_spell_damage`, `flat_deathrattle`, `flat_aura`; key names 2026-11-05, A29, review D-3) | spell_damage +2 per point, deathrattle +1, aura +2 |
+| taunt_bonus | float | 0–3 | data file (`rules`: `taunt_bonus`; 2026-11-05, A29, review D-3) | 1.5 (Taunt blocks the boss's own face plan) |
 | attack, health | int | 0–99 | calculated | Match Rules C1 derived values |
 
 **Output Range:** BV 0–~60 per minion; a 7-minion board ≤ ~200. **Example:** a 3/2 Divine Shield
@@ -580,7 +580,8 @@ Profile = { extends?: key,
             weights:  {w_board, w_face, w_self, w_trade, w_threat, w_mana, w_card, w_over, w_heal, w_hp, w_passive},
             rules:    {hero_power: always|spare_mana|never|value, trade_ratio, tie_epsilon, overextend_cap_aoe,
                        assume_aoe, defensive, defensive_margin, burn_per_mana, defensive_multipliers{w_*: float},
-                       lethal_search: shallow|full|off, BV_NORM, THREAT_NORM},
+                       lethal_search: shallow|full|off, BV_NORM, THREAT_NORM,
+                       taunt_bonus, flat_spell_damage, flat_deathrattle, flat_aura (F2's values; added 2026-11-05, A29, review D-3)},
             budgets:  {lethal_max_nodes, max_evals_per_action, max_actions_per_turn},
             intent_mode: full|class_only|hidden,   (hidden: boss_overrides only, concealment passive — C8.4, D-04)
             choice_preference: {<tag>: float 0–1},
@@ -740,6 +741,7 @@ missing-health gate prevents the worst of it). Non-weight knobs:
 | `trade_ratio` | 1.0 | 0.5–2.0 | Only trades up | Trades down freely | `w_trade` |
 | `overextend_cap_aoe` | 4 | 2–7 | Cap irrelevant at 7 | At 2 the boss never commits | `w_over`, `BOARD_SIZE` |
 | `defensive_margin` / `burn_per_mana` | 3 / 1.0 | 0–10 / 0–2 | Defensive mode earlier and more often | Boss ignores lethal threats | F6, `defensive_multipliers`; `defensive_margin` also sets F1's `unsafe` threshold (2026-11-04, DD-X22) |
+| `taunt_bonus` / `flat_spell_damage` / `flat_deathrattle` / `flat_aura` | 1.5 / 2 / 1 / 2 | 0–3 | The boss clears Taunts first / values those minions more on its board | Taunts and those minions read as vanilla bodies | `w_threat`, `w_board`, `BV_NORM`, `THREAT_NORM` |
 | `tie_epsilon` | 0.05 | 0–0.5 | More RNG in play; less predictable | Fully deterministic ordering by canonical sort | `ai_<floor>` draw count |
 | `lethal_max_nodes` | 50 / 500 / 4000 | 10–20,000 | Finds deeper lethals; planner time up | Misses multi-step lethals | `planner_target_ms` |
 | `max_evals_per_action` | 40 / 120 / 250 | 10–1,000 | Better target choice on wide boards; time up | Pre-filter decides more; weaker play | `op_values`, `planner_target_ms` |

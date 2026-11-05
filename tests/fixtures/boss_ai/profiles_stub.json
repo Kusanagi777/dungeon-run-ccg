@@ -37,6 +37,10 @@
           "overextend_cap_aoe": 4,
           "burn_per_mana": 1.0,
           "defensive_margin": 3,
+          "taunt_bonus": 1.5,
+          "flat_spell_damage": 2.0,
+          "flat_deathrattle": 1.0,
+          "flat_aura": 2.0,
           "BV_NORM": 10,
           "THREAT_NORM": 12,
           "defensive_multipliers": {
