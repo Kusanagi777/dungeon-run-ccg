@@ -25,6 +25,8 @@
 ## targets → `T`, positions → `P`, neither → `C`. A minion with a targeted Battlecry
 ## is story 017's Phase P → T; here it plays as `T` at the row's end, so it stays
 ## playable. `drag_release` follows the §7.4 table; a cancel never calls the engine.
+## An untargeted hero power is a Phase `C` source like a spell (MUI-025): drag is its
+## only cast until story 017, and a click plays nothing (DD-X34).
 ## [codeblock]
 ## router.intent(&"drag_start", {"source": {"kind": "card", "id": 12}, "pos": press})
 ## router.intent(&"drag_move", {"pos": mouse})
@@ -253,8 +255,6 @@ func _drag_start(source: Dictionary, pos: Vector2) -> void:
 		phase = SESSION_TARGET
 	elif not positions.is_empty():
 		phase = SESSION_POSITION
-	if str(source.kind) == SOURCE_HERO_POWER and phase != SESSION_TARGET:
-		return
 	_session = {
 		"source": source, "phase": phase, "entries": entries, "positions": positions,
 		"targets": targets, "gap": NO_GAP, "hovered": NO_TARGET, "pos": pos,
