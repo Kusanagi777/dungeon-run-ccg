@@ -601,7 +601,7 @@ func test_validate_missing_section_or_band_is_reported() -> void:
 # --- validate_profiles_config: the runtime block (ADR-0006) -------------------
 
 func test_validate_runtime_accepts_each_planner_mode() -> void:
-	for mode: String in ["worker", "time_sliced", "immediate"]:
+	for mode: String in ["worker", "time_sliced"]:
 		# Arrange
 		var config: Dictionary = _stub()
 		config.runtime["planner_mode"] = mode
@@ -614,6 +614,8 @@ func test_validate_runtime_rejects_anything_else() -> void:
 	# Arrange
 	var bad_mode: Dictionary = _stub()
 	bad_mode.runtime["planner_mode"] = "threaded"
+	var test_helper_mode: Dictionary = _stub()
+	test_helper_mode.runtime["planner_mode"] = "immediate"
 	var zero_slice: Dictionary = _stub()
 	zero_slice.runtime["slice_ms"] = 0
 	var text_budget: Dictionary = _stub()
@@ -625,10 +627,25 @@ func test_validate_runtime_rejects_anything_else() -> void:
 
 	# Act / Assert
 	_only_code(_validate(bad_mode), BossAI.E_AI_UNKNOWN_FIELD)
+	_only_code(_validate(test_helper_mode), BossAI.E_AI_UNKNOWN_FIELD)
 	_only_code(_validate(zero_slice), BossAI.E_AI_WEIGHT_RANGE)
 	_only_code(_validate(text_budget), BossAI.E_AI_WEIGHT_RANGE)
 	_only_code(_validate(missing_slice), BossAI.E_AI_WEIGHT_RANGE)
 	_only_code(_validate(no_runtime), BossAI.E_AI_UNKNOWN_FIELD)
+
+
+func test_validate_runtime_files_immediate_on_planner_mode_only() -> void:
+	# Arrange: shipped data cannot select a test helper (DD-X33).
+	var config: Dictionary = _stub()
+	config.runtime["planner_mode"] = "immediate"
+
+	# Act
+	var rows: Array = _validate(config)
+
+	# Assert
+	assert_array(BossAI.PLANNER_MODES).contains_exactly(["worker", "time_sliced"])
+	assert_int(rows.size()).is_equal(1)
+	assert_str(str(rows[0].field)).is_equal("runtime.planner_mode")
 
 
 func test_validate_runtime_planner_target_accepts_its_range() -> void:
