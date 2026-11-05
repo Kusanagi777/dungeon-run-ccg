@@ -72,6 +72,8 @@ const MAX_TARGET_WIN_RATE: float = 0.95
 var state: RunState = null
 ## The run-scope log, or null when no run is active.
 var run_log: EventLog = null
+## Files each finished match log (rule 18); null files nothing. Set by the composition root.
+var match_archive: EventLogArchive = null
 ## The run's RNG service, or null when no run is active.
 var rng: RngService = null
 ## The code of the last rejected [method begin_match]; `OK` after an accepted one.
@@ -418,6 +420,8 @@ func _on_match_ended(result: Dictionary) -> void:
 	_stop_clock()
 	var driver: MatchDriver = _driver
 	var attempt: int = state.attempts_on(state.floor)
+	if match_archive != null and match_archive.archive_match(_match_log, state.run_id, state.floor, attempt) != OK:
+		push_warning("RunMachine: match log not archived, floor %d attempt %d" % [state.floor, attempt])
 	if str(result.get("result")) == MatchRecords.RESULT_FAULT:
 		_driver = null
 		_match_log = null

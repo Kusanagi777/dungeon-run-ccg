@@ -242,6 +242,18 @@
         215,
         400,
         48
+      ],
+      "replay_badge": [
+        540,
+        48,
+        200,
+        32
+      ],
+      "replay_exit": [
+        1096,
+        4,
+        56,
+        32
       ]
     },
     "hero": {
@@ -469,6 +481,11 @@
       "hud.skip_hint": "Click or Space to skip",
       "hud.turn_banner": "Boss turn %d",
       "hud.boss_discovers": "The boss discovers…",
+      "replay.badge": "Replay",
+      "replay.exit": "Exit",
+      "replay.not_replayable.engine": "Not replayable (engine changed)",
+      "replay.not_replayable.data": "Not replayable (data changed)",
+      "replay.not_replayable.unreadable": "Not replayable (the log cannot be read)",
       "feed.more": "+{n} more",
       "feed.someone": "Something",
       "feed.a_card": "a card",

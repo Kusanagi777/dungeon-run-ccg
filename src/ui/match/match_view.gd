@@ -149,6 +149,14 @@ func hand() -> HandPresenter:
 	return _hand
 
 
+## Leaves a replay now: `match_view_finished` with the result, or `{}` before the end.
+func close_replay() -> void:
+	if _finished:
+		return
+	_finished = true
+	match_view_finished.emit(_view.result if _view.result is Dictionary else {})
+
+
 ## The shared read-only values of this view, for debug tools.
 func ui_context() -> MatchUiContext:
 	return _ui
@@ -380,6 +388,10 @@ func _start() -> void:
 	_router.set_controller(_controller)
 	_router.set_hit_test(MatchHitTest.new(_ui, _view, _hand, _player_row, _boss_row, _player_panel, _boss_panel), float(_config.click_drag_px))
 	_controller.bind_queue(_queue)
+	_controller.bind_view(_view)
+	# A replay at `instant` would be over before anyone saw it.
+	if _controller.is_read_only() and _speed == SPEED_INSTANT:
+		_speed = SPEED_NORMAL
 	_apply_identity()
 	_queue.set_speed(SPEED_INSTANT)
 	_loading = true
@@ -568,6 +580,8 @@ func _refresh_interaction() -> void:
 
 
 func _show_legality() -> void:
+	if _controller.is_read_only():
+		return
 	var legal: Array[Dictionary] = _router.player_commands()
 	var playable: Dictionary = {}
 	for card: Dictionary in _ui.query.hand(MatchViewState.SIDE_PLAYER):

@@ -174,6 +174,12 @@ func hero_power_state(side: String) -> Dictionary:
 	return _power(POWER_BLOCKED, reason) if reason != "" else _power(POWER_READY)
 
 
+## The effective cost of [param side]'s hero power, for its tooltip until an
+## `auras_recomputed` entry has set one (DD-X29).
+func hero_power_cost(side: String) -> int:
+	return _engine.hero_power_cost(side)
+
+
 ## What the projection must equal for [param side] (match-ui AC L2, "the `MatchQuery`
 ## snapshot"), in the shape of `MatchViewState.side()`: `{hero{entity_id, health,
 ## armor}, mana{available, max}, deck_count, hand, board}`. `hand` is the player's

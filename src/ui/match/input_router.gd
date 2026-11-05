@@ -167,7 +167,7 @@ func view_state() -> StringName:
 
 ## U5: End Turn is enabled only in `PlayerTurn.Main` with the queue idle and no overlay.
 func can_end_turn() -> bool:
-	return view_state() == STATE_IDLE
+	return view_state() == STATE_IDLE and not _controller.is_read_only()
 
 
 ## The commands of `legal_commands()` the player may issue (Q-5), in engine order.

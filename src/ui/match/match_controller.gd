@@ -36,6 +36,17 @@ func bind_queue(queue: AnimationQueue) -> void:
 	_queue = queue
 
 
+## The view-state this controller may read; only a replay does.
+func bind_view(_view_state: MatchViewState) -> void:
+	return
+
+
+## True when no command can reach an engine: a replay. `MatchView` then lights no
+## legality and End Turn stays off.
+func is_read_only() -> bool:
+	return false
+
+
 ## U4.7, then the channel in: `skip_all()` runs every pending `apply_final`, and only
 ## then does [param command] reach the driver. Answers the driver's `CommandResult`,
 ## unchanged. Synchronous: no `await` anywhere in this class.

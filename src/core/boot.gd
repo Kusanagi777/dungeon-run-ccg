@@ -276,7 +276,9 @@ func run_machine(planner_override: Callable = Callable(), cmdline_args: PackedSt
 	var run_config: Dictionary = db.config("run_structure").duplicate(true)
 	run_config["max_match_events"] = EventLog.max_events_for(db.config("rng_event_log"))
 	run_config["engine_version"] = Engine.get_version_info().string
-	return RunMachine.new(db, _services.meta, draft, treasures, run_config, factory)
+	var machine := RunMachine.new(db, _services.meta, draft, treasures, run_config, factory)
+	machine.match_archive = EventLogArchive.new(AtomicFileWriter.new(), EventLogArchive.keep_for_build(db.config("rng_event_log")))
+	return machine
 
 
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5
