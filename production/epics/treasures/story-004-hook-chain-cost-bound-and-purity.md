@@ -1,7 +1,7 @@
 # Story 004: F5 hook-chain cost bound and the Node-free treasures tree
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Logic
 > **Estimate**: S
