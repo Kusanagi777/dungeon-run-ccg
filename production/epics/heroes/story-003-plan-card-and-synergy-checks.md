@@ -109,4 +109,4 @@ Heroes F1 (`E_STARTER_CURVE`) and F4 (`W_SET_SHARE`) already run in the content 
 - ADVISORY: the shipped-data cases load `assets/data/` from a unit test, because the story names this one file. `boss_ai_profile_resolver_test.gd` reads committed data the same way.
 - The QA plan's "add 3, below `plan_min`" is covered.
 **GDD gap (from the story, not blocking)**: F2 and F5 name no report code or severity, while F1 has `E_STARTER_CURVE` and F4 has `W_SET_SHARE`, and no record marks a signature card. So these return values and an in-band verdict and add nothing to the validate command's report. Wiring them into `tools/content/validate.gd` waits on a heroes GDD revision naming the codes and a signature marker (`/quick-design`).
-**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
+**Reviewed by**: independent `/code-review`, 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-heroes-treasures.md`, summary scope: correctness and contract risk only): **APPROVED WITH SUGGESTIONS**. Open: `synergy`'s doc nit, and the design question that nothing runs F2 and F5 in `validate.gd`

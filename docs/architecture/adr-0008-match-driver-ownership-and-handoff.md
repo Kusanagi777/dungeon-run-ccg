@@ -53,6 +53,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   ADR-0006 vs ADR-0008 drift is closed. Soft dependencies ADR-0007 / ADR-0004
   / ADR-0005 declared under `Depends On`. `TR-boss-ai-004` row added to the
   GDD Requirements table. No decision changed.
+- **Erratum 2026-11-04 (sprint 5 code review D-1, `production/reviews/2026-11-04/code-review-s5-w1-bossai.md`)**: the driver's plan work is `boss_ai.plan_task(sandbox, planner_task)`, per ADR-0006's erratum of the same date: it passes the running task, so a time-sliced task can yield. The `BossTurn.Main` row of Decision 3 is updated. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -226,7 +227,7 @@ boss's plan.**
    | Observed | Driver action |
    |---|---|
    | `PlayerTurn.Main` and no forecast started for `engine.turn` | `sandbox = engine.clone()`; task: `boss_ai.forecast(sandbox) -> Intent` |
-   | `BossTurn.Main` and no plan pending | `sandbox = engine.clone()`; task: `boss_ai.plan_turn(sandbox) -> TurnPlan` (the C2 loop incl. boss `choose` inside the sandbox) |
+   | `BossTurn.Main` and no plan pending | `sandbox = engine.clone()`; task: `boss_ai.plan_task(sandbox, planner_task)`, whose Callable runs `plan_turn -> TurnPlan` (the C2 loop incl. boss `choose` inside the sandbox) |
    | `Choice` with `pending_choice.side == "boss"` and no task live (a player action raised a boss Discover, or a replayed command did) | `sandbox = engine.clone()`; task: `boss_ai.choose(sandbox, pending) -> int`; on return, `engine.submit(choose{issuer: boss, option_index})` on the main thread |
    | `Ended` | drop any pending plan; `engine.end_match()` (resolver `unbind`); emit `match_ended(engine.result())`; the driver accepts nothing further |
    | anything else | nothing — wait for the player |

@@ -34,6 +34,10 @@ const ROW_21: String = "knowledge_fx_row_21_scribe"
 const ROW_33: String = "neutral_fx_row_33_smite_or_mend"
 ## NC-2's host: `[discover(list of 3, then add_to_hand), damage(enemy_hero, 2)]`.
 const SCOUT: String = "neutral_test_scout"
+## `CapSpyEngine.tried` entries: the `damage` op's primitive, and the event an
+## effect ends with.
+const APPLY_DAMAGE: String = "apply_damage"
+const EFFECT_RESOLVED: String = "effect_resolved"
 ## `[discover(list, filter spell) — 2 of 4 match]`.
 const PAIR: String = "neutral_test_pair"
 ## `[discover(list, filter cost 9) — none match, armor 1]`.
@@ -85,6 +89,24 @@ const OPTION_SPELL: String = "neutral_test_opt_spell"
 
 ## `has` / `card` / `hero_power` / `collectible_pool` from maps (the engine
 ## and the resolver ask nothing else in a match).
+## What a test after the event cap must read instead of the log: once `Ended`,
+## `emit` drops every event and each primitive returns at once, so a log count
+## stays 0 whether or not a later op ran (M1 review, Testability). This records
+## each attempt, in order.
+class CapSpyEngine:
+	extends RulesEngine
+
+	var tried: Array[String] = []
+
+	func emit(type: StringName, payload: Dictionary) -> int:
+		tried.append(String(type))
+		return super(type, payload)
+
+	func apply_damage(target_id: int, requested: int, source: Variant) -> int:
+		tried.append(APPLY_DAMAGE)
+		return super(target_id, requested, source)
+
+
 class FakeCardDatabase:
 	extends CardDatabase
 
@@ -776,11 +798,11 @@ func test_a_boss_discover_is_the_boss_choice_and_still_offers_its_options() -> v
 ## A started match on the production `EventLog` capped at [param cap] (the cap's
 ## `log_overflow` and last `match_ended` are the real rule, ADR-0003 Decision
 ## 8), at player Main with [param hand] and [param board] in play.
-func _capped_main(cap: int, hand: Array, board: Array) -> EventLog:
+func _capped_main(cap: int, hand: Array, board: Array, engine_class: GDScript = RulesEngine) -> EventLog:
 	_db = _make_db()
 	var log: EventLog = EventLog.new(cap, EventLog.SCOPE_MATCH)
 	var config: Dictionary = MatchFactory.make_started_config(TestRngService.new(AC10_SEED), TestEventLog.new(), {"log": log})
-	_engine = RulesEngine.new(_db, MatchFactory.make_rules_config(), EffectResolver.new(_db, _effects_config(), HERO_SET))
+	_engine = engine_class.new(_db, MatchFactory.make_rules_config(), EffectResolver.new(_db, _effects_config(), HERO_SET))
 	_engine.start(config)
 	@warning_ignore("return_value_discarded")
 	_engine.submit(_engine.legal_commands()[0])
@@ -902,13 +924,16 @@ func test_event_cap_sweep_over_a_queued_counter_op_touches_nothing_after_the_cap
 
 
 func test_a_cap_on_discover_offered_runs_no_later_op_of_the_effect() -> void:
-	# Arrange — a reference run finds the event that offers the Discover
-	var reference: EventLog = _capped_main(UNCAPPED, [SCOUT], [])
+	# Arrange — a reference run finds the event that offers the Discover, and
+	# shows the spy sees what the capped run must not do
+	var reference: EventLog = _capped_main(UNCAPPED, [SCOUT], [], CapSpyEngine)
 	var base: int = reference.events_since(0).size()
 	var events: Array = _cast_and_answer(reference)
 	var offered_at: int = _types(events).find("discover_offered")
+	assert_int((_engine as CapSpyEngine).tried.count(EFFECT_RESOLVED)).is_equal(1)
+	assert_int((_engine as CapSpyEngine).tried.count(APPLY_DAMAGE)).is_equal(1)
 	_engine.end_match()
-	var log: EventLog = _capped_main(offered_at, [SCOUT], [])
+	var log: EventLog = _capped_main(offered_at, [SCOUT], [], CapSpyEngine)
 	assert_int(offered_at).is_greater(base)
 
 	# Act
@@ -916,18 +941,19 @@ func test_a_cap_on_discover_offered_runs_no_later_op_of_the_effect() -> void:
 
 	# Assert — card-effects States `Aborted`: nothing of the effect follows
 	assert_array(_types(capped.slice(-2))).is_equal(["log_overflow", "match_ended"])
-	assert_int(_of_type(capped, "effect_resolved").size()).is_equal(0)
-	assert_int(_of_type(capped, "damage_dealt").size()).is_equal(0)
+	assert_int((_engine as CapSpyEngine).tried.count(EFFECT_RESOLVED)).is_equal(0)
+	assert_int((_engine as CapSpyEngine).tried.count(APPLY_DAMAGE)).is_equal(0)
 	assert_bool(_engine.pending_choice() == null).is_true()
 
 
 func test_a_cap_on_discover_picked_adds_no_pick_and_runs_no_later_op() -> void:
 	# Arrange — the cap lands on the resume's first event of this GDD's pair
-	var reference: EventLog = _capped_main(UNCAPPED, [SCOUT], [])
+	var reference: EventLog = _capped_main(UNCAPPED, [SCOUT], [], CapSpyEngine)
 	var events: Array = _cast_and_answer(reference)
 	var picked_at: int = _types(events).find("discover_picked")
+	assert_int((_engine as CapSpyEngine).tried.count(APPLY_DAMAGE)).is_equal(1)
 	_engine.end_match()
-	var log: EventLog = _capped_main(picked_at, [SCOUT], [])
+	var log: EventLog = _capped_main(picked_at, [SCOUT], [], CapSpyEngine)
 	var hand_before: int = 0
 
 	# Act
@@ -942,8 +968,11 @@ func test_a_cap_on_discover_picked_adds_no_pick_and_runs_no_later_op() -> void:
 	var capped: Array = log.events_since(0)
 	assert_str(_engine.phase()).is_equal(MatchState.PHASE_ENDED)
 	assert_array(_types(capped.slice(-2))).is_equal(["log_overflow", "match_ended"])
+	# — the one attempt is the event the cap dropped; nothing follows it
 	assert_int(_of_type(capped, "discover_picked").size()).is_equal(0)
-	assert_int(_of_type(capped, "damage_dealt").size()).is_equal(0)
+	assert_int((_engine as CapSpyEngine).tried.count("discover_picked")).is_equal(1)
+	assert_int((_engine as CapSpyEngine).tried.count(EFFECT_RESOLVED)).is_equal(0)
+	assert_int((_engine as CapSpyEngine).tried.count(APPLY_DAMAGE)).is_equal(0)
 	assert_int((_engine.state().players[SIDE_PLAYER].hand as Array).size()).is_equal(hand_before)
 
 

@@ -110,7 +110,7 @@ This is the first code under `src/gameplay/treasures/`, and it unblocks card-eff
 **Criteria**: 4/4 passing. The `run_warning` events themselves are story 011's.
 **Test Evidence**: `tests/unit/treasures/treasures_installers_test.gd`, 32 tests
 **Run result**: N/A — `Treasures` has no scene or screen; nothing calls it until `RunMachine` exists
-**Reviewed by**: self, no independent review (the orchestrator runs `/code-review` at M1)
+**Reviewed by**: independent `/code-review`, 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-heroes-treasures.md`, full scope): **APPROVED WITH SUGGESTIONS**, 0 required. X3 is decided (DD-X28, `22e8c64`). X2 is carried to card-effects story 015. Open suggestions: S2, one shared dedupe, a shipped-passive test, the ADR-0005 `MatchResult` erratum
 
 **Seen failing.** All 32. First against the missing class (the suite did not compile), then against a skeleton with the real signatures: 19 failed on their assertions. The 11 that passed on the skeleton, and the 2 validator tests added later, each failed against a deliberate mutant (passive always wrapped, always warn, `collect_state` reading the result, a phantom installer, a forbidden name in each scanned file, the scan's comment strip removed, the fixture's rarity, unlock key and an op, the taxman's `kind`, its `passive_text`, the overlay turned off).
 

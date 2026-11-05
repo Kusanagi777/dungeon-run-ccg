@@ -45,6 +45,7 @@ Review record for this authoring run (2026-11-03, `review_mode: lean`,
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
 - **Erratum 2026-11-04 (DD-X18, `/propagate-design-change design/gdd/boss-ai.md`)**: boss-ai `planner_target_ms` rose from 50 ms per round (forecast + play_turn together) to **500 ms per planner run**, `play_turn` and `forecast` each measured separately (A22); F7's `t_sim` is now the measured ~0.37 ms release / ~0.45 ms debug (`production/qa/perf-match-rules-2026-11-04.md`), not 0.01 ms, so F7's band-3 worst case at today's counts is ≈ 2,190 ms until the counts are re-tuned after match-rules story 019. **The Decision is unchanged and strengthened**: a run of up to 500 ms (and more before re-tuning) can only be off the main thread or sliced; the 2 ms main-thread rule (A30), `slice_ms` and `replay_budget_ms` are unchanged. A run longer than the 300 ms banner beat shows the existing "boss thinking" state (diagram below, U6.1). Text fixed in Summary, Constraints, Problem Statement, Negative, GDD Requirements Addressed, Performance Implications and Validation Criteria; Alternative 3's frame estimate (probe A based) is kept as historical reasoning — at 500 ms per run the time-sliced fallback shows "thinking" for ≥ 30 frames, which the same state covers. TD-CHANGE-IMPACT skipped — Lean mode.
 - **Erratum 2026-11-04 (DD-X23, `/propagate-design-change design/gdd/match-ui.md`)**: the commit beat now stretches over planning. It lasts `max(intent_banner_s, planner run)`, capped at `planner_target_ms` (500 ms), and "boss thinking" shows only past that cap (match-ui U6.2 and Input Responsiveness; boss-ai Game Feel). The Decision is unchanged. Performance Implications and Validation Criteria were updated.
+- **Erratum 2026-11-04 (sprint 5 code review D-1, `production/reviews/2026-11-04/code-review-s5-w1-bossai.md`)**: `BossAI.plan_task(sandbox)` is now `BossAI.plan_task(sandbox, task)`, and `task` is required. It is the `PlannerTask` that will run the Callable, because `checkpoint()` yields on it: with no task, `plan_turn` used a no-yield planner, so a `TimeSlicedPlannerTask` ran the whole plan inside `start()` on the main thread and reported success. The Callable is `func() -> Variant: return await boss_ai.plan_turn(sandbox, task)`. `plan_turn` keeps its optional `planner` argument. The architecture diagram and Key Interfaces are updated. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -245,9 +246,9 @@ main thread                                   worker (WorkerThreadPool)
 RulesEngine: PlayerTurn.End → BossTurn.Main
 MatchDriver.on_phase(BossTurn.Main):
    sandbox = engine.clone()            ──┐
-   task.start(boss_ai.plan_task(sandbox)) │ ownership of `sandbox` and the
-     = func() -> Variant:              ────┼──► boss_ai.plan_turn(sandbox):
-         return await boss_ai.plan_turn(sandbox)   (coroutine: it awaits checkpoint())
+   task.start(boss_ai.plan_task(sandbox, task)) │ ownership of `sandbox` and the
+     = func() -> Variant:              ────┼──► boss_ai.plan_turn(sandbox, task):
+         return await boss_ai.plan_turn(sandbox, task)   (coroutine: it awaits checkpoint())
                                         │       loop of boss-ai C2 against `sandbox`
 MatchView._process → driver.tick():     │       (legal_commands, clone() sandboxes,
    if task.poll():  ◄── is_task_completed┘        submit on the clone, choose())
@@ -335,7 +336,8 @@ func poll() -> bool: return true
 
 # src/ai/boss_ai.gd — additions (boss-ai C1.4 entry points unchanged)
 class_name BossAI extends RefCounted
-func plan_turn(sandbox: RulesEngine) -> TurnPlan        # new — the C2 loop against the clone; what play_turn runs inside the task
+func plan_turn(sandbox: RulesEngine, planner: PlannerTask = null) -> TurnPlan   # new — the C2 loop against the clone; what play_turn runs inside the task
+func plan_task(sandbox: RulesEngine, task: PlannerTask) -> Callable   # ADDITION (erratum 2026-11-04): the task Callable; `task` is required, it is the one that runs it
 func play_turn(engine: RulesEngine) -> void             # unchanged contract (C1.4); = plan_turn on engine.clone() + MatchDriver.replay — kept for the harness
 func forecast(engine: RulesEngine) -> Intent            # unchanged; the driver passes a clone
 class_name TurnPlan extends RefCounted                   # new — plain data, JSON-representable (rng-event-log rule 14)

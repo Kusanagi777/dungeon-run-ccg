@@ -43,8 +43,12 @@ without one exits 1 (`GdUnitCmdTool.gd` did not load, so no test ran). Exit 0:
 every test passed. Exit 100: a test failed. Exit 101: every test passed but a
 test leaked nodes (a warning). Exit 103 or 104: gdUnit4 could not run. Exit 105:
 a test script does not parse. A run that finds no tests prints `No test cases
-found` and exits 0, which is not a pass. The folder is `addons/gdUnit4/` with a
-capital U.
+found` and exits 0, which is not a pass, so read the `Overall Summary` line and
+its count. The folder is `addons/gdUnit4/` with a capital U.
+
+`--import` can exit 139 about 1 run in 20 after a clean log (TD-013 follow-up). If
+the log holds no errors, run it once more. Any other command that exits 139 is a
+real failure.
 
 Verified on Godot 4.7.2 with gdUnit4 6.2.3 (2026-11-03): the exit codes above
 come from `GdUnitTestSessionRunner.gd` (`RETURN_SUCCESS = 0`, `RETURN_ERROR = 100`,
@@ -211,6 +215,10 @@ never a bare `assert()`.
 | `match_golden_logs.gd` | `MatchGoldenLogs` | Match-rules story 019 AC-2: `capture(name)` builds a golden's text from the engine under test, `names()` lists them, `path_of(name)` is the committed file. See "Golden logs". |
 | `run_factory.gd` | `RunFactory` | R1 `make_run_state` (invariants hold by default), `make_draft_record`, `apply_bundle_pick` / `apply_treasure_pick`, `make_offer`, `make_match_summary`, the 6/6/4 fixture boss pool, `band_of`, `deck_size_at_floor`, `effective_treasure_floors`, `validate_invariants` / `assert_invariants`. |
 | `treasure_fixtures.gd` | `TreasureFixtures` | The treasures GDD fixtures: `records()` (the 20 T8 records in `tests/fixtures/data/treasures_v1.json`), `database(ids)` (a `Ready` `CardDatabase` over them, or over a subset such as `MVP_IDS`, through the real pipeline), `make_boss_test_taxman()`. Exercised by `tests/unit/treasures/`. |
+| `boss_ai_board.gd` | `BossAiBoard` | Boss AI board fixtures from `tests/fixtures/boss_ai/` on the production `EffectResolver`: `read`, `database`, `engine`, `started_match` (a real match after the mulligan), `adopt` (a `RulesEngine` subclass as a planner sandbox), `stub_config`, `profile`. |
+| `immediate_planner_task.gd` | `ImmediatePlannerTask` | The test and sim-harness `PlannerTask`: runs the work to the end inside `start`. `tests/unit/**` injects it and never starts a worker. Pass it to `plan_task(sandbox, task)`. |
+| `test_effect_resolver.gd` | `TestEffectResolver` | Scripted `EffectResolver` double, so Match Rules suites run without Card Effects. It does not honour `deathrattles_kept`: a test of that uses the real resolver. |
+| `validator_stubs.gd` | `ValidatorStubs` | Validator maps for `CardDatabase.load` / `DataLoader.run`, such as `accept_all`: a missing validator is `E_DELEGATED` in every build type. |
 | `scene_runner_helper.gd` | `SceneRunnerHelper` | `load_scene_and_wait(self, path_or_packed_scene)` for UI integration tests; wrap the result in `auto_free`. |
 
 The factories return plain Dictionaries with the GDD field names because
@@ -219,6 +227,18 @@ The factories return plain Dictionaries with the GDD field names because
 the real type. `tests/unit/framework/test_helpers_test.gd` exercises every
 helper, including each failure path through `assert_failure(...)`, so a
 helper that stops asserting shows up as a red test.
+
+**After a match ends, the log cannot show what did not happen.** Once `Ended`,
+`emit` drops every event and each primitive returns at once, so a count of log
+events reads 0 whether or not a later op ran. To prove nothing ran after an
+`event_cap`, record the attempts: `CapSpyEngine` in
+`tests/unit/card_effects/card_effects_choices_test.gd` overrides `emit` and
+`apply_damage`. Show the spy sees the call on an uncapped run first.
+
+**A replay test submits recorded commands.** Running a match twice from one seed
+proves determinism only. `boss_ai_plan_turn_test.gd` records the command list,
+then rebuilds the match from the seed with no planner and compares logs
+(`EventLogAssertions.assert_replay_equal`).
 
 ## Installing GdUnit4
 

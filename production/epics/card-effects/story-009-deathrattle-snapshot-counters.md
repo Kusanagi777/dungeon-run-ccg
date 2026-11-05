@@ -124,7 +124,7 @@ checks scope against it.*
 **Started / ended (UTC)**: 19:34:39 / 19:57:24
 **Criteria**: 5/5 passing, all by automated test (none deferred)
 **Test Evidence**: `tests/unit/card_effects/card_effects_deathrattle_snapshot_test.gd` (25), `tests/unit/match_rules/match_rules_freeze_silence_test.gd` (+7)
-**Reviewed by**: self, no independent review (the orchestrator runs `/code-review` at M1; a lane does not review its own work)
+**Reviewed by**: independent `/code-review`, 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-ce009-fixbuffer.md`, full scope): **APPROVED WITH SUGGESTIONS**, 0 required on this branch. The merge hazards are closed on the fix-buffer side: R1 in `c90fb4b`, H1 in `a82a16d`. Open: S1, S2, the two weak tests, N1 to N4
 **Run result**: N/A — a Logic story changes nothing visible; the full suite and `godot --headless --quit-after 5` are the evidence.
 
 **Traceability**

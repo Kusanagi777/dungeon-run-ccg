@@ -100,7 +100,7 @@
 **Criteria**: 3/3 passing on the fixture. AC-MVP on shipped data: NOT ASSESSED — shipped `treasures.json` has 0 records until content 006 (sprint 6), so AC-MVP ran on the 10 MVP records of `treasures_v1.json`.
 **Test Evidence**: `tests/unit/treasures/treasures_pool_test.gd`, 14 tests
 **Run result**: N/A — `pool` has no scene or screen; nothing calls it until `RewardDraft.init_run` exists
-**Reviewed by**: self, no independent review (the orchestrator's M1 review row covers this story in summary)
+**Reviewed by**: independent `/code-review`, 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-heroes-treasures.md`, summary scope: correctness and contract risk only): **APPROVED WITH SUGGESTIONS**. The shipped-data half of AC-MVP is NOT ASSESSED (no shipped treasures yet). Open: the first caller must turn `unlocked_keys()` into a Dictionary set
 
 **Seen failing.** All 14. First against no `pool` method (13 errored and 1 failed), then against a stub returning `[]`: 10 failed on their assertions. The other 4 failed against deliberate mutants, and the predicate's own logic was mutated too (ids instead of records, unlocks ignored, any key unlocking all, exclusions ignored, a re-sort, a written argument, the frozen pool handed out, `installers_for` checking unlocks, a non-MVP id in `MVP_IDS`). The stub also showed `test_pool_returns_the_treasure_def_records` passing on an empty list, so it now asserts the count.
 

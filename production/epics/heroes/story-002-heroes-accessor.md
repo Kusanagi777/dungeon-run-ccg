@@ -110,4 +110,4 @@ The run and the UI read heroes through this accessor: Run Structure (R2) copies 
 - ADVISORY: AC-3's "zero `E_*` entries" is asserted as error severity (`report().errors()`), the sprint-3 lane rule. Read literally it cannot pass in a debug build: a pending validator is code `E_DELEGATED` at warning severity, and six stay pending after story 004.
 - ADVISORY: `plan_tags` also logs and returns `[]` for a hero whose set has no `plan_tags` row, the same convention the notes give for an unknown hero. The row is otherwise undefined, for example a `fortune` hero before its row ships.
 - The QA plan's "does not re-parse JSON, does not consult `MetaApi`" has no test of its own: the constructor takes only `db`, and the lint gates cover the data read.
-**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
+**Reviewed by**: independent `/code-review`, 2026-11-04 (`production/reviews/2026-11-04/code-review-s5-w1-heroes-treasures.md`, summary scope: correctness and contract risk only): **APPROVED WITH SUGGESTIONS**. The type-blind `plan_tags` defect is fixed in `71bdcd5`

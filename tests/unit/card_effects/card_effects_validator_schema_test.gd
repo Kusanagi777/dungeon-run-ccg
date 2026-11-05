@@ -274,6 +274,258 @@ func test_a_one_shot_divine_shield_grant_and_a_taunt_aura_stay_legal() -> void:
 	_assert_clean(taunt_aura)
 
 
+# --- AC-47: silence before destroy (C5, C10 `E_FX_OP`, DD-X21) ---------------------
+
+## The DD-X21 rows of [param report]; a report may carry other codes (`target`
+## is not a C3 selector, so that case also reports `E_FX_SELECTOR`).
+func _order_rows(report: Array) -> Array:
+	return report.filter(func(e: Dictionary) -> bool: return str(e.code) == "E_FX_OP" and str(e.message).contains("DD-X21"))
+
+
+func _assert_one_order_row(report: Array, destroy_label: String, silence_label: String) -> void:
+	var rows: Array = _order_rows(report)
+	assert_array(rows).override_failure_message("expected one DD-X21 row, got %s" % str(report)).has_size(1)
+	var message: String = str(_first(rows).get("message"))
+	assert_str(message).contains("%s destroy" % destroy_label)
+	assert_str(message).contains("%s silence" % silence_label)
+
+
+func _assert_no_order_row(report: Array) -> void:
+	assert_array(_order_rows(report)).override_failure_message("expected no DD-X21 row, got %s" % str(report)).is_empty()
+
+
+## A spell whose effect-level `targets` is `chosen`, running [param ops_json];
+## it shows the display keywords its ops back (C1 rule 2).
+func _on_chosen(ops_json: String) -> Array:
+	var keywords: Array = ["silence", "freeze"] if ops_json.contains("freeze") else ["silence"]
+	return _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":%s}' % ops_json, keywords)
+
+
+func test_ac47_destroy_before_silence_on_chosen_is_one_e_fx_op_naming_both_paths() -> void:
+	# Act
+	var report: Array = _on_chosen('[{"op":"destroy"},{"op":"silence"}]')
+
+	# Assert — the only row, at the `silence`, in the message C5 asks for
+	assert_array(_codes(report)).contains_exactly(["E_FX_OP"])
+	assert_str(str(_first(report).get("path"))).is_equal("effects/0/ops/1")
+	assert_str(str(_first(report).get("message"))).contains("destroy before silence on one target (DD-X21): ops[0] destroy, ops[1] silence")
+	assert_str(str(_first(report).get("message"))).contains("list silence first")
+
+
+func test_ac47_silence_before_destroy_on_chosen_is_clean() -> void:
+	_assert_clean(_on_chosen('[{"op":"silence"},{"op":"destroy"}]'))
+
+
+func test_ac47_a_gap_between_the_two_ops_changes_nothing() -> void:
+	# Act — execution order, not adjacency
+	var report: Array = _on_chosen('[{"op":"destroy"},{"op":"damage","amount":1},{"op":"silence"}]')
+
+	# Assert
+	assert_array(_codes(report)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(report, "ops[0]", "ops[2]")
+
+
+func test_ac47_a_search_selector_never_counts_as_the_destroyed_minion() -> void:
+	# Act — C3: a search never yields a dying minion, on either op
+	var silence_searches: Array = _on_chosen('[{"op":"destroy"},{"op":"silence","targets":"all_enemy_minions"}]')
+	var random_silence: Array = _on_chosen('[{"op":"destroy"},{"op":"silence","targets":"random_enemy_minion"}]')
+	var neighbours: Array = _on_chosen('[{"op":"destroy"},{"op":"silence","targets":{"selector":"adjacent","of":"target"}}]')
+	var destroy_searches: Array = _on_chosen('[{"op":"destroy","targets":"all_enemy_minions"},{"op":"silence"}]')
+	var both_search: Array = _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":"all_enemy_minions","ops":[{"op":"destroy"},{"op":"silence"}]}', ["silence"])
+
+	# Assert
+	_assert_clean(silence_searches)
+	_assert_clean(random_silence)
+	_assert_clean(neighbours)
+	_assert_clean(destroy_searches)
+	_assert_clean(both_search)
+
+
+func test_ac47_chosen_counts_as_its_own_targets_as_well_as_inherited() -> void:
+	# Act — `silence` reuses the effect-level `chosen`; one op inherits, the other names it
+	var own_on_both: Array = _on_chosen('[{"op":"destroy","targets":"chosen"},{"op":"silence","targets":"chosen"}]')
+	var own_on_silence: Array = _on_chosen('[{"op":"destroy"},{"op":"silence","targets":"chosen"}]')
+	var object_form: Array = _on_chosen('[{"op":"destroy","targets":{"selector":"chosen"}},{"op":"silence"}]')
+
+	# Assert
+	_assert_one_order_row(own_on_both, "ops[0]", "ops[1]")
+	_assert_one_order_row(own_on_silence, "ops[0]", "ops[1]")
+	_assert_one_order_row(object_form, "ops[0]", "ops[1]")
+
+
+func test_ac47_self_is_a_reference_inherited_or_its_own() -> void:
+	# Act
+	var inherited: Array = _run(&"card", MINION_HOST, '{"trigger":"turn_end","targets":"self","ops":[{"op":"destroy"},{"op":"silence"}]}', ["silence"])
+	var own: Array = _run(&"card", MINION_HOST, '{"trigger":"turn_end","ops":[{"op":"destroy","targets":"self"},{"op":"silence","targets":"self"}]}', ["silence"])
+	var right_order: Array = _run(&"card", MINION_HOST, '{"trigger":"turn_end","targets":"self","ops":[{"op":"silence"},{"op":"destroy"}]}', ["silence"])
+
+	# Assert
+	assert_array(_codes(inherited)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(inherited, "ops[0]", "ops[1]")
+	assert_array(_codes(own)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(own, "ops[0]", "ops[1]")
+	_assert_clean(right_order)
+
+
+func test_ac47_target_is_the_same_reference_as_chosen() -> void:
+	# Act — C3: `chosen` is "the same entity as `target`". `target` is not a
+	# selector name, so these also report `E_FX_SELECTOR`; the order row stands.
+	var both: Array = _on_chosen('[{"op":"destroy","targets":"target"},{"op":"silence","targets":"target"}]')
+	var mixed: Array = _on_chosen('[{"op":"destroy"},{"op":"silence","targets":"target"}]')
+	var right_order: Array = _on_chosen('[{"op":"silence","targets":"target"},{"op":"destroy"}]')
+
+	# Assert
+	_assert_one_order_row(both, "ops[0]", "ops[1]")
+	_assert_one_order_row(mixed, "ops[0]", "ops[1]")
+	_assert_no_order_row(right_order)
+
+
+func test_ac47_trigger_subject_is_a_reference_inherited_or_its_own() -> void:
+	# Act
+	var inherited: Array = _run(&"card", MINION_HOST, '{"trigger":"on_attack","targets":"trigger_subject","ops":[{"op":"destroy"},{"op":"silence"}]}', ["silence"])
+	var own: Array = _run(&"card", MINION_HOST, '{"trigger":"on_attack","ops":[{"op":"destroy","targets":"trigger_subject"},{"op":"silence","targets":"trigger_subject"}]}', ["silence"])
+
+	# Assert
+	assert_array(_codes(inherited)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(inherited, "ops[0]", "ops[1]")
+	assert_array(_codes(own)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(own, "ops[0]", "ops[1]")
+
+
+func test_ac47_trigger_source_is_a_reference_inherited_or_its_own() -> void:
+	# Act
+	var inherited: Array = _run(&"card", MINION_HOST, '{"trigger":"on_attack","targets":"trigger_source","ops":[{"op":"destroy"},{"op":"silence"}]}', ["silence"])
+	var own: Array = _run(&"card", MINION_HOST, '{"trigger":"on_attack","ops":[{"op":"destroy","targets":"trigger_source"},{"op":"silence","targets":"trigger_source"}]}', ["silence"])
+
+	# Assert
+	assert_array(_codes(inherited)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(inherited, "ops[0]", "ops[1]")
+	assert_array(_codes(own)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(own, "ops[0]", "ops[1]")
+
+
+func test_ac47_two_different_references_are_two_minions() -> void:
+	# Act — "the same minion" means the same reference (C5)
+	var subject_then_source: Array = _run(&"card", MINION_HOST, '{"trigger":"on_attack","ops":[{"op":"destroy","targets":"trigger_subject"},{"op":"silence","targets":"trigger_source"}]}', ["silence"])
+	var self_then_chosen: Array = _run(&"card", MINION_HOST, '{"trigger":"battlecry","targets":{"selector":"chosen","filter":{"kind":"minion"}},"ops":[{"op":"destroy","targets":"self"},{"op":"silence"}]}', ["battlecry", "silence"])
+
+	# Assert
+	_assert_clean(subject_then_source)
+	_assert_clean(self_then_chosen)
+
+
+func test_ac47_a_repeat_holding_both_ops_counts_in_either_order() -> void:
+	# Act — iteration 2's `silence` follows iteration 1's `destroy` (C10)
+	var silence_first: Array = _on_chosen('[{"op":"repeat","times":2,"ops":[{"op":"silence"},{"op":"destroy"}]}]')
+	var destroy_first: Array = _on_chosen('[{"op":"repeat","times":2,"ops":[{"op":"destroy"},{"op":"silence"}]}]')
+
+	# Assert — one row each: the second walk of the body repeats no row
+	assert_array(_codes(silence_first)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(silence_first, "ops[0].ops[1]", "ops[0].ops[0]")
+	assert_array(_codes(destroy_first)).contains_exactly(["E_FX_OP"])
+	_assert_one_order_row(destroy_first, "ops[0].ops[0]", "ops[0].ops[1]")
+
+
+func test_ac47_a_repeat_holding_one_of_the_ops_orders_like_a_plain_op() -> void:
+	# Act
+	var silence_in_repeat_after: Array = _on_chosen('[{"op":"destroy"},{"op":"repeat","times":2,"ops":[{"op":"silence"}]}]')
+	var destroy_in_repeat_after: Array = _on_chosen('[{"op":"silence"},{"op":"repeat","times":2,"ops":[{"op":"destroy"}]}]')
+
+	# Assert
+	_assert_one_order_row(silence_in_repeat_after, "ops[0]", "ops[1].ops[0]")
+	_assert_clean(destroy_in_repeat_after)
+
+
+func test_ac47_a_then_and_its_else_never_order_against_each_other() -> void:
+	# Act
+	var report: Array = _on_chosen('[{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"destroy"}],"else":[{"op":"silence"}]}]')
+
+	# Assert
+	_assert_clean(report)
+
+
+func test_ac47_two_choose_one_options_never_order_against_each_other() -> void:
+	# Act
+	var report: Array = _on_chosen('[{"op":"choose_one","options":[{"label_key":"a","ops":[{"op":"destroy"}]},{"label_key":"b","ops":[{"op":"silence"}]}]}]')
+
+	# Assert
+	_assert_clean(report)
+
+
+func test_ac47_ops_after_a_branch_see_a_destroy_from_either_arm() -> void:
+	# Act — the ops after a branch see the union of its arms
+	var from_then: Array = _on_chosen('[{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"destroy"}]},{"op":"silence"}]')
+	var from_else: Array = _on_chosen('[{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"freeze"}],"else":[{"op":"destroy"}]},{"op":"silence"}]')
+	var from_option: Array = _on_chosen('[{"op":"choose_one","options":[{"label_key":"a","ops":[{"op":"freeze"}]},{"label_key":"b","ops":[{"op":"destroy"}]}]},{"op":"silence"}]')
+
+	# Assert
+	_assert_one_order_row(from_then, "ops[0].then[0]", "ops[1]")
+	_assert_one_order_row(from_else, "ops[0].else[0]", "ops[1]")
+	_assert_one_order_row(from_option, "ops[0].options[1].ops[0]", "ops[1]")
+
+
+func test_ac47_each_arm_sees_a_destroy_before_the_branch() -> void:
+	# Act
+	var in_then: Array = _on_chosen('[{"op":"destroy"},{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"silence"}]}]')
+	var in_else: Array = _on_chosen('[{"op":"destroy"},{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"freeze"}],"else":[{"op":"silence"}]}]')
+	var in_option: Array = _on_chosen('[{"op":"destroy"},{"op":"choose_one","options":[{"label_key":"a","ops":[{"op":"freeze"}]},{"label_key":"b","ops":[{"op":"silence"}]}]}]')
+
+	# Assert
+	_assert_one_order_row(in_then, "ops[0]", "ops[1].then[0]")
+	_assert_one_order_row(in_else, "ops[0]", "ops[1].else[0]")
+	_assert_one_order_row(in_option, "ops[0]", "ops[1].options[1].ops[0]")
+
+
+func test_ac47_silence_first_stays_clean_around_a_branch() -> void:
+	# Act
+	var destroy_in_then: Array = _on_chosen('[{"op":"silence"},{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"destroy"}]}]')
+	var silence_in_then: Array = _on_chosen('[{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"silence"}]},{"op":"destroy"}]')
+
+	# Assert
+	_assert_clean(destroy_in_then)
+	_assert_clean(silence_in_then)
+
+
+func test_ac47_one_arm_does_not_leak_its_destroy_into_the_next_arm() -> void:
+	# Act — `else` must not see `then`'s destroy, nested inside a `repeat` too
+	var nested: Array = _on_chosen('[{"op":"conditional","if":{"test":["target",{"is_frozen":true}]},"then":[{"op":"repeat","times":2,"ops":[{"op":"destroy"}]}],"else":[{"op":"repeat","times":2,"ops":[{"op":"silence"}]}]}]')
+
+	# Assert
+	_assert_clean(nested)
+
+
+func test_ac47_the_rule_is_per_effect() -> void:
+	# Act — two effects are two passes with a death check between them (C6.0)
+	var report: Array = _run(&"card", MINION_HOST, '[{"trigger":"turn_end","targets":"self","ops":[{"op":"destroy"}]},{"trigger":"turn_end","targets":"self","ops":[{"op":"silence"}]}]', ["silence"])
+
+	# Assert
+	_assert_clean(report)
+
+
+func test_ac47_every_silence_after_the_destroy_is_named_once() -> void:
+	# Act
+	var report: Array = _on_chosen('[{"op":"destroy"},{"op":"silence"},{"op":"silence"}]')
+
+	# Assert — one row per offending `silence`, each at its own path
+	var paths: Array = _order_rows(report).map(func(e: Dictionary) -> String: return str(e.path))
+	assert_array(paths).contains_exactly(["effects/0/ops/1", "effects/0/ops/2"])
+
+
+func test_ac47_a_malformed_tree_is_reported_by_the_schema_checks_and_not_walked() -> void:
+	# Act — none of these may fault the walk: `then` not an array, an op not an
+	# object, `options` not an array, an option not an object
+	var bad_then: Array = _on_chosen('[{"op":"destroy"},{"op":"conditional","if":{"is_owner_turn":true},"then":"silence"},{"op":"silence"}]')
+	var bad_op: Array = _on_chosen('[7,{"op":"destroy"},{"op":"silence"}]')
+	var bad_options: Array = _on_chosen('[{"op":"silence"},{"op":"destroy"},{"op":"choose_one","options":3}]')
+	var bad_option: Array = _on_chosen('[{"op":"destroy"},{"op":"choose_one","options":[1,{"label_key":"a","ops":[{"op":"silence"}]}]}]')
+
+	# Assert — the well-formed part is still judged
+	_assert_one_order_row(bad_then, "ops[0]", "ops[2]")
+	_assert_one_order_row(bad_op, "ops[1]", "ops[2]")
+	_assert_no_order_row(bad_options)
+	_assert_one_order_row(bad_option, "ops[0]", "ops[1].options[1].ops[0]")
+
+
 func test_non_modify_value_op_under_a_value_trigger_is_e_fx_op() -> void:
 	var under_value: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"modify_damage","ops":[{"op":"draw","count":1}]}')
 	var nested_under_value: Array = _run(&"treasure", TREASURE_HOST, '{"trigger":"modify_cost","ops":[{"op":"conditional","if":{"is_owner_turn":true},"then":[{"op":"modify_value","delta":1}]}]}')

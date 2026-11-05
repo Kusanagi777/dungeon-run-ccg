@@ -43,7 +43,8 @@ const E_FX_SELECTOR: StringName = &"E_FX_SELECTOR"
 ## Unknown filter predicate (or a predicate value outside its enum).
 const E_FX_FILTER: StringName = &"E_FX_FILTER"
 ## Unknown op; op illegal under the trigger class; param out of range; an
-## `aura` granting Stealth (DD-X16) or Divine Shield (DD-X25).
+## `aura` granting Stealth (DD-X16) or Divine Shield (DD-X25); a `destroy` that
+## runs before a `silence` on one reference (DD-X21).
 const E_FX_OP: StringName = &"E_FX_OP"
 ## Op on a selector that can never yield a legal kind (story 004).
 const E_FX_OP_TARGET: StringName = &"E_FX_OP_TARGET"
@@ -91,6 +92,10 @@ const CONFIG_CARD_EFFECTS: String = "card_effects"
 const CONFIG_MATCH_RULES: String = "match_rules"
 ## What [method step_bound] returns when a ceiling it needs is not in `caps`.
 const BOUND_UNKNOWN: int = -1
+## The explicit references C5 "Silence before destroy" tracks (card-effects C3:
+## a dying minion is reachable only through one of these). Any other selector
+## is a search, which never yields a dying minion.
+const ORDER_REFERENCES: PackedStringArray = ["chosen", "self", "target", "trigger_subject", "trigger_source"]
 
 ## Host kinds Card Database stage 7b passes (card-database story 004), plus the
 ## C2 spellings. `card` resolves to the record `type` through `db.card(host_id)`;
@@ -173,6 +178,7 @@ static func validate_effects(host_kind: StringName, host_id: String, effects: Ar
 		seen_ids[ctx.effect_id] = true
 		_check_effect(effect, path, ctx)
 		_check_budget(effect, path, ctx)
+		_check_silence_order(effect, path, ctx)
 		if ctx.chosen_play:
 			chosen_play_effects += 1
 			if chosen_play_effects > 1:
@@ -1108,6 +1114,99 @@ static func _literal_int(value: Variant) -> Variant:
 	if (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and float(value) == floorf(float(value)):
 		return int(value)
 	return null
+
+
+# --- Silence before destroy (C5, C10 `E_FX_OP`, DD-X21) ----------------------------
+
+## `E_FX_OP` for each `silence` that runs after a `destroy` on the same explicit
+## reference within [param effect], at the `silence`'s path, its message naming
+## both ops. The rule is per effect: two effects are two passes with a death
+## check between them (C6.0). An effect without both ops is not walked.
+static func _check_silence_order(effect: Dictionary, path: String, ctx: Dictionary) -> void:
+	var names: Dictionary = {}
+	_collect_op_names(effect.get("ops"), names)
+	if names.has("destroy") and names.has("silence"):
+		_walk_order(effect.get("ops"), "ops", {}, {"inherited": effect.get("targets"), "root": path, "ctx": ctx, "reported": {}})
+
+
+## Walks [param ops] in execution order. [param destroyed] maps each reference
+## already destroyed to the first `destroy`'s location; [param where] is the
+## location of [param ops] under the effect (`ops/1/then`). A malformed tree is
+## skipped: the schema checks report it.
+static func _walk_order(ops: Variant, where: String, destroyed: Dictionary, walk: Dictionary) -> void:
+	if not ops is Array:
+		return
+	for i: int in (ops as Array).size():
+		if ops[i] is Dictionary:
+			_walk_order_op(ops[i], "%s/%d" % [where, i], destroyed, walk)
+
+
+## A `conditional`'s arms and `choose_one`'s options are alternatives; a
+## `repeat` body is walked twice, which models iteration 2 following iteration 1.
+static func _walk_order_op(op: Dictionary, where: String, destroyed: Dictionary, walk: Dictionary) -> void:
+	match str(op.get("op", "")):
+		"destroy":
+			var reference: String = _order_reference(op, walk)
+			if not reference.is_empty() and not destroyed.has(reference):
+				destroyed[reference] = where
+		"silence":
+			var reference: String = _order_reference(op, walk)
+			if destroyed.has(reference):
+				_report_silence_order(destroyed[reference], where, reference, walk)
+		"repeat":
+			_walk_order(op.get("ops"), where + "/ops", destroyed, walk)
+			_walk_order(op.get("ops"), where + "/ops", destroyed, walk)
+		"conditional":
+			_walk_order_arms([[op.get("then"), where + "/then"], [op.get("else"), where + "/else"]], destroyed, walk)
+		"choose_one":
+			var arms: Array = []
+			var options: Array = op.options if op.get("options") is Array else []
+			for i: int in options.size():
+				if options[i] is Dictionary:
+					arms.append([(options[i] as Dictionary).get("ops"), "%s/options/%d/ops" % [where, i]])
+			_walk_order_arms(arms, destroyed, walk)
+
+
+## Each of [param arms] (`[ops, where]`) sees [param destroyed] as it stood
+## before the branch; the ops after the branch see the union of the arms.
+static func _walk_order_arms(arms: Array, destroyed: Dictionary, walk: Dictionary) -> void:
+	var union: Dictionary = {}
+	for arm: Array in arms:
+		var seen: Dictionary = destroyed.duplicate()
+		_walk_order(arm[0], arm[1], seen, walk)
+		union.merge(seen)
+	destroyed.merge(union)
+
+
+## The reference [param op] reaches, its own `targets` else the effect's, or
+## `""` for a search selector or none. `target` and `chosen` are the same
+## entity (C3), so they are one reference.
+static func _order_reference(op: Dictionary, walk: Dictionary) -> String:
+	var name: String = _selector_name(op.get("targets", walk.inherited))
+	if not ORDER_REFERENCES.has(name):
+		return ""
+	return EffectSchema.CHOSEN if name == "target" else name
+
+
+## One row per `silence` and reference: the second walk of a `repeat` body
+## finds the same pair again.
+static func _report_silence_order(destroy_at: String, silence_at: String, reference: String, walk: Dictionary) -> void:
+	var key: String = "%s %s" % [reference, silence_at]
+	if walk.reported.has(key):
+		return
+	walk.reported[key] = true
+	_add(walk.ctx, E_FX_OP, "%s/%s" % [walk.root, silence_at], "destroy before silence on one target (DD-X21): %s destroy, %s silence — list silence first" % [_op_label(destroy_at), _op_label(silence_at)])
+
+
+## An op's location as a message names it: `ops/1/then/0` is `ops[1].then[0]`.
+static func _op_label(where: String) -> String:
+	var label: String = ""
+	for part: String in where.split("/"):
+		if part.is_valid_int():
+			label += "[%s]" % part
+		else:
+			label += part if label.is_empty() else "." + part
+	return label
 
 
 # --- Display keywords (C1 rule 2) -----------------------------------------------
