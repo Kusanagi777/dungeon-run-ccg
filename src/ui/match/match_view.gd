@@ -26,7 +26,10 @@ signal match_view_finished(result: Dictionary)
 ## `load()`ed by path: a release export has no such script, so nothing may name its class.
 const DEBUG_LOADER_PATH: String = "res://src/ui/match/match_debug_loader.gd"
 const SPEED_INSTANT: StringName = &"instant"
+const SPEED_NORMAL: StringName = &"normal"
+const NO_PAUSE: int = -1
 const SETTING_ANIM_SPEED: StringName = &"anim_speed"
+const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
@@ -58,6 +61,8 @@ var _presenters: Array[Presenter] = []
 var _last_display: Dictionary = {}
 var _loader: RefCounted = null
 var _launch_args: Dictionary = {}
+# U11 `--pause-at`: a turn past it stays unprojected, as if its burst had not come yet.
+var _pause_at: int = NO_PAUSE
 var _turn_label: Label = null
 var _floor_label: Label = null
 var _end_turn: Button = null
@@ -65,6 +70,7 @@ var _end_turn_style: StyleBoxFlat = null
 var _last_state: StringName = &""
 var _inspect: CardFrame = null
 var _inspected: int = -1
+var _intent: IntentBanner = null
 # The card of the drag that just submitted, until the engine has answered.
 var _dropped_card: int = -1
 var _ended: bool = false
@@ -143,6 +149,24 @@ func hand() -> HandPresenter:
 	return _hand
 
 
+## Leaves a replay now: `match_view_finished` with the result, or `{}` before the end.
+func close_replay() -> void:
+	if _finished:
+		return
+	_finished = true
+	match_view_finished.emit(_view.result if _view.result is Dictionary else {})
+
+
+## The shared read-only values of this view, for debug tools.
+func ui_context() -> MatchUiContext:
+	return _ui
+
+
+## The event feed, for poses and tests.
+func feed() -> FeedPresenter:
+	return _feed
+
+
 ## Debug builds: every presenter's display equals the view-state (U4.6).
 func assert_in_sync() -> void:
 	for presenter: Presenter in _presenters:
@@ -168,6 +192,7 @@ func _process(delta: float) -> void:
 	_queue.advance(delta)
 	_refresh_interaction()
 	_banner.tick(delta)
+	_intent.tick(delta, not _queue.is_idle(), _controller.is_planning())
 
 
 ## A drag owns the pointer: a disabled End Turn under it must not swallow the release.
@@ -213,6 +238,7 @@ func _read_services() -> void:
 	_settings = services.meta.get_settings()
 	MatchStrings.install(db, _config)
 	_ui = MatchUiContext.new(_config, db)
+	_ui.reduce_motion = _settings.get(SETTING_REDUCE_MOTION, false) == true
 
 
 func _build() -> void:
@@ -232,15 +258,33 @@ func _build() -> void:
 	_build_chrome()
 	_build_inspect()
 	_presenters = [_boss_panel, _player_panel, _boss_row, _player_row, _hand, _arrow, _feed, _choice, _mulligan, _banner]
+	_build_intent_banner()
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
 		presenter.bind(_view)
+	_intent.configure(float(_ai_config.presentation.plan_changed_s))
+	_queue.boss_thinking_changed.connect(_intent.set_thinking)
+	_queue.paused.connect(_on_paused)
 	_banner.continued.connect(_finish_match)
 	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
 		_router.intent(InputRouter.INTENT_MULLIGAN_CONFIRM, {"keep_mask": keep_mask}))
 	_queue.step_started.connect(_on_step_started)
 	_queue.skipped.connect(_on_skipped)
 	_queue.drained.connect(_on_drained)
+
+
+## Added in code, under the end banner, so the scene file stays as it is.
+func _build_intent_banner() -> void:
+	_intent = IntentBanner.new()
+	_intent.name = "IntentBanner"
+	add_child(_intent)
+	move_child(_intent, _banner.get_index())
+	_presenters.append(_intent)
+	var impact := ImpactPresenter.new()
+	impact.name = "Impact"
+	impact.target = self
+	add_child(impact)
+	_presenters.append(impact)
 
 
 ## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).
@@ -312,9 +356,26 @@ func _launch_from_args() -> void:
 	if controller == null:
 		return
 	set_match_info(_loader.get("match_info"))
+	_apply_launch_settings(_loader.get("profile_overrides"))
 	if str(_launch_args.anim_speed) != "":
 		_speed = StringName(str(_launch_args.anim_speed))
+	_pause_at = int(_launch_args.pause_at)
+	if _pause_at != NO_PAUSE:
+		_queue.set_pause_at(_pause_at)
+		# A frozen frame needs a step that animates.
+		if _speed == SPEED_INSTANT:
+			_speed = SPEED_NORMAL
+	_view.set_debug_overlay(_launch_args.ai_debug == true)
 	_controller = controller
+
+
+## A fixture's `profile`, read after `_build` took the player's settings.
+func _apply_launch_settings(overrides: Dictionary) -> void:
+	_settings.merge(overrides, true)
+	_speed = StringName(str(_settings.get(SETTING_ANIM_SPEED)))
+	_ui.reduce_motion = _settings.get(SETTING_REDUCE_MOTION, false) == true
+	_queue.set_reduce_motion(_ui.reduce_motion)
+	_boss_pacing = AnimationQueue.boss_pacing(_config, _ai_config, _settings)
 
 
 ## `Loading`: projects the log at `instant`, then subscribes (hud.md §5).
@@ -327,19 +388,30 @@ func _start() -> void:
 	_router.set_controller(_controller)
 	_router.set_hit_test(MatchHitTest.new(_ui, _view, _hand, _player_row, _boss_row, _player_panel, _boss_panel), float(_config.click_drag_px))
 	_controller.bind_queue(_queue)
+	_controller.bind_view(_view)
+	# A replay at `instant` would be over before anyone saw it.
+	if _controller.is_read_only() and _speed == SPEED_INSTANT:
+		_speed = SPEED_NORMAL
 	_apply_identity()
 	_queue.set_speed(SPEED_INSTANT)
 	_loading = true
 	for event: Dictionary in _controller.events_since(0):
+		if _pause_at != NO_PAUSE and str(event.get("type", "")) == EVENT_TURN_STARTED:
+			if int(event.get("seq", 0)) > _pause_at:
+				break
+			_queue.advance(0.0)
 		_on_event(event)
 	_loading = false
 	_queue.advance(0.0)
 	_queue.set_speed(_speed)
 	_controller.subscribe(_on_event)
-	_present(_display())
+	if _queue.is_idle():
+		_present(_display())
 	if _loader != null:
 		var pose: String = str(_launch_args.pose)
 		_loader.call("apply_pose", self, pose if pose != "" else str(_loader.get("fixture_pose")))
+		if _launch_args.ai_debug == true:
+			_loader.call("attach_ai_debug", self)
 
 
 func _apply_identity() -> void:
@@ -347,6 +419,8 @@ func _apply_identity() -> void:
 	var boss_id: String = str(_match_info.get("boss_def_id", ""))
 	_boss_panel.set_identity(_ui.boss_identity(boss_id))
 	_banner.set_boss(boss_id)
+	_intent.set_boss(boss_id)
+	_feed.set_names(str(_match_info.get("hero_def_id", "")), boss_id)
 	_floor_label.text = tr("hud.floor") % [int(_match_info.get("floor", 0)), tr(MatchStrings.BOSS_NAME_KEY % boss_id)]
 
 
@@ -385,6 +459,8 @@ func _display() -> Dictionary:
 		"phase": _view.phase,
 		"pending_mulligan": _view.pending_mulligan,
 		"result": _view.result,
+		"feed_total": _view.feed_total,
+		"intent": _view.intent,
 	}
 
 
@@ -495,6 +571,7 @@ func _refresh_interaction() -> void:
 	if state == _last_state:
 		return
 	_last_state = state
+	_hand.set_zone_dim(state == InputRouter.STATE_BOSS_TURN)
 	_end_turn.disabled = not _router.can_end_turn()
 	if state == InputRouter.STATE_IDLE:
 		_show_legality()
@@ -503,6 +580,8 @@ func _refresh_interaction() -> void:
 
 
 func _show_legality() -> void:
+	if _controller.is_read_only():
+		return
 	var legal: Array[Dictionary] = _router.player_commands()
 	var playable: Dictionary = {}
 	for card: Dictionary in _ui.query.hand(MatchViewState.SIDE_PLAYER):
@@ -595,6 +674,11 @@ func _show_inspect(entity_id: int) -> void:
 	var x: float = centre.x - preview.x - INSPECT_GAP_PX if left else centre.x + INSPECT_GAP_PX
 	var y: float = clampf(centre.y - preview.y / 2.0, _ui.rect("top_bar").end.y, _ui.rect("viewport").end.y - preview.y)
 	_inspect.position = Vector2(x, y)
+
+
+func _on_paused() -> void:
+	for presenter: Presenter in _presenters:
+		presenter.freeze_tweens()
 
 
 func _on_skipped() -> void:

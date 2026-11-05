@@ -57,6 +57,7 @@ func configure(context: MatchUiContext) -> void:
 	custom_minimum_size = token_size
 	size = token_size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	offset_transform_enabled = true
 	offset_transform_pivot_ratio = Vector2(0.5, 0.5)
 	_art = _label(ART_RECT, ART_FONT_PX)
 	_centre(_art)

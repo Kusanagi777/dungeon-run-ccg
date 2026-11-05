@@ -253,11 +253,11 @@ func _lunge(step: AnimStep, d_eff: float) -> void:
 	var token: MinionToken = _tokens[step.entity_ids[0]]
 	var aim: Vector2 = ui.locate.call(step.entity_ids[1]) - token.get_global_rect().get_center()
 	var out_s: float = d_eff * float(board.lunge_out)
-	var hold_s: float = d_eff * float(board.lunge_hold)
+	var contact_s: float = d_eff * float(board.lunge_hold)
 	var lunge: Tween = step_tween(step)
 	lunge.tween_property(token, "offset_transform_position", aim * float(board.lunge_reach), out_s)
-	lunge.tween_interval(hold_s)
-	lunge.tween_property(token, "offset_transform_position", Vector2.ZERO, maxf(d_eff - out_s - hold_s, 0.0))
+	lunge.tween_interval(lunge_hold_s(step, d_eff))
+	lunge.tween_property(token, "offset_transform_position", Vector2.ZERO, maxf(d_eff - out_s - contact_s, 0.0))
 
 
 func _fade_out(step: AnimStep, id: int, d_eff: float) -> void:

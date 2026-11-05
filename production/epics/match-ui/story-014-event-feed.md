@@ -1,7 +1,7 @@
 # Story 014: Event feed — ticker, drawer, command-root grouping and collapse
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

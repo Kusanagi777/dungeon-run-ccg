@@ -94,8 +94,10 @@ var counters: Dictionary = {}
 var armed_sources: Dictionary = {}
 ## Once-per-turn trigger sources spent this turn (dimmed): `{instance_id: true}`; cleared on `turn_started`.
 var exhausted_sources: Dictionary = {}
-## Feed content `{key, params, group_id}`, newest last, at most `feed_max_lines`; rendering is story 014.
+## Feed content `{key, params, group_id, seq}`, newest last, at most `feed_max_lines`; `FeedPresenter` renders it.
 var feed_lines: Array[Dictionary] = []
+## Every feed line ever added, dropped ones included: a display's place in the feed.
+var feed_total: int = 0
 ## The `match_ended` payload (match-rules C14 `MatchResult`), or null while the match runs.
 var result: Variant = null
 ## `ai_decision` events `{seq, type, payload}`, filled only while the debug overlay is on.
@@ -113,6 +115,10 @@ var _roots: Dictionary = {}
 # death_group / gap_close steps it already returned (grown in place).
 var _death_cause: int = -1
 var _death_steps: Array[AnimStep] = []
+# The lunge of the attack under way: its contact takes the hit-stop (Impact Moments).
+var _attack_step: AnimStep = null
+var _impact_ms: Dictionary = {}
+var _heavy_damage: int = 0
 # The discover_offered + choice_requested pair of the open player Choice.
 var _choice_offered: bool = false
 var _choice_requested: bool = false
@@ -129,6 +135,8 @@ func _init(ui_config: Dictionary) -> void:
 	for type: Variant in ui_config.get("silent_types", []):
 		_silent[String(type)] = true
 	_feed_max = int(ui_config.get("feed_max_lines", 0))
+	_impact_ms = ui_config.get("impact_ms", {})
+	_heavy_damage = int((ui_config.get("impact", {}) as Dictionary).get("heavy_hero_damage", 0))
 	for side_name: String in [SIDE_PLAYER, SIDE_BOSS]:
 		_sides[side_name] = {
 			"hero": {
@@ -170,9 +178,9 @@ func apply(event: Dictionary) -> Array[AnimStep]:
 	if _silent.has(type):
 		return steps
 	if not _project(type, seq, group, cause, payload, steps):
-		_feed(FEED_UNKNOWN, {"type": type}, group)
+		_feed(FEED_UNKNOWN, {"type": type}, group, seq)
 		return steps
-	_feed(FEED_PREFIX + type, _public_params(type, payload), group)
+	_feed(FEED_PREFIX + type, _public_params(type, payload), group, seq)
 	return steps
 
 
@@ -285,13 +293,13 @@ func _apply_diagnostic(type: String, seq: int, group: int, payload: Dictionary, 
 		var shake: AnimStep = _step(AnimStep.REJECT_SHAKE, [], group, seq)
 		shake.data = {"code": str(payload.get("code", ""))}
 		steps.append(shake)
-		_feed(FEED_COMMAND_REJECTED, {"command": _copy(payload.get("command")), "code": str(payload.get("code", ""))}, group)
+		_feed(FEED_COMMAND_REJECTED, {"command": _copy(payload.get("command")), "code": str(payload.get("code", ""))}, group, seq)
 		return
 	if not _debug_overlay:
 		return
 	if type == _TYPE_AI_DECISION:
 		debug_buffer.append({"seq": seq, "type": type, "payload": payload.duplicate(true)})
-	_feed(FEED_DIAG_PREFIX + type, payload.duplicate(true), group)
+	_feed(FEED_DIAG_PREFIX + type, payload.duplicate(true), group, seq)
 
 
 # --- the U3 table ------------------------------------------------------------------
@@ -368,7 +376,9 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			(raw.deck as Dictionary).erase(int(p.get("instance_id", 0)))
 			if p.has("returned_entity_id"):
 				_remove_token(raw, int(p.returned_entity_id))
-			steps.append(_step(AnimStep.BURN, [int(p.get("instance_id", 0))], group, seq))
+			var flash: AnimStep = _step(AnimStep.BURN, [int(p.get("instance_id", 0))], group, seq)
+			flash.data = {"side": str(p.get("side", "")), "card_id": str(p.get("card_id", ""))}
+			steps.append(flash)
 		"card_added_to_deck":
 			_raw(p).deck[int(p.get("instance_id", 0))] = true
 			steps.append(_step(AnimStep.DECK_TICK, [int(p.get("instance_id", 0))], group, seq))
@@ -422,11 +432,14 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			_raw(p).hero.power_state = POWER_READY
 			steps.append(_step(AnimStep.POWER_RELIGHT, _hero_ids(_raw(p)), group, seq))
 		"attack_declared":
-			steps.append(_step(AnimStep.ATTACK_LUNGE, _ids([_attacker_of(p), _defender_of(p)]), group, seq))
+			_attack_step = _step(AnimStep.ATTACK_LUNGE, _ids([_attacker_of(p), _defender_of(p)]), group, seq)
+			steps.append(_attack_step)
 		"attack_resolved":
+			_attack_step = null
 			_count_attack(int(_attacker_of(p)))
 		"attack_cancelled":
 			# Its `attack_resolved` follows and counts the swing (C8; U3 "none").
+			_attack_step = null
 			steps.append(_step(AnimStep.ATTACK_RETURN, _ids([_attacker_of(p)]), group, seq))
 		"damage_dealt":
 			var target: int = int(p.get("target", 0))
@@ -434,9 +447,12 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			if not hit.is_empty():
 				hit.health = int(p.get("health_after", 0))
 			var dealt: int = int(p.get("dealt", 0))
+			var heavy: bool = _is_hero(target) and _heavy_damage > 0 and dealt >= _heavy_damage
+			_mark_contact(target, heavy)
 			if not (dealt == 0 and int(p.get("prevented", 0)) > 0):
 				var pop: AnimStep = _step(AnimStep.DAMAGE_POP, [target], group, seq)
 				pop.data = {"amount": dealt, "source": _copy(p.get("source"))}
+				pop.impact = _pop_impact(heavy, _is_hero(target) and int(p.get("health_after", 1)) <= 0)
 				steps.append(pop)
 		"divine_shield_popped":
 			var shielded: Dictionary = _character(int(p.get("entity_id", 0)))
@@ -571,6 +587,35 @@ func _apply_enchantment(applied: bool, p: Dictionary, group: int, seq: int, step
 		target.health = int(target.health) + direction * health_delta
 	var kind: StringName = AnimStep.STAT_RECOLOUR if attack_delta != 0 or health_delta != 0 else AnimStep.BADGE
 	steps.append(_parallel(_step(kind, [int(target.entity_id)], group, seq)))
+
+
+## Impact Moments: the lunge in flight freezes on contact, 60 ms, or 90 ms when a hero
+## takes [param heavy] damage. The damage arrives in the same burst as `attack_declared`,
+## so the step is still queued and is marked in place, as a death group grows.
+func _mark_contact(target: int, heavy: bool) -> void:
+	if _attack_step == null or not _attack_step.entity_ids.has(target):
+		return
+	var hit_stop: int = int(_impact_ms.get("hit_stop_heavy" if heavy else "hit_stop", 0))
+	_attack_step.impact["hit_stop_ms"] = maxi(int(_attack_step.impact.get("hit_stop_ms", 0)), hit_stop)
+
+
+## Impact Moments: a shake for hero damage of [param heavy] size or a [param lethal] hit,
+## and the slow-down on the lethal step only.
+func _pop_impact(heavy: bool, lethal: bool) -> Dictionary:
+	var impact: Dictionary = {}
+	if heavy or lethal:
+		impact["shake_ms"] = int(_impact_ms.get("shake", 0))
+	if lethal:
+		impact["slow_ms"] = int(_impact_ms.get("slow", 0))
+	return impact
+
+
+func _is_hero(id: int) -> bool:
+	for side_name: String in [SIDE_PLAYER, SIDE_BOSS]:
+		var hero_id: Variant = _sides[side_name].hero.entity_id
+		if hero_id != null and int(hero_id) == id:
+			return true
+	return false
 
 
 ## U3 `auras_recomputed` (match-rules C15, DD-X26, DD-X29): [param change] holds
@@ -709,8 +754,9 @@ func _parallel(step: AnimStep) -> AnimStep:
 	return step
 
 
-func _feed(key: String, params: Dictionary, group: int) -> void:
-	feed_lines.append({"key": key, "params": params, "group_id": group})
+func _feed(key: String, params: Dictionary, group: int, seq: int) -> void:
+	feed_lines.append({"key": key, "params": params, "group_id": group, "seq": seq})
+	feed_total += 1
 	if _feed_max > 0 and feed_lines.size() > _feed_max:
 		feed_lines.pop_front()
 

@@ -34,6 +34,10 @@ const SETTLE_POLL_USEC: int = 200
 const POSE_HOVER: String = "hover"
 const POSE_DRAG: String = "drag"
 const POSE_END: String = "end"
+const POSE_FEED: String = "feed"
+const POSE_FEED_OPEN: String = "open"
+## Loaded by path, for the reason `MatchView` loads this script by path.
+const AI_DEBUG_SCENE_PATH: String = "res://src/ui/match/ai_debug_overlay.tscn"
 const POSE_HERO_POWER: String = "hero_power"
 ## Macro names a `commands` entry may hold in `macro`.
 const MACRO_END_TURNS: String = "end_turns"
@@ -50,6 +54,9 @@ var match_info: Dictionary = {}
 var fixture_pose: String = ""
 ## Every command the engine refused, as `{command, result}`: empty on a good fixture.
 var rejections: Array[Dictionary] = []
+## The fixture's `profile`: settings for this launch only, which `MatchView` merges over
+## its own. They are never left in the player's profile.
+var profile_overrides: Dictionary = {}
 
 var _planner_override: Callable
 
@@ -95,8 +102,11 @@ func load_fixture(fixture_name: String) -> MatchController:
 		push_error("MatchDebugLoader: the data load failed, so no fixture can run")
 		return null
 	var services: Services = Boot.services()
-	for key: String in fixture.get("profile", {}):
-		services.meta.set_setting(StringName(key), fixture.profile[key])
+	profile_overrides = fixture.get("profile", {})
+	var saved: Dictionary = {}
+	for key: String in profile_overrides:
+		saved[key] = services.meta.get_setting(StringName(key))
+		services.meta.set_setting(StringName(key), profile_overrides[key])
 	fixture_pose = str(fixture.get("pose", ""))
 	var settings: Dictionary = fixture.get("config", {})
 	var config: Dictionary = _match_config(settings, services.card_database)
@@ -105,6 +115,9 @@ func load_fixture(fixture_name: String) -> MatchController:
 	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id), "hero_def_id": str(config.player.hero_def_id)}
 	for entry: Dictionary in fixture.get("commands", []):
 		_run(controller, entry)
+	# The driver took its settings snapshot above; nothing later reads these.
+	for key: String in saved:
+		services.meta.set_setting(StringName(key), saved[key])
 	for rejection: Dictionary in rejections:
 		push_error("MatchDebugLoader: fixture '%s' command refused: %s" % [fixture_name, str(rejection)])
 	return controller
@@ -126,8 +139,18 @@ func apply_pose(view: MatchView, pose: String) -> void:
 			view.pose_end(value)
 		POSE_DRAG:
 			view.pose_drag(-1 if value == POSE_HERO_POWER else int(value))
+		POSE_FEED:
+			if value == POSE_FEED_OPEN:
+				view.feed().open()
 		_:
 			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
+
+
+## U11 `--ai-debug`: the `ai_decision` overlay over [param view].
+func attach_ai_debug(view: MatchView) -> void:
+	var overlay: Control = (load(AI_DEBUG_SCENE_PATH) as PackedScene).instantiate()
+	view.add_child(overlay)
+	overlay.call("attach", view.view_state(), view.ui_context())
 
 
 func _read(path: String) -> Variant:

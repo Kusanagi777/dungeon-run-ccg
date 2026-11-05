@@ -16,7 +16,8 @@ show a state the rules cannot reach.
 - `config`: the `MatchConfig` inputs. Optional, for a state the shipped lists cannot
   reach quickly: `player_deck`, `boss_deck` (card id lists), `boss_health`,
   `max_events` (the log cap, which is how `match_end_fault` reaches a fault).
-- `profile`: settings applied before the match, as `MetaApi.set_setting` keys.
+- `profile`: settings for this launch only, as `MetaApi.set_setting` keys. The loader
+  restores them once the driver has its snapshot, so they never reach the saved profile.
 - `pose`: optional, a U11 pose used when the launch names none. `match_end_both_dead`
   needs it: no shipped card kills both heroes in one action, so it ends on a real
   defeat and reads as `end:both_dead` (story 011's allowed fallback).
@@ -29,6 +30,13 @@ show a state the rules cannot reach.
   - `{"macro": "play_and_pass", "count": n}`: `play_all`, then end the turn, n times.
   - `{"macro": "attack_face"}`: every legal attack, at the boss hero when it can.
   - `{"macro": "aggro_to_end"}`: `play_all`, `attack_face`, `end_turn`, until the match ends.
+
+`<name>_ts150` is `<name>` with the profile `text_scale = 1.5` (U11 settings variants).
+`boss_intent_hidden` uses `telegraph_mode: off`: no shipped boss has `intent_mode: hidden`.
+
+Mid-step frames: `--pause-at=<seq>` holds every step after `seq`, freezes halfway through
+a step of `seq`, and leaves any later turn unprojected. The boss turns of
+`boss_turn_playback` start at `seq` 203 (turn 10); `divine_shield_hit` pops at `seq` 131.
 
 Launch: `godot --path . res://src/ui/match/match_view.tscn -- --fixture=<name>`, or from an
 exported debug build `deckdelve-debug.exe -- --fixture=<name>`.

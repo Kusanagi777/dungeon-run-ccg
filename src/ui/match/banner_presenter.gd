@@ -32,7 +32,6 @@ const FACTS_Y: float = 104.0
 const TEXT_MARGIN_PX: float = 16.0
 const ENTER_SCALE: float = 0.95
 const BORDER_PX: int = 2
-const MS_PER_S: float = 1000.0
 
 var _view: MatchViewState = null
 var _panel: Panel = null
@@ -105,7 +104,7 @@ func claims(step: AnimStep) -> bool:
 func on_step_started(step: AnimStep, d_eff: float) -> void:
 	_open(step.data.get("display", {}).get("result"))
 	_panel.modulate.a = 0.0
-	_panel.scale = Vector2.ONE * ENTER_SCALE
+	_panel.scale = Vector2.ONE * (1.0 if ui.reduce_motion else ENTER_SCALE)
 	var enter: Tween = step_tween(step).set_parallel()
 	enter.tween_property(_panel, "modulate:a", 1.0, d_eff)
 	enter.tween_property(_panel, "scale", Vector2.ONE, d_eff)

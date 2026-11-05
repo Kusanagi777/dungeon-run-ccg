@@ -15,6 +15,7 @@ const DRAG_Z: int = 200
 const TRAVEL_SCALE: float = 0.6
 
 var _view: MatchViewState = null
+var _zone_dim: ColorRect = null
 var _cfg: Dictionary = {}
 # instance_id → CardFrame.
 var _cards: Dictionary = {}
@@ -38,6 +39,15 @@ var _idle: bool = false
 func setup(context: MatchUiContext) -> void:
 	super(context)
 	_cfg = ui.config.hand
+	var zone: Rect2 = ui.rect("hand_zone")
+	_zone_dim = ColorRect.new()
+	_zone_dim.position = zone.position
+	_zone_dim.size = zone.size
+	_zone_dim.color = Color(ui.color("table_dark"), float(ui.config.hand_dim_alpha))
+	_zone_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zone_dim.visible = false
+	add_child(_zone_dim)
+	move_child(_zone_dim, 0)
 
 
 ## Stores the projection [method sync_report] compares against.
@@ -130,6 +140,12 @@ func set_playable(playable: Dictionary, idle: bool) -> void:
 	_playable = playable
 	_idle = idle
 	_refresh_states()
+
+
+## States `BossTurn`: the zone's fill drops one step behind the cards, whose own
+## contrast stays. One step on enter and exit, no tween.
+func set_zone_dim(on: bool) -> void:
+	_zone_dim.visible = on
 
 
 ## The hand fill the opaque dim mixes toward.

@@ -276,8 +276,7 @@ func run_machine(planner_override: Callable = Callable(), cmdline_args: PackedSt
 	var log_config: Dictionary = db.config("rng_event_log")
 	run_config["max_match_events"] = EventLog.max_events_for(log_config)
 	run_config["engine_version"] = Engine.get_version_info().string
-	var keep_match_logs: bool = log_config.keep_match_logs["debug" if OS.is_debug_build() else "release"]
-	var archive: EventLogArchive = EventLogArchive.new(AtomicFileWriter.new(), keep_match_logs)
+	var archive := EventLogArchive.new(AtomicFileWriter.new(), EventLogArchive.keep_for_build(log_config))
 	return RunMachine.new(db, _services.meta, draft, treasures, run_config, factory, archive)
 
 

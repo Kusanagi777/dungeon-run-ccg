@@ -45,6 +45,16 @@ func _init(writer: AtomicFileWriter, keep_match_logs: bool, root: String = LOGS_
 	_root = root
 
 
+## The `keep_match_logs` of this build type, from the `config("rng_event_log")` body
+## [param config] (rng-event-log Tuning Knobs: debug true, release false).
+## [codeblock]
+## EventLogArchive.new(writer, EventLogArchive.keep_for_build(db.config("rng_event_log")))
+## [/codeblock]
+static func keep_for_build(config: Dictionary, debug_build: bool = OS.is_debug_build()) -> bool:
+	var per_build: Dictionary = config.get("keep_match_logs", {})
+	return per_build.get("debug" if debug_build else "release", false) == true
+
+
 ## Writes [param log], a sealed match log, to the files it is due (see the class doc):
 ## none, one or both. [param run_id] is Run Structure's `<run_seed_hex>-<started_at>`;
 ## [param attempt] is `match_attempts[floor]`. Returns `OK`, or the first `Error` met; a

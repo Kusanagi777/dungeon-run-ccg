@@ -1,0 +1,8 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [], "player_deck": ["war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman"], "boss_deck": ["boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward", "boss_rat", "boss_ember_bolt", "knowledge_ward"]},
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "end_turns", "count": 5}
+  ]
+}
