@@ -73,7 +73,6 @@ checks scope against it.*
 - `tests/integration/boss_ai/boss_ai_code_gates_test.gd`, `tests/fixtures/lint/ai_*/`
 - `src/ai/candidates.gd` (BAI review N6)
 - `docs/architecture/control-manifest.md` (the gate's row)
-- `tests/unit/boss_ai/boss_ai_real_plan_deck_order_test.gd`, `tests/fixtures/boss_ai/real_plan_undrawn_card.json` (the C1.3 breach, failing by design; separate commit)
 
 ---
 
@@ -123,7 +122,7 @@ checks scope against it.*
 - **Trials**: `Scorer.score` runs the draw, and any `on_draw` effect that filters on the card fires. One public board gives `f_face` 0.2 or 0.033 from the next card alone.
 - **Shipped reach: none found.** The only draw in any boss deck is `boss_ember_bolt`, in The Torchbearer's band 1 deck, where shallow's one-burn rule stops the drawn card being played. No shipped card has an `on_draw` trigger, a `deck_top` or a `deck_random` selector.
 
-Both are pinned by `boss_ai_real_plan_deck_order_test.gd`, which fails today and lands in its own commit at the tip of the lane. The fix is not here: the search call is `boss_ai.gd:755` and the trial is `scorer.gd`, both lane 2's this wave. D-2 stays open.
+Both were seen failing on two tests that are **not in the repo**: a red test would break the blocking suite at merge, so the orchestrator holds them and lands them green, in one commit with the fix (2026-11-05). The fix is not here: the search call is `boss_ai.gd:755` and the trial is `scorer.gd`, both lane 2's this wave. D-2 stays open, and nothing in the suite guards this until that commit.
 **Open**:
 - **A4 against C8.1** (owner). A drawn card the boss plays gives `kept = false`, so A4's `deck_card` costs 9, as story 011 says. A4 passes on that fixture and says nothing about a playable draw.
 - **Fixing the trial is a design call.** The search can drop undrawn cards, as the forecast does. A trial cannot: the `on_draw` effect has fired before the card could be dropped, so it needs a hidden deck order in the clone, or C1.3 narrowed to the player's deck.
