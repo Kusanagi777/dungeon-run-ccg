@@ -1,0 +1,18 @@
+{
+  "name": "f6_defensive_board",
+  "description": "boss-ai F6 example (A15): player 4/4 + 3/2 Windfury with 6 mana next turn (player_turns_taken 5), so incoming 4 + 6 + 6 = 16; boss at 18, defensive_margin 3, band 3 (defensive true). A Taunt and a non-Taunt of equal stats in hand, 3 mana: one play. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 3,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_warden", "type": "minion", "cost": 3, "attack": 3, "health": 3, "keywords": ["taunt"]},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_ogre", "type": "minion", "cost": 4, "attack": 4, "health": 4},
+    {"id": "bai_flurry", "type": "minion", "cost": 3, "attack": 3, "health": 2, "keywords": ["windfury"]},
+    {"id": "bai_sleeper", "type": "minion", "cost": 5, "attack": 5, "health": 5}
+  ],
+  "boss": {"mana": 3, "health": 18, "board": [], "hand": ["bai_brute", "bai_warden"]},
+  "player": {"health": 20, "turns_taken": 5, "board": ["bai_ogre", "bai_flurry"]},
+  "expect": {"incoming": 16}
+}

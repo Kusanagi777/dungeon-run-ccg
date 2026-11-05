@@ -13,7 +13,9 @@
 ## that sandbox: no live engine, no live log, no signal, no Node (ADR-0006). Per
 ## loop pass (C2): `[end_turn]` or the action cap ends the turn; then the lethal
 ## search, then one action through `collect → score_all → pick`. Modes are
-## `NORMAL` and `LETHAL` here; story 009 adds `DEFENSIVE` after the search.
+## `NORMAL`, `LETHAL` and, after the search, `DEFENSIVE` (story 009: F6 through
+## [ThreatEstimate], re-evaluated on every pass, so a clear drops back to `NORMAL`
+## within the turn; the profile's weights are multiplied for that pass only).
 ##
 ## **One search per turn, plus one after an abort.** C2's pseudocode calls
 ## `lethal_search` on every pass, but C3 allows "one more search per turn", F7
@@ -739,7 +741,8 @@ func _plan_pass(turn: _Turn) -> void:
 	if only_move or turn.actions >= cap:
 		_decide_end_turn(turn, REASON_ONLY_MOVE if only_move else REASON_ACTION_CAP)
 		return
-	_enter_mode(turn, Scorer.MODE_NORMAL)
+	if turn.mode == Scorer.MODE_LETHAL:
+		_enter_mode(turn, Scorer.MODE_NORMAL)
 	if turn.searches_due > 0:
 		turn.searches_due -= 1
 		var budgets: Dictionary = (_profile.budgets as Dictionary).duplicate()
@@ -750,9 +753,10 @@ func _plan_pass(turn: _Turn) -> void:
 			_enter_mode(turn, Scorer.MODE_LETHAL)
 			_execute_lethal(turn, steps)
 			return
+	_enter_mode(turn, _scoring_mode(turn))
 	var candidates: Array = _open(turn, _picker.collect(turn.sandbox, _profile, _profile.budgets))
 	var context: Dictionary = {"aoe_seen": _aoe_seen, Scorer.CONTEXT_SIM_STREAM: turn.sim, Scorer.CONTEXT_SIDE: turn.side}
-	var scored: Array = await _scorer.score_all(turn.sandbox, candidates, _profile, turn.mode, context, turn.planner)
+	var scored: Array = await _scorer.score_all(turn.sandbox, candidates, _scoring_profile(turn.mode), turn.mode, context, turn.planner)
 	var picked: Dictionary = TieBreak.pick(scored, float(_profile.rules.tie_epsilon), turn.stream)
 	turn.plan.ai_draws += int(picked.draws)
 	var decision: Dictionary = _decision(turn, picked.chosen.command, _alternatives(scored, picked.chosen))
@@ -760,6 +764,28 @@ func _plan_pass(turn: _Turn) -> void:
 	if scored.any(func(entry: Dictionary) -> bool: return bool(entry.sim_overflow)):
 		decision["sim_overflow"] = true
 	_submit_action(turn, picked.chosen.command, decision, float(picked.chosen.score))
+
+
+## C2 / F6: the mode this pass scores in. Lethal was checked first.
+func _scoring_mode(turn: _Turn) -> StringName:
+	if bool(_profile.rules.defensive) and ThreatEstimate.defensive(turn.sandbox, _profile.rules, turn.side):
+		return Scorer.MODE_DEFENSIVE
+	return Scorer.MODE_NORMAL
+
+
+## The profile [param mode] scores with: DEFENSIVE's is a copy whose `weights` are
+## multiplied by `rules.defensive_multipliers` (States "Modes"). A weight with no
+## multiplier stands.
+func _scoring_profile(mode: StringName) -> Dictionary:
+	if mode != Scorer.MODE_DEFENSIVE:
+		return _profile
+	var weights: Dictionary = (_profile.weights as Dictionary).duplicate()
+	var multipliers: Dictionary = _profile.rules.defensive_multipliers
+	for key: String in multipliers:
+		weights[key] = float(weights[key]) * float(multipliers[key])
+	var scoring: Dictionary = _profile.duplicate()
+	scoring.weights = weights
+	return scoring
 
 
 ## Submits the scored [param command]. A rejection is logged on [param decision],

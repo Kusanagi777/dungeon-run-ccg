@@ -1,0 +1,16 @@
+{
+  "name": "heal_doubling_passive",
+  "description": "boss-ai A20: a boss passive doubles the boss's healing (a `modify_heal` hook through MatchConfig.boss.hook_installers, `mul` 2). The heal is a Lifesteal 3/3 hitting a 1/5, so the engine's own apply_heal folds it. Boss 8 below full: f_heal 3/8 without the hook, 6/8 with it. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_leech", "type": "minion", "cost": 3, "attack": 3, "health": 3, "keywords": ["lifesteal"]},
+    {"id": "bai_dummy", "type": "minion", "cost": 2, "attack": 1, "health": 5}
+  ],
+  "boss": {"mana": 0, "missing_health": 8, "board": ["bai_leech"], "hand": []},
+  "player": {"health": 20, "board": ["bai_dummy"]},
+  "passive": {"point": "modify_heal", "mul": 2},
+  "expect": {"f_heal_plain": 0.375, "f_heal_doubled": 0.75, "tolerance": 0.0001}
+}

@@ -31,6 +31,13 @@
 ## (story 004 readiness note). The player's hand is read as a count only (C1.3:
 ## no hidden information).
 ##
+## **The vulnerability exception** (F1, A31; 2026-11-04, DD-X22) needs every
+## candidate of a turn at once, so it lives in [method score_all], not [method score]:
+## each attack's trial leaves its `exposure` on the entry, read while the trial is
+## open, and a non-lethal face attack whose after-state is unsafe, when the same
+## attacker had a simulated attack on a minion with a safe one, gets `f_face = 0`
+## and `f_self = −min(1, reach / (boss_health + boss_armor))`. It costs no extra sim.
+##
 ## **`end_turn`** is always scored and never simulated: F1/C2 define its
 ## features as the "do nothing" deltas plus the mana-waste penalty, so it is
 ## scored with `after = before` (submitting it would run the player's Start
@@ -159,7 +166,8 @@ func _init(db: Variant, keyword_values: Dictionary, op_values: Dictionary = {}) 
 ## `RulesEngine.clone()` of the live engine — never the live engine) and
 ## returns the entries of [method score] sorted best first (equal scores keep
 ## candidate order; each entry gains `index`, its position in
-## [param candidates]). A **coroutine** (ADR-0006 erratum): it awaits
+## [param candidates]), with the F1 vulnerability exception applied. A
+## **coroutine** (ADR-0006 erratum): it awaits
 ## `planner.checkpoint()` after every evaluation, so every caller awaits it.
 ## [param planner] is the running [PlannerTask].
 ## [codeblock]
@@ -175,6 +183,7 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 		entry["index"] = index
 		scored.append(entry)
 		await planner.checkpoint()
+	_apply_vulnerability(scored, sandbox, profile, str(shared.get(CONTEXT_SIDE, sandbox.active_side())))
 	scored.sort_custom(_better)
 	return scored
 
@@ -190,7 +199,8 @@ func score_all(sandbox: RulesEngine, candidates: Array, profile: Dictionary, mod
 ## whether a `play_card` is legal on the base, for the F9 `spare_mana` rule —
 ## [method score_all] fills it once, else a `use_hero_power` candidate reads it
 ## from the base's `legal_commands()`). Returns `{command, score, features,
-## sim_overflow}`: `features` has exactly [constant FEATURE_KEYS],
+## sim_overflow}`, plus `exposure` on a simulated attack (read by
+## [method score_all]): `features` has exactly [constant FEATURE_KEYS],
 ## each in [−1, 1] (C5); a trial that faults `resolution_overflow`, or is
 ## rejected, scores `-INF` with zero features (`sim_overflow` true for the
 ## former; Edge Cases).
@@ -218,10 +228,12 @@ func score(candidate: Dictionary, sandbox_before: RulesEngine, profile: Dictiona
 			entry.features = _zero_features()
 			return entry
 		after = _measure(trial, mode, own)
+		if str(candidate.get("type")) == MatchRecords.CMD_ATTACK:
+			entry["exposure"] = _exposure(candidate, trial, profile, own, after, sandbox_before)
 		trial.end_match()
 	var features: Dictionary = _features(candidate, own, before, after, profile, context, sandbox_before)
 	entry.features = features
-	entry.score = weighted_sum(features, effective_weights(profile, before[other_side(own)].board_size == sandbox_before.rule("board_size")))
+	entry.score = _weighted(features, profile, sandbox_before, own)
 	return entry
 
 
@@ -389,6 +401,43 @@ func _answer_choices(trial: RulesEngine, own: String, profile: Dictionary) -> vo
 		var index: int = int(Chooser.choose(trial, pending, profile, _op_values, trial.rng_match(), _db, own).index)
 		if index == Chooser.NO_OPTION or not trial.submit(MatchRecords.choose(own, index)).accepted:
 			return
+
+
+## The F1 sum of [param features], with the Edge Cases' board-full `w_threat`.
+func _weighted(features: Dictionary, profile: Dictionary, base: RulesEngine, own: String) -> float:
+	var opposing: Array = base.state().players[other_side(own)].board
+	return weighted_sum(features, effective_weights(profile, opposing.size() == base.rule("board_size")))
+
+
+## What the F1 exception needs of the attack [param candidate], from its open
+## [param trial]: whose it is, whether it hit the hero, won, and left [param own]
+## unsafe, and the fraction its `f_self` would charge.
+func _exposure(candidate: Dictionary, trial: RulesEngine, profile: Dictionary, own: String, after: Dictionary, base: RulesEngine) -> Dictionary:
+	var enemy_hero: int = int(base.state().players[other_side(own)].hero.entity_id)
+	return {
+		"attacker_id": int(candidate.get("attacker_id", RulesEngine.NO_ENTITY)),
+		"face": int(candidate.get("target_id", RulesEngine.NO_ENTITY)) == enemy_hero,
+		"lethal": int(after[other_side(own)].health) <= 0,
+		"unsafe": ThreatEstimate.unsafe(trial, profile.rules, own),
+		"open": float(maxi(0, ThreatEstimate.reach(trial, own))) / float(maxi(1, int(after[own].effective_hp))),
+	}
+
+
+## F1's vulnerability exception over the entries of one [method score_all]
+## (see the class doc).
+func _apply_vulnerability(scored: Array[Dictionary], base: RulesEngine, profile: Dictionary, own: String) -> void:
+	var safe_trades: Dictionary = {}
+	for entry: Dictionary in scored:
+		var exposure: Dictionary = entry.get("exposure", {})
+		if not exposure.is_empty() and not exposure.face and not exposure.unsafe:
+			safe_trades[exposure.attacker_id] = true
+	for entry: Dictionary in scored:
+		var exposure: Dictionary = entry.get("exposure", {})
+		if exposure.is_empty() or not exposure.face or exposure.lethal or not exposure.unsafe or not safe_trades.has(exposure.attacker_id):
+			continue
+		entry.features.f_face = 0.0
+		entry.features.f_self = -minf(1.0, float(exposure.open))
+		entry.score = _weighted(entry.features, profile, base, own)
 
 
 ## The F1 features of [param candidate] from the two measurements.
