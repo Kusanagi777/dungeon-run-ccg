@@ -236,6 +236,7 @@ Review work, not stories. Each fix lands with its regression test and a commit t
    - Carry CE-008's N7 C2 defaults into CE-009's readiness.
 8. **Optional: BAI review S3**, where the scorer reads `RulesEngine.state()`. The docs half goes here: a TD register entry, plus an ADR-0007 erratum naming the read API Boss AI may use until `MatchQuery`. The code read-through follows in sprint 6, after MUI-003 creates `MatchQuery`.
 9. **Not in L7.**
+   - **2026-11-04 update:** S3 was decided (DD-X26, option C) and landed before W2 with DD-X27 and DD-X28, so MR-019's golden logs record the new payload. The W3 S3 slots below are retired.
    - **S3** (auras' keyword and cost changes never reach the log or the view) is a GDD conflict: match-rules C10 vs match-ui. A design call comes first (W1, owner). Implementation goes in L7 W3 if decided, otherwise it carries.
    - **S6/S7** (the perf gate's retired 50 ms target; one failing perf gate hides the others) and **DD-X19** (`APPEND_BUDGET_USEC` 50_000 → 80_000 in `tests/performance/rng_event_log/rng_event_log_perf_test.gd`) are L6 W1, because MR-019 edits the same perf file next.
    - The remaining nits (N1–N3, N6, N8, N10–N12) are at the lanes' discretion.
