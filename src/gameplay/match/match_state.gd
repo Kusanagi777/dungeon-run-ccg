@@ -74,7 +74,7 @@ var next_entity_id: int = FIRST_ENTITY_ID
 ## The match's [HookRegistry] (ADR-0005), created by `RulesEngine.start` at
 ## C3 step 1 before the resolver binds. Null on a bare `from_config` state.
 var hooks: HookRegistry = null
-## `EffectRuntime {once_marks, counters, per_turn, pending_choice}` — plain
+## `EffectRuntime {once_marks, counters, per_turn, pending_choice, aura_hosts}` — plain
 ## data whose code lives in `EffectResolver` (ADR-0007); see
 ## [method make_effect_runtime].
 var effects: Dictionary = {}
@@ -188,4 +188,4 @@ static func make_player_state(hero: Variant = null, hero_power_def_id: String = 
 ## `per_turn` and `pending_choice`. Never holds a Callable, a Node or an object
 ## reference — `clone()` copies it by value.
 static func make_effect_runtime() -> Dictionary:
-	return {"once_marks": {}, "counters": {}, "per_turn": {}, "pending_choice": null}
+	return {"once_marks": {}, "counters": {}, "per_turn": {}, "pending_choice": null, "aura_hosts": []}

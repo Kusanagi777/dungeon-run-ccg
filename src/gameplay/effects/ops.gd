@@ -12,10 +12,8 @@
 ##
 ## Story 006 ships `damage`, `heal`, `buff`, `destroy`, `draw`, `armor`,
 ## `equip`, `summon`, `silence`, `freeze`, `give_keyword` and `mana`; every
-## other C5 op is recorded `skipped` until its story lands
-## (TODO: `transform` /
-## `copy_to_hand` / keyword removal 013, the rest with the stories that own
-## them). Story 007 adds `conditional` / `repeat` ([method step]), value
+## other C5 op is recorded `skipped` until its story lands. Story 013 adds
+## `transform`, `copy_to_hand` and `return_to_hand`. Story 007 adds `conditional` / `repeat` ([method step]), value
 ## expressions — every value param ([constant VALUE_PARAMS]) is evaluated by
 ## `EffectValues.eval` in [method run] before the handler sees it, a negative
 ## result for a [constant NON_NEGATIVE] param clamped to 0 with
@@ -27,6 +25,8 @@
 ## [method draw_options]); the pause itself is the resolver's. Story 009 adds
 ## `add_counter` / `set_counter`, `values.read_from` on an op whose value read
 ## `source.*` or `counter.*`, and `source_slot` from the raise-time snapshot.
+## Story 014 adds [method modify_value], the one op of a value trigger (a fold
+## step, never a pass op), and `values.hook_delta` on `damage` / `heal`.
 ## [codeblock]
 ## var ops := EffectOps.new()
 ## var todo: Array[Dictionary] = EffectOps.work([{"op": "draw", "count": 2}])
@@ -98,14 +98,25 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 	"freeze": ["minion", "hero"],
 	"give_keyword": ["minion", "hero", "weapon"],
 	"retrigger": ["minion", "weapon"],
+	"transform": ["minion"],
+	"return_to_hand": ["minion"],
+	"copy_to_hand": ["minion", EffectSelectors.KIND_CARD],
 }
 ## The ops that may target a card instance in hand or deck, and the param
 ## such a target needs (C5 `buff`: "card instances in hand **or deck**
 ## (`cost` only)"; story 011, row 25 Insight). Without it the instance is
 ## skipped like any other illegal target.
 const CARD_INSTANCE_PARAMS: Dictionary[String, String] = {"buff": "cost"}
+## The ops that take a card instance in hand or deck with no param to require
+## (C5 `copy_to_hand`: "characters (minions), hand/deck cards").
+const CARD_INSTANCE_OPS: Array[String] = ["copy_to_hand"]
 ## The static op `recompute_auras()` applies (C5 `aura`, C7; story 012).
 const OP_AURA: String = "aura"
+## The one op of a value trigger (C5 `modify_value`, C2; story 014).
+const OP_MODIFY_VALUE: String = "modify_value"
+## The engine fold each op's primitive runs (match-rules hook table).
+const POINT_MODIFY_DAMAGE: StringName = &"modify_damage"
+const POINT_MODIFY_HEAL: StringName = &"modify_heal"
 ## The kinds an `aura` op accepts (C5 Legal targets: "as for `buff`"); a card
 ## instance only with `cost` ([method apply_aura]).
 const AURA_KINDS: Array[String] = ["minion", "hero", "weapon", EffectSelectors.KIND_CARD]
@@ -132,6 +143,9 @@ func _init() -> void:
 		"mana": _op_mana,
 	}
 	_table["add_to_hand"] = _op_add_to_hand
+	_table["transform"] = _op_transform
+	_table["copy_to_hand"] = _op_copy_to_hand
+	_table["return_to_hand"] = _op_return_to_hand
 	_table["add_counter"] = _op_add_counter
 	_table["set_counter"] = _op_set_counter
 
@@ -285,16 +299,22 @@ static func fold_outcomes(outcomes: Array[String]) -> String:
 ## 0)`, `scales = spell_damage == true ∨ (spell_damage == auto ∧ host.type
 ## == spell)`; an absent `spell_damage` is the `spell_damage_default` knob.
 ## `spell_damage(owner)` is match-rules F7, read through the engine once per
-## op (re-read per op, added once — not per target).
+## op (re-read per op, added once — not per target). When a `modify_damage`
+## hook changed `requested` the entry also carries `values.hook_delta` and
+## `values.dealt` ([method _record_folds]).
 func _op_damage(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var amount: int = _int(op.get("amount", 0))
 	var requested: int = amount
 	if _scales(op, run_ctx):
 		requested += engine.spell_damage(str(run_ctx.owner))
-	return _per_target(engine, op, run_ctx, {"amount": amount, "requested": requested}, func(id: int) -> String:
-		@warning_ignore("return_value_discarded")
-		engine.apply_damage(id, requested, run_ctx.source_id)
+	var deltas: Array[int] = []
+	var dealt: Array[int] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"amount": amount, "requested": requested}, func(id: int) -> String:
+		deltas.append(_hook_delta(engine, POINT_MODIFY_DAMAGE, requested, id, run_ctx))
+		dealt.append(engine.apply_damage(id, requested, run_ctx.source_id))
 		return APPLIED)
+	_record_folds(result, deltas, "dealt", dealt)
+	return result
 
 
 ## F1 `scales` for a `damage` op of the pass [param run_ctx] (no resolver in
@@ -311,12 +331,60 @@ static func _scales(op: Dictionary, run_ctx: Dictionary) -> bool:
 	return false
 
 
+## C5 `heal`: `apply_heal` per target. When a `modify_heal` hook changed the
+## amount the entry also carries `values.hook_delta` and `values.restored`
+## ([method _record_folds]).
 func _op_heal(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var amount: int = _int(op.get("amount", 0))
-	return _per_target(engine, op, run_ctx, {"amount": amount}, func(id: int) -> String:
-		@warning_ignore("return_value_discarded")
-		engine.apply_heal(id, amount, run_ctx.source_id)
+	var deltas: Array[int] = []
+	var restored: Array[int] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"amount": amount}, func(id: int) -> String:
+		deltas.append(_hook_delta(engine, POINT_MODIFY_HEAL, amount, id, run_ctx))
+		restored.append(engine.apply_heal(id, amount, run_ctx.source_id))
 		return APPLIED)
+	_record_folds(result, deltas, "restored", restored)
+	return result
+
+
+## The net change the hooks on [param point] make to [param requested] for this
+## target, before the engine's clamp (treasures Edge Cases: a fold of −1 from 1
+## logs −2). The fold is pure, so reading it ahead of the primitive changes
+## nothing; the primitive folds again with the same inputs.
+static func _hook_delta(engine: RulesEngine, point: StringName, requested: int, target_id: int, run_ctx: Dictionary) -> int:
+	var ctx: Dictionary = {"source": run_ctx.source_id, "target": target_id}
+	return engine.state().hooks.fold(point, StringName(str(run_ctx.owner)), requested, ctx) - requested
+
+
+## Story 014 (ADR-0005 Events; treasures Edge Cases, AC-27): when a fold changed
+## the value for any target, `values.hook_delta` and `values[key]` of
+## [param result] hold one int per entry of `targets`, in that order, so the
+## feed can name the treasure. With no change neither key exists, and the entry
+## keeps the shape it has with no hooks installed.
+static func _record_folds(result: Dictionary, deltas: Array[int], key: String, amounts: Array[int]) -> void:
+	for delta: int in deltas:
+		if delta != 0:
+			(result.values as Dictionary)["hook_delta"] = deltas
+			(result.values as Dictionary)[key] = amounts
+			return
+
+
+## C5 `modify_value`, one step of a value fold (C2, C9; story 014): [param value]
+## with the op's one param applied — `delta` adds, `set` replaces, `mul`
+## multiplies; `delta` and `set` are C4 value expressions read in
+## [param run_ctx], so `context.value` is the value coming in. Never clamps:
+## the engine clamps once after the whole fold (ADR-0005 rule 4). Any other op
+## leaves the value alone (the validator rejects one at load, `E_FX_OP`).
+## Example: `folded = EffectOps.modify_value({"op": "modify_value", "delta": -1}, 3, run)`.
+static func modify_value(op: Dictionary, value: int, run_ctx: Dictionary) -> int:
+	if str(op.get("op", "")) != OP_MODIFY_VALUE:
+		return value
+	if op.has("delta"):
+		return value + EffectValues.eval(op["delta"], run_ctx)
+	if op.has("set"):
+		return EffectValues.eval(op["set"], run_ctx)
+	if op.has("mul"):
+		return value * _int(op["mul"])
+	return value
 
 
 ## C5 `buff`: `apply_enchantment(target, {attack_delta, health_delta,
@@ -423,6 +491,67 @@ func _op_give_keyword(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) 
 		return APPLIED)
 
 
+## C5 `transform`: `transform(target, card_id)` per target. The primitive gives
+## the new `entity_id`, drops enchantments and damage, carries summoning
+## sickness and fires no Battlecry. `targets` are the old ids, `values.new_ids`
+## the new ones. A target that is the pass's source rebinds `self` to the new
+## body (C6.5, [method EffectResolver.rebind_source]); a definition the database
+## lacks transforms nothing (`skipped`).
+func _op_transform(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var card_id: String = str(op.get("card_id", ""))
+	var new_ids: Array[int] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"card_id": card_id}, func(id: int) -> String:
+		var new_id: int = engine.transform(id, card_id)
+		if new_id == RulesEngine.NO_ENTITY:
+			return SKIPPED
+		new_ids.append(new_id)
+		if run_ctx.get("resolver") is EffectResolver and EffectSelectors.run_source(run_ctx) == id:
+			(run_ctx.resolver as EffectResolver).rebind_source(run_ctx, id, new_id)
+		return APPLIED)
+	(result.values as Dictionary)["new_ids"] = new_ids
+	return result
+
+
+## C5 `copy_to_hand`: `add_card_to_hand(side, target.def_id)` × count per target,
+## a minion or a card instance in hand or deck. A copy is the **definition**,
+## never the instance: no enchantments, damage or Silence (Edge Cases). `side`
+## is the op's, else the owner ([method _side]). Per copy a full hand is
+## `burned` (the engine emits `card_burned`), else `applied`.
+func _op_copy_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var side: String = _side(op, run_ctx)
+	var count: int = _int(op.get("count", 1))
+	var state: MatchState = engine.state()
+	var added: Array[String] = []
+	var result: Dictionary = _per_target(engine, op, run_ctx, {"count": count, "side": side}, func(id: int) -> String:
+		var def_id: String = EffectSelectors.def_id_of(state, id)
+		var outcomes: Array[String] = []
+		for _i: int in count:
+			# The last copy may have hit the event cap: the resolver is unbound now.
+			if engine.phase() == MatchState.PHASE_ENDED:
+				break
+			outcomes.append(hand_add_outcome(engine, side))
+			@warning_ignore("return_value_discarded")
+			engine.add_card_to_hand(side, def_id)
+			added.append(def_id)
+		return fold_outcomes(outcomes) if count > 0 else APPLIED)
+	(result.values as Dictionary)["card_ids"] = added
+	return result
+
+
+## C5 `return_to_hand`: `return_to_hand(target)` per target. The minion leaves
+## play with no death and its controller gets a fresh instance of its `def_id`:
+## nothing is copied, so counters keyed by the old `entity_id` are simply out of
+## reach (story 009). A full hand is `burned`: the primitive emits
+## `minion_returned{burned: true}`, never `card_burned` (match-rules C15).
+func _op_return_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var state: MatchState = engine.state()
+	return _per_target(engine, op, run_ctx, {}, func(id: int) -> String:
+		var outcome: String = hand_add_outcome(engine, str(EffectSelectors.find(state, id).controller))
+		@warning_ignore("return_value_discarded")
+		engine.return_to_hand(id)
+		return outcome)
+
+
 ## C5 `retrigger` (sprint-4 review S5): queues each target's live effects with
 ## the op's `trigger` as if raised now, through the engine's
 ## [method RulesEngine.queue_triggers] (`trigger_queued{reason: retrigger}`) —
@@ -471,11 +600,13 @@ func _per_target(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary, value
 
 ## The kind [param id] counts as for op [param name]: [method
 ## EffectSelectors.kind_of] for an entity in play; for a card instance in
-## hand or deck, [constant EffectSelectors.KIND_CARD] when the op has the
-## param [constant CARD_INSTANCE_PARAMS] names, else "" (not a legal target).
+## hand or deck, [constant EffectSelectors.KIND_CARD] when the op is in
+## [constant CARD_INSTANCE_OPS] or has the param [constant CARD_INSTANCE_PARAMS]
+## names, else "" (not a legal target).
 static func _target_kind(state: MatchState, name: String, op: Dictionary, id: int) -> String:
 	var kind: String = EffectSelectors.kind_of(state, id)
-	if kind == "" and CARD_INSTANCE_PARAMS.has(name) and op.has(CARD_INSTANCE_PARAMS[name]) and EffectSelectors.is_card_instance(state, id):
+	var takes_card: bool = CARD_INSTANCE_OPS.has(name) or (CARD_INSTANCE_PARAMS.has(name) and op.has(CARD_INSTANCE_PARAMS[name]))
+	if kind == "" and takes_card and EffectSelectors.is_card_instance(state, id):
 		return EffectSelectors.KIND_CARD
 	return kind
 
@@ -726,7 +857,7 @@ static func pool_candidates(resolver: EffectResolver, spec: Dictionary, run_ctx:
 		if seen.has(id) or excluded.has(id):
 			continue
 		seen[id] = true
-		if EffectSelectors.matches(resolver, {"entity_id": -1, "def_id": id, "controller": owner}, filter, owner, int(run_ctx.get("source_id", -1)), run_ctx):
+		if EffectSelectors.matches(resolver, {"entity_id": -1, "def_id": id, "controller": owner}, filter, owner, EffectSelectors.run_source(run_ctx), run_ctx):
 			out.append(id)
 	out.sort()
 	return out

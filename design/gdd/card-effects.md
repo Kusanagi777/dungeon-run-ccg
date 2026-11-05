@@ -426,7 +426,9 @@ so only a reference can.
    the effect is queued or run, so two raises in one step produce one resolution. Marks live in
    `EffectRuntime` and need no reset (the turn counter moves on).
 8. **`EffectRuntime`** is the resolver's only state: `once_marks`, `counters`, per-side per-turn
-   tallies (C4), and the `pending_choice` continuation. It is a plain-data member of `MatchState`
+   tallies (C4), the `pending_choice` continuation, and `aura_hosts`, the treasure and passive
+   `aura` effects a clone's resolver cannot get from its installers (2026-11-04, card-effects
+   story 013, ADR-0007 erratum). It is a plain-data member of `MatchState`
    so `clone()` (Boss AI look-ahead) and a future `restore(log)` carry it; it holds no Node or
    callable (DD-T02).
 9. **Randomness.** Every random selection and Discover roll calls the `match_<floor>` stream the
