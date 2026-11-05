@@ -86,6 +86,13 @@ func on_skipped() -> void:
 		end_step(step)
 
 
+## U11 `--pause-at`: every live tween stops where it is, for the capture.
+func freeze_tweens() -> void:
+	for tweens: Variant in _step_tweens.values():
+		for tween: Tween in tweens:
+			tween.pause()
+
+
 ## A tween on this presenter that lives and dies with [param step]. Ease-out: no ease-in
 ## anywhere, which reads as lag on a 0.25 s tween (Weight and Responsiveness Profile).
 func step_tween(step: AnimStep) -> Tween:

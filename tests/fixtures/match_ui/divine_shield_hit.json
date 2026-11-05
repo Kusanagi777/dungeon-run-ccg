@@ -1,0 +1,9 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [], "player_deck": ["neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp", "neutral_torch_imp"], "boss_deck": ["neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem", "neutral_shield_golem"]},
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "play_and_pass", "count": 4},
+    {"macro": "attack_face"}
+  ]
+}

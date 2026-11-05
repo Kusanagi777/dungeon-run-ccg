@@ -1,7 +1,7 @@
 # Story 022: Debug loader completion — argument parsing, --anim-speed, --ai-debug overlay and the full fixture sweep
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: Integration
 > **Estimate**: M

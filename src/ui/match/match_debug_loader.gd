@@ -36,6 +36,8 @@ const POSE_DRAG: String = "drag"
 const POSE_END: String = "end"
 const POSE_FEED: String = "feed"
 const POSE_FEED_OPEN: String = "open"
+## Loaded by path, for the reason `MatchView` loads this script by path.
+const AI_DEBUG_SCENE_PATH: String = "res://src/ui/match/ai_debug_overlay.tscn"
 const POSE_HERO_POWER: String = "hero_power"
 ## Macro names a `commands` entry may hold in `macro`.
 const MACRO_END_TURNS: String = "end_turns"
@@ -142,6 +144,13 @@ func apply_pose(view: MatchView, pose: String) -> void:
 				view.feed().open()
 		_:
 			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
+
+
+## U11 `--ai-debug`: the `ai_decision` overlay over [param view].
+func attach_ai_debug(view: MatchView) -> void:
+	var overlay: Control = (load(AI_DEBUG_SCENE_PATH) as PackedScene).instantiate()
+	view.add_child(overlay)
+	overlay.call("attach", view.view_state(), view.ui_context())
 
 
 func _read(path: String) -> Variant:

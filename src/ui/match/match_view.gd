@@ -26,6 +26,8 @@ signal match_view_finished(result: Dictionary)
 ## `load()`ed by path: a release export has no such script, so nothing may name its class.
 const DEBUG_LOADER_PATH: String = "res://src/ui/match/match_debug_loader.gd"
 const SPEED_INSTANT: StringName = &"instant"
+const SPEED_NORMAL: StringName = &"normal"
+const NO_PAUSE: int = -1
 const SETTING_ANIM_SPEED: StringName = &"anim_speed"
 const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
 const EVENT_TURN_STARTED: String = "turn_started"
@@ -59,6 +61,8 @@ var _presenters: Array[Presenter] = []
 var _last_display: Dictionary = {}
 var _loader: RefCounted = null
 var _launch_args: Dictionary = {}
+# U11 `--pause-at`: a turn past it stays unprojected, as if its burst had not come yet.
+var _pause_at: int = NO_PAUSE
 var _turn_label: Label = null
 var _floor_label: Label = null
 var _end_turn: Button = null
@@ -143,6 +147,11 @@ func mulligan() -> MulliganPresenter:
 ## The hand fan, for poses and tests.
 func hand() -> HandPresenter:
 	return _hand
+
+
+## The shared read-only values of this view, for debug tools.
+func ui_context() -> MatchUiContext:
+	return _ui
 
 
 ## The event feed, for poses and tests.
@@ -247,6 +256,7 @@ func _build() -> void:
 		presenter.bind(_view)
 	_intent.configure(float(_ai_config.presentation.plan_changed_s))
 	_queue.boss_thinking_changed.connect(_intent.set_thinking)
+	_queue.paused.connect(_on_paused)
 	_banner.continued.connect(_finish_match)
 	_mulligan.confirmed.connect(func(keep_mask: Array) -> void:
 		_router.intent(InputRouter.INTENT_MULLIGAN_CONFIRM, {"keep_mask": keep_mask}))
@@ -341,6 +351,13 @@ func _launch_from_args() -> void:
 	_apply_launch_settings(_loader.get("profile_overrides"))
 	if str(_launch_args.anim_speed) != "":
 		_speed = StringName(str(_launch_args.anim_speed))
+	_pause_at = int(_launch_args.pause_at)
+	if _pause_at != NO_PAUSE:
+		_queue.set_pause_at(_pause_at)
+		# A frozen frame needs a step that animates.
+		if _speed == SPEED_INSTANT:
+			_speed = SPEED_NORMAL
+	_view.set_debug_overlay(_launch_args.ai_debug == true)
 	_controller = controller
 
 
@@ -367,15 +384,22 @@ func _start() -> void:
 	_queue.set_speed(SPEED_INSTANT)
 	_loading = true
 	for event: Dictionary in _controller.events_since(0):
+		if _pause_at != NO_PAUSE and str(event.get("type", "")) == EVENT_TURN_STARTED:
+			if int(event.get("seq", 0)) > _pause_at:
+				break
+			_queue.advance(0.0)
 		_on_event(event)
 	_loading = false
 	_queue.advance(0.0)
 	_queue.set_speed(_speed)
 	_controller.subscribe(_on_event)
-	_present(_display())
+	if _queue.is_idle():
+		_present(_display())
 	if _loader != null:
 		var pose: String = str(_launch_args.pose)
 		_loader.call("apply_pose", self, pose if pose != "" else str(_loader.get("fixture_pose")))
+		if _launch_args.ai_debug == true:
+			_loader.call("attach_ai_debug", self)
 
 
 func _apply_identity() -> void:
@@ -636,6 +660,11 @@ func _show_inspect(entity_id: int) -> void:
 	var x: float = centre.x - preview.x - INSPECT_GAP_PX if left else centre.x + INSPECT_GAP_PX
 	var y: float = clampf(centre.y - preview.y / 2.0, _ui.rect("top_bar").end.y, _ui.rect("viewport").end.y - preview.y)
 	_inspect.position = Vector2(x, y)
+
+
+func _on_paused() -> void:
+	for presenter: Presenter in _presenters:
+		presenter.freeze_tweens()
 
 
 func _on_skipped() -> void:

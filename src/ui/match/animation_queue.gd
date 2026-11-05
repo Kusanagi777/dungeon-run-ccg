@@ -51,6 +51,11 @@
 ## When the clock reaches `max_turn_playback_s` the rest is skipped. At `instant`
 ## nothing is held and F4 is 0 (Edge Cases).
 ##
+## **Pause** (U11 `--pause-at`, debug launches only). [method set_pause_at] holds every
+## step after `seq`. A step of `seq` itself starts, and the queue freezes partway through
+## it, so a capture shows the frame mid-step; a `seq` with no step freezes at the first
+## step after it. Every clock stops there until [method skip_all].
+##
 ## Divisors and the threshold come from `config("match_ui")`; `anim_speed` and
 ## `reduce_motion` from the DD-X07 settings dictionary (`SettingsBus` /
 ## `config("profile_defaults")`), never from literals here.
@@ -81,6 +86,8 @@ signal skipped()
 ## wait ended (`false`). The intent banner shows "boss thinking" between the two
 ## (U6.2, DD-X23; rendered by story 015).
 signal boss_thinking_changed(on: bool)
+## [method set_pause_at]'s point was reached: presenters stop their tweens here.
+signal paused()
 
 ## DD-X07 `anim_speed` labels with a meaning here: `instant` never divides
 ## (F3), and impact extras survive only at `normal`.
@@ -95,6 +102,8 @@ const _MS_PER_S: float = 1000.0
 ## What [method enter_boss_turn] needs. ADR-0009 names the first five; DD-X23 adds
 ## `planner_target_s`, the cap on the commit beat.
 const PACING_KEYS: Array[String] = ["intent_banner_s", "ai_action_delay_s", "max_turn_playback_s", "MIN_ACTION_GAP_S", "K_MIN", "planner_target_s"]
+## How far through a step [method set_pause_at] freezes it.
+const PAUSE_POINT: float = 0.5
 ## Below this, two times on the queue's clock are the same time.
 const _EPSILON_S: float = 0.000001
 const _NO_SEQ: int = -1
@@ -135,6 +144,10 @@ var _turn_clock_s: float = 0.0
 # The gap still to run since the last group ended, and that group.
 var _gap_left_s: float = 0.0
 var _last_group: int = _NO_GROUP
+# U11 `--pause-at`: the `seq`, the seconds its step keeps when frozen, and the freeze.
+var _pause_seq: int = _NO_SEQ
+var _pause_left_s: float = 0.0
+var _paused: bool = false
 
 
 ## A queue over the `config("match_ui")` body [param ui_config] (file keys
@@ -180,9 +193,15 @@ func enqueue(step: AnimStep) -> void:
 ## func _process(delta: float) -> void: queue.advance(delta)
 ## [/codeblock]
 func advance(delta: float) -> void:
+	if _paused:
+		return
 	var budget: float = maxf(delta, 0.0)
 	while true:
 		_finish_leading()
+		if _pause_due():
+			_paused = true
+			paused.emit()
+			return
 		_auto_skip_if_due()
 		_update_boss_phase()
 		if _active.is_empty() and not _pending.is_empty() and not _head_is_held():
@@ -213,6 +232,8 @@ func skip_all() -> void:
 
 ## U4.5 over what is playing and the first [param count] queued steps.
 func _skip_queued(count: int) -> void:
+	_pause_seq = _NO_SEQ
+	_paused = false
 	skipped.emit()
 	var rest: Array[AnimStep] = _active.duplicate()
 	rest.append_array(_pending.slice(0, count))
@@ -228,6 +249,20 @@ func _skip_queued(count: int) -> void:
 		step.run_final()
 		step_finished.emit(step)
 	_drain_if_idle()
+
+
+## U11 `--pause-at=<seq>`: see the class description. Call it before the steps arrive.
+## [codeblock]
+## queue.set_pause_at(args.pause_at)
+## [/codeblock]
+func set_pause_at(seq: int) -> void:
+	_pause_seq = seq
+	_paused = false
+
+
+## True while [method set_pause_at]'s freeze holds.
+func is_paused() -> bool:
+	return _paused
 
 
 ## True when no step is playing or queued.
@@ -400,7 +435,7 @@ func _start_batch() -> void:
 			_compute_f4(head)
 		_last_group = head.group_id
 	_start(head)
-	while not _pending.is_empty() and _pending[0].parallel_ok and _pending[0].group_id == head.group_id:
+	while not _pending.is_empty() and _pending[0].parallel_ok and _pending[0].group_id == head.group_id and not _past_pause(_pending[0]):
 		_start(_pending.pop_front())
 
 
@@ -416,6 +451,8 @@ func _start(step: AnimStep) -> void:
 		step.live_impact[key] = float(extras[key]) * scale
 	for key: String in _HOLD_KEYS:
 		hold += float(step.live_impact[key]) / _MS_PER_S
+	if step.seq == _pause_seq and _active.is_empty():
+		_pause_left_s = hold * (1.0 - PAUSE_POINT)
 	_active.append(step)
 	_remaining.append(hold)
 	if _anim_speed != SPEED_INSTANT:
@@ -516,11 +553,26 @@ func _beat_cap_s() -> float:
 ## True when the first queued step must wait: for the beat, or for its group's gap.
 func _head_is_held() -> bool:
 	var head: AnimStep = _pending[0]
+	if _past_pause(head) or (head.seq == _pause_seq and _is_instant()):
+		return true
 	if not _is_plan_step(head) or _is_instant():
 		return false
 	if _boss_phase == _BossPhase.BEAT or _boss_phase == _BossPhase.THINKING:
 		return true
 	return _waits_for_gap(head)
+
+
+func _past_pause(step: AnimStep) -> bool:
+	return _pause_seq != _NO_SEQ and step.seq > _pause_seq
+
+
+## True when the freeze of [method set_pause_at] starts now.
+func _pause_due() -> bool:
+	if _pause_seq == _NO_SEQ:
+		return false
+	if not _active.is_empty():
+		return _active[0].seq == _pause_seq and _remaining[0] <= _pause_left_s + _EPSILON_S
+	return not _pending.is_empty() and _past_pause(_pending[0])
 
 
 func _waits_for_gap(head: AnimStep) -> bool:
@@ -549,6 +601,8 @@ func _next_event_s() -> float:
 	var wait: float = INF
 	if not _active.is_empty():
 		wait = _remaining[0]
+		if _active[0].seq == _pause_seq:
+			wait -= _pause_left_s
 	if _boss_phase == _BossPhase.BEAT:
 		for mark: float in [_banner_s(), _beat_cap_s()]:
 			if mark - _beat_elapsed_s > _EPSILON_S:
