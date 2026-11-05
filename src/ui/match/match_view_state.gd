@@ -417,12 +417,12 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			_raw(p).hero.power_state = POWER_READY
 			steps.append(_step(AnimStep.POWER_RELIGHT, _hero_ids(_raw(p)), group, seq))
 		"attack_declared":
-			steps.append(_step(AnimStep.ATTACK_LUNGE, _ids([p.get("attacker_id"), p.get("defender_id")]), group, seq))
+			steps.append(_step(AnimStep.ATTACK_LUNGE, _ids([_attacker_of(p), _defender_of(p)]), group, seq))
 		"attack_resolved":
-			_count_attack(int(p.get("attacker_id", 0)))
+			_count_attack(int(_attacker_of(p)))
 		"attack_cancelled":
-			_count_attack(int(p.get("attacker_id", 0)))
-			steps.append(_step(AnimStep.ATTACK_RETURN, _ids([p.get("attacker_id")]), group, seq))
+			_count_attack(int(_attacker_of(p)))
+			steps.append(_step(AnimStep.ATTACK_RETURN, _ids([_attacker_of(p)]), group, seq))
 		"damage_dealt":
 			var target: int = int(p.get("target", 0))
 			var hit: Dictionary = _character(target)
@@ -785,6 +785,17 @@ func _count_attack(attacker: int) -> void:
 ## `instance_id` (catalogue rows for `minion_died`, `trigger_*`).
 static func _entity_id_of(p: Dictionary) -> int:
 	return int(p.get("entity_id", p.get("instance_id", 0)))
+
+
+## The attacker of a payload: the engine names it `attacker`, the catalogue
+## (rng-event-log §D) `attacker_id` (MUI-003 L2; the engine's spelling is C15's).
+static func _attacker_of(p: Dictionary) -> Variant:
+	return p.get("attacker", p.get("attacker_id", 0))
+
+
+## The defender of a payload, as [method _attacker_of].
+static func _defender_of(p: Dictionary) -> Variant:
+	return p.get("defender", p.get("defender_id", 0))
 
 
 static func _hero_ids(raw: Dictionary) -> Array[int]:
