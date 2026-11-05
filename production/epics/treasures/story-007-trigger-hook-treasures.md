@@ -1,7 +1,7 @@
 # Story 007: Trigger-hook treasures — Hollow Crown, Scholar's Candle, Iron Constitution, Thornhide Cloak
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M
