@@ -63,6 +63,73 @@ CI and the command above both run every suite under `tests/` except
 `tests/performance/` (the local command is exactly `commands.test` in
 `project.yaml`).
 
+### Running Godot on a dev machine
+
+`tools/bin/godot` is the wrapper every lane and developer runs Godot through. It
+finds the engine and gives each worktree its own `user://`, because the suites
+write fixed paths there (`user://tmp`, `user://rng_lint_fixture/`) and two
+worktrees sharing one user-data folder collide. `commands.*` in `project.yaml`
+keep saying `godot …` and run verbatim once the wrapper's folder is first on
+`PATH`. CI does not use it: `tools/setup.sh` links the engine as `godot` there.
+
+**Setup on Windows, in Git Bash at the repository root.** `GODOT_BIN` names the
+`*_console.exe` build, the one that prints to the terminal and returns exit
+codes:
+
+```bash
+export GODOT_BIN=/c/path/to/Godot_v4.7.2-stable_win64_console.exe PATH="$PWD/tools/bin:$PATH"
+godot --self-check
+```
+
+Bash is required (Git Bash on Windows). PowerShell and cmd are not covered: the
+wrapper is a bash script, so `godot` means nothing there. Isolation covers
+Windows and Linux; `--self-check` fails on any OS where it does not hold.
+
+**Resolution order**, first match wins:
+
+1. `GODOT_BIN`.
+2. `engine.path` in the gitignored `project.local.yaml`: this worktree's, then
+   the main checkout's, so one file serves every `git worktree add`. Either
+   `engine.path: <file>` on one line or `path: <file>` under `engine:` works.
+   The wrapper reads it with `.claude/scripts/yaml-get.awk` and never from the
+   committed `project.yaml`, which would put one machine's path in the repo. It
+   is the only reader of this key in that file: `engine.path` is not on the
+   `/settings --local` whitelist, so `validate_local_scope` names it on a skill's
+   `notes:` line. That warning is harmless; `GODOT_BIN` avoids it.
+3. The next `godot` / `godot.exe` on `PATH` that is not a copy of the wrapper.
+
+An engine named by 1 or 2 that cannot run exits 127 rather than trying the next
+source, so a typo cannot silently run a different Godot. With nothing found it
+exits 127 and the message names `GODOT_BIN`.
+
+**Isolation.** `user://` lives in `<root>/<key>`, set through `APPDATA` on
+Windows and `XDG_DATA_HOME` on Linux:
+
+| Variable | Meaning | Default |
+|---|---|---|
+| `GODOT_USERDATA_ROOT` | Folder holding every worktree's user data. Refused (exit 2) inside the repository | `dungeon-run-ccg-userdata` under the system temp folder |
+| `GODOT_WORKTREE_KEY` | This worktree's folder name under the root | Folder name + a hash of the top-level path, for the worktree holding the current directory |
+
+The key follows the current directory, not `--path`, and not which worktree's
+`tools/bin` is on `PATH`. A fresh isolated folder has no editor settings; headless
+runs do not need them. Everything else passes through unchanged: arguments,
+output and the exit code (139 on the TD-013 `--import` crash, gdUnit4's own
+codes). The wrapper never adds `--path`.
+
+**`godot --self-check`** asks the engine rather than assuming: it prints the
+binary and where it came from, the version, the `user://` folder the engine
+reports (from `res://tools/ci/print_user_dir.gd`) and whether the export templates
+are visible. Templates absent is reported with the install step, and is not a
+failure. Exit 1: the engine ignored the isolation, or printed no version (the
+non-console build). Exit 127: no engine.
+
+**Export templates.** Moving the data folder also moves `export_templates/`, so
+the wrapper links the real one into the isolated folder: a junction on Windows, a
+symlink on Linux. Install templates in the real location (the self-check prints
+it) and the next run links them. **To clear the root, remove each
+`export_templates` link first with plain `rm <link>`**: it is a link to your real
+templates, and `rmdir` refuses a junction.
+
 ### Performance suites (non-blocking)
 
 A wall-clock assertion never gates (coding standards: no time-dependent

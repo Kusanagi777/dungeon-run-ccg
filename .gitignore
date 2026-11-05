@@ -44,6 +44,8 @@ bin/
 # ...but not an addon's own scripts: gdUnit4's test runner lives in
 # addons/gdUnit4/bin/, and without it neither /smoke-check nor CI can run tests.
 !addons/gdUnit4/bin/
+# ...nor the committed Godot wrapper, which every lane puts first on PATH.
+!tools/bin/
 obj/
 out/
 dist/
