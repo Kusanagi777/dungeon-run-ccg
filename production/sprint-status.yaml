@@ -134,7 +134,7 @@ stories:
     name: "MatchDriver — phase schedule: forecast, plan and choose tasks, stale premise, telegraph setting"
     file: "production/epics/boss-ai-match-driver/story-014-match-driver-phase-schedule.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 2)"
     estimate_days: 1
     lane: 2
@@ -143,12 +143,12 @@ stories:
     contract: false
     blocker: ""
     note: "re-open after M2; needs BAI-013 (M2), BAI-010, BAI-011; match_driver.gd sole editor in W3; unlocks BAI-016 (sprint 6 W1); /code-review at M3"
-    completed: ""
+    completed: "2026-11-05"
   - id: "boss-ai-match-driver-012"
     name: "Hidden-information purity (A4) and the src/ai CI gates (A29, thread symbols)"
     file: "production/epics/boss-ai-match-driver/story-012-hidden-information-and-purity-gates.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 7)"
     estimate_days: 0.5
     lane: 7
@@ -157,7 +157,7 @@ stories:
     contract: false
     blocker: ""
     note: "in the review-fix lane to keep L2 at 7 links; needs BAI-008 (M1), BAI-011 (M2); adds one tests.yml step; BAI review N6 literals; /code-review at M3"
-    completed: ""
+    completed: "2026-11-05"
   - id: "heroes-001"
     name: "War hero seated from its HeroDef — Whetstone on shipped data"
     file: "production/epics/heroes/story-001-war-hero-seated-from-herodef.md"
@@ -204,7 +204,7 @@ stories:
     name: "MatchController and MatchQuery — the three channels, flush-before-submit and engine parity"
     file: "production/epics/match-ui/story-003-match-controller-and-match-query.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 8)"
     estimate_days: 1
     lane: 8
@@ -213,7 +213,7 @@ stories:
     contract: false
     blocker: ""
     note: "L8 opener after BAI-013 merges at M2; creates MatchQuery (BAI review S3 code half follows in sprint 6); /code-review at M3"
-    completed: ""
+    completed: "2026-11-05"
   # --- Should Have ---
   - id: "match-rules-019"
     name: "Rules engine performance pass"
@@ -289,7 +289,7 @@ stories:
     name: "Cost-fold treasures — Worn Signet, Vanguard's Banner, stacked discounts"
     file: "production/epics/treasures/story-005-cost-fold-treasures.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "general-purpose (lane 4)"
     estimate_days: 1
     lane: 4
@@ -298,12 +298,12 @@ stories:
     contract: false
     blocker: ""
     note: "needs CE-014 at M2; test-only, a failing case is fixed where it lives; merges after L6 at M3"
-    completed: ""
+    completed: "2026-11-05"
   - id: "treasures-006"
     name: "Hand-size and attack-count folds — Bottomless Satchel, Twin Grip, the post-fold clamps"
     file: "production/epics/treasures/story-006-hand-size-and-attack-fold-treasures.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "general-purpose (lane 4)"
     estimate_days: 1
     lane: 4
@@ -312,7 +312,7 @@ stories:
     contract: false
     blocker: ""
     note: "needs CE-014 at M2; test-only; first in the Should Have cut order"
-    completed: ""
+    completed: "2026-11-05"
   - id: "card-effects-013"
     name: "Transform, copy-to-hand, bounce and keyword auras from a treasure host"
     file: "production/epics/card-effects/story-013-transform-copy-keyword-aura.md"
@@ -331,7 +331,7 @@ stories:
     name: "Trigger hooks as synchronous steps and hero-slot observers (treasures, boss passives)"
     file: "production/epics/card-effects/story-015-hook-trigger-steps-hero-slot-observers.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "general-purpose (lane 5)"
     estimate_days: 1
     lane: 5
@@ -340,7 +340,7 @@ stories:
     contract: false
     blocker: ""
     note: "re-open after M2; boss passives fire from the hero slot (First Playable boss); last in the Should Have cut order; /code-review at M3"
-    completed: ""
+    completed: "2026-11-05"
   - id: "card-effects-017"
     name: "Validator — silence before destroy (AC-47)"
     file: "production/epics/card-effects/story-017-validator-silence-before-destroy.md"
@@ -373,7 +373,7 @@ stories:
     name: "Boss-turn pacing — F4 gap and compression, boss-turn mode and control lock"
     file: "production/epics/match-ui/story-010-boss-turn-pacing.md"
     priority: should-have
-    status: backlog
+    status: done
     owner: "general-purpose (lane 8)"
     estimate_days: 1
     lane: 8
@@ -382,7 +382,7 @@ stories:
     contract: false
     blocker: ""
     note: "needs BAI-015 at M2; DD-X23 commit beat; MISSING prerequisite: planner_target_ms has no shipped knob (sprint-005.md Goal Prerequisites, fixes a/b/c); creates input_router.gd controls_locked before MUI-004; /code-review at M3"
-    completed: ""
+    completed: "2026-11-05"
   # --- Carryover from sprint 4 (previous priority kept; scheduled as committed lane work) ---
   - id: "match-rules-018"
     name: "Performance budgets"
