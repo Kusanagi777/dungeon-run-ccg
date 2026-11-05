@@ -226,7 +226,7 @@ func read_model(db: CardDatabase, config: Dictionary) -> Dictionary:
 func _hero_model(db: CardDatabase) -> Dictionary:
 	for hero: Dictionary in db.heroes():
 		if hero.id == hero_id:
-			return {"id": hero_id, "name": hero.name, "set": hero.set, "health": hero.health, "hero_power": hero.hero_power}
+			return {"id": hero_id, "name": hero.name, "set": hero["set"], "health": hero.health, "hero_power": hero.hero_power}
 	return {"id": hero_id}
 
 
