@@ -35,11 +35,7 @@ func bind(model: Dictionary) -> void:
 	column.add_child(_pips(int(model.get("band", 1)), str(model.get("band_color", "neutral"))))
 	var top: HBoxContainer = UiKit.hbox(16)
 	column.add_child(top)
-	var portrait: ColorRect = ColorRect.new()
-	portrait.color = color(str(model.get("band_color", "neutral")))
-	portrait.custom_minimum_size = PORTRAIT
-	portrait.add_child(UiKit.label(str(model.get("boss_initial", "")), RunUiTheme.LABEL_TITLE))
-	top.add_child(portrait)
+	top.add_child(UiKit.portrait(color(str(model.get("band_color", "neutral"))), str(model.get("boss_initial", "")), PORTRAIT))
 	var facts: VBoxContainer = UiKit.vbox(6)
 	facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(facts)

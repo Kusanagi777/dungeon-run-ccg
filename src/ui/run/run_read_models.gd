@@ -144,8 +144,8 @@ func strip(run_model: Dictionary) -> Dictionary:
 
 
 ## `draft_treasure` and `draft_bundle` (U2, U8): `DRAFT_SLOTS` slots, the options first
-## in `option_ids` order, then placeholders.
-func draft(run_model: Dictionary) -> Dictionary:
+## in `option_ids` order, then placeholders. [param reveal_step_ms] is F2's stagger.
+func draft(run_model: Dictionary, reveal_step_ms: int) -> Dictionary:
 	var offer: Dictionary = run_model.get("offer", {}) if run_model.get("offer") is Dictionary else {}
 	var kind: String = str(offer.get("kind", DraftRecord.KIND_TREASURE))
 	var ids: Array = offer.get("option_ids", [])
@@ -166,6 +166,7 @@ func draft(run_model: Dictionary) -> Dictionary:
 		"floor": int(offer.get("floor", run_model.get("floor", 1))),
 		"options": options,
 		"slots": DRAFT_SLOTS,
+		"reveal_step_ms": reveal_step_ms,
 		"short_reason": reason,
 		"allow_skip": bool(offer.get("allow_skip", false)),
 		"two_step": _floor_has_treasure_step(run_model),
@@ -282,7 +283,7 @@ func card_row(card_id: String) -> Dictionary:
 		stats = "%d/%d" % [int(card.attack), int(card.health)]
 	elif card.has("attack") and card.has("durability"):
 		stats = "%d/%d" % [int(card.attack), int(card.durability)]
-	return {"id": card_id, "name": str(card.get("name", card_id)), "cost": str(card.get("cost", "")), "text": RunText.data(card.get("text")), "stats": stats}
+	return {"id": card_id, "name": str(card.get("name", card_id)), "cost": str(int(card.get("cost", 0))), "text": RunText.data(card.get("text")), "stats": stats}
 
 
 ## The "New … unlocked" lines of [param keys], for the summary (U9).
@@ -477,7 +478,7 @@ func _power_of(power_id: Variant) -> Dictionary:
 	if not power_id is String or not _db.has(power_id):
 		return {}
 	var power: Dictionary = _db.hero_power(power_id)
-	return {"name": str(power.get("name", power_id)), "cost": power.get("cost"), "text": RunText.data(power.get("text"))}
+	return {"name": str(power.get("name", power_id)), "cost": int(power.get("cost", 0)), "text": RunText.data(power.get("text"))}
 
 
 func _treasure_option(id: String, extra: Dictionary) -> Dictionary:

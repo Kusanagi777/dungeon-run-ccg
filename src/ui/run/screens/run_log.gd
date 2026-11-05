@@ -111,7 +111,7 @@ func _add_row(row: Dictionary) -> Array[Control]:
 	text.add_child(UiKit.label(head, &"", true))
 	var tags: PackedStringArray = [tr("log.seed").format({"seed": row.seed})]
 	if bool(row.details):
-		tags.append(tr("log.deck").format({"n": row.deck_size}))
+		tags.append(tr("log.deck").format({"n": int(row.deck_size)}))
 	if bool(row.custom_seed):
 		tags.append(tr("summary.custom_seed"))
 	if bool(row.retried):

@@ -641,7 +641,7 @@ func _model_for(id: StringName) -> Dictionary:
 		SCREEN_BOSS:
 			return _models.boss_intro(run_model)
 		SCREEN_DRAFT_TREASURE, SCREEN_DRAFT_BUNDLE:
-			return _models.draft(run_model)
+			return _models.draft(run_model, _reveal_step_ms())
 		SCREEN_VICTORY, SCREEN_DEFEAT:
 			return _models.summary(run_model, run_model.get("unlocks_granted", []), _status_line)
 		SCREEN_ABANDONED:
@@ -657,6 +657,16 @@ func _model_for(id: StringName) -> Dictionary:
 		SCREEN_LOG:
 			return _log_model()
 	return {}
+
+
+## F2's `draft_reveal` over the slots; 0 under `reduce_motion`, where it is one fade.
+func _reveal_step_ms() -> int:
+	var row: Dictionary = _meta.get_settings()
+	if bool(row.get("reduce_motion", false)):
+		return 0
+	var total: int = RunUiConfig.t_transition(_config, RunUiConfig.KIND_DRAFT_REVEAL, str(row.get("anim_speed", RunUiConfig.SPEED_NORMAL)), false)
+	@warning_ignore("integer_division")
+	return total / RunReadModels.DRAFT_SLOTS
 
 
 func _take_load_line() -> String:

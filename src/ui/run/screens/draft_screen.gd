@@ -31,6 +31,7 @@ var _hint: Label = null
 var _hint2: Label = null
 var _drawer: DeckDrawer = null
 var _preview: CardPreview = null
+var _reveal_tween: Tween = null
 
 
 func bind(model: Dictionary) -> void:
@@ -70,6 +71,7 @@ func bind(model: Dictionary) -> void:
 	add_child(_preview)
 	_preview.setup()
 	_refresh_pick()
+	_reveal(int(model.get("reveal_step_ms", 0)))
 
 
 func default_focus() -> Control:
@@ -101,8 +103,23 @@ func set_committed(on: bool) -> void:
 
 
 func on_revealed() -> void:
+	if _reveal_tween != null:
+		_reveal_tween.kill()
+		_reveal_tween = null
 	for panel: OptionPanel in _panels:
 		panel.modulate.a = 1.0
+
+
+## F2's `draft_reveal`: the options fade in one [param step_ms] after another. Any input
+## ends it with the transition, through [method on_revealed].
+func _reveal(step_ms: int) -> void:
+	if step_ms <= 0 or _panels.is_empty():
+		return
+	_reveal_tween = create_tween().set_parallel()
+	var step_s: float = step_ms / RunUiConfig.MS_PER_S
+	for i: int in _panels.size():
+		_panels[i].modulate.a = 0.0
+		_reveal_tween.tween_property(_panels[i], "modulate:a", 1.0, step_s).set_delay(i * step_s)
 
 
 func _add_title(model: Dictionary, bundle: bool) -> void:

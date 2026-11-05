@@ -72,6 +72,21 @@ static func backdrop(fill: Color) -> ColorRect:
 	return node
 
 
+## A portrait placeholder (art bible §7): a [param fill] block of [param size] with
+## [param initial] in its middle.
+static func portrait(fill: Color, initial: String, size: Vector2) -> ColorRect:
+	var node: ColorRect = ColorRect.new()
+	node.color = fill
+	node.custom_minimum_size = size
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var letter: Label = label(initial, RunUiTheme.LABEL_TITLE)
+	letter.set_anchors_preset(Control.PRESET_FULL_RECT)
+	letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	node.add_child(letter)
+	return node
+
+
 ## A flexible spacer for a box container.
 static func spacer() -> Control:
 	var node: Control = Control.new()

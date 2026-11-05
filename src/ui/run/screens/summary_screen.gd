@@ -40,6 +40,7 @@ func bind(model: Dictionary) -> void:
 	_new_run.custom_minimum_size = NEW_RUN_RECT.size
 	_new_run.disabled = not bool(model.get("hero_available", true))
 	_new_run.pressed.connect(send.bind(&"new_run_same_hero", {}))
+	_new_run.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	add_child(_new_run)
 	UiKit.place(_new_run, NEW_RUN_RECT)
 	_focus_key = str(model.get("focus", "new_run_same_hero"))

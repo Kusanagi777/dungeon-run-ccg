@@ -19,6 +19,7 @@ const BODY_H: float = 560.0
 const COLUMN_GAP: float = 24.0
 const PORTRAIT: Vector2 = Vector2(120, 160)
 const SATURATE_S: float = 0.4
+const DEFEAT_DARKEN: float = 0.4
 const VISIBLE_DAMAGE_ROWS: int = 8
 
 var _cfg: Dictionary = {}
@@ -68,15 +69,11 @@ func _left_column(model: Dictionary) -> Control:
 	scroll.add_child(column)
 	var top: HBoxContainer = UiKit.hbox(16)
 	column.add_child(top)
-	_portrait = ColorRect.new()
-	_portrait.custom_minimum_size = PORTRAIT
 	var neutral: Color = RunUiConfig.color(_cfg, "neutral")
 	var hero_color: Color = RunUiConfig.color(_cfg, str(model.hero_color))
-	_portrait.color = neutral if str(model.outcome) == RunState.STATUS_VICTORY else hero_color.darkened(0.4)
+	var start: Color = neutral if str(model.outcome) == RunState.STATUS_VICTORY else hero_color.darkened(DEFEAT_DARKEN)
+	_portrait = UiKit.portrait(start, str(model.hero_initial), PORTRAIT)
 	top.add_child(_portrait)
-	var initial: Label = UiKit.label(str(model.hero_initial), RunUiTheme.LABEL_TITLE)
-	initial.set_anchors_preset(Control.PRESET_CENTER)
-	_portrait.add_child(initial)
 	var who: Label = UiKit.label(str(model.hero_name), RunUiTheme.LABEL_HEADING, true)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(who)

@@ -85,7 +85,7 @@ static func _add_button(theme: Theme, cfg: Dictionary, type: StringName, fill: S
 	theme.set_font_size(&"font_size", type, font_px)
 	theme.set_stylebox(&"normal", type, _box(fill_color, border_color))
 	theme.set_stylebox(&"hover", type, _box(fill_color.lightened(HOVER_LIGHTEN), border_color))
-	theme.set_stylebox(&"pressed", type, _box(fill_color.darkened(PRESS_DARKEN), border_color))
+	theme.set_stylebox(&"pressed", type, _box(fill_color.darkened(PRESS_DARKEN), light))
 	theme.set_stylebox(&"disabled", type, _box(fill_color.darkened(DISABLED_DARKEN), Color.TRANSPARENT))
 	for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_focus_color", &"font_hover_pressed_color"]:
 		theme.set_color(state, type, light)

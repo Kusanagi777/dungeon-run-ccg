@@ -10,7 +10,7 @@ const PANEL_Y: float = 72.0
 const LOCKED_Y: float = 428.0
 const LOCKED_H: float = 88.0
 const LIFT_PX: float = 8.0
-const SEED_LABEL_RECT: Rect2 = Rect2(400, 540, 140, 44)
+const SEED_LABEL_RECT: Rect2 = Rect2(280, 540, 260, 44)
 const SEED_RECT: Rect2 = Rect2(548, 540, 332, 44)
 const ECHO_RECT: Rect2 = Rect2(548, 584, 332, 24)
 const BACK_POS: Vector2 = Vector2(40, 640)
@@ -99,18 +99,17 @@ func _add_hero(index: int, hero: Dictionary) -> void:
 	style.set_corner_radius_all(RunUiTheme.CORNER_PX)
 	style.set_content_margin_all(RunUiTheme.PANEL_PADDING_PX * 2)
 	panel.add_theme_stylebox_override(&"panel", style)
+	var scroll: ScrollContainer = UiKit.scroll()
+	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.add_child(scroll)
 	var column: VBoxContainer = UiKit.vbox(6)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(column)
+	scroll.add_child(column)
 	var top: HBoxContainer = UiKit.hbox(12)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(top)
-	var portrait: ColorRect = ColorRect.new()
-	portrait.color = color(str(hero.secondary))
-	portrait.custom_minimum_size = PORTRAIT
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait.add_child(UiKit.label(str(hero.initial), RunUiTheme.LABEL_TITLE))
-	top.add_child(portrait)
+	top.add_child(UiKit.portrait(color(str(hero.secondary)), str(hero.initial), PORTRAIT))
 	var facts: VBoxContainer = UiKit.vbox(4)
 	facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(facts)
@@ -175,6 +174,7 @@ func _add_seed_row() -> void:
 		return
 	var label: Label = UiKit.label(tr("hero.seed"))
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(label)
 	UiKit.place(label, SEED_LABEL_RECT)
 	_seed = LineEdit.new()
