@@ -18,6 +18,8 @@ const OVERRIDE: String = "bai_concealed"
 const TURNS_TAKEN: int = 4
 const NEXT_MANA: int = 5
 const CRYSTAL_BONUS: int = 1
+## The `boss.turns_taken` that gives the mid-plan-draw fixture its 4 forecast mana.
+const MID_PLAN_TURNS_TAKEN: int = 3
 
 
 ## A [Scorer] that remembers each `score_all` context.
@@ -406,6 +408,115 @@ func test_a_card_drawn_on_the_boss_turn_can_change_the_plan_with_the_board_uncha
 	assert_str(intent.intent_key).is_equal(Intent.KEY_PASS)
 	assert_str(str(committed.intent_key)).is_equal(Intent.KEY_DEVELOP_BOARD)
 	assert_bool(bool(committed.kept)).is_false()
+
+
+## [param board] with the first cards of the boss's deck set to [param order].
+func _stack_deck(board: Dictionary, order: Array) -> void:
+	var deck: Array = (board.engine as RulesEngine).state().players[SIDE_BOSS].deck
+	for index: int in order.size():
+		deck[index].def_id = str(order[index])
+
+
+## The forecast of the mid-plan-draw fixture with the deck in [param order].
+func _forecast_with_deck(fixture: Dictionary, order: Array) -> Intent:
+	var board: Dictionary = _board(fixture.duplicate(true))
+	_set_next_mana(board.engine, MID_PLAN_TURNS_TAKEN)
+	_stack_deck(board, order)
+	return await _forecast(board)
+
+
+func test_d1_a_card_drawn_mid_plan_never_shapes_the_forecast() -> void:
+	# Arrange — the same public board; the card under the Start draw is playable
+	# with what the bolt leaves in one order, and not in the other
+	var fixture: Dictionary = BossAiBoard.read("forecast_mid_plan_draw")
+
+	# Act
+	var first: Intent = await _forecast_with_deck(fixture, fixture.deck_orders[0])
+	var second: Intent = await _forecast_with_deck(fixture, fixture.deck_orders[1])
+
+	# Assert
+	assert_dict(first.to_dict()).is_equal(second.to_dict())
+
+
+func test_d1_a_lethal_line_through_an_undrawn_card_is_not_forecast() -> void:
+	# Arrange — F4 passes on the board and the bolt alone, and only the Charge under
+	# the Start draw finishes it: the search must not reach it through the bolt
+	var fixture: Dictionary = BossAiBoard.read("forecast_mid_plan_draw")
+	var case: Dictionary = fixture.lethal_case
+	fixture.boss.board = case.boss_board
+	fixture.player.health = case.player_health
+	fixture.player.board = case.player_board
+
+	# Act
+	var through: Intent = await _forecast_with_deck(fixture, case.deck_orders[0])
+	var without: Intent = await _forecast_with_deck(fixture, case.deck_orders[1])
+
+	# Assert
+	assert_str(through.intent_key).is_not_equal(Intent.KEY_LETHAL)
+	assert_dict(through.to_dict()).is_equal(without.to_dict())
+
+
+func test_d1_a_real_plan_keeps_and_plays_the_card_it_draws() -> void:
+	# Arrange — on the boss's own turn the draw is real
+	var fixture: Dictionary = BossAiBoard.read("forecast_mid_plan_draw")
+	var board: Dictionary = _board(fixture)
+	_set_next_mana(board.engine, MID_PLAN_TURNS_TAKEN)
+	_stack_deck(board, ["bai_filler", "bai_delver"])
+	var engine: RulesEngine = board.engine
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+	var sandbox: RulesEngine = engine.clone()
+
+	# Act — the Start step draws the filler, the bolt draws the delver
+	var plan: TurnPlan = await (board.ai as BossAI).plan_turn(sandbox)
+	var delver_on_board: bool = not BossAiBoard.ids_of(sandbox, SIDE_BOSS, "bai_delver").is_empty()
+	sandbox.end_match()
+
+	# Assert
+	assert_bool(delver_on_board).is_true()
+	assert_str(str(_committed(plan).intent_key)).is_equal(Intent.KEY_DEVELOP_BOARD)
+
+
+func test_d1_a_lethal_step_that_draws_and_aborts_leaves_no_deck_card_for_scoring() -> void:
+	# Arrange — a one-step "lethal" that draws and leaves the player alive: the plan
+	# aborts and the turn scores on, so the drawn card must already be gone
+	var fixture: Dictionary = BossAiBoard.read("forecast_mid_plan_draw")
+	var board: Dictionary = _board(fixture)
+	_set_next_mana(board.engine, MID_PLAN_TURNS_TAKEN)
+	var engine: RulesEngine = board.engine
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+	var sandbox: RulesEngine = engine.clone()
+	var boss: Dictionary = sandbox.state().players[SIDE_BOSS]
+	var turn: BossAI._Turn = BossAI._Turn.new(sandbox, ImmediatePlannerTask.new(), SIDE_BOSS, board.stream)
+	turn.unseen = (boss.deck as Array).map(func(card: Dictionary) -> int: return int(card.instance_id))
+	var bolt: Array = sandbox.legal_commands().filter(func(c: Dictionary) -> bool: return str(c.type) == MatchRecords.CMD_PLAY_CARD and int(c.hand_index) == 0)
+
+	# Act
+	(board.ai as BossAI)._execute_lethal(turn, bolt)
+	var from_deck: Array = (boss.hand as Array).filter(func(card: Dictionary) -> bool: return turn.unseen.has(int(card.instance_id)))
+	sandbox.end_match()
+
+	# Assert
+	assert_str(str(turn.plan.diagnostics.back().reason)).is_equal(BossAI.ABORT_NOT_LETHAL)
+	assert_array(from_deck).is_empty()
+
+
+func test_d1_only_cards_from_the_deck_are_dropped() -> void:
+	# Arrange — a card the hand held and one a card effect made stay; the deck's goes
+	var board: Dictionary = _named("attackers_4_3")
+	var sandbox: RulesEngine = (board.engine as RulesEngine).clone()
+	var boss: Dictionary = sandbox.state().players[SIDE_BOSS]
+	var unseen: Array = (boss.deck as Array).map(func(card: Dictionary) -> int: return int(card.instance_id))
+	var kept: Dictionary = BossAiBoard.add_to_hand(sandbox, SIDE_BOSS, "bai_ogre")
+	sandbox.draw(SIDE_BOSS, 1)
+	var made: Dictionary = BossAiBoard.add_to_hand(sandbox, SIDE_BOSS, "bai_brute")
+
+	# Act
+	LethalSearch.drop_unseen(sandbox, SIDE_BOSS, unseen)
+	var left: Array = (boss.hand as Array).map(func(card: Dictionary) -> int: return int(card.instance_id))
+	sandbox.end_match()
+
+	# Assert
+	assert_array(left).is_equal([int(kept.instance_id), int(made.instance_id)])
 
 
 func test_the_forecast_takes_one_parent_draw_and_never_moves_the_live_game() -> void:

@@ -102,10 +102,12 @@ func _init(db: Variant, picker: CandidateSet) -> void:
 ## **coroutine** (ADR-0006 erratum): it awaits [param planner]`.checkpoint()`
 ## after each node, so every caller awaits it. [param sim_stream] is the turn's
 ## `sim_<turn>` fork; null falls back to each clone's copy of `rng_match`.
+## [param unseen] is a forecast's undrawn deck ([method drop_unseen]): each node loses
+## those cards as it draws them, so no line runs through one.
 ## [codeblock]
 ## var plan: Variant = await lethal.search(base, profile, profile.budgets, planner, sim)
 ## [/codeblock]
-func search(sandbox: RulesEngine, profile: Dictionary, budgets: Dictionary, planner: PlannerTask, sim_stream: RngStream = null) -> Variant:
+func search(sandbox: RulesEngine, profile: Dictionary, budgets: Dictionary, planner: PlannerTask, sim_stream: RngStream = null, unseen: Array = []) -> Variant:
 	nodes = 0
 	var rule: String = str(profile.rules.lethal_search)
 	var shallow: bool = rule == RULE_SHALLOW
@@ -137,6 +139,7 @@ func search(sandbox: RulesEngine, profile: Dictionary, budgets: Dictionary, plan
 		var accepted: bool = child.submit(move.duplicate(true)).accepted
 		if accepted:
 			_answer_choices(child, profile)
+			drop_unseen(child, String(sandbox.active_side()), unseen)
 		await planner.checkpoint()
 		if accepted and _is_lethal(child):
 			child.end_match()
@@ -443,6 +446,30 @@ static func _has_taunt(node: RulesEngine) -> bool:
 		if is_taunter(minion):
 			return true
 	return false
+
+
+## Drops from [param side]'s hand every card of [param unseen], the instance ids of
+## its deck when a forecast began, so nothing downstream of a draw reads an undrawn
+## card (C1.3, C8.1; BAI-011 review D1). A card the hand held, or one an effect made,
+## stays. Only at a Main: a pending Choice's stages must not be disturbed. Through
+## `run_action`, so auras settle; `discard` raises no trigger.
+## [codeblock]
+## LethalSearch.drop_unseen(node, "boss", unseen)
+## [/codeblock]
+static func drop_unseen(node: RulesEngine, side: String, unseen: Array) -> void:
+	if unseen.is_empty() or node.phase() != MatchState.PHASE_MAIN:
+		return
+	var hand: Array = node.state().players[side].hand
+	var drops: Array[int] = []
+	for index: int in range(hand.size() - 1, -1, -1):
+		if unseen.has(int(hand[index].instance_id)):
+			drops.append(index)
+	if drops.is_empty():
+		return
+	node.run_action(func() -> void:
+		for index: int in drops:
+			@warning_ignore("return_value_discarded")
+			node.discard(side, index))
 
 
 ## F3 `taunters`: Taunt, and not Stealth.

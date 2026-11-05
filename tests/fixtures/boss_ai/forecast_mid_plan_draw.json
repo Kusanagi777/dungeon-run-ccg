@@ -1,0 +1,26 @@
+{
+  "name": "forecast_mid_plan_draw",
+  "description": "BAI-011 review D1: a draw spell shaped like shipped boss_ember_bolt in the boss's hand, so the dry run draws mid-plan. `deck_orders` are two orders of the same cards, the first one the Start step's draw. With 4 forecast mana, the attack and the bolt leave 3: bai_delver is playable there and bai_crusher is not. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 9, "attack": 1, "health": 1},
+    {"id": "bai_striker", "type": "minion", "cost": 2, "attack": 3, "health": 1},
+    {"id": "bai_ogre", "type": "minion", "cost": 4, "attack": 4, "health": 4},
+    {"id": "bai_ember", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "ops": [{"op": "damage", "targets": "enemy_hero", "amount": 1}, {"op": "draw", "count": 1}]}]},
+    {"id": "bai_delver", "type": "minion", "cost": 3, "attack": 3, "health": 4},
+    {"id": "bai_crusher", "type": "minion", "cost": 4, "attack": 4, "health": 5},
+    {"id": "bai_lancer", "type": "minion", "cost": 3, "attack": 5, "health": 1, "keywords": ["charge"]},
+    {"id": "bai_sliver", "type": "minion", "cost": 1, "attack": 0, "health": 1, "keywords": ["taunt"]}
+  ],
+  "boss": {"mana": 0, "board": ["bai_striker"], "hand": ["bai_ember"]},
+  "player": {"health": 6, "board": []},
+  "deck_orders": [["bai_filler", "bai_delver", "bai_crusher"], ["bai_filler", "bai_crusher", "bai_delver"]],
+  "lethal_case": {
+    "boss_board": ["bai_ogre", "bai_ogre"],
+    "player_health": 7,
+    "player_board": ["bai_sliver"],
+    "deck_orders": [["bai_filler", "bai_lancer", "bai_crusher"], ["bai_filler", "bai_crusher", "bai_lancer"]]
+  }
+}

@@ -29,9 +29,14 @@
 ## So [method forecast] submits the player's `end_turn` on a clone carrying the
 ## `forecast_<turn>` fork, and the engine's own End and Start steps give it
 ## `mana_max_by_turn(t_side + 1)`, the C13 thaw and the reset attacks with no write
-## to `MatchState`. The Start step also draws: the forecast is of the **current**
-## hand and the deck order is hidden (C1.3), so every card that is new to the hand
-## goes back out through the `discard` primitive before planning.
+## to `MatchState`. The Start step also draws, and so may any card the dry run
+## plays: the forecast is of the **current** hand and the deck is hidden (C1.3), so
+## every card that came from the deck goes back out through the `discard` primitive
+## before anything reads it: after the Start step, after each accepted action, and
+## at each lethal-search node ([method LethalSearch.drop_unseen]; BAI-011 review D1).
+## A one-ply trial keeps its draw, for `f_card`: it reads the count, not the card. An
+## effect that reads a drawn card's identity in the same action (an `on_draw` filter,
+## `deck_top`, a `deck` Discover) would still see it; no shipped card has one.
 ##
 ## **`alternatives`** (C9, review N4): what was scored, best first, at most
 ## [constant Scorer.ALTERNATIVES_MAX], the pick always among them (A16, Edge
@@ -253,6 +258,9 @@ class _Turn:
 	var finished: bool = false
 	## Keys for the next `ai_decision`: the last search's result, a mode change.
 	var note: Dictionary = {}
+	## A forecast's undrawn deck, as instance ids ([method LethalSearch.drop_unseen]);
+	## empty in a real plan, where a draw is real.
+	var unseen: Array = []
 	## `{entity_id: attack}` of the side's characters when the plan began: C8.3's
 	## "attackers that exist now", at the attack they have now.
 	var attackers: Dictionary = {}
@@ -662,23 +670,20 @@ func _run_loop(turn: _Turn) -> void:
 		_record(turn, _fault(str(outcome.get("reason"))))
 
 
-## Takes the forecast's clone to the side's Main (see the class doc): the
-## opponent's `end_turn`, a Choice the side owes on the way, then the hand as it was.
+## Takes the forecast's clone to the side's Main (see the class doc): notes the
+## undrawn deck, then the opponent's `end_turn`, and what follows any action.
 func _begin_own_turn(turn: _Turn) -> void:
-	var hand: Array = turn.sandbox.state().players[turn.side].hand
-	var held: Array = hand.map(func(card: Dictionary) -> int: return int(card.instance_id))
+	var deck: Array = turn.sandbox.state().players[turn.side].deck
+	turn.unseen = deck.map(func(card: Dictionary) -> int: return int(card.instance_id))
 	if turn.sandbox.submit(MatchRecords.end_turn(Scorer.other_side(turn.side))).accepted:
-		_answer_choices(turn)
-	turn.sandbox.run_action(_drop_new_cards.bind(turn.sandbox, turn.side, held))
+		_settle(turn)
 
 
-## Discards from [param side]'s hand every card not in [param held], right to left.
-func _drop_new_cards(sandbox: RulesEngine, side: String, held: Array) -> void:
-	var hand: Array = sandbox.state().players[side].hand
-	for index: int in range(hand.size() - 1, -1, -1):
-		if not held.has(int(hand[index].instance_id)):
-			@warning_ignore("return_value_discarded")
-			sandbox.discard(side, index)
+## What follows an accepted action: the Choices the side owes, then, in a forecast,
+## the cards that action drew.
+func _settle(turn: _Turn) -> void:
+	_answer_choices(turn)
+	LethalSearch.drop_unseen(turn.sandbox, turn.side, turn.unseen)
 
 
 ## Records the side's characters and their attack (see [member _Turn.attackers]).
@@ -747,7 +752,7 @@ func _plan_pass(turn: _Turn) -> void:
 		turn.searches_due -= 1
 		var budgets: Dictionary = (_profile.budgets as Dictionary).duplicate()
 		budgets.max_actions_per_turn = cap - turn.actions
-		var steps: Variant = await _lethal.search(turn.sandbox, _profile, budgets, turn.planner, turn.sim)
+		var steps: Variant = await _lethal.search(turn.sandbox, _profile, budgets, turn.planner, turn.sim, turn.unseen)
 		_note_search(turn)
 		if steps != null:
 			_enter_mode(turn, Scorer.MODE_LETHAL)
@@ -800,7 +805,7 @@ func _submit_action(turn: _Turn, command: Dictionary, decision: Dictionary, scor
 		if str(command.type) != MatchRecords.CMD_END_TURN:
 			turn.plan.intent_rows.append(row)
 		_accept(turn, command, decision)
-		_answer_choices(turn)
+		_settle(turn)
 		return
 	decision["rejection"] = str(result.rejection.code)
 	_record(turn, decision)
@@ -862,7 +867,7 @@ func _execute_lethal(turn: _Turn, steps: Array) -> void:
 			return
 		turn.plan.intent_rows.append(row)
 		_accept(turn, step, decision)
-		_answer_choices(turn)
+		_settle(turn)
 	if _is_own_main(turn):
 		_abort_plan(turn, ABORT_NOT_LETHAL, steps.size())
 		return
