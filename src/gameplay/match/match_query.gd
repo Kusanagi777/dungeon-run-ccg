@@ -3,14 +3,19 @@
 ## the database and the settings, and it answers at all times: no worker ever
 ## touches the live engine. Every answer is a value copy.
 ##
+## **Hidden information.** A boss Choice's options never leave here: the player sees
+## only that the boss is choosing (match-ui "If a Choice is raised during the boss
+## turn"), so [method pending_choice] answers it with `options` empty.
+##
 ## `boss-ai-match-driver/story-013` needs `query()` to answer, so this file starts
 ## with the three reads that are pass-throughs of the engine; `match-ui/story-003`
 ## owns the class and adds `entity`, `hand`, `card_text` and `hero_power_state`,
 ## which is what [member _db] and [member _settings] are held for.
 ## [codeblock]
 ## var query: MatchQuery = driver.query()
-## if query.phase() == MatchState.PHASE_CHOICE:
-##     show_options(query.pending_choice().options)
+## var choice: Variant = query.pending_choice()
+## if choice != null and choice.side == MatchRecords.SIDE_PLAYER:
+##     show_options(choice.options)
 ## [/codeblock]
 class_name MatchQuery
 extends RefCounted
@@ -33,9 +38,13 @@ func phase() -> String:
 	return _engine.phase()
 
 
-## A value copy of the pending `ChoiceRequest`, or null.
+## A value copy of the pending `ChoiceRequest`, or null. A boss Choice comes back
+## with `options` empty: see the class description.
 func pending_choice() -> Variant:
-	return _engine.pending_choice()
+	var choice: Variant = _engine.pending_choice()
+	if choice is Dictionary and str(choice.side) == MatchRecords.SIDE_BOSS:
+		choice.options = []
+	return choice
 
 
 ## The commands the live engine would accept now; a fresh list on every call.

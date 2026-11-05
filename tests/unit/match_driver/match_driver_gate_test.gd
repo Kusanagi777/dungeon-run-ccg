@@ -175,6 +175,33 @@ func test_a_discover_in_a_driver_built_match_offers_from_the_heros_set() -> void
 	assert_int((_driver.query().pending_choice().options as Array).size()).is_equal(MatchDriverFixture.POOL.size())
 
 
+func test_query_keeps_a_boss_choices_options_from_the_view() -> void:
+	# Arrange: the boss's Discover is pending, its options real on the engine
+	_build([], MatchDriverFixture.deck_of(MatchDriverFixture.DISCOVER))
+	MatchDriverFixture.to_boss_main(_driver)
+	assert_bool(_driver._engine.submit(MatchRecords.play_card(SIDE_BOSS, 0)).accepted).is_true()
+	assert_bool((_driver._engine.pending_choice().options as Array).is_empty()).is_false()
+
+	# Act
+	var choice: Dictionary = _driver.query().pending_choice()
+
+	# Assert: match-ui "the player never sees the options"; the label still has its side
+	assert_str(str(choice.side)).is_equal(SIDE_BOSS)
+	assert_array(choice.options).is_empty()
+	assert_bool(str(choice).contains(MatchDriverFixture.POOL[0])).is_false()
+
+
+func test_query_leaves_no_choice_as_null() -> void:
+	# Arrange
+	_build()
+
+	# Act
+	var choice: Variant = _driver.query().pending_choice()
+
+	# Assert
+	assert_object(choice).is_null()
+
+
 # --- The gate ------------------------------------------------------------------
 
 

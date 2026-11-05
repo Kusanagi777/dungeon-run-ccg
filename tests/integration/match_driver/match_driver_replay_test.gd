@@ -40,6 +40,20 @@ class FakeClock:
 		return now
 
 
+## A log that counts appends made after it sealed, which are a caller bug, and
+## refuses them without the debug assert, so a test reads the count.
+class SealWatchLog:
+	extends EventLog
+
+	var appends_after_seal: int = 0
+
+	func append(type: StringName, payload: Dictionary, cause_seq: int = 0) -> int:
+		if is_sealed():
+			appends_after_seal += 1
+			return -1
+		return super(type, payload, cause_seq)
+
+
 ## An engine that counts [method end_match] and [method submit].
 class CountingEngine:
 	extends RulesEngine
@@ -679,14 +693,43 @@ func test_a_tick_that_ends_the_match_appends_nothing_after_the_end() -> void:
 	assert_int(_count(FAULT_EVENT)).is_equal(0)
 
 
-func test_a_refused_diagnostic_append_is_the_event_cap_fault() -> void:
-	# Arrange: a log with no room left at the boss's Main (rng-event-log rule 16)
+## How many events a match has logged at the boss's Main: a log capped at this has
+## no room left there (rng-event-log rule 16).
+func _events_at_boss_main() -> int:
 	var measure: EventLog = EventLog.new(TestConstants.MAX_MATCH_EVENTS, EventLog.SCOPE_MATCH)
 	var probe: MatchDriver = MatchDriver.new(MatchDriverFixture.match_config(measure), _db, {}, FakePlannerTask.new(), _clock.read)
 	MatchDriverFixture.to_boss_main(probe)
-	var room: int = measure.size()
+	var events: int = measure.size()
 	probe.shutdown()
-	_log = EventLog.new(room, EventLog.SCOPE_MATCH)
+	return events
+
+
+func test_a_rejected_replay_command_at_the_cap_ends_the_match_with_no_fault_appended() -> void:
+	# Arrange: the engine's own `command_rejected` is the append the log refuses
+	var log: SealWatchLog = SealWatchLog.new(_events_at_boss_main(), EventLog.SCOPE_MATCH)
+	_log = log
+	_build()
+	MatchDriverFixture.to_boss_main(_driver)
+	var plan: TurnPlan = TurnPlan.new()
+	plan.commands = [MatchRecords.play_card(SIDE_BOSS, BAD_HAND_INDEX, 0)]
+	MatchDriverFixture.start_plan(_driver, _task, plan)
+	var results: Array[Dictionary] = []
+	_driver.match_ended.connect(func(result: Dictionary) -> void: results.append(result))
+
+	# Act
+	_driver.tick()
+
+	# Assert
+	assert_int(log.appends_after_seal).is_equal(0)
+	assert_int(results.size()).is_equal(1)
+	assert_str(str(results[0].reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	assert_bool(log.is_sealed()).is_true()
+	assert_bool(_driver.is_planning()).is_false()
+
+
+func test_a_refused_diagnostic_append_is_the_event_cap_fault() -> void:
+	# Arrange
+	_log = EventLog.new(_events_at_boss_main(), EventLog.SCOPE_MATCH)
 	_build()
 	MatchDriverFixture.to_boss_main(_driver)
 	var plan: TurnPlan = TurnPlan.new()

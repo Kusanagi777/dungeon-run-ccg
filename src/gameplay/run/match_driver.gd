@@ -260,11 +260,12 @@ func _replay_one() -> void:
 	command["issuer"] = MatchRecords.SIDE_BOSS
 	var result: Dictionary = _submit_live(command)
 	_replay_index = index + 1
+	# The step comes first: a rejection can itself hit the event cap and end the
+	# match, and the log is then sealed against the fault.
+	_after_engine_step()
 	if not result.accepted:
 		_diverge(index)
-		return
-	_after_engine_step()
-	if _pending_plan != null and _replay_index == plan.commands.size():
+	elif _replay_index == plan.commands.size():
 		_finish_replay(plan)
 
 
