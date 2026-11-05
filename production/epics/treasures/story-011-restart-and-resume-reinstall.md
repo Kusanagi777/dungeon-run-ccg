@@ -1,12 +1,12 @@
 # Story 011: Restart and resume re-install from the id list — the caller's `run_warning`s
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: M
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: [set by /dev-story when implementation begins]
+> **Last Updated**: 2026-11-05
 > **First Playable path**: no
 
 ## Context
@@ -68,7 +68,7 @@ planned ones; `/dev-story` replaces the list with the files it changed; `/story-
 checks scope against it.*
 
 - `tests/integration/treasures/treasures_restart_resume_test.gd`
-- `src/gameplay/run/run_machine.gd` — only the two `run_warning` appends, if the Run Structure stories have not already added them
+- `src/gameplay/run/run_machine.gd` — no change: the Run Structure stories added both `run_warning` appends (`_build_match_config`), the restart path and `collect_state`. A warning's `treasure_id` is at `detail.treasure_id`, the R10 `run_warning{code, detail{}}` shape
 
 ---
 
