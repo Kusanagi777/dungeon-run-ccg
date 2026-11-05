@@ -57,7 +57,7 @@ const VALUE_PARAMS: Array[String] = ["amount", "count", "attack", "health", "cos
 ## The param each op needs non-negative: a negative computed value is clamped
 ## to 0 and logged `values.clamped_from` (Edge Cases; `apply_damage(…, 0)`
 ## is still called).
-const NON_NEGATIVE: Dictionary[String, String] = {"damage": "amount", "heal": "amount", "armor": "amount", "draw": "count"}
+const NON_NEGATIVE: Dictionary[String, String] = {"damage": "amount", "heal": "amount", "armor": "amount", "draw": "count", "discard": "count", "shuffle_into_deck": "count"}
 ## C5 `damage.spell_damage` values (F1); an absent field is the
 ## `spell_damage_default` knob.
 const SPELL_DAMAGE_AUTO: String = "auto"
@@ -101,6 +101,10 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 	"transform": ["minion"],
 	"return_to_hand": ["minion"],
 	"copy_to_hand": ["minion", EffectSelectors.KIND_CARD],
+	"set_stats": ["minion"],
+	"remove_keyword": ["minion", "hero"],
+	"weapon_durability": ["weapon"],
+	"shuffle_into_deck": ["minion", EffectSelectors.KIND_CARD],
 }
 ## The ops that may target a card instance in hand or deck, and the param
 ## such a target needs (C5 `buff`: "card instances in hand **or deck**
@@ -109,7 +113,7 @@ const LEGAL_KINDS: Dictionary[String, Array] = {
 const CARD_INSTANCE_PARAMS: Dictionary[String, String] = {"buff": "cost"}
 ## The ops that take a card instance in hand or deck with no param to require
 ## (C5 `copy_to_hand`: "characters (minions), hand/deck cards").
-const CARD_INSTANCE_OPS: Array[String] = ["copy_to_hand"]
+const CARD_INSTANCE_OPS: Array[String] = ["copy_to_hand", "shuffle_into_deck"]
 ## The static op `recompute_auras()` applies (C5 `aura`, C7; story 012).
 const OP_AURA: String = "aura"
 ## The one op of a value trigger (C5 `modify_value`, C2; story 014).
@@ -148,6 +152,12 @@ func _init() -> void:
 	_table["return_to_hand"] = _op_return_to_hand
 	_table["add_counter"] = _op_add_counter
 	_table["set_counter"] = _op_set_counter
+	_table["set_stats"] = _op_set_stats
+	_table["remove_keyword"] = _op_remove_keyword
+	_table["weapon_durability"] = _op_weapon_durability
+	_table["shuffle_into_deck"] = _op_shuffle_into_deck
+	_table["discard"] = _op_discard
+	_table["hero_power_refresh"] = _op_hero_power_refresh
 
 
 ## True when this story's table runs [param op_name] (else [method run]
@@ -553,6 +563,91 @@ func _op_return_to_hand(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary
 		@warning_ignore("return_value_discarded")
 		engine.return_to_hand(id)
 		return outcome)
+
+
+## C5 `set_stats`: `set_stats(target, attack, health)` per target; an absent
+## param stays null and leaves that stat alone. [method run] evaluates both
+## value params before this handler, so "swap Attack and Health"
+## (`attack: {ref: target.health}, health: {ref: target.attack}`) reads both
+## refs before the write, as C5 requires.
+func _op_set_stats(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var new_attack: Variant = _int(op.attack) if op.has("attack") else null
+	var new_health: Variant = _int(op.health) if op.has("health") else null
+	return _per_target(engine, op, run_ctx, {"attack": new_attack, "health": new_health}, func(id: int) -> String:
+		engine.set_stats(id, new_attack, new_health)
+		return APPLIED)
+
+
+## C5 `remove_keyword`: `remove_keyword(target, kw)` per target. A keyword the
+## target does not hold is the no-op `skipped`.
+func _op_remove_keyword(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var keyword: String = str(op.get("keyword", ""))
+	var state: MatchState = engine.state()
+	return _per_target(engine, op, run_ctx, {"keyword": keyword}, func(id: int) -> String:
+		if not EffectSelectors.has_keyword(EffectSelectors.find(state, id), keyword):
+			return SKIPPED
+		engine.remove_keyword(id, keyword)
+		return APPLIED)
+
+
+## C5 `weapon_durability`: `modify_durability(weapon, amount)` per target (±);
+## a weapon at ≤ 0 breaks in the next death check. No weapon is `no_target`.
+func _op_weapon_durability(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var amount: int = _int(op.get("amount", 0))
+	return _per_target(engine, op, run_ctx, {"amount": amount}, func(id: int) -> String:
+		engine.modify_durability(id, amount)
+		return APPLIED)
+
+
+## C5 `shuffle_into_deck`: `add_card_to_deck(side, def_id, position)` × count.
+## The `card_id` form never fails. The `targets` form (hand cards, minions)
+## adds a fresh instance of each target's definition and leaves the target where
+## it is: the C5 primitive only adds, and no planned card uses this form. A
+## `random` position draws one `match_<floor>` index per copy, in the primitive.
+func _op_shuffle_into_deck(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var side: String = _side(op, run_ctx)
+	var count: int = _int(op.get("count", 1))
+	var position: String = str(op.get("position", MatchRecords.POSITION_RANDOM))
+	var values: Dictionary = {"count": count, "side": side, "position": position}
+	if op.has("card_id"):
+		var added: Array[int] = []
+		for _i: int in count:
+			var id: int = engine.add_card_to_deck(side, str(op.card_id), position)
+			if id != RulesEngine.NO_ENTITY:
+				added.append(id)
+		values["card_id"] = str(op.card_id)
+		return entry("shuffle_into_deck", added, values, APPLIED)
+	var state: MatchState = engine.state()
+	return _per_target(engine, op, run_ctx, values, func(id: int) -> String:
+		var def_id: String = EffectSelectors.def_id_of(state, id)
+		for _i: int in count:
+			@warning_ignore("return_value_discarded")
+			engine.add_card_to_deck(side, def_id, position)
+		return APPLIED)
+
+
+## C5 `discard`: `discard(side, random)` × count (v1 is random only; each pick
+## draws from `match_<floor>` in the primitive). `targets` are the discarded
+## instance ids; an empty hand from the first pick on is `no_target`.
+func _op_discard(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var side: String = _side(op, run_ctx)
+	var count: int = _int(op.get("count", 1))
+	var discarded: Array[int] = []
+	for _i: int in count:
+		var id: int = engine.discard(side, MatchRecords.PICK_RANDOM)
+		if id == RulesEngine.NO_ENTITY:
+			break
+		discarded.append(id)
+	return entry("discard", discarded, {"count": count, "side": side}, APPLIED if not discarded.is_empty() or count == 0 else NO_TARGET)
+
+
+## C5 `hero_power_refresh`: `refresh_hero_power(side)`, no mana refund. A power
+## not yet used this turn is the no-op `skipped`.
+func _op_hero_power_refresh(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	var side: String = _side(op, run_ctx)
+	var used: bool = bool(engine.state().players[side].hero_power.used_this_turn)
+	engine.refresh_hero_power(side)
+	return entry("hero_power_refresh", [], {"side": side}, APPLIED if used else SKIPPED)
 
 
 ## C5 `retrigger` (sprint-4 review S5): queues each target's live effects with

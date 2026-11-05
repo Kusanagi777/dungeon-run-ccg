@@ -421,6 +421,882 @@
         "key": "card.neutral_gravekeeper.text",
         "en": "Deathrattle: Deal 1 damage to the enemy hero per minion that died while this was in play."
       }
+    },
+    {
+      "id": "neutral_rusty_dagger",
+      "name": "Rusty Dagger",
+      "set": "neutral",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_rusty_dagger.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_novice_scout",
+      "name": "Novice Scout",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_novice_scout.text",
+        "en": "Battlecry: Draw a card."
+      }
+    },
+    {
+      "id": "neutral_tunnel_shaman",
+      "name": "Tunnel Shaman",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tricks"
+      ],
+      "text": {
+        "key": "card.neutral_tunnel_shaman.text",
+        "en": "Battlecry: Return a friendly minion to your hand."
+      }
+    },
+    {
+      "id": "neutral_cutpurse",
+      "name": "Cutpurse",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_cutpurse.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "neutral_charging_boar",
+      "name": "Charging Boar",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_charging_boar.text",
+        "en": "Charge."
+      }
+    },
+    {
+      "id": "neutral_field_medic",
+      "name": "Field Medic",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_field_medic.text",
+        "en": "Battlecry: Restore 3 Health."
+      }
+    },
+    {
+      "id": "neutral_powder_keg",
+      "name": "Powder Keg",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 0,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "all_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pings"
+      ],
+      "text": {
+        "key": "card.neutral_powder_keg.text",
+        "en": "Deathrattle: Deal 2 damage to all minions."
+      }
+    },
+    {
+      "id": "neutral_muzzle",
+      "name": "Muzzle",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "silence"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tricks"
+      ],
+      "text": {
+        "key": "card.neutral_muzzle.text",
+        "en": "Silence a minion. Draw a card."
+      }
+    },
+    {
+      "id": "neutral_treasure_map",
+      "name": "Treasure Map",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            },
+            {
+              "op": "mana",
+              "amount": 1,
+              "duration": "this_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_treasure_map.text",
+        "en": "Draw a card. Gain 1 Mana Crystal this turn."
+      }
+    },
+    {
+      "id": "neutral_mimic",
+      "name": "Mimic",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_mimic.text",
+        "en": "Battlecry: Add a copy of a friendly minion to your hand."
+      }
+    },
+    {
+      "id": "neutral_hex_doctor",
+      "name": "Hex Doctor",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "set_stats",
+              "attack": {
+                "ref": "target.health"
+              },
+              "health": {
+                "ref": "target.attack"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tricks"
+      ],
+      "text": {
+        "key": "card.neutral_hex_doctor.text",
+        "en": "Battlecry: Swap a minion's Attack and Health."
+      }
+    },
+    {
+      "id": "neutral_temple_guard",
+      "name": "Temple Guard",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_temple_guard.text",
+        "en": "Divine Shield."
+      }
+    },
+    {
+      "id": "neutral_blood_tick",
+      "name": "Blood Tick",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_blood_tick.text",
+        "en": "Lifesteal."
+      }
+    },
+    {
+      "id": "neutral_miners_pick",
+      "name": "Miner's Pick",
+      "set": "neutral",
+      "type": "weapon",
+      "cost": 3,
+      "attack": 2,
+      "durability": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_miners_pick.text",
+        "en": "Battlecry: Draw a card."
+      }
+    },
+    {
+      "id": "neutral_rockfall",
+      "name": "Rockfall",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 2,
+              "ops": [
+                {
+                  "op": "damage",
+                  "amount": 3,
+                  "targets": "random_enemy_minion"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pings"
+      ],
+      "text": {
+        "key": "card.neutral_rockfall.text",
+        "en": "Deal 3 damage to a random enemy minion, twice."
+      }
+    },
+    {
+      "id": "neutral_storm_harpy",
+      "name": "Storm Harpy",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "windfury"
+      ],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_storm_harpy.text",
+        "en": "Windfury."
+      }
+    },
+    {
+      "id": "neutral_stone_sentinel",
+      "name": "Stone Sentinel",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 7,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "wall",
+        "big"
+      ],
+      "text": {
+        "key": "card.neutral_stone_sentinel.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "neutral_great_cleaver",
+      "name": "Great Cleaver",
+      "set": "neutral",
+      "type": "weapon",
+      "cost": 5,
+      "attack": 4,
+      "durability": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "big"
+      ],
+      "text": {
+        "key": "card.neutral_great_cleaver.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_hill_giant",
+      "name": "Hill Giant",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 6,
+      "attack": 6,
+      "health": 7,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "big"
+      ],
+      "text": {
+        "key": "card.neutral_hill_giant.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_war_mammoth",
+      "name": "War Mammoth",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 7,
+      "attack": 7,
+      "health": 7,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "big",
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_war_mammoth.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "neutral_ember_sprite",
+      "name": "Ember Sprite",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "stealth",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": {
+            "selector": "random_enemy_character"
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pings"
+      ],
+      "text": {
+        "key": "card.neutral_ember_sprite.text",
+        "en": "Stealth. Deathrattle: Deal 1 damage to a random enemy."
+      }
+    },
+    {
+      "id": "neutral_gate_guardian",
+      "name": "Gate Guardian",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_gate_guardian.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "neutral_hedge_wizard",
+      "name": "Hedge Wizard",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "spell_damage": 1,
+      "effects": [],
+      "tags": [
+        "pings"
+      ],
+      "text": {
+        "key": "card.neutral_hedge_wizard.text",
+        "en": "Spell Damage +1."
+      }
+    },
+    {
+      "id": "neutral_relic_hunter",
+      "name": "Relic Hunter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "minion"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_relic_hunter.text",
+        "en": "Battlecry: Discover a minion."
+      }
+    },
+    {
+      "id": "neutral_pit_hound",
+      "name": "Pit Hound",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "tags": [
+        "tempo"
+      ],
+      "text": {
+        "key": "card.neutral_pit_hound.text",
+        "en": "Rush."
+      }
+    },
+    {
+      "id": "neutral_battle_plan",
+      "name": "Battle Plan",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            },
+            {
+              "op": "armor",
+              "amount": 2,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_battle_plan.text",
+        "en": "Draw 2 cards. Gain 2 Armor."
+      }
+    },
+    {
+      "id": "neutral_old_lamplighter",
+      "name": "Old Lamplighter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 3,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": "all_friendly_characters",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_old_lamplighter.text",
+        "en": "At the end of your turn, restore 2 Health to all friendly characters."
+      }
+    },
+    {
+      "id": "neutral_the_collector",
+      "name": "The Collector",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 4,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "value"
+      ],
+      "text": {
+        "key": "card.neutral_the_collector.text",
+        "en": "Battlecry: Add a copy of each other friendly minion to your hand."
+      }
+    },
+    {
+      "id": "neutral_hourglass_mage",
+      "name": "Hourglass Mage",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tricks"
+      ],
+      "text": {
+        "key": "card.neutral_hourglass_mage.text",
+        "en": "Battlecry: Freeze all enemy minions."
+      }
+    },
+    {
+      "id": "neutral_dungeon_warden",
+      "name": "Dungeon Warden",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 8,
+      "attack": 8,
+      "health": 8,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 5,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "big",
+        "wall"
+      ],
+      "text": {
+        "key": "card.neutral_dungeon_warden.text",
+        "en": "Taunt. Battlecry: Gain 5 Armor."
+      }
+    },
+    {
+      "id": "neutral_sheep",
+      "name": "Sheep",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.neutral_sheep.text",
+        "en": ""
+      },
+      "token": true
     }
   ]
 }

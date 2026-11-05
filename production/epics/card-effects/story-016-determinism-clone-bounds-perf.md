@@ -1,7 +1,7 @@
 # Story 016: Determinism replay, clone isolation, runtime bounds and performance budgets
 
 > **Epic**: Card Effects
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: L

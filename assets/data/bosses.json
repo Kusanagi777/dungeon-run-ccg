@@ -39,8 +39,8 @@
         "neutral_spark_fiend",
         "neutral_torch_imp",
         "neutral_torch_imp",
-        "neutral_cellar_guard",
-        "neutral_cellar_guard",
+        "neutral_ember_sprite",
+        "neutral_ember_sprite",
         "neutral_lantern_bearer",
         "neutral_lantern_bearer",
         "neutral_bulwark_smith",
@@ -219,34 +219,34 @@
       "deck": [
         "boss_rot_zombie",
         "boss_rot_zombie",
-        "boss_rot_zombie",
         "boss_mass_rites",
         "boss_mass_rites",
-        "boss_mass_rites",
-        "neutral_shield_golem",
-        "neutral_shield_golem",
-        "neutral_torch_imp",
-        "neutral_torch_imp",
-        "neutral_tunnel_rat",
-        "neutral_tunnel_rat",
-        "neutral_cellar_guard",
-        "neutral_cellar_guard",
-        "neutral_lantern_bearer",
-        "neutral_lantern_bearer",
-        "neutral_bulwark_smith",
-        "neutral_bulwark_smith",
-        "neutral_dungeon_delver",
-        "neutral_dungeon_delver",
-        "neutral_hush_owl",
-        "neutral_hush_owl",
-        "neutral_spark_fiend",
-        "neutral_spark_fiend",
-        "neutral_banner_captain",
-        "neutral_banner_captain",
-        "neutral_wolf_rider",
-        "neutral_wolf_rider",
+        "decay_grave_rat",
+        "decay_grave_rat",
+        "decay_carrion_crow",
+        "decay_carrion_crow",
+        "decay_rot_beetle",
+        "decay_rot_beetle",
+        "decay_shambling_heap",
+        "decay_shambling_heap",
+        "decay_boneyard_brute",
+        "decay_boneyard_brute",
+        "decay_relic_keeper",
+        "decay_relic_keeper",
+        "decay_crypt_leech",
+        "decay_crypt_leech",
         "neutral_gravekeeper",
-        "neutral_gravekeeper"
+        "neutral_gravekeeper",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver"
       ],
       "ai_profile": "boss_rot_warden",
       "tags": [
@@ -302,16 +302,16 @@
         "neutral_ogre_porter",
         "neutral_dungeon_delver",
         "neutral_dungeon_delver",
-        "neutral_cellar_guard",
-        "neutral_cellar_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
         "neutral_banner_captain",
         "neutral_banner_captain",
         "neutral_gravekeeper",
         "neutral_gravekeeper",
-        "neutral_hush_owl",
-        "neutral_hush_owl",
-        "neutral_torch_imp",
-        "neutral_torch_imp"
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_temple_guard",
+        "neutral_temple_guard"
       ],
       "ai_profile": "boss_hollow_king",
       "tags": [
@@ -320,6 +320,695 @@
       "intro_text": {
         "key": "boss.boss_hollow_king.intro",
         "en": "The Hollow King gives its minions +1/+1 at the start of each of its turns."
+      }
+    },
+    {
+      "id": "boss_cellar_hermit",
+      "name": "The Cellar Hermit",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_mend",
+      "passive": null,
+      "deck": [
+        "boss_moss_poultice",
+        "boss_moss_poultice",
+        "boss_hermit_crab",
+        "boss_hermit_crab",
+        "neutral_field_medic",
+        "neutral_field_medic",
+        "neutral_blood_tick",
+        "neutral_blood_tick",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_novice_scout",
+        "neutral_novice_scout",
+        "neutral_treasure_map",
+        "neutral_treasure_map",
+        "neutral_mimic",
+        "neutral_mimic",
+        "neutral_miners_pick",
+        "neutral_miners_pick",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard"
+      ],
+      "ai_profile": "boss_cellar_hermit",
+      "tags": [
+        "heal"
+      ],
+      "intro_text": {
+        "key": "boss.boss_cellar_hermit.intro",
+        "en": "The Cellar Hermit mends itself for 3 every turn it can."
+      }
+    },
+    {
+      "id": "boss_blood_abbess",
+      "name": "The Blood Abbess",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": "owner_hero",
+        "ops": [
+          {
+            "op": "heal",
+            "amount": 5
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_blood_abbess.passive",
+        "en": "At the start of the boss's turn, restore 5 Health to the boss."
+      },
+      "deck": [
+        "boss_blood_chalice",
+        "boss_blood_chalice",
+        "boss_sister_of_blood",
+        "boss_sister_of_blood",
+        "neutral_blood_tick",
+        "neutral_blood_tick",
+        "neutral_field_medic",
+        "neutral_field_medic",
+        "neutral_smite_or_mend",
+        "neutral_smite_or_mend",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter"
+      ],
+      "ai_profile": "boss_blood_abbess",
+      "tags": [
+        "heal"
+      ],
+      "intro_text": {
+        "key": "boss.boss_blood_abbess.intro",
+        "en": "The Blood Abbess restores 5 Health at the start of each of her turns."
+      }
+    },
+    {
+      "id": "boss_iron_tollman",
+      "name": "The Iron Tollman",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "modify_cost",
+        "scope": {
+          "card": {
+            "side": "enemy",
+            "type": "minion"
+          }
+        },
+        "ops": [
+          {
+            "op": "modify_value",
+            "delta": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_iron_tollman.passive",
+        "en": "The player's minions cost (1) more."
+      },
+      "deck": [
+        "boss_toll_collector",
+        "boss_toll_collector",
+        "boss_tollgate",
+        "boss_tollgate",
+        "neutral_rusty_dagger",
+        "neutral_rusty_dagger",
+        "neutral_miners_pick",
+        "neutral_miners_pick",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_cutpurse",
+        "neutral_cutpurse",
+        "neutral_charging_boar",
+        "neutral_charging_boar",
+        "neutral_storm_harpy",
+        "neutral_storm_harpy",
+        "neutral_novice_scout",
+        "neutral_novice_scout",
+        "neutral_tunnel_shaman",
+        "neutral_tunnel_shaman",
+        "neutral_treasure_map",
+        "neutral_treasure_map",
+        "neutral_muzzle",
+        "neutral_muzzle",
+        "neutral_hush_owl",
+        "neutral_hush_owl"
+      ],
+      "ai_profile": "boss_iron_tollman",
+      "tags": [
+        "control"
+      ],
+      "intro_text": {
+        "key": "boss.boss_iron_tollman.intro",
+        "en": "The Iron Tollman charges (1) more for every minion you play."
+      }
+    },
+    {
+      "id": "boss_lich_archivist",
+      "name": "The Lich Archivist",
+      "band": 3,
+      "health": 50,
+      "hero_power": "power_drain",
+      "passive": {
+        "trigger": "modify_damage",
+        "scope": {
+          "source": {
+            "side": "friendly",
+            "type": "spell"
+          }
+        },
+        "ops": [
+          {
+            "op": "modify_value",
+            "delta": 2
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_lich_archivist.passive",
+        "en": "The boss's spells deal 2 more damage."
+      },
+      "deck": [
+        "boss_bone_shard",
+        "boss_bone_shard",
+        "boss_soul_bolt",
+        "boss_soul_bolt",
+        "neutral_rockfall",
+        "neutral_rockfall",
+        "neutral_powder_keg",
+        "neutral_powder_keg",
+        "neutral_muzzle",
+        "neutral_muzzle",
+        "neutral_smite_or_mend",
+        "neutral_smite_or_mend",
+        "neutral_spark_fiend",
+        "neutral_spark_fiend",
+        "knowledge_chain_lightning",
+        "knowledge_chain_lightning",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "knowledge_lightning_lash",
+        "knowledge_lightning_lash",
+        "knowledge_meteor_bolt",
+        "knowledge_meteor_bolt",
+        "knowledge_flamewave",
+        "knowledge_flamewave",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth"
+      ],
+      "ai_profile": "boss_lich_archivist",
+      "tags": [
+        "spells"
+      ],
+      "intro_text": {
+        "key": "boss.boss_lich_archivist.intro",
+        "en": "The Lich Archivist's spells deal 2 more damage."
+      }
+    },
+    {
+      "id": "boss_bog_witch",
+      "name": "The Bog Witch",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": {
+        "trigger": "on_minion_died",
+        "scope": {
+          "who": "friendly_minion"
+        },
+        "ops": [
+          {
+            "op": "draw",
+            "count": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_bog_witch.passive",
+        "en": "Whenever a boss minion dies, the boss draws a card."
+      },
+      "deck": [
+        "boss_bog_toad",
+        "boss_bog_toad",
+        "boss_witchs_brew",
+        "boss_witchs_brew",
+        "neutral_powder_keg",
+        "neutral_powder_keg",
+        "decay_carrion_crow",
+        "decay_carrion_crow",
+        "decay_grave_rat",
+        "decay_grave_rat",
+        "decay_rot_beetle",
+        "decay_rot_beetle",
+        "decay_boneyard_brute",
+        "decay_boneyard_brute",
+        "decay_relic_keeper",
+        "decay_relic_keeper",
+        "decay_crypt_leech",
+        "decay_crypt_leech",
+        "decay_shambling_heap",
+        "decay_shambling_heap",
+        "neutral_gravekeeper",
+        "neutral_gravekeeper",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_ember_sprite",
+        "neutral_ember_sprite",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver"
+      ],
+      "ai_profile": "boss_bog_witch",
+      "tags": [
+        "deathrattle"
+      ],
+      "intro_text": {
+        "key": "boss.boss_bog_witch.intro",
+        "en": "Each time one of The Bog Witch's minions dies, she draws a card."
+      }
+    },
+    {
+      "id": "boss_frost_hag",
+      "name": "The Frost Hag",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_end",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": {
+          "selector": "random_enemy_minion"
+        },
+        "ops": [
+          {
+            "op": "freeze"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_frost_hag.passive",
+        "en": "At the end of the boss's turn, Freeze a random enemy minion."
+      },
+      "deck": [
+        "boss_hag_servant",
+        "boss_hag_servant",
+        "boss_hag_servant",
+        "boss_frostbite",
+        "boss_frostbite",
+        "boss_frostbite",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_hill_giant",
+        "neutral_hill_giant",
+        "knowledge_glacial_wind",
+        "knowledge_glacial_wind",
+        "knowledge_frost_lance",
+        "knowledge_frost_lance",
+        "neutral_rockfall",
+        "neutral_rockfall",
+        "neutral_powder_keg",
+        "neutral_powder_keg",
+        "knowledge_rime_elemental",
+        "knowledge_rime_elemental"
+      ],
+      "ai_profile": "boss_frost_hag",
+      "tags": [
+        "freeze"
+      ],
+      "intro_text": {
+        "key": "boss.boss_frost_hag.intro",
+        "en": "The Frost Hag freezes one of your minions at the end of each of her turns."
+      }
+    },
+    {
+      "id": "boss_shadow_of_the_delve",
+      "name": "The Shadow of the Delve",
+      "band": 3,
+      "health": 50,
+      "hero_power": null,
+      "passive": {
+        "trigger": "on_summon",
+        "scope": {
+          "of": "friendly_minion"
+        },
+        "targets": "trigger_subject",
+        "ops": [
+          {
+            "op": "give_keyword",
+            "keyword": "stealth"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_shadow_of_the_delve.passive",
+        "en": "The boss's minions have Stealth."
+      },
+      "deck": [
+        "boss_lurker",
+        "boss_lurker",
+        "boss_lurker",
+        "boss_knife_in_the_dark",
+        "boss_knife_in_the_dark",
+        "neutral_cutpurse",
+        "neutral_cutpurse",
+        "neutral_cutpurse",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_charging_boar",
+        "neutral_charging_boar",
+        "neutral_storm_harpy",
+        "neutral_storm_harpy",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_blood_tick",
+        "neutral_blood_tick",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter",
+        "neutral_hill_giant",
+        "neutral_hill_giant",
+        "neutral_ember_sprite",
+        "neutral_ember_sprite",
+        "neutral_spark_fiend",
+        "neutral_spark_fiend"
+      ],
+      "ai_profile": "boss_shadow_of_the_delve",
+      "tags": [
+        "stealth"
+      ],
+      "intro_text": {
+        "key": "boss.boss_shadow_of_the_delve.intro",
+        "en": "Every minion The Shadow of the Delve plays hides in Stealth."
+      }
+    },
+    {
+      "id": "boss_scrap_golem",
+      "name": "The Scrap Golem",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_reinforce",
+      "passive": {
+        "trigger": "on_match_start",
+        "targets": "owner",
+        "ops": [
+          {
+            "op": "armor",
+            "amount": 5
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_scrap_golem.passive",
+        "en": "At the start of the match, the boss gains 5 Armor."
+      },
+      "deck": [
+        "boss_scrap_plating",
+        "boss_scrap_plating",
+        "boss_junk_golem",
+        "boss_junk_golem",
+        "neutral_gate_guardian",
+        "neutral_gate_guardian",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_hill_giant",
+        "neutral_hill_giant",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_old_lamplighter",
+        "neutral_old_lamplighter",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter",
+        "neutral_great_cleaver",
+        "neutral_great_cleaver",
+        "neutral_dungeon_warden",
+        "neutral_dungeon_warden",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard"
+      ],
+      "ai_profile": "boss_scrap_golem",
+      "tags": [
+        "armour"
+      ],
+      "intro_text": {
+        "key": "boss.boss_scrap_golem.intro",
+        "en": "The Scrap Golem starts behind 5 Armor and bolts on more."
+      }
+    },
+    {
+      "id": "boss_pyre_sergeant",
+      "name": "The Pyre Sergeant",
+      "band": 2,
+      "health": 40,
+      "hero_power": "power_brand",
+      "passive": {
+        "trigger": "on_attack",
+        "scope": {
+          "attacker": "owner_hero"
+        },
+        "targets": "enemy_hero",
+        "ops": [
+          {
+            "op": "damage",
+            "amount": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_pyre_sergeant.passive",
+        "en": "Whenever the boss's hero attacks, deal 1 damage to the enemy hero."
+      },
+      "deck": [
+        "boss_signal_torch",
+        "boss_signal_torch",
+        "boss_pyre_bomb",
+        "boss_pyre_bomb",
+        "war_rusted_axe",
+        "war_rusted_axe",
+        "war_heavy_maul",
+        "war_heavy_maul",
+        "war_duelists_edge",
+        "war_duelists_edge",
+        "war_cellar_raider",
+        "war_cellar_raider",
+        "war_berserker",
+        "war_berserker",
+        "war_pit_brawler",
+        "war_pit_brawler",
+        "war_warlord",
+        "war_warlord",
+        "war_headsman",
+        "war_headsman",
+        "war_pit_champion",
+        "war_pit_champion",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_charging_boar",
+        "neutral_charging_boar",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute"
+      ],
+      "ai_profile": "boss_pyre_sergeant",
+      "tags": [
+        "weapons"
+      ],
+      "intro_text": {
+        "key": "boss.boss_pyre_sergeant.intro",
+        "en": "Each swing from The Pyre Sergeant burns you for 1 more."
+      }
+    },
+    {
+      "id": "boss_mirror_sage",
+      "name": "The Mirror Sage",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "on_play",
+        "scope": {
+          "by": "opponent"
+        },
+        "targets": "trigger_subject",
+        "ops": [
+          {
+            "op": "copy_to_hand",
+            "side": "owner"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_mirror_sage.passive",
+        "en": "Whenever the player plays a minion, the boss adds a copy of it to its hand."
+      },
+      "deck": [
+        "boss_reflection",
+        "boss_reflection",
+        "boss_mirror_golem",
+        "boss_mirror_golem",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_tunnel_shaman",
+        "neutral_tunnel_shaman",
+        "neutral_hex_doctor",
+        "neutral_hex_doctor",
+        "neutral_smite_or_mend",
+        "neutral_smite_or_mend",
+        "neutral_muzzle",
+        "neutral_muzzle",
+        "neutral_hourglass_mage",
+        "neutral_hourglass_mage",
+        "neutral_novice_scout",
+        "neutral_novice_scout",
+        "neutral_treasure_map",
+        "neutral_treasure_map",
+        "neutral_mimic",
+        "neutral_mimic",
+        "neutral_field_medic",
+        "neutral_field_medic",
+        "neutral_miners_pick",
+        "neutral_miners_pick",
+        "neutral_relic_hunter",
+        "neutral_relic_hunter",
+        "neutral_battle_plan",
+        "neutral_battle_plan"
+      ],
+      "ai_profile": "boss_mirror_sage",
+      "tags": [
+        "spells"
+      ],
+      "intro_text": {
+        "key": "boss.boss_mirror_sage.intro",
+        "en": "The Mirror Sage takes a copy of every minion you play."
+      }
+    },
+    {
+      "id": "boss_dungeon_heart",
+      "name": "The Dungeon Heart",
+      "band": 3,
+      "health": 50,
+      "hero_power": "power_mend",
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": "all_enemy_minions",
+        "ops": [
+          {
+            "op": "damage",
+            "amount": 2
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_dungeon_heart.passive",
+        "en": "At the start of the boss's turn, deal 2 damage to all enemy minions."
+      },
+      "deck": [
+        "boss_heartbeat",
+        "boss_heartbeat",
+        "boss_heart_guardian",
+        "boss_heart_guardian",
+        "neutral_old_lamplighter",
+        "neutral_old_lamplighter",
+        "neutral_hourglass_mage",
+        "neutral_hourglass_mage",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_hill_giant",
+        "neutral_hill_giant",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_dungeon_warden",
+        "neutral_dungeon_warden",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter",
+        "neutral_great_cleaver",
+        "neutral_great_cleaver",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_gate_guardian",
+        "neutral_gate_guardian",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith"
+      ],
+      "ai_profile": "boss_dungeon_heart",
+      "tags": [
+        "control"
+      ],
+      "intro_text": {
+        "key": "boss.boss_dungeon_heart.intro",
+        "en": "The Dungeon Heart deals 2 damage to all your minions at the start of each of its turns."
       }
     }
   ]
