@@ -1,7 +1,7 @@
 # Story 008: Aura treasures — Whetstone Wheel and Stampede Horn on the hero slot
 
 > **Epic**: Treasures
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Feature
 > **Type**: Integration
 > **Estimate**: S
