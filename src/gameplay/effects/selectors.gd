@@ -27,6 +27,8 @@ const KEYWORD_STEALTH: String = "stealth"
 const KEYWORD_DIVINE_SHIELD: String = "divine_shield"
 ## Filter `kind` / `side` values (C3 filter grammar).
 const KIND_ANY: String = "any"
+## What [method run_source] answers for a source with no entity on the board.
+const NO_SOURCE: int = -1
 const SIDE_FRIENDLY: String = "friendly"
 const SIDE_ENEMY: String = "enemy"
 const SIDE_ANY: String = "any"
@@ -162,7 +164,9 @@ static func entities(state: MatchState, selector: Variant, run: Dictionary) -> A
 		SELECTOR_TRIGGER_SUBJECT, SELECTOR_TRIGGER_SOURCE:
 			var named: Variant = run.get(selector_name(selector))
 			id = int(named) if typeof(named) == TYPE_INT or typeof(named) == TYPE_FLOAT else null
-	if id != null and kind_of(state, int(id)) != "":
+	# C2: `on_draw`'s `trigger_subject` is a card instance, not an entity in play
+	# (row 41); the op's C5 Legal targets still decide what it may do to one.
+	if id != null and (kind_of(state, int(id)) != "" or (name == SELECTOR_TRIGGER_SUBJECT and is_card_instance(state, int(id)))):
 		out.append(int(id))
 	return out
 
@@ -256,13 +260,13 @@ static func _card_view(card: Dictionary, side: String) -> Dictionary:
 	return {"entity_id": int(card.instance_id), "def_id": str(card.def_id), "controller": side}
 
 
-## The entity id of pass [param run]'s source, or −1 when it has none on the
-## board: a treasure or passive source is its String id (C9), and `int()` of one
-## would read the digits in it as an entity id.
+## The entity id of pass [param run]'s source, or [constant NO_SOURCE] when it has
+## none on the board: a treasure or passive source is its String id (C9), and
+## `int()` of one would read the digits in it as an entity id.
 ## Example: `EffectSelectors.run_source({"source_id": "treasure_row_42"}) == -1`.
 static func run_source(run: Dictionary) -> int:
-	var id: Variant = run.get("source_id", -1)
-	return int(id) if typeof(id) == TYPE_INT or typeof(id) == TYPE_FLOAT else -1
+	var id: Variant = run.get("source_id", NO_SOURCE)
+	return int(id) if typeof(id) == TYPE_INT or typeof(id) == TYPE_FLOAT else NO_SOURCE
 
 
 ## `n` of a selector (C3; default 1).
