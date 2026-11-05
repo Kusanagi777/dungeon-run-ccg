@@ -60,6 +60,10 @@ var booted: bool = false:
 
 var _services: Services = null
 var _result: BootResult = null
+## Every task any `driver_factory` made, for the database's busy predicate; null until
+## the first factory is asked for. It lives here because a predicate does not keep its
+## object alive.
+var _planner_tasks: PlannerTaskTracker = null
 
 # Meta Progression epic (ADR-0004 Decisions 6/8): `Boot` gains two `Timer`
 # children — the profile-lock heartbeat (`lock_heartbeat_s`) and the settings
@@ -143,7 +147,9 @@ func services() -> Services:
 ## The `driver_factory` a `RunMachine`, a debug loader or the sim harness receives by
 ## argument (ADR-0008 Decisions 1 and 11): a `func(config: Dictionary) -> MatchDriver`
 ## that builds a new [MatchDriver] over `Services.card_database`, with the settings
-## snapshot `Services.meta.get_settings()` taken at that call.
+## snapshot `Services.meta.get_settings()` taken at that call. An optional second
+## argument replaces the driver's clock: only a harness or test passes one, so that
+## replay pacing and `tick_over_budget` do not depend on the machine (boss-ai A28).
 ##
 ## Each driver gets a `Callable() -> PlannerTask` that makes a **new** task per call,
 ## because `PlannerTask.start` runs once per object (DD-X31). The first that applies
@@ -159,9 +165,14 @@ func services() -> Services:
 ## `config("ai_profiles")` is read once, here, and only when there is no override. No
 ## driver is built until the returned `Callable` is called. Before [method boot], or
 ## after a `Failed` load, this logs an error and returns an empty `Callable`, so there
-## is never a factory over no data. It keeps nothing: every call builds a new factory
-## from `_services`. [param cmdline_args] is a parameter only so a test can pass
-## `--ai-sync`. Single-thread-only, as `Boot` is; a task touches none of this.
+## is never a factory over no data. Every call builds a new factory from `_services`.
+## [param cmdline_args] is a parameter only so a test can pass `--ai-sync`.
+## Single-thread-only, as `Boot` is; a task touches none of this.
+##
+## Every task any factory makes, an override's included, goes through one
+## [PlannerTaskTracker], whose `any_live` is the database's busy predicate: a debug
+## `reload()` is `E_BUSY` while any of them is live, and allowed between matches
+## (ADR-0006; boss-ai-match-driver story 019).
 ## [codeblock]
 ## var driver_factory: Callable = Boot.driver_factory()
 ## var driver: MatchDriver = driver_factory.call(match_config)
@@ -181,8 +192,12 @@ func driver_factory(planner_override: Callable = Callable(), cmdline_args: Packe
 			planner_factory = func() -> PlannerTask: return TimeSlicedPlannerTask.new(slice_usec)
 		else:
 			planner_factory = func() -> PlannerTask: return WorkerPoolPlannerTask.new()
-	return func(config: Dictionary) -> MatchDriver:
-		return MatchDriver.new(config, db, meta.get_settings(), planner_factory)
+	if _planner_tasks == null:
+		_planner_tasks = PlannerTaskTracker.new()
+		db.set_reload_busy(_planner_tasks.any_live)
+	planner_factory = _planner_tasks.tracking(planner_factory)
+	return func(config: Dictionary, clock: Callable = Time.get_ticks_usec) -> MatchDriver:
+		return MatchDriver.new(config, db, meta.get_settings(), planner_factory, clock)
 
 
 ## The validators map `CardDatabase.load()` takes (architecture.md §Data Flow 5

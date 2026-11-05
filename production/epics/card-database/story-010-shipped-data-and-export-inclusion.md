@@ -1,7 +1,7 @@
 # Story 010: Shipped data boots `Ready` and ships in the export (CR-1, CR-8, Export inclusion)
 
 > **Epic**: Card Database
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Foundation
 > **Type**: Integration
 > **Estimate**: M

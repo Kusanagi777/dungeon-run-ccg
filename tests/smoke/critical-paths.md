@@ -23,6 +23,7 @@
 
 5. Save game completes without error (once save system is implemented)
 6. Load game restores correct state (once load system is implemented)
+6a. Exported build prints a non-empty `data_version()` -- `deckdelve.exe --headless -- --print-data-version` exits 0 and prints the 16 hex digits the editor build prints for the same files (card-database story 010)
 
 ## Performance
 

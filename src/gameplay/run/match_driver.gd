@@ -163,7 +163,7 @@ func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, planner_f
 	if settings.has(SETTING_TELEGRAPH):
 		_boss_ai.set_telegraph_mode(str(settings[SETTING_TELEGRAPH]))
 	_query = MatchQuery.new(_engine, db, settings)
-	_engine.start(config)
+	_engine.start(_with_boss_power(config, boss_def))
 	_after_engine_step()
 
 
@@ -531,6 +531,17 @@ func _release_task() -> void:
 	if _sandbox != null:
 		_sandbox.end_match()
 		_sandbox = null
+
+
+## [param config] with `boss.hero_power` from [param boss_def], on copies: the engine
+## seats the boss's power from it, and `MatchConfig` is the caller's. A `null` power is
+## a boss with none (match-rules C7).
+static func _with_boss_power(config: Dictionary, boss_def: Dictionary) -> Dictionary:
+	var seated: Dictionary = config.duplicate()
+	var boss: Dictionary = (config.boss as Dictionary).duplicate()
+	boss["hero_power"] = boss_def.get("hero_power")
+	seated["boss"] = boss
+	return seated
 
 
 ## The run hero's set, which `MatchState` does not carry (card-effects F4). A

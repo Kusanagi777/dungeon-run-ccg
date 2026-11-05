@@ -1,7 +1,7 @@
 # Story 019: CardDatabase.reload() refuses with E_BUSY while a PlannerTask is live
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: S

@@ -100,6 +100,9 @@ const E_NOT_LOADED: StringName = &"E_NOT_LOADED"
 ## `reload()` in a release build: the one entry of the report it returns; the
 ## database is untouched (a release build loads once per process; story 008).
 const E_NOT_SUPPORTED: StringName = &"E_NOT_SUPPORTED"
+## `reload()` while a Boss AI planner task is live: the one entry of the report it
+## returns; nothing is touched (ADR-0006).
+const E_BUSY: StringName = &"E_BUSY"
 
 var _entries: Array[Dictionary] = []
 var _record_count: int = -1

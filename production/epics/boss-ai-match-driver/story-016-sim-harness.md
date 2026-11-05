@@ -1,7 +1,7 @@
 # Story 016: Headless AI-vs-AI simulation harness (gate condition 6)
 
 > **Epic**: Boss AI + Match Driver
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Core
 > **Type**: Integration
 > **Estimate**: L

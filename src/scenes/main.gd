@@ -17,6 +17,13 @@
 ## [codeblock]
 ## godot --path . -- --boot-fail-fixture=boot_data_error     # data_error capture
 ## [/codeblock]
+## Any build: the user argument `--print-data-version` boots, prints `data_version()`
+## and quits without opening the shell, exit 0, or exit 1 with an empty line when the
+## load did not end `Ready`. It is how an exported build proves its PCK holds the data
+## (card-database story 010; ADR-0002 Decision 10).
+## [codeblock]
+## deckdelve.exe --headless -- --print-data-version
+## [/codeblock]
 ## A release export needs no argument to reach `data_error`: Boot's validator
 ## map files every pending validator as an error there, so the shipped load
 ## ends `Failed` by design until `PENDING_CONFIG_OWNERS` / `PENDING_RECORD_OWNERS`
@@ -29,6 +36,8 @@ extends Control
 const RUN_SHELL_SCENE: PackedScene = preload("res://src/ui/run/run_shell.tscn")
 ## The debug argument selecting a broken fixture root.
 const FAIL_FIXTURE_ARG: String = "--boot-fail-fixture="
+## The user argument that prints `data_version()` and quits.
+const PRINT_DATA_VERSION_ARG: String = "--print-data-version"
 ## Where the fixture roots live (not exported: `tests/*` is excluded, so an
 ## exported debug build given the argument shows `E_MISSING_FILE` rows).
 const FIXTURE_ROOT: String = "res://tests/fixtures/data/"
@@ -38,7 +47,12 @@ const FIXTURE_NAME_PATTERN: String = "^[a-z0-9_]+$"
 
 
 func _ready() -> void:
-	Boot.boot(boot_overrides(Array(OS.get_cmdline_user_args()), OS.is_debug_build()))
+	var args: Array = Array(OS.get_cmdline_user_args())
+	var booted: BootResult = Boot.boot(boot_overrides(args, OS.is_debug_build()))
+	if args.has(PRINT_DATA_VERSION_ARG):
+		print(Boot.services().card_database.data_version() if booted.ok else "")
+		get_tree().quit(0 if booted.ok else 1)
+		return
 	var shell: RunShell = RUN_SHELL_SCENE.instantiate() as RunShell
 	shell.bind(Boot.services())
 	add_child(shell)
