@@ -17,7 +17,8 @@
 > **REVISED 2026-11-03 (DSL spike follow-up)**: §D adds `card_added_to_hand {side, instance_id, card_id, hand_size}`, mirroring the event match-rules C15 added for the `add_card_to_hand` primitive (DD-X04; `docs/architecture/spikes/2026-11-03-dsl-effect-spike.md` finding 2).
 > **REVISED 2026-11-04 (code review of rng-event-log story 008, sprint 4)**: §D `minion_summoned`, `weapon_equipped` and `weapon_destroyed` name the minion / weapon `entity_id`, not `instance_id` — match-rules C15 is the authoritative catalogue (DD-X04: "payloads always carry the acting `entity_id`s") and the engine emits `entity_id`; rule 14 distinguishes `entity_id` (characters and weapons, match-rules C1) from `instance_id` (card instances); rule 19's attribution map and its AC read `entity_id` from those two events. Only the id field was reconciled: the engine's `minion_summoned` also says `position` where this row says `board_index`, and carries no `keywords[]` (open).
 > **REVISED 2026-11-05 (DD-X29)**: §D `auras_recomputed` also lists non-aura cost changes: a new hero-power entry and an optional `hook_delta` on hand and hero-power entries.
-> **REVISED 2026-11-05 (sprint 6: MR-020)**: §D `minion_summoned.keywords[]` is emitted by the engine, closing that half of the 2026-11-04 note above, and the row states its meaning. `position` against `board_index` stays open. The `match_started` row is unchanged: starting hero health is undecided (match-rules story 020 open questions).
+> **REVISED 2026-11-05 (sprint 6: MR-020)**: §D `minion_summoned.keywords[]` is emitted by the engine, closing that half of the 2026-11-04 note above, and the row states its meaning. `position` against `board_index` stays open.
+> **REVISED 2026-11-05 (DD-X35)**: §D `match_started` lists `starting_health {player, boss}`, mirroring match-rules C15. It carries no starting armour field.
 
 ## Summary
 
@@ -162,7 +163,7 @@ further events not indexed here (`deck_shuffled`, `turn_reset`, `phase_changed`,
 
 | Type | Owner | Payload fields |
 |---|---|---|
-| `match_started` | Match Rules | `floor, hero_id, boss_id, player_deck_size, boss_deck_size` |
+| `match_started` | Match Rules | `floor, hero_id, boss_id, player_deck_size, boss_deck_size, starting_health {player, boss}` (each hero's health after the `on_match_start` hooks; no starting armour field; match-rules C3, C15; 2026-11-05, DD-X35) |
 | `mulligan_offered` / `mulligan_resolved` | Match Rules | `side, instance_ids[]` / `side, replaced_instance_ids[]` |
 | `turn_started` / `turn_ended` | Match Rules | `turn, side, mana_max, mana_available` / `turn, side` |
 | `mana_refilled` / `mana_added` | Match Rules | `side, mana_available, mana_max` (match-rules C15 splits the former `mana_changed` into `crystal_gained`, `mana_refilled`, `mana_spent`, `mana_added`) |

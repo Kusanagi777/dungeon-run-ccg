@@ -6,12 +6,11 @@
 ## Both sides are played by [method _next_command] straight on the engine: no boss
 ## planner is under test here, so the suite does not depend on the driver's schedule.
 ## "Hand ids" means the player's: L3 stores no boss `card_id`, so the boss's is a
-## count. `hero.health` stays null in the view until an event reports it (MUI-001),
-## so a null reads as "nothing to disagree with" and is counted, not compared.
+## count. Hero health is compared once the view knows the hero, a null included:
+## `match_started` reports the heroes and their health together (DD-X35).
 ##
 ## Token `keywords` are compared at every `seq` that compares boards: `minion_summoned`
-## reports the effective set (match-rules story 020). The null `hero.health` skip stays
-## until the starting health is on an event, which waits on that story's open question.
+## reports the effective set (match-rules story 020).
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT := preload("res://src/core/boot.gd")
@@ -110,7 +109,7 @@ func _compare(at: String, boards: bool = true) -> void:
 		_expect(at, side, "hand", _hand_ids(shown.hand), truth.hand)
 		if boards:
 			_expect_board(at, side, _tokens(shown.board), _tokens(truth.board))
-		if shown.hero.health != null:
+		if shown.hero.entity_id != null:
 			_health_compared += 1
 			_expect(at, side, "hero_health", shown.hero.health, truth.hero.health)
 

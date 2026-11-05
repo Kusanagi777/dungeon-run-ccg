@@ -2588,13 +2588,17 @@ func _mulligan_step(keep_mask: Array) -> void:
 	emit(&"mulligan_resolved", {"side": MatchRecords.SIDE_PLAYER, "replaced_instance_ids": replaced})
 	if _halted():
 		return
-	# C3 step 8: match_started
+	# C3 step 8: match_started, after the hooks, so the values are final (DD-X35)
+	var starting_health: Dictionary = {}
+	for side: String in MatchRecords.SIDES:
+		starting_health[side] = health(_state.players[side].hero)
 	emit(&"match_started", {
 		"floor": _state.floor,
 		"hero_id": int(_state.players[MatchRecords.SIDE_PLAYER].hero.entity_id),
 		"boss_id": int(_state.players[MatchRecords.SIDE_BOSS].hero.entity_id),
 		"player_deck_size": _state.players[MatchRecords.SIDE_PLAYER].deck.size(),
 		"boss_deck_size": _state.players[MatchRecords.SIDE_BOSS].deck.size(),
+		"starting_health": starting_health,
 	})
 
 

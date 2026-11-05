@@ -8,8 +8,9 @@
 ## one with none. A new minion has no enchantment yet at either site, so its
 ## effective set is its printed set.
 ##
-## The second half of the story, the starting hero health on `match_started`,
-## is not here: its field names are an open design question (see the story).
+## `match_started` reports `starting_health {player, boss}` (DD-X35), read after
+## the `on_match_start` hooks. Each side's hook deals a different amount, so a
+## value read before the hooks, or from the wrong side, shows.
 extends GdUnitTestSuite
 
 const SIDE_PLAYER: String = MatchFactory.SIDE_PLAYER
@@ -24,6 +25,12 @@ const MINION_HEALTH: int = 3
 const PRINTED: Array = ["windfury", "taunt", "lifesteal"]
 const SORTED: Array = ["lifesteal", "taunt", "windfury"]
 const MANA_POOL: int = 10
+## `MatchConfig.boss.health`, unlike any band default, and each hook's damage.
+const BOSS_HEALTH: int = 42
+const PLAYER_WOUND: int = 3
+const BOSS_WOUND: int = 5
+## What a hook gives its hero, which `match_started` must not report.
+const HOOK_ARMOR: int = 4
 
 
 class FixtureDb extends RefCounted:
@@ -165,4 +172,82 @@ func test_summoned_payload_changes_no_other_field() -> void:
 	assert_dict(_summoned(log, before)).is_equal({
 		"side": SIDE_BOSS, "entity_id": id, "card_id": DEF_MANY, "position": 0,
 		"attack": MINION_ATTACK, "health": MINION_HEALTH, "keywords": SORTED,
+	})
+
+
+# --- match_started.starting_health (C3 step 8, C15, §D, DD-X35) -------------------
+
+## Hook script: [constant PLAYER_WOUND] or [constant BOSS_WOUND] to its own hero.
+func _wound(engine: RulesEngine, _entry: Dictionary, side: StringName, _ctx: Dictionary) -> void:
+	var amount: int = PLAYER_WOUND if String(side) == SIDE_PLAYER else BOSS_WOUND
+	@warning_ignore("return_value_discarded")
+	engine.apply_damage(int(engine.state().players[String(side)].hero.entity_id), amount, null)
+
+
+## Hook script: [constant HOOK_ARMOR] to its own hero.
+func _armor(engine: RulesEngine, _entry: Dictionary, side: StringName, _ctx: Dictionary) -> void:
+	engine.apply_armor(String(side), HOOK_ARMOR)
+
+
+## The `MatchConfig` overrides of one `on_match_start` hook per side running [param script].
+func _hooked(resolver: TestEffectResolver, script: Callable) -> Dictionary:
+	var player_hook: HookInstaller = MatchFactory.make_hook_installer("t_start", SIDE_PLAYER, [&"on_match_start"])
+	var boss_hook: HookInstaller = MatchFactory.make_hook_installer("boss_start", SIDE_BOSS, [&"on_match_start"])
+	resolver.hook_scripts["t_start.0"] = script
+	resolver.hook_scripts["boss_start.0"] = script
+	return {"player": {"hook_installers": [player_hook]}, "boss": {"hook_installers": [boss_hook], "health": BOSS_HEALTH}}
+
+
+## The `match_started` payload of a match started with [param overrides], the
+## mulligan kept, with [param log] taking the events.
+func _started(log: TestEventLog, resolver: TestEffectResolver, overrides: Dictionary) -> Dictionary:
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, overrides, {}, resolver, _db())
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var found: Array[Dictionary] = log.of_type(&"match_started")
+	assert_int(found.size()).is_equal(1)
+	if found.size() != 1:
+		return {}
+	GameAssertions.assert_json_representable(found[0].payload, "match_started payload")
+	return found[0].payload
+
+
+func test_match_started_reports_the_health_each_hook_left() -> void:
+	# Arrange
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+
+	# Act
+	var payload: Dictionary = _started(TestEventLog.new(), resolver, _hooked(resolver, _wound))
+
+	# Assert
+	assert_dict(payload.get("starting_health", {})).is_equal({
+		"player": TestConstants.PLAYER_STARTING_HEALTH - PLAYER_WOUND, "boss": BOSS_HEALTH - BOSS_WOUND,
+	})
+
+
+func test_match_started_without_hooks_reports_the_seated_health() -> void:
+	# Arrange, Act
+	var payload: Dictionary = _started(TestEventLog.new(), TestEffectResolver.new(), {"boss": {"health": BOSS_HEALTH}})
+
+	# Assert
+	assert_dict(payload.get("starting_health", {})).is_equal({
+		"player": TestConstants.PLAYER_STARTING_HEALTH, "boss": BOSS_HEALTH,
+	})
+
+
+func test_match_started_adds_only_starting_health_even_when_a_hook_gives_armour() -> void:
+	# Arrange: a hook gives armour, which DD-X35 leaves off the event
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var log: TestEventLog = TestEventLog.new()
+	var overrides: Dictionary = _hooked(resolver, _armor)
+
+	# Act
+	var payload: Dictionary = _started(log, resolver, overrides)
+
+	# Assert: exactly the five earlier keys and `starting_health`
+	assert_int(log.count(&"armor_gained")).is_equal(2)
+	var keys: Array = payload.keys()
+	keys.sort()
+	assert_array(keys).is_equal(["boss_deck_size", "boss_id", "floor", "hero_id", "player_deck_size", "starting_health"])
+	assert_dict(payload.get("starting_health", {})).is_equal({
+		"player": TestConstants.PLAYER_STARTING_HEALTH, "boss": BOSS_HEALTH,
 	})

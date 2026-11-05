@@ -491,6 +491,35 @@ func test_a_hand_entry_replaces_the_hook_delta_and_clears_it_when_absent() -> vo
 	assert_dict(view.side(SIDE_PLAYER).hand[0]).is_equal({"instance_id": 10, "card_id": "neutral_test_vanilla_2_2", "effective_cost": 2})
 
 
+func test_match_started_sets_both_heroes_starting_health_and_leaves_armour_at_zero() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+
+	# Act
+	_project(view, [_event(1, "match_started", {
+		"floor": 1, "hero_id": PLAYER_HERO_ID, "boss_id": BOSS_HERO_ID, "player_deck_size": 3, "boss_deck_size": 3,
+		"starting_health": {"player": 27, "boss": 37},
+	})])
+
+	# Assert: DD-X35, armour reaches the view only through `armor_gained`
+	assert_int(view.side(&"player").hero.health).is_equal(27)
+	assert_int(view.side(&"boss").hero.health).is_equal(37)
+	assert_int(view.side(&"player").hero.armor).is_equal(0)
+	assert_int(view.side(&"boss").hero.armor).is_equal(0)
+
+
+func test_match_started_from_an_older_stream_leaves_hero_health_null() -> void:
+	# Arrange
+	var view: MatchViewState = _view()
+
+	# Act: `_opening` is the payload as it was before DD-X35
+	_project(view, _opening())
+
+	# Assert
+	assert_that(view.side(&"player").hero.health).is_null()
+	assert_that(view.side(&"boss").hero.health).is_null()
+
+
 func test_the_hero_power_cost_is_null_until_an_event_reports_it() -> void:
 	# Act
 	var view: MatchViewState = _view()
