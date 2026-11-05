@@ -1,6 +1,6 @@
-## Integration: the shipped MVP-1 data (content stories 002 and 003;
-## content.md CN-2 War table and curve summary, F1, F2, CN-6 step 6;
-## heroes.md H-5, F4).
+## Integration: the shipped MVP-1 data (content stories 002, 003, 004, 005 and
+## 010; content.md CN-2 War table and curve summary, F1, F2, CN-3 B2, CN-6 step
+## 6; heroes.md H-5, F4; card-effects.md C11 row 45; DD-X20).
 ##
 ## Loads `res://assets/data/` once per test through the real `DataLoader` +
 ## `CardDatabase` with the validator map `Boot` composes (a fresh, `auto_free`d
@@ -229,8 +229,8 @@ func test_war_curve_matches_the_cn2_summary_and_f2_targets() -> void:
 # --- story 003: band-1 bosses The Rat King and The Gatekeeper --------------------------------
 
 ## CN-3 B2 Rat King: 2× 13 MVP neutrals ≤ 5 cost. The two of the 15 MVP
-## neutrals left out (story 003 Implementation Notes): `neutral_gravekeeper`
-## (deferred, story 001) and `neutral_smite_or_mend` (the swarm deck is bodies).
+## neutrals left out, a recipe choice accepted as shipped (DD-X24):
+## `neutral_gravekeeper` and `neutral_smite_or_mend` (the swarm deck is bodies).
 const RAT_KING_NEUTRALS: Array[String] = [
 	"neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_lantern_bearer",
 	"neutral_bulwark_smith", "neutral_dungeon_delver", "neutral_hush_owl", "neutral_spark_fiend",
@@ -238,12 +238,13 @@ const RAT_KING_NEUTRALS: Array[String] = [
 	"neutral_ogre_porter",
 ]
 const RAT_KING_EXCLUDED: Array[String] = ["neutral_gravekeeper", "neutral_smite_or_mend"]
-## CN-3 B2 Gatekeeper recipe's neutrals less `neutral_gravekeeper` (deferred);
-## its two slots go to the boss cards at ×3 (content Edge Cases fallback).
+## CN-3 B2 Gatekeeper recipe's 13 neutrals, `neutral_gravekeeper` back in them
+## (content story 010, DD-X20).
 const GATEKEEPER_NEUTRALS: Array[String] = [
 	"neutral_lantern_bearer", "neutral_cellar_guard", "neutral_dungeon_delver", "neutral_shield_golem",
 	"neutral_crypt_brute", "neutral_ogre_porter", "neutral_bulwark_smith", "neutral_banner_captain",
-	"neutral_hush_owl", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_smite_or_mend",
+	"neutral_gravekeeper", "neutral_hush_owl", "neutral_torch_imp", "neutral_tunnel_rat",
+	"neutral_smite_or_mend",
 ]
 ## CN-3 B3: [id, T, cost, a, h, keywords, text].
 const BOSS_CARD_ROWS: Array = [
@@ -383,7 +384,7 @@ func test_rat_king_deck_is_two_boss_cards_and_thirteen_neutrals_at_most_5_cost()
 	assert_array(counts.keys()).not_contains(RAT_KING_EXCLUDED)
 
 
-func test_gatekeeper_deck_is_its_b2_recipe_with_the_gravekeeper_slots_on_its_boss_cards() -> void:
+func test_gatekeeper_deck_is_its_b2_recipe_with_gravekeeper_back_in_its_neutrals() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var deck: Array = _boss_or_empty(db, "boss_gatekeeper").get("deck", [])
@@ -391,13 +392,13 @@ func test_gatekeeper_deck_is_its_b2_recipe_with_the_gravekeeper_slots_on_its_bos
 	# Act
 	var counts: Dictionary = _deck_counts(deck)
 
-	# Assert — B2 recipe; Edge Cases same-batch fallback: boss cards up to ×3
+	# Assert — B2 recipe: 2× each boss card + 2× each of the 13 neutrals
 	assert_int(deck.size()).is_equal(30)
-	assert_int(int(counts.get("boss_iron_gate", 0))).is_equal(3)
-	assert_int(int(counts.get("boss_gate_warden", 0))).is_equal(3)
+	assert_int(int(counts.get("boss_iron_gate", 0))).is_equal(2)
+	assert_int(int(counts.get("boss_gate_warden", 0))).is_equal(2)
 	for id: String in GATEKEEPER_NEUTRALS:
 		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
-	assert_int(counts.size()).is_equal(14)
+	assert_int(counts.size()).is_equal(15)
 	for id: String in counts:
 		var card: Dictionary = _card_or_empty(db, id)
 		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
@@ -456,13 +457,13 @@ func test_boss_rat_is_a_1_1_rat_token_summoned_by_the_passive_and_rat_pack_and_n
 		assert_array(Array(bundle["cards"])).not_contains([RAT_TOKEN])
 
 
-func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_14() -> void:
+func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_15() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var card: Dictionary = _card_or_empty(db, "neutral_smite_or_mend")
 
-	# Assert — 14, not CN-2's 15: `neutral_gravekeeper` stays deferred (story 001)
-	assert_int(db.cards_by_set("neutral").size()).is_equal(14)
+	# Assert — CN-1's 15 MVP neutrals, `neutral_gravekeeper` included (story 010)
+	assert_int(db.cards_by_set("neutral").size()).is_equal(15)
 	assert_bool(card.is_empty()).is_false()
 	if card.is_empty():
 		return
@@ -633,20 +634,21 @@ func test_min_bundle_pool_meets_the_mvp_bundle_pool_min_and_the_war_pool_raises_
 # --- story 004: The Rot Warden (band 2), The Hollow King (band 3), decay_husk ---------------
 
 ## CN-3 B2 Rot Warden MVP recipe: 2× 12 MVP neutrals led by `neutral_gravekeeper`
-## and `neutral_shield_golem`. The other 10 (story 004 Implementation Notes)
-## plus `neutral_crypt_brute`, which takes the deferred Gravekeeper's two slots
-## (content Edge Cases fallback: the boss cards are already at ×3).
+## and `neutral_shield_golem`, plus the other 10 (story 004 Implementation
+## Notes). `neutral_crypt_brute` gave Gravekeeper its two slots back (content
+## story 010, DD-X20); the exclusions stand (DD-X24).
 const ROT_WARDEN_NEUTRALS: Array[String] = [
-	"neutral_shield_golem", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard",
-	"neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_dungeon_delver", "neutral_hush_owl",
-	"neutral_spark_fiend", "neutral_banner_captain", "neutral_wolf_rider", "neutral_crypt_brute",
+	"neutral_gravekeeper", "neutral_shield_golem", "neutral_torch_imp", "neutral_tunnel_rat",
+	"neutral_cellar_guard", "neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_dungeon_delver",
+	"neutral_hush_owl", "neutral_spark_fiend", "neutral_banner_captain", "neutral_wolf_rider",
 ]
-## CN-3 B2 Hollow King MVP-1 recipe's 11 neutrals less `neutral_gravekeeper`
-## (deferred); its two slots go to the boss cards at ×3 (Edge Cases fallback).
+const ROT_WARDEN_EXCLUDED: Array[String] = ["neutral_crypt_brute", "neutral_ogre_porter", "neutral_smite_or_mend"]
+## CN-3 B2 Hollow King MVP-1 recipe's 11 neutrals, `neutral_gravekeeper` back in
+## them (content story 010, DD-X20).
 const HOLLOW_KING_NEUTRALS: Array[String] = [
 	"neutral_shield_golem", "neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_crypt_brute",
 	"neutral_ogre_porter", "neutral_dungeon_delver", "neutral_cellar_guard", "neutral_banner_captain",
-	"neutral_hush_owl", "neutral_torch_imp",
+	"neutral_gravekeeper", "neutral_hush_owl", "neutral_torch_imp",
 ]
 ## CN-3 B3: [id, T, cost, a, h, keywords, text].
 const BOSS_CARD_ROWS_B23: Array = [
@@ -740,7 +742,7 @@ func test_rot_warden_and_hollow_king_profiles_resolve_through_their_overrides_wi
 	assert_str(String(hollow_profile.get("intent_mode", "full"))).is_not_equal("hidden")
 
 
-func test_rot_warden_deck_is_its_mvp_recipe_with_the_gravekeeper_slots_on_crypt_brute() -> void:
+func test_rot_warden_deck_is_its_mvp_recipe_led_by_gravekeeper() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var deck: Array = _boss_or_empty(db, "boss_rot_warden").get("deck", [])
@@ -755,12 +757,13 @@ func test_rot_warden_deck_is_its_mvp_recipe_with_the_gravekeeper_slots_on_crypt_
 	for id: String in ROT_WARDEN_NEUTRALS:
 		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
 	assert_int(counts.size()).is_equal(14)
+	assert_array(counts.keys()).not_contains(ROT_WARDEN_EXCLUDED)
 	for id: String in counts:
 		var card: Dictionary = _card_or_empty(db, id)
 		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
 
 
-func test_hollow_king_deck_is_its_mvp1_recipe_with_the_gravekeeper_slots_on_its_boss_cards() -> void:
+func test_hollow_king_deck_is_its_mvp1_recipe_with_gravekeeper_back_in_its_neutrals() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var deck: Array = _boss_or_empty(db, "boss_hollow_king").get("deck", [])
@@ -768,15 +771,15 @@ func test_hollow_king_deck_is_its_mvp1_recipe_with_the_gravekeeper_slots_on_its_
 	# Act
 	var counts: Dictionary = _deck_counts(deck)
 
-	# Assert — CN-3 B2 MVP-1 recipe; Edge Cases fallback: boss cards up to ×3
+	# Assert — CN-3 B2 MVP-1 recipe: every id ×2
 	assert_int(deck.size()).is_equal(30)
-	assert_int(int(counts.get("boss_hollow_knight", 0))).is_equal(3)
-	assert_int(int(counts.get("boss_crown_of_thorns", 0))).is_equal(3)
+	assert_int(int(counts.get("boss_hollow_knight", 0))).is_equal(2)
+	assert_int(int(counts.get("boss_crown_of_thorns", 0))).is_equal(2)
 	assert_int(int(counts.get("war_shield_maiden", 0))).is_equal(2)
 	assert_int(int(counts.get("war_shieldwall_veteran", 0))).is_equal(2)
 	for id: String in HOLLOW_KING_NEUTRALS:
 		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
-	assert_int(counts.size()).is_equal(14)
+	assert_int(counts.size()).is_equal(15)
 	for id: String in counts:
 		var card: Dictionary = _card_or_empty(db, id)
 		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
@@ -865,3 +868,138 @@ func test_band_2_and_3_passives_and_new_cards_pass_validate_effects_with_zero_ro
 	assert_array(rows).is_empty()
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 	assert_array(db.report().errors()).is_empty()
+
+
+# --- story 010: Gravekeeper returns to the boss decks (DD-X20) -------------------------------
+
+## CN-2 row: [id, name, T, cost, a, h, keywords, text, R, tags].
+const GRAVEKEEPER_ROW: Array = [
+	"neutral_gravekeeper", "Gravekeeper", "M", 3, 2, 3, ["deathrattle"],
+	"Deathrattle: Deal 1 damage to the enemy hero per minion that died while this was in play.", "R", ["pings"],
+]
+const CARD_EFFECTS_GDD: String = "res://design/gdd/card-effects.md"
+const GRAVEKEEPER: String = "neutral_gravekeeper"
+const VANILLA: String = "neutral_test_vanilla"
+const SIDE_PLAYER: String = MatchRecords.SIDE_PLAYER
+const SIDE_BOSS: String = MatchRecords.SIDE_BOSS
+
+
+## `has` / `card` / `hero_power` from a map: the engine and the resolver ask
+## nothing else in a match, and `MatchFactory`'s decks are fixture ids.
+class FakeCardDatabase:
+	extends CardDatabase
+
+	var records: Dictionary = {}
+
+	func _init(by_id: Dictionary) -> void:
+		records = by_id
+
+	func has(id: String) -> bool:
+		return records.has(id)
+
+	func card(id: String) -> Variant:
+		return records.get(id)
+
+	func hero_power(id: String) -> Variant:
+		return records.get(id)
+
+
+## The `effects[]` the C11 table gives on row [param row]: its backticked JSON
+## objects, parsed, so a design change that is not mirrored in the data fails.
+func _c11_effects(row: int) -> Array:
+	var out: Array = []
+	for line: String in FileAccess.get_file_as_string(CARD_EFFECTS_GDD).split("\n"):
+		if line.begins_with("| %d |" % row):
+			for m: RegExMatch in RegEx.create_from_string("`(\\{.*?\\})`").search_all(line):
+				out.append(JSON.parse_string(m.get_string(1)))
+	return out
+
+
+func test_gravekeeper_is_the_cn2_row_with_c11_row_45_verbatim() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var row: Array = GRAVEKEEPER_ROW
+	var expected_effects: Array = _c11_effects(45)
+
+	# Act
+	var card: Dictionary = _card_or_empty(db, row[0])
+
+	# Assert — the two C11 effects, `text.en` from CN-2 (it fits text_max_chars)
+	assert_int(expected_effects.size()).is_equal(2)
+	assert_bool(card.is_empty()).is_false()
+	if card.is_empty():
+		return
+	assert_str(card["name"]).is_equal(row[1])
+	assert_str(card["set"]).is_equal("neutral")
+	assert_str(card["type"]).is_equal(TYPE[row[2]])
+	assert_int(int(card["cost"])).is_equal(row[3])
+	assert_int(int(card["attack"])).is_equal(row[4])
+	assert_int(int(card["health"])).is_equal(row[5])
+	assert_array(Array(card["keywords"])).is_equal(row[6])
+	assert_str(card["text"]["key"]).is_equal("card.neutral_gravekeeper.text")
+	assert_str(card["text"]["en"]).is_equal(row[7])
+	assert_str(card["rarity"]).is_equal(RARITY[row[8]])
+	assert_array(Array(card["tags"])).is_equal(row[9])
+	assert_str(JSON.stringify(card["effects"], "", true)).is_equal(JSON.stringify(expected_effects, "", true))
+
+
+func test_gravekeeper_validates_with_zero_fx_rows_and_zero_e_ai_op_unvalued() -> void:
+	# Arrange
+	var db: CardDatabase = _loaded()
+	var card: Dictionary = _card_or_empty(db, GRAVEKEEPER)
+	assert_bool(card.is_empty()).is_false()
+	if card.is_empty():
+		return
+
+	# Act — zero E_AI_OP_UNVALUED: the config check runs over every loaded card
+	var fx_rows: Array = EffectValidator.validate_effects(&"card", GRAVEKEEPER, card["effects"], db, db.config("card_effects"))
+	var ai_rows: Array = BossAI.validate_profiles_config(db.config("ai_profiles"), db)
+
+	# Assert
+	assert_array(fx_rows).is_empty()
+	assert_array(ai_rows).is_empty()
+	assert_int(db.state()).is_equal(CardDatabase.State.READY)
+
+
+func test_shipped_gravekeeper_deals_the_minions_that_died_in_play_to_the_enemy_hero() -> void:
+	# Arrange — the shipped record on the real engine and resolver; three
+	# minions, either side, die while it is in play (QA plan runtime check,
+	# card-effects AC-46 on shipped data)
+	var loaded: CardDatabase = _loaded()
+	var shipped: Dictionary = _card_or_empty(loaded, GRAVEKEEPER)
+	assert_bool(shipped.is_empty()).is_false()
+	if shipped.is_empty():
+		return
+	var by_id: Dictionary = {GRAVEKEEPER: shipped, VANILLA: CardFactory.make_minion(VANILLA, 1, 1, 1)}
+	for record: Dictionary in CardFactory.make_fixture_card_set():
+		by_id[record.id] = record
+	var db: FakeCardDatabase = FakeCardDatabase.new(by_id)
+	var event_log: TestEventLog = TestEventLog.new()
+	var resolver: EffectResolver = EffectResolver.new(db, loaded.config("card_effects"))
+	var engine: RulesEngine = RulesEngine.new(db, MatchFactory.make_rules_config(), resolver)
+	engine.start(MatchFactory.make_started_config(TestRngService.new(), event_log))
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	var state: MatchState = engine.state()
+	var keeper: int = int(MatchFactory.summon(state, SIDE_PLAYER, 2, 3, -1, ["deathrattle"], GRAVEKEEPER).entity_id)
+	var fodder: Array = [
+		int(MatchFactory.summon(state, SIDE_PLAYER, 1, 1, -1, [], VANILLA).entity_id),
+		int(MatchFactory.summon(state, SIDE_BOSS, 1, 1, -1, [], VANILLA).entity_id),
+		int(MatchFactory.summon(state, SIDE_BOSS, 1, 1, -1, [], VANILLA).entity_id),
+	]
+	var destroy: Callable = func(ids: Array) -> void:
+		engine.run_action(func() -> void:
+			for id: Variant in ids:
+				engine.destroy(int(id)))
+	destroy.call(fodder)
+	var before: int = int(event_log.events[-1].seq)
+
+	# Act
+	destroy.call([keeper])
+
+	# Assert
+	var hits: Array = event_log.events.filter(func(e: Dictionary) -> bool:
+		return int(e.seq) > before and str(e.type) == "damage_dealt")
+	assert_int(hits.size()).is_equal(1)
+	assert_int(int(hits[0].payload.target)).is_equal(int(state.players[SIDE_BOSS].hero.entity_id))
+	assert_int(int(hits[0].payload.dealt)).is_equal(3)
+	engine.end_match()
