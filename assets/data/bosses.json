@@ -302,16 +302,16 @@
         "neutral_ogre_porter",
         "neutral_dungeon_delver",
         "neutral_dungeon_delver",
-        "neutral_cellar_guard",
-        "neutral_cellar_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
         "neutral_banner_captain",
         "neutral_banner_captain",
         "neutral_gravekeeper",
         "neutral_gravekeeper",
-        "neutral_hush_owl",
-        "neutral_hush_owl",
-        "neutral_torch_imp",
-        "neutral_torch_imp"
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_temple_guard",
+        "neutral_temple_guard"
       ],
       "ai_profile": "boss_hollow_king",
       "tags": [
@@ -320,6 +320,250 @@
       "intro_text": {
         "key": "boss.boss_hollow_king.intro",
         "en": "The Hollow King gives its minions +1/+1 at the start of each of its turns."
+      }
+    },
+    {
+      "id": "boss_cellar_hermit",
+      "name": "The Cellar Hermit",
+      "band": 1,
+      "health": 30,
+      "hero_power": "power_mend",
+      "passive": null,
+      "deck": [
+        "boss_moss_poultice",
+        "boss_moss_poultice",
+        "boss_hermit_crab",
+        "boss_hermit_crab",
+        "neutral_field_medic",
+        "neutral_field_medic",
+        "neutral_blood_tick",
+        "neutral_blood_tick",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_novice_scout",
+        "neutral_novice_scout",
+        "neutral_treasure_map",
+        "neutral_treasure_map",
+        "neutral_mimic",
+        "neutral_mimic",
+        "neutral_miners_pick",
+        "neutral_miners_pick",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard"
+      ],
+      "ai_profile": "boss_cellar_hermit",
+      "tags": [
+        "heal"
+      ],
+      "intro_text": {
+        "key": "boss.boss_cellar_hermit.intro",
+        "en": "The Cellar Hermit mends itself for 3 every turn it can."
+      }
+    },
+    {
+      "id": "boss_blood_abbess",
+      "name": "The Blood Abbess",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": "owner_hero",
+        "ops": [
+          {
+            "op": "heal",
+            "amount": 5
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_blood_abbess.passive",
+        "en": "At the start of the boss's turn, restore 5 Health to the boss."
+      },
+      "deck": [
+        "boss_blood_chalice",
+        "boss_blood_chalice",
+        "boss_sister_of_blood",
+        "boss_sister_of_blood",
+        "neutral_blood_tick",
+        "neutral_blood_tick",
+        "neutral_field_medic",
+        "neutral_field_medic",
+        "neutral_smite_or_mend",
+        "neutral_smite_or_mend",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter"
+      ],
+      "ai_profile": "boss_blood_abbess",
+      "tags": [
+        "heal"
+      ],
+      "intro_text": {
+        "key": "boss.boss_blood_abbess.intro",
+        "en": "The Blood Abbess restores 5 Health at the start of each of her turns."
+      }
+    },
+    {
+      "id": "boss_iron_tollman",
+      "name": "The Iron Tollman",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "modify_cost",
+        "scope": {
+          "card": {
+            "side": "enemy",
+            "type": "minion"
+          }
+        },
+        "ops": [
+          {
+            "op": "modify_value",
+            "delta": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_iron_tollman.passive",
+        "en": "The player's minions cost (1) more."
+      },
+      "deck": [
+        "boss_toll_collector",
+        "boss_toll_collector",
+        "boss_tollgate",
+        "boss_tollgate",
+        "neutral_rusty_dagger",
+        "neutral_rusty_dagger",
+        "neutral_miners_pick",
+        "neutral_miners_pick",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_cutpurse",
+        "neutral_cutpurse",
+        "neutral_charging_boar",
+        "neutral_charging_boar",
+        "neutral_storm_harpy",
+        "neutral_storm_harpy",
+        "neutral_novice_scout",
+        "neutral_novice_scout",
+        "neutral_tunnel_shaman",
+        "neutral_tunnel_shaman",
+        "neutral_treasure_map",
+        "neutral_treasure_map",
+        "neutral_muzzle",
+        "neutral_muzzle",
+        "neutral_hush_owl",
+        "neutral_hush_owl"
+      ],
+      "ai_profile": "boss_iron_tollman",
+      "tags": [
+        "control"
+      ],
+      "intro_text": {
+        "key": "boss.boss_iron_tollman.intro",
+        "en": "The Iron Tollman charges (1) more for every minion you play."
+      }
+    },
+    {
+      "id": "boss_lich_archivist",
+      "name": "The Lich Archivist",
+      "band": 3,
+      "health": 50,
+      "hero_power": "power_drain",
+      "passive": {
+        "trigger": "modify_damage",
+        "scope": {
+          "source": {
+            "side": "friendly",
+            "type": "spell"
+          }
+        },
+        "ops": [
+          {
+            "op": "modify_value",
+            "delta": 2
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_lich_archivist.passive",
+        "en": "The boss's spells deal 2 more damage."
+      },
+      "deck": [
+        "boss_bone_shard",
+        "boss_bone_shard",
+        "boss_soul_bolt",
+        "boss_soul_bolt",
+        "neutral_rockfall",
+        "neutral_rockfall",
+        "neutral_powder_keg",
+        "neutral_powder_keg",
+        "neutral_muzzle",
+        "neutral_muzzle",
+        "neutral_smite_or_mend",
+        "neutral_smite_or_mend",
+        "neutral_spark_fiend",
+        "neutral_spark_fiend",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_temple_guard",
+        "neutral_temple_guard",
+        "neutral_stone_sentinel",
+        "neutral_stone_sentinel",
+        "neutral_field_medic",
+        "neutral_field_medic",
+        "neutral_blood_tick",
+        "neutral_blood_tick",
+        "neutral_hill_giant",
+        "neutral_hill_giant",
+        "neutral_war_mammoth",
+        "neutral_war_mammoth"
+      ],
+      "ai_profile": "boss_lich_archivist",
+      "tags": [
+        "spells"
+      ],
+      "intro_text": {
+        "key": "boss.boss_lich_archivist.intro",
+        "en": "The Lich Archivist's spells deal 2 more damage."
       }
     }
   ]

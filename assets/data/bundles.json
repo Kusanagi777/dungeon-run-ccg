@@ -160,6 +160,102 @@
         "key": "bundle.bundle_war_weapons_3.text",
         "en": "The finest blades in the delve."
       }
+    },
+    {
+      "id": "bundle_neutral_tricks",
+      "name": "Sleight of Hand",
+      "set": "neutral",
+      "theme": "tricks",
+      "cards": [
+        "neutral_hush_owl",
+        "neutral_tunnel_shaman",
+        "neutral_hex_doctor"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tricks.text",
+        "en": "Quiet a threat, turn it inside out."
+      }
+    },
+    {
+      "id": "bundle_neutral_value",
+      "name": "Supply Line",
+      "set": "neutral",
+      "theme": "value",
+      "cards": [
+        "neutral_novice_scout",
+        "neutral_treasure_map",
+        "neutral_mimic"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_value.text",
+        "en": "Cards, crystals and a copy for later."
+      }
+    },
+    {
+      "id": "bundle_neutral_pings",
+      "name": "Sparks",
+      "set": "neutral",
+      "theme": "pings",
+      "cards": [
+        "neutral_spark_fiend",
+        "neutral_rockfall",
+        "neutral_powder_keg"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pings.text",
+        "en": "Small blasts that land where they please."
+      }
+    },
+    {
+      "id": "bundle_neutral_big",
+      "name": "Heavy Hitters",
+      "set": "neutral",
+      "theme": "big",
+      "cards": [
+        "neutral_stone_sentinel",
+        "neutral_hill_giant",
+        "neutral_war_mammoth"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_big.text",
+        "en": "Large bodies for the deep floors."
+      }
+    },
+    {
+      "id": "bundle_neutral_tempo_2",
+      "name": "Skirmishers",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_rusty_dagger",
+        "neutral_cutpurse",
+        "neutral_storm_harpy"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tempo_2.text",
+        "en": "Slip in early and strike twice."
+      }
+    },
+    {
+      "id": "bundle_neutral_value_2",
+      "name": "Field Kit",
+      "set": "neutral",
+      "theme": "value",
+      "cards": [
+        "neutral_field_medic",
+        "neutral_blood_tick",
+        "neutral_miners_pick"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_value_2.text",
+        "en": "Keep your health and your hand topped up."
+      }
     }
   ]
 }

@@ -36,6 +36,58 @@
         "key": "power.power_whetstone.text",
         "en": "Equip a 1/2 Whetstone Blade. If you have a weapon, give it +1 Attack this turn instead."
       }
+    },
+    {
+      "id": "power_mend",
+      "name": "Mend",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_mend.text",
+        "en": "Restore 3 Health to your hero."
+      }
+    },
+    {
+      "id": "power_drain",
+      "name": "Drain",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            },
+            {
+              "op": "heal",
+              "amount": 2,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_drain.text",
+        "en": "Deal 2 damage to a minion. Restore 2 Health to your hero."
+      }
     }
   ]
 }

@@ -309,6 +309,228 @@
         "key": "card.boss_crown_of_thorns.text",
         "en": "Give your minions +1/+1 and Taunt."
       }
+    },
+    {
+      "id": "boss_moss_poultice",
+      "name": "Moss Poultice",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_moss_poultice.text",
+        "en": "Restore 4 Health to your hero."
+      }
+    },
+    {
+      "id": "boss_hermit_crab",
+      "name": "Hermit Crab",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_hermit_crab.text",
+        "en": "Deathrattle: Restore 3 Health to your hero."
+      }
+    },
+    {
+      "id": "boss_blood_chalice",
+      "name": "Blood Chalice",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 4,
+              "targets": "owner_hero"
+            },
+            {
+              "op": "damage",
+              "amount": 2,
+              "targets": "enemy_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_blood_chalice.text",
+        "en": "Restore 4 Health to your hero. Deal 2 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_sister_of_blood",
+      "name": "Sister of Blood",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_sister_of_blood.text",
+        "en": "Lifesteal."
+      }
+    },
+    {
+      "id": "boss_toll_collector",
+      "name": "Toll Collector",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_enemy_minions",
+            "filter": {
+              "cost_ge": 3
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_toll_collector.text",
+        "en": "Battlecry: Deal 2 damage to all enemy minions that cost (3) or more."
+      }
+    },
+    {
+      "id": "boss_tollgate",
+      "name": "Tollgate",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_tollgate.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "boss_bone_shard",
+      "name": "Bone Shard",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_bone_shard.text",
+        "en": "Deal 1 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "boss_soul_bolt",
+      "name": "Soul Bolt",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            },
+            {
+              "op": "heal",
+              "amount": 2,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_soul_bolt.text",
+        "en": "Deal 2 damage. Restore 2 Health to your hero."
+      }
     }
   ]
 }
