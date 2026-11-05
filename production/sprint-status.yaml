@@ -33,7 +33,7 @@ stories:
     name: "minion_summoned carries keywords[], match_started carries the starting hero health, one reviewed golden regeneration"
     file: "production/epics/match-rules/story-020-keywords-and-starting-health-on-events.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 9)"
     estimate_days: 1
     lane: 9
@@ -42,12 +42,12 @@ stories:
     contract: true
     blocker: "readiness: the player_health/boss_health names and starting armour are open (design owner)"
     note: "pre-W1, merges first at M0 (only rules_engine.gd editor); rows 9 and 10; goldens regenerate only in this change's own commit, stripped-diff proof, technical-director reads the diff before merge; full suite against the merged state; fallback L6 W1; /code-review at M0"
-    completed: ""
+    completed: "2026-11-05"
   - id: "boot-composition-root-009"
     name: "Boot supplies driver_factory: a per-task planner factory chosen by planner_mode"
     file: "production/epics/boot-composition-root/story-009-driver-factory.md"
     priority: must-have
-    status: ready-for-dev
+    status: done
     owner: "general-purpose (lane 8)"
     estimate_days: 1
     lane: 8
@@ -56,7 +56,7 @@ stories:
     contract: false
     blocker: ""
     note: "pre-W1, M0, ahead of every W1 lane; row 8; DD-X33: planner_mode immediate becomes a data error, profiles_stub.json moves to worker ([S], shared fixture); boot.gd merged by the orchestrator; open: BAI-019's is_live under the factory; fallback L6 W1; /code-review at M0"
-    completed: ""
+    completed: "2026-11-05"
   - id: "boot-composition-root-010"
     name: "A committed Godot wrapper: godot resolution and a per-worktree user://"
     file: "production/epics/boot-composition-root/story-010-godot-wrapper-and-user-dir-isolation.md"
