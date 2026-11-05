@@ -25,6 +25,8 @@ const REAL_ROUNDS: int = 6
 ## The shipped band-1 boss the real-planner matches play.
 const REAL_BOSS: String = "boss_torchbearer"
 const REAL_SEED: int = 11
+## Far more polls than a test ticks.
+const TICKS_STAYS_LIVE: int = 1000
 
 
 ## A clock a test moves by hand.
@@ -76,8 +78,8 @@ class SpyDriver:
 
 	var steps: int = 0
 
-	func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, task: PlannerTask, clock: Callable) -> void:
-		super(config, db, settings, task, clock)
+	func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, factory: Callable, clock: Callable) -> void:
+		super(config, db, settings, factory, clock)
 
 	func _build_engine(db: CardDatabase, resolver: EffectResolver) -> RulesEngine:
 		return CountingEngine.new(db, db.config("match_rules"), resolver)
@@ -109,7 +111,7 @@ func after_test() -> void:
 
 
 func _build(player_deck: Array = [], boss_deck: Array = []) -> SpyDriver:
-	_driver = SpyDriver.new(MatchDriverFixture.match_config(_log, player_deck, boss_deck), _db, {}, _task, _clock.read)
+	_driver = SpyDriver.new(MatchDriverFixture.match_config(_log, player_deck, boss_deck), _db, {}, func() -> PlannerTask: return _task, _clock.read)
 	return _driver
 
 
@@ -266,20 +268,23 @@ func test_a_true_plan_replays_with_no_fault_and_ends_planning() -> void:
 	# Assert
 	assert_int(_count(FAULT_EVENT)).is_equal(0)
 	assert_int(_count(&"command_rejected")).is_equal(0)
-	assert_bool(_driver.is_planning()).is_false()
+	assert_object(_driver._pending_plan).is_null()
 	assert_str(String(_driver._engine.active_side())).is_equal(SIDE_PLAYER)
 
 
-func test_a_plan_with_no_commands_is_done_at_once() -> void:
-	# Arrange: `plan_turn` outside the boss's Main returns one
+func test_a_plan_with_no_commands_is_a_fault_and_the_boss_turn_ends() -> void:
+	# Arrange: `plan_turn` outside the boss's Main returns one. Story 015 left this
+	# silent; DD-X31 (2026-11-04) makes it `ai_fault` and an ended turn
 	_boss_plan([])
 
 	# Act
 	_driver.tick()
 
 	# Assert
-	assert_bool(_driver.is_planning()).is_false()
-	assert_int(_count(FAULT_EVENT)).is_equal(0)
+	assert_object(_driver._pending_plan).is_null()
+	assert_int(_count(FAULT_EVENT)).is_equal(1)
+	assert_str(str(_types(FAULT_EVENT)[0].payload.reason)).is_equal(MatchDriver.FAULT_EMPTY_PLAN)
+	assert_str(String(_driver._engine.active_side())).is_equal(SIDE_PLAYER)
 
 
 func test_poll_runs_once_per_tick_and_never_after_it_answered_true() -> void:
@@ -288,18 +293,21 @@ func test_poll_runs_once_per_tick_and_never_after_it_answered_true() -> void:
 	MatchDriverFixture.to_boss_main(_driver)
 	_task.polls_before_done = 2
 	MatchDriverFixture.start_plan(_driver, _task, MatchDriverFixture.scripted_plan(_driver, MatchDriverFixture.boss_plays(1)))
+	var running: FakePlannerTask = _task
+	_task = FakePlannerTask.new()  # what the row starts next, once this task returned
+	_task.polls_before_done = TICKS_STAYS_LIVE
 
 	# Act and Assert
 	_driver.tick()
-	assert_int(_task.polls).is_equal(1)
+	assert_int(running.polls).is_equal(1)
 	_driver.tick()
-	assert_int(_task.polls).is_equal(2)
+	assert_int(running.polls).is_equal(2)
 	_driver.tick()
-	assert_int(_task.polls).is_equal(3)
+	assert_int(running.polls).is_equal(3)
 	_driver.tick()
 	_driver.tick()
-	assert_int(_task.polls).is_equal(3)
-	assert_int(_task.polls_after_done).is_equal(0)
+	assert_int(running.polls).is_equal(3)
+	assert_int(running.polls_after_done).is_equal(0)
 
 
 # --- The budget ----------------------------------------------------------------
@@ -327,7 +335,7 @@ func test_replay_stops_when_the_budget_is_spent_and_resumes_next_tick() -> void:
 	assert_bool(_driver.is_planning()).is_true()
 	_driver.tick()
 	assert_int(_count(&"card_played")).is_equal(4)
-	assert_bool(_driver.is_planning()).is_false()
+	assert_object(_driver._pending_plan).is_null()
 	assert_int(_count(FAULT_EVENT)).is_equal(0)
 
 
@@ -448,7 +456,7 @@ func test_a_rejected_command_faults_ends_the_turn_and_replays_no_more() -> void:
 	assert_int(_count(DECISION_EVENT)).is_equal(2)
 	assert_str(String(_driver._engine.active_side())).is_equal(SIDE_PLAYER)
 	assert_str(_driver.query().phase()).is_equal(MatchState.PHASE_MAIN)
-	assert_bool(_driver.is_planning()).is_false()
+	assert_object(_driver._pending_plan).is_null()
 
 
 func test_a_checksum_mismatch_faults_at_the_end_and_ends_the_turn() -> void:
@@ -484,7 +492,7 @@ func test_a_mismatch_after_the_plans_own_end_turn_leaves_the_match_running() -> 
 	assert_int(_count(&"command_rejected")).is_equal(1)
 	assert_str(String(_driver._engine.active_side())).is_equal(SIDE_PLAYER)
 	assert_str(_driver.query().phase()).is_equal(MatchState.PHASE_MAIN)
-	assert_bool(_driver.is_planning()).is_false()
+	assert_object(_driver._pending_plan).is_null()
 
 
 func test_a_true_plan_spread_over_two_ticks_stays_clean() -> void:
@@ -550,6 +558,7 @@ func test_a_player_lethal_ends_the_match() -> void:
 
 	# Act
 	var result: Dictionary = _driver.submit(MatchRecords.attack(SIDE_PLAYER, int(minion.entity_id), int(hero.entity_id)))
+	_driver.tick()  # the turn's forecast is still live, and this collects it
 
 	# Assert
 	assert_bool(result.accepted).is_true()
@@ -697,7 +706,7 @@ func test_a_tick_that_ends_the_match_appends_nothing_after_the_end() -> void:
 ## no room left there (rng-event-log rule 16).
 func _events_at_boss_main() -> int:
 	var measure: EventLog = EventLog.new(TestConstants.MAX_MATCH_EVENTS, EventLog.SCOPE_MATCH)
-	var probe: MatchDriver = MatchDriver.new(MatchDriverFixture.match_config(measure), _db, {}, FakePlannerTask.new(), _clock.read)
+	var probe: MatchDriver = MatchDriver.new(MatchDriverFixture.match_config(measure), _db, {}, MatchDriverFixture.same_task(FakePlannerTask.new()), _clock.read)
 	MatchDriverFixture.to_boss_main(probe)
 	var events: int = measure.size()
 	probe.shutdown()
@@ -801,7 +810,7 @@ func test_shutdown_twice_is_harmless_and_a_later_submit_is_refused() -> void:
 func _graph_after(end_the_match: bool) -> Array[WeakRef]:
 	var log: EventLog = EventLog.new(TestConstants.MAX_MATCH_EVENTS, EventLog.SCOPE_MATCH)
 	var task: FakePlannerTask = FakePlannerTask.new()
-	var driver: MatchDriver = MatchDriver.new(MatchDriverFixture.match_config(log), _db, {}, task)
+	var driver: MatchDriver = MatchDriver.new(MatchDriverFixture.match_config(log), _db, {}, MatchDriverFixture.same_task(task))
 	MatchDriverFixture.to_boss_main(driver)
 	task.polls_before_done = 2
 	MatchDriverFixture.start_plan(driver, task, MatchDriverFixture.scripted_plan(driver, MatchDriverFixture.boss_plays(1)))
@@ -848,7 +857,8 @@ func _shipped() -> CardDatabase:
 
 
 ## A match on the shipped data, [constant REAL_ROUNDS] rounds in which the player
-## passes and the boss plans through `BossAI.plan_task`. The clock is [param clock].
+## passes and the schedule runs the boss through `BossAI.plan_task`. The clock is
+## [param clock].
 ## Returns the log; the driver is shut down.
 func _real_match(db: CardDatabase, clock: FakeClock) -> EventLog:
 	var boss_def: Dictionary = db.boss(REAL_BOSS)
@@ -859,13 +869,11 @@ func _real_match(db: CardDatabase, clock: FakeClock) -> EventLog:
 		"player": {"deck": hero.starter_deck},
 		"boss": {"boss_def_id": REAL_BOSS, "deck": boss_def.deck, "health": boss_def.health, "ai_id": boss_def.ai_profile},
 	})
-	var driver: MatchDriver = MatchDriver.new(config, db, {}, ImmediatePlannerTask.new(), clock.read)
+	var driver: MatchDriver = MatchDriver.new(config, db, {}, func() -> PlannerTask: return ImmediatePlannerTask.new(), clock.read)
 	MatchDriverFixture.past_mulligan(driver)
 	for _round: int in REAL_ROUNDS:
 		var ended: Dictionary = driver.submit(MatchRecords.end_turn(SIDE_PLAYER))
 		assert_bool(ended.accepted).is_true()
-		if not driver.is_planning():
-			driver._start_plan_task()
 		while driver.is_planning():
 			driver.tick()
 		if driver.query().phase() == MatchState.PHASE_ENDED:

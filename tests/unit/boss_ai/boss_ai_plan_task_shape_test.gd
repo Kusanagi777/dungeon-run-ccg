@@ -105,17 +105,21 @@ func test_plan_task_takes_the_task_with_no_default() -> void:
 	assert_array(found[0].default_args).is_empty()
 
 
-func test_forecast_task_and_choose_task_take_the_task_with_no_default() -> void:
-	# Arrange — BAI-008 D-1 for the two siblings: the same trap, the same cure
-	var expected_args: Dictionary = {"forecast_task": 2, "choose_task": 3}
+func test_forecast_task_takes_the_task_with_no_default_and_no_choose_task_is_left() -> void:
+	# Arrange — BAI-008 D-1 for the sibling: the same trap, the same cure. DD-X31 took
+	# `choose_task` away: a Choice is answered inside a plan
+	var expected_args: Dictionary = {"forecast_task": 2}
 	var found: Dictionary = {}
 
 	# Act
+	var names: Array[String] = []
 	for method: Dictionary in load(BOSS_AI_PATH).get_script_method_list():
+		names.append(str(method.name))
 		if expected_args.has(str(method.name)):
 			found[str(method.name)] = method
 
 	# Assert
+	assert_array(names).not_contains(["choose_task"])
 	assert_int(found.size()).is_equal(expected_args.size())
 	for name: String in expected_args:
 		assert_int((found[name].args as Array).size()).is_equal(int(expected_args[name]))

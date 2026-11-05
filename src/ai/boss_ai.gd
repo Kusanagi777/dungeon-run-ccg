@@ -6,7 +6,10 @@
 ## per match, whose [method plan_turn] runs the C2 action loop on a
 ## `RulesEngine.clone()` and returns a [TurnPlan] for the driver to replay;
 ## [method forecast] (story 011) runs the same loop as a dry run and returns an
-## [Intent], and [method choose] (story 010) answers a boss Choice.
+## [Intent]. A boss Choice is answered inside the plan, by the [Chooser] that
+## [method choose] (story 010) fronts: one its own action raises, on the sandbox, and
+## one standing when the plan starts, which it opens by answering (DD-X31). The driver
+## runs no separate choose task.
 ##
 ## **The planner** reads the sandbox through `legal_commands()`, its derived
 ## values and, like [Scorer], its `state()`, and mutates only through `submit` on
@@ -200,6 +203,8 @@ const REASON_ACTION_CAP: String = "action_cap"
 ## `ai_fault.reason` (Edge Cases "Legality and the command loop", States `Faulted`).
 const FAULT_NO_LEGAL_COMMANDS: String = "no_legal_commands"
 const FAULT_END_TURN_REJECTED: String = "end_turn_rejected"
+## The side's own Choice could not be answered: no option, or the sandbox refused it.
+const FAULT_CHOICE_UNANSWERED: String = "choice_unanswered"
 ## `ai_plan_aborted.reason` (C3): a step no longer legal, one the sandbox
 ## rejected, or a plan that ran out with the player alive.
 const ABORT_DIVERGED: String = "diverged"
@@ -272,9 +277,9 @@ class _Turn:
 		stream = draws_from
 
 
-## The `ai_decision {kind: choice}` of the last [method choose], for the choose
-## task to hand on (ADR-0008 Decision 3): `choose` itself returns the index alone
-## (C1.4), and [method plan_turn] folds it into its own diagnostics.
+## The `ai_decision {kind: choice}` of the last [method choose]: `choose` itself
+## returns the index alone (C1.4), and [method plan_turn] folds it into its own
+## diagnostics.
 var last_choice: Dictionary = {}
 ## The forecast the driver last told this AI of ([method note_forecast]), until a
 ## plan commits against it (States `Idle`). A stale forecast never gets here.
@@ -501,42 +506,38 @@ func forecast_task(sandbox: RulesEngine, planner: PlannerTask) -> Callable:
 	return func() -> Variant: return await forecast(sandbox, planner)
 
 
-## The task body for one boss Choice: [method choose] on [param sandbox], a clone
-## the caller owns, for the `ChoiceRequest` [param pending]. [param planner] is the
-## running task, required like [method plan_task]'s: the body yields to it once
-## before scoring. The task's result is the option index; the
-## `ai_decision {kind: choice}` is [member last_choice].
-## [codeblock]
-## task.start(boss_ai.choose_task(sandbox, sandbox.pending_choice(), task))
-## [/codeblock]
-func choose_task(sandbox: RulesEngine, pending: Dictionary, planner: PlannerTask) -> Callable:
-	return func() -> Variant:
-		await planner.checkpoint()
-		return choose(sandbox, pending)
-
-
 ## The C2 action loop on [param sandbox] (a `RulesEngine.clone()`, never the live
 ## engine) at its own Main: returns the [TurnPlan]. A **coroutine** (ADR-0006
 ## erratum): every caller awaits it. Forks `sim_<turn>` once, for every sandbox of
 ## the turn (C4), and leaves the root's `rng_match` to move only by what it accepts,
-## or the replay would diverge. Outside the side-to-move's Main it returns an empty
-## plan. The caller owns [param sandbox] and ends it with `end_match()`. With no
-## [param planner] nothing yields: for tests and the harness, never a task body.
+## or the replay would diverge.
+##
+## A Choice standing on [param sandbox] is answered first, for the side it names, and
+## the loop runs only if that reaches the side's Main (DD-X31). So a boss Choice from a
+## Start step opens the turn's plan, and one raised on the player's turn gives a plan of
+## the `choose` alone, with no intent committed: the turn is not the boss's. Anywhere
+## else outside the side-to-move's Main the plan is empty. The caller owns
+## [param sandbox] and ends it with `end_match()`. With no [param planner] nothing
+## yields: for tests and the harness, never a task body.
 ## [codeblock]
 ## var plan: TurnPlan = await boss_ai.plan_turn(sandbox)
 ## [/codeblock]
 func plan_turn(sandbox: RulesEngine, planner: PlannerTask = null) -> TurnPlan:
-	var turn: _Turn = _Turn.new(sandbox, planner if planner != null else _NoYield.new(), String(sandbox.active_side()), _ai_stream)
+	var pending: Variant = sandbox.pending_choice()
+	var side: String = str(pending.side) if pending is Dictionary else String(sandbox.active_side())
+	var turn: _Turn = _Turn.new(sandbox, planner if planner != null else _NoYield.new(), side, _ai_stream)
 	turn.plan.mode_trace.append(turn.mode)
-	if not _is_own_main(turn):
-		return turn.plan
 	var scratch: Variant = sandbox.state().log
 	var scratch_start: int = int(scratch.size())
-	var draws_before: int = _ai_stream.draws
-	turn.sim = _ai_stream.fork(TieBreak.sim_label(int(sandbox.state().turn)))
-	turn.plan.ai_draws = _ai_stream.draws - draws_before
-	await _run_loop(turn)
-	_commit_intent(turn)
+	if pending is Dictionary:
+		await turn.planner.checkpoint()
+		_answer_choices(turn)
+	if _is_own_main(turn):
+		var draws_before: int = _ai_stream.draws
+		turn.sim = _ai_stream.fork(TieBreak.sim_label(int(sandbox.state().turn)))
+		turn.plan.ai_draws += _ai_stream.draws - draws_before
+		await _run_loop(turn)
+		_commit_intent(turn)
 	turn.plan.expected_checksum = TurnPlan.checksum(scratch.events_since(scratch_start))
 	return turn.plan
 
@@ -643,7 +644,8 @@ func play_turn(engine: RulesEngine, planner: PlannerTask = null) -> void:
 ## the clone; a tie takes one draw from the `ai_<floor>` stream. The caller submits
 ## `choose{issuer: boss, option_index}`. [param mode] is logged in
 ## [member last_choice]. Returns [constant Chooser.NO_OPTION] for a request it
-## must not answer.
+## must not answer. The driver has no use for it: a plan answers every Choice
+## (DD-X31).
 ## [codeblock]
 ## var index: int = boss_ai.choose(sandbox, sandbox.pending_choice())
 ## engine.submit(MatchRecords.choose(MatchRecords.SIDE_BOSS, index))
@@ -756,7 +758,7 @@ func _plan_pass(turn: _Turn) -> void:
 		_note_search(turn)
 		if steps != null:
 			_enter_mode(turn, Scorer.MODE_LETHAL)
-			_execute_lethal(turn, steps)
+			await _execute_lethal(turn, steps)
 			return
 	_enter_mode(turn, _scoring_mode(turn))
 	var candidates: Array = _open(turn, _picker.collect(turn.sandbox, _profile, _profile.budgets))
@@ -841,13 +843,15 @@ func _end_turn(turn: _Turn) -> void:
 		_record(turn, _fault(FAULT_END_TURN_REJECTED))
 
 
-## C3: runs [param steps] on the sandbox, one `ai_decision` each. A step
-## `legal_commands()` no longer lists (a Taunt appeared, the target is gone) or the
-## sandbox rejects, or a plan that ends with the player alive, is a divergence: the
+## C3: runs [param steps] on the sandbox, one `ai_decision` each, a coroutine with a
+## checkpoint ahead of each, so a time-sliced task yields inside a long lethal (A30). A
+## step `legal_commands()` no longer lists (a Taunt appeared, the target is gone) or
+## the sandbox rejects, or a plan that ends with the player alive, is a divergence: the
 ## search's randomness is only an estimate of the sandbox's.
 func _execute_lethal(turn: _Turn, steps: Array) -> void:
 	var first_row: int = turn.plan.intent_rows.size()
 	for index: int in steps.size():
+		await turn.planner.checkpoint()
 		if not _is_own_main(turn):
 			return
 		var step: Dictionary = steps[index]
@@ -891,7 +895,9 @@ func _abort_plan(turn: _Turn, reason: String, step: int) -> void:
 ## Answers boss-side Choices on the sandbox like [method choose] (C2's inner
 ## `while`): the root sandbox, so a tie draws from the turn's stream, in a real plan
 ## the live `ai_<floor>` stream, counted in `TurnPlan.ai_draws` (C9), and the command
-## is replayed like any other.
+## is replayed like any other. A Choice for the other side is theirs, and stops here. A
+## Choice of its own it cannot answer ends the plan with a fault (Edge Cases: the
+## planner never spins); the driver then closes it.
 func _answer_choices(turn: _Turn) -> void:
 	while turn.sandbox.phase() == MatchState.PHASE_CHOICE:
 		var pending: Variant = turn.sandbox.pending_choice()
@@ -899,6 +905,7 @@ func _answer_choices(turn: _Turn) -> void:
 			return
 		var index: int = _choose_as(turn.sandbox, pending, turn.side, turn.stream, turn.mode)
 		if index == Chooser.NO_OPTION:
+			_give_up_choice(turn)
 			return
 		var command: Dictionary = MatchRecords.choose(turn.side, index)
 		var decision: Dictionary = _decision(turn, command, last_choice.alternatives)
@@ -909,8 +916,15 @@ func _answer_choices(turn: _Turn) -> void:
 		if not result.accepted:
 			decision["rejection"] = str(result.rejection.code)
 			_record(turn, decision)
+			_give_up_choice(turn)
 			return
 		_accept(turn, command, decision)
+
+
+## Records the fault and stops the loop.
+func _give_up_choice(turn: _Turn) -> void:
+	_record(turn, _fault(FAULT_CHOICE_UNANSWERED))
+	turn.finished = true
 
 
 func _accept(turn: _Turn, command: Dictionary, decision: Dictionary) -> void:

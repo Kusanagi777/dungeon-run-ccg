@@ -336,7 +336,7 @@ set it scores with). Both are observable in `ai_decision` payloads; neither is s
 | `Executing` | plan step diverged | second search not yet used | `Planning` (`ai_plan_aborted`) |
 | `Choosing` | `choose` accepted | phase returns to `BossTurn.Main` | `Planning` |
 | `Choosing` | `choose` accepted | phase is `Ended` | `Idle` |
-| `Choosing` | `choose` accepted | phase is `PlayerTurn.*` (the Choice was raised by a boss trigger during the player's turn; the driver called `choose` directly) | `Idle` |
+| `Choosing` | `choose` accepted | phase is `PlayerTurn.*` (the Choice was raised by a boss trigger during the player's turn; a plan holding that `choose` alone answered it (2026-11-04, DD-X31; was "the driver called `choose` directly")) | `Idle` |
 | `Planning` | `cmds == [end_turn]` or `end_turn` scores best | — | `Ending` |
 | `Ending` | engine phase ≠ `BossTurn.Main` | — | `Idle` |
 | any | engine phase `Ended` | — | `Idle` |
@@ -618,7 +618,15 @@ budget), `off`.
   `phase == Choice ∧ pending_choice.side == BOSS` after `submit` and answers with `choose` (C7)
   before planning its next action; the player's commands are meanwhile `CHOICE_PENDING` (Match
   Rules). A Choice raised during the **player's** turn for the boss (a boss Deathrattle that
-  Discovers) is answered by the same `choose` entry point, called by the driver.
+  Discovers) is answered the same way (C7), inside a plan the driver starts for it: the plan
+  is that `choose` alone, commits no intent, and the player's turn resumes (2026-11-04, DD-X31;
+  was "by the same `choose` entry point, called by the driver").
+- **If the planner gives the driver no way forward** (a null result, or a plan with no commands):
+  `ai_fault {reason: null_result | empty_plan}`, then the boss's turn ends. The engine refuses
+  `end_turn` while a Choice is open, so a boss Choice still open is closed first on its first
+  option. A boss Choice the planner itself cannot answer is `ai_fault {reason:
+  choice_unanswered}` in the plan, and takes this path. A null forecast is the fault alone. The
+  match never hangs (2026-11-04, DD-X31).
 - **If all Discover options are identical**: collapsed to index 0, no RNG draw, logged as a
   choice with one alternative.
 - **If an effect requires a target but none is legal**: Match Rules already excludes it from

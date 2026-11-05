@@ -50,12 +50,12 @@
 ## already-multiplied weights and branches on mode only for the Taunt BV bonus);
 ## `choose` scoring ([Chooser], story 010 — a boss-side Choice raised in a
 ## trial is answered with it from the trial's own stream, C4); forking
-## `ai_<floor>.fork("sim_<turn>")` and
-## passing it as `context[CONTEXT_SIM_STREAM]` (story 008 `plan_turn`). Until
-## a caller passes it, a trial falls back to a copy of the base's
-## `rng_match` — the live outcome of a random effect, which C4 forbids (code
-## review 2026-11-04, BAI-004 S1); the root sandbox itself keeps its
-## `rng_match` copy, or replay diverges (ADR-0006).
+## `ai_<floor>.fork("sim_<turn>")` and passing it as
+## `context[CONTEXT_SIM_STREAM]` ([method BossAI.plan_turn]; every planner call
+## passes it). A context without one is a scoring test's: its trial falls back to
+## a copy of the base's `rng_match`, the live outcome of a random effect, which C4
+## forbids a plan (code review 2026-11-04, BAI-004 S1). The root sandbox itself
+## keeps its `rng_match` copy, or replay diverges (ADR-0006).
 ## [codeblock]
 ## var scorer := Scorer.new(db, db.config("ai_profiles").keyword_values)
 ## var base: RulesEngine = engine.clone()

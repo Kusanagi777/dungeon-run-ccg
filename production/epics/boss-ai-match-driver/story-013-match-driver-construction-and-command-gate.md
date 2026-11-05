@@ -113,7 +113,7 @@
 
 ## Completion Notes
 **Completed**: 2026-11-05 (start 00:38 UTC, end 00:57 UTC; sprint 5 lane 1 wave 2, branch `s5/l1-w2`)
-**Criteria**: 4/4 in `match_driver_gate_test.gd`, with one half deferred. AC-1's "first forecast after the mulligan" is NOT ASSESSED until story 014 (see Readiness): the test covers no task after construction.
+**Criteria**: 4/4 in `match_driver_gate_test.gd`, with one half deferred. AC-1's "first forecast after the mulligan" is NOT ASSESSED until story 014 (see Readiness): the test covers no task after construction. **Closed 2026-11-05 by story 014**: `test_no_task_runs_in_the_mulligan_and_one_forecast_starts_after_it`.
 **Tests seen failing**: the suite was written first and failed on missing code (exit 105, `Could not find base class "MatchDriver"`). Then 12 deliberate mutants of `match_driver.gd`, all killed: no issuer stamp, caller's command mutated, concede never queued, any command queued, `events` not `[-1, -1]`, concede lost at task end, plan kept at `Ended`, no step after `submit`, empty hero set, `BossAI` after `start`, `query()` rebuilt per call, a task taken as done without `poll()`. One test failed on first run because it was wrong: it sent `choose`, the AC says `play_card`; a `choose` from the wrong side is correctly `NOT_YOUR_TURN`.
 **Verification**: import exit 0; `gates.sh` (G1 to G7, 0 hits), `no_global_rng.sh`, `parse-check.sh` exit 0; `commands.test` 1746 test cases, 0 errors, 0 failures, 0 orphans, exit 0; `godot --headless --quit-after 5` exit 0, no `SCRIPT ERROR`. The suite's 88 `SCRIPT ERROR` lines are none of them from the driver suite.
 **Run result**: N/A: nothing reaches the screen; the driver has no view until MUI-004.

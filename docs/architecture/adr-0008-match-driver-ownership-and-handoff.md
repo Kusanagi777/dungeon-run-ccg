@@ -54,6 +54,11 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   / ADR-0005 declared under `Depends On`. `TR-boss-ai-004` row added to the
   GDD Requirements table. No decision changed.
 - **Erratum 2026-11-04 (sprint 5 code review D-1, `production/reviews/2026-11-04/code-review-s5-w1-bossai.md`)**: the driver's plan work is `boss_ai.plan_task(sandbox, planner_task)`, per ADR-0006's erratum of the same date: it passes the running task, so a time-sliced task can yield. The `BossTurn.Main` row of Decision 3 is updated. No decision changes; status stays Accepted.
+- **Erratum 2026-11-04 (DD-X31, boss-ai story 014; closes `s5-review-matchdriver` Q-1, Q-2, Q-3)**: four changes, and the body below is updated to match. Status stays Accepted.
+  1. **Per-task factory.** `MatchDriver._init` takes `planner_factory: Callable() -> PlannerTask` where it took one `PlannerTask`, and calls it for every task: `PlannerTask.start` runs once per object, and `TimeSlicedPlannerTask` cannot be started twice. Decision 1's `driver_factory` passes that factory; the `Boot` side stays unbuilt.
+  2. **No choose task.** Choices are answered inside the plan: `boss_ai.choose_task` is gone and Decision 3's `Choice` row starts a **plan** task. A Choice raised by a replayed command waits with the plan pending, its `choose` next in the plan. A boss Choice with no plan pending (a boss Deathrattle on the player's turn, a boss Start-step trigger) still needs an answer, so the row stays for it, and `plan_turn` opens by answering it: on the player's turn the plan is that `choose` alone, and on the boss's it goes on to the turn. The row is what keeps "no separate choose task" from hanging the match on a boss Choice nothing else would answer.
+  3. **No way forward is a fault.** `_on_task_done()` turns a null result or an empty plan into `ai_fault {reason: null_result | empty_plan}` and ends the boss's turn. The engine refuses `end_turn` during a Choice, so an open boss Choice is first closed on its first option; a Choice on the player's turn leaves no boss turn to end. `_diverge` closes it the same way. A null forecast is the fault alone. Should the engine refuse the boss's `end_turn` at Main, which nothing reachable does, the row plans and logs again, so `event_cap` ends the match: it cannot hang.
+  4. **Interfaces.** `_init`'s optional `clock` argument (story 015) is added to Key Interfaces, and a premise is `{turn, side, phase}`, since `PHASE_MAIN` names both sides' Main. The settings snapshot's `telegraph_mode` reaches the AI at construction.
 
 ## Date
 
@@ -190,7 +195,8 @@ boss's plan.**
    instance — a sealed log is never reopened, and the match log is sealed on
    `match_ended`) and calls the injected `driver_factory.call(config) ->
    MatchDriver`. `Boot` supplies the factory (`func(cfg): return
-   MatchDriver.new(cfg, db, settings_snapshot, <PlannerTask per ADR-0006>)`) so
+   MatchDriver.new(cfg, db, settings_snapshot, <Callable() -> a new PlannerTask per
+   ADR-0006>)`; 2026-11-04, DD-X31) so
    the `PlannerTask` implementation and the settings snapshot are composition
    concerns, not `RunMachine`'s. `MatchDriver._init` performs, in order:
    `ProfileResolver.resolve(db.config("ai_profiles"), boss_def, band)`;
@@ -222,24 +228,27 @@ boss's plan.**
    `submit`, the driver runs `_after_engine_step()`.
 3. **Phase schedule (`_after_engine_step()`, main thread, after every engine
    step and after every replayed command).** Reads `engine.phase()`,
-   `engine.active_side()`, `engine.pending_choice()`:
+   `engine.active_side()`, `engine.pending_choice()`. `Ended` always applies; the
+   other rows only with no task live and no plan pending (2026-11-04, DD-X31):
 
    | Observed | Driver action |
    |---|---|
-   | `PlayerTurn.Main` and no forecast started for `engine.turn` | `sandbox = engine.clone()`; task: `boss_ai.forecast(sandbox) -> Intent` |
-   | `BossTurn.Main` and no plan pending | `sandbox = engine.clone()`; task: `boss_ai.plan_task(sandbox, planner_task)`, whose Callable runs `plan_turn -> TurnPlan` (the C2 loop incl. boss `choose` inside the sandbox) |
-   | `Choice` with `pending_choice.side == "boss"` and no task live (a player action raised a boss Discover, or a replayed command did) | `sandbox = engine.clone()`; task: `boss_ai.choose(sandbox, pending) -> int`; on return, `engine.submit(choose{issuer: boss, option_index})` on the main thread |
+   | `PlayerTurn.Main` and no forecast started for `engine.turn` | `sandbox = engine.clone()`; task: `boss_ai.forecast_task(sandbox, task)`, whose Callable runs `forecast -> Intent` |
+   | `BossTurn.Main` | `sandbox = engine.clone()`; task: `boss_ai.plan_task(sandbox, task)`, whose Callable runs `plan_turn -> TurnPlan` (the C2 loop incl. boss `choose` inside the sandbox) |
+   | `Choice` with `pending_choice.side == "boss"` (a player action raised a boss Discover, or a boss trigger did; 2026-11-04, DD-X31: was a choose task) | `sandbox = engine.clone()`; task: `boss_ai.plan_task(sandbox, task)` as above: `plan_turn` opens by answering the Choice, and the `choose` is replayed like any plan command. One raised by a replayed command never reaches this row: the plan is pending and holds its `choose` |
    | `Ended` | drop any pending plan; `engine.end_match()` (resolver `unbind`); emit `match_ended(engine.result())`; the driver accepts nothing further |
    | anything else | nothing — wait for the player |
 
-   Every task runs through the same seam: `planner_task.start(work: Callable)`,
-   polled by `tick()` via `planner_task.poll() -> bool`, result read once via
-   `planner_task.result()`. The worker is handed the clone, the `ai_<floor>`
+   Every task runs through the same seam: a **new** `task = planner_factory.call()`
+   per task (2026-11-04, DD-X31), `task.start(work: Callable)`,
+   polled by `tick()` via `task.poll() -> bool`, result read once via
+   `task.result()`. One task runs at a time: a forecast outliving the player's turn
+   holds the plan back until it returns stale. The worker is handed the clone, the `ai_<floor>`
    stream and the frozen `CardDatabase` — never the live engine, the live log,
    the driver, a Node or `Boot` (ADR-0006).
 4. **`tick()` contract.** Called once per frame from `MatchView._process` through
    `MatchController.tick()`. In order: (a) if a task is live and
-   `planner_task.poll()` is true → `_on_task_done()`; (b) if a plan is pending →
+   `task.poll()` is true → `_on_task_done()`; (b) if a plan is pending →
    replay commands until the plan is exhausted or `replay_budget_ms`
    (`config("ai_profiles").runtime`, ADR-0006) is spent, carrying the rest to the
    next tick; (c) return. `_on_task_done()`: read `result()`; if a `concede` is
@@ -247,7 +256,9 @@ boss's plan.**
    (the engine's `turn`/`phase` moved since the clone was taken — e.g. the player
    ended the turn before the forecast returned) → discard, append nothing (boss-ai
    C8 tolerates "plan changed"); otherwise: a forecast → append `ai_intent_shown`
-   on the main thread; a boss choice → submit it; a `TurnPlan` → begin replay.
+   on the main thread; a `TurnPlan` with commands → begin replay; a null result or an
+   empty plan → `ai_fault`, and the boss's turn ends, any open boss Choice closed on
+   its first option first (2026-11-04, DD-X31; a null forecast is the fault alone).
    Replay of one command = append its `ai_decision` diagnostic (`cause_seq = 0`,
    `diagnostic: true`) then `engine.submit(cmd)` with `issuer = "boss"`, fold the
    event types into the running checksum, run `_after_engine_step()`; on
@@ -340,7 +351,7 @@ boss's plan.**
      │  │ hides Run UI, keeps it                     │                                          │
      │  └── MatchView.set_controller(MatchController.new(driver))                              │ submit(player cmd) ─ issuer=player ─► live RulesEngine.submit (main thread)
      │          │ _process → controller.tick() ──────────────────────────────────────────────► │ tick(): poll PlannerTask → validate premise → replay TurnPlan (≤ replay_budget_ms)
-     │          │ subscribe / events_since ◄── match EventLog (all appends on the main thread) ┤ task work: forecast / plan_turn / choose on engine.clone()  ──► worker (ADR-0006)
+     │          │ subscribe / events_since ◄── match EventLog (all appends on the main thread) ┤ task work: forecast / plan_turn on engine.clone()  ──► worker (ADR-0006)
      │          │ query() ◄── MatchQuery over the live engine (always answers) ────────────────┤ never: a subscriber on a worker, a connected engine signal
      └──────────┴── match_view_finished(result)  (after the end banner; _exit_tree → shutdown(); RunShell applies buffered run-scope events — S11)
 ```
@@ -350,7 +361,7 @@ boss's plan.**
 ```gdscript
 # src/gameplay/run/match_driver.gd — owned by Run Structure (architecture.md §Feature); additions marked
 class_name MatchDriver extends RefCounted
-func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask) -> void
+func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_factory: Callable, clock: Callable = Time.get_ticks_usec) -> void   # planner_factory: Callable() -> a NEW PlannerTask, called per task (2026-11-04, DD-X31)
 func submit(command: Command) -> CommandResult        # PLAYER commands, synchronous on the live engine; concede while a task is live → queued (ENGINE_BUSY/concede_queued)
 func legal_commands() -> Array[Command]               # pass-through to the live engine
 func query() -> MatchQuery
@@ -373,7 +384,7 @@ func begin_match() -> MatchDriver                     # builds MatchConfig + a f
 @abstract func start(work: Callable) -> void          # work: Callable() -> Variant; exactly once per task object
 @abstract func poll() -> bool                          # true once finished; MatchDriver.tick() calls it once per frame, never after it returned true
 func result() -> Variant                               # valid only after poll() returned true (ADR-0006)
-# BossAI.plan_turn(sandbox: RulesEngine) -> TurnPlan · forecast(sandbox) -> Intent · choose(sandbox, request) -> int  (ADR-0006, boss-ai C1.4)
+# BossAI.plan_turn(sandbox: RulesEngine) -> TurnPlan · forecast(sandbox) -> Intent  (ADR-0006, boss-ai C1.4); choose(sandbox, request) -> int stays an entry point, and the driver does not call it (2026-11-04, DD-X31)
 
 # src/ui/match/match_controller.gd, match_query.gd (match-ui U1, U2) — wraps, owns nothing
 class_name MatchController extends RefCounted
@@ -613,10 +624,11 @@ regresses.
   the plan is discarded, the concede applied and `match_ended{reason: concede}`
   emitted with no boss command in the log; a concede during replay ends the turn
   with the remaining plan dropped.
-- `tests/unit/run/match_driver_schedule_test.gd`: forecast started exactly once
+- `tests/unit/match_driver/match_driver_schedule_test.gd` (path per the epic's test root, 2026-11-04, BAI-014): forecast started exactly once
   per player turn and discarded when the turn ended first; a boss Choice raised
-  by a player action starts a `choose` task and the choice is submitted on the
-  main thread; a `TurnPlan` with a rejected command produces
+  by a player action starts a plan task whose `choose` is replayed on the
+  main thread (2026-11-04, DD-X31); a null result or an empty plan produces `ai_fault`
+  and the boss's turn ends; a `TurnPlan` with a rejected command produces
   `ai_fault{replay_divergence}` then `end_turn`.
 - Equivalence: the same scripted match with `ImmediatePlannerTask` and with
   ADR-0006's worker implementation yields byte-identical event logs (boss-ai
