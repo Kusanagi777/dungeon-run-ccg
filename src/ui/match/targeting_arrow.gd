@@ -18,6 +18,10 @@ var _to: Vector2 = Vector2.ZERO
 var _lit: bool = false
 var _zone: Rect2 = Rect2()
 var _slot: Rect2 = Rect2()
+var _zone_dim: bool = false
+var _chip: Rect2 = Rect2()
+var _chip_current: bool = false
+var _snap: Tween = null
 
 
 func bind(_view_state: MatchViewState) -> void:
@@ -65,9 +69,32 @@ func update_end(to: Vector2, lit: bool) -> void:
 	queue_redraw()
 
 
+## Moves the head to [param to] over [param seconds], for a key cycle (targeting.md §10
+## "Arrow snap"); 0 s is immediate.
+func snap_to(to: Vector2, lit: bool, seconds: float) -> void:
+	if _snap != null:
+		_snap.kill()
+		_snap = null
+	if seconds <= 0.0:
+		update_end(to, lit)
+		return
+	_lit = lit
+	_snap = create_tween()
+	_snap.tween_method(func(head: Vector2) -> void:
+		_to = head
+		queue_redraw(), _to, to, seconds).set_ease(Tween.EASE_OUT)
+
+
 ## Shows the dashed zone [param zone], or none for an empty rect.
 func show_cast_zone(zone: Rect2) -> void:
 	_zone = zone
+	_zone_dim = false
+	queue_redraw()
+
+
+## §7.4: over a source a click would re-select, the zone drops to `unlit_alpha`.
+func set_zone_dim(dim: bool) -> void:
+	_zone_dim = dim
 	queue_redraw()
 
 
@@ -77,11 +104,23 @@ func show_slot(slot: Rect2) -> void:
 	queue_redraw()
 
 
+## The "No target" chip at [param rect], or none for an empty rect; [param current]
+## carries the ring (targeting.md §6 `optional`).
+func show_chip(rect: Rect2, current: bool) -> void:
+	_chip = rect
+	_chip_current = current
+	queue_redraw()
+
+
 ## Ends the arrow and every affordance.
 func stop() -> void:
+	if _snap != null:
+		_snap.kill()
+		_snap = null
 	_active = false
 	_zone = Rect2()
 	_slot = Rect2()
+	_chip = Rect2()
 	queue_redraw()
 
 
@@ -99,9 +138,12 @@ func _draw() -> void:
 	var cfg: Dictionary = ui.config.targeting
 	var actionable: Color = ui.color("state_actionable")
 	if _zone.has_area():
-		_draw_dashed_rect(_zone, actionable, float(cfg.outline_px), float(cfg.dash_px))
+		var zone_color: Color = Color(actionable, float(cfg.unlit_alpha)) if _zone_dim else actionable
+		_draw_dashed_rect(_zone, zone_color, float(cfg.outline_px), float(cfg.dash_px))
 	if _slot.has_area():
 		_draw_dashed_rect(_slot, actionable, float(cfg.outline_px), float(cfg.dash_px))
+	if _chip.has_area():
+		_draw_chip(cfg)
 	if not _active:
 		return
 	var color: Color = ui.color("state_target")
@@ -113,6 +155,16 @@ func _draw() -> void:
 	var side: Vector2 = forward.orthogonal()
 	var head: float = float(cfg.head_px)
 	draw_colored_polygon(PackedVector2Array([_to + forward * head / 2.0, _to - forward * head / 2.0 + side * head / 2.0, _to - forward * head / 2.0 - side * head / 2.0]), head_color)
+
+
+func _draw_chip(cfg: Dictionary) -> void:
+	draw_rect(_chip, ui.color("table_dark"))
+	var width: float = float(cfg.ring_px) if _chip_current else float(cfg.outline_px)
+	draw_rect(_chip, ui.color("state_target"), false, width)
+	var font: Font = get_theme_default_font()
+	var font_px: int = int(cfg.chip_font_px)
+	var baseline: Vector2 = _chip.position + Vector2(0, (_chip.size.y + font.get_ascent(font_px) - font.get_descent(font_px)) / 2.0)
+	draw_string(font, baseline, tr("targeting.no_target"), HORIZONTAL_ALIGNMENT_CENTER, _chip.size.x, font_px, ui.color("text_light"))
 
 
 func _draw_dashed_rect(rect: Rect2, color: Color, width: float, dash: float) -> void:

@@ -22,6 +22,7 @@ const BADGE_RECT: Rect2 = Rect2(5, 74, 80, 18)
 const CORNER_PX: int = 6
 const FRAME_PX: int = 2
 const FLAG_SICK: String = "summoning_sick"
+const KEYWORD_TAUNT: String = "taunt"
 const FLAG_FROZEN: String = "frozen"
 const FLAG_SILENCED: String = "silenced"
 const BURST_GROW_PX: float = 24.0
@@ -43,6 +44,9 @@ var _lit: bool = false
 var _target: bool = false
 var _ring: bool = false
 var _sick: bool = false
+# The `A` numeral over this token, 0 for none.
+var _attack_badge: int = 0
+var _flash: bool = false
 var _art: Label = null
 var _badges: Label = null
 var _attack: Label = null
@@ -108,6 +112,23 @@ func set_target(target: bool, ring: bool) -> void:
 	queue_redraw()
 
 
+## Rejection Feedback's frame flash, in `state_danger`.
+func set_flash(on: bool) -> void:
+	_flash = on
+	queue_redraw()
+
+
+## True when this minion has Taunt, for the rejection flash.
+func has_taunt() -> bool:
+	return (_shown.get("keywords", []) as Array).has(KEYWORD_TAUNT)
+
+
+## The `A` numeral [param number] in a pill over the token, 0 for none (targeting.md §5.3).
+func set_attack_badge(number: int) -> void:
+	_attack_badge = number
+	queue_redraw()
+
+
 ## The summoning-sick badge, read at `Idle` from the query: no event reports it.
 func set_summoning_sick(sick: bool) -> void:
 	_sick = sick
@@ -129,7 +150,9 @@ func _draw() -> void:
 		draw_circle(centre, STAMP_RADIUS - STAMP_RING_PX, _ui.color("ink"))
 	var outline: Variant = null
 	var width: int = int(_ui.config.targeting.outline_px)
-	if _target:
+	if _flash:
+		outline = _ui.color("state_danger")
+	elif _target:
 		outline = _ui.color("state_target")
 		if _ring:
 			width = int(_ui.config.targeting.ring_px)
@@ -147,6 +170,18 @@ func _draw() -> void:
 	if burst > 0.0:
 		var grow: float = burst * BURST_GROW_PX
 		draw_arc(size / 2.0, size.y / 2.0 + grow, 0.0, TAU, 32, _ui.color("text_light"), float(_ui.config.targeting.outline_px))
+	if _attack_badge > 0:
+		_draw_attack_badge()
+
+
+func _draw_attack_badge() -> void:
+	var cfg: Dictionary = _ui.config.targeting
+	var side: float = float(cfg.badge_px)
+	var pill := Rect2(Vector2((size.x - side) / 2.0, -side - float(cfg.badge_gap_px)), Vector2(side, side))
+	draw_rect(pill, _ui.color("ink"))
+	var font: Font = get_theme_default_font()
+	var baseline: Vector2 = pill.position + Vector2(0, (side + font.get_ascent(BADGE_FONT_PX) - font.get_descent(BADGE_FONT_PX)) / 2.0)
+	draw_string(font, baseline, str(_attack_badge), HORIZONTAL_ALIGNMENT_CENTER, side, BADGE_FONT_PX, _ui.color("text_light"))
 
 
 func _refresh_badges() -> void:

@@ -18,6 +18,7 @@ const HERO_NAME_KEY: String = "hero.%s.name"
 const BOSS_NAME_KEY: String = "boss.%s.name"
 const POWER_NAME_KEY: String = "power.%s.name"
 const POWER_TEXT_KEY: String = "power.%s.text"
+const TREASURE_NAME_KEY: String = "treasure.%s.name"
 
 static var _installed: bool = false
 
@@ -47,6 +48,10 @@ static func install(db: CardDatabase, ui_config: Dictionary) -> void:
 		for boss: Dictionary in db.bosses_in_band(band):
 			table.add_message(BOSS_NAME_KEY % str(boss.id), str(boss.get("name", boss.id)))
 			_add_text(table, boss.get("passive_text"))
+	for treasure: Variant in db.treasure_pool():
+		if treasure is Dictionary:
+			table.add_message(TREASURE_NAME_KEY % str(treasure.id), str(treasure.get("name", treasure.id)))
+			_add_text(table, treasure.get("text"))
 	TranslationServer.add_translation(table)
 
 

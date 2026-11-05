@@ -1,13 +1,82 @@
 {
   "config": {
-    "hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [],
-    "player_deck": ["boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate"],
-    "boss_deck": ["boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden", "boss_iron_gate", "boss_iron_gate", "boss_iron_gate", "war_shield_maiden"]
+    "hero": "hero_war",
+    "boss": "boss_torchbearer",
+    "seed": 1,
+    "floor": 1,
+    "band": 1,
+    "treasures": [],
+    "player_deck": [
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate"
+    ],
+    "boss_deck": [
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "boss_iron_gate",
+      "war_shield_maiden"
+    ]
   },
-  "profile": {"text_scale": 1.5},
+  "profile": {
+    "text_scale": 1.5
+  },
   "commands": [
-    {"type": "mulligan", "keep_mask": [true, true, true]},
-    {"macro": "play_and_pass", "count": 10},
-    {"macro": "play_all"}
+    {
+      "type": "mulligan",
+      "keep_mask": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "macro": "play_and_pass",
+      "count": 10
+    },
+    {
+      "macro": "play_all"
+    }
   ]
 }

@@ -1,7 +1,7 @@
 # Story 016: Rejection feedback — shake, reason tooltip, related-control flash
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: S

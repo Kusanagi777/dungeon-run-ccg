@@ -1,0 +1,26 @@
+{
+  "config": {
+    "hero": "hero_war",
+    "boss": "boss_torchbearer",
+    "seed": 1,
+    "floor": 1,
+    "band": 1,
+    "treasures": [
+      "treasure_hollow_crown",
+      "treasure_worn_signet"
+    ]
+  },
+  "profile": {
+    "text_scale": 1.5
+  },
+  "commands": [
+    {
+      "type": "mulligan",
+      "keep_mask": [
+        true,
+        true,
+        true
+      ]
+    }
+  ]
+}

@@ -1,11 +1,44 @@
 {
   "config": {
-    "hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [],
-    "boss_deck": ["war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman", "war_headsman"]
+    "hero": "hero_war",
+    "boss": "boss_torchbearer",
+    "seed": 1,
+    "floor": 1,
+    "band": 1,
+    "treasures": [],
+    "boss_deck": [
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman",
+      "war_headsman"
+    ]
   },
-  "profile": {"text_scale": 1.5},
+  "profile": {
+    "text_scale": 1.5
+  },
   "commands": [
-    {"type": "mulligan", "keep_mask": [true, true, true]},
-    {"macro": "end_turns", "count": 6}
+    {
+      "type": "mulligan",
+      "keep_mask": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "macro": "end_turns",
+      "count": 6
+    }
   ]
 }

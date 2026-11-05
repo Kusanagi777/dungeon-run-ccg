@@ -19,8 +19,6 @@ const BODY_FONT_PX: int = 16
 const PILL_FONT_PX: int = 14
 const REPLACE_ALPHA: float = 0.45
 const FLIP_HALF: float = 0.5
-## The number row: `1`–`9`, then `0` for the tenth card (mulligan.md §7.2).
-const NUMBER_KEYS: Array[Key] = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0]
 
 var _view: MatchViewState = null
 var _cfg: Dictionary = {}
@@ -28,6 +26,8 @@ var _title: Label = null
 var _sub: Label = null
 var _status: Label = null
 var _confirm: Button = null
+# The focused stop: a card's index, or the card count for Confirm.
+var _focused: int = 0
 var _ids: Array[int] = []
 var _cards: Array[CardFrame] = []
 var _pills: Array[Button] = []
@@ -116,15 +116,51 @@ func toggle(index: int) -> void:
 		return
 	_keep[index] = not _keep[index]
 	_refresh(index)
+	queue_redraw()
 
 
-## `1`–`0` toggle their card; a key past the hand is ignored. True when it was a card key.
-func handle_key(keycode: Key) -> bool:
-	var index: int = NUMBER_KEYS.find(keycode)
-	if index < 0:
-		return false
-	toggle(index)
-	return true
+## Takes [param action]; true when it was the screen's. `Esc` never is: the chain opens
+## the pause menu over the screen. Focus walks the cards then Confirm, and a confirm acts
+## on the stop: a card toggles, Confirm sends (mulligan.md §4, §7).
+func handle_action(action: StringName, slot: int) -> bool:
+	match action:
+		MatchInput.HAND:
+			_focused = clampi(slot, 0, _keep.size())
+			toggle(slot)
+			queue_redraw()
+			return true
+		MatchInput.CONFIRM:
+			if _focused < _keep.size():
+				toggle(_focused)
+			else:
+				confirm()
+			return true
+		MatchInput.LEFT, MatchInput.UP, MatchInput.PREVIOUS:
+			_move_focus(-1)
+			return true
+		MatchInput.RIGHT, MatchInput.DOWN, MatchInput.NEXT:
+			_move_focus(1)
+			return true
+	return false
+
+
+## The focused stop: a card's index, or the card count for Confirm.
+func focused() -> int:
+	return _focused
+
+
+func _move_focus(step: int) -> void:
+	_focused = posmod(_focused + step, _keep.size() + 1)
+	queue_redraw()
+
+
+func _draw() -> void:
+	if not _open or _committed:
+		return
+	var control: Control = _cards[_focused] if _focused < _cards.size() else _confirm
+	var cfg: Dictionary = ui.config.focus
+	var rect := Rect2(control.get_global_rect().position - global_position, control.get_global_rect().size)
+	draw_rect(rect.grow(float(cfg.ring_offset_px)), ui.color("state_actionable"), false, float(cfg.ring_px))
 
 
 ## Sends the mask once. A second press does nothing (mulligan.md §6 `Committed`).
@@ -132,6 +168,7 @@ func confirm() -> void:
 	if not is_open():
 		return
 	_committed = true
+	queue_redraw()
 	confirmed.emit(_keep.duplicate())
 
 
@@ -143,6 +180,7 @@ func on_rejected() -> void:
 func _open_screen(offered: Variant) -> void:
 	_open = true
 	_committed = false
+	_focused = 0
 	visible = true
 	_clear_cards()
 	_ids.clear()

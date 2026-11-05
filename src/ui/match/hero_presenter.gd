@@ -26,6 +26,7 @@ const TOOLTIP_GAP: float = 8.0
 ## hud.md §4.2: the pile is a 0.5x card.
 const BURN_CARD_SCALE: float = 0.5
 const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.tscn")
+const TOOLTIP_PADDING: Vector2 = Vector2(16, 12)
 
 ## Which side's panel this is; set on the instance in `match_view.tscn`.
 @export var side: StringName = SIDE_PLAYER
@@ -33,6 +34,8 @@ const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.ts
 var _view: MatchViewState = null
 var _primary: Color = Color.WHITE
 var _power_id: String = ""
+var _name_key: String = ""
+var _passive_key: String = ""
 var _power_state: Dictionary = {}
 var _portrait_rect: Rect2 = Rect2()
 var _power_rect: Rect2 = Rect2()
@@ -55,6 +58,7 @@ var _hand_count: Label = null
 var _passive: Label = null
 var _tooltip: Panel = null
 var _tooltip_text: Label = null
+var _mana_flash: Panel = null
 # What is on screen now: the fields sync_report compares.
 var _shown: Dictionary = {}
 
@@ -89,7 +93,7 @@ func setup(context: MatchUiContext) -> void:
 	else:
 		_build_boss_strip()
 	_tooltip = _panel(Rect2(Vector2.ZERO, TOOLTIP_SIZE), _style(ui.color("parchment"), 2, ui.color("ink")))
-	_tooltip_text = _label(Rect2(Vector2(8, 6), TOOLTIP_SIZE - Vector2(16, 12)), SMALL_FONT_PX, "text_ink", _tooltip)
+	_tooltip_text = _label(Rect2(Vector2(8, 6), TOOLTIP_SIZE - TOOLTIP_PADDING), SMALL_FONT_PX, "text_ink", _tooltip)
 	_tooltip_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tooltip.visible = false
 
@@ -106,6 +110,8 @@ func set_identity(identity: Dictionary) -> void:
 	_portrait_style.bg_color = _primary.lerp(ui.color("table_dark"), PORTRAIT_DIM)
 	_initial.text = str(identity.get("initial", ""))
 	_power_id = str(identity.get("power_id", ""))
+	_name_key = str(identity.get("name_key", ""))
+	_passive_key = str(identity.get("passive_key", ""))
 	if _power_glyph != null:
 		_power_glyph.text = tr(MatchStrings.POWER_NAME_KEY % _power_id).left(POWER_INITIAL_CHARS)
 		_power.visible = _power_id != ""
@@ -218,6 +224,43 @@ func set_power_state(state: Dictionary) -> void:
 	_power.modulate.a = BLOCKED_ALPHA if dim else (USED_ALPHA if str(_shown.get("power_state", "")) == MatchViewState.POWER_USED else 1.0)
 
 
+## The fatigue label and the flash outline hold a state colour from build.
+func restyle() -> void:
+	_fatigue.add_theme_color_override("font_color", ui.color("state_danger"))
+	if _mana_flash != null:
+		(_mana_flash.get_theme_stylebox("panel") as StyleBoxFlat).border_color = ui.color("state_danger")
+
+
+## hud.md §10.2 at [param scale]: the tooltip grows, and from `boss_mana_moves_at` the
+## boss's mana leaves the strip for a pill inside the portrait panel.
+func set_text_scale(scale: float) -> void:
+	_tooltip.size = TOOLTIP_SIZE * scale
+	_tooltip_text.size = _tooltip.size - TOOLTIP_PADDING
+	if side == SIDE_BOSS:
+		var moved: bool = scale >= float(ui.config.text_scale.boss_mana_moves_at)
+		var rect: Rect2 = ui.rect("boss_mana_scaled" if moved else "boss_mana")
+		var box: Control = _mana_text.get_parent()
+		box.position = rect.position
+		box.size = rect.size
+		_mana_text.size = rect.size
+
+
+## Rejection Feedback: the mana bar's outline flashes while [param on].
+func flash_mana(on: bool) -> void:
+	if _mana_flash != null:
+		_mana_flash.visible = on
+
+
+## The hero power button, for the rejection shake; null on the boss panel.
+func power_control() -> Control:
+	return _power
+
+
+## The portrait, for the rejection shake.
+func portrait_control() -> Control:
+	return _portrait
+
+
 ## The portrait's `state_actionable` outline: the hero can attack (targeting.md §6).
 func set_can_attack(on: bool) -> void:
 	_set_portrait_border("state_actionable" if on else "ink", on)
@@ -260,6 +303,28 @@ func show_power_tooltip(on: bool) -> void:
 	_tooltip.position = _power_rect.position + Vector2(_power_rect.size.x + TOOLTIP_GAP, 0)
 
 
+## Focus: name, health, armour, weapon and the boss's passive text (hud.md Focus Order
+## stops 4 and 11), from the display.
+func show_portrait_tooltip(on: bool) -> void:
+	_tooltip.visible = on
+	if not on:
+		return
+	var lines: PackedStringArray = [tr(_name_key)]
+	if _shown.get("health") != null:
+		lines.append(tr("hud.portrait.health") % int(_shown.health))
+	if int(_shown.get("armor", 0)) > 0:
+		lines.append(tr("hud.portrait.armor") % int(_shown.armor))
+	var weapon: Variant = _shown.get("weapon")
+	if weapon != null:
+		lines.append(tr("hud.portrait.weapon") % [int(weapon.attack), int(weapon.durability)])
+	if _passive_key != "":
+		lines.append(tr(_passive_key))
+	_tooltip_text.text = "\n".join(lines)
+	var left: float = _portrait_rect.position.x - TOOLTIP_SIZE.x - TOOLTIP_GAP
+	var right: float = _portrait_rect.end.x + TOOLTIP_GAP
+	_tooltip.position = Vector2(right if side == SIDE_PLAYER else left, _portrait_rect.position.y)
+
+
 ## match-end.md §6: the winner's portrait ramps to its identification colour, once.
 func saturate(duration_s: float) -> void:
 	if duration_s <= 0.0:
@@ -274,7 +339,7 @@ func saturate(duration_s: float) -> void:
 
 func _shown_power_cost() -> int:
 	var cost: Variant = _view.side(side).hero.power_cost
-	return int(cost) if cost != null else int(ui.query.hero_power_cost(String(side)))
+	return int(cost) if cost != null else ui.power_cost(_power_id)
 
 
 func _build_player_slots() -> void:
@@ -290,6 +355,10 @@ func _build_player_slots() -> void:
 	_center(_weapon_text)
 	_mana_text = _label(ui.rect("mana_text"), COUNT_FONT_PX, "text_light")
 	_mana_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var flash_style: StyleBoxFlat = _style(Color.TRANSPARENT, int(ui.config.targeting.outline_px), ui.color("state_danger"))
+	flash_style.draw_center = false
+	_mana_flash = _panel(ui.rect("mana_bar"), flash_style)
+	_mana_flash.visible = false
 	var row: Rect2 = ui.rect("mana_crystals")
 	var px: float = float(ui.config.hero.crystal_px)
 	var gap: float = float(ui.config.hero.crystal_gap)

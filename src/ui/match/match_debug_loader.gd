@@ -33,6 +33,7 @@ const SETTLE_TIMEOUT_MS: int = 60000
 const SETTLE_POLL_USEC: int = 200
 const POSE_HOVER: String = "hover"
 const POSE_DRAG: String = "drag"
+const POSE_SELECT: String = "select"
 const POSE_END: String = "end"
 const POSE_FEED: String = "feed"
 const POSE_FEED_OPEN: String = "open"
@@ -48,7 +49,7 @@ const MACRO_AGGRO_TO_END: String = "aggro_to_end"
 ## The most turns a macro may run: a floor under a fixture that never ends.
 const MAX_MACRO_TURNS: int = 60
 
-## `{floor, boss_def_id, hero_def_id}` of the loaded match, for the top bar.
+## `{floor, boss_def_id, hero_def_id, treasures}` of the loaded match, for the view.
 var match_info: Dictionary = {}
 ## The fixture's own `pose`, used when the launch names none.
 var fixture_pose: String = ""
@@ -112,7 +113,7 @@ func load_fixture(fixture_name: String) -> MatchController:
 	var config: Dictionary = _match_config(settings, services.card_database)
 	var factory: Callable = Boot.driver_factory(_planner_override, OS.get_cmdline_user_args())
 	var controller := MatchController.new(factory.call(config))
-	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id), "hero_def_id": str(config.player.hero_def_id)}
+	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id), "hero_def_id": str(config.player.hero_def_id), "treasures": settings.get("treasures", [])}
 	for entry: Dictionary in fixture.get("commands", []):
 		_run(controller, entry)
 	# The driver took its settings snapshot above; nothing later reads these.
@@ -142,8 +143,11 @@ func apply_pose(view: MatchView, pose: String) -> void:
 		POSE_FEED:
 			if value == POSE_FEED_OPEN:
 				view.feed().open()
+		POSE_SELECT:
+			view.pose_select(-1 if value == POSE_HERO_POWER else int(value))
 		_:
-			push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
+			if not view.apply_pose(parts[0], value):
+				push_warning("MatchDebugLoader: unknown pose '%s'" % pose)
 
 
 ## U11 `--ai-debug`: the `ai_decision` overlay over [param view].

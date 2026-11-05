@@ -115,6 +115,13 @@ func present(state: Dictionary) -> void:
 			_row.move_child(_tokens[_order[i]], i)
 
 
+## The stat numerals are coloured when shown.
+func restyle() -> void:
+	for id: Variant in _tokens:
+		var minion: MinionToken = _tokens[id]
+		minion.show_token(minion.shown(), ui.card_face(minion.card_id))
+
+
 ## The queue is idle: any slot still held closes now.
 func on_drained() -> void:
 	for id: Variant in _leaving.keys():
@@ -172,6 +179,24 @@ func set_attackers(attackers: Dictionary, sick: Dictionary) -> void:
 		token.set_summoning_sick(sick.has(id))
 
 
+## The token of entity [param id], or null, for the rejection shake.
+func token(id: int) -> MinionToken:
+	return _tokens.get(id)
+
+
+## Rejection Feedback: every Taunt's frame flashes while [param on].
+func flash_taunts(on: bool) -> void:
+	for id: Variant in _tokens:
+		var minion: MinionToken = _tokens[id]
+		minion.set_flash(on and minion.has_taunt())
+
+
+## The `A` numerals: [param badges] maps entity id to numeral; `{}` clears them.
+func set_attack_badges(badges: Dictionary) -> void:
+	for id: Variant in _tokens:
+		(_tokens[id] as MinionToken).set_attack_badge(int(badges.get(id, 0)))
+
+
 ## The `state_target` outlines of a session; [param hovered] carries the 3 px ring.
 func set_targets(targets: Dictionary, hovered: int = -1) -> void:
 	for id: Variant in _tokens:
@@ -202,6 +227,33 @@ func set_gap(index: int) -> void:
 ## The screen rect of the open gap, or an empty one.
 func gap_rect() -> Rect2:
 	return _gap.get_global_rect() if _gap != null else Rect2()
+
+
+## Where gap [param index] sits in the m + 1 layout the row is moving to (targeting.md
+## §7.4), from the layout and never from mid-tween token pixels.
+func gap_rect_at(index: int) -> Rect2:
+	var board: Dictionary = ui.config.board
+	var token_w: float = float(board.token_w)
+	var spacing: float = float(board.gap)
+	var m: int = _order.size()
+	var row: Rect2 = get_global_rect()
+	var left: float = row.get_center().x - ((m + 1) * token_w + m * spacing) / 2.0
+	return Rect2(left + index * (token_w + spacing), row.position.y, token_w, float(board.token_h))
+
+
+## Phase T after P: the 60 % ghost of [param card_id] holds the open gap (targeting.md
+## §5.3). It goes when the gap closes.
+func show_ghost(card_id: String) -> void:
+	if _gap == null:
+		return
+	var face: Dictionary = ui.card_face(card_id)
+	var ghost: MinionToken = TOKEN_SCENE.instantiate()
+	_gap.add_child(ghost)
+	ghost.configure(ui)
+	var attack: int = int(face.get("attack", 0)) if face.get("attack") != null else 0
+	var health: int = int(face.get("health", 0)) if face.get("health") != null else 0
+	ghost.show_token({"entity_id": 0, "card_id": card_id, "attack": attack, "health": health, "max_health": health, "keywords": []}, face)
+	ghost.modulate.a = float(ui.config.targeting.unlit_alpha)
 
 
 ## targeting.md §7.4: the gap under [param x], from the m + 1 layout the row is moving

@@ -1,7 +1,7 @@
 # Story 019: Pause menu, concede and the Esc chain
 
 > **Epic**: Match UI
-> **Status**: Ready
+> **Status**: In Review
 > **Layer**: Presentation
 > **Type**: UI
 > **Estimate**: M

@@ -52,6 +52,8 @@ const RIM_GLOW: StringName = &"rim_glow"
 const FIZZLE: StringName = &"fizzle"
 ## U6.6: the boss's Choice, the "boss discovers…" label, with no options.
 const BOSS_DISCOVERS: StringName = &"boss_discovers"
+## A treasure's hook resolved: its tray chip flares (`data.host_id`).
+const TREASURE_FLARE: StringName = &"treasure_flare"
 
 ## What the step shows (one of the kind constants above).
 var kind: StringName
