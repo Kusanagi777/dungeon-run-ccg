@@ -21,15 +21,19 @@
 # frame as <out-dir>/01-<scene-basename>.png, writes <name>.renderer.txt beside
 # it, deletes the other frames and the .wav, prints the kept path, and exits
 # non-zero when no PNG was produced or the PNG is all one colour (blank capture).
+# Frame and sidecar move into <out-dir> only after every check has passed, so a
+# failed capture adds neither and leaves an earlier pair exactly as it was.
 # Godot's stdout and stderr are logged and repeated on their own streams once it
 # has exited, so nothing shows while it runs.
 #
 # The sidecar holds the OS, the exact Godot arguments and the engine's startup
-# renderer lines. Its `renderer:` line reads `xvfb / opengl3 / llvmpipe` on Linux,
-# and on Windows `windows / <asked for> (<rendering method>) / <device>`, taken
-# from the log, so a silent fallback shows. No renderer line in the log keeps no
-# frame: on Windows that means GODOT_BIN names the GUI build, which prints nothing;
-# name the *_console.exe.
+# renderer lines; it is committed, so <repo>, <tmp> and <home> stand for this
+# machine's paths. Its `renderer:` line comes from the last banner in the log, the
+# `<API> <version> - <method> - Using Device...: <device>` line, so a silent fallback
+# shows: `xvfb / opengl3 / llvmpipe` on Linux, and on Windows
+# `windows / <asked for> (<rendering method>) / <device>`. No banner in the log keeps
+# no frame; a line that only names a renderer is not one. On Windows that usually
+# means GODOT_BIN names the GUI build, which prints nothing; name the *_console.exe.
 #
 # Linux/CI launches the scene windowed under Xvfb with the Compatibility (OpenGL 3)
 # renderer. This is the command observed to work on 2026-11-03
@@ -56,7 +60,7 @@
 #
 # Exit codes: 0 kept a non-blank PNG; 2 usage (incl. a bad CAPTURE_LABEL or
 # CAPTURE_RENDERER; on Windows also no Godot or no Python that starts); 3 Godot
-# failed, wrote no PNG or logged no renderer line; 4 the PNG is all one colour or
+# failed, wrote no PNG or logged no renderer banner; 4 the PNG is all one colour or
 # could not be decoded.
 set -euo pipefail
 
@@ -175,46 +179,51 @@ if [ "$godot_exit" -ne 0 ]; then
 	exit 3
 fi
 
-# The first lines that name the rendering method or driver. Both streams: a
-# fallback warning belongs in the sidecar beside the line it led to.
-renderer_lines="$(cat "$tmp_dir/godot.out" "$tmp_dir/godot.err" | tr -d '\r' \
-	| grep -E 'Forward\+|Forward Mobile|Compatibility|Using Device|Vulkan|D3D12|Direct3D|OpenGL' \
-	| head -n 5 || true)"
-if [ -z "$renderer_lines" ]; then
-	echo "capture.sh: no renderer line in Godot's log; discarding frames (on Windows, GODOT_BIN must name the *_console.exe)" >&2
+# The engine's banner, the only line the gate accepts: a word such as `Vulkan` in an
+# error or in a game's print is not a renderer. The last one is what ran, because a
+# failed start can come before a fallback.
+banner_pattern='^(Vulkan|D3D12|Metal|OpenGL API) .* - (Forward\+|Forward Mobile|Mobile|Compatibility) - Using Device( #[0-9]+)?: .+'
+engine_log="$(cat "$tmp_dir/godot.out" "$tmp_dir/godot.err" | tr -d '\r')"
+banner="$(printf '%s\n' "$engine_log" | grep -E "$banner_pattern" | tail -n 1 || true)"
+if [ -z "$banner" ]; then
+	echo "capture.sh: no renderer banner in Godot's log; discarding frames (on Windows, GODOT_BIN must name the *_console.exe)" >&2
 	exit 3
 fi
 
-device="$(printf '%s\n' "$renderer_lines" | sed -n 's/.*Using Device[^:]*: *//p' | head -n 1)"
+# The sidecar quotes more than the banner: a fallback warning belongs beside the line
+# it led to.
+renderer_lines="$(printf '%s\n' "$engine_log" \
+	| grep -E 'Forward\+|Forward Mobile|Compatibility|Using Device|Vulkan|D3D12|Direct3D|OpenGL' \
+	| head -n 5 || true)"
+case "$renderer_lines" in
+	*"$banner"*) ;;
+	*) renderer_lines="$renderer_lines"$'\n'"$banner" ;;
+esac
+
+method="$(printf '%s\n' "$banner" | sed -E 's/.* - (Forward\+|Forward Mobile|Mobile|Compatibility) - Using Device.*/\1/')"
+device="$(printf '%s\n' "$banner" | sed -E 's/.* - Using Device[^:]*: *//')"
 if [ "$windows" = 1 ]; then
-	method="$(printf '%s\n' "$renderer_lines" | grep -oE 'Forward\+|Forward Mobile|Compatibility' | head -n 1 || true)"
-	summary="windows / ${renderer:-default} (${method:-method not in the log}) / ${device:-device not in the log}"
+	summary="windows / ${renderer:-default} ($method) / $device"
 else
 	case "$device" in
 		*llvmpipe*) device=llvmpipe ;;
 	esac
-	summary="xvfb / opengl3 / ${device:-device not in the log}"
+	case "$method" in
+		Compatibility) method=opengl3 ;;
+	esac
+	summary="xvfb / $method / $device"
 fi
 
-mv "$last_frame" "$kept"
-
-# Before the blank check: a frame that fails it stays on disk, with its renderer.
-{
-	echo "os: $(uname -s -r)"
-	echo "renderer: $summary"
-	echo "godot arguments: $(printf '%q ' "${launch[@]}")"
-	echo "engine renderer lines:"
-	printf '%s\n' "$renderer_lines"
-} > "$sidecar"
-
-# Blank check: a minimal PNG reader (no third-party packages), run with -I so
-# nothing in the cwd shadows stdlib modules. Prints WxH and the number of
-# distinct colours; exits 1 when every pixel is the same colour.
+# Blank check, on the frame while it is still in the scratch dir: a minimal PNG
+# reader (no third-party packages), run with -I so nothing in the cwd shadows stdlib
+# modules. Prints WxH and the number of distinct colours; exits 1 when every pixel
+# is the same colour.
 set +e
-"${python_cmd[@]}" -I - "$kept" <<'PY'
+"${python_cmd[@]}" -I - "$last_frame" "$kept" <<'PY'
 import struct, sys, zlib
 
 path = sys.argv[1]
+kept = sys.argv[2]
 with open(path, "rb") as fh:
     data = fh.read()
 if data[:8] != b"\x89PNG\r\n\x1a\n":
@@ -271,7 +280,7 @@ for _row in range(height):
         colours.add(bytes(line[x:x + channels]))
     prev = line
 
-print("capture.sh: %s %dx%d, %d distinct colours" % (path, width, height, len(colours)))
+print("capture.sh: %s %dx%d, %d distinct colours" % (kept, width, height, len(colours)))
 if len(colours) <= 1:
     print("capture.sh: capture is all one colour — blank frame", file=sys.stderr)
     sys.exit(1)
@@ -281,5 +290,52 @@ set -e
 if [ "$blank_exit" -ne 0 ]; then
 	exit 4
 fi
+
+# `text` with this machine's paths taken out. The scratch dir first: it is usually
+# inside the repository.
+portable() {
+	local text="$1" path
+	for path in "$tmp_dir" "$(native_path "$tmp_dir")"; do
+		text="${text//"$path"/<tmp>}"
+	done
+	for path in "$repo_root" "$(native_path "$repo_root")"; do
+		text="${text//"$path"/<repo>}"
+	done
+	if [ -n "${HOME:-}" ]; then
+		for path in "$HOME" "$(native_path "$HOME")"; do
+			text="${text//"$path"/<home>}"
+		done
+	fi
+	printf '%s' "$text"
+}
+
+# `path` as a Windows-side program spells it, or unchanged on Linux.
+native_path() {
+	if [ "$windows" = 1 ]; then
+		cygpath -m "$1"
+	else
+		printf '%s' "$1"
+	fi
+}
+
+portable_args=""
+for arg in "${launch[@]}"; do
+	quoted="$(printf '%q' "$(portable "$arg")")"
+	quoted="${quoted//\\</<}"
+	quoted="${quoted//\\>/>}"
+	portable_args+="${portable_args:+ }$quoted"
+done
+
+# Every check has passed. Nothing reaches <out-dir> before this line.
+{
+	echo "os: $(uname -s -r)"
+	echo "renderer: $summary"
+	echo "godot arguments: $portable_args"
+	echo "engine renderer lines:"
+	portable "$renderer_lines"
+	echo
+} > "$tmp_dir/sidecar.txt"
+mv "$tmp_dir/sidecar.txt" "$sidecar"
+mv "$last_frame" "$kept"
 
 echo "$kept"

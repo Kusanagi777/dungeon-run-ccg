@@ -19,7 +19,7 @@ export GODOT_BIN=<engine folder>/Godot_v4.7.2-stable_win64_console.exe
 | `01-boot.png` | `windows / default (Forward+) / NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU` | `bash tools/capture.sh res://src/scenes/boot.tscn production/qa/evidence/story-011-windows-screenshot-capture 60` | 0 | 1280x720, 475 distinct colours | 17:45:39 to 17:45:44 |
 | `02-data_error-opengl3.png` | `windows / opengl3 (Compatibility) / NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU` | `CAPTURE_RENDERER=opengl3 CAPTURE_LABEL=02-data_error-opengl3 bash ../tools/capture.sh res://src/scenes/main.tscn qa/evidence/story-011-windows-screenshot-capture 60 -- --boot-fail-fixture=boot_data_error` | 0 | 1280x720, 463 distinct colours | 17:45:53 to 17:45:58 |
 
-Each frame's `.renderer.txt` holds the OS, the exact Godot arguments and the engine's lines. The blank check ran under `python3`, the first that started.
+Each frame's `.renderer.txt` holds the OS, the exact Godot arguments and the engine's lines. On 2026-11-05 the independent review's D-011-2 had their machine paths replaced by hand with `<repo>` and `<tmp>`, the form `capture.sh` now writes; the frames were not re-captured, and they came from `dcc0f53`'s script. The blank check ran under `python3`, the first that started.
 
 ## Checked by eye
 

@@ -34,6 +34,15 @@ const BANNER_WINDOWS := "D3D12 12_0 - Forward+ - Using Device #0: Stub - Stub GP
 const BANNER_OPENGL := "OpenGL API 3.3 Stub - Compatibility - Using Device: Stub - Stub GPU"
 const BANNER_LINUX := "OpenGL API 4.5 (Core Profile) Mesa 25.2.8 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)"
 const LINUX_RENDERER_LINE := "xvfb / opengl3 / llvmpipe"
+## Banners real runs printed: story 011's two frames and story 006's Linux frames.
+const REAL_BANNERS: Array[String] = [
+	"Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU",
+	"OpenGL API 3.3.0 NVIDIA 610.47 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU",
+	"OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)",
+]
+const EVIDENCE_ROOT := "res://production/qa/evidence"
+## What a path of one machine looks like in a committed sidecar.
+const MACHINE_PATH_PATTERNS: Array[String] = ["/c/", "C:/", "C:\\", "/home/", "/Users/", ".capture-"]
 const XVFB_SCREEN := "-screen 0 1280x720x24"
 ## The capture's exit codes (`tools/capture.sh` header).
 const EXIT_OK := 0
@@ -83,6 +92,7 @@ while [ "$#" -gt 0 ]; do
 	shift
 done
 if [ -n "${STUB_FRAMES:-}" ] && [ -n "$movie" ]; then cp "$STUB_FRAMES"/*.png "${movie%/*}/"; fi
+if [ -n "${STUB_PRE:-}" ]; then printf '%s\\r\\n' "$STUB_PRE"; fi
 if [ -n "${STUB_BANNER:-}" ]; then printf '%s\\r\\n' "$STUB_BANNER"; fi
 if [ -n "${STUB_ERR:-}" ]; then printf '%s\\n' "$STUB_ERR" >&2; fi
 exit "${STUB_EXIT:-0}"
@@ -188,14 +198,14 @@ func _repo_root() -> String:
 
 
 ## Writes two frames: `f00000000.png` is always one colour; `f00000001.png`, the one
-## to keep, has a second colour unless [param blank].
-func _write_frames(blank: bool) -> void:
+## to keep, has a second colour, [param mark], unless [param blank].
+func _write_frames(blank: bool, mark: Color = Color.WHITE) -> void:
 	DirAccess.make_dir_recursive_absolute(_path("frames"))
 	var flat: Image = Image.create(4, 4, false, Image.FORMAT_RGB8)
 	flat.fill(Color.BLACK)
 	flat.save_png(_path("frames/f00000000.png"))
 	if not blank:
-		flat.set_pixel(1, 1, Color.WHITE)
+		flat.set_pixel(1, 1, mark)
 	flat.save_png(_path("frames/f00000001.png"))
 
 
@@ -296,6 +306,26 @@ func _out_entries() -> Array[String]:
 
 func _sidecar() -> String:
 	return _read("out/" + SCENE_SIDECAR)
+
+
+## The kept frame's bytes and the sidecar's text, as they stand now.
+func _pair() -> Dictionary:
+	return {"frame": FileAccess.get_file_as_bytes(_path("out/" + SCENE_FRAME)), "sidecar": _sidecar()}
+
+
+## Runs a good Windows capture and returns its pair.
+func _good_pair() -> Dictionary:
+	var result: Dictionary = _run_windows()
+	assert_int(result.exit).is_equal(EXIT_OK)
+	return _pair()
+
+
+## Asserts the out dir holds [param earlier] and nothing else. Each caller's failing run
+## has other frames or another banner, so a rewrite cannot match by accident.
+func _assert_pair_is(earlier: Dictionary) -> void:
+	assert_array(_out_entries()).is_equal([SCENE_FRAME, SCENE_SIDECAR])
+	assert_array(FileAccess.get_file_as_bytes(_path("out/" + SCENE_FRAME))).is_equal(earlier.frame)
+	assert_str(_sidecar()).is_equal(earlier.sidecar)
 
 
 ## The last non-empty line of [param text].
@@ -590,15 +620,166 @@ func test_windows_a_silent_fallback_shows_in_the_sidecar() -> void:
 	assert_str(_sidecar()).contains("renderer: windows / default (Compatibility) / Stub - Stub GPU")
 
 
-func test_blank_frame_keeps_its_sidecar_so_no_frame_is_left_without_one() -> void:
+func test_blank_frame_creates_nothing_in_the_out_dir() -> void:
 	# Arrange
 	_write_frames(true)
 
 	# Act
-	_run_windows()
+	var result: Dictionary = _run_windows()
+
+	# Assert: a frame on disk is what `/story-done` accepts, so a blank one must not be
+	assert_int(result.exit).is_equal(EXIT_BLANK)
+	assert_array(_out_entries()).is_empty()
+
+
+func test_blank_check_line_names_the_kept_path_not_the_temp_one() -> void:
+	# Act
+	var result: Dictionary = _run_windows()
 
 	# Assert
+	assert_str(result.stdout).contains("/out/%s 4x4, 2 distinct colours" % SCENE_FRAME)
+	assert_str(result.stdout).not_contains("/out/.capture-")
+
+
+func test_blank_rerun_leaves_the_earlier_good_pair_untouched() -> void:
+	# Arrange
+	var earlier: Dictionary = _good_pair()
+	_write_frames(true)
+
+	# Act
+	var result: Dictionary = _run_windows({"STUB_BANNER": BANNER_OPENGL})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_BLANK)
+	_assert_pair_is(earlier)
+
+
+func test_rerun_with_no_frame_leaves_the_earlier_good_pair_untouched() -> void:
+	# Arrange
+	var earlier: Dictionary = _good_pair()
+
+	# Act
+	var result: Dictionary = _run_windows({"STUB_FRAMES": "", "STUB_BANNER": BANNER_OPENGL})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_GODOT)
+	_assert_pair_is(earlier)
+
+
+func test_rerun_with_a_failed_engine_leaves_the_earlier_good_pair_untouched() -> void:
+	# Arrange
+	var earlier: Dictionary = _good_pair()
+	_write_frames(true)
+
+	# Act
+	var result: Dictionary = _run_windows({"STUB_EXIT": "1", "STUB_BANNER": BANNER_OPENGL})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_GODOT)
+	_assert_pair_is(earlier)
+
+
+func test_rerun_with_no_renderer_line_leaves_the_earlier_good_pair_untouched() -> void:
+	# Arrange
+	var earlier: Dictionary = _good_pair()
+	_write_frames(true)
+
+	# Act
+	var result: Dictionary = _run_windows({"STUB_BANNER": ""})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_GODOT)
+	_assert_pair_is(earlier)
+
+
+func test_a_good_rerun_replaces_both_frame_and_sidecar() -> void:
+	# Arrange
+	var earlier: Dictionary = _good_pair()
+	_write_frames(false, Color.RED)
+
+	# Act
+	var result: Dictionary = _run_windows({"CAPTURE_RENDERER": "opengl3", "STUB_BANNER": BANNER_OPENGL})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_OK)
+	assert_array(FileAccess.get_file_as_bytes(_path("out/" + SCENE_FRAME))).is_not_equal(earlier.frame)
+	assert_str(_sidecar()).contains("opengl3 (Compatibility)")
 	assert_array(_out_entries()).is_equal([SCENE_FRAME, SCENE_SIDECAR])
+
+
+func test_a_word_naming_a_renderer_is_not_a_banner_and_keeps_no_frame() -> void:
+	# Act
+	var result: Dictionary = _run_windows({"STUB_BANNER": "", "STUB_PRE": "ERROR: Vulkan device lost"})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_GODOT)
+	assert_array(_out_entries()).is_empty()
+
+
+func test_a_game_print_with_the_banners_words_is_not_a_banner() -> void:
+	# Act
+	var result: Dictionary = _run_windows({"STUB_BANNER": "", "STUB_PRE": "Compatibility - Using Device: none"})
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_GODOT)
+	assert_array(_out_entries()).is_empty()
+
+
+func test_the_last_banner_names_the_renderer_that_ran() -> void:
+	# Act: a first start that fell back
+	_run_windows({"STUB_PRE": BANNER_WINDOWS, "STUB_BANNER": BANNER_OPENGL})
+
+	# Assert
+	assert_str(_sidecar()).contains("renderer: windows / default (Compatibility) / Stub - Stub GPU")
+
+
+func test_each_banner_observed_on_a_real_run_passes_the_gate() -> void:
+	for banner: String in REAL_BANNERS:
+		# Act
+		var result: Dictionary = _run_windows({"STUB_BANNER": banner})
+
+		# Assert
+		assert_int(result.exit).is_equal(EXIT_OK)
+
+
+func test_sidecar_holds_no_path_of_this_machine() -> void:
+	# Act: both spellings of the repository, the temp folder and the wrapper
+	_run_windows({}, _with_user_args())
+
+	# Assert
+	var sidecar: String = _sidecar()
+	assert_str(sidecar).contains("<repo>/tools/bin/godot --path <repo> ")
+	assert_str(sidecar).contains("--write-movie <tmp>/f.png")
+	assert_str(sidecar).not_contains(_repo_root())
+	assert_str(sidecar).not_contains(_bash_path(_repo_root()))
+	assert_str(sidecar).not_contains(".capture-")
+
+
+func test_linux_sidecar_holds_no_path_of_this_machine() -> void:
+	# Act
+	_run_linux()
+
+	# Assert
+	var sidecar: String = _sidecar()
+	assert_str(sidecar).contains("--path <repo> ")
+	assert_str(sidecar).not_contains(_bash_path(_repo_root()))
+	assert_str(sidecar).not_contains(".capture-")
+
+
+func test_retained_sidecars_hold_no_machine_path() -> void:
+	# Arrange
+	var sidecars: Array[String] = []
+	for folder: String in DirAccess.get_directories_at(EVIDENCE_ROOT):
+		for file_name: String in DirAccess.get_files_at(EVIDENCE_ROOT.path_join(folder)):
+			if file_name.ends_with(".renderer.txt"):
+				sidecars.append(EVIDENCE_ROOT.path_join(folder).path_join(file_name))
+
+	# Assert: never an empty pass, story 011's two are in the repository
+	assert_bool(sidecars.is_empty()).is_false()
+	for path: String in sidecars:
+		var text: String = FileAccess.get_file_as_string(path)
+		for pattern: String in MACHINE_PATH_PATTERNS:
+			assert_str(text).not_contains(pattern)
 
 
 func test_no_renderer_line_in_the_log_keeps_no_frame() -> void:
@@ -607,7 +788,7 @@ func test_no_renderer_line_in_the_log_keeps_no_frame() -> void:
 
 	# Assert
 	assert_int(result.exit).is_equal(EXIT_GODOT)
-	assert_str(result.stderr).contains("no renderer line")
+	assert_str(result.stderr).contains("no renderer banner")
 	assert_array(_out_entries()).is_empty()
 
 
@@ -659,6 +840,14 @@ func test_linux_sidecar_reads_xvfb_opengl3_llvmpipe() -> void:
 	assert_str(_sidecar()).contains(BANNER_LINUX)
 
 
+func test_linux_sidecar_reads_the_banner_not_a_constant() -> void:
+	# Act
+	_run_linux({"STUB_BANNER": BANNER_WINDOWS})
+
+	# Assert
+	assert_str(_sidecar()).contains("renderer: xvfb / Forward+ / Stub - Stub GPU")
+
+
 func test_linux_engine_output_stays_on_its_own_streams() -> void:
 	# Act
 	var result: Dictionary = _run_linux({"STUB_ERR": "WARNING: stub stderr line"})
@@ -692,6 +881,22 @@ func test_linux_exit_codes_are_as_before() -> void:
 	assert_int(no_frame.exit).is_equal(EXIT_GODOT)
 	assert_int(engine_failed.exit).is_equal(EXIT_GODOT)
 	assert_int(blank.exit).is_equal(EXIT_BLANK)
+
+
+func test_linux_blank_rerun_leaves_the_earlier_good_pair_untouched() -> void:
+	# Arrange: exit 4 used to leave the blank frame under the evidence name, which
+	# ADR-0010 says is not evidence (story 011 Completion Notes)
+	var run: Dictionary = _run_linux()
+	assert_int(run.exit).is_equal(EXIT_OK)
+	var earlier: Dictionary = _pair()
+	_write_frames(true)
+
+	# Act
+	var result: Dictionary = _run_linux()
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_BLANK)
+	_assert_pair_is(earlier)
 
 
 func test_linux_runs_the_blank_check_under_python3_alone() -> void:
