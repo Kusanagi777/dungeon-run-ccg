@@ -54,6 +54,7 @@ headless, `automation: guided`, `review_mode: lean`, `workflow: standard`):
   / ADR-0005 declared under `Depends On`. `TR-boss-ai-004` row added to the
   GDD Requirements table. No decision changed.
 - **Erratum 2026-11-04 (sprint 5 code review D-1, `production/reviews/2026-11-04/code-review-s5-w1-bossai.md`)**: the driver's plan work is `boss_ai.plan_task(sandbox, planner_task)`, per ADR-0006's erratum of the same date: it passes the running task, so a time-sliced task can yield. The `BossTurn.Main` row of Decision 3 is updated. No decision changes; status stays Accepted.
+- **Erratum 2026-11-05 (sprint 5 wave 2 code review, `production/reviews/2026-11-05/code-review-s5-w2-matchdriver.md`, ADR Compliance)**: `MatchDriver._init` gains an optional fifth argument, `clock: Callable = Time.get_ticks_usec`, the time source of the replay budget, so a test drives `tick_over_budget` without the real clock. `BossAI.new` takes eight arguments, not six: `db` and `keyword_values` follow `config.log`. Decision 1 and Key Interfaces updated. No decision changes; status stays Accepted.
 
 ## Date
 
@@ -196,7 +197,7 @@ boss's plan.**
    `ProfileResolver.resolve(db.config("ai_profiles"), boss_def, band)`;
    `EffectResolver.new(db, db.config("card_effects"))`; `RulesEngine.new(db,
    db.config("match_rules"), resolver)`; `BossAI.new(boss_def, resolved_profile,
-   band, config.rng_ai, op_values, config.log)`; `engine.start(config)` (which
+   band, config.rng_ai, op_values, config.log, db, keyword_values)`; `engine.start(config)` (which
    binds the resolver and installs `player.hook_installers` then
    `boss.hook_installers` before `on_match_start` — ADR-0007/0005); then
    `_after_engine_step()` (below). `RunMachine` keeps the driver in `_driver` and
@@ -350,7 +351,7 @@ boss's plan.**
 ```gdscript
 # src/gameplay/run/match_driver.gd — owned by Run Structure (architecture.md §Feature); additions marked
 class_name MatchDriver extends RefCounted
-func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask) -> void
+func _init(config: MatchConfig, db: CardDatabase, settings: Dictionary, planner_task: PlannerTask, clock: Callable = Time.get_ticks_usec) -> void   # `clock` ADDED (erratum 2026-11-05): the replay budget's time source
 func submit(command: Command) -> CommandResult        # PLAYER commands, synchronous on the live engine; concede while a task is live → queued (ENGINE_BUSY/concede_queued)
 func legal_commands() -> Array[Command]               # pass-through to the live engine
 func query() -> MatchQuery
