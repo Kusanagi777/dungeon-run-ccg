@@ -108,6 +108,14 @@ const FULL_HAND: Array[String] = [BOLT_A, BOLT_B, GRUNT, GRUNT, GRUNT, GRUNT, BL
 const FIXTURE_MANA: int = TestConstants.MAX_MANA_CRYSTALS
 ## Deck cards for the budget fixtures (no card outside the pool is ever drawn).
 const FIXTURE_DECK_SIZE: int = 15
+## Aura board (story 019): minions on the player's board, its weapon, and what
+## the one aura source grants (a cost delta is negative: the card gets cheaper).
+const AURA_BOARD_MINIONS: int = 3
+const AURA_WEAPON_ATTACK: int = 2
+const AURA_WEAPON_DURABILITY: int = 3
+const AURA_ATTACK: int = 1
+const AURA_HEALTH: int = 1
+const AURA_COST: int = -1
 ## Fold fixture: hosts × effects per host = HookRegistry.DEBUG_MAX_ENTRIES.
 const FOLD_HOSTS: int = 4
 const FOLD_EFFECTS_PER_HOST: int = 3
@@ -190,6 +198,7 @@ func make_chain_engine(resolver: TestEffectResolver, log: TestEventLog = null) -
 		wall.summoning_sick = false
 	_set_hand(state, SIDE_PLAYER, [NOVA])
 	_fill_mana(state, SIDE_PLAYER)
+	engine.index_locations()
 	return engine
 
 
@@ -227,7 +236,70 @@ func make_full_board_engine(resolver: TestEffectResolver) -> RulesEngine:
 	targets.append_array(BOLT_TARGETS)
 	for bolt: String in [BOLT_A, BOLT_B]:
 		resolver.targets_by_def[bolt] = targets
+	engine.index_locations()
 	return engine
+
+
+## The aura board (match-rules story 019): player Main, three player minions
+## (the first with a printed `windfury`, a non-aura +1/+1 enchantment and 1
+## damage taken), one boss minion with `taunt`, a player weapon, a 3-card hand,
+## the hero power spent. No aura source: [method add_aura_source] adds one, and
+## the story's R1 suite scripts [member TestEffectResolver.aura_scripts] on it.
+func make_aura_board(resolver: TestEffectResolver, log: TestEventLog = null) -> RulesEngine:
+	var engine: RulesEngine = start_main(resolver, log)
+	var state: MatchState = engine.state()
+	for i: int in AURA_BOARD_MINIONS:
+		var keywords: Array = ["windfury"] if i == 0 else []
+		var mine: Dictionary = MatchFactory.summon(state, SIDE_PLAYER, GRUNT_ATTACK, GRUNT_HEALTH, -1, keywords, GRUNT)
+		mine.summoning_sick = false
+	var first: Dictionary = state.players[SIDE_PLAYER].board[0]
+	first.enchantments.append(MatchRecords.enchantment(1, 1))
+	first.damage_taken = 1
+	@warning_ignore("return_value_discarded")
+	MatchFactory.summon(state, SIDE_BOSS, GRUNT_ATTACK, GRUNT_HEALTH, -1, ["taunt"], GRUNT)
+	state.players[SIDE_PLAYER].weapon = MatchRecords.weapon(MatchFactory.alloc_entity_id(state), AXE, AURA_WEAPON_ATTACK, AURA_WEAPON_DURABILITY, [])
+	_set_hand(state, SIDE_PLAYER, [GRUNT, BLANK, NOVA])
+	_fill_mana(state, SIDE_PLAYER)
+	state.players[SIDE_PLAYER].hero_power.def_id = FULL_BOARD_POWER
+	state.players[SIDE_PLAYER].hero_power.used_this_turn = true
+	engine.index_locations()
+	return engine
+
+
+## Makes the aura board's rightmost player minion an aura source and returns
+## its id: +[constant AURA_ATTACK]/+[constant AURA_HEALTH] to its other board
+## minions ([member TestEffectResolver.auras]), and through
+## [method _grant_aura_extras] the Taunt, hand-cost and weapon-attack auras, so
+## one source moves every field an `auras_recomputed` entry carries (DD-X26).
+func add_aura_source(resolver: TestEffectResolver, engine: RulesEngine) -> int:
+	var board: Array = engine.state().players[SIDE_PLAYER].board
+	var source_id: int = int(board[board.size() - 1].entity_id)
+	resolver.auras[source_id] = {"attack_delta": AURA_ATTACK, "health_delta": AURA_HEALTH}
+	resolver.aura_scripts.append(_grant_aura_extras.bind(source_id))
+	return source_id
+
+
+## The non-stat half of [method add_aura_source]: while [param source_id] is on
+## the board and not Silenced, Taunt on the player's leftmost other minion, a
+## cost aura on every player hand card, and attack on the player's weapon, each
+## `is_aura`, so the engine strips and re-applies them on every recompute.
+func _grant_aura_extras(engine: RulesEngine, source_id: int) -> void:
+	var player: Dictionary = engine.state().players[SIDE_PLAYER]
+	var live: bool = false
+	var target_id: int = RulesEngine.NO_ENTITY
+	for minion: Dictionary in player.board:
+		if int(minion.entity_id) == source_id:
+			live = not bool(minion.silenced)
+		elif target_id == RulesEngine.NO_ENTITY:
+			target_id = int(minion.entity_id)
+	if not live:
+		return
+	if target_id != RulesEngine.NO_ENTITY:
+		engine.apply_enchantment(target_id, {"keywords_added": ["taunt"], "source_entity_id": source_id, "is_aura": true})
+	for card: Dictionary in player.hand:
+		engine.apply_enchantment(int(card.instance_id), {"cost_delta": AURA_COST, "source_entity_id": source_id, "is_aura": true})
+	if player.weapon != null:
+		engine.apply_enchantment(int(player.weapon.entity_id), {"attack_delta": AURA_ATTACK, "source_entity_id": source_id, "is_aura": true})
 
 
 ## [constant FOLD_HOSTS] installers with [constant FOLD_EFFECTS_PER_HOST]
@@ -315,8 +387,10 @@ var last_error: String = ""
 
 
 ## The fixture's engine after its commands, or null when a command could not
-## be found or was rejected ([member last_error] says which).
-func engine_for(fixture: Dictionary, recording: bool = true) -> RulesEngine:
+## be found or was rejected ([member last_error] says which). [param hero_power],
+## when given, seats that power on both sides before the commands run, as the
+## story 017 suite's `_start` does (match-rules story 019: the golden logs).
+func engine_for(fixture: Dictionary, recording: bool = true, hero_power: String = "") -> RulesEngine:
 	last_error = ""
 	var decks: Dictionary = fixture.decks
 	var boss: Dictionary = {"deck": _deck(decks.boss), "hook_installers": []}
@@ -324,6 +398,9 @@ func engine_for(fixture: Dictionary, recording: bool = true) -> RulesEngine:
 		boss["health"] = int(fixture.boss_health)
 	var overrides: Dictionary = {"player": {"deck": _deck(decks.player), "hook_installers": []}, "boss": boss}
 	var engine: RulesEngine = MatchFactory.make_started_engine(TestRngService.new(REPLAY_SEED), TestEventLog.new(), overrides, fixture.get("rules_overrides", {}), make_resolver(recording), make_db())
+	if hero_power != "":
+		for side: String in MatchRecords.SIDES:
+			engine.state().players[side].hero_power.def_id = hero_power
 	return engine if _run_script(engine, fixture.commands, str(fixture.name)) else null
 
 
