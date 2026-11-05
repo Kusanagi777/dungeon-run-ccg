@@ -9,6 +9,7 @@
 extends GdUnitTestSuite
 
 const SHIPPED: String = "res://assets/data/match_ui.json"
+const AI_PROFILES: String = "res://assets/data/ai_profiles.json"
 ## The snake_case file keys of the three renamed knobs.
 const FILE_KEYS: Array[String] = ["speed_div", "coalesce_threshold", "feed_max_lines"]
 const UPPER_KEYS: Array[String] = ["SPEED_DIV", "COALESCE_THRESHOLD", "FEED_MAX_LINES"]
@@ -42,6 +43,30 @@ func test_the_animation_queue_reads_the_shipped_speed_divisor_and_threshold() ->
 
 	# Assert
 	assert_float((out.queue as AnimationQueue).effective_duration(step)).is_equal_approx(d_base / float(body.speed_div.fast), 1e-9)
+
+
+func test_the_shipped_body_carries_the_f4_knobs_inside_their_safe_ranges() -> void:
+	# Arrange
+	var body: Dictionary = _body()
+
+	# Act / Assert: match-ui Tuning Knobs `MIN_ACTION_GAP_S` 0.1-0.3, `K_MIN` 0.25-0.5
+	assert_float(float(body.min_action_gap_s)).is_between(0.1, 0.3)
+	assert_float(float(body.k_min)).is_between(0.25, 0.5)
+	assert_float(float(body.d_base.boss_discovers)).is_equal_approx(0.4, 1e-9)
+
+
+func test_the_boss_pacing_reads_the_shipped_f4_knobs() -> void:
+	# Arrange
+	var body: Dictionary = _body()
+	var profiles: Dictionary = ((load(AI_PROFILES) as JSON).data as Dictionary).config
+
+	# Act
+	var pacing: Dictionary = AnimationQueue.boss_pacing(body, profiles, {})
+
+	# Assert
+	assert_float(float(pacing.MIN_ACTION_GAP_S)).is_equal(float(body.min_action_gap_s))
+	assert_float(float(pacing.K_MIN)).is_equal(float(body.k_min))
+	assert_float(float(pacing.planner_target_s) * 1000.0).is_equal_approx(float(profiles.runtime.planner_target_ms), 1e-6)
 
 
 func test_the_view_state_keeps_at_most_the_shipped_feed_max_lines() -> void:

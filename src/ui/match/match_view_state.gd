@@ -665,18 +665,19 @@ func _apply_death(p: Dictionary, group: int, seq: int, cause: int, steps: Array[
 ## U3 `discover_offered` + `choice_requested`: the player's options come from
 ## `discover_offered` (or `choice_requested` when it is first); the overlay
 ## step is emitted on the second of the pair, whichever order. A boss Choice
-## stores `{side, kind}` only and has no step.
+## stores `{side, kind}` only, and its step is the "boss discovers…" label on the
+## boss portrait (U6.6), which carries no options.
 func _apply_choice_open(offered: bool, p: Dictionary, group: int, seq: int, steps: Array[AnimStep]) -> void:
 	var owner: String = str(p.get("side", ""))
 	if owner != SIDE_PLAYER:
 		pending_choice = {"side": owner, "kind": str(p.get("kind", ""))}
-		return
-	var options: Variant = p.get("option_card_ids", p.get("option_label_keys", [])) if offered else p.get("options", [])
-	if offered or pending_choice == null:
-		pending_choice = {
-			"side": owner, "kind": str(p.get("kind", "")), "options": _copy(options),
-			"source_id": _copy(p.get("source_id")), "effect_id": str(p.get("effect_id", "")),
-		}
+	else:
+		var options: Variant = p.get("option_card_ids", p.get("option_label_keys", [])) if offered else p.get("options", [])
+		if offered or pending_choice == null:
+			pending_choice = {
+				"side": owner, "kind": str(p.get("kind", "")), "options": _copy(options),
+				"source_id": _copy(p.get("source_id")), "effect_id": str(p.get("effect_id", "")),
+			}
 	if offered:
 		_choice_offered = true
 	else:
@@ -684,7 +685,10 @@ func _apply_choice_open(offered: bool, p: Dictionary, group: int, seq: int, step
 	if _choice_offered and _choice_requested:
 		_choice_offered = false
 		_choice_requested = false
-		steps.append(_step(AnimStep.OVERLAY_OPEN, [], group, seq))
+		if owner == SIDE_PLAYER:
+			steps.append(_step(AnimStep.OVERLAY_OPEN, [], group, seq))
+		else:
+			steps.append(_step(AnimStep.BOSS_DISCOVERS, _hero_ids(_raw(p)), group, seq))
 
 
 # --- helpers -------------------------------------------------------------------------
