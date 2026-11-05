@@ -33,8 +33,11 @@
       "attack_return": 0.15,
       "rim_glow": 0.15,
       "fizzle": 0.2,
-      "intent_commit": 0.3
+      "intent_commit": 0.3,
+      "boss_discovers": 0.4
     },
+    "min_action_gap_s": 0.15,
+    "k_min": 0.25,
     "speed_div": {
       "normal": 1.0,
       "fast": 2.0

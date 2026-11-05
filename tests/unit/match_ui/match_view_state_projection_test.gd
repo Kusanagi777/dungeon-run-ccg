@@ -170,7 +170,10 @@ func test_boss_discover_offered_and_choice_requested_store_no_options() -> void:
 	var stored: Array[String] = _strings_in(view.snapshot(), [])
 	for option: String in options:
 		assert_array(stored).not_contains([option])
-	assert_array(steps).is_empty()
+	# match-ui U6.6, story 010: one "boss discovers…" step, which carries no options
+	assert_int(steps.size()).is_equal(1)
+	assert_that(steps[0].kind).is_equal(AnimStep.BOSS_DISCOVERS)
+	assert_bool(steps[0].data.is_empty()).is_true()
 
 
 func test_player_discover_pair_opens_the_overlay_once_on_the_second_event_either_order() -> void:

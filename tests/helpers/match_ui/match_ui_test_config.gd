@@ -37,7 +37,12 @@ static func body() -> Dictionary:
 			"rim_glow": 0.15, "fizzle": 0.2,
 			# U3 `ai_intent_committed` "commit beat `intent_banner_s`" (Boss AI data, 0.3)
 			"intent_commit": 0.3,
+			# U6.6 / Edge Cases: the 0.4 s "boss discovers…" label (match-ui story 010)
+			"boss_discovers": 0.4,
 		},
+		# F4 / Tuning Knobs `MIN_ACTION_GAP_S`, `K_MIN` (match-ui story 010)
+		"min_action_gap_s": 0.15,
+		"k_min": 0.25,
 		# F3 / Tuning Knobs `SPEED_DIV`: normal 1.0, fast 2.0 (`instant` never divides)
 		"speed_div": {"normal": 1.0, "fast": 2.0},
 		# U4.3 / Tuning Knobs `COALESCE_THRESHOLD`

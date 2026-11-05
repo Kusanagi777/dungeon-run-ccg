@@ -50,6 +50,8 @@ const POWER_RELIGHT: StringName = &"power_relight"
 const ATTACK_RETURN: StringName = &"attack_return"
 const RIM_GLOW: StringName = &"rim_glow"
 const FIZZLE: StringName = &"fizzle"
+## U6.6: the boss's Choice, the "boss discovers…" label, with no options.
+const BOSS_DISCOVERS: StringName = &"boss_discovers"
 
 ## What the step shows (one of the kind constants above).
 var kind: StringName
