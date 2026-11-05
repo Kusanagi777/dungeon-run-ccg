@@ -564,7 +564,8 @@ op_values:      {<op name>: float 0–5}      damage 1.0, destroy 2.0, heal 0.6,
                                             give_keyword 0.8, summon 1.0, draw 1.2, silence 1.2, freeze 0.7,
                                             discover 1.0, add_to_hand 1.0, copy_to_hand 1.0, armor 0.5,
                                             return_to_hand 1.0, transform 1.2, mana 1.5, equip 1.2,
-                                            retrigger 1.5      (Card Effects C5 names; × targets yielded, C6)
+                                            retrigger 1.5, add_counter 0.5 (2026-11-04, DD-X20)
+                                            (Card Effects C5 names; × targets yielded, C6)
 keyword_values: {<keyword>: float 1.0–1.5}  F2 multipliers
 profiles:       {<key>: Profile}            default, aggro, control, tempo, passive_driven
 bands:          {"1"|"2"|"3": Profile overlay}
@@ -585,12 +586,6 @@ Profile = { extends?: key,
             choice_preference: {<tag>: float 0–1},
             synergy_tags: [string] }
 ```
-
-`add_counter 0.5` (2026-11-04, DD-X20; C6) is a decided row of the op value table that the list
-above does not yet carry. It moves into that list in the same change that adds it to
-`assets/data/ai_profiles.json`, because `boss_ai_profiles_data_test.gd` pins the shipped file to
-the list (content story 010, sprint 5). Until then the shipped file has the 19 rows above and a
-card using `add_counter` fails the load with `E_AI_OP_UNVALUED`.
 
 Archetype deltas from `default` (F1's table holds the default weights; default `rules` are
 `hero_power spare_mana`, `lethal_search full`, `defensive false`, `assume_aoe false`): **aggro** `w_face 3.0, w_board

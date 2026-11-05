@@ -176,8 +176,9 @@ func test_sections_are_in_f9_order() -> void:
 
 # --- F9 tables (AC-1) ------------------------------------------------------------
 
-func test_op_values_are_f9s_nineteen_card_effects_ops_with_its_values() -> void:
-	# Arrange — F9: `op_values: {…} damage 1.0, destroy 2.0, …, retrigger 1.5`
+func test_op_values_are_f9s_twenty_card_effects_ops_with_its_values() -> void:
+	# Arrange — F9: `op_values: {…} damage 1.0, destroy 2.0, …, retrigger 1.5,
+	# add_counter 0.5` (content story 010, DD-X20)
 	var f9: String = _section(FileAccess.get_file_as_string(BOSS_AI_GDD), "### F9.", "\n## ")
 	var block: String = f9.get_slice("op_values:", 1).get_slice("keyword_values:", 0)
 	var expected: Dictionary = {}
@@ -188,8 +189,10 @@ func test_op_values_are_f9s_nineteen_card_effects_ops_with_its_values() -> void:
 	var op_values: Dictionary = _body().op_values
 
 	# Assert
-	assert_int(expected.size()).is_equal(19)
+	assert_int(expected.size()).is_equal(20)
+	assert_float(float(expected.get("add_counter", -1.0))).is_equal(0.5)
 	assert_dict(op_values).is_equal(expected)
+	assert_str(f9).not_contains("does not yet carry")
 
 
 func test_keyword_values_are_the_f2_multipliers() -> void:

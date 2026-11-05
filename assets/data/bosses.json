@@ -49,8 +49,8 @@
         "neutral_dungeon_delver",
         "neutral_hush_owl",
         "neutral_hush_owl",
-        "neutral_ogre_porter",
-        "neutral_ogre_porter",
+        "neutral_gravekeeper",
+        "neutral_gravekeeper",
         "neutral_shield_golem",
         "neutral_shield_golem",
         "neutral_crypt_brute",
@@ -155,8 +155,6 @@
       "deck": [
         "boss_iron_gate",
         "boss_iron_gate",
-        "boss_iron_gate",
-        "boss_gate_warden",
         "boss_gate_warden",
         "boss_gate_warden",
         "neutral_lantern_bearer",
@@ -175,6 +173,8 @@
         "neutral_bulwark_smith",
         "neutral_banner_captain",
         "neutral_banner_captain",
+        "neutral_gravekeeper",
+        "neutral_gravekeeper",
         "neutral_hush_owl",
         "neutral_hush_owl",
         "neutral_torch_imp",
@@ -245,8 +245,8 @@
         "neutral_banner_captain",
         "neutral_wolf_rider",
         "neutral_wolf_rider",
-        "neutral_crypt_brute",
-        "neutral_crypt_brute"
+        "neutral_gravekeeper",
+        "neutral_gravekeeper"
       ],
       "ai_profile": "boss_rot_warden",
       "tags": [
@@ -284,8 +284,6 @@
       "deck": [
         "boss_hollow_knight",
         "boss_hollow_knight",
-        "boss_hollow_knight",
-        "boss_crown_of_thorns",
         "boss_crown_of_thorns",
         "boss_crown_of_thorns",
         "war_shield_maiden",
@@ -308,6 +306,8 @@
         "neutral_cellar_guard",
         "neutral_banner_captain",
         "neutral_banner_captain",
+        "neutral_gravekeeper",
+        "neutral_gravekeeper",
         "neutral_hush_owl",
         "neutral_hush_owl",
         "neutral_torch_imp",

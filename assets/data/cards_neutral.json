@@ -374,6 +374,53 @@
         "key": "card.neutral_smite_or_mend.text",
         "en": "Choose One — Deal 2 damage to a character; or Restore 4 Health to it."
       }
+    },
+    {
+      "id": "neutral_gravekeeper",
+      "name": "Gravekeeper",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "any_minion"
+          },
+          "ops": [
+            {
+              "op": "add_counter",
+              "key": "seen",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "trigger": "deathrattle",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "counter.seen"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pings"
+      ],
+      "text": {
+        "key": "card.neutral_gravekeeper.text",
+        "en": "Deathrattle: Deal 1 damage to the enemy hero per minion that died while this was in play."
+      }
     }
   ]
 }

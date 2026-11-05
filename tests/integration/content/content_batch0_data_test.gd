@@ -19,13 +19,13 @@ const WAR_COLLECTIBLE: Array[String] = [
 	"war_rusted_axe", "war_sharpen", "war_shield_squire", "war_warcry",
 ]
 const WAR_TOKEN: String = "war_whetstone_blade"
-## CN-2 neutral table, the batch-0 rows (`neutral_gravekeeper` deferred to
-## MVP-1, story 001 deviation 2026-11-04; `neutral_smite_or_mend` is story 003).
+## CN-2 neutral table, the batch-0 rows (`neutral_gravekeeper` was deferred by
+## story 001 and ships with story 010, DD-X20; `neutral_smite_or_mend` is story 003).
 const NEUTRALS: Array[String] = [
 	"neutral_banner_captain", "neutral_bulwark_smith", "neutral_cellar_guard", "neutral_crypt_brute",
-	"neutral_dungeon_delver", "neutral_hush_owl", "neutral_lantern_bearer", "neutral_ogre_porter",
-	"neutral_shield_golem", "neutral_spark_fiend", "neutral_torch_imp", "neutral_tunnel_rat",
-	"neutral_wolf_rider",
+	"neutral_dungeon_delver", "neutral_gravekeeper", "neutral_hush_owl", "neutral_lantern_bearer",
+	"neutral_ogre_porter", "neutral_shield_golem", "neutral_spark_fiend", "neutral_torch_imp",
+	"neutral_tunnel_rat", "neutral_wolf_rider",
 ]
 ## Heroes H-4, War column.
 const WAR_STARTER: Array[String] = [
@@ -34,11 +34,12 @@ const WAR_STARTER: Array[String] = [
 	"neutral_dungeon_delver", "neutral_dungeon_delver", "war_iron_vanguard", "war_quartermaster",
 	"neutral_crypt_brute", "war_pit_brawler", "neutral_ogre_porter",
 ]
-## CN-3 B2 Torchbearer recipe's 13 neutrals (Gravekeeper → Ogre Porter, deviation).
+## CN-3 B2 Torchbearer recipe's 13 neutrals, Gravekeeper back in Ogre Porter's
+## slots (content story 010; the story 001 deviation is undone).
 const TORCH_NEUTRALS: Array[String] = [
 	"neutral_tunnel_rat", "neutral_wolf_rider", "neutral_banner_captain", "neutral_spark_fiend",
 	"neutral_torch_imp", "neutral_cellar_guard", "neutral_lantern_bearer", "neutral_bulwark_smith",
-	"neutral_dungeon_delver", "neutral_hush_owl", "neutral_ogre_porter", "neutral_shield_golem",
+	"neutral_dungeon_delver", "neutral_hush_owl", "neutral_gravekeeper", "neutral_shield_golem",
 	"neutral_crypt_brute",
 ]
 ## CN-4 batch-0 bundles: id → [set, theme, cards].

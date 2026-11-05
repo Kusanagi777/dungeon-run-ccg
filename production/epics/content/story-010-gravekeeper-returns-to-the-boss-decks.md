@@ -1,12 +1,12 @@
 # Story 010: Gravekeeper returns to the boss decks
 
 > **Epic**: Content (MVP batch)
-> **Status**: Ready
+> **Status**: Complete
 > **Layer**: Feature (data)
 > **Type**: Config/Data
 > **Estimate**: S
 > **Manifest Version**: 2026-11-04
-> **Last Updated**: 2026-11-04 (created, DD-X20)
+> **Last Updated**: 2026-11-04 (implemented, sprint 5 lane 3 wave 2; owner data sign-off pending)
 
 ## Context
 
@@ -34,15 +34,15 @@
 
 *From DD-X20 and GDD `design/gdd/content.md` (CN-2, CN-3 B2, AC-10, AC-11), `design/gdd/boss-ai.md` C6 / F9:*
 
-- [ ] **AC-1 (`op_values` row)** GIVEN `assets/data/ai_profiles.json`, THEN `op_values` has `"add_counter": 0.5` and its other 19 rows are unchanged. GIVEN `design/gdd/boss-ai.md` F9, THEN `add_counter 0.5` sits in the `op_values:` list, and the note under the block saying the list "does not yet carry" it is removed. `BossAI.validate_profiles_config` returns zero rows.
-- [ ] **AC-2 (Card)** GIVEN `assets/data/cards_neutral.json`, THEN `neutral_gravekeeper` is present per CN-2: minion, cost 3, 2/3, rarity R, keyword `deathrattle`, `text.en` = the CN-2 text, `effects[]` = card-effects C11 row 45 verbatim (`on_minion_died {who: any_minion}` → `add_counter seen 1`; `deathrattle` → `enemy_hero` → `damage {ref: counter.seen}`). It validates with zero `E_FX_*` and zero `E_AI_OP_UNVALUED`. The collectible neutral set is 15 (CN-1 MVP column).
-- [ ] **AC-3 (Decks back on their B2 recipes)** GIVEN `bosses.json`, THEN each deck has 30 non-token ids and undoes its recorded fallback:
+- [x] **AC-1 (`op_values` row)** GIVEN `assets/data/ai_profiles.json`, THEN `op_values` has `"add_counter": 0.5` and its other 19 rows are unchanged. GIVEN `design/gdd/boss-ai.md` F9, THEN `add_counter 0.5` sits in the `op_values:` list, and the note under the block saying the list "does not yet carry" it is removed. `BossAI.validate_profiles_config` returns zero rows.
+- [x] **AC-2 (Card)** GIVEN `assets/data/cards_neutral.json`, THEN `neutral_gravekeeper` is present per CN-2: minion, cost 3, 2/3, rarity R, keyword `deathrattle`, `text.en` = the CN-2 text, `effects[]` = card-effects C11 row 45 verbatim (`on_minion_died {who: any_minion}` → `add_counter seen 1`; `deathrattle` → `enemy_hero` → `damage {ref: counter.seen}`). It validates with zero `E_FX_*` and zero `E_AI_OP_UNVALUED`. The collectible neutral set is 15 (CN-1 MVP column).
+- [x] **AC-3 (Decks back on their B2 recipes)** GIVEN `bosses.json`, THEN each deck has 30 non-token ids and undoes its recorded fallback:
   - Gatekeeper (story 003): `boss_iron_gate` ×3 → ×2, `boss_gate_warden` ×3 → ×2, `neutral_gravekeeper` ×2.
   - Hollow King (story 004): `boss_hollow_knight` ×3 → ×2, `boss_crown_of_thorns` ×3 → ×2, `neutral_gravekeeper` ×2.
   - Rot Warden (story 004): `neutral_crypt_brute` ×2 → `neutral_gravekeeper` ×2. The other 10 named neutrals and both exclusions are unchanged (DD-X24).
   - The Torchbearer (story 001): `neutral_ogre_porter` ×2 → `neutral_gravekeeper` ×2. *Included because DD-X20 returns Gravekeeper to "the boss decks that dropped it", and this deck dropped it for the same reason. DD-X20's own list names only the other three. The owner may strike this line; if so, the Torchbearer deviation stays as recorded in story 001.*
   - Rat King is unchanged: leaving Gravekeeper out of its 13 neutrals was a recipe choice, accepted as shipped (DD-X24).
-- [ ] **AC-4 (Validator clean)** GIVEN the full data set, WHEN `godot --headless --path . -s res://tools/content/validate.gd` runs, THEN it exits 0 with zero `error` entries and no warning code that the latest content smoke record (`production/qa/smoke-2026-11-04-content-mvp1-*.md`) lacks. Changed values in existing rows (e.g. the neutral `W_SET_SHARE` / curve rows after a 15th neutral) are diffed and recorded. The output is retained in the smoke record.
+- [x] **AC-4 (Validator clean)** GIVEN the full data set, WHEN `godot --headless --path . -s res://tools/content/validate.gd` runs, THEN it exits 0 with zero `error` entries and no warning code that the latest content smoke record (`production/qa/smoke-2026-11-04-content-mvp1-*.md`) lacks. Changed values in existing rows (e.g. the neutral `W_SET_SHARE` / curve rows after a 15th neutral) are diffed and recorded. The output is retained in the smoke record.
 
 ---
 
@@ -91,7 +91,7 @@
 **Required evidence**:
 - Config/Data: smoke check pass (`production/qa/smoke-[date].md`) with the validate output; the updated data tests pass.
 
-**Status**: [ ] Not yet created
+**Status**: [x] `production/qa/smoke-2026-11-04-content-010.md` (owner sign-off pending)
 
 ---
 
@@ -100,3 +100,23 @@
 - Depends on: `production/epics/content/story-001-batch-0-first-playable-data-set.md`, `production/epics/content/story-003-mvp-1-band-1-bosses-rat-king-gatekeeper.md`, `production/epics/content/story-004-mvp-1-bosses-rot-warden-hollow-king.md` (all Complete); `production/epics/boss-ai-match-driver/story-003-ai-profiles-mvp-data.md` (Complete)
 - Runtime (not blocking): `production/epics/card-effects/story-009-deathrattle-snapshot-counters.md`
 - Unlocks: `production/epics/content/story-009-mvp-1-batch-close-audit-and-balance.md` (AC-2's neutral 15)
+
+---
+
+## Completion Notes
+**Completed**: 2026-11-04
+**Start / end (UTC)**: 2026-11-05T00:38:41Z to 2026-11-05T00:50:37Z
+**Readiness**: READY (2026-11-04). ADR-0002, 0006 and 0007 Accepted, manifest 2026-11-04 matches, dependencies Complete, card-effects story 009 Complete on trunk. AC-3's Torchbearer line is kept (sprint-005 Readiness notes).
+**Criteria**: 4/4 passing. Owner sign-off on the deck diffs and validator record comes after the wave.
+**Test Evidence**: `production/qa/smoke-2026-11-04-content-010.md`. `content_mvp1_data_test.gd`: 3 tests added, 4 changed (3 renamed for the deck recipes, 1 for the neutral set of 15). `content_batch0_data_test.gd`: the batch-0 neutral list and Torchbearer pin changed. `boss_ai_profiles_data_test.gd`: `op_values` test renamed to twenty. Full suite: 1732 cases, 0 failures; smoke exit 0.
+**Seen failing**: all 10 target tests failed on the old data before any data edit, including the 3 new ones (missing card). They pass after it.
+**Validate command**: `Ready — 0 errors, 50 warnings (content checks 0 errors, 43 warnings), 70 records`. Before: 50 / 43, 69 records. No new warning code; every changed row is diffed in the smoke record.
+**Run result**: N/A, data only. No scene loads these decks until the match driver and match-ui stories. The shipped Gravekeeper was run on the real engine and resolver in `test_shipped_gravekeeper_deals_the_minions_that_died_in_play_to_the_enemy_hero`: 3 deaths in play, 3 damage to the enemy hero.
+**Deviations**:
+- ADVISORY: The Torchbearer swap goes beyond DD-X20's three named decks. The story, content Edge Cases and CN-3 name it, and the owner may still strike it at sign-off; that would also change the Edge Case, the CN-3 row and the `TORCH_NEUTRALS` pin.
+- ADVISORY: `tags: ["pings"]` comes from CN-2's Tags column; AC-2 does not list it.
+- ADVISORY: `text.en` follows CN-2 ("per minion", 89 characters), as AC-2 says, not C11 row 45's wording ("for each minion"), which would be 94 characters against `text_max_chars` 90.
+- ADVISORY: The story's Out of Scope leaves the F4 re-run to story 009, and the QA plan asks for it here. The deck term is recorded as an observation on partial values; the F4 verdict stays with story 009.
+**Open**:
+- `neutral_gravekeeper` adds a `W_BUDGET` "not checked" row: F3 has no rate for `add_counter` or a counter-read damage amount. Its partial value 5.0 is within tolerance of budget 7.0, so no accepted-deviation note is needed. Whether F3 gains a rate is a design question for story 009 or the owner.
+**Reviewed by**: pending; the orchestrator runs the independent `/code-review` (summary row, sprint plan)
