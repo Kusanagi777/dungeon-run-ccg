@@ -32,6 +32,8 @@ const SETTING_REDUCE_MOTION: StringName = &"reduce_motion"
 const FEED_TOGGLE_METHOD: StringName = &"toggle"
 const FEED_OPEN_METHOD: StringName = &"is_open"
 const POSE_CHOICE: String = "choice"
+const POSE_REJECT: String = "reject"
+const EVENT_REJECTED: String = "command_rejected"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
@@ -72,6 +74,10 @@ var _inspect: CardFrame = null
 var _inspected: int = -1
 # The card of the drag that just submitted, until the engine has answered.
 var _dropped_card: int = -1
+var _reject: RejectPresenter = null
+# The source of the last session, for the rejection shake and tooltip.
+var _last_source: Dictionary = {}
+var _last_by_pointer: bool = false
 var _ended: bool = false
 # True while events_since(0) is projected: nothing is shown until it has all landed.
 var _loading: bool = false
@@ -149,7 +155,18 @@ func apply_pose(pose: String, _value: String) -> bool:
 	match pose:
 		POSE_CHOICE:
 			return true
+		POSE_REJECT:
+			_pose_reject(_value)
+			return true
 	return false
+
+
+## U11 `reject:<code>`: the projected rejection of [param code], its tooltip and flash
+## frozen. View-only: the engine is not called.
+func _pose_reject(code: String) -> void:
+	_reject.frozen = true
+	_reject.set_origin(null, _ui.rect("viewport").get_center())
+	_on_event({"seq": 0, "type": EVENT_REJECTED, "cause_seq": 0, "payload": {"side": MatchViewState.SIDE_PLAYER, "code": code, "command": {}, "diagnostic": true}})
 
 
 ## U11 `end:<reason>`: the end banner as [param reason]; a match must have ended.
@@ -269,9 +286,11 @@ func _build() -> void:
 	_build_chrome()
 	_build_inspect()
 	_presenters = [_boss_panel, _player_panel, _boss_row, _player_row, _hand, _arrow, _feed, _choice, _mulligan, _banner]
+	_presenters.append_array(_build_extra_presenters())
 	for presenter: Presenter in _presenters:
 		presenter.setup(_ui)
 		presenter.bind(_view)
+	_reject.set_flash_targets({"taunts": _boss_row.flash_taunts, "mana_bar": _player_panel.flash_mana})
 	_banner.continued.connect(_finish_match)
 	_choice.chosen.connect(func(index: int) -> void:
 		_router.intent(InputRouter.CHOICE_INTENT, {"index": index}))
@@ -280,6 +299,14 @@ func _build() -> void:
 	_queue.step_started.connect(_on_step_started)
 	_queue.skipped.connect(_on_skipped)
 	_queue.drained.connect(_on_drained)
+
+
+## The presenters `match_view.tscn` does not hold.
+func _build_extra_presenters() -> Array[Presenter]:
+	_reject = RejectPresenter.new()
+	_reject.name = "RejectFeedback"
+	add_child(_reject)
+	return [_reject]
 
 
 ## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).
@@ -451,6 +478,7 @@ func _present(display: Dictionary) -> void:
 
 
 func _on_command_requested(command: Dictionary) -> void:
+	_aim_rejection()
 	var result: Dictionary = _controller.submit(command)
 	if not result.accepted:
 		_mulligan.on_rejected()
@@ -458,6 +486,26 @@ func _on_command_requested(command: Dictionary) -> void:
 		if _dropped_card != -1:
 			_hand.reset_card(_dropped_card)
 	_dropped_card = -1
+
+
+## Rejection Feedback's anchor: the cursor for the mouse, above the source for a key.
+func _aim_rejection() -> void:
+	var anchor: Vector2 = get_global_mouse_position()
+	if not _last_by_pointer:
+		anchor = _source_centre(_last_source) if not _last_source.is_empty() else _ui.rect("end_turn").get_center()
+	_reject.set_origin(_origin_control(_last_source), anchor)
+
+
+func _origin_control(source: Dictionary) -> Control:
+	match str(source.get("kind", "")):
+		InputRouter.SOURCE_CARD:
+			return _hand.card(int(source.id))
+		InputRouter.SOURCE_HERO_POWER:
+			return _player_panel.power_control()
+		InputRouter.SOURCE_ATTACKER:
+			var token: MinionToken = _player_row.token(int(source.id))
+			return token if token != null else _player_panel.portrait_control()
+	return _end_turn
 
 
 func _on_session_started(session: Dictionary) -> void:
@@ -523,6 +571,8 @@ func _on_session_moved(session: Dictionary) -> void:
 
 
 func _on_session_ended(session: Dictionary, submitted: bool) -> void:
+	_last_source = session.source if submitted else {}
+	_last_by_pointer = session.entered_by != TargetingSession.ENTERED_KEY
 	_set_source_lifted(session.source, false, submitted)
 	_arrow.stop()
 	_player_row.set_gap(InputRouter.NO_GAP)

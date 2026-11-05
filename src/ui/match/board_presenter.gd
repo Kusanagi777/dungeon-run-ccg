@@ -172,6 +172,18 @@ func set_attackers(attackers: Dictionary, sick: Dictionary) -> void:
 		token.set_summoning_sick(sick.has(id))
 
 
+## The token of entity [param id], or null, for the rejection shake.
+func token(id: int) -> MinionToken:
+	return _tokens.get(id)
+
+
+## Rejection Feedback: every Taunt's frame flashes while [param on].
+func flash_taunts(on: bool) -> void:
+	for id: Variant in _tokens:
+		var minion: MinionToken = _tokens[id]
+		minion.set_flash(on and minion.has_taunt())
+
+
 ## The `A` numerals: [param badges] maps entity id to numeral; `{}` clears them.
 func set_attack_badges(badges: Dictionary) -> void:
 	for id: Variant in _tokens:

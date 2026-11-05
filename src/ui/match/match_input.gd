@@ -1,7 +1,8 @@
 ## What one input event asks for (interaction-patterns Standard Shortcuts: `InputRouter`
 ## reads actions, never key codes). Keyboard and gamepad land on the same names, so the
 ## focus graph and the targeting session have one input surface. Mouse events are not
-## read here: they are positions, and [InputRouter] takes them by type.
+## read here: they are positions, and [InputRouter] takes them by type. The action names
+## are the ones Run UI's `RunInput` uses; `project.godot` holds their defaults.
 ##
 ## `Space` is its own action because it is not a confirm (targeting.md §7.2): it sits on
 ## `ui_accept` too, so it is read first.
@@ -30,12 +31,12 @@ const ATTACK: StringName = &"attack"
 const FEED: StringName = &"feed"
 const HAND: StringName = &"hand"
 const HAND_SLOTS: int = 10
-const HAND_ACTION: String = "match_hand_%d"
+const HAND_ACTION: String = "hand_%d"
 ## Action to name, most specific first: `Shift+Tab` also matches `Tab`, and `Space`
 ## also matches `ui_accept`.
 const ACTIONS: Dictionary = {
 	&"ui_cancel": CANCEL,
-	&"match_end_turn": END_TURN,
+	&"skip": END_TURN,
 	&"ui_accept": CONFIRM,
 	&"ui_focus_prev": PREVIOUS,
 	&"ui_focus_next": NEXT,
@@ -43,9 +44,9 @@ const ACTIONS: Dictionary = {
 	&"ui_right": RIGHT,
 	&"ui_up": UP,
 	&"ui_down": DOWN,
-	&"match_hero_power": HERO_POWER,
-	&"match_attack": ATTACK,
-	&"match_feed": FEED,
+	&"hero_power": HERO_POWER,
+	&"attacker_mode": ATTACK,
+	&"feed_toggle": FEED,
 }
 const STICK_ACTIONS: Array[StringName] = [&"ui_left", &"ui_right", &"ui_up", &"ui_down"]
 

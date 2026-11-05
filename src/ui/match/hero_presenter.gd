@@ -52,6 +52,7 @@ var _hand_count: Label = null
 var _passive: Label = null
 var _tooltip: Panel = null
 var _tooltip_text: Label = null
+var _mana_flash: Panel = null
 # What is on screen now: the fields sync_report compares.
 var _shown: Dictionary = {}
 
@@ -207,6 +208,22 @@ func set_power_state(state: Dictionary) -> void:
 	_power.modulate.a = BLOCKED_ALPHA if dim else (USED_ALPHA if str(_shown.get("power_state", "")) == MatchViewState.POWER_USED else 1.0)
 
 
+## Rejection Feedback: the mana bar's outline flashes while [param on].
+func flash_mana(on: bool) -> void:
+	if _mana_flash != null:
+		_mana_flash.visible = on
+
+
+## The hero power button, for the rejection shake; null on the boss panel.
+func power_control() -> Control:
+	return _power
+
+
+## The portrait, for the rejection shake.
+func portrait_control() -> Control:
+	return _portrait
+
+
 ## The portrait's `state_actionable` outline: the hero can attack (targeting.md §6).
 func set_can_attack(on: bool) -> void:
 	_set_portrait_border("state_actionable" if on else "ink", on)
@@ -279,6 +296,10 @@ func _build_player_slots() -> void:
 	_center(_weapon_text)
 	_mana_text = _label(ui.rect("mana_text"), COUNT_FONT_PX, "text_light")
 	_mana_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var flash_style: StyleBoxFlat = _style(Color.TRANSPARENT, int(ui.config.targeting.outline_px), ui.color("state_danger"))
+	flash_style.draw_center = false
+	_mana_flash = _panel(ui.rect("mana_bar"), flash_style)
+	_mana_flash.visible = false
 	var row: Rect2 = ui.rect("mana_crystals")
 	var px: float = float(ui.config.hero.crystal_px)
 	var gap: float = float(ui.config.hero.crystal_gap)
