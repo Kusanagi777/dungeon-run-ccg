@@ -295,8 +295,8 @@ All suites follow `tests/README.md` and `.claude/rules/test-standards.md`:
 - **Planted-hit test** (house rule: "each gate is run once against a deliberately broken file before it is trusted", manifest): one fixture under `tests/fixtures/lint/` per symbol and one for a planted literal, each failing and naming its rule; the real tree passes and the script prints a `hits: <n>` line per rule; the script refuses with exit 2 when `rg` is missing or older than 14, as `gates.sh` does.
 
 **Gaps**:
-- The AC lists `log.append(` "on anything but the clone's scratch log". A grep cannot tell them apart. Either the gate flags every hit and the code uses a differently named scratch-log accessor, or the exception is dropped. Decide at readiness.
-- No test file is named for the gate script itself (only the decoy test). Add the planted-hit test above to the story's Test Evidence.
+- The AC lists `log.append(` "on anything but the clone's scratch log". A grep cannot tell them apart. Either the gate flags every hit and the code uses a differently named scratch-log accessor, or the exception is dropped. Decide at readiness. **Resolved 2026-11-05: dropped. No code line needs it, and the AC is reworded.**
+- No test file is named for the gate script itself (only the decoy test). Add the planted-hit test above to the story's Test Evidence. **Done 2026-11-05: `tests/integration/boss_ai/boss_ai_code_gates_test.gd`.**
 - BAI-014 edits `src/ai/boss_ai.gd` after this story in the M3 order (L7 before L2). The gate must run again on the merged M3 tree. See Cross-cutting 7.
 
 **Estimated test count**: ~5 decoy + ~8 gate = ~13
@@ -934,7 +934,7 @@ Proposed rewrites are for each story's author to confirm at `/story-readiness`. 
 | BAI-015 | AC-1 (budget), AC-4 (`tick_over_budget`) | Real-clock behaviour in a blocking integration test | Inject a time source and drive it; or move to `tests/performance/` |
 | MUI-003 | L13 | Three wall-clock thresholds, in a story whose evidence is two blocking files | Move to `tests/performance/match_ui/`; keep the value-copy and step-count halves blocking |
 | BAI-013 | AC-1 ("spy-recorded" order) | No mechanism to observe constructor order in GDScript | Name an injected recorder or factory seam |
-| BAI-012 | AC-3 (`log.append(` "on anything but the clone's scratch log") | A grep cannot make the exception | Flag every hit and rename the scratch-log accessor, or drop the exception |
+| BAI-012 | AC-3 (`log.append(` "on anything but the clone's scratch log") | A grep cannot make the exception | Dropped 2026-11-05: the gate flags every code hit |
 | BAI-009 | A31 (Test Evidence) | The A31 test file is not in Required evidence | Add `boss_ai_face_attack_vulnerability_test.gd` |
 | treasures-001 | AC-4, AC-10 | "reported to the caller": the channel is the implementer's choice, and the test depends on it | Record the channel before the test is written; it cannot be the `Array[HookInstaller]` return |
 | treasures-005/006/008 | AC-16, AC-17, AC-19, AC-22, AC-23 | Open with "Worn Signet: THEN ..." and carry no GIVEN | Add the fixture records and installed state as GIVEN |

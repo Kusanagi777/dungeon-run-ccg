@@ -72,6 +72,12 @@ jobs:
           bash tools/lint/parse-check.sh || status=1
           exit "$status"
 
+      # Blocking: the src/ai gates (boss-ai A29, ADR-0006 Validation Criteria;
+      # boss-ai story 012). Prints `<rule> hits: <n>` per rule; exits 1 on any
+      # hit, 2 when it could not run, as gates.sh does.
+      - name: Boss AI code gates
+        run: bash tools/ci/ai_code_gates.sh .
+
       # Exactly project.yaml commands.test. Exit 0 = all passed; 100 = a test
       # failed; 101 = passed with leaked nodes (warning, but fails this job so
       # leaks get fixed); 105 = a test script does not parse; 103/104 = gdUnit4
