@@ -39,7 +39,7 @@ This is the first code under `src/gameplay/treasures/`, and it unblocks card-eff
 - [x] **AC-1** GIVEN ids `[treasure_worn_signet, treasure_hollow_crown]` over the 20-record fixture, WHEN `installers_for` is called twice, THEN both results are equal (by `to_dict()`), in that order, each `{host_kind: treasure, host_id, side: player, effects: copy of TreasureDef.effects, state: treasure_state.by_treasure[host_id] or {}}` (T3.2); no event is emitted and the `treasure_state` passed in is unchanged (`installers_for` receives no `RunState`, T5.1).
 - [x] **AC-4** GIVEN `installers_for([signet, crown, signet])`, THEN two installers are returned, `[signet, crown]`, and the dropped duplicate `treasure_worn_signet` is reported to the caller, who emits `run_warning{code: duplicate_treasure, treasure_id: treasure_worn_signet}` (ADR-0005: the caller logs; `Treasures` holds no log).
 - [x] **AC-10** GIVEN any v1 pool subset, WHEN `collect_state(hooks, match_result)` runs after `match_ended`, THEN it returns `{schema_version: 1, by_treasure: {}}`; GIVEN a `treasure_state` with `schema_version: 99`, WHEN `installers_for` is called, THEN the installers equal a stateless run's (`state == {}` on each) and the reset is reported to the caller, who emits `run_warning{treasure_state_reset}`.
-- [x] **AC-T3.1 (boss passive)** GIVEN a `BossDef` with `passive: null`, WHEN `passive_installer(boss_def)`, THEN `[]`; GIVEN `boss_test_taxman` (passive `modify_cost delta +1` on all friendly cards and the hero power), THEN exactly one installer `{host_kind: passive, host_id: boss_test_taxman, side: boss, effects: [passive], state: {}}`.
+- [x] **AC-T3.1 (boss passive)** GIVEN a `BossDef` with `passive: null`, WHEN `passive_installer(boss_def)`, THEN `[]`; GIVEN `boss_test_taxman` (passive `modify_cost delta +1` on all enemy cards and the hero power; 2026-11-04, DD-X28), THEN exactly one installer `{host_kind: passive, host_id: boss_test_taxman, side: boss, effects: [passive], state: {}}`.
 
 ---
 
@@ -52,7 +52,7 @@ This is the first code under `src/gameplay/treasures/`, and it unblocks card-eff
 - **How the caller learns of a dropped duplicate or a reset.** ADR-0005 places the log append with the caller (`RunMachine`) and does not fix the channel. Expose it without logging, either as a side result the caller reads or as a pure helper the caller runs first. The choice is the implementer's; record it in Completion Notes. The `run_warning` events themselves are asserted at the caller (story 011).
 - `BossDef.passive` is **one effect object** in `bosses.json` (all five MVP bosses), not an array, so wrap it: `effects = [passive]`. `host_id` = the boss id (ADR-0005 diagram).
 - `collect_state` reads `hooks.hosts()` (ADR-0005 rule 8) and returns the v1 shape. No v1 treasure persists state (T4), so the result does not depend on `result`. Never write `RunState`.
-- Create the GDD's fixtures here, for every later story to share: `tests/fixtures/data/treasures_v1.json` (the 20 T8 records, transcribed from T8/T9 with `unlock` objects per DD-X01; Living Armory's key is `first_victory`, DD-X12) and a boss fixture `boss_test_taxman` whose passive is `modify_cost delta +1` on all friendly cards and the hero power. This epic's tests use `run_seed_hex` `00000000000000A7` unless a story states otherwise (GDD AC preamble).
+- Create the GDD's fixtures here, for every later story to share: `tests/fixtures/data/treasures_v1.json` (the 20 T8 records, transcribed from T8/T9 with `unlock` objects per DD-X01; Living Armory's key is `first_victory`, DD-X12) and a boss fixture `boss_test_taxman` whose passive is `modify_cost delta +1` on all enemy cards and the hero power (`side: enemy`, 2026-11-04, DD-X28). This epic's tests use `run_seed_hex` `00000000000000A7` unless a story states otherwise (GDD AC preamble).
 
 ---
 
@@ -124,7 +124,7 @@ This is the first code under `src/gameplay/treasures/`, and it unblocks card-eff
 
 **The fixture.** `treasures_v1.json` was generated from T8 and T9, not typed; it stays in T8 order, so the real load sorts it. It passes the real `EffectValidator` apart from `decay_husk`, which the `clean/` root does not hold (pinned as the one expected finding).
 
-**Open design question (2026-11-04): which cards does `boss_test_taxman` tax?** This is not settled by DD-X rows, and two GDD passages disagree:
+**Design question, decided (2026-11-04, DD-X28): `boss_test_taxman` taxes the player, `side: enemy`.** The fixture, the GDD preamble and AC-T3.1 now say so, and `test_the_taxman_fixture_adds_one_to_cards_and_the_hero_power` pins `side`. The question as first recorded, when two GDD passages disagreed:
 - The AC preamble and AC-T3.1 say "all friendly cards and the hero power". `friendly` resolves against the entry's side (T2.4, ADR-0005 rule 3), so a boss passive with `side: friendly` raises the boss's costs.
 - AC-2 and AC-16 expect it to raise the player's hero power (`set 1 → +1 = 2`), which needs `side: enemy` (card-effects row 36).
 

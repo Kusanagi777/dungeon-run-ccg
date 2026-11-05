@@ -73,18 +73,16 @@ static func database(ids: Array = []) -> CardDatabase:
 
 
 ## The GDD's boss fixture: a BossDef whose passive is `modify_cost delta +1` on
-## all friendly cards and the hero power (`kind: any`, card-effects C2), as the
-## AC preamble and story 001 AC-T3.1 word it.
+## all enemy cards and the hero power (`kind: any`, card-effects C2), as the AC
+## preamble and story 001 AC-T3.1 word it.
 ##
-## `friendly` resolves relative to the entry's side (treasures T2.4), so this
-## passive covers the boss's own costs. Treasures AC-2 and AC-16 expect it to
-## raise the player's hero power, which needs `side: enemy` (card-effects row
-## 36). That conflict is open: see the story 001 Completion Notes.
+## `enemy` resolves relative to the entry's side (treasures T2.4), so this
+## passive taxes the player, as treasures AC-2 and AC-16 expect (DD-X28).
 static func make_boss_test_taxman() -> Dictionary:
 	return CardFactory.make_boss_def("boss_test_taxman", 1, {
 		"passive": {
 			"trigger": "modify_cost",
-			"scope": {"card": {"side": "friendly", "kind": "any"}},
+			"scope": {"card": {"side": "enemy", "kind": "any"}},
 			"ops": [{"op": "modify_value", "delta": 1}],
 		},
 	})

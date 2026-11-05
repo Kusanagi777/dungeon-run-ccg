@@ -400,9 +400,11 @@ func test_the_taxman_fixture_adds_one_to_cards_and_the_hero_power() -> void:
 	# Act
 	var passive: Dictionary = TreasureFixtures.make_boss_test_taxman().passive
 
-	# Assert — C2: `kind: any` matches cards and the hero power; without it, cards only
+	# Assert — C2: `kind: any` matches cards and the hero power; without it, cards only.
+	# DD-X28: `enemy` taxes the player; T2.4 reads `friendly` from the entry's boss side
 	assert_str(str(passive.trigger)).is_equal("modify_cost")
 	assert_str(str(passive.scope.card.kind)).is_equal("any")
+	assert_str(str(passive.scope.card.side)).is_equal("enemy")
 	assert_array(passive.ops).is_equal([{"op": "modify_value", "delta": 1}])
 
 
