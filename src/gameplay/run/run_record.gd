@@ -2,7 +2,7 @@
 ## `RunState` <-> JSON Dictionary mapping and the validation of a loaded record.
 ## Meta holds the Dictionary and treats it as opaque.
 ##
-## A loaded record is all floats: `JSON.parse_string` knows one number type. The
+## A loaded record is all floats: the JSON parser knows one number type. The
 ## seed therefore persists as `run_seed_hex` only, and [method normalised] turns every
 ## whole float back to an int, so `to_dict` -> `from_dict` -> `to_dict` is byte-identical
 ## JSON (run-structure AC-28). `match_attempts` is the one map keyed by a number:
@@ -165,7 +165,7 @@ static func validate(raw: Dictionary, db: CardDatabase) -> Error:
 
 
 ## [param value] with every whole float as an int, recursively, in a new container.
-## `JSON.parse_string` gives floats for every number.
+## The JSON parser gives floats for every number.
 static func normalised(value: Variant) -> Variant:
 	if value is float:
 		var number: float = value

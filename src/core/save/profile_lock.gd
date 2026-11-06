@@ -75,7 +75,7 @@ func _is_live(holder: Dictionary) -> bool:
 func _read() -> Dictionary:
 	if not FileAccess.file_exists(_path):
 		return {}
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_path))
+	var parsed: Variant = DataLoader.parse_text(FileAccess.get_file_as_string(_path), _path)
 	return parsed if parsed is Dictionary else {}
 
 

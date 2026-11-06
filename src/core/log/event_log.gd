@@ -274,9 +274,15 @@ func snapshot() -> Dictionary:
 ## formatting is the engine's, not F6's 6 decimals.
 ## Example: `var text: String = log.to_json()`.
 func to_json() -> String:
+	return JSON.stringify(to_json_dict(), "\t")
+
+
+## The Dictionary [method to_json] writes, with no text round trip: every value is
+## already JSON-shaped, so a save can hold it as it stands. A deep copy.
+func to_json_dict() -> Dictionary:
 	var header: Dictionary = snapshot()
 	header["log_schema_version"] = LOG_SCHEMA_VERSION
-	return JSON.stringify(header, "\t")
+	return header
 
 
 ## Rules 18-19: the sealed match log reduced to its `match_summary` payload,
