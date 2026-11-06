@@ -74,6 +74,12 @@ func play_music(event: StringName) -> void:
 	_music.play()
 
 
+## Stops the music loop, for a scene that plays its own.
+func stop_music() -> void:
+	if _music != null:
+		_music.stop()
+
+
 func _stream(event: StringName) -> AudioStream:
 	if _streams.has(event):
 		return _streams[event]

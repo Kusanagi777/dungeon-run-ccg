@@ -36,6 +36,7 @@ const SFX_PICK: StringName = &"ui_pick"
 const SFX_UNLOCK: StringName = &"ui_unlock"
 const SFX_OVERLAY: StringName = &"sfx.ui.overlay"
 const SFX_BOSS_INTRO: String = "boss_intro_%d"
+const MUSIC_AMBIENT: StringName = &"music.match_ambient"
 const BUS_VOLUME: Dictionary = {"volume_master": "Master", "volume_music": "Music", "volume_sfx": "SFX"}
 const SETTING_KEYS: Array[StringName] = [
 	&"anim_speed", &"reduce_motion", &"text_scale", &"high_contrast_states", &"gamma", &"fullscreen",
@@ -192,6 +193,7 @@ func swap_in_match(driver: MatchDriver, info: Dictionary) -> void:
 	view.call(&"set_match_info", info)
 	view.call(&"set_controller", MatchController.new(driver))
 	Signal(view, &"match_view_finished").connect(_on_match_view_finished)
+	_sfx.stop_music()
 	_stack.visible = false
 	_banner.visible = false
 	_match_view = view
@@ -207,6 +209,7 @@ func swap_in_replay(path: String, hero_id: String, boss_id: String) -> void:
 	if view == null:
 		return
 	Signal(view, &"match_view_finished").connect(_on_replay_finished)
+	_sfx.stop_music()
 	_stack.visible = false
 	_banner.visible = false
 	_match_view = view
@@ -267,6 +270,7 @@ func _start_controller(db: CardDatabase) -> void:
 	for key: StringName in SETTING_KEYS:
 		_apply_setting(key)
 	_controller.start()
+	_sfx.play_music(MUSIC_AMBIENT)
 
 
 func _instance(id: StringName) -> Screen:
@@ -343,6 +347,7 @@ func _on_match_view_finished(result: Variant) -> void:
 	_match_view.queue_free()
 	_match_view = null
 	_stack.visible = true
+	_sfx.play_music(MUSIC_AMBIENT)
 	_controller.on_match_view_finished(result)
 	_update_banner()
 
@@ -410,6 +415,7 @@ func _on_replay_finished(_result: Variant) -> void:
 	_match_view.queue_free()
 	_match_view = null
 	_stack.visible = true
+	_sfx.play_music(MUSIC_AMBIENT)
 	_update_banner()
 	if _top() != null:
 		_focus(_top())
