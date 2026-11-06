@@ -283,6 +283,26 @@ func load_status() -> StringName:
 	return &"FRESH"
 
 
+## Always false: the stub has no lock to lose (M5.2, M6).
+func is_read_only() -> bool:
+	return false
+
+
+## Empty: the stub counts nothing (M7.1).
+func get_stats() -> Dictionary:
+	return {}
+
+
+## 0: the stub archives nothing (M8).
+func run_log_count() -> int:
+	return 0
+
+
+## `OK`: the stub has no records to delete (M8.2).
+func clear_run_records() -> Error:
+	return OK
+
+
 # --- Internals -------------------------------------------------------------------
 
 func _record(method: StringName, args: Array) -> void:
