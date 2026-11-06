@@ -2,8 +2,9 @@
 ## right, above every screen and above the swapped-in `MatchView`. A queued toast may
 ## **start** only while the shell is idle; a showing one rides every transition until
 ## its `t_toast` elapses or a click dismisses it. Toasts take no focus: hover (or an LMB
-## hold) pauses the timer. Beyond `toast_queue_max` the oldest warning goes first; an
-## unlock is never dropped, and a key in both the signal and the queue shows once.
+## hold) pauses the timer, and the release of a click dismisses it. Beyond
+## `toast_queue_max` warnings the oldest goes first; an unlock neither counts against the
+## cap nor is ever dropped (AC-16), and a key in both the signal and the queue shows once.
 ## [codeblock]
 ## layer.configure(ui_config)
 ## layer.shown.connect(controller.on_toast_shown)
@@ -31,6 +32,7 @@ var _left_ms: float = 0.0
 ## Milliseconds left of the gap before the next may start.
 var _gap_ms: float = 0.0
 var _hovered: bool = false
+var _pressed: bool = false
 var _speed: String = RunUiConfig.SPEED_NORMAL
 var _reduce_motion: bool = false
 
@@ -82,7 +84,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var delta_ms: float = delta * RunUiConfig.MS_PER_S
 	if _panel != null:
-		if not _hovered:
+		if not _hovered and not _pressed:
 			_left_ms -= delta_ms
 			if _left_ms <= 0.0:
 				_dismiss()
@@ -96,15 +98,13 @@ func _process(delta: float) -> void:
 
 func _enforce_cap() -> void:
 	var cap: int = int(_config.get("toast_queue_max", 0))
-	while _queue.size() > cap:
-		var oldest: int = -1
-		for i: int in _queue.size():
-			if _queue[i].kind == KIND_WARNING:
-				oldest = i
-				break
-		if oldest < 0:
-			return
-		_queue.remove_at(oldest)
+	var warnings: Array[int] = []
+	for i: int in _queue.size():
+		if _queue[i].kind == KIND_WARNING:
+			warnings.append(i)
+	var over: int = warnings.size() - cap
+	for i: int in range(over - 1, -1, -1):
+		_queue.remove_at(warnings[i])
 
 
 func _show(row: Dictionary) -> void:
@@ -138,6 +138,7 @@ func _show(row: Dictionary) -> void:
 	add_child(_panel)
 	_left_ms = float(RunUiConfig.t_toast(_config, title.length() + subtitle.length()))
 	_hovered = false
+	_pressed = false
 	var fade_ms: int = RunUiConfig.t_transition(_config, RunUiConfig.KIND_TOAST, _speed, _reduce_motion)
 	if fade_ms > 0:
 		_panel.modulate.a = 0.0
@@ -150,8 +151,11 @@ func _on_hover(on: bool) -> void:
 
 
 func _on_panel_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_dismiss()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_pressed = true
+		elif _pressed:
+			_dismiss()
 
 
 func _dismiss() -> void:

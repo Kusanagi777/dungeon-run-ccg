@@ -96,23 +96,24 @@ func close_drawer() -> bool:
 
 
 func handle_option_key(index: int) -> void:
-	if index < _panels.size():
-		_panels[index].grab_focus()
+	var panel: OptionPanel = _panel_at(index)
+	if panel != null:
+		panel.grab_focus()
 
 
 func set_committed(on: bool) -> void:
 	super.set_committed(on)
-	for i: int in _panels.size():
-		_panels[i].modulate.a = UiKit.DIM_ALPHA if on and i != _current() else 1.0
+	for panel: OptionPanel in _panels:
+		panel.modulate.a = UiKit.DIM_ALPHA if on and panel.index() != _current() else 1.0
 	_refresh_pick()
 
 
 ## S14, S15: the picked option shrinks along a straight line to the strip and the deck
 ## count ticks up; under [param fade_only] it fades where it stands.
 func play_landing(index: int, deck_size: int, seconds: float, fade_only: bool) -> bool:
-	if index < 0 or index >= _panels.size():
+	var source: OptionPanel = _panel_at(index)
+	if source == null:
 		return false
-	var source: OptionPanel = _panels[index]
 	var ghost: PanelContainer = PanelContainer.new()
 	ghost.theme_type_variation = source.theme_type_variation
 	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -138,6 +139,15 @@ func finish_landing() -> void:
 	if _landing != null:
 		_landing.kill()
 		_landing = null
+
+
+# The pickable option in slot [param index], or null: a missing-id frame holds its slot
+# but takes no part, so `_panels` is not indexed by slot.
+func _panel_at(index: int) -> OptionPanel:
+	for panel: OptionPanel in _panels:
+		if panel.index() == index:
+			return panel
+	return null
 
 
 func on_revealed() -> void:
@@ -292,6 +302,7 @@ func _on_activated(index: int) -> void:
 		_confirm(index)
 		return
 	_selected = index
+	sfx_requested.emit(RunShell.SFX_SELECT)
 	_refresh_pick()
 
 

@@ -25,7 +25,9 @@ SEED = "48A10CC0B2ED54EC"
 
 
 def summary(floor, reason, attempt=1, result="win"):
-    cards = HERO["starter_deck"][:4]
+    # Enough different cards over a full run that AC-6's table overflows its 8 rows.
+    pool = sorted(set(HERO["starter_deck"] + [c for b in BUNDLES[:3] for c in b["cards"]]))
+    cards = [pool[(floor * 4 + i) % len(pool)] for i in range(4)]
     return {
         "floor": floor, "result": result, "reason": reason, "turns": 9, "cards_played": 12,
         "damage_by_card": {card: 12 - i * 2 for i, card in enumerate(cards)},

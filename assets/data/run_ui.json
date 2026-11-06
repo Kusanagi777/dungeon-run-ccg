@@ -482,7 +482,8 @@
       "warning.seed_ignored": "Custom seeds are off: the seed was ignored.",
       "warning.theme_adjacent": "Two bosses in a row share a theme.",
       "warning.treasure_pool_short": "Fewer treasures than usual are on offer.",
-      "warning.turn_cap": "The match hit the turn limit."
+      "warning.turn_cap": "The match hit the turn limit.",
+      "warning.ui_data_missing": "A reward could not be shown: it is missing from the game data."
     }
   }
 }

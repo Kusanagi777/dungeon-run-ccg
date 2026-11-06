@@ -48,10 +48,21 @@ func play(event: StringName) -> void:
 	var stream: AudioStream = _stream(event)
 	if stream == null or _voices.is_empty():
 		return
-	var voice: AudioStreamPlayer = _voices[_next_voice]
-	_next_voice = (_next_voice + 1) % _voices.size()
+	var voice: AudioStreamPlayer = _voices[_free_voice()]
 	voice.stream = stream
 	voice.play()
+
+
+# The next voice not sounding from the oldest on, else the oldest; moves the turn past it.
+func _free_voice() -> int:
+	var chosen: int = _next_voice
+	for i: int in _voices.size():
+		var index: int = (_next_voice + i) % _voices.size()
+		if not _voices[index].playing:
+			chosen = index
+			break
+	_next_voice = (chosen + 1) % _voices.size()
+	return chosen
 
 
 ## Starts the loop of [param event] on the music bus, unless it is playing already.
@@ -61,6 +72,12 @@ func play_music(event: StringName) -> void:
 		return
 	_music.stream = stream
 	_music.play()
+
+
+## Stops the music loop, for a scene that plays its own.
+func stop_music() -> void:
+	if _music != null:
+		_music.stop()
 
 
 func _stream(event: StringName) -> AudioStream:

@@ -102,9 +102,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "neutral_dungeon_delver": 12,
+     "neutral_lantern_bearer": 10,
+     "neutral_ogre_porter": 8,
+     "neutral_shield_golem": 6
     },
     "boss_id": "boss_torchbearer",
     "band": 1,
@@ -118,9 +119,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "neutral_tunnel_rat": 12,
+     "neutral_wolf_rider": 10,
+     "war_iron_resolve": 8,
+     "war_iron_vanguard": 6
     },
     "boss_id": "boss_rat_king",
     "band": 1,
@@ -135,9 +137,14 @@
    "matches_played": 2,
    "turns": 18,
    "damage_by_card": {
-    "neutral_tunnel_rat": 20,
-    "war_shield_squire": 16,
-    "war_sharpen": 12
+    "neutral_dungeon_delver": 12,
+    "neutral_lantern_bearer": 10,
+    "neutral_ogre_porter": 8,
+    "neutral_shield_golem": 6,
+    "neutral_tunnel_rat": 12,
+    "neutral_wolf_rider": 10,
+    "war_iron_resolve": 8,
+    "war_iron_vanguard": 6
    },
    "cards_drafted": 6,
    "treasures_taken": 1

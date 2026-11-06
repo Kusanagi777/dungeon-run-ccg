@@ -37,6 +37,11 @@ func setup(index: int, lift_px: float) -> void:
 	focus_exited.connect(func() -> void: unhighlighted.emit(_index))
 
 
+## The index this option reports.
+func index() -> int:
+	return _index
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		grab_focus()

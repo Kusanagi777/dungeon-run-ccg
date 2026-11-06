@@ -48,6 +48,29 @@ static func archives(run_id: String, root: String = EventLogArchive.LOGS_ROOT) -
 	return out
 
 
+## How many logs [method archives] would list for each of [param run_ids], as `{run_id:
+## count}`, with one pass over the faults folder: a run log page asks this for every row,
+## and that folder holds the faults of every run. [param root] as in [method archives].
+static func archive_counts(run_ids: Array, root: String = EventLogArchive.LOGS_ROOT) -> Dictionary:
+	var pattern: RegEx = RegEx.create_from_string("^" + FILE_PATTERN)
+	var found: Dictionary = {}
+	for run_id: Variant in run_ids:
+		var seen: Dictionary = {}
+		for file: String in _files_in(root.path_join(str(run_id))):
+			_note(seen, pattern.search(file), file, false)
+		found[run_id] = seen
+	var names: Dictionary = {}
+	var fault_pattern: RegEx = RegEx.create_from_string("^(.+)_" + FILE_PATTERN)
+	for file: String in _files_in(root.path_join(EventLogArchive.FAULTS_FOLDER)):
+		var hit: RegExMatch = fault_pattern.search(file)
+		if hit != null and found.has(hit.get_string(1)):
+			var key: String = "%d_%d" % [int(hit.get_string(2)), int(hit.get_string(3))]
+			(found[hit.get_string(1)] as Dictionary)[key] = true
+	for run_id: Variant in run_ids:
+		names[run_id] = (found[run_id] as Dictionary).size()
+	return names
+
+
 ## Whether the log at [param path] can play here: `{replayable, reason_key, floor}`.
 ## [param reason_key] is `""` when it can.
 static func inspect(path: String, db: CardDatabase) -> Dictionary:

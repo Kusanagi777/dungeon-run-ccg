@@ -36,6 +36,7 @@ const SFX_PICK: StringName = &"ui_pick"
 const SFX_UNLOCK: StringName = &"ui_unlock"
 const SFX_OVERLAY: StringName = &"sfx.ui.overlay"
 const SFX_BOSS_INTRO: String = "boss_intro_%d"
+const MUSIC_AMBIENT: StringName = &"music.match_ambient"
 const BUS_VOLUME: Dictionary = {"volume_master": "Master", "volume_music": "Music", "volume_sfx": "SFX"}
 const SETTING_KEYS: Array[StringName] = [
 	&"anim_speed", &"reduce_motion", &"text_scale", &"high_contrast_states", &"gamma", &"fullscreen",
@@ -44,6 +45,10 @@ const SETTING_KEYS: Array[StringName] = [
 
 ## What is showing. The controller's own when there is one.
 var state: ShellState = ShellState.new()
+## Set before `add_child` to raise sound through this player instead of a new one.
+var sfx_player: SfxPlayer = null
+## Set before a `fullscreen` change to drive this window instead of the shell's own.
+var window: Window = null
 
 var _services: Services = null
 var _run: RunMachine = null
@@ -188,6 +193,7 @@ func swap_in_match(driver: MatchDriver, info: Dictionary) -> void:
 	view.call(&"set_match_info", info)
 	view.call(&"set_controller", MatchController.new(driver))
 	Signal(view, &"match_view_finished").connect(_on_match_view_finished)
+	_sfx.stop_music()
 	_stack.visible = false
 	_banner.visible = false
 	_match_view = view
@@ -203,6 +209,7 @@ func swap_in_replay(path: String, hero_id: String, boss_id: String) -> void:
 	if view == null:
 		return
 	Signal(view, &"match_view_finished").connect(_on_replay_finished)
+	_sfx.stop_music()
 	_stack.visible = false
 	_banner.visible = false
 	_match_view = view
@@ -218,7 +225,7 @@ func _ready() -> void:
 	var ready_load: bool = db != null and db.state() == CardDatabase.State.READY
 	_config = db.config(CONFIG_NAME) if ready_load else FALLBACK_CONFIG
 	RunText.install(_config)
-	_sfx = SfxPlayer.new()
+	_sfx = sfx_player if sfx_player != null else SfxPlayer.new()
 	_sfx.name = "Sfx"
 	add_child(_sfx)
 	_sfx.configure(_config.get("sfx", {}))
@@ -263,6 +270,7 @@ func _start_controller(db: CardDatabase) -> void:
 	for key: StringName in SETTING_KEYS:
 		_apply_setting(key)
 	_controller.start()
+	_sfx.play_music(MUSIC_AMBIENT)
 
 
 func _instance(id: StringName) -> Screen:
@@ -309,6 +317,8 @@ func _focus(target: Screen) -> void:
 
 func _finish_open() -> void:
 	state.transitioning = false
+	if _controller != null:
+		_controller.on_screen_settled.call_deferred()
 	if _base != null:
 		_focus(_base)
 		_base.on_revealed()
@@ -337,6 +347,7 @@ func _on_match_view_finished(result: Variant) -> void:
 	_match_view.queue_free()
 	_match_view = null
 	_stack.visible = true
+	_sfx.play_music(MUSIC_AMBIENT)
 	_controller.on_match_view_finished(result)
 	_update_banner()
 
@@ -404,6 +415,7 @@ func _on_replay_finished(_result: Variant) -> void:
 	_match_view.queue_free()
 	_match_view = null
 	_stack.visible = true
+	_sfx.play_music(MUSIC_AMBIENT)
 	_update_banner()
 	if _top() != null:
 		_focus(_top())
@@ -488,7 +500,7 @@ func _apply_setting(key: StringName) -> void:
 			var level: float = float(value) if value != null else 1.0
 			_gamma.color = Color(level, level, level)
 		&"fullscreen":
-			get_window().mode = Window.MODE_FULLSCREEN if bool(value) else Window.MODE_WINDOWED
+			(window if window != null else get_window()).mode = Window.MODE_FULLSCREEN if bool(value) else Window.MODE_WINDOWED
 		&"volume_master", &"volume_music", &"volume_sfx":
 			var bus: int = AudioServer.get_bus_index(str(BUS_VOLUME[String(key)]))
 			if bus >= 0 and value != null:
@@ -524,4 +536,19 @@ func _update_banner() -> void:
 	_banner.visible = not text.is_empty() and not _match_showing()
 	var row: Node = _banner.get_node("Row")
 	(row.get_child(0) as Label).text = text
-	(row.get_child(1) as Button).visible = state.base == RunController.SCREEN_MENU and text == tr("banner.locked")
+	var retry: Button = row.get_child(1)
+	retry.visible = state.base == RunController.SCREEN_MENU and text == tr("banner.locked")
+	if retry.visible and _banner.visible:
+		_chain_retry(retry)
+
+
+# U3: every intent is reachable by keyboard, so Retry joins the base's `Tab` cycle.
+func _chain_retry(retry: Button) -> void:
+	var first: Control = _base.tab_entry()
+	if first == null or first.focus_previous.is_empty():
+		return
+	var last: Control = first.get_node(first.focus_previous)
+	last.focus_next = last.get_path_to(retry)
+	retry.focus_previous = retry.get_path_to(last)
+	retry.focus_next = retry.get_path_to(first)
+	first.focus_previous = first.get_path_to(retry)
