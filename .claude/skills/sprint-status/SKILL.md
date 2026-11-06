@@ -153,7 +153,7 @@ section (see Phase 5 output format).
 **Stale story escalation**: If any IN PROGRESS story is flagged STALE (no progress in 4+ days), the burndown verdict
 is upgraded to at least **At Risk** — even if the completion percentage is within the normal
 On Track window. Record this escalation reason: "At Risk — [S] stale story(ies): [title]
-([D] days)[, …]" — [S] is how many stories are STALE, and each is named with its own [D],
+[[D] days](, …)" — [S] is how many stories are STALE, and each is named with its own [D],
 the days since its own Last Updated date (not the oldest age, not an average).
 
 ---

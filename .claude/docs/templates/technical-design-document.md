@@ -27,8 +27,8 @@
 
 ## Requirements
 ### Functional Requirements
-- [FR-1]: [Description]
-- [FR-2]: [Description]
+]
+]
 
 ### Non-Functional Requirements
 - **Performance**: [Budget — e.g., "< 1ms per frame"]

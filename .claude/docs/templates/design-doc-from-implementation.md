@@ -68,8 +68,8 @@ and mark it `[inferred — confirm]` until they do.]
 ### 3.2 State and Data
 
 **Data Structures** (from code):
-- [Data structure 1]: `[fields/properties]`
-- [Data structure 2]: `[fields/properties]`
+`
+`
 
 **State Machines** (if applicable):
 ```
@@ -91,8 +91,8 @@ and mark it `[inferred — confirm]` until they do.]
 - [System 4]: [How it uses this system]
 
 **API Surface** (public interface):
-- [Method/Function 1]: [Purpose]
-- [Method/Function 2]: [Purpose]
+]
+]
 
 ---
 
