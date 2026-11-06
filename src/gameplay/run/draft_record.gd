@@ -48,9 +48,9 @@ func to_dict() -> Dictionary:
 	return {
 		"floor": floor,
 		"kind": kind,
-		"offered_ids": Array(offered_ids),
+		"offered_ids": Array(offered_ids).duplicate(),
 		"picked_id": picked_id,
-		"card_ids_added": Array(card_ids_added),
+		"card_ids_added": Array(card_ids_added).duplicate(),
 	}
 
 

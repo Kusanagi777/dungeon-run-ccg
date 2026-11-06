@@ -40,7 +40,7 @@ func read_model(deck_size: int, bundle_size: int, allow_skip: bool) -> Dictionar
 	return {
 		"kind": kind,
 		"floor": floor,
-		"option_ids": Array(option_ids),
+		"option_ids": Array(option_ids).duplicate(),
 		"flags": flag_names,
 		"options": Array(per_option).duplicate(true),
 		"deck_size": deck_size,
