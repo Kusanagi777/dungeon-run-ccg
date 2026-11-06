@@ -55,8 +55,11 @@ func learn(line: Dictionary) -> void:
 			_keys[int(params[field])] = key
 
 
-## The name of entity [param id], which may be null or a non-id: a fatigue source has none.
+## The name of entity [param id], which may be null or a non-id: a fatigue source has none,
+## and a treasure's hook names its treasure by String id.
 func of(id: Variant) -> String:
+	if id is String and TranslationServer.translate(MatchStrings.TREASURE_NAME_KEY % id) != MatchStrings.TREASURE_NAME_KEY % id:
+		return _translate(MatchStrings.TREASURE_NAME_KEY % id)
 	var known: bool = (id is int or id is float) and str(_keys.get(int(id), "")) != ""
 	return _translate(str(_keys[int(id)]) if known else KEY_SOMEONE)
 

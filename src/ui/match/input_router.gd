@@ -392,11 +392,13 @@ func _on_mouse_button(event: InputEventMouseButton) -> void:
 		return
 	elif event.pressed:
 		_disarm()
+		# Read before the skip: a press that ends playback is the skip, never a pickup (§7.3).
+		var idle: bool = view_state() == STATE_IDLE
 		intent(INTENT_SKIP)
 		_press_pos = event.position
 		_press_double = event.double_click
 		_press_in_session = in_session()
-		_press_source = _hit.source_at(event.position) if view_state() == STATE_IDLE else {}
+		_press_source = _hit.source_at(event.position) if idle else {}
 	else:
 		_on_left_release(event.position)
 

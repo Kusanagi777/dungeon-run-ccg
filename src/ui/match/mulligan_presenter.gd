@@ -19,12 +19,15 @@ const BODY_FONT_PX: int = 16
 const PILL_FONT_PX: int = 14
 const REPLACE_ALPHA: float = 0.45
 const FLIP_HALF: float = 0.5
+## Over the card it stands beside, as the reading panel is (mulligan.md §5.1).
+const PRINTED_Z: int = 10
 
 var _view: MatchViewState = null
 var _cfg: Dictionary = {}
 var _title: Label = null
 var _sub: Label = null
 var _status: Label = null
+var _printed: Label = null
 var _confirm: Button = null
 # The focused stop: a card's index, or the card count for Confirm.
 var _focused: int = 0
@@ -47,6 +50,7 @@ func setup(context: MatchUiContext) -> void:
 	_title = _label(TITLE_FONT_PX, "text_light")
 	_sub = _label(BODY_FONT_PX, "text_muted")
 	_status = _label(BODY_FONT_PX, "text_light")
+	_printed = _printed_line()
 	_confirm = Button.new()
 	_confirm.custom_minimum_size = Vector2(float(_cfg.confirm_w), float(_cfg.confirm_h))
 	_confirm.size = _confirm.custom_minimum_size
@@ -127,6 +131,7 @@ func handle_action(action: StringName, slot: int) -> bool:
 		MatchInput.HAND:
 			_focused = clampi(slot, 0, _keep.size())
 			toggle(slot)
+			_show_printed(_focused)
 			queue_redraw()
 			return true
 		MatchInput.CONFIRM:
@@ -151,7 +156,27 @@ func focused() -> int:
 
 func _move_focus(step: int) -> void:
 	_focused = posmod(_focused + step, _keep.size() + 1)
+	_show_printed(_focused)
 	queue_redraw()
+
+
+## mulligan.md §5.1, §6: "Printed cost n" beside card [param index] when its stamp shows
+## another number, on the reading panel's rule: right of the card, or left past the centre.
+func _show_printed(index: int) -> void:
+	_printed.visible = index >= 0 and index < _cards.size() and _cards[index].cost_modified()
+	if not _printed.visible:
+		return
+	var card: CardFrame = _cards[index]
+	var reading: Dictionary = ui.config.text_scale.reading
+	var width: float = float(reading.w)
+	var box := Rect2(card.position, card.size * card.scale)
+	var left: float = box.end.x + float(reading.gap)
+	if box.get_center().x > float(_cfg.band_cx):
+		left = box.position.x - float(reading.gap) - width
+	var margin: float = float(reading.left_min_x)
+	_printed.text = tr("mulligan.printed_cost") % card.printed_cost()
+	_printed.position = Vector2(clampf(left, margin, ui.rect("viewport").size.x - width - margin), float(_cfg.row_top))
+	_printed.size = Vector2(width, 0)
 
 
 func _draw() -> void:
@@ -204,6 +229,8 @@ func _open_screen(offered: Variant) -> void:
 		frame.show_card(ui.card_face(str(entry.get("card_id", ""))), int(entry.get("effective_cost", 0)))
 		frame.mouse_filter = Control.MOUSE_FILTER_STOP
 		frame.gui_input.connect(_on_card_input.bind(i))
+		frame.mouse_entered.connect(_show_printed.bind(i))
+		frame.mouse_exited.connect(func() -> void: _show_printed(_focused))
 		_cards.append(frame)
 		_rests.append(frame.position)
 		_keep.append(true)
@@ -214,12 +241,14 @@ func _open_screen(offered: Variant) -> void:
 		_refresh(i)
 	if n == 0:
 		_refresh_status()
+	_show_printed(_focused)
 
 
 func _close_screen() -> void:
 	_open = false
 	visible = false
 	_clear_cards()
+	_printed.visible = false
 
 
 func _clear_cards() -> void:
@@ -285,10 +314,13 @@ func _flip(step: AnimStep, d_eff: float) -> void:
 	var display: Dictionary = step.data.get("display", {})
 	var hand: Array = display.get("player", {}).get("hand", [])
 	var drawn: int = hand.size() - step.entity_ids.size()
+	# The second read of §8: a redrawn card's stamp is its effective cost from the first frame.
+	var live: Array = ui.query.hand(MatchViewState.SIDE_PLAYER)
 	for i: int in _ids.size():
 		if not step.entity_ids.has(_ids[i]) or drawn >= hand.size():
 			continue
-		var card: Dictionary = hand[drawn]
+		var card: Dictionary = hand[drawn].duplicate()
+		card.merge(_hand_entry(live, int(card.instance_id)), true)
 		drawn += 1
 		var frame: CardFrame = _cards[i]
 		var full: float = frame.scale.x
@@ -347,6 +379,16 @@ func _pill(index: int, card_at: Vector2, card_size: Vector2) -> Button:
 	pill.pressed.connect(toggle.bind(index))
 	add_child(pill)
 	return pill
+
+
+func _printed_line() -> Label:
+	var line: Label = _label(int(ui.config.text_scale.reading.font_px), "text_ink")
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = ui.color("parchment")
+	line.add_theme_stylebox_override("normal", plate)
+	line.z_index = PRINTED_Z
+	line.visible = false
+	return line
 
 
 func _label(font_px: int, token: String) -> Label:

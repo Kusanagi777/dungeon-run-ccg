@@ -60,12 +60,15 @@ var rejections: Array[Dictionary] = []
 var profile_overrides: Dictionary = {}
 
 var _planner_override: Callable
+var _boot: Node = null
 
 
 ## [param planner_override] is `Boot.driver_factory`'s: a test passes
-## `ImmediatePlannerTask`, an export passes nothing.
-func _init(planner_override: Callable = Callable()) -> void:
+## `ImmediatePlannerTask`, an export passes nothing. [param boot] replaces the `Boot`
+## autoload: a test passes a fresh instance, so no suite boots the autoload.
+func _init(planner_override: Callable = Callable(), boot: Node = null) -> void:
 	_planner_override = planner_override
+	_boot = boot if boot != null else Boot
 
 
 ## [param args] as `{fixture, pose, pause_at, anim_speed, ai_debug}`; absent ones are
@@ -98,11 +101,11 @@ func load_fixture(fixture_name: String) -> MatchController:
 	var fixture: Variant = _read(FIXTURE_ROOT + fixture_name + ".json")
 	if not fixture is Dictionary:
 		return null
-	var booted: BootResult = Boot.boot()
+	var booted: BootResult = _boot.boot()
 	if not booted.ok:
 		push_error("MatchDebugLoader: the data load failed, so no fixture can run")
 		return null
-	var services: Services = Boot.services()
+	var services: Services = _boot.services()
 	profile_overrides = fixture.get("profile", {})
 	var saved: Dictionary = {}
 	for key: String in profile_overrides:
@@ -111,7 +114,7 @@ func load_fixture(fixture_name: String) -> MatchController:
 	fixture_pose = str(fixture.get("pose", ""))
 	var settings: Dictionary = fixture.get("config", {})
 	var config: Dictionary = _match_config(settings, services.card_database)
-	var factory: Callable = Boot.driver_factory(_planner_override, OS.get_cmdline_user_args())
+	var factory: Callable = _boot.driver_factory(_planner_override, OS.get_cmdline_user_args())
 	var controller := MatchController.new(factory.call(config))
 	match_info = {"floor": int(config.floor), "boss_def_id": str(config.boss.boss_def_id), "hero_def_id": str(config.player.hero_def_id), "treasures": settings.get("treasures", [])}
 	for entry: Dictionary in fixture.get("commands", []):

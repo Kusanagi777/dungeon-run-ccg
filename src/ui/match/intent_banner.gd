@@ -293,12 +293,13 @@ func _build_turn_banner() -> void:
 func _text(rect: Rect2, font_px: int, token: String, parent: Control) -> Label:
 	var label := Label.new()
 	label.position = rect.position
-	label.size = rect.size
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", font_px)
 	label.add_theme_color_override("font_color", ui.color(token))
 	parent.add_child(label)
+	# After the font: a size set first is held up by the default font's minimum.
+	label.size = rect.size
 	return label
 
 
