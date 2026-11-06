@@ -255,7 +255,23 @@ static func _invariants_hold(d: Dictionary) -> bool:
 		return false
 	if not d.run_log.get("events") is Array:
 		return false
-	return _drafts_fit(d)
+	return _summaries_fit(d) and _drafts_fit(d)
+
+
+## R10: every summary is a row `totals` can fold: numeric `turns`, and a
+## `damage_by_card` of numbers when it has one.
+static func _summaries_fit(d: Dictionary) -> bool:
+	for row: Variant in d.match_summaries:
+		if not row is Dictionary or not _is_number(row.get("turns")):
+			return false
+		var damage: Variant = row.get("damage_by_card", {})
+		if not damage is Dictionary or not (damage as Dictionary).values().all(_is_number):
+			return false
+	return true
+
+
+static func _is_number(value: Variant) -> bool:
+	return value is int or value is float
 
 
 ## `reward_step` names a kind exactly in `post_match_reward`.
