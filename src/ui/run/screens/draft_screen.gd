@@ -234,13 +234,22 @@ func _fill_bundle(column: VBoxContainer, option: Dictionary, index: int, rect: R
 		if not stamp.is_empty():
 			var icon: TextureRect = TextureRect.new()
 			icon.texture = stamp.texture
-			icon.modulate = stamp.tint
+			# Ink is for the parchment card. This row is table_dark, so a silhouette
+			# uses the light text colour; a coloured study keeps its own colours.
+			icon.modulate = color("text_light") if stamp.tint == ArtLibrary.INK else stamp.tint
 			icon.custom_minimum_size = Vector2(40.0, 40.0)
+			icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			line.add_child(icon)
-		line.add_child(UiKit.label("(%s) %s" % [card.cost, card.name], RunUiTheme.LABEL_SMALL, true))
+		# An autowrap label's minimum width is one character. Without expand, the
+		# HBox leaves it there and the name becomes a clipped column.
+		var name_label: Label = UiKit.label("(%s) %s" % [card.cost, card.name], RunUiTheme.LABEL_SMALL, true)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(name_label)
 		row.add_child(line)
 		rows.add_child(row)
 		var centre_y: float = rect.position.y + ROW_TOP + ROW_H / 2.0 + i * (ROW_H + 8.0)
