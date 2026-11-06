@@ -10,6 +10,9 @@ extends GdUnitTestSuite
 
 const SIDE_BOSS: String = MatchRecords.SIDE_BOSS
 const OUT_DIR: String = "user://sim_harness_test/"
+const SIM_MAIN: String = "res://tests/integration/boss_ai/sim_main.gd"
+const EXIT_NOT_RUN: int = 2
+const PROFILE_LOCK: String = "user://profile.lock"
 const FIXED_DATE: String = "2000-01-01"
 const HERO: String = "hero_war"
 const BOSS: String = "boss_rat_king"
@@ -228,6 +231,48 @@ func test_a_report_that_cannot_be_written_answers_empty() -> void:
 	assert_dict(report).is_empty()
 
 
+# --- the command line -------------------------------------------------------------------
+
+
+## `sim_main.gd` in a process of its own: its exit code and output.
+func _sim(args: PackedStringArray) -> Dictionary:
+	var output: Array = []
+	var line: PackedStringArray = ["--headless", "--path", ProjectSettings.globalize_path("res://"), "-s", SIM_MAIN, "--"]
+	line.append_array(args)
+	var code: int = OS.execute(OS.get_executable_path(), line, output, true, false)
+	return {"code": code, "text": "
+".join(output)}
+
+
+func test_sim_with_no_boss_exits_two() -> void:
+	# Act
+	var ran: Dictionary = _sim([])
+
+	# Assert
+	assert_int(int(ran.code)).is_equal(EXIT_NOT_RUN)
+	assert_str(str(ran.text)).contains("--boss <id> is required")
+
+
+func test_sim_with_an_unknown_boss_exits_two_and_leaves_no_lock() -> void:
+	# Act
+	var ran: Dictionary = _sim(["--boss", "boss_not_in_the_data"])
+
+	# Assert
+	assert_int(int(ran.code)).is_equal(EXIT_NOT_RUN)
+	assert_bool(FileAccess.file_exists(PROFILE_LOCK)).is_false()
+
+
+func test_sim_of_one_seed_exits_zero_writes_the_file_and_leaves_no_lock() -> void:
+	# Act
+	var ran: Dictionary = _sim(["--boss", BOSS, "--seeds", "1", "--out", OUT_DIR])
+
+	# Assert
+	assert_int(int(ran.code)).override_failure_message(str(ran.text)).is_equal(0)
+	assert_int(DirAccess.get_files_at(OUT_DIR).size()).is_equal(1)
+	assert_str(str(ran.text)).contains("%s, band" % BOSS)
+	assert_bool(FileAccess.file_exists(PROFILE_LOCK)).is_false()
+
+
 # --- A23 ------------------------------------------------------------------------------
 
 
@@ -253,7 +298,7 @@ func test_a23_every_shipped_boss_plays_a_match_to_its_end() -> void:
 	# Act / Assert
 	for band: int in BANDS:
 		for boss: Dictionary in _db.bosses_in_band(band):
-			var heroes: Array[String] = ALL_HEROES if _full() else [ALL_HEROES[turn % ALL_HEROES.size()]]
+			var heroes: Array = ALL_HEROES if _full() else [ALL_HEROES[turn % ALL_HEROES.size()]]
 			turn += 1
 			for hero_id: String in heroes:
 				_assert_clean(_run(str(boss.id), seeds, {"hero_id": hero_id}), "%s vs %s" % [boss.id, hero_id])

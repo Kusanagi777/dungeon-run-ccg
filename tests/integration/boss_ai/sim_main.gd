@@ -28,7 +28,7 @@ func _initialize() -> void:
 	var booted: BootResult = boot.boot()
 	if not booted.ok or not boot.services().card_database.has(str(args.boss)):
 		printerr("sim: no boss `%s` to run (data load: %s)" % [str(args.boss), str(booted.load_status)])
-		boot.free()
+		_close(boot)
 		quit(EXIT_NOT_RUN)
 		return
 	var harness: BossAiSimHarness = BossAiSimHarness.new(boot.services().card_database, boot.driver_factory)
@@ -38,12 +38,19 @@ func _initialize() -> void:
 		options["band"] = int(args.band)
 	var seeds: Array[int] = BossAiSimHarness.seed_range(int(args.get("seeds", DEFAULT_SEEDS)))
 	var report: Dictionary = harness.run(str(args.boss), seeds, opponent, str(args.get("out", BossAiSimHarness.DEFAULT_OUT_DIR)), options)
-	boot.free()
+	_close(boot)
 	if report.is_empty():
 		quit(EXIT_NOT_RUN)
 		return
 	_print_table(report)
 	quit(EXIT_CLEAN if BossAiSimHarness.is_clean(report) else EXIT_DIRTY)
+
+
+## Lets the profile go, then [param boot]. `Boot` releases the lock when it leaves the
+## tree, and this one was never in it, so a plain `free` leaves a stale `profile.lock`.
+func _close(boot: Node) -> void:
+	boot._release_profile()
+	boot.free()
 
 
 ## `--key value` pairs and bare `--flag`s, as a Dictionary.
