@@ -24,6 +24,9 @@ const ROW_TOP_CARDS: int = 3
 const SECONDS_PER_MINUTE: int = 60
 const COST_BUCKETS: int = 6
 
+## `func(run_ids: Array) -> Dictionary`, run id to archived log count. A test swaps it.
+var archive_counter: Callable = MatchReplay.archive_counts
+
 var _meta: MetaApi
 var _db: CardDatabase
 var _config: Dictionary
@@ -326,9 +329,14 @@ func unlock_toast(key: String, kind: String, id: String) -> Dictionary:
 func run_log(entries: Array, total: int) -> Dictionary:
 	var rows: Array[Dictionary] = []
 	var hero_ids: Array[String] = []
+	var run_ids: Array = []
 	for entry: Variant in entries:
 		if entry is Dictionary:
-			var row: Dictionary = _log_row(entry)
+			run_ids.append(str(entry.get("run_id", "")))
+	var replays: Dictionary = archive_counter.call(run_ids)
+	for entry: Variant in entries:
+		if entry is Dictionary:
+			var row: Dictionary = _log_row(entry, int(replays.get(str(entry.get("run_id", "")), 0)))
 			rows.append(row)
 			if not hero_ids.has(str(row.hero_id)):
 				hero_ids.append(str(row.hero_id))
@@ -576,7 +584,7 @@ func _reason_line(run_model: Dictionary, outcome: String, abandon_reason: Varian
 	return RunText.t("summary.reason.%s.%s" % [outcome, str((rows[rows.size() - 1] as Dictionary).get("reason", ""))])
 
 
-func _log_row(entry: Dictionary) -> Dictionary:
+func _log_row(entry: Dictionary, replays: int) -> Dictionary:
 	var run_id: String = str(entry.get("run_id", ""))
 	var hero_id: String = str(entry.get("hero_id", ""))
 	var row: Dictionary = {
@@ -587,7 +595,7 @@ func _log_row(entry: Dictionary) -> Dictionary:
 		"seed": str(entry.get("run_seed_hex", "")),
 		"custom_seed": str(entry.get("seed_source", "")) == RunCodes.SEED_CUSTOM,
 		"details": int(entry.get("schema_version", 0)) == RunRecord.SCHEMA_VERSION,
-		"replays": MatchReplay.archives(run_id).size(),
+		"replays": replays,
 	}
 	if not bool(row.details):
 		row["result"] = RunText.t("log.details_unavailable")
