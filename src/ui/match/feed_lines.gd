@@ -113,7 +113,7 @@ static func values_for(line: Dictionary, names: FeedNames) -> Dictionary:
 	for field: String in ENTITY_FIELDS:
 		if params.has(field):
 			values[field] = names.of(params[field])
-	values["card"] = names.card(str(params.get("card_id", "")))
+	values["card"] = names.card(str(params.get("card_id", params.get("picked_card_id", ""))))
 	values["side"] = _translate(KEY_SIDE % str(params.get("side", "")))
 	if params.has("intent_key"):
 		values["intent"] = _translate(KEY_INTENT % str(params.intent_key))

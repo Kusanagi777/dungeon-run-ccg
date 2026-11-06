@@ -778,6 +778,8 @@ func _public_params(type: String, p: Dictionary) -> Dictionary:
 			"discover_offered":
 				params.erase("option_card_ids")
 				params.erase("option_label_keys")
+			"discover_picked":
+				params.erase("picked_card_id")
 			"choice_requested":
 				params.erase("options")
 	return params
