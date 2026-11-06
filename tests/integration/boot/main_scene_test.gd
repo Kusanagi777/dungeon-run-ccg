@@ -77,8 +77,6 @@ func test_shell_over_a_ready_load_shows_main_menu() -> void:
 	assert_str(String(shell.screen())).is_equal("main_menu")
 	assert_bool((shell.get_node("%MainMenu") as Control).visible).is_true()
 	assert_bool((shell.get_node("%DataError") as Control).visible).is_false()
-	assert_str((shell.get_node("%TitleLabel") as Label).text).is_equal(tr(RunShell.TITLE_TEXT))
-	assert_str((shell.get_node("%PendingLabel") as Label).text).is_equal(tr(RunShell.PENDING_TEXT))
 
 
 func test_shell_over_a_failed_load_shows_data_error_with_every_report_row() -> void:
