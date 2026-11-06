@@ -63,7 +63,7 @@ static func read(event: InputEvent) -> StringName:
 	if event is InputEventJoypadMotion:
 		return _read_stick(event)
 	for action: StringName in ACTIONS:
-		if event.is_action_pressed(action):
+		if event.is_action_pressed(action) and not _is_space_confirm(event, action):
 			return ACTIONS[action]
 	return HAND if hand_slot(event) >= 0 else NONE
 
@@ -74,6 +74,12 @@ static func hand_slot(event: InputEvent) -> int:
 		if event.is_action_pressed(StringName(HAND_ACTION % (i + 1))):
 			return i
 	return -1
+
+
+# `Space` sits on `ui_accept` too. With `skip` rebound it reaches that row, and it is still
+# never a confirm here (targeting.md §7.2).
+static func _is_space_confirm(event: InputEvent, action: StringName) -> bool:
+	return action == &"ui_accept" and event is InputEventKey and (event as InputEventKey).keycode == KEY_SPACE
 
 
 # A held stick reports every frame, so only its first crossing of the deadzone counts.
