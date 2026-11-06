@@ -161,11 +161,7 @@ func _read(path: String) -> Variant:
 	if not FileAccess.file_exists(path):
 		push_error("MatchDebugLoader: no fixture at %s" % path)
 		return null
-	var json := JSON.new()
-	if json.parse(FileAccess.get_file_as_string(path)) != OK:
-		push_error("MatchDebugLoader: %s line %d: %s" % [path, json.get_error_line() + 1, json.get_error_message()])
-		return null
-	return json.data
+	return DataLoader.parse_text(FileAccess.get_file_as_string(path), path)
 
 
 ## The `MatchConfig` (run-structure R3) of a fixture's [param settings], which holds
@@ -233,11 +229,9 @@ func _run(controller: MatchController, entry: Dictionary) -> void:
 
 ## Submits [param command] and ticks until the planner rests.
 func _submit(controller: MatchController, command: Dictionary) -> void:
-	var sent: Dictionary = command.duplicate(true)
-	sent["issuer"] = MatchRecords.SIDE_PLAYER
-	var result: Dictionary = controller.submit(sent)
+	var result: Dictionary = controller.submit_as_player(command)
 	if not result.accepted:
-		rejections.append({"command": sent, "result": result})
+		rejections.append({"command": command, "result": result})
 	_settle(controller)
 
 

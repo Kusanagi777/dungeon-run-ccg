@@ -124,9 +124,9 @@ func strip(run_model: Dictionary) -> Dictionary:
 	var nodes: Array[Dictionary] = []
 	for pip: Dictionary in run_model.get("floors", []):
 		var f: int = int(pip.get("floor", 0))
-		var state: String = str(pip.get("state", RunState.PIP_UPCOMING))
+		var state: String = str(pip.get("state", RunCodes.PIP_UPCOMING))
 		var boss_name: String = ""
-		if state != RunState.PIP_UPCOMING and f - 1 < seen.size():
+		if state != RunCodes.PIP_UPCOMING and f - 1 < seen.size():
 			boss_name = _boss_name(str(seen[f - 1]))
 		nodes.append({
 			"floor": f,
@@ -184,7 +184,7 @@ func draft(run_model: Dictionary, reveal_step_ms: int) -> Dictionary:
 func summary(run_model: Dictionary, unlock_keys: Array, status_line: String) -> Dictionary:
 	var data: Dictionary = run_model.get("summary", {})
 	var hero: Dictionary = run_model.get("hero", {})
-	var outcome: String = str(data.get("outcome", RunState.STATUS_DEFEAT))
+	var outcome: String = str(data.get("outcome", RunCodes.STATUS_DEFEAT))
 	var floors: int = int(run_model.get("floors_per_run", 0))
 	var top_rows: Array[Dictionary] = []
 	for row: Dictionary in data.get("top_cards", []):
@@ -205,7 +205,7 @@ func summary(run_model: Dictionary, unlock_keys: Array, status_line: String) -> 
 		"turns": int(data.get("total_turns", 0)),
 		"duration": _duration(int(data.get("play_seconds", 0))),
 		"seed": str(run_model.get("run_seed_hex", "")),
-		"custom_seed": str(run_model.get("seed_source", "")) == RunState.SEED_CUSTOM,
+		"custom_seed": str(run_model.get("seed_source", "")) == RunCodes.SEED_CUSTOM,
 		"top_cards": top_rows,
 		"more_cards": int(data.get("more_cards", 0)),
 		"no_damage": bool(data.get("no_damage", true)),
@@ -221,7 +221,7 @@ func summary(run_model: Dictionary, unlock_keys: Array, status_line: String) -> 
 ## `summary_abandoned` (U2): one line, New Run, Main Menu.
 func summary_abandoned(run_model: Dictionary) -> Dictionary:
 	var data: Dictionary = run_model.get("summary", {})
-	var reason: String = str(data.get("abandon_reason", RunState.REASON_PLAYER))
+	var reason: String = str(data.get("abandon_reason", RunCodes.REASON_PLAYER))
 	var hero: Dictionary = run_model.get("hero", {})
 	return {
 		"line": RunText.t("summary.abandoned.%s" % reason),
@@ -237,7 +237,7 @@ func floor_cells(run_model: Dictionary) -> Array[Dictionary]:
 	for row: Dictionary in run_model.get("match_summaries", []):
 		by_floor[int(row.get("floor", 0))] = row
 	var data: Dictionary = run_model.get("summary", {})
-	var killed: int = int(data.get("floor_reached", 0)) if str(data.get("outcome")) == RunState.STATUS_DEFEAT else 0
+	var killed: int = int(data.get("floor_reached", 0)) if str(data.get("outcome")) == RunCodes.STATUS_DEFEAT else 0
 	var cells: Array[Dictionary] = []
 	for f: int in range(1, int(run_model.get("floors_per_run", 0)) + 1):
 		var row: Dictionary = by_floor.get(f, {})
@@ -559,16 +559,16 @@ func _treasure_rows(ids: Array) -> Array[Dictionary]:
 
 func _headline(data: Dictionary, outcome: String, floors: int, abandon_reason: Variant) -> String:
 	match outcome:
-		RunState.STATUS_VICTORY:
+		RunCodes.STATUS_VICTORY:
 			return RunText.t("summary.headline.victory", {"f": floors})
-		RunState.STATUS_ABANDONED:
+		RunCodes.STATUS_ABANDONED:
 			return RunText.t("summary.abandoned.%s" % str(abandon_reason))
 	var boss: Variant = data.get("ended_by_name")
 	return RunText.t("summary.headline.defeat", {"n": int(data.get("floor_reached", 0)), "boss": str(boss) if boss != null else ""})
 
 
 func _reason_line(run_model: Dictionary, outcome: String, abandon_reason: Variant) -> String:
-	if outcome == RunState.STATUS_ABANDONED:
+	if outcome == RunCodes.STATUS_ABANDONED:
 		return RunText.t("summary.abandoned.%s" % str(abandon_reason))
 	var rows: Array = run_model.get("match_summaries", [])
 	if rows.is_empty():
@@ -585,7 +585,7 @@ func _log_row(entry: Dictionary) -> Dictionary:
 		"hero": _hero_name(hero_id),
 		"date": _date(entry.get("ended_at", entry.get("started_at"))),
 		"seed": str(entry.get("run_seed_hex", "")),
-		"custom_seed": str(entry.get("seed_source", "")) == RunState.SEED_CUSTOM,
+		"custom_seed": str(entry.get("seed_source", "")) == RunCodes.SEED_CUSTOM,
 		"details": int(entry.get("schema_version", 0)) == RunRecord.SCHEMA_VERSION,
 		"replays": MatchReplay.archives(run_id).size(),
 	}
@@ -612,9 +612,9 @@ func _log_row(entry: Dictionary) -> Dictionary:
 
 func _log_result(data: Dictionary, outcome: String) -> String:
 	match outcome:
-		RunState.STATUS_VICTORY:
+		RunCodes.STATUS_VICTORY:
 			return RunText.t("log.result.victory")
-		RunState.STATUS_ABANDONED:
+		RunCodes.STATUS_ABANDONED:
 			return RunText.t("log.result.abandoned")
 	return RunText.t("log.result.defeat", {"n": int(data.get("floor_reached", 0)), "boss": str(data.get("ended_by_name", ""))})
 
@@ -636,9 +636,9 @@ func _hint_text(key: String) -> String:
 
 func _node_tip(f: int, state: String, boss_name: String, band: int) -> String:
 	match state:
-		RunState.PIP_CLEARED:
+		RunCodes.PIP_CLEARED:
 			return RunText.t("strip.tip.cleared", {"n": f, "boss": boss_name})
-		RunState.PIP_CURRENT:
+		RunCodes.PIP_CURRENT:
 			return RunText.t("strip.tip.current", {"n": f, "boss": boss_name})
 	return RunText.t("strip.tip.upcoming", {"n": f, "band": band})
 

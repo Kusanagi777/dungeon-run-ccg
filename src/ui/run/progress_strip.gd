@@ -39,10 +39,10 @@ class StripNode:
 		var font: Font = get_theme_default_font()
 		var font_px: int = int(cfg.font_px.small)
 		match str(data.state):
-			RunState.PIP_CLEARED:
+			RunCodes.PIP_CLEARED:
 				draw_circle(centre, radius, light)
 				_draw_initial(font, font_px, RunUiConfig.color(cfg, "text_ink"), centre)
-			RunState.PIP_CURRENT:
+			RunCodes.PIP_CURRENT:
 				draw_arc(centre, radius, 0.0, TAU, 32, band, 3.0)
 				_draw_initial(font, font_px, light, centre)
 			_:

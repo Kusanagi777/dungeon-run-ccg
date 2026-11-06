@@ -22,6 +22,10 @@
 class_name MatchController
 extends RefCounted
 
+## Keeps this script alive through engine shutdown (TD-013): see `MetaApi._teardown_anchor`.
+## Remove with the move to Godot 4.8 (godotengine/godot#117991).
+static var _teardown_anchor: Script = load("res://src/ui/match/match_controller.gd")
+
 var _driver: MatchDriver
 var _queue: AnimationQueue = null
 
@@ -58,6 +62,15 @@ func submit(command: Dictionary) -> Dictionary:
 	if _queue != null:
 		_queue.skip_all()
 	return _driver.submit(command)
+
+
+## [method submit] of a copy of [param command] issued by the player, for callers that
+## replay a scripted command list: `MatchDebugLoader`. Gate G5 keeps the channel itself
+## in the controller, driver and view.
+func submit_as_player(command: Dictionary) -> Dictionary:
+	var sent: Dictionary = command.duplicate(true)
+	sent["issuer"] = MatchRecords.SIDE_PLAYER
+	return submit(sent)
 
 
 ## The commands the live engine would accept now.
