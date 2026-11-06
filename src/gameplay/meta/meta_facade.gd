@@ -308,14 +308,12 @@ func _grant(profile: Dictionary, run_id: String, retro: bool) -> Array:
 	return granted
 
 
-## Edge Cases: a queued key no data defines has nothing to show. A post-v1 hero key
-## stays: it is named, its data simply has not shipped.
+## Edge Cases: a queued key no data defines has nothing to show.
 func _drop_stale_notifications(profile: Dictionary) -> void:
-	var reserved: Array = UnlockEvaluator.POST_V1_HERO_KEYS.values()
 	var kept: Array = []
 	for entry: Dictionary in profile.pending_notifications:
 		var key: String = str(entry.get("key"))
-		if _evaluator.has_key(key) or reserved.has(key):
+		if _evaluator.has_key(key):
 			kept.append(entry)
 		else:
 			print("profile: dropped the notification of unknown key %s" % key)

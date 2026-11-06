@@ -27,13 +27,6 @@ const LEAF_FIELDS: Dictionary = {
 	"treasure_picked": ["treasure_id", "n"],
 }
 const GROUP_TYPES: Array[String] = ["all_of", "any_of"]
-## Post-v1 heroes (M10, DD-H02): named so the key is known, shipped as no content.
-## They come alive through `HeroDef.unlock` when their data lands.
-const POST_V1_HERO_KEYS: Dictionary = {
-	"hero_fortune": "unlock.hero_fortune",
-	"hero_order": "unlock.hero_order",
-	"hero_shadow": "unlock.hero_shadow",
-}
 ## `text_key` prefix of a condition's description (`unlock_hint`).
 const TEXT_KEY_PREFIX: String = "unlock.condition."
 
