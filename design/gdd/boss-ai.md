@@ -172,7 +172,7 @@ emerges from scoring: "Fireball the 6/6, not the 1/1" is simply the candidate wi
 `f_threat`. The **op value table** (`op_values` in `ai_profiles.json`, keyed on the Card Effects
 C5 op names — `damage`, `heal`, `buff`, `set_stats`, `give_keyword`, `silence`, `freeze`,
 `destroy`, `summon`, `transform`, `draw`, `discover`, `add_to_hand`, `copy_to_hand`,
-`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`, `add_counter` (added 2026-11-04, DD-X20); the structural ops `conditional`,
+`return_to_hand`, `mana`, `armor`, `equip`, `retrigger`, `add_counter` (added 2026-11-04, DD-X20), `set_counter` (added 2026-11-05); the structural ops `conditional`,
 `repeat` and `choose_one` are valued as the sum of their inner ops, `aura` and `modify_value` as
 `buff`) is used in two places only: as the pre-filter rank when candidates exceed the eval budget
 (C4), and to value options that cannot be simulated (C7). An op's value is multiplied by the
@@ -184,8 +184,10 @@ table, with `armor` (0.5) and below `heal` (0.6): incrementing a counter changes
 board when it resolves; the payoff is valued by the op that reads `counter.<key>` (Neutral
 Gravekeeper's Deathrattle is a `damage` op, 1.0 × its targets), so a higher row would count the
 same damage twice, and a zero row would rank a counter card as dead text in the pre-filter. The
-row lets `neutral_gravekeeper` load without `E_AI_OP_UNVALUED` (content CN-2). `set_counter` stays
-unvalued (no shipped card uses it). **Attack valuation** (2026-11-04, DD-X22; records what boss-ai
+row lets `neutral_gravekeeper` load without `E_AI_OP_UNVALUED` (content CN-2). **`set_counter` row
+(2026-11-05, owner): `set_counter 0.5`.** Same reasoning as `add_counter`: source-scoped, target
+count 1, payoff valued by the op that reads the counter. `decay_plague_of_rot` is the first shipped
+user, and the row lets it load without `E_AI_OP_UNVALUED`. **Attack valuation** (2026-11-04, DD-X22; records what boss-ai
 story 005 built). An attack command's pre-filter value is one `damage` row on its target. An
 attack that kills its minion target adds the `destroy` row. A lethal attack on the player's hero
 (attack ≥ health + armour) ranks above every other candidate, so the pre-filter never drops it. A
@@ -564,7 +566,8 @@ op_values:      {<op name>: float 0–5}      damage 1.0, destroy 2.0, heal 0.6,
                                             give_keyword 0.8, summon 1.0, draw 1.2, silence 1.2, freeze 0.7,
                                             discover 1.0, add_to_hand 1.0, copy_to_hand 1.0, armor 0.5,
                                             return_to_hand 1.0, transform 1.2, mana 1.5, equip 1.2,
-                                            retrigger 1.5, add_counter 0.5 (2026-11-04, DD-X20)
+                                            retrigger 1.5, add_counter 0.5 (2026-11-04, DD-X20),
+                                            set_counter 0.5 (2026-11-05, owner)
                                             (Card Effects C5 names; × targets yielded, C6)
 keyword_values: {<keyword>: float 1.0–1.5}  F2 multipliers
 profiles:       {<key>: Profile}            default, aggro, control, tempo, passive_driven
