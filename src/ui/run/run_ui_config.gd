@@ -39,9 +39,22 @@ const SPEEDS: Array[String] = [SPEED_INSTANT, SPEED_FAST, SPEED_NORMAL]
 const TRANSITION_KEYS: Array[String] = ["fade", "intro_slide", "draft_reveal", "fly_to_strip", "toast_in_out"]
 ## The `font_px` roles `RunUiTheme.build` reads.
 const FONT_ROLES: Array[String] = ["hero", "title", "heading", "body", "small", "muted"]
+## The art-bible minimum at 100 % (Tuning Knobs `text_scale`).
+const FONT_MIN_PX: int = 12
+## Sub-keys a screen reads with no default: a hole here would be a crash on a player's
+## screen, so the load refuses it.
+const REQUIRED_NUMBERS: Dictionary = {
+	"option_w": ["treasure", "bundle"],
+	"option_y": ["treasure", "bundle"],
+	"settings_steps": ["volume", "action_delay", "action_delay_min", "action_delay_max", "gamma", "gamma_min", "gamma_max"],
+	"reading_panel": ["font_px", "max_w"],
+}
+## Keys that must at least be objects; their rows are read by key.
+const OBJECT_KEYS: Array[String] = ["controls", "glossary", "sfx"]
 const TOKENS_REQUIRED: Array[String] = [
 	"bg_edge", "table_dark", "table_lit", "parchment", "ink", "text_light", "text_muted", "text_ink",
 	"state_danger", "state_actionable", "neutral", "boss_band_1", "boss_band_2", "boss_band_3",
+	"war", "war2", "decay", "decay2", "knowledge", "knowledge2",
 ]
 
 
@@ -137,7 +150,9 @@ static func validate_config(body: Dictionary, _db: Variant) -> Array:
 	var focus: Variant = body.get("default_focus")
 	_check_enum(rows, "default_focus.summary", focus.get("summary") if focus is Dictionary else null, FOCUS_VALUES)
 	_check_palette(rows, body.get("palette"))
+	_check_high_contrast(rows, body.get("palette_high_contrast"))
 	_check_fonts(rows, body.get("font_px"))
+	_check_shapes(rows, body)
 	if not body.get("strings") is Dictionary:
 		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "strings", "`strings` must map keys to text"))
 	return rows
@@ -187,8 +202,29 @@ static func _check_fonts(rows: Array[Dictionary], value: Variant) -> void:
 		return
 	for role: String in FONT_ROLES:
 		var px: Variant = value.get(role)
-		if not ConfigRows.is_whole(px) or int(px) <= 0:
-			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "font_px.%s" % role, "no size for `%s`" % role))
+		if not ConfigRows.is_whole(px) or int(px) < FONT_MIN_PX:
+			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "font_px.%s" % role, "no size of at least %d for `%s`" % [FONT_MIN_PX, role]))
+
+
+static func _check_shapes(rows: Array[Dictionary], body: Dictionary) -> void:
+	for key: String in REQUIRED_NUMBERS:
+		var value: Variant = body.get(key)
+		for part: String in REQUIRED_NUMBERS[key]:
+			var number: Variant = value.get(part) if value is Dictionary else null
+			if not (number is int or number is float):
+				rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "%s.%s" % [key, part], "no number for `%s`" % part))
+	for key: String in OBJECT_KEYS:
+		if not body.get(key) is Dictionary:
+			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, key, "`%s` must be an object" % key))
+
+
+static func _check_high_contrast(rows: Array[Dictionary], value: Variant) -> void:
+	if not value is Dictionary:
+		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "palette_high_contrast", "`palette_high_contrast` must map tokens to colours"))
+		return
+	for token: Variant in value:
+		if not Color.html_is_valid(str(value[token])):
+			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "palette_high_contrast.%s" % str(token), "no valid colour for `%s`" % str(token)))
 
 
 static func _check_palette(rows: Array[Dictionary], value: Variant) -> void:

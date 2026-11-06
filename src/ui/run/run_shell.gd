@@ -44,6 +44,10 @@ const SETTING_KEYS: Array[StringName] = [
 
 ## What is showing. The controller's own when there is one.
 var state: ShellState = ShellState.new()
+## Set before `add_child` to raise sound through this player instead of a new one.
+var sfx_player: SfxPlayer = null
+## Set before a `fullscreen` change to drive this window instead of the shell's own.
+var window: Window = null
 
 var _services: Services = null
 var _run: RunMachine = null
@@ -218,7 +222,7 @@ func _ready() -> void:
 	var ready_load: bool = db != null and db.state() == CardDatabase.State.READY
 	_config = db.config(CONFIG_NAME) if ready_load else FALLBACK_CONFIG
 	RunText.install(_config)
-	_sfx = SfxPlayer.new()
+	_sfx = sfx_player if sfx_player != null else SfxPlayer.new()
 	_sfx.name = "Sfx"
 	add_child(_sfx)
 	_sfx.configure(_config.get("sfx", {}))
@@ -488,7 +492,7 @@ func _apply_setting(key: StringName) -> void:
 			var level: float = float(value) if value != null else 1.0
 			_gamma.color = Color(level, level, level)
 		&"fullscreen":
-			get_window().mode = Window.MODE_FULLSCREEN if bool(value) else Window.MODE_WINDOWED
+			(window if window != null else get_window()).mode = Window.MODE_FULLSCREEN if bool(value) else Window.MODE_WINDOWED
 		&"volume_master", &"volume_music", &"volume_sfx":
 			var bus: int = AudioServer.get_bus_index(str(BUS_VOLUME[String(key)]))
 			if bus >= 0 and value != null:
