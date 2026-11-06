@@ -22,6 +22,8 @@ const SETTLE_FRAMES: int = 4
 ## Frames a scripted match may take.
 const MATCH_FRAMES: int = 3000
 const INSTANT: Dictionary = {"anim_speed": "instant"}
+## What [SfxLog] records for `stop_music`.
+const STOP_MUSIC: StringName = &"stop_music"
 
 
 ## Records every event instead of looking up a file.
@@ -35,6 +37,9 @@ class SfxLog:
 
 	func play_music(event: StringName) -> void:
 		events.append(event)
+
+	func stop_music() -> void:
+		events.append(STOP_MUSIC)
 
 
 ## A `MetaStub` with what a test needs to set: the load status, ReadOnly, a run log, the
@@ -109,6 +114,8 @@ var kinds: Array[StringName] = []
 var boss_health: int = 0
 var bindings: InputBindings = null
 var _bus_volumes: Dictionary = {}
+# Every run this rig started: their archived logs go in [method finish].
+var _run_ids: Array[String] = []
 
 
 ## The shipped data, loaded once with the real validators and shared read-only.
@@ -164,8 +171,10 @@ static func install_input() -> void:
 	RunInput.install()
 
 
-## Undoes [method install_input] and anything a rebind did since.
+## Undoes [method install_input] and anything a rebind did since. Also puts `Boot` back:
+## a real `MatchView` boots it for itself, and `boot_composition_test` needs it unbooted.
 static func restore_input() -> void:
+	_unboot()
 	for action: StringName in InputMap.get_actions():
 		if not _input_saved.has(action):
 			InputMap.erase_action(action)
@@ -173,6 +182,21 @@ static func restore_input() -> void:
 		InputMap.action_erase_events(action)
 		for event: InputEvent in _input_saved[action]:
 			InputMap.action_add_event(action, event)
+
+
+# Releases what `Boot.boot()` took, so the autoload reads as never booted.
+static func _unboot() -> void:
+	var boot: Node = (Engine.get_main_loop() as SceneTree).root.get_node("Boot")
+	if not boot.booted:
+		return
+	boot._release_profile()
+	for child: Node in boot.get_children():
+		child.free()
+	boot._result = null
+	boot._services = null
+	boot._planner_tasks = null
+	boot._debounce_timer = null
+	boot._input_bindings = null
 
 
 ## A rig with the shell in the tree on `main_menu`. [param settings] go to the record
@@ -226,7 +250,9 @@ func machine() -> RunMachine:
 	run_config["max_match_events"] = EventLog.max_events_for(db.config("rng_event_log"))
 	run_config["engine_version"] = Engine.get_version_info().string
 	var archive: EventLogArchive = EventLogArchive.new(AtomicFileWriter.new(), true)
-	return RunMachine.new(db, meta, draft, treasures, run_config, _driver, archive)
+	var machine_made: RunMachine = RunMachine.new(db, meta, draft, treasures, run_config, _driver, archive)
+	machine_made.run_log_opened.connect(func(_log: EventLog) -> void: _run_ids.append(machine_made.state.run_id))
+	return machine_made
 
 
 func _driver(match_config: Dictionary, clock: Callable = Time.get_ticks_usec) -> MatchDriver:
@@ -240,8 +266,8 @@ func _driver(match_config: Dictionary, clock: Callable = Time.get_ticks_usec) ->
 func finish() -> void:
 	for bus: String in _bus_volumes:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus), float(_bus_volumes[bus]))
-	if run != null and run.state != null:
-		wipe(EventLogArchive.LOGS_ROOT.path_join(run.state.run_id))
+	for run_id: String in _run_ids:
+		wipe(EventLogArchive.LOGS_ROOT.path_join(run_id))
 	if is_instance_valid(shell):
 		shell.free()
 

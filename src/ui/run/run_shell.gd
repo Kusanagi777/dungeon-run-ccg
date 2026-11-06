@@ -530,4 +530,19 @@ func _update_banner() -> void:
 	_banner.visible = not text.is_empty() and not _match_showing()
 	var row: Node = _banner.get_node("Row")
 	(row.get_child(0) as Label).text = text
-	(row.get_child(1) as Button).visible = state.base == RunController.SCREEN_MENU and text == tr("banner.locked")
+	var retry: Button = row.get_child(1)
+	retry.visible = state.base == RunController.SCREEN_MENU and text == tr("banner.locked")
+	if retry.visible and _banner.visible:
+		_chain_retry(retry)
+
+
+# U3: every intent is reachable by keyboard, so Retry joins the base's `Tab` cycle.
+func _chain_retry(retry: Button) -> void:
+	var first: Control = _base.tab_entry()
+	if first == null or first.focus_previous.is_empty():
+		return
+	var last: Control = first.get_node(first.focus_previous)
+	last.focus_next = last.get_path_to(retry)
+	retry.focus_previous = retry.get_path_to(last)
+	retry.focus_next = retry.get_path_to(first)
+	first.focus_previous = first.get_path_to(retry)
