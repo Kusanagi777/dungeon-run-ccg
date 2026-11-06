@@ -48,6 +48,25 @@ var state: ShellState = ShellState.new()
 var _services: Services = null
 var _run: RunMachine = null
 var _controller: RunController = null
+## What `data_error` draws with on a `Failed` load (run-ui S2). That load has no config,
+## and the broken file may be `run_ui.json` itself, so nothing here comes from disk: the
+## one screen that reports bad data must not depend on good data. The theme's tokens and
+## sizes, and the four strings that screen shows.
+const FALLBACK_CONFIG: Dictionary = {
+	"palette": {
+		"state_actionable": "#F2E9D8", "bg_edge": "#141820", "table_dark": "#2B2118", "text_light": "#F2E9D8",
+		"text_muted": "#B8AC96", "ink": "#1F1A14", "neutral": "#6F655A", "table_lit": "#4A3626",
+		"parchment": "#E8DCC4", "text_ink": "#1F1A14", "state_danger": "#FF5A4D",
+	},
+	"font_px": {"hero": 48, "title": 28, "heading": 20, "body": 16, "small": 13, "muted": 14},
+	"strings": {
+		"error.title": "The game data failed to load",
+		"error.count": "{n} problems: fix the data files and restart",
+		"error.copy": "Copy report",
+		"menu.quit": "Quit",
+	},
+}
+
 var _config: Dictionary = {}
 var _transition: Transition = null
 var _base: Screen = null
@@ -197,7 +216,7 @@ func _ready() -> void:
 		_run = Boot.run_machine() if Boot.booted and _services.meta != null else null
 	var db: CardDatabase = _services.card_database if _services != null else null
 	var ready_load: bool = db != null and db.state() == CardDatabase.State.READY
-	_config = db.config(CONFIG_NAME) if ready_load else _fallback_config()
+	_config = db.config(CONFIG_NAME) if ready_load else FALLBACK_CONFIG
 	RunText.install(_config)
 	_sfx = SfxPlayer.new()
 	_sfx.name = "Sfx"
@@ -244,16 +263,6 @@ func _start_controller(db: CardDatabase) -> void:
 	for key: StringName in SETTING_KEYS:
 		_apply_setting(key)
 	_controller.start()
-
-
-## A `Failed` load has no config, and `data_error` must still draw: the data file read
-## directly, which is what a broken load left unread only when that file itself broke.
-func _fallback_config() -> Dictionary:
-	var text: String = FileAccess.get_file_as_string("res://assets/data/run_ui.json")
-	var parsed: Variant = JSON.parse_string(text)
-	if parsed is Dictionary and (parsed as Dictionary).get("config") is Dictionary:
-		return parsed.config
-	return {"palette": {"state_actionable": "#F2E9D8", "bg_edge": "#141820", "table_dark": "#2B2118", "text_light": "#F2E9D8", "text_muted": "#B8AC96", "ink": "#1F1A14", "neutral": "#6F655A", "table_lit": "#4A3626", "parchment": "#E8DCC4", "text_ink": "#1F1A14", "state_danger": "#FF5A4D"}, "font_px": {"hero": 48, "title": 28, "heading": 20, "body": 16, "small": 13, "muted": 14}}
 
 
 func _instance(id: StringName) -> Screen:
