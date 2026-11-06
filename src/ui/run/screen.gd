@@ -18,6 +18,8 @@ const DIM_ALPHA: float = 0.75
 
 ## The player asked for [param intent_name]; `RunShell` wires it to `RunController.intent`.
 signal intent_requested(intent_name: StringName, args: Dictionary)
+## The animation [method play_landing] started has ended by itself.
+signal landing_finished
 
 ## The `config("run_ui")` body, for geometry only. Set before `bind`.
 var cfg: Dictionary = {}
@@ -58,6 +60,17 @@ func close_drawer() -> bool:
 
 ## `1`/`2`/`3` (U3): focus option [param _index]. Ignored by a screen without options.
 func handle_option_key(_index: int) -> void:
+	pass
+
+
+## Plays a pick's fly-to-strip over [param seconds]; [param fade_only] is `reduce_motion`.
+## False when this screen has none, and then nothing waits for it.
+func play_landing(_index: int, _deck_size: int, _seconds: float, _fade_only: bool) -> bool:
+	return false
+
+
+## Ends a running landing at its last frame, without [signal landing_finished].
+func finish_landing() -> void:
 	pass
 
 

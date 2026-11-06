@@ -20,6 +20,8 @@ const DECK_POS: Vector2 = Vector2(1080, 640)
 const MENU_RECT: Rect2 = Rect2(1176, 4, 80, 44)
 const LIFT_PX: float = 8.0
 const PREVIEW_GAP: float = 8.0
+## What a picked option shrinks to on its way to the strip.
+const LANDING_SCALE: float = 0.1
 
 var _options: Array = []
 var _panels: Array[OptionPanel] = []
@@ -32,6 +34,8 @@ var _hint2: Label = null
 var _drawer: DeckDrawer = null
 var _preview: CardPreview = null
 var _reveal_tween: Tween = null
+var _strip: ProgressStrip = null
+var _landing: Tween = null
 
 
 func bind(model: Dictionary) -> void:
@@ -47,6 +51,7 @@ func bind(model: Dictionary) -> void:
 	var strip: ProgressStrip = ProgressStrip.new()
 	add_child(strip)
 	strip.show_strip(cfg, model.get("strip", {}))
+	_strip = strip
 	var slots: int = int(model.get("slots", _options.size()))
 	var width: int = int(cfg.option_w.bundle if bundle else cfg.option_w.treasure)
 	var gap: int = int(cfg.option_gap.bundle if bundle else cfg.option_gap.treasure)
@@ -100,6 +105,39 @@ func set_committed(on: bool) -> void:
 	for i: int in _panels.size():
 		_panels[i].modulate.a = UiKit.DIM_ALPHA if on and i != _current() else 1.0
 	_refresh_pick()
+
+
+## S14, S15: the picked option shrinks along a straight line to the strip and the deck
+## count ticks up; under [param fade_only] it fades where it stands.
+func play_landing(index: int, deck_size: int, seconds: float, fade_only: bool) -> bool:
+	if index < 0 or index >= _panels.size():
+		return false
+	var source: OptionPanel = _panels[index]
+	var ghost: PanelContainer = PanelContainer.new()
+	ghost.theme_type_variation = source.theme_type_variation
+	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(ghost)
+	UiKit.place(ghost, source.get_rect())
+	ghost.pivot_offset = ghost.size / 2.0
+	source.modulate.a = 0.0
+	_landing = create_tween().set_parallel().set_ease(Tween.EASE_OUT)
+	_landing.tween_property(ghost, "modulate:a", 0.0, seconds)
+	if not fade_only:
+		var landing: Vector2 = _strip.landing_point(deck_size >= 0) - ghost.size / 2.0
+		_landing.tween_property(ghost, "position", landing, seconds)
+		_landing.tween_property(ghost, "scale", Vector2.ONE * LANDING_SCALE, seconds)
+	if deck_size >= 0:
+		_strip.tick_deck(_landing, deck_size, seconds)
+	_landing.chain().tween_callback(func() -> void:
+		_landing = null
+		landing_finished.emit())
+	return true
+
+
+func finish_landing() -> void:
+	if _landing != null:
+		_landing.kill()
+		_landing = null
 
 
 func on_revealed() -> void:

@@ -70,6 +70,7 @@ func hero_select(run_model: Dictionary, seed_preview: Callable) -> Dictionary:
 		"locked": locked,
 		"selected": _preselected(panels),
 		"allow_custom_seed": bool(run_model.get("allow_custom_seed", false)),
+		"text_scale": float(_meta.get_settings().get("text_scale", 1.0)),
 		"seed_preview": seed_preview,
 	}
 
@@ -456,6 +457,7 @@ func _hero_panel(row: Dictionary) -> Dictionary:
 		"power_cost": power.get("cost"),
 		"power_text": str(power.get("text", "")),
 		"stats_line": RunText.t("hero.stats", {"w": int(stats.get("runs_won", stats.get("wins", 0))), "l": int(stats.get("runs_lost", stats.get("losses", 0))), "f": int(stats.get("best_floor_reached", stats.get("best_floor", 0)))}),
+		"stats_short": RunText.t("hero.stats_short", {"w": int(stats.get("runs_won", stats.get("wins", 0))), "l": int(stats.get("runs_lost", stats.get("losses", 0))), "f": int(stats.get("best_floor_reached", stats.get("best_floor", 0)))}),
 		"curve": _curve(ids),
 		"deck_rows": deck_rows(ids, []),
 	}

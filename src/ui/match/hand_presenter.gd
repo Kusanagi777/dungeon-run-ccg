@@ -194,6 +194,14 @@ func set_hover(id: int, duration_s: float = -1.0) -> void:
 	_hover_tween.tween_property(card, "scale", Vector2.ONE * float(slot.scale), seconds)
 
 
+## Where the preview of card [param id] stands, whether or not it is showing.
+func preview_rect(id: int) -> Rect2:
+	var slot: Dictionary = _hover_slot(id)
+	var scale_by: float = float(slot.get("scale", 1.0))
+	var box := Vector2(float(_cfg.card_w), float(_cfg.card_h)) * scale_by
+	return Rect2(float(slot.x) - box.x / 2.0, float(slot.y) - box.y, box.x, box.y)
+
+
 ## The card shown for [param id], or null.
 func card(id: int) -> CardFrame:
 	return _cards.get(id)

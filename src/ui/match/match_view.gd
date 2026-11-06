@@ -93,6 +93,7 @@ var _intent: IntentBanner = null
 # The card of the drag that just submitted, until the engine has answered.
 var _dropped_card: int = -1
 var _display_settings: MatchDisplay = null
+var _reading: ReadingPanel = null
 var _reject: RejectPresenter = null
 var _tray: TreasureTray = null
 var _focus: FocusPresenter = null
@@ -188,6 +189,7 @@ func apply_pose(pose: String, _value: String) -> bool:
 			return true
 		POSE_MENU:
 			_open_menu()
+			_pause.finish_motion()
 			if _value == POSE_MENU_CONCEDE:
 				_pause.show_concede_confirm()
 			return true
@@ -383,6 +385,9 @@ func _build() -> void:
 	_reject.set_flash_targets({"taunts": _boss_row.flash_taunts, "mana_bar": _player_panel.flash_mana})
 	_banner.continued.connect(_finish_match)
 	_pause.configure(_pause_style(), _meta)
+	_reading = ReadingPanel.new()
+	add_child(_reading)
+	_reading.configure(_ui)
 	_pause.closed.connect(_on_menu_closed)
 	_pause.concede_confirmed.connect(func() -> void: _router.intent(InputRouter.INTENT_CONCEDE))
 	_choice.chosen.connect(func(index: int) -> void:
@@ -435,6 +440,7 @@ func _build_chrome() -> void:
 	_chrome.add_child(bar)
 	_turn_label = _bar_label(bar_rect, HORIZONTAL_ALIGNMENT_CENTER)
 	_floor_label = _bar_label(bar_rect.grow_individual(-TOP_BAR_MARGIN_PX, 0, 0, 0), HORIZONTAL_ALIGNMENT_LEFT)
+	_floor_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	var rect: Rect2 = _ui.rect("end_turn")
 	_end_turn = Button.new()
 	_end_turn.text = tr("hud.end_turn")
@@ -494,7 +500,18 @@ func _on_menu_requested() -> void:
 		_open_menu()
 
 
+## `overlay_open` and `overlay_close`, at this view's speed.
+func _sync_menu_motion() -> void:
+	var seconds: Array[float] = [0.0, 0.0]
+	if _speed != SPEED_INSTANT:
+		var divisor: float = float((_config.speed_div as Dictionary).get(String(_speed), 1.0))
+		seconds = [float(_config.d_base.overlay_open) / divisor, float(_config.d_base.overlay_close) / divisor]
+	var reduced: bool = _settings.get(SETTING_REDUCE_MOTION) == true
+	_pause.set_motion(seconds[0], seconds[1], 1.0 if reduced else float(_config.pause.open_scale))
+
+
 func _open_menu() -> void:
+	_sync_menu_motion()
 	_router.intent(InputRouter.INTENT_CANCEL)
 	_router.set_menu_open(true)
 	_pause.open()
@@ -518,6 +535,8 @@ func _apply_text_scale(scale: float) -> void:
 	_player_panel.set_text_scale(scale)
 	_boss_panel.set_text_scale(scale)
 	_intent.set_text_scale(scale)
+	_reading.set_scale_factor(scale)
+	_feed.set_text_scale(scale)
 	var rect: Rect2 = _ui.rect("end_turn")
 	var width: float = minf(rect.size.x * scale, float(_config.text_scale.end_turn_max_w))
 	_end_turn.position = Vector2(rect.end.x - width, rect.position.y)
@@ -533,9 +552,11 @@ func _on_setting_changed(key: StringName, value: Variant) -> void:
 		SETTING_ANIM_SPEED:
 			_speed = StringName(str(value))
 			_queue.set_speed(_speed)
+			_sync_menu_motion()
 		SETTING_REDUCE_MOTION:
 			_queue.set_reduce_motion(value == true)
 			_reject.reduce_motion = value == true
+			_sync_menu_motion()
 		SETTING_ACTION_DELAY:
 			_boss_pacing = AnimationQueue.boss_pacing(_config, _ai_config, _settings)
 		SETTING_TEXT_SCALE:
@@ -609,6 +630,7 @@ func _apply_launch_settings(overrides: Dictionary) -> void:
 	_ui.reduce_motion = _settings.get(SETTING_REDUCE_MOTION, false) == true
 	_queue.set_reduce_motion(_ui.reduce_motion)
 	_boss_pacing = AnimationQueue.boss_pacing(_config, _ai_config, _settings)
+	_apply_read_settings()
 
 
 ## `Loading`: projects the log at `instant`, then subscribes (hud.md §5).
@@ -720,10 +742,31 @@ func _present(display: Dictionary) -> void:
 	_table.color = _ui.color("table_dark" if dimmed else "table_lit")
 	var key: String = "hud.turn.player" if str(display.active_side) == MatchViewState.SIDE_PLAYER else "hud.turn.boss"
 	_turn_label.text = tr("hud.turn.setup") if int(display.turn) == 0 else tr(key) % int(display.turn)
+	_fit_floor_label()
+
+
+## hud.md §10.2: the turn text is never cut, so the boss name ellipsises before it.
+func _fit_floor_label() -> void:
+	var font_px: int = _turn_label.get_theme_font_size(&"font_size")
+	var turn_w: float = _turn_label.get_theme_font(&"font").get_string_size(_turn_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
+	_floor_label.size.x = (_ui.rect("top_bar").size.x - turn_w) / 2.0 - TOP_BAR_MARGIN_PX * 2.0
+
+
+## The price of [param command] and the mana there is, for the rejection's detail copy.
+func _rejection_detail(command: Dictionary) -> Dictionary:
+	var cost: int = -1
+	if str(command.get("type", "")) == MatchRecords.CMD_PLAY_CARD:
+		var hand: Array = _ui.query.hand(MatchViewState.SIDE_PLAYER)
+		var index: int = int(command.get("hand_index", -1))
+		cost = int(hand[index].effective_cost) if index >= 0 and index < hand.size() else -1
+	elif str(command.get("type", "")) == MatchRecords.CMD_USE_HERO_POWER:
+		cost = _ui.query.hero_power_cost(MatchViewState.SIDE_PLAYER)
+	return {} if cost < 0 else {"cost": cost, "mana": int(_view.side(&"player").mana.available)}
 
 
 func _on_command_requested(command: Dictionary) -> void:
 	_aim_rejection()
+	_reject.set_detail(_rejection_detail(command) if not _controller.is_read_only() else {})
 	var result: Dictionary = _controller.submit(command)
 	if not result.accepted:
 		_mulligan.on_rejected()
@@ -942,6 +985,7 @@ func _clear_legality() -> void:
 	_player_panel.set_can_attack(false)
 	_focus.leave_idle()
 	_show_inspect(-1)
+	_reading.hide_now()
 	_player_panel.show_power_tooltip(false)
 	_player_panel.set_power_state({})
 	_intent.show_focus_tooltip(false)
@@ -980,14 +1024,27 @@ func _show_info(card: int, token: int, over_power: bool) -> void:
 	var kind: String = str(held.get("kind", ""))
 	var held_id: int = int(held.get("id", -1))
 	var held_token: bool = kind == FocusPresenter.KIND_BOSS_TOKEN or (kind == InputRouter.SOURCE_ATTACKER and _player_row.has_token(held_id))
-	_hand.set_hover(card if card != -1 or kind != InputRouter.SOURCE_CARD else held_id)
+	var shown_card: int = card if card != -1 or kind != InputRouter.SOURCE_CARD else held_id
+	_hand.set_hover(shown_card)
 	_show_inspect(token if token != -1 or not held_token else held_id)
+	_show_reading(shown_card)
 	_player_panel.show_power_tooltip(over_power or kind == InputRouter.SOURCE_HERO_POWER)
 	if kind == InputRouter.SOURCE_ATTACKER and not held_token:
 		_player_panel.show_portrait_tooltip(true)
 	_boss_panel.show_portrait_tooltip(kind == FocusPresenter.KIND_BOSS_PORTRAIT)
 	_tray.show_tooltip(held_id if kind == FocusPresenter.KIND_TREASURE else TreasureTray.NO_CHIP)
 	_intent.show_focus_tooltip(kind == FocusPresenter.KIND_BANNER)
+
+
+## The reading panel beside the hand preview or the token inspect, whichever is up.
+func _show_reading(card: int) -> void:
+	if _hand.card(card) != null:
+		_reading.show_face(_ui.card_face(_hand_card_id(card)), _hand.preview_rect(card))
+	elif _inspect.visible:
+		var row: BoardPresenter = _player_row if _player_row.has_token(_inspected) else _boss_row
+		_reading.show_face(_ui.card_face(row.card_of(_inspected)), Rect2(_inspect.position, CardFrame.SIZE * float(_config.hand.hover_scale)))
+	else:
+		_reading.hide_now()
 
 
 func _on_focus_changed(stop: Dictionary) -> void:

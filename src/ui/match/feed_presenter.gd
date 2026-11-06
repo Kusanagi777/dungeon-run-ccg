@@ -116,6 +116,20 @@ func toggle() -> void:
 		open()
 
 
+## hud.md §10.2 at [param scale]: at the full step the ticker holds two lines, not three,
+## and the drawer widens; the lines it keeps do not change.
+func set_text_scale(scale: float) -> void:
+	var cfg: Dictionary = ui.config.text_scale
+	var full: bool = scale >= float(cfg.full)
+	var ticker: Rect2 = ui.rect("feed_ticker")
+	_ticker_count = int(cfg.feed_ticker_lines) if full else int(ui.config.feed_ticker_lines)
+	_ticker.size.y = float(cfg.feed_ticker_h) if full else ticker.size.y
+	_ticker.add_theme_constant_override(&"line_separation", int(cfg.feed_line_gap) if full else 0)
+	_drawer.size.x = float(cfg.feed_drawer_w) if full else ui.rect("feed_drawer").size.x
+	_drawer_text.size.x = _drawer.size.x - PANEL_MARGIN_PX * 2.0
+	_refresh()
+
+
 ## U11 `feed:open`, `L` and the top-bar button.
 func open() -> void:
 	_open = true

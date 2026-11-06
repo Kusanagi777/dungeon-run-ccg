@@ -80,6 +80,10 @@
     "palette_high_contrast": {
       "state_danger": "#FF8A1E"
     },
+    "reading_panel": {
+      "font_px": 18,
+      "max_w": 360
+    },
     "font_px": {
       "hero": 48,
       "title": 28,
@@ -250,6 +254,7 @@
       "hero.seed_random": "→ Random",
       "hero.start": "Start",
       "hero.stats": "{w}W · {l}L · best F{f}",
+      "hero.stats_short": "{w}W · {l}L · F{f}",
       "hero.title": "Choose your hero",
       "load.E_LOCKED": "Another copy of the game is open.",
       "load.E_SCHEMA_NEWER": "Your profile was saved by a newer version.",

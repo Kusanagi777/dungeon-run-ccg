@@ -201,7 +201,7 @@ func rect_of(stop: Dictionary) -> Rect2:
 	match kind:
 		InputRouter.SOURCE_CARD:
 			var card: CardFrame = _hand.card(id)
-			return card.get_global_rect() if card != null else Rect2()
+			return card.get_global_transform() * Rect2(Vector2.ZERO, card.size) if card != null else Rect2()
 		InputRouter.SOURCE_ATTACKER:
 			var token: MinionToken = _player_row.token(id)
 			return token.get_global_rect() if token != null else _player_panel.portrait_rect()

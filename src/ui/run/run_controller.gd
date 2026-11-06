@@ -31,6 +31,9 @@ signal screen_refreshed(id: StringName, read_model: Dictionary)
 signal match_requested(driver: MatchDriver, info: Dictionary)
 ## Swap the replay of the log at [param path] in over the run log.
 signal replay_requested(path: String, hero_id: String, boss_id: String)
+## A pick landed (S14, S15): option [param index] flies to the strip before the next
+## screen opens. [param deck_size] is the new count, -1 for a treasure.
+signal pick_landed(index: int, deck_size: int)
 ## Enqueue a toast (U5). [param kind] is `&"unlock"` or `&"warning"`.
 signal toast(kind: StringName, payload: Dictionary)
 ## The top screen's `committed` sub-state changed (U4).
@@ -110,6 +113,8 @@ var _intro_ready: bool = false
 var _status_line: String = ""
 ## The load-status line shows once per launch (U2).
 var _load_line_shown: bool = false
+## The option of the pick in flight, -1 for none.
+var _pick_index: int = -1
 var _on_confirm: Callable = Callable()
 ## Loaded archive rows, newest first.
 var _log_rows: Array = []
@@ -363,7 +368,9 @@ func _pick(index: int) -> void:
 		_reject(&"pick", &"bad_index")
 		return
 	_commit()
+	_pick_index = index
 	_draft_pick(StringName(str(offer.kind)), ids[index])
+	_pick_index = -1
 
 
 func _skip_pick() -> void:
@@ -459,9 +466,16 @@ func _drain() -> void:
 		return
 	var target: StringName = &""
 	var ended: bool = false
+	var landed: bool = false
+	var deck_size: int = -1
 	for event: Dictionary in _pending:
 		var payload: Dictionary = event.get("payload", {})
 		match StringName(str(event.get("type", ""))):
+			RunCodes.EVENT_TREASURE_GRANTED:
+				landed = true
+			RunCodes.EVENT_DECK_GREW:
+				landed = true
+				deck_size = int(payload.get("deck_size", -1))
 			RunCodes.EVENT_RUN_STARTED:
 				target = SCREEN_RUN_START
 				_intro_ready = false
@@ -480,6 +494,8 @@ func _drain() -> void:
 			RunCodes.EVENT_RUN_WARNING:
 				_warn(str(payload.get("code", "")))
 	_pending.clear()
+	if landed and _pick_index >= 0:
+		pick_landed.emit(_pick_index, deck_size)
 	if target != &"":
 		state.overlays.clear()
 		_open_screen(target, _kind_for(target))

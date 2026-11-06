@@ -30,6 +30,7 @@ const KEYS: Array[String] = [
 	"copied_flash_ms", "node_d", "seg_len", "seg_len_min", "strip_max_w", "initials_min_seg", "option_gap",
 	"option_w", "option_y", "design_width", "preselect_hero", "default_focus", "run_log_page",
 	"settings_steps", "palette", "palette_high_contrast", "font_px", "controls", "glossary", "strings",
+	"reading_panel",
 ]
 const PRESELECT_VALUES: Array[String] = ["last_played", "war", "none"]
 const FOCUS_VALUES: Array[String] = ["new_run_same_hero", "hero_select", "none"]

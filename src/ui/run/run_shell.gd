@@ -48,6 +48,9 @@ var _focus_stack: Array[Control] = []
 var _match_view: Control = null
 var _settings: Dictionary = {}
 var _banner: PanelContainer = null
+## A pick's fly-to-strip is playing; the screen it decided waits in [member _held_open].
+var _landing: bool = false
+var _held_open: Array = []
 
 @onready var _stack: Control = %ScreenStack
 @onready var _match_host: Control = %MatchHost
@@ -82,6 +85,9 @@ func screen() -> StringName:
 ## Opens base [param id] over [param read_model], freeing the old base and every
 ## overlay, and runs transition [param kind] (`&"none"` for no transition).
 func open_base(id: StringName, read_model: Dictionary, kind: StringName = RunUiConfig.KIND_FADE) -> void:
+	if _landing:
+		_held_open = [id, read_model, kind]
+		return
 	if _transition != null:
 		_transition.skip()
 	_clear_overlays()
@@ -201,6 +207,7 @@ func _start_controller(db: CardDatabase) -> void:
 	_controller.screen_refreshed.connect(_on_screen_refreshed)
 	_controller.match_requested.connect(swap_in_match)
 	_controller.replay_requested.connect(swap_in_replay)
+	_controller.pick_landed.connect(_on_pick_landed)
 	_controller.toast.connect(_toasts.enqueue)
 	_controller.committed_changed.connect(_on_committed_changed)
 	_controller.skip_requested.connect(_transition.skip)
@@ -230,6 +237,7 @@ func _instance(id: StringName) -> Screen:
 	node.cfg = _config
 	node.set_anchors_preset(Control.PRESET_FULL_RECT)
 	node.intent_requested.connect(_on_intent)
+	node.landing_finished.connect(_end_landing)
 	return node
 
 
@@ -298,6 +306,25 @@ func _on_match_view_finished(result: Variant) -> void:
 	_update_banner()
 
 
+func _on_pick_landed(index: int, deck_size: int) -> void:
+	var speed: String = str(_settings.get("anim_speed", RunUiConfig.SPEED_NORMAL))
+	var reduce: bool = bool(_settings.get("reduce_motion", false))
+	var ms: int = RunUiConfig.t_transition(_config, RunUiConfig.KIND_FLY_TO_STRIP, speed, reduce)
+	if ms > 0 and _base != null:
+		_landing = _base.play_landing(index, deck_size, ms / RunUiConfig.MS_PER_S, reduce)
+
+
+func _end_landing() -> void:
+	if not _landing:
+		return
+	_landing = false
+	_base.finish_landing()
+	if not _held_open.is_empty():
+		var held: Array = _held_open
+		_held_open = []
+		open_base(held[0], held[1], held[2])
+
+
 func _on_replay_finished(_result: Variant) -> void:
 	_match_view.queue_free()
 	_match_view = null
@@ -322,6 +349,10 @@ func _refresh_idle() -> void:
 
 func _input(event: InputEvent) -> void:
 	if _controller == null or _match_showing() or not _is_press(event):
+		return
+	if _landing:
+		_end_landing()
+		get_viewport().set_input_as_handled()
 		return
 	var at_run_start: bool = state.top() == RunController.SCREEN_RUN_START
 	if state.transitioning or at_run_start:
