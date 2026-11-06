@@ -628,17 +628,21 @@ func _op_shuffle_into_deck(engine: RulesEngine, op: Dictionary, run_ctx: Diction
 
 ## C5 `discard`: `discard(side, random)` × count (v1 is random only; each pick
 ## draws from `match_<floor>` in the primitive). `targets` are the discarded
-## instance ids; an empty hand from the first pick on is `no_target`.
+## instance ids; an empty hand from the first pick on is `no_target`, and a hand that
+## runs out partway folds to `partial`, as a short `summon` does.
 func _op_discard(engine: RulesEngine, op: Dictionary, run_ctx: Dictionary) -> Dictionary:
 	var side: String = _side(op, run_ctx)
 	var count: int = _int(op.get("count", 1))
 	var discarded: Array[int] = []
+	var outcomes: Array[String] = []
 	for _i: int in count:
 		var id: int = engine.discard(side, MatchRecords.PICK_RANDOM)
 		if id == RulesEngine.NO_ENTITY:
-			break
-		discarded.append(id)
-	return entry("discard", discarded, {"count": count, "side": side}, APPLIED if not discarded.is_empty() or count == 0 else NO_TARGET)
+			outcomes.append(NO_TARGET)
+		else:
+			discarded.append(id)
+			outcomes.append(APPLIED)
+	return entry("discard", discarded, {"count": count, "side": side}, fold_outcomes(outcomes) if count > 0 else APPLIED)
 
 
 ## C5 `hero_power_refresh`: `refresh_hero_power(side)`, no mana refund. A power
