@@ -92,8 +92,6 @@ func after_test() -> void:
 	for driver: MatchDriver in _drivers:
 		driver.shutdown()
 	_drivers = []
-	# Never in the tree, so `_exit_tree` will not drop a real `MetaFacade`'s lock.
-	_boot._release_profile()
 
 
 # --- helpers -----------------------------------------------------------------
@@ -382,9 +380,14 @@ func test_each_shipping_planner_mode_loads_ready() -> void:
 
 
 func test_shipped_data_boots_to_a_factory() -> void:
+	# Arrange — this test's own instance: a real `MetaFacade` gives Boot its upkeep
+	# timers, and they go with the instance when the test ends
+	var boot: Node = auto_free(BOOT_SCRIPT.new())
+
 	# Act
-	var result: BootResult = _boot.boot({"card_database": CardDatabase.new(DataLoader.new(SHIPPED_ROOT))})
+	var result: BootResult = boot.boot({"card_database": CardDatabase.new(DataLoader.new(SHIPPED_ROOT))})
 
 	# Assert
 	assert_bool(result.ok).override_failure_message(result.report.to_text()).is_true()
-	assert_bool((_boot.driver_factory() as Callable).is_valid()).is_true()
+	assert_bool((boot.driver_factory() as Callable).is_valid()).is_true()
+	boot._release_profile()
