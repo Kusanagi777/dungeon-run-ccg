@@ -262,7 +262,7 @@ static func _invariants_hold(d: Dictionary) -> bool:
 static func _reward_step_fits(d: Dictionary) -> bool:
 	var step: Variant = d.get("reward_step")
 	if d.status == RunState.STATUS_POST_MATCH_REWARD:
-		return DraftRecord.KINDS.has(step)
+		return step is String and DraftRecord.KINDS.has(step)
 	return step == null
 
 
@@ -279,7 +279,7 @@ static func _drafts_fit(d: Dictionary) -> bool:
 		if seen.has(key):
 			return false
 		seen[key] = true
-		if row.picked_id != null:
+		if row.get("picked_id") != null:
 			if row.kind == DraftRecord.KIND_BUNDLE:
 				bundle_picks += 1
 			else:

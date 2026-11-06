@@ -78,7 +78,7 @@ static func validate(d: Variant) -> bool:
 	var floor_value: Variant = record.get("floor")
 	if not (floor_value is int or floor_value is float) or int(floor_value) < 1:
 		return false
-	if not KINDS.has(record.get("kind")):
+	if not record.get("kind") is String or not KINDS.has(record.kind) or not record.has("picked_id"):
 		return false
 	var offered: Variant = record.get("offered_ids")
 	var added: Variant = record.get("card_ids_added")
