@@ -48,7 +48,9 @@ func bind(model: Dictionary) -> void:
 	_drawers.clear()
 	_scale = float(model.get("text_scale", 1.0))
 	cancel_intent = &"back"
-	add_child(UiKit.backdrop(color("bg_edge")))
+	var backdrop: ColorRect = UiKit.backdrop(color("bg_edge"))
+	add_child(backdrop)
+	ArtLibrary.shared().mount_fill(backdrop, "table")
 	var title: Label = UiKit.label(tr("hero.title"), RunUiTheme.LABEL_TITLE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(title)
@@ -122,7 +124,8 @@ func _add_hero(index: int, hero: Dictionary) -> void:
 	var top: HBoxContainer = UiKit.hbox(12)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(top)
-	top.add_child(UiKit.portrait(color(str(hero.secondary)), str(hero.initial), PORTRAIT))
+	var stamp: Dictionary = ArtLibrary.shared().portrait("heroes", str(hero.id))
+	top.add_child(UiKit.portrait(color(str(hero.secondary)), str(hero.initial), PORTRAIT, stamp.get("texture"), stamp.get("tint", Color.WHITE)))
 	var facts: VBoxContainer = UiKit.vbox(4)
 	facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(facts)

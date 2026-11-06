@@ -35,7 +35,8 @@ func bind(model: Dictionary) -> void:
 	column.add_child(_pips(int(model.get("band", 1)), str(model.get("band_color", "neutral"))))
 	var top: HBoxContainer = UiKit.hbox(16)
 	column.add_child(top)
-	top.add_child(UiKit.portrait(color(str(model.get("band_color", "neutral"))), str(model.get("boss_initial", "")), PORTRAIT))
+	var stamp: Dictionary = ArtLibrary.shared().portrait("bosses", str(model.get("boss_id", "")))
+	top.add_child(UiKit.portrait(color(str(model.get("band_color", "neutral"))), str(model.get("boss_initial", "")), PORTRAIT, stamp.get("texture"), stamp.get("tint", Color.WHITE)))
 	var facts: VBoxContainer = UiKit.vbox(6)
 	facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(facts)

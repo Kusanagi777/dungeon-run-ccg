@@ -43,6 +43,7 @@ var _power_state: Dictionary = {}
 var _portrait_rect: Rect2 = Rect2()
 var _power_rect: Rect2 = Rect2()
 var _portrait: Panel = null
+var _portrait_art: TextureRect = null
 var _portrait_style: StyleBoxFlat = null
 var _initial: Label = null
 var _health: Label = null
@@ -76,6 +77,17 @@ func setup(context: MatchUiContext) -> void:
 	_portrait_rect = ui.rect("player_portrait" if player else "boss_portrait")
 	_portrait_style = _style(ui.color("neutral"), 2, ui.color("ink"))
 	_portrait = _panel(_portrait_rect, _portrait_style)
+	_portrait_art = TextureRect.new()
+	_portrait_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The boss passive plate overlaps the portrait's bottom 48px (F6). Keep the
+	# stamp above that plate so the passive stays readable.
+	var bottom_clear: float = 52.0 if side == SIDE_BOSS else 8.0
+	_portrait_art.position = Vector2(4.0, 4.0)
+	_portrait_art.size = Vector2(_portrait_rect.size.x - 8.0, _portrait_rect.size.y - bottom_clear - 4.0)
+	_portrait_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_portrait_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_portrait_art.visible = false
+	_portrait.add_child(_portrait_art)
 	_initial = _label(Rect2(Vector2.ZERO, _portrait_rect.size - Vector2(0, 48)), PORTRAIT_FONT_PX, "text_light", _portrait)
 	_initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -98,7 +110,9 @@ func setup(context: MatchUiContext) -> void:
 		_build_player_slots()
 	else:
 		_build_boss_strip()
-	_tooltip = _panel(Rect2(Vector2.ZERO, TOOLTIP_SIZE), _style(ui.color("parchment"), 2, ui.color("ink")))
+	var tip_style: StyleBoxFlat = _style(ui.color("parchment"), 2, ui.color("ink"))
+	_tooltip = _panel(Rect2(Vector2.ZERO, TOOLTIP_SIZE), tip_style)
+	ui.art().lay_parchment(_tooltip, tip_style)
 	_tooltip_text = _label(Rect2(Vector2(8, 6), TOOLTIP_SIZE - TOOLTIP_PADDING), SMALL_FONT_PX, "text_ink", _tooltip)
 	_tooltip_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_tooltip.visible = false
@@ -115,6 +129,13 @@ func set_identity(identity: Dictionary) -> void:
 	_primary = identity.get("primary", ui.color("neutral"))
 	_portrait_style.bg_color = _primary.lerp(ui.color("table_dark"), PORTRAIT_DIM)
 	_initial.text = str(identity.get("initial", ""))
+	var group: String = "bosses" if side == SIDE_BOSS else "heroes"
+	var stamp: Dictionary = ui.art().portrait(group, str(identity.get("id", "")))
+	_portrait_art.visible = not stamp.is_empty()
+	_initial.visible = stamp.is_empty()
+	if not stamp.is_empty():
+		_portrait_art.texture = stamp.texture
+		_portrait_art.modulate = stamp.tint
 	_power_id = str(identity.get("power_id", ""))
 	_name_key = str(identity.get("name_key", ""))
 	_passive_key = str(identity.get("passive_key", ""))

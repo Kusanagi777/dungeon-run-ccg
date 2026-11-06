@@ -117,6 +117,7 @@ var _launch_override: Variant = null
 var _planner_override: Callable = Callable()
 
 @onready var _table: ColorRect = %Table
+var _table_art: TextureRect = null
 @onready var _player_panel: HeroPresenter = %PlayerPanel
 @onready var _boss_panel: HeroPresenter = %BossPanel
 @onready var _player_row: BoardPresenter = %PlayerRow
@@ -389,7 +390,7 @@ func _build() -> void:
 	_router.set_drawer_check(_feed_drawer_open)
 	_router.menu_requested.connect(_on_menu_requested)
 	_settings_bus.settings_changed.connect(_on_setting_changed)
-	_table.color = _ui.color("table_lit")
+	_apply_table(false)
 	_build_chrome()
 	_build_inspect()
 	_presenters = [_boss_panel, _player_panel, _boss_row, _player_row, _hand, _arrow, _feed, _choice, _mulligan, _banner]
@@ -785,10 +786,19 @@ func _present(display: Dictionary) -> void:
 	for presenter: Presenter in _presenters:
 		presenter.present(display)
 	var dimmed: bool = display.pending_mulligan != null or _choice.is_open() or _pause.is_open()
-	_table.color = _ui.color("table_dark" if dimmed else "table_lit")
+	_apply_table(dimmed)
 	var key: String = "hud.turn.player" if str(display.active_side) == MatchViewState.SIDE_PLAYER else "hud.turn.boss"
 	_turn_label.text = tr("hud.turn.setup") if int(display.turn) == 0 else tr(key) % int(display.turn)
 	_fit_floor_label()
+
+
+## The lit wood, or the same grain pulled down while the table is not the player's.
+func _apply_table(dimmed: bool) -> void:
+	_table.color = _ui.color("table_dark" if dimmed else "table_lit")
+	if _table_art == null:
+		_table_art = _ui.art().mount_fill(_table, "table")
+	if _table_art != null:
+		_table_art.modulate = Color(0.62, 0.58, 0.54) if dimmed else Color.WHITE
 
 
 ## hud.md §10.2: the turn text is never cut, so the boss name ellipsises before it.

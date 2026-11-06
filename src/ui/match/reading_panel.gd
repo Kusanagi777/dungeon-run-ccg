@@ -31,10 +31,13 @@ func configure(context: MatchUiContext) -> void:
 	visible = false
 	z_index = Z_INDEX
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = context.color("parchment")
-	style.set_corner_radius_all(CORNER_PX)
-	style.set_content_margin_all(PADDING_PX)
+	var style: StyleBox = context.art().parchment_panel(PADDING_PX)
+	if style == null:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = context.color("parchment")
+		flat.set_corner_radius_all(CORNER_PX)
+		flat.set_content_margin_all(PADDING_PX)
+		style = flat
 	add_theme_stylebox_override("panel", style)
 	var column := VBoxContainer.new()
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE

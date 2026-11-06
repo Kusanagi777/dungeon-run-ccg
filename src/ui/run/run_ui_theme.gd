@@ -63,7 +63,12 @@ static func build(cfg: Dictionary, text_scale: float, high_contrast: bool) -> Th
 		theme.set_color(&"font_color", role, RunUiConfig.color(cfg, str(row[1]), high_contrast))
 	for role: StringName in PANEL_ROLES:
 		theme.set_type_variation(role, &"PanelContainer")
-		theme.set_stylebox(&"panel", role, _box(RunUiConfig.color(cfg, str(PANEL_ROLES[role])), Color.TRANSPARENT))
+		var panel: StyleBox = _box(RunUiConfig.color(cfg, str(PANEL_ROLES[role])), Color.TRANSPARENT)
+		if role == PANEL_PARCHMENT:
+			var parchment: StyleBox = ArtLibrary.shared().parchment_panel(PANEL_PADDING_PX)
+			if parchment != null:
+				panel = parchment
+		theme.set_stylebox(&"panel", role, panel)
 	_add_button(theme, cfg, &"Button", "table_dark", "neutral", body_px, high_contrast)
 	theme.set_type_variation(BUTTON_PRIMARY, &"Button")
 	_add_button(theme, cfg, BUTTON_PRIMARY, "table_lit", "state_actionable", body_px, high_contrast)

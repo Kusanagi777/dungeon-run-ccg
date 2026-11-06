@@ -45,7 +45,9 @@ func bind(model: Dictionary) -> void:
 	_panels.clear()
 	_selected = -1
 	_held = -1
-	add_child(UiKit.backdrop(color("bg_edge")))
+	var backdrop: ColorRect = UiKit.backdrop(color("bg_edge"))
+	add_child(backdrop)
+	ArtLibrary.shared().mount_fill(backdrop, "table")
 	var bundle: bool = str(model.get("kind")) == DraftRecord.KIND_BUNDLE
 	_add_title(model, bundle)
 	var strip: ProgressStrip = ProgressStrip.new()
@@ -226,7 +228,20 @@ func _fill_bundle(column: VBoxContainer, option: Dictionary, index: int, rect: R
 		var row: PanelContainer = UiKit.panel(RunUiTheme.PANEL_DARK)
 		row.custom_minimum_size.y = ROW_H
 		UiKit.focus_row(row)
-		row.add_child(UiKit.label("(%s) %s" % [card.cost, card.name], RunUiTheme.LABEL_SMALL, true))
+		var line: HBoxContainer = UiKit.hbox(8)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var stamp: Dictionary = ArtLibrary.shared().card_stamp(str(card.id))
+		if not stamp.is_empty():
+			var icon: TextureRect = TextureRect.new()
+			icon.texture = stamp.texture
+			icon.modulate = stamp.tint
+			icon.custom_minimum_size = Vector2(40.0, 40.0)
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			line.add_child(icon)
+		line.add_child(UiKit.label("(%s) %s" % [card.cost, card.name], RunUiTheme.LABEL_SMALL, true))
+		row.add_child(line)
 		rows.add_child(row)
 		var centre_y: float = rect.position.y + ROW_TOP + ROW_H / 2.0 + i * (ROW_H + 8.0)
 		var left: float = _preview_left(index, rect)

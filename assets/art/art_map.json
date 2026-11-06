@@ -1,0 +1,458 @@
+{
+  "surfaces": {
+    "parchment_card": "res://assets/art/surfaces/parchment_card.png",
+    "parchment_tile": "res://assets/art/surfaces/parchment_tile.png",
+    "table": "res://assets/art/surfaces/table_wood.png"
+  },
+  "stamps": {
+    "sword": {
+      "path": "res://assets/art/stamps/sword.png",
+      "tint": "ink"
+    },
+    "axe": {
+      "path": "res://assets/art/stamps/axe.png",
+      "tint": "ink"
+    },
+    "shield": {
+      "path": "res://assets/art/stamps/shield.png",
+      "tint": "ink"
+    },
+    "helmet": {
+      "path": "res://assets/art/stamps/helmet.png",
+      "tint": "ink"
+    },
+    "banner": {
+      "path": "res://assets/art/stamps/banner.png",
+      "tint": "ink"
+    },
+    "barbarian": {
+      "path": "res://assets/art/stamps/barbarian.png",
+      "tint": "ink"
+    },
+    "hammer": {
+      "path": "res://assets/art/stamps/hammer.png",
+      "tint": "ink"
+    },
+    "crown": {
+      "path": "res://assets/art/stamps/crown.png",
+      "tint": "ink"
+    },
+    "dagger": {
+      "path": "res://assets/art/stamps/dagger.png",
+      "tint": "ink"
+    },
+    "rat": {
+      "path": "res://assets/art/stamps/rat.png",
+      "tint": "ink"
+    },
+    "raven": {
+      "path": "res://assets/art/stamps/raven.png",
+      "tint": "ink"
+    },
+    "poison": {
+      "path": "res://assets/art/stamps/poison.png",
+      "tint": "ink"
+    },
+    "grave": {
+      "path": "res://assets/art/stamps/grave.png",
+      "tint": "ink"
+    },
+    "spider": {
+      "path": "res://assets/art/stamps/spider.png",
+      "tint": "ink"
+    },
+    "book": {
+      "path": "res://assets/art/stamps/book.png",
+      "tint": "ink"
+    },
+    "scroll": {
+      "path": "res://assets/art/stamps/scroll.png",
+      "tint": "ink"
+    },
+    "candle": {
+      "path": "res://assets/art/stamps/candle.png",
+      "tint": "ink"
+    },
+    "lightning": {
+      "path": "res://assets/art/stamps/lightning.png",
+      "tint": "ink"
+    },
+    "crystal": {
+      "path": "res://assets/art/stamps/crystal.png",
+      "tint": "ink"
+    },
+    "frost": {
+      "path": "res://assets/art/stamps/frost.png",
+      "tint": "ink"
+    },
+    "fire": {
+      "path": "res://assets/art/stamps/fire.png",
+      "tint": "ink"
+    },
+    "golem": {
+      "path": "res://assets/art/stamps/golem.png",
+      "tint": "ink"
+    },
+    "person": {
+      "path": "res://assets/art/stamps/person.png",
+      "tint": "ink"
+    },
+    "owl": {
+      "path": "res://assets/art/stamps/owl.png",
+      "tint": "ink"
+    },
+    "wolf": {
+      "path": "res://assets/art/stamps/wolf.png",
+      "tint": "ink"
+    },
+    "ogre": {
+      "path": "res://assets/art/stamps/ogre.png",
+      "tint": "ink"
+    },
+    "wizard": {
+      "path": "res://assets/art/stamps/wizard.png",
+      "tint": "ink"
+    },
+    "heart": {
+      "path": "res://assets/art/stamps/heart.png",
+      "tint": "ink"
+    },
+    "hood": {
+      "path": "res://assets/art/stamps/hood.png",
+      "tint": "ink"
+    },
+    "chest": {
+      "path": "res://assets/art/stamps/chest.png",
+      "tint": "ink"
+    },
+    "map": {
+      "path": "res://assets/art/stamps/map.png",
+      "tint": "ink"
+    },
+    "boar": {
+      "path": "res://assets/art/stamps/boar.png",
+      "tint": "ink"
+    },
+    "pick": {
+      "path": "res://assets/art/stamps/pick.png",
+      "tint": "ink"
+    },
+    "harpy": {
+      "path": "res://assets/art/stamps/harpy.png",
+      "tint": "ink"
+    },
+    "giant": {
+      "path": "res://assets/art/stamps/giant.png",
+      "tint": "ink"
+    },
+    "mammoth": {
+      "path": "res://assets/art/stamps/mammoth.png",
+      "tint": "ink"
+    },
+    "gate": {
+      "path": "res://assets/art/stamps/gate.png",
+      "tint": "ink"
+    },
+    "hound": {
+      "path": "res://assets/art/stamps/hound.png",
+      "tint": "ink"
+    },
+    "hourglass": {
+      "path": "res://assets/art/stamps/hourglass.png",
+      "tint": "ink"
+    },
+    "sheep": {
+      "path": "res://assets/art/stamps/sheep.png",
+      "tint": "ink"
+    },
+    "imp": {
+      "path": "res://assets/art/stamps/imp.png",
+      "tint": "ink"
+    },
+    "lantern": {
+      "path": "res://assets/art/stamps/lantern.png",
+      "tint": "ink"
+    },
+    "ghost": {
+      "path": "res://assets/art/stamps/ghost.png",
+      "tint": "ink"
+    },
+    "bone": {
+      "path": "res://assets/art/stamps/bone.png",
+      "tint": "ink"
+    },
+    "crab": {
+      "path": "res://assets/art/stamps/crab.png",
+      "tint": "ink"
+    },
+    "frog": {
+      "path": "res://assets/art/stamps/frog.png",
+      "tint": "ink"
+    },
+    "witch": {
+      "path": "res://assets/art/stamps/witch.png",
+      "tint": "ink"
+    },
+    "coins": {
+      "path": "res://assets/art/stamps/coins.png",
+      "tint": "ink"
+    },
+    "torch": {
+      "path": "res://assets/art/stamps/torch.png",
+      "tint": "ink"
+    },
+    "mirror": {
+      "path": "res://assets/art/stamps/mirror.png",
+      "tint": "ink"
+    },
+    "potion": {
+      "path": "res://assets/art/stamps/potion.png",
+      "tint": "ink"
+    },
+    "jug": {
+      "path": "res://assets/art/stamps/jug.png",
+      "tint": "source"
+    },
+    "pot": {
+      "path": "res://assets/art/stamps/pot.png",
+      "tint": "source"
+    },
+    "cup": {
+      "path": "res://assets/art/stamps/cup.png",
+      "tint": "source"
+    },
+    "urn": {
+      "path": "res://assets/art/stamps/urn.png",
+      "tint": "source"
+    },
+    "amphora": {
+      "path": "res://assets/art/stamps/amphora.png",
+      "tint": "source"
+    },
+    "flask": {
+      "path": "res://assets/art/stamps/flask.png",
+      "tint": "source"
+    },
+    "skull_warm": {
+      "path": "res://assets/art/stamps/skull_warm.png",
+      "tint": "source"
+    },
+    "skull_cool": {
+      "path": "res://assets/art/stamps/skull_cool.png",
+      "tint": "source"
+    }
+  },
+  "glyphs": {
+    "attack": "res://assets/art/glyphs/attack.png",
+    "health": "res://assets/art/glyphs/health.png",
+    "durability": "res://assets/art/glyphs/durability.png",
+    "cost": "res://assets/art/glyphs/cost.png",
+    "taunt": "res://assets/art/glyphs/taunt.png",
+    "divine_shield": "res://assets/art/glyphs/divine_shield.png",
+    "frozen": "res://assets/art/glyphs/frozen.png",
+    "stealth": "res://assets/art/glyphs/stealth.png",
+    "windfury": "res://assets/art/glyphs/windfury.png",
+    "silenced": "res://assets/art/glyphs/silenced.png",
+    "summoning_sick": "res://assets/art/glyphs/summoning_sick.png",
+    "rush": "res://assets/art/glyphs/rush.png",
+    "charge": "res://assets/art/glyphs/charge.png",
+    "lifesteal": "res://assets/art/glyphs/lifesteal.png",
+    "poisonous": "res://assets/art/glyphs/poisonous.png"
+  },
+  "cards": {
+    "war_shield_squire": "shield",
+    "war_sharpen": "sword",
+    "war_rusted_axe": "axe",
+    "war_warcry": "banner",
+    "war_iron_resolve": "shield",
+    "war_iron_vanguard": "helmet",
+    "war_quartermaster": "banner",
+    "war_pit_brawler": "barbarian",
+    "war_whetstone_blade": "sword",
+    "war_blade_strike": "sword",
+    "war_throwing_axe": "axe",
+    "war_blade_apprentice": "sword",
+    "war_armorer": "hammer",
+    "war_cellar_raider": "dagger",
+    "war_berserker": "barbarian",
+    "war_heavy_maul": "hammer",
+    "war_cleave_through": "axe",
+    "war_rally": "banner",
+    "war_shieldwall_veteran": "shield",
+    "war_shield_maiden": "shield",
+    "war_duelists_edge": "sword",
+    "war_pit_champion": "helmet",
+    "war_twin_hatchets": "axe",
+    "war_warlord": "crown",
+    "war_kingsblade": "sword",
+    "war_headsman": "axe",
+    "decay_husk": "skull_warm",
+    "decay_grave_rat": "rat",
+    "decay_plague_rat": "rat",
+    "decay_soul_tithe": "flask",
+    "decay_last_rites": "grave",
+    "decay_carrion_crow": "raven",
+    "decay_culling": "axe",
+    "decay_rot_beetle": "poison",
+    "decay_grave_robber": "dagger",
+    "decay_mass_grave": "grave",
+    "decay_husk_tender": "skull_warm",
+    "decay_grave_warden": "shield",
+    "decay_husk_herder": "skull_warm",
+    "decay_crypt_leech": "poison",
+    "decay_relic_keeper": "urn",
+    "decay_feast_of_worms": "pot",
+    "decay_raise_dead": "skull_warm",
+    "decay_shambling_heap": "skull_warm",
+    "decay_corpse_collector": "skull_warm",
+    "decay_tomb_spider": "spider",
+    "decay_blight": "poison",
+    "decay_plague_of_rot": "poison",
+    "decay_husk_mother": "skull_warm",
+    "decay_boneyard_brute": "skull_warm",
+    "decay_plaguebearer": "poison",
+    "decay_grave_titan": "skull_cool",
+    "decay_skeleton": "skull_warm",
+    "decay_ghoul": "skull_warm",
+    "knowledge_candle_acolyte": "candle",
+    "knowledge_spark": "lightning",
+    "knowledge_lost_page": "scroll",
+    "knowledge_glyph_wards": "scroll",
+    "knowledge_ink_sprite": "flask",
+    "knowledge_frost_lance": "frost",
+    "knowledge_archive_seeker": "book",
+    "knowledge_apprentice": "book",
+    "knowledge_scrying": "crystal",
+    "knowledge_study": "book",
+    "knowledge_lightning_lash": "lightning",
+    "knowledge_rune_warden": "shield",
+    "knowledge_glacial_wind": "frost",
+    "knowledge_lorekeeper": "book",
+    "knowledge_scribe": "scroll",
+    "knowledge_meteor_bolt": "fire",
+    "knowledge_chain_lightning": "lightning",
+    "knowledge_transmute": "potion",
+    "knowledge_rime_elemental": "frost",
+    "knowledge_flamewave": "fire",
+    "knowledge_deep_study": "book",
+    "knowledge_star_reader": "crystal",
+    "knowledge_grand_grimoire": "book",
+    "knowledge_forbidden_tome": "book",
+    "knowledge_vault_golem": "golem",
+    "knowledge_ward": "shield",
+    "neutral_torch_imp": "imp",
+    "neutral_tunnel_rat": "rat",
+    "neutral_cellar_guard": "shield",
+    "neutral_lantern_bearer": "lantern",
+    "neutral_bulwark_smith": "hammer",
+    "neutral_dungeon_delver": "person",
+    "neutral_hush_owl": "owl",
+    "neutral_spark_fiend": "fire",
+    "neutral_banner_captain": "banner",
+    "neutral_wolf_rider": "wolf",
+    "neutral_shield_golem": "golem",
+    "neutral_crypt_brute": "skull_warm",
+    "neutral_ogre_porter": "ogre",
+    "neutral_smite_or_mend": "lightning",
+    "neutral_gravekeeper": "grave",
+    "neutral_rusty_dagger": "dagger",
+    "neutral_novice_scout": "person",
+    "neutral_tunnel_shaman": "wizard",
+    "neutral_cutpurse": "dagger",
+    "neutral_charging_boar": "boar",
+    "neutral_field_medic": "heart",
+    "neutral_powder_keg": "fire",
+    "neutral_muzzle": "hood",
+    "neutral_treasure_map": "map",
+    "neutral_mimic": "chest",
+    "neutral_hex_doctor": "wizard",
+    "neutral_temple_guard": "shield",
+    "neutral_blood_tick": "poison",
+    "neutral_miners_pick": "pick",
+    "neutral_rockfall": "hammer",
+    "neutral_storm_harpy": "harpy",
+    "neutral_stone_sentinel": "golem",
+    "neutral_great_cleaver": "axe",
+    "neutral_hill_giant": "giant",
+    "neutral_war_mammoth": "mammoth",
+    "neutral_ember_sprite": "fire",
+    "neutral_gate_guardian": "gate",
+    "neutral_hedge_wizard": "wizard",
+    "neutral_relic_hunter": "chest",
+    "neutral_pit_hound": "hound",
+    "neutral_battle_plan": "scroll",
+    "neutral_old_lamplighter": "lantern",
+    "neutral_the_collector": "chest",
+    "neutral_hourglass_mage": "hourglass",
+    "neutral_dungeon_warden": "helmet",
+    "neutral_sheep": "sheep",
+    "boss_ember_bolt": "fire",
+    "boss_tinder_imp": "imp",
+    "boss_rat_pack": "rat",
+    "boss_rat_matriarch": "rat",
+    "boss_iron_gate": "gate",
+    "boss_gate_warden": "gate",
+    "boss_rat": "rat",
+    "boss_rot_zombie": "skull_warm",
+    "boss_mass_rites": "grave",
+    "boss_hollow_knight": "skull_cool",
+    "boss_crown_of_thorns": "crown",
+    "boss_moss_poultice": "cup",
+    "boss_hermit_crab": "crab",
+    "boss_blood_chalice": "amphora",
+    "boss_sister_of_blood": "heart",
+    "boss_toll_collector": "coins",
+    "boss_tollgate": "gate",
+    "boss_bone_shard": "bone",
+    "boss_soul_bolt": "ghost",
+    "boss_bog_toad": "frog",
+    "boss_witchs_brew": "jug",
+    "boss_frostbite": "frost",
+    "boss_hag_servant": "witch",
+    "boss_lurker": "hood",
+    "boss_knife_in_the_dark": "dagger",
+    "boss_scrap_plating": "shield",
+    "boss_junk_golem": "golem",
+    "boss_signal_torch": "torch",
+    "boss_pyre_bomb": "fire",
+    "boss_reflection": "mirror",
+    "boss_mirror_golem": "golem",
+    "boss_heartbeat": "heart",
+    "boss_heart_guardian": "heart"
+  },
+  "fallback_set": {
+    "war": "sword",
+    "decay": "skull_warm",
+    "knowledge": "book",
+    "neutral": "lantern",
+    "boss": "gate"
+  },
+  "fallback_type": {
+    "minion": "person",
+    "spell": "scroll",
+    "weapon": "sword"
+  },
+  "heroes": {
+    "hero_war": "barbarian",
+    "hero_decay": "witch",
+    "hero_knowledge": "wizard"
+  },
+  "bosses": {
+    "boss_torchbearer": "torch",
+    "boss_rat_king": "rat",
+    "boss_gatekeeper": "gate",
+    "boss_rot_warden": "poison",
+    "boss_hollow_king": "skull_cool",
+    "boss_cellar_hermit": "hood",
+    "boss_blood_abbess": "heart",
+    "boss_iron_tollman": "coins",
+    "boss_lich_archivist": "skull_warm",
+    "boss_bog_witch": "witch",
+    "boss_frost_hag": "frost",
+    "boss_shadow_of_the_delve": "hood",
+    "boss_scrap_golem": "golem",
+    "boss_pyre_sergeant": "fire",
+    "boss_mirror_sage": "mirror",
+    "boss_dungeon_heart": "heart"
+  }
+}

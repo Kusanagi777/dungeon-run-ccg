@@ -30,11 +30,14 @@ func configure(fill: Color, ink: Color, font_px: int, max_w: float, bounds: Rect
 	visible = false
 	z_index = TOOLTIP_Z
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.set_corner_radius_all(CORNER_PX)
-	style.set_content_margin_all(PADDING_PX)
-	add_theme_stylebox_override("panel", style)
+	var parchment: StyleBox = ArtLibrary.shared().parchment_panel(PADDING_PX)
+	if parchment == null:
+		var style := StyleBoxFlat.new()
+		style.bg_color = fill
+		style.set_corner_radius_all(CORNER_PX)
+		style.set_content_margin_all(PADDING_PX)
+		parchment = style
+	add_theme_stylebox_override("panel", parchment)
 	_label = Label.new()
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE

@@ -9,7 +9,9 @@ var _default: Button = null
 
 func bind(model: Dictionary) -> void:
 	clear()
-	add_child(UiKit.backdrop(color("bg_edge")))
+	var backdrop: ColorRect = UiKit.backdrop(color("bg_edge"))
+	add_child(backdrop)
+	ArtLibrary.shared().mount_fill(backdrop, "table")
 	var centre: CenterContainer = CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(centre)

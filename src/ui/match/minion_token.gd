@@ -51,6 +51,9 @@ var _art: Label = null
 var _badges: Label = null
 var _attack: Label = null
 var _health: Label = null
+var _stamp: Dictionary = {}
+var _keyword_icons: Array[Texture2D] = []
+var _badge_names: PackedStringArray = []
 
 
 ## Stores the palette source and builds the labels.
@@ -78,6 +81,8 @@ func show_token(token: Dictionary, face: Dictionary) -> void:
 	card_id = str(token.card_id)
 	_shown = token.duplicate(true)
 	_face = face
+	_stamp = _ui.art().card_stamp(card_id, str(face.get("type", "minion")), str(face.get("set", "")))
+	_art.visible = _stamp.is_empty()
 	_art.text = tr(str(face.get("name_key", ""))).left(1)
 	_attack.text = str(int(token.attack))
 	_health.text = str(int(token.health))
@@ -145,9 +150,15 @@ func _draw() -> void:
 	body.border_color = _face.get("primary", _ui.color("neutral"))
 	draw_style_box(body, Rect2(Vector2.ZERO, size))
 	draw_rect(ART_RECT, _face.get("secondary", _ui.color("neutral")))
+	if not _stamp.is_empty():
+		var art: Texture2D = _stamp.texture
+		draw_texture_rect(art, ArtLibrary.fit_rect(art, ART_RECT, 1.0), false, _stamp.tint)
+	_draw_keyword_icons()
 	for centre: Vector2 in [ATTACK_CENTRE, HEALTH_CENTRE]:
 		draw_circle(centre, STAMP_RADIUS, _ui.color("stamp_ring"))
 		draw_circle(centre, STAMP_RADIUS - STAMP_RING_PX, _ui.color("ink"))
+	_draw_stat_glyph("attack", ATTACK_CENTRE)
+	_draw_stat_glyph("health", HEALTH_CENTRE)
 	var outline: Variant = null
 	var width: int = int(_ui.config.targeting.outline_px)
 	if _flash:
@@ -186,17 +197,47 @@ func _draw_attack_badge() -> void:
 
 func _refresh_badges() -> void:
 	var glyphs: PackedStringArray = []
+	_badge_names = PackedStringArray()
 	var known: Dictionary = _ui.config.get("glyphs", {})
 	for keyword: Variant in _shown.get("keywords", []):
 		if known.has(str(keyword)):
+			_badge_names.append(str(keyword))
 			glyphs.append(_ui.glyph(str(keyword)))
 	if bool(_shown.get(FLAG_FROZEN, false)):
+		_badge_names.append(FLAG_FROZEN)
 		glyphs.append(_ui.glyph(FLAG_FROZEN))
 	if bool(_shown.get(FLAG_SILENCED, false)):
+		_badge_names.append(FLAG_SILENCED)
 		glyphs.append(_ui.glyph(FLAG_SILENCED))
 	if _sick:
+		_badge_names.append(FLAG_SICK)
 		glyphs.append(_ui.glyph(FLAG_SICK))
+	_keyword_icons = _ui.art().glyph_row(_badge_names)
+	_badges.visible = _keyword_icons.is_empty()
 	_badges.text = " ".join(glyphs)
+
+
+func _draw_stat_glyph(glyph_name: String, centre: Vector2) -> void:
+	var tex: Texture2D = _ui.art().glyph_texture(glyph_name)
+	if tex == null:
+		return
+	var side: float = 9.0
+	var at: Vector2 = centre + Vector2(-STAMP_RADIUS + 1.0, -STAMP_RADIUS + 1.0)
+	draw_texture_rect(tex, Rect2(at, Vector2(side, side)), false, _ui.color("text_light"))
+
+
+func _draw_keyword_icons() -> void:
+	var count: int = _keyword_icons.size()
+	if count == 0:
+		return
+	var side: float = 12.0
+	var gap: float = 1.0
+	var total: float = side * count + gap * float(count - 1)
+	var origin: Vector2 = Vector2(ART_RECT.get_center().x - total / 2.0, ART_RECT.end.y - side - 1.0)
+	draw_rect(Rect2(origin - Vector2(2.0, 1.0), Vector2(total + 4.0, side + 2.0)), _ui.color("ink"))
+	for i: int in count:
+		var slot: Rect2 = Rect2(origin + Vector2((side + gap) * i, 0.0), Vector2(side, side))
+		draw_texture_rect(_keyword_icons[i], slot, false, _ui.color("text_light"))
 
 
 func _label(rect: Rect2, font_px: int) -> Label:

@@ -72,17 +72,27 @@ static func backdrop(fill: Color) -> ColorRect:
 	return node
 
 
-## A portrait placeholder (art bible §7): a [param fill] block of [param size] with
-## [param initial] in its middle.
-static func portrait(fill: Color, initial: String, size: Vector2) -> ColorRect:
+## A portrait panel: a [param fill] block of [param size]. [param stamp], when set, is
+## the ink study inside it and the initial letter stays the fallback when it is not.
+static func portrait(fill: Color, initial: String, size: Vector2, stamp: Texture2D = null, tint: Color = Color.WHITE) -> ColorRect:
 	var node: ColorRect = ColorRect.new()
 	node.color = fill
 	node.custom_minimum_size = size
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if stamp != null:
+		var art: TextureRect = TextureRect.new()
+		art.texture = stamp
+		art.modulate = tint
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		node.add_child(art)
 	var letter: Label = label(initial, RunUiTheme.LABEL_TITLE)
 	letter.set_anchors_preset(Control.PRESET_FULL_RECT)
 	letter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	letter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	letter.visible = stamp == null
 	node.add_child(letter)
 	return node
 

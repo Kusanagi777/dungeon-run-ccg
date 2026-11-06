@@ -21,7 +21,10 @@ func bind(model: Dictionary) -> void:
 	clear()
 	cancel_intent = &"go_main_menu"
 	_victory = str(model.get("outcome")) == RunCodes.STATUS_VICTORY
-	add_child(UiKit.backdrop(color("table_lit" if _victory else "bg_edge")))
+	var backdrop: ColorRect = UiKit.backdrop(color("table_lit" if _victory else "bg_edge"))
+	add_child(backdrop)
+	if _victory:
+		ArtLibrary.shared().mount_fill(backdrop, "table")
 	_view = SummaryView.new()
 	_view.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_view.mouse_filter = Control.MOUSE_FILTER_IGNORE

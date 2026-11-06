@@ -51,6 +51,8 @@ var _cost_text: Label = null
 var _attack_text: Label = null
 var _health_text: Label = null
 var _badges: Label = null
+var _stamp: Dictionary = {}
+var _keyword_icons: Array[Texture2D] = []
 
 
 ## Stores the palette source and builds the labels. Call once, in the tree or not.
@@ -93,6 +95,8 @@ func show_card(face: Dictionary, effective_cost: int) -> void:
 	_name.text = tr(str(face.get("name_key", "")))
 	_rules.text = rules_text(face)
 	var type: String = str(face.get("type", ""))
+	_stamp = _ui.art().card_stamp(str(face.get("card_id", "")), type, str(face.get("set", "")))
+	_art.visible = _stamp.is_empty()
 	_art.text = str(TYPE_INITIALS.get(type, ""))
 	_cost_text.text = str(effective_cost)
 	var has_stats: bool = type == TYPE_MINION or type == TYPE_WEAPON
@@ -104,9 +108,13 @@ func show_card(face: Dictionary, effective_cost: int) -> void:
 		_attack_text.text = str(int(face.attack)) if face.get("attack") != null else ""
 		var durability: Variant = face.get("durability", face.get("health"))
 		_health_text.text = str(int(durability)) if durability != null else ""
+	var names: PackedStringArray = []
 	var glyphs: PackedStringArray = []
 	for keyword: Variant in face.get("keywords", []):
+		names.append(str(keyword))
 		glyphs.append(_ui.glyph(str(keyword)))
+	_keyword_icons = _ui.art().glyph_row(names)
+	_badges.visible = _keyword_icons.is_empty()
 	_badges.text = " ".join(glyphs)
 	_refresh_colors()
 	queue_redraw()
@@ -146,18 +154,32 @@ func _draw() -> void:
 	if _face.is_empty():
 		return
 	var body := StyleBoxFlat.new()
-	body.bg_color = _dim(_ui.color("parchment"))
+	var parchment: Texture2D = _ui.art().surface("parchment_card")
+	if parchment == null:
+		body.bg_color = _dim(_ui.color("parchment"))
+	else:
+		draw_texture_rect(parchment, Rect2(Vector2.ZERO, SIZE), false, _parchment_modulate())
+		body.draw_center = false
 	body.set_corner_radius_all(CORNER_PX)
 	body.set_border_width_all(BORDER_PX)
 	body.border_color = _dim(_face.get("primary", _ui.color("neutral")))
 	draw_style_box(body, Rect2(Vector2.ZERO, SIZE))
 	draw_rect(NAME_RECT, _dim(_ui.color("ink")))
-	draw_rect(ART_RECT, _face.get("secondary", _ui.color("neutral")))
+	var art_fill: Color = _face.get("secondary", _ui.color("neutral"))
+	draw_rect(ART_RECT, art_fill)
+	if not _stamp.is_empty():
+		var art: Texture2D = _stamp.texture
+		draw_texture_rect(art, ArtLibrary.fit_rect(art, ART_RECT), false, _stamp.tint)
+	_draw_keyword_icons()
 	if _attack_text.visible:
 		_draw_stamp(ATTACK_CENTRE, _dim(_ui.color("ink")), _dim(_ui.color("stamp_ring")))
 		_draw_stamp(HEALTH_CENTRE, _dim(_ui.color("ink")), _dim(_ui.color("stamp_ring")))
+		_draw_stat_glyph("attack", ATTACK_CENTRE)
+		var health_glyph: String = "durability" if str(_face.get("type", "")) == TYPE_WEAPON else "health"
+		_draw_stat_glyph(health_glyph, HEALTH_CENTRE)
 	var cost_fill: Color = _ui.color("ink") if cost_modified() else _ui.color("mana_stamp")
 	_draw_stamp(COST_CENTRE, cost_fill, _ui.color("ink"))
+	_draw_stat_glyph("cost", COST_CENTRE)
 	if _unaffordable:
 		_draw_notches()
 	if _lit:
@@ -185,6 +207,33 @@ func _draw_notches() -> void:
 
 func _dim(color: Color) -> Color:
 	return color.lerp(_fill, DIM_MIX) if _dimmed else color
+
+
+func _parchment_modulate() -> Color:
+	return Color.WHITE.lerp(_fill, DIM_MIX) if _dimmed else Color.WHITE
+
+
+func _draw_stat_glyph(glyph_name: String, centre: Vector2) -> void:
+	var tex: Texture2D = _ui.art().glyph_texture(glyph_name)
+	if tex == null:
+		return
+	var side: float = 10.0
+	var at: Vector2 = centre + Vector2(-STAMP_RADIUS + 1.0, -STAMP_RADIUS + 1.0)
+	draw_texture_rect(tex, Rect2(at, Vector2(side, side)), false, _dim(_ui.color("text_light")))
+
+
+func _draw_keyword_icons() -> void:
+	var count: int = _keyword_icons.size()
+	if count == 0:
+		return
+	var side: float = 12.0
+	var gap: float = 2.0
+	var total: float = side * count + gap * float(count - 1)
+	var origin: Vector2 = Vector2(ART_RECT.end.x - total, ART_RECT.end.y - side)
+	draw_rect(Rect2(origin - Vector2(2.0, 1.0), Vector2(total + 4.0, side + 2.0)), _dim(_ui.color("ink")))
+	for i: int in count:
+		var slot: Rect2 = Rect2(origin + Vector2((side + gap) * i, 0.0), Vector2(side, side))
+		draw_texture_rect(_keyword_icons[i], slot, false, _dim(_ui.color("text_light")))
 
 
 func _refresh_colors() -> void:

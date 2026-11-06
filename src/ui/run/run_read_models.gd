@@ -102,6 +102,7 @@ func boss_intro(run_model: Dictionary) -> Dictionary:
 		"band": band,
 		"band_color": BAND_TOKEN % band,
 		"attempt": int(run_model.get("attempt", 0)) + 1,
+		"boss_id": str(boss.get("id", "")),
 		"boss_name": str(boss.get("name", "")),
 		"boss_initial": _initial(str(boss.get("name", ""))),
 		"boss_health": int(boss.get("health", 0)),

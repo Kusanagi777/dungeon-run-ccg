@@ -28,12 +28,14 @@ var reduce_motion: bool = false
 
 var _db: CardDatabase = null
 var _colors: Dictionary = {}
+var _art: ArtLibrary = null
 
 
 ## A context over [param ui_config]; [param db] gives card sets. A test may pass null.
 func _init(ui_config: Dictionary, db: CardDatabase = null) -> void:
 	config = ui_config
 	_db = db
+	_art = ArtLibrary.shared()
 	var palette: Dictionary = config.get("palette", {})
 	for token: String in palette:
 		_colors[token] = Color.html(str(palette[token]))
@@ -65,7 +67,14 @@ func rect(zone: String) -> Rect2:
 	return Rect2(float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
 
-## `{name_key, text_key, type, cost, attack, health, keywords, primary, secondary}`
+## The art library (parchment, stamps, glyphs). Never null.
+func art() -> ArtLibrary:
+	if _art == null:
+		_art = ArtLibrary.shared()
+	return _art
+
+
+## `{name_key, text_key, type, cost, attack, health, keywords, primary, secondary, card_id, set}`
 ## for [param card_id]: `card_text` plus its frame colours. `{}` for an unknown id.
 func card_face(card_id: String) -> Dictionary:
 	var face: Dictionary = query.card_text(card_id) if query != null and card_id != "" else {}
@@ -78,6 +87,8 @@ func card_face(card_id: String) -> Dictionary:
 			card_set = str(record.get("set", ""))
 	face["primary"] = color(str(SET_PRIMARY.get(card_set, FALLBACK_TOKEN)))
 	face["secondary"] = color(str(SET_SECONDARY.get(card_set, FALLBACK_TOKEN)))
+	face["card_id"] = card_id
+	face["set"] = card_set
 	return face
 
 
@@ -101,6 +112,7 @@ func hero_identity(hero_def_id: String) -> Dictionary:
 	if not record is Dictionary:
 		return {"primary": color(FALLBACK_TOKEN), "initial": "", "power_id": ""}
 	return {
+		"id": hero_def_id,
 		"primary": color(str(SET_PRIMARY.get(str(record.get("set", "")), FALLBACK_TOKEN))),
 		"initial": str(record.get("name", "")).left(1),
 		"power_id": str(record.get("hero_power", "")),
@@ -122,6 +134,7 @@ func boss_identity(boss_def_id: String) -> Dictionary:
 		return {"primary": color(FALLBACK_TOKEN), "initial": "", "passive_key": ""}
 	var passive: Variant = record.get("passive_text")
 	return {
+		"id": boss_def_id,
 		"primary": color(BAND_TOKEN % int(record.get("band", 1))),
 		"initial": str(record.get("name", "")).left(1),
 		"passive_key": str(passive.get("key", "")) if passive is Dictionary else "",

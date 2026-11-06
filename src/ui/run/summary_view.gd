@@ -72,7 +72,8 @@ func _left_column(model: Dictionary) -> Control:
 	var neutral: Color = RunUiConfig.color(_cfg, "neutral")
 	var hero_color: Color = RunUiConfig.color(_cfg, str(model.hero_color))
 	var start: Color = neutral if str(model.outcome) == RunCodes.STATUS_VICTORY else hero_color.darkened(DEFEAT_DARKEN)
-	_portrait = UiKit.portrait(start, str(model.hero_initial), PORTRAIT)
+	var stamp: Dictionary = ArtLibrary.shared().portrait("heroes", str(model.get("hero_id", "")))
+	_portrait = UiKit.portrait(start, str(model.hero_initial), PORTRAIT, stamp.get("texture"), stamp.get("tint", Color.WHITE))
 	top.add_child(_portrait)
 	var who: Label = UiKit.label(str(model.hero_name), RunUiTheme.LABEL_HEADING, true)
 	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL

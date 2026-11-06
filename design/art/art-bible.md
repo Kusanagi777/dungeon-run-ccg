@@ -2,7 +2,7 @@
 
 > **Status**: Approved — §1–4 (owner Jacob, 2026-11-04: "approve the art direction"; sections 5–9 remain deferred stubs)
 > **Owned By**: art-director
-> **Last Updated**: 2026-11-04
+> **Last Updated**: 2026-11-06
 > **Art Director Sign-Off (AD-ART-BIBLE)**: SKIPPED 2026-11-03 — lean mode
 > **Review notes**: `AD-ART-BIBLE skipped — Lean mode.` Authored at `workflow: standard`,
 > `docs.density: balanced`, `automation: guided`. Scope this run: sections 1–4 (the `standard`
@@ -10,6 +10,7 @@
 > (flat shapes, solid fills, system text) and the final 2D stylized illustration style is an
 > Alpha concern. `/asset-spec` owns per-asset specs when that time comes.
 > **REVISED 2026-11-03 (ux-review)**: §4 Text table — one row added, `text_muted` (`#B8AC96`) on `table_lit` (`#4A3626`) at 5.08:1 (computed; AA at every size, AAA large only), so the HUD skip hint and the summary sub-labels can cite it instead of substituting `text_light`. Nothing else changed.
+> **REVISED 2026-11-06 (runtime art)**: §1–4 are unchanged. A licensed texture pass now fills the slots those sections already fixed (parchment card, warm table, ink stamp, glyphs). It is recorded in §10 and `design/art/runtime-art.md`. Frames, radii, and the 150×210 / 90×126 / 120×160 boxes were not redrawn.
 > **Foundation**: the "Torchlit Ledger" Visual Identity Anchor from
 > `design/gdd/game-concept.md`, built from directly. Constants cited from
 > `design/design-decisions.md` (DD-M01, DD-M08, DD-M09, DD-R01, DD-T05).
@@ -353,9 +354,10 @@ numbers), the typography table and 12 px minimum, light-text-on-dark / ink-on-pa
 
 ## 8. Asset Standards
 
-**Deferred to Alpha — placeholder art in v1.** v1 ships no image assets for cards or characters;
-everything is drawn from the colour tokens with Godot `Control`/`Panel`/`Label` nodes and the
-default theme font. Constraints that already apply:
+**Deferred to Alpha for a full illustration pass.** The 2026-11-06 runtime pass
+(`design/art/runtime-art.md`, `THIRD_PARTY_ART.md`) fills the slots below with licensed
+textures. Frames, type, and state are still drawn from the colour tokens with Godot
+`Control` / `Panel` / `Label` nodes and the default theme font. Constraints that already apply:
 
 - Colour tokens in Section 4 are the single source for every fill; they belong in one Godot
   `Theme` resource (or a constants script) so the colourblind swap and the later art pass are
@@ -377,3 +379,23 @@ then have to un-name. One constraint carries forward: whatever references are ch
 consistent with "cards are documents" — illuminated-manuscript and ledger traditions are the
 starting direction, and any reference whose cards are art-first with text overlaid is a
 divergence to be argued, not a default.
+
+## 10. Runtime art pass (2026-11-06)
+
+Sections 1–4 still govern. This pass only fills slots they already named:
+
+- Card bodies and tooltip / parchment panels use a CC0 parchment texture, held near `#E8DCC4`.
+- The match table, menu, hero select, draft, and victory summary use a darkened CC0 wood
+  colour map. Corners fall to `bg_edge`. Defeat stays the flat cool edge.
+- The art box and the board token carry one stamp per card. Vessel and skull subjects use
+  Open Sketchbook studies. Other subjects use CC BY game-icons silhouettes, tinted ink.
+  Class and band colour remain the field behind the stamp.
+- Attack, health, durability, cost, and keyword glyphs are the same silhouette family, 10–12 px,
+  on the ink stamps. Letters stay the fallback when a glyph is missing.
+- Hero and boss portraits are stamps inside the existing 120×160 colour panel. The boss stamp
+  stops above the passive plate.
+
+Godot still draws the frame, the name band, the rules text, and the circular stamps. No
+Hearthstone chrome, no cosmic sheet, and no pixel dungeon. Sources, filenames, authors,
+licenses, and the packs that were checked and left out are `THIRD_PARTY_ART.md`.
+The id map is `assets/art/art_map.json`.
