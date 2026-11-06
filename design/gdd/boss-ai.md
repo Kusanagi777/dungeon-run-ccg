@@ -598,7 +598,7 @@ Archetype deltas from `default` (F1's table holds the default weights; default `
 1.5, trade_ratio 1.3, hero_power always, choice_preference {charge 0.5, weapon 0.4}`; **control**
 `w_face 0.5, w_threat 3.0, w_self 2.0, w_card 1.5, w_heal 1.5, w_board 2.5, trade_ratio 0.8,
 choice_preference {taunt 0.5, heal 0.4, damage_all 0.6}`; **tempo** `w_mana 1.5, w_board 2.5,
-choice_preference {low_cost 0.5}`; **passive_driven** `w_passive 2.5` with `synergy_tags` set per
+choice_preference {low_cost 0.5}`; **passive_driven** `w_passive 2.5, choice_preference {deathrattle 0.5}` with `synergy_tags` set per
 boss override (e.g. `boss_rot_warden: {extends: passive_driven, synergy_tags: [deathrattle],
 weights: {w_self: 1.5}}`). Band overlays: **1** `w_trade 0.2, w_over 0, lethal_search shallow,
 defensive false, hero_power always, intent_mode full`; **2** `defensive false`; **3** `defensive
