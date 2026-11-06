@@ -110,6 +110,11 @@ var _ended: bool = false
 # True while events_since(0) is projected: nothing is shown until it has all landed.
 var _loading: bool = false
 var _finished: bool = false
+# The composition root and the launch a test injects; the autoload and the command line
+# otherwise.
+var _boot: Node = null
+var _launch_override: Variant = null
+var _planner_override: Callable = Callable()
 
 @onready var _table: ColorRect = %Table
 @onready var _player_panel: HeroPresenter = %PlayerPanel
@@ -124,6 +129,15 @@ var _finished: bool = false
 @onready var _mulligan: MulliganPresenter = %MulliganScreen
 @onready var _banner: BannerPresenter = %Banner
 @onready var _pause: PauseMenu = %PauseMenu
+
+
+## Reads [param boot] in place of the `Boot` autoload, [param args] in place of the
+## command line, and hands [param planner] to the debug loader. Call it before the view
+## enters the tree; only a test does, so that no suite boots the autoload.
+func set_launch(boot: Node, args: PackedStringArray = PackedStringArray(), planner: Callable = Callable()) -> void:
+	_boot = boot
+	_launch_override = args
+	_planner_override = planner
 
 
 ## Injects the controller and starts the match, now or at `_ready`.
@@ -332,11 +346,12 @@ func _exit_tree() -> void:
 # --- lifecycle -------------------------------------------------------------------
 
 func _read_services() -> void:
-	var booted: BootResult = Boot.boot()
+	var boot: Node = _boot if _boot != null else Boot
+	var booted: BootResult = boot.boot()
 	if not booted.ok:
 		push_error("MatchView: the data load failed; nothing to show")
 		return
-	var services: Services = Boot.services()
+	var services: Services = boot.services()
 	var db: CardDatabase = services.card_database
 	_config = db.config(CONFIG_NAME)
 	_ai_config = db.config(AI_CONFIG_NAME)
@@ -614,10 +629,10 @@ func _launch_from_args() -> void:
 	if not OS.is_debug_build() or not ResourceLoader.exists(DEBUG_LOADER_PATH):
 		return
 	var script: GDScript = load(DEBUG_LOADER_PATH)
-	_launch_args = script.call("from_args", OS.get_cmdline_user_args())
+	_launch_args = script.call("from_args", _launch_override if _launch_override != null else OS.get_cmdline_user_args())
 	if str(_launch_args.fixture) == "":
 		return
-	_loader = script.new()
+	_loader = script.new(_planner_override, _boot)
 	var controller: MatchController = _loader.call("load_fixture", str(_launch_args.fixture))
 	if controller == null:
 		return
