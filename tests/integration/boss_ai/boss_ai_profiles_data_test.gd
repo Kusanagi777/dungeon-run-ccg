@@ -36,7 +36,15 @@ const DEFAULT_RULES: Dictionary = {
 const OVERRIDE_EXTRAS: Dictionary = {
 	"boss_rot_warden": {"synergy_tags": ["deathrattle"], "weights": {"w_self": 1.5}},
 	"boss_hollow_king": {"weights": {"w_board": 3.0}},
+	"boss_cellar_hermit": {"rules": {"hero_power": "always"}},
+	"boss_bog_witch": {"synergy_tags": ["deathrattle"]},
+	"boss_pyre_sergeant": {"choice_preference": {"weapon": 0.6}},
+	"boss_lich_archivist": {"rules": {"assume_aoe": true}},
+	"boss_shadow_of_the_delve": {"intent_mode": "class_only"},
+	"boss_dungeon_heart": {"weights": {"w_threat": 3.5}},
 }
+## C8.4 / content.md B1: the one `class_only` boss, band 3; every other boss is `full`.
+const CLASS_ONLY_BOSS: String = "boss_shadow_of_the_delve"
 
 
 func before() -> void:
@@ -355,23 +363,22 @@ func test_planner_target_is_never_a_runtime_clock() -> void:
 
 # --- boss overrides (AC-3) ---------------------------------------------------------
 
-func test_boss_overrides_are_the_five_mvp_bosses_of_content_b1() -> void:
+func test_boss_overrides_are_the_sixteen_bosses_of_content_b1() -> void:
 	# Arrange
 	var b1: Dictionary = _content_b1()
-	var mvp: Array = b1.keys().filter(func(id: String) -> bool: return String(b1[id].batch).begins_with("MVP"))
 	var overrides: Dictionary = _body().boss_overrides
 
-	# Act / Assert — the 11 non-MVP bosses are absent
+	# Act / Assert — CN-1 Alpha: every B1 row, whatever its batch
 	assert_int(b1.size()).is_equal(16)
-	assert_array(_sorted(overrides.keys())).is_equal(_sorted(mvp))
+	assert_array(_sorted(overrides.keys())).is_equal(_sorted(b1.keys()))
 	for id: String in overrides:
 		var expected: Dictionary = {BossAI.EXTENDS_KEY: b1[id].extends}
 		expected.merge(OVERRIDE_EXTRAS.get(id, {}))
 		assert_dict(overrides[id]).override_failure_message(id).is_equal(expected)
 
 
-func test_override_ids_are_registry_bosses_split_three_one_one_by_band() -> void:
-	# Arrange — DD-H06: 3 band 1, 1 band 2, 1 band 3
+func test_override_ids_are_registry_bosses_split_six_six_four_by_band() -> void:
+	# Arrange — CN-1 / DD-R02: 6 band 1, 6 band 2, 4 band 3
 	var registry: Dictionary = _registry_bands()
 	var per_band: Array = [0, 0, 0]
 
@@ -381,7 +388,7 @@ func test_override_ids_are_registry_bosses_split_three_one_one_by_band() -> void
 		per_band[registry.get(id, 1) - 1] += 1
 
 	# Assert
-	assert_array(per_band).is_equal([3, 1, 1])
+	assert_array(per_band).is_equal([6, 6, 4])
 
 
 func test_torchbearer_override_resolves_as_aggro_with_its_band_overlay() -> void:
@@ -418,17 +425,17 @@ func test_rot_warden_and_hollow_king_resolve_their_extra_values() -> void:
 	assert_bool(hollow.rules.defensive).is_true()
 
 
-func test_no_mvp_boss_or_band_overlay_resolves_to_hidden() -> void:
+func test_no_boss_or_band_overlay_resolves_to_hidden() -> void:
 	# Arrange — A19 last clause, C8.4, D-04
 	var body: Dictionary = _body()
 	var registry: Dictionary = _registry_bands()
 
-	# Act / Assert — each MVP boss at its own band, and each band with no override
+	# Act / Assert — each boss at its own band, and each band with no override
 	for id: String in body.boss_overrides:
-		assert_bool(body.boss_overrides[id].has("intent_mode")).override_failure_message(id).is_false()
+		assert_bool(body.boss_overrides[id].has("intent_mode")).override_failure_message(id).is_equal(id == CLASS_ONLY_BOSS)
 		var band: int = registry[id]
 		var profile: Dictionary = ProfileResolver.resolve(body, CardFactory.make_boss_def(id, band, {"ai_profile": id}), band)
-		assert_str(profile.intent_mode).override_failure_message(id).is_equal("full")
+		assert_str(profile.intent_mode).override_failure_message(id).is_equal("class_only" if id == CLASS_ONLY_BOSS else "full")
 	for band: int in [1, 2, 3]:
 		var plain: Dictionary = ProfileResolver.resolve(body, CardFactory.make_boss_def("boss_x", band, {"ai_profile": "default"}), band)
 		assert_str(plain.intent_mode).override_failure_message("band %d" % band).is_not_equal("hidden")

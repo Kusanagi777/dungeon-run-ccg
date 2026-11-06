@@ -101,7 +101,7 @@ func _boot_with_mode(mode: String) -> void:
 	var runtime: Dictionary = _db.bodies[BossAI.CONFIG_NAME].runtime
 	runtime["planner_mode"] = mode
 	runtime["slice_ms"] = SLICE_MS
-	var result: BootResult = _boot.boot({"card_database": _db})
+	var result: BootResult = _boot.boot({"card_database": _db, "meta": MetaStub.new(_db)})
 	GameAssertions.fail_if(not result.ok, "the fixture boot did not end Ready")
 
 
@@ -376,12 +376,18 @@ func test_each_shipping_planner_mode_loads_ready() -> void:
 
 		# Assert
 		assert_bool(result.ok).override_failure_message("%s: %s" % [mode, result.report.to_text()]).is_true()
+		boot._release_profile()
 
 
 func test_shipped_data_boots_to_a_factory() -> void:
+	# Arrange — this test's own instance: a real `MetaFacade` gives Boot its upkeep
+	# timers, and they go with the instance when the test ends
+	var boot: Node = auto_free(BOOT_SCRIPT.new())
+
 	# Act
-	var result: BootResult = _boot.boot({"card_database": CardDatabase.new(DataLoader.new(SHIPPED_ROOT))})
+	var result: BootResult = boot.boot({"card_database": CardDatabase.new(DataLoader.new(SHIPPED_ROOT))})
 
 	# Assert
 	assert_bool(result.ok).override_failure_message(result.report.to_text()).is_true()
-	assert_bool((_boot.driver_factory() as Callable).is_valid()).is_true()
+	assert_bool((boot.driver_factory() as Callable).is_valid()).is_true()
+	boot._release_profile()

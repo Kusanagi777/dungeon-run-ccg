@@ -1069,7 +1069,18 @@ func test_the_new_body_does_not_observe_its_own_entry() -> void:
 
 const SHIPPED_DECK_CARD: String = "neutral_tunnel_rat"
 const DECK_SIZE: int = 30
-const SHIPPED_BOSSES: Array[String] = ["boss_torchbearer", "boss_rat_king", "boss_gatekeeper", "boss_rot_warden", "boss_hollow_king"]
+## Every shipped boss with a passive, each with a case below (content CN-3 B1).
+const SHIPPED_BOSSES: Array[String] = [
+	"boss_torchbearer", "boss_rat_king", "boss_gatekeeper", "boss_rot_warden", "boss_hollow_king",
+	"boss_blood_abbess", "boss_iron_tollman", "boss_lich_archivist", "boss_bog_witch", "boss_frost_hag",
+	"boss_shadow_of_the_delve", "boss_scrap_golem", "boss_pyre_sergeant", "boss_mirror_sage", "boss_dungeon_heart",
+]
+## CN-3: "a passive or a hero power". This one has the power and no passive.
+const SHIPPED_BOSS_WITHOUT_PASSIVE: String = "boss_cellar_hermit"
+## `boss_pyre_bomb`'s printed damage, and the shipped cards the cases below name.
+const PYRE_BOMB: String = "boss_pyre_bomb"
+const PYRE_BOMB_DAMAGE: int = 3
+const SHIPPED_AXE: String = "war_rusted_axe"
 const SHIPPED_BANDS: Array[int] = [1, 2, 3]
 
 
@@ -1109,7 +1120,7 @@ func _passive_pass(events: Array, boss_id: String) -> Dictionary:
 	return passes[0]
 
 
-func test_the_five_cases_below_cover_every_shipped_boss() -> void:
+func test_the_cases_below_cover_every_shipped_boss() -> void:
 	# Arrange
 	var db: CardDatabase = _shipped_db()
 	var shipped: Array = []
@@ -1119,7 +1130,7 @@ func test_the_five_cases_below_cover_every_shipped_boss() -> void:
 		shipped.append_array(db.bosses_in_band(band).map(func(b: Dictionary) -> String: return str(b.id)))
 
 	# Assert — a new boss fails here until it has a case
-	assert_array(shipped).contains_exactly_in_any_order(SHIPPED_BOSSES)
+	assert_array(shipped).contains_exactly_in_any_order(SHIPPED_BOSSES + [SHIPPED_BOSS_WITHOUT_PASSIVE])
 
 
 func test_every_shipped_passive_lands_in_the_registry_or_on_the_hero_slot() -> void:
@@ -1136,6 +1147,188 @@ func test_every_shipped_passive_lands_in_the_registry_or_on_the_hero_slot() -> v
 		assert_int(hooked + hosted).override_failure_message("%s installed nothing" % boss_id).is_equal(1)
 		_engine.end_match()
 		_engine = null
+
+
+func test_shipped_cellar_hermit_has_a_hero_power_and_installs_no_passive() -> void:
+	# Arrange
+	var db: CardDatabase = _shipped_db()
+
+	# Act
+	_shipped_main(db, SHIPPED_BOSS_WITHOUT_PASSIVE)
+
+	# Assert — CN-3: a boss with no passive carries a hero power instead
+	assert_that(db.boss(SHIPPED_BOSS_WITHOUT_PASSIVE).passive).is_null()
+	assert_bool(db.has(str(db.boss(SHIPPED_BOSS_WITHOUT_PASSIVE).hero_power))).is_true()
+	assert_int(_engine.state().hooks.entry_count()).is_equal(0)
+	assert_array(_engine.state().effects.aura_hosts as Array).is_empty()
+
+
+func test_shipped_blood_abbess_heals_the_boss_at_the_start_of_its_turn() -> void:
+	# Arrange
+	var boss_id: String = "boss_blood_abbess"
+	_shipped_main(_shipped_db(), boss_id)
+	var hero: Dictionary = _engine.state().players[SIDE_BOSS].hero
+	hero.damage_taken = WOUND * 2
+	var health: int = _engine.health(hero)
+	var before: int = _last_seq()
+
+	# Act
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+
+	# Assert
+	assert_str(str(_passive_pass(_since(before), boss_id).payload.trigger)).is_equal("turn_start")
+	assert_int(_engine.health(hero)).is_equal(health + 5)
+
+
+func test_shipped_iron_tollman_raises_only_the_players_minions_by_one() -> void:
+	# Arrange
+	_shipped_main(_shipped_db(), "boss_iron_tollman")
+	_set_hand(SIDE_PLAYER, [SHIPPED_DECK_CARD, MEND])
+	_set_hand(SIDE_BOSS, [SHIPPED_DECK_CARD])
+
+	# Act
+	var state: MatchState = _engine.state()
+	var printed: int = int(_engine._db.card(SHIPPED_DECK_CARD).cost)
+	var player_minion: int = _engine.effective_cost(state.players[SIDE_PLAYER].hand[0], SIDE_PLAYER)
+	var boss_minion: int = _engine.effective_cost(state.players[SIDE_BOSS].hand[0], SIDE_BOSS)
+
+	# Assert
+	assert_int(player_minion).is_equal(printed + 1)
+	assert_int(boss_minion).is_equal(printed)
+
+
+func test_shipped_lich_archivist_adds_two_to_the_bosss_spell_damage() -> void:
+	# Arrange
+	_shipped_main(_shipped_db(), "boss_lich_archivist")
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+	_set_hand(SIDE_BOSS, [PYRE_BOMB])
+	var hero: Dictionary = _engine.state().players[SIDE_PLAYER].hero
+	var health: int = _engine.health(hero)
+
+	# Act
+	_cast(0, null, SIDE_BOSS)
+
+	# Assert
+	assert_int(_engine.health(hero)).is_equal(health - PYRE_BOMB_DAMAGE - 2)
+
+
+func test_shipped_bog_witch_draws_when_a_boss_minion_dies() -> void:
+	# Arrange
+	var boss_id: String = "boss_bog_witch"
+	_shipped_main(_shipped_db(), boss_id)
+	var minion: Dictionary = MatchFactory.summon(_engine.state(), SIDE_BOSS, 1, 1, -1, [], SHIPPED_DECK_CARD)
+	var attacker: Dictionary = MatchFactory.summon(_engine.state(), SIDE_PLAYER, 3, 5, -1, [], SHIPPED_DECK_CARD)
+	attacker.summoning_sick = false
+	var before: int = _last_seq()
+
+	# Act
+	_submit(MatchRecords.attack(SIDE_PLAYER, int(attacker.entity_id), int(minion.entity_id)))
+
+	# Assert
+	var events: Array = _since(before)
+	assert_str(str(_passive_pass(events, boss_id).payload.trigger)).is_equal("on_minion_died")
+	var drawn: Array = _of_type(events, "card_drawn")
+	assert_int(drawn.size()).is_equal(1)
+	assert_str(str(drawn[0].payload.side)).is_equal(SIDE_BOSS)
+
+
+func test_shipped_frost_hag_freezes_a_player_minion_at_the_end_of_its_turn() -> void:
+	# Arrange
+	var boss_id: String = "boss_frost_hag"
+	_shipped_main(_shipped_db(), boss_id)
+	var minion: Dictionary = MatchFactory.summon(_engine.state(), SIDE_PLAYER, 1, 5, -1, [], SHIPPED_DECK_CARD)
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+	var before: int = _last_seq()
+
+	# Act
+	_submit(MatchRecords.end_turn(SIDE_BOSS))
+
+	# Assert
+	var events: Array = _since(before)
+	assert_str(str(_passive_pass(events, boss_id).payload.trigger)).is_equal("turn_end")
+	var frozen: Array = _of_type(events, "frozen")
+	assert_int(frozen.size()).is_equal(1)
+	assert_int(int(frozen[0].payload.entity_id)).is_equal(int(minion.entity_id))
+
+
+func test_shipped_shadow_of_the_delve_gives_a_summoned_boss_minion_stealth() -> void:
+	# Arrange
+	_shipped_main(_shipped_db(), "boss_shadow_of_the_delve")
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+	_set_hand(SIDE_BOSS, [SHIPPED_DECK_CARD])
+
+	# Act
+	_submit(MatchRecords.play_card(SIDE_BOSS, 0, 0, null))
+
+	# Assert
+	var board: Array = _engine.state().players[SIDE_BOSS].board
+	assert_int(board.size()).is_equal(1)
+	assert_bool(MatchFactory.has_keyword(board[0], "stealth")).is_true()
+
+
+func test_shipped_scrap_golem_starts_the_match_with_five_armor() -> void:
+	# Act
+	var boss_id: String = "boss_scrap_golem"
+	_shipped_main(_shipped_db(), boss_id)
+
+	# Assert — the hook ran once, in the match's first steps
+	assert_str(str(_passive_pass(_log.events, boss_id).payload.trigger)).is_equal("on_match_start")
+	assert_int(int(_engine.state().players[SIDE_BOSS].hero.armor)).is_equal(5)
+
+
+func test_shipped_pyre_sergeant_burns_the_player_when_the_boss_hero_attacks() -> void:
+	# Arrange
+	var boss_id: String = "boss_pyre_sergeant"
+	_shipped_main(_shipped_db(), boss_id)
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+	@warning_ignore("return_value_discarded")
+	_engine.equip_weapon(SIDE_BOSS, SHIPPED_AXE)
+	var hero: Dictionary = _engine.state().players[SIDE_PLAYER].hero
+	var health: int = _engine.health(hero)
+	var swing: int = _engine.attack(_engine.state().players[SIDE_BOSS].hero)
+	var before: int = _last_seq()
+
+	# Act
+	_submit(MatchRecords.attack(SIDE_BOSS, _hero(SIDE_BOSS), _hero(SIDE_PLAYER)))
+
+	# Assert
+	assert_str(str(_passive_pass(_since(before), boss_id).payload.trigger)).is_equal("on_attack")
+	assert_int(_engine.health(hero)).is_equal(health - swing - 1)
+
+
+func test_shipped_mirror_sage_copies_a_minion_the_player_plays_into_the_bosss_hand() -> void:
+	# Arrange
+	var boss_id: String = "boss_mirror_sage"
+	_shipped_main(_shipped_db(), boss_id)
+	_set_hand(SIDE_PLAYER, [SHIPPED_DECK_CARD])
+	_set_hand(SIDE_BOSS, [])
+	var before: int = _last_seq()
+
+	# Act
+	_play()
+
+	# Assert
+	assert_str(str(_passive_pass(_since(before), boss_id).payload.trigger)).is_equal("on_play")
+	var hand: Array = _engine.state().players[SIDE_BOSS].hand
+	assert_int(hand.size()).is_equal(1)
+	assert_str(str(hand[0].def_id)).is_equal(SHIPPED_DECK_CARD)
+
+
+func test_shipped_dungeon_heart_deals_two_to_every_player_minion_at_the_start_of_its_turn() -> void:
+	# Arrange
+	var boss_id: String = "boss_dungeon_heart"
+	_shipped_main(_shipped_db(), boss_id)
+	var first: Dictionary = MatchFactory.summon(_engine.state(), SIDE_PLAYER, 1, 5, -1, [], SHIPPED_DECK_CARD)
+	var second: Dictionary = MatchFactory.summon(_engine.state(), SIDE_PLAYER, 1, 5, -1, [], SHIPPED_DECK_CARD)
+	var before: int = _last_seq()
+
+	# Act
+	_submit(MatchRecords.end_turn(SIDE_PLAYER))
+
+	# Assert
+	assert_str(str(_passive_pass(_since(before), boss_id).payload.trigger)).is_equal("turn_start")
+	assert_int(_engine.health(first)).is_equal(3)
+	assert_int(_engine.health(second)).is_equal(3)
 
 
 func test_shipped_torchbearer_burns_the_player_at_the_end_of_its_turn() -> void:

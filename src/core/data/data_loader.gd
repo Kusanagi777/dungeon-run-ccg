@@ -226,6 +226,18 @@ func _warn_unknown_files(report: ValidationReport) -> void:
 				"not in the DD-T01 file manifest; not loaded")
 
 
+## The project's one parser, for JSON text that is not game data: a save, the profile
+## lock, a debug fixture (ADR-0002 Key Interfaces; ADR-0004 Decision 4 names the parse).
+## Answers the parsed value, or `null` with a warning naming [param source] and the line.
+## Example: `var body: Variant = DataLoader.parse_text(text, "profile.json")`.
+static func parse_text(text: String, source: String) -> Variant:
+	var json: JSON = JSON.new()
+	if json.parse(text) != OK:
+		push_warning("%s line %d: %s" % [source, json.get_error_line() + 1, json.get_error_message()])
+		return null
+	return json.data
+
+
 func _read_and_parse(report: ValidationReport) -> Array[Dictionary]:
 	var staged: Array[Dictionary] = []
 	for row: Dictionary in FILE_MANIFEST:

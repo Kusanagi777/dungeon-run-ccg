@@ -71,7 +71,7 @@ func _left_column(model: Dictionary) -> Control:
 	column.add_child(top)
 	var neutral: Color = RunUiConfig.color(_cfg, "neutral")
 	var hero_color: Color = RunUiConfig.color(_cfg, str(model.hero_color))
-	var start: Color = neutral if str(model.outcome) == RunState.STATUS_VICTORY else hero_color.darkened(DEFEAT_DARKEN)
+	var start: Color = neutral if str(model.outcome) == RunCodes.STATUS_VICTORY else hero_color.darkened(DEFEAT_DARKEN)
 	_portrait = UiKit.portrait(start, str(model.hero_initial), PORTRAIT)
 	top.add_child(_portrait)
 	var who: Label = UiKit.label(str(model.hero_name), RunUiTheme.LABEL_HEADING, true)

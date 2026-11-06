@@ -398,11 +398,7 @@ func _parsed(path: String) -> Variant:
 	var text: String = FileAccess.get_file_as_string(path)
 	if text.to_utf8_buffer().size() > int(_knobs.max_profile_bytes):
 		push_warning("W_PROFILE_SIZE: %s is over max_profile_bytes" % path)
-	var parser: JSON = JSON.new()
-	if parser.parse(text) != OK:
-		push_warning("%s line %d: %s" % [path, parser.get_error_line() + 1, parser.get_error_message()])
-		return null
-	return parser.data
+	return DataLoader.parse_text(text, path)
 
 
 func _keep_corrupt_copy(path: String, stem: String) -> void:

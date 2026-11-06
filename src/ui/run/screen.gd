@@ -1,6 +1,6 @@
 ## The base of every U2 screen (ADR-0011 Decision 1 and Key Interfaces). Display only:
 ## a screen renders the read model [method bind] gave it and sends every action as
-## [signal intent_requested]. It holds no `RunState`, `MatchDriver` or `MetaApi`.
+## [signal intent_requested]. It holds no run state, `MatchDriver` or `MetaApi`.
 ## Re-`bind` is the update path, so a subclass rebuilds its children in `bind`.
 ## [codeblock]
 ## class_name PauseScreen extends Screen
@@ -12,6 +12,10 @@
 ## [/codeblock]
 @abstract class_name Screen
 extends Control
+
+## Keeps this script alive through engine shutdown (TD-013): see `MetaApi._teardown_anchor`.
+## Remove with the move to Godot 4.8 (godotengine/godot#117991).
+static var _teardown_anchor: Script = load("res://src/ui/run/screen.gd")
 
 ## How much of the base shows through a modal's backdrop, as the backdrop's alpha.
 const DIM_ALPHA: float = 0.75

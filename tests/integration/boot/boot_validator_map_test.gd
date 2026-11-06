@@ -54,8 +54,10 @@ func test_every_manifest_config_maps_to_a_validator_and_the_pending_ones_are_the
 		if _is_pending((validator as Callable).call({}, null)):
 			pending.append(config_name)
 
-	# Assert — no extra keys; pending set is the constant; card_effects is real
+	# Assert — no extra keys; pending set is the constant, and empty: every owner has
+	# shipped; card_effects is real
 	assert_array(configs.keys()).contains_exactly_in_any_order(ValidatorStubs.config_names())
+	assert_array(Array(BOOT_SCRIPT.PENDING_CONFIG_OWNERS)).is_empty()
 	assert_array(pending).contains_exactly_in_any_order(Array(BOOT_SCRIPT.PENDING_CONFIG_OWNERS))
 	assert_bool(BOOT_SCRIPT.PENDING_CONFIG_OWNERS.has("card_effects")).is_false()
 	assert_array((configs.card_effects as Callable).call({}, null)).is_equal(EffectValidator.validate_config({}, null))
@@ -80,9 +82,28 @@ func test_every_record_key_maps_to_a_validator_and_the_pending_ones_are_the_list
 	assert_array(Array(BOOT_SCRIPT.PENDING_RECORD_OWNERS)).is_empty()
 
 
+func test_every_config_owner_holds_its_real_validator() -> void:
+	# Arrange
+	var configs: Dictionary = _map().configs
+	var owners: Dictionary = {
+		"match_ui": MatchUiConfig.validate_config, "run_ui": RunUiConfig.validate_config,
+		"profile_defaults": ProfileDefaults.validate_config, "run_structure": RunMachine.validate_config,
+	}
+
+	# Act / Assert — the map's entry answers exactly what its owner answers
+	for config_name: String in owners:
+		assert_array((configs[config_name] as Callable).call({}, null)) \
+			.override_failure_message("configs.%s is not its owner's validator" % config_name) \
+			.is_equal((owners[config_name] as Callable).call({}, null))
+	assert_array((configs.reward_draft as Callable).call({}, null)).is_equal(RewardDraft.validate_config({}, null, true))
+
+
 func test_pending_config_validator_is_a_warning_in_debug_naming_the_owner() -> void:
+	# Arrange — no owner is pending today, so the validator is bound by hand
+	var pending: Callable = BOOT_SCRIPT._pending_config_validator.bind("run_ui", true)
+
 	# Act
-	var result: Array = (_map(true).configs.run_ui as Callable).call({"anything": 1}, null)
+	var result: Array = pending.call({"anything": 1}, null)
 
 	# Assert
 	assert_int(result.size()).is_equal(1)
@@ -92,8 +113,11 @@ func test_pending_config_validator_is_a_warning_in_debug_naming_the_owner() -> v
 
 
 func test_pending_config_validator_is_an_error_in_an_exported_build() -> void:
+	# Arrange
+	var pending: Callable = BOOT_SCRIPT._pending_config_validator.bind("run_ui", false)
+
 	# Act
-	var result: Array = (_map(false).configs.run_ui as Callable).call({}, null)
+	var result: Array = pending.call({}, null)
 
 	# Assert
 	assert_str(String(result[0].severity)).is_equal(String(ValidationReport.SEVERITY_ERROR))
@@ -117,33 +141,30 @@ func test_pending_record_validator_reports_once_per_host_kind() -> void:
 	assert_bool(_is_pending(other_kind)).is_true()
 
 
-func test_debug_map_loads_the_ready_fixture_with_one_pending_warning_per_config() -> void:
+func test_debug_map_loads_the_ready_fixture_with_no_pending_warning() -> void:
 	# Arrange
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(READY_FIXTURE))
 
 	# Act
 	db.load(_map(true))
 
-	# Assert — Ready; every pending config is reported, as a warning, by file
+	# Assert — Ready through every real validator, and nothing left pending
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 	assert_array(db.report().errors()).override_failure_message(db.report().to_text()).is_empty()
-	var files: Array = _pending_entries(db.report()).map(func(e: Dictionary) -> String: return e.file)
-	var expected: Array = Array(BOOT_SCRIPT.PENDING_CONFIG_OWNERS).map(func(n: String) -> String: return n + ".json")
-	assert_array(files).contains_exactly_in_any_order(expected)
-	for e: Dictionary in _pending_entries(db.report()):
-		assert_str(String(e.severity)).is_equal(String(ValidationReport.SEVERITY_WARNING))
+	assert_array(_pending_entries(db.report())).is_empty()
 
 
-func test_release_map_fails_the_ready_fixture_load() -> void:
+func test_release_map_loads_the_ready_fixture() -> void:
 	# Arrange
 	var db: CardDatabase = CardDatabase.new(DataLoader.new(READY_FIXTURE))
 
 	# Act
 	db.load(_map(false))
 
-	# Assert — the shipped-build severity: pending validators fail the load
-	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
-	assert_int(db.report().errors().size()).is_equal(BOOT_SCRIPT.PENDING_CONFIG_OWNERS.size())
+	# Assert — the shipped-build severity turns a pending validator into an error, and
+	# none is pending, so an exported build loads
+	assert_int(db.state()).override_failure_message(db.report().to_text()).is_equal(CardDatabase.State.READY)
+	assert_array(db.report().errors()).is_empty()
 
 
 func test_pending_record_validators_report_once_per_host_kind_in_a_load() -> void:

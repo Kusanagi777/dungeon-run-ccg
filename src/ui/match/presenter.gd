@@ -21,6 +21,10 @@
 @abstract class_name Presenter
 extends Control
 
+## Keeps this script alive through engine shutdown (TD-013): see `MetaApi._teardown_anchor`.
+## Remove with the move to Godot 4.8 (godotengine/godot#117991).
+static var _teardown_anchor: Script = load("res://src/ui/match/presenter.gd")
+
 ## The floating number every zone shares (story 005).
 const NUMBER_POP_SCENE: PackedScene = preload("res://src/ui/match/number_pop.tscn")
 const MS_PER_S: float = 1000.0

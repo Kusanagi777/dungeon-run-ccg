@@ -43,7 +43,7 @@ static func from_args(args: PackedStringArray) -> Dictionary:
 ## Reads fixture [param fixture_name] and returns the `Boot.boot` overrides: a loaded
 ## database, because `MetaStub` needs one, and the stub.
 func load_fixture(fixture_name: String) -> Dictionary:
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(FIXTURE_PATH % fixture_name))
+	var parsed: Variant = DataLoader.parse_text(FileAccess.get_file_as_string(FIXTURE_PATH % fixture_name), fixture_name)
 	if not parsed is Dictionary:
 		push_warning("RunDebugLoader: no fixture %s" % fixture_name)
 	_fixture = parsed if parsed is Dictionary else {}

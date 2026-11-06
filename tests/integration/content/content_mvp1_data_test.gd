@@ -7,7 +7,9 @@
 ## Boot instance, never the autoload; debug severity), so every `effects[]`
 ## goes through the real `EffectValidator`. Every expected row below is a GDD
 ## row, quoted; the batch-0 rows are pinned again by
-## `content_batch0_data_test.gd`.
+## `content_batch0_data_test.gd`. These records ship inside the Alpha data set: a
+## set-wide count here is CN-1's Alpha column, and each record is still proved row
+## by row.
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT := preload("res://src/core/boot.gd")
@@ -284,13 +286,13 @@ func _boss_or_empty(db: CardDatabase, id: String) -> Dictionary:
 	return {}
 
 
-func test_band_1_holds_rat_king_gatekeeper_and_torchbearer() -> void:
+func test_band_1_is_the_six_of_cn3_with_rat_king_gatekeeper_and_torchbearer() -> void:
 	# Act
 	var ids: Array[String] = _ids(_loaded().bosses_in_band(1))
 	ids.sort()
 
-	# Assert — D-06: band_split [2, 1, 1] draws 2 of these 3
-	assert_array(ids).is_equal(["boss_gatekeeper", "boss_rat_king", "boss_torchbearer"])
+	# Assert — CN-1 / DD-R02: six band-1 bosses at Alpha
+	assert_array(ids).is_equal(["boss_bog_witch", "boss_cellar_hermit", "boss_gatekeeper", "boss_rat_king", "boss_scrap_golem", "boss_torchbearer"])
 
 
 func test_rat_king_is_the_cn3_b1_row() -> void:
@@ -350,9 +352,9 @@ func test_every_shipped_boss_ai_profile_resolves_with_zero_e_ai_rows() -> void:
 	for b: Dictionary in bosses:
 		rows.append_array(BossAI.validate_ai_profile(&"boss", b["id"], b["ai_profile"], db, configs))
 
-	# Assert — 5 MVP bosses since content story 004 (Rot Warden, Hollow King)
+	# Assert — CN-1's 16 bosses at Alpha
 	assert_array(rows).is_empty()
-	assert_int(bosses.size()).is_equal(5)
+	assert_int(bosses.size()).is_equal(16)
 	for id: String in BAND1_EXTENDS:
 		assert_str(profiles["boss_overrides"][id]["extends"]).is_equal(BAND1_EXTENDS[id])
 		var archetype: Dictionary = profiles["profiles"][BAND1_EXTENDS[id]]
@@ -457,13 +459,14 @@ func test_boss_rat_is_a_1_1_rat_token_summoned_by_the_passive_and_rat_pack_and_n
 		assert_array(Array(bundle["cards"])).not_contains([RAT_TOKEN])
 
 
-func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_15() -> void:
+func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_45() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var card: Dictionary = _card_or_empty(db, "neutral_smite_or_mend")
 
-	# Assert — CN-1's 15 MVP neutrals, `neutral_gravekeeper` included (story 010)
-	assert_int(db.cards_by_set("neutral").size()).is_equal(15)
+	# Assert — CN-1's 45 Alpha neutrals, `neutral_gravekeeper` included (story 010)
+	var collectible: Array = db.cards_by_set("neutral").filter(func(c: Dictionary) -> bool: return not c.get("token", false))
+	assert_int(collectible.size()).is_equal(45)
 	assert_bool(card.is_empty()).is_false()
 	if card.is_empty():
 		return
@@ -498,9 +501,9 @@ func test_band_1_boss_passives_and_new_cards_pass_validate_effects_with_zero_row
 		rows.append_array(EffectValidator.validate_effects(&"card", c["id"], c["effects"], db, caps))
 
 	# Assert — zero E_FX_* and W_FX_* (the matriarch's board `tag` filter included);
-	# 11 boss-set cards since content story 004 adds the band-2/3 four
+	# CN-1's 32 boss-only cards at Alpha, plus the `boss_rat` token
 	assert_array(rows).is_empty()
-	assert_int(db.cards_by_set("boss").size()).is_equal(11)
+	assert_int(db.cards_by_set("boss").size()).is_equal(33)
 
 
 # --- story 005: the 10 MVP bundles (CN-4, AC-14, AC-15) ------------------------------------
@@ -522,11 +525,12 @@ const MVP_BUNDLES: Dictionary = {
 const WAR_PLAN_TAGS: Array[String] = ["weapons", "aggro", "armour"]
 ## CN-4 / AC-15: War's F2 band split, 3 early / 3 mid / 2 late.
 const WAR_BAND_SPLIT: Dictionary = {"early": 3, "mid": 3, "late": 2}
-## Reward Draft F5 at MVP: `B_min = 9` for any `W ≥ 2` (reward-draft.md F5).
-## Reward Draft has no config validator yet, so `bundle_pool_min` is not
-## registered; story 005 AC-3 checks against this GDD value (sprint-004
-## Goal Prerequisites, option (a)).
-const REWARD_DRAFT_MVP_BUNDLE_POOL_MIN: int = 9
+## Reward Draft F5 at v1: `F = 8`, `W = 2` gives `B_min = 13` (reward-draft.md F5).
+const REWARD_DRAFT_V1_BUNDLE_POOL_MIN: int = 13
+## DD-H05's pool per hero: 8 hero-set bundles + 12 neutral (reward-draft.md F5).
+const WAR_BUNDLE_POOL_SIZE: int = 20
+## card-database.md: `min_bundle_pool` default.
+const MIN_BUNDLE_POOL_DEFAULT: int = 10
 
 
 func _band(bundle: Dictionary, db: CardDatabase, curve: Dictionary) -> String:
@@ -539,27 +543,25 @@ func _band(bundle: Dictionary, db: CardDatabase, curve: Dictionary) -> String:
 	return "mid" if avg <= float(curve["mid_max"]) else "late"
 
 
-func test_bundles_json_is_the_ten_cn4_mvp_bundles_with_set_theme_and_pitch() -> void:
-	# Arrange
-	var expected: Array = MVP_BUNDLES.keys()
-	expected.sort()
-
+func test_bundles_json_holds_the_ten_cn4_mvp_bundles_with_set_theme_and_pitch() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 	var pool: Array = db.bundle_pool("war")
 
-	# Assert — CN-4 rows verbatim; 8 war + 2 neutral; cards share set and theme
-	assert_array(_ids(pool)).is_equal(expected)
+	# Assert — every MVP row present and verbatim; 8 war + 12 neutral at Alpha (CN-1);
+	# every bundle in the pool, MVP or not, has cards sharing its set and theme
+	assert_array(_ids(pool)).contains(MVP_BUNDLES.keys())
 	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "war").size()).is_equal(8)
-	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "neutral").size()).is_equal(2)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "neutral").size()).is_equal(12)
 	for b: Dictionary in pool:
-		var row: Array = MVP_BUNDLES[b["id"]]
 		var id: String = b["id"]
-		assert_str(b["name"]).override_failure_message(id).is_equal(row[0])
-		assert_str(b["set"]).override_failure_message(id).is_equal(row[1])
-		assert_str(b["theme"]).override_failure_message(id).is_equal(row[2])
-		assert_array(Array(b["cards"])).override_failure_message(id).is_equal(row[3])
-		assert_that(b["unlock"]).override_failure_message(id).is_null()
+		if MVP_BUNDLES.has(id):
+			var row: Array = MVP_BUNDLES[id]
+			assert_str(b["name"]).override_failure_message(id).is_equal(row[0])
+			assert_str(b["set"]).override_failure_message(id).is_equal(row[1])
+			assert_str(b["theme"]).override_failure_message(id).is_equal(row[2])
+			assert_array(Array(b["cards"])).override_failure_message(id).is_equal(row[3])
+			assert_that(b["unlock"]).override_failure_message(id).is_null()
 		assert_str(b["text"]["key"]).override_failure_message(id).is_equal("bundle.%s.text" % id)
 		var en: String = b["text"]["en"]
 		assert_bool(en.is_empty() or en.contains("\n")).override_failure_message(id).is_false()
@@ -610,7 +612,7 @@ func test_mvp_bundles_clear_the_f5_war_bundle_coverage_floor() -> void:
 		assert_str(String(r.field)).override_failure_message(str(r)).is_not_equal("coverage.bundle_coverage_min.war")
 
 
-func test_min_bundle_pool_meets_the_mvp_bundle_pool_min_and_the_war_pool_raises_no_pool_size() -> void:
+func test_the_war_pool_meets_the_v1_bundle_pool_min_and_raises_no_pool_size() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var min_bundle_pool: int = int(db.config("card_database")["min_bundle_pool"])
@@ -623,9 +625,10 @@ func test_min_bundle_pool_meets_the_mvp_bundle_pool_min_and_the_war_pool_raises_
 	var pool_size: int = db.bundle_pool("war").size()
 
 	# Assert — AC-3 against the GDD value (bundle_pool_min is not registered yet)
-	assert_int(b_min).is_equal(REWARD_DRAFT_MVP_BUNDLE_POOL_MIN)
-	assert_int(min_bundle_pool).is_greater_equal(REWARD_DRAFT_MVP_BUNDLE_POOL_MIN)
-	assert_int(pool_size).is_equal(10)
+	assert_int(b_min).is_equal(REWARD_DRAFT_V1_BUNDLE_POOL_MIN)
+	assert_int(min_bundle_pool).is_equal(MIN_BUNDLE_POOL_DEFAULT)
+	assert_int(pool_size).is_equal(WAR_BUNDLE_POOL_SIZE)
+	assert_int(pool_size).is_greater_equal(b_min)
 	assert_int(pool_size).is_greater_equal(min_bundle_pool)
 	for w: Dictionary in db.report().warnings():
 		assert_bool(String(w.code) == "W_POOL_SIZE" and String(w.file) == "bundles.json").override_failure_message(str(w)).is_false()
@@ -633,22 +636,24 @@ func test_min_bundle_pool_meets_the_mvp_bundle_pool_min_and_the_war_pool_raises_
 
 # --- story 004: The Rot Warden (band 2), The Hollow King (band 3), decay_husk ---------------
 
-## CN-3 B2 Rot Warden MVP recipe: 2× 12 MVP neutrals led by `neutral_gravekeeper`
-## and `neutral_shield_golem`, plus the other 10 (story 004 Implementation
-## Notes). `neutral_crypt_brute` gave Gravekeeper its two slots back (content
-## story 010, DD-X20); the exclusions stand (DD-X24).
-const ROT_WARDEN_NEUTRALS: Array[String] = [
-	"neutral_gravekeeper", "neutral_shield_golem", "neutral_torch_imp", "neutral_tunnel_rat",
-	"neutral_cellar_guard", "neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_dungeon_delver",
-	"neutral_hush_owl", "neutral_spark_fiend", "neutral_banner_captain", "neutral_wolf_rider",
+## CN-3 B2 Rot Warden at Alpha-A: "2× boss cards + 2× decay deathrattle cards + neutral
+## filler", Decay having replaced the MVP recipe's neutrals (Edge Cases). The filler keeps
+## `neutral_gravekeeper` and `neutral_shield_golem`, which led the MVP recipe; the
+## exclusions stand (DD-X24).
+const ROT_WARDEN_DECK_CARDS: Array[String] = [
+	"decay_grave_rat", "decay_carrion_crow", "decay_rot_beetle", "decay_shambling_heap", "decay_boneyard_brute",
+	"decay_crypt_leech", "decay_relic_keeper",
+	"neutral_gravekeeper", "neutral_shield_golem", "neutral_lantern_bearer", "neutral_bulwark_smith",
+	"neutral_dungeon_delver", "neutral_banner_captain",
 ]
 const ROT_WARDEN_EXCLUDED: Array[String] = ["neutral_crypt_brute", "neutral_ogre_porter", "neutral_smite_or_mend"]
-## CN-3 B2 Hollow King MVP-1 recipe's 11 neutrals, `neutral_gravekeeper` back in
-## them (content story 010, DD-X20).
+## CN-3 B2 Hollow King past MVP-1: "2× boss cards + 2× sticky bodies". The 11 neutrals
+## of the shipped list; the VS walls took the slots of the MVP-1 recipe's three
+## smallest bodies, and `neutral_gravekeeper` stays (content story 010, DD-X20).
 const HOLLOW_KING_NEUTRALS: Array[String] = [
 	"neutral_shield_golem", "neutral_lantern_bearer", "neutral_bulwark_smith", "neutral_crypt_brute",
-	"neutral_ogre_porter", "neutral_dungeon_delver", "neutral_cellar_guard", "neutral_banner_captain",
-	"neutral_gravekeeper", "neutral_hush_owl", "neutral_torch_imp",
+	"neutral_ogre_porter", "neutral_dungeon_delver", "neutral_temple_guard", "neutral_banner_captain",
+	"neutral_gravekeeper", "neutral_stone_sentinel", "neutral_war_mammoth",
 ]
 ## CN-3 B3: [id, T, cost, a, h, keywords, text].
 const BOSS_CARD_ROWS_B23: Array = [
@@ -660,13 +665,17 @@ const BOSS_CARD_ROWS_B23: Array = [
 const HUSK_TOKEN: String = "decay_husk"
 
 
-func test_bands_2_and_3_hold_the_rot_warden_and_the_hollow_king() -> void:
+func test_bands_2_and_3_are_the_six_and_four_of_cn3() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 
-	# Assert — CN-3 MVP: 3 / 1 / 1 bosses by band
-	assert_array(_ids(db.bosses_in_band(2))).is_equal(["boss_rot_warden"])
-	assert_array(_ids(db.bosses_in_band(3))).is_equal(["boss_hollow_king"])
+	# Assert — CN-1 Alpha: 6 / 6 / 4 bosses by band
+	assert_array(_ids(db.bosses_in_band(2))).contains_exactly_in_any_order([
+		"boss_rot_warden", "boss_blood_abbess", "boss_iron_tollman", "boss_frost_hag", "boss_pyre_sergeant", "boss_mirror_sage",
+	])
+	assert_array(_ids(db.bosses_in_band(3))).contains_exactly_in_any_order([
+		"boss_hollow_king", "boss_lich_archivist", "boss_shadow_of_the_delve", "boss_dungeon_heart",
+	])
 
 
 func test_rot_warden_is_the_cn3_b1_row() -> void:
@@ -742,7 +751,7 @@ func test_rot_warden_and_hollow_king_profiles_resolve_through_their_overrides_wi
 	assert_str(String(hollow_profile.get("intent_mode", "full"))).is_not_equal("hidden")
 
 
-func test_rot_warden_deck_is_its_mvp_recipe_led_by_gravekeeper() -> void:
+func test_rot_warden_deck_is_its_alpha_recipe_of_decay_deathrattles_and_filler() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var deck: Array = _boss_or_empty(db, "boss_rot_warden").get("deck", [])
@@ -750,20 +759,20 @@ func test_rot_warden_deck_is_its_mvp_recipe_led_by_gravekeeper() -> void:
 	# Act
 	var counts: Dictionary = _deck_counts(deck)
 
-	# Assert — CN-3 B2 MVP recipe: rot_zombie ×3, mass_rites ×3, 12 neutrals ×2
+	# Assert — CN-3 B2: 2× each boss card, then every other id ×2
 	assert_int(deck.size()).is_equal(30)
-	assert_int(int(counts.get("boss_rot_zombie", 0))).is_equal(3)
-	assert_int(int(counts.get("boss_mass_rites", 0))).is_equal(3)
-	for id: String in ROT_WARDEN_NEUTRALS:
+	assert_int(int(counts.get("boss_rot_zombie", 0))).is_equal(2)
+	assert_int(int(counts.get("boss_mass_rites", 0))).is_equal(2)
+	for id: String in ROT_WARDEN_DECK_CARDS:
 		assert_int(int(counts.get(id, 0))).override_failure_message("%s ×%d" % [id, int(counts.get(id, 0))]).is_equal(2)
-	assert_int(counts.size()).is_equal(14)
+	assert_int(counts.size()).is_equal(15)
 	assert_array(counts.keys()).not_contains(ROT_WARDEN_EXCLUDED)
 	for id: String in counts:
 		var card: Dictionary = _card_or_empty(db, id)
 		assert_bool(card.is_empty() or card.get("token", false)).override_failure_message(id).is_false()
 
 
-func test_hollow_king_deck_is_its_mvp1_recipe_with_gravekeeper_back_in_its_neutrals() -> void:
+func test_hollow_king_deck_is_its_sticky_bodies_with_gravekeeper_in_its_neutrals() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var deck: Array = _boss_or_empty(db, "boss_hollow_king").get("deck", [])
@@ -771,7 +780,7 @@ func test_hollow_king_deck_is_its_mvp1_recipe_with_gravekeeper_back_in_its_neutr
 	# Act
 	var counts: Dictionary = _deck_counts(deck)
 
-	# Assert — CN-3 B2 MVP-1 recipe: every id ×2
+	# Assert — CN-3 B2: every id ×2
 	assert_int(deck.size()).is_equal(30)
 	assert_int(int(counts.get("boss_hollow_knight", 0))).is_equal(2)
 	assert_int(int(counts.get("boss_crown_of_thorns", 0))).is_equal(2)
@@ -816,14 +825,15 @@ func test_the_four_band_2_and_3_boss_cards_match_cn3_b3() -> void:
 			"ops": [{"op": "buff", "attack": 1.0, "health": 1.0}, {"op": "give_keyword", "keyword": "taunt"}]}])
 
 
-func test_decay_husk_is_the_one_decay_record_a_1_1_token_summoned_by_rot_zombie_and_never_listed() -> void:
+func test_decay_husk_is_a_1_1_decay_token_summoned_by_rot_zombie_and_never_listed() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var husk: Dictionary = _card_or_empty(db, HUSK_TOKEN)
 	var zombie: Dictionary = _card_or_empty(db, "boss_rot_zombie")
 
-	# Assert — CN-2 tokens line; CN-6 MVP-1 one-record cards_decay.json; AC-16
-	assert_array(_ids(db.cards_by_set("decay"))).is_equal([HUSK_TOKEN])
+	# Assert — CN-2 tokens line; Alpha-A's full cards_decay.json: 25 cards + 3 tokens; AC-16
+	assert_array(_ids(db.cards_by_set("decay"))).contains([HUSK_TOKEN])
+	assert_int(db.cards_by_set("decay").size()).is_equal(28)
 	assert_bool(husk.is_empty() or zombie.is_empty()).is_false()
 	if husk.is_empty() or zombie.is_empty():
 		return

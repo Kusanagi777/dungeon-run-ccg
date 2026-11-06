@@ -58,18 +58,18 @@ func _sorted(values: Array) -> Array:
 
 # --- AC-1: exit contract, observed as a process ------------------------------------
 
-func test_validate_on_shipped_data_exits_0_and_prints_the_report_with_pending_warnings() -> void:
+func test_validate_on_shipped_data_exits_0_and_prints_the_report_with_nothing_pending() -> void:
 	# Act
 	var run: Dictionary = _validate([])
 
-	# Assert — Ready in a debug binary: pending owners are warnings
+	# Assert — Ready, with no owner pending and no pool short (CN-1 Alpha)
 	assert_int(run.exit_code).is_equal(0)
 	# `\S+` is the report's dash: Windows decodes a child's UTF-8 as the ANSI code
 	# page, so it arrives there as three other characters.
 	var ready_line: RegExMatch = RegEx.create_from_string("validate: Ready \\S+ 0 errors").search(run.output)
 	assert_object(ready_line).is_not_null()
-	assert_str(run.output).contains("[warning] W_POOL_SIZE")
-	assert_str(run.output).contains("W_VALIDATOR_PENDING")
+	assert_str(run.output).not_contains("W_POOL_SIZE")
+	assert_str(run.output).not_contains("W_VALIDATOR_PENDING")
 	assert_str(run.output).not_contains("[error]")
 
 
@@ -117,14 +117,14 @@ func test_in_process_run_matches_boot_map_load_of_shipped_data() -> void:
 	assert_str(out.report_text).starts_with(expected.to_text())
 
 
-func test_release_map_makes_pending_validators_errors_and_exits_1() -> void:
+func test_release_map_exits_0_with_no_pending_validator() -> void:
 	# Act — the release build's map (QA plan: assert debug, note release)
 	var out: Dictionary = ContentValidateCommand.run(SHIPPED, ContentValidateCommand.boot_validators(false))
 
-	# Assert — every still-pending config owner is an error row
-	assert_int(out.exit_code).is_equal(1)
-	for name: String in preload("res://src/core/boot.gd").PENDING_CONFIG_OWNERS:
-		assert_str(out.report_text).contains("[error] E_DELEGATED %s.json — W_VALIDATOR_PENDING" % name)
+	# Assert — a pending owner would be an error row here; none is pending
+	assert_array(Array(preload("res://src/core/boot.gd").PENDING_CONFIG_OWNERS)).is_empty()
+	assert_int(out.exit_code).is_equal(0)
+	assert_str(out.report_text).not_contains("W_VALIDATOR_PENDING")
 
 
 # --- AC-2: the shipped body ---------------------------------------------------------

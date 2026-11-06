@@ -67,6 +67,27 @@ const W_DRAFT_STATE_INIT_LATE: String = "draft_state_init_late"
 const W_BUNDLE_INVALID: String = "bundle_invalid"
 const W_DRAFT_FAULT: String = "draft_fault"
 
+## R1 `status`, in lifecycle order. These strings are the run read model's vocabulary,
+## so they live here, where `src/ui/` may name them (gate G5 keeps `RunState` out of it).
+const STATUS_HERO_SELECT: String = "hero_select"
+const STATUS_PRE_MATCH: String = "pre_match"
+const STATUS_IN_MATCH: String = "in_match"
+const STATUS_POST_MATCH_REWARD: String = "post_match_reward"
+const STATUS_VICTORY: String = "victory"
+const STATUS_DEFEAT: String = "defeat"
+const STATUS_ABANDONED: String = "abandoned"
+## R1 `seed_source`.
+const SEED_RANDOM: String = "random"
+const SEED_CUSTOM: String = "custom"
+## R1 `result.abandon_reason`.
+const REASON_PLAYER: String = "player"
+const REASON_DATA_VERSION_MISMATCH: String = "data_version_mismatch"
+const REASON_SAVE_CORRUPT: String = "save_corrupt"
+## Progress strip pip states (run-structure UI Requirements).
+const PIP_CLEARED: String = "cleared"
+const PIP_CURRENT: String = "current"
+const PIP_UPCOMING: String = "upcoming"
+
 ## The rule 12a marker: a `run_warning` records no mutation (rng-event-log catalogue).
 const DIAGNOSTIC_KEY: String = "diagnostic"
 

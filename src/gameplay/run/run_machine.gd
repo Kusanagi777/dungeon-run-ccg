@@ -55,8 +55,6 @@ const STREAM_MATCH: String = "match_%d"
 const STREAM_AI: String = "ai_%d"
 const STREAM_DRAFT: String = "draft_%d"
 const MSEC_PER_SEC: int = 1000
-## The two words of a 64-bit seed from the 32-bit `randi()`.
-const SEED_WORD_BITS: int = 32
 ## The `run_structure.json` keys (Tuning Knobs).
 const CONFIG_KEYS: Array[String] = [
 	"floors_per_run", "band_split", "treasure_floors", "floor_health_bonus",
@@ -83,7 +81,7 @@ var unix_clock: Callable = func() -> int: return int(Time.get_unix_time_from_sys
 ## A `Callable() -> int` of monotonic milliseconds, for `play_seconds` and `duration_s`.
 var ticks_clock: Callable = Time.get_ticks_msec
 ## A `Callable() -> int` for the F1 empty-seed branch, called once per random run.
-var entropy: Callable = _entropy
+var entropy: Callable = RngService.entropy_u64
 
 var _db: CardDatabase
 var _meta: MetaApi
@@ -841,13 +839,12 @@ func _record_to_store() -> Dictionary:
 	return record
 
 
-## Refreshes the two fields a save carries from their owners (R1). The log's text is
-## parsed so the record stays one JSON tree.
+## Refreshes the two fields a save carries from their owners (R1).
 func _capture_streams_and_log() -> void:
 	if rng != null:
 		state.rng_snapshot = RunRecord.normalised(rng.snapshot_to_json_dict())
 	if run_log != null:
-		state.run_log = RunRecord.normalised(JSON.parse_string(run_log.to_json()))
+		state.run_log = RunRecord.normalised(run_log.to_json_dict())
 
 
 func _open_log(log: EventLog) -> void:
@@ -948,8 +945,3 @@ func _continue_card() -> Variant:
 		"updated_at": saved.get("updated_at"),
 	}
 
-
-## F1's empty-seed entropy (ADR-0003 Decision 10(b)): the one permitted global RNG
-## call, allow-listed for this file by `tools/lint/no_global_rng.sh`.
-static func _entropy() -> int:
-	return (randi() << SEED_WORD_BITS) | randi()

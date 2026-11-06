@@ -20,7 +20,7 @@ var _focus_key: String = ""
 func bind(model: Dictionary) -> void:
 	clear()
 	cancel_intent = &"go_main_menu"
-	_victory = str(model.get("outcome")) == RunState.STATUS_VICTORY
+	_victory = str(model.get("outcome")) == RunCodes.STATUS_VICTORY
 	add_child(UiKit.backdrop(color("table_lit" if _victory else "bg_edge")))
 	_view = SummaryView.new()
 	_view.set_anchors_preset(Control.PRESET_FULL_RECT)

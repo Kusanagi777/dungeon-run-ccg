@@ -15,29 +15,29 @@ class_name RunState
 extends RefCounted
 
 ## R1 `status`, in lifecycle order.
-const STATUS_HERO_SELECT: String = "hero_select"
-const STATUS_PRE_MATCH: String = "pre_match"
-const STATUS_IN_MATCH: String = "in_match"
-const STATUS_POST_MATCH_REWARD: String = "post_match_reward"
-const STATUS_VICTORY: String = "victory"
-const STATUS_DEFEAT: String = "defeat"
-const STATUS_ABANDONED: String = "abandoned"
+const STATUS_HERO_SELECT: String = RunCodes.STATUS_HERO_SELECT
+const STATUS_PRE_MATCH: String = RunCodes.STATUS_PRE_MATCH
+const STATUS_IN_MATCH: String = RunCodes.STATUS_IN_MATCH
+const STATUS_POST_MATCH_REWARD: String = RunCodes.STATUS_POST_MATCH_REWARD
+const STATUS_VICTORY: String = RunCodes.STATUS_VICTORY
+const STATUS_DEFEAT: String = RunCodes.STATUS_DEFEAT
+const STATUS_ABANDONED: String = RunCodes.STATUS_ABANDONED
 const STATUSES: Array[String] = [
 	STATUS_HERO_SELECT, STATUS_PRE_MATCH, STATUS_IN_MATCH, STATUS_POST_MATCH_REWARD,
 	STATUS_VICTORY, STATUS_DEFEAT, STATUS_ABANDONED,
 ]
 const TERMINAL_STATUSES: Array[String] = [STATUS_VICTORY, STATUS_DEFEAT, STATUS_ABANDONED]
 ## R1 `seed_source`.
-const SEED_RANDOM: String = "random"
-const SEED_CUSTOM: String = "custom"
+const SEED_RANDOM: String = RunCodes.SEED_RANDOM
+const SEED_CUSTOM: String = RunCodes.SEED_CUSTOM
 ## R1 `result.abandon_reason`.
-const REASON_PLAYER: String = "player"
-const REASON_DATA_VERSION_MISMATCH: String = "data_version_mismatch"
-const REASON_SAVE_CORRUPT: String = "save_corrupt"
+const REASON_PLAYER: String = RunCodes.REASON_PLAYER
+const REASON_DATA_VERSION_MISMATCH: String = RunCodes.REASON_DATA_VERSION_MISMATCH
+const REASON_SAVE_CORRUPT: String = RunCodes.REASON_SAVE_CORRUPT
 ## Progress strip pip states (run-structure UI Requirements).
-const PIP_CLEARED: String = "cleared"
-const PIP_CURRENT: String = "current"
-const PIP_UPCOMING: String = "upcoming"
+const PIP_CLEARED: String = RunCodes.PIP_CLEARED
+const PIP_CURRENT: String = RunCodes.PIP_CURRENT
+const PIP_UPCOMING: String = RunCodes.PIP_UPCOMING
 
 var schema_version: int = RunRecord.SCHEMA_VERSION
 var data_version: String = ""

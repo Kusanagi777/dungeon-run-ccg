@@ -150,7 +150,7 @@ func on_step_started(step: AnimStep, d_eff: float) -> void:
 		AnimStep.POWER_PRESS, AnimStep.POWER_RELIGHT:
 			if _power != null:
 				var press: Tween = step_tween(step)
-				press.tween_property(_power, "scale", Vector2(0.9, 0.9), d_eff / 2.0)
+				press.tween_property(_power, "scale", Vector2.ONE * float(ui.config.hero.power_press_scale), d_eff / 2.0)
 				press.tween_property(_power, "scale", Vector2.ONE, d_eff / 2.0)
 		AnimStep.WEAPON_SHATTER:
 			if _weapon != null:

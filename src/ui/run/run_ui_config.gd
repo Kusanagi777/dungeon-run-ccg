@@ -37,6 +37,8 @@ const FOCUS_VALUES: Array[String] = ["new_run_same_hero", "hero_select", "none"]
 const SPEEDS: Array[String] = [SPEED_INSTANT, SPEED_FAST, SPEED_NORMAL]
 ## The F2 `transition_ms` keys.
 const TRANSITION_KEYS: Array[String] = ["fade", "intro_slide", "draft_reveal", "fly_to_strip", "toast_in_out"]
+## The `font_px` roles `RunUiTheme.build` reads.
+const FONT_ROLES: Array[String] = ["hero", "title", "heading", "body", "small", "muted"]
 const TOKENS_REQUIRED: Array[String] = [
 	"bg_edge", "table_dark", "table_lit", "parchment", "ink", "text_light", "text_muted", "text_ink",
 	"state_danger", "state_actionable", "neutral", "boss_band_1", "boss_band_2", "boss_band_3",
@@ -135,6 +137,7 @@ static func validate_config(body: Dictionary, _db: Variant) -> Array:
 	var focus: Variant = body.get("default_focus")
 	_check_enum(rows, "default_focus.summary", focus.get("summary") if focus is Dictionary else null, FOCUS_VALUES)
 	_check_palette(rows, body.get("palette"))
+	_check_fonts(rows, body.get("font_px"))
 	if not body.get("strings") is Dictionary:
 		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "strings", "`strings` must map keys to text"))
 	return rows
@@ -176,6 +179,16 @@ static func _check_gaps(rows: Array[Dictionary], value: Variant) -> void:
 static func _check_enum(rows: Array[Dictionary], field: String, value: Variant, allowed: Array[String]) -> void:
 	if not allowed.has(str(value)):
 		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, field, "`%s` is not one of %s" % [str(value), str(allowed)]))
+
+
+static func _check_fonts(rows: Array[Dictionary], value: Variant) -> void:
+	if not value is Dictionary:
+		rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "font_px", "`font_px` must map roles to sizes"))
+		return
+	for role: String in FONT_ROLES:
+		var px: Variant = value.get(role)
+		if not ConfigRows.is_whole(px) or int(px) <= 0:
+			rows.append(ConfigRows.error(ConfigRows.E_BAD_VALUE, "font_px.%s" % role, "no size for `%s`" % role))
 
 
 static func _check_palette(rows: Array[Dictionary], value: Variant) -> void:

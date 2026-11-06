@@ -91,7 +91,7 @@ func hero(id: String) -> Variant:
 ## hero with an `unlock {key, condition}` object (H-7) is never listed, whatever
 ## Meta Progression reports for it.
 ## [codeblock]
-## heroes.launch_heroes()   # [the hero_war record] with the shipped data
+## heroes.launch_heroes()   # the three `unlock: null` records with the shipped data (H-2)
 ## [/codeblock]
 func launch_heroes() -> Array:
 	return _db.heroes().filter(func(record: Dictionary) -> bool: return record.unlock == null)

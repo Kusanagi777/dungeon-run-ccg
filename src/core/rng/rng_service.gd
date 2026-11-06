@@ -59,6 +59,8 @@ const STREAM_NAME_PATTERN: String = "^[a-z]+(_[0-9]+)?(/[a-z0-9_]+)*$"
 ## share a name under different seeds (F2 vs F3), so the first is refused
 ## (code review 2026-11-03; ADR-0003 erratum).
 const ROOT_STREAM_NAME_PATTERN: String = "^[a-z]+(_[0-9]+)?$"
+## F1: `entropy_u64` builds a 64-bit seed from two 32-bit words.
+const SEED_WORD_BITS: int = 32
 ## rng-event-log F2: FNV-1a 64 offset basis 0xCBF29CE484222325 as signed int64.
 const FNV_OFFSET_BASIS: int = -3750763034362895579
 ## rng-event-log F2: FNV-1a 64 prime 0x00000100000001B3.
@@ -255,6 +257,13 @@ func _make_stream(stream_name: String, stream_seed: int) -> RngStream:
 
 
 # --- F1 / F2 / F3 (static, pure) ------------------------------------------------
+
+## F1's `entropy_u64()`: the one permitted global RNG call (ADR-0003 Decision 10(b)),
+## the default of `RunMachine.entropy`. It lives here because gate G6 and rng-event-log
+## rule 7 keep the rules tree free of global RNG, and `src/core/rng/` is outside both.
+static func entropy_u64() -> int:
+	return (randi() << SEED_WORD_BITS) | randi()
+
 
 ## F1: the run seed from the hero-select seed field. `input` is trimmed; then
 ## empty → `entropy.call()` (exactly once, the only branch that calls it —

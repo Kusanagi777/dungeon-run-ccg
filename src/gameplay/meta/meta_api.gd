@@ -184,27 +184,21 @@ var settings_bus: SettingsBus
 @abstract func load_status() -> StringName
 
 
-# --- Additions with a default (not abstract, so a test double need not carry them)
-
 ## True when the profile is `ReadOnly`: the banner's input (M5.2, M6). A mutator
 ## then answers `E_READONLY`. Example: `if meta.is_read_only(): show_banner()`.
-func is_read_only() -> bool:
-	return false
+@abstract func is_read_only() -> bool
 
 
 ## The global counters of `stats` (M7.1; M1.3 "Name mapping" `get_stats()`), as a
 ## copy. Example: `meta.get_stats().get("runs_won", 0)`.
-func get_stats() -> Dictionary:
-	return {}
+@abstract func get_stats() -> Dictionary
 
 
 ## How many archived runs [method run_log] can page through (M8).
 ## Example: `var pages: int = ceili(meta.run_log_count() / float(page_size))`.
-func run_log_count() -> int:
-	return 0
+@abstract func run_log_count() -> int
 
 
 ## "Clear run records": deletes the full records under `user://runs/` (M8.2).
 ## Returns `OK`, `E_IO` or `E_READONLY`. Example: `meta.clear_run_records()`.
-func clear_run_records() -> Error:
-	return OK
+@abstract func clear_run_records() -> Error

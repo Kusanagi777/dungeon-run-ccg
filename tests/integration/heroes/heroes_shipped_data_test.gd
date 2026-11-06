@@ -76,7 +76,7 @@ func test_the_shipped_data_loads_with_no_error() -> void:
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 
 
-func test_launch_heroes_on_shipped_data_is_exactly_war() -> void:
+func test_launch_heroes_on_shipped_data_are_the_three_of_h2() -> void:
 	# Arrange
 	var heroes: Heroes = Heroes.new(_loaded())
 
@@ -84,8 +84,9 @@ func test_launch_heroes_on_shipped_data_is_exactly_war() -> void:
 	var launch: Array = heroes.launch_heroes()
 
 	# Assert
-	assert_array(_ids(launch)).is_equal([HERO_WAR])
-	assert_int(int(launch[0].health)).is_equal(TestConstants.PLAYER_STARTING_HEALTH)
+	assert_array(_ids(launch)).contains_exactly_in_any_order([HERO_WAR, "hero_decay", "hero_knowledge"])
+	for hero: Dictionary in launch:
+		assert_int(int(hero.health)).override_failure_message(str(hero.id)).is_equal(TestConstants.PLAYER_STARTING_HEALTH)
 
 
 func test_wars_hero_power_resolves_through_the_database() -> void:

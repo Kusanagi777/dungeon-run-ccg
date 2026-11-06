@@ -31,6 +31,10 @@
 class_name MatchQuery
 extends RefCounted
 
+## Keeps this script alive through engine shutdown (TD-013): see `MetaApi._teardown_anchor`.
+## Remove with the move to Godot 4.8 (godotengine/godot#117991).
+static var _teardown_anchor: Script = load("res://src/gameplay/match/match_query.gd")
+
 ## [method hero_power_state] `state` values (U2: `Ready | Blocked{reason_code} | Used`).
 const POWER_READY: String = "ready"
 const POWER_BLOCKED: String = "blocked"

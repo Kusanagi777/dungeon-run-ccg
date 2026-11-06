@@ -505,9 +505,9 @@ func _drain() -> void:
 
 func _summary_of(outcome: String) -> StringName:
 	match outcome:
-		RunState.STATUS_VICTORY:
+		RunCodes.STATUS_VICTORY:
 			return SCREEN_VICTORY
-		RunState.STATUS_ABANDONED:
+		RunCodes.STATUS_ABANDONED:
 			return SCREEN_ABANDONED
 	return SCREEN_DEFEAT
 
@@ -604,13 +604,13 @@ func _open_menu(kind: StringName) -> void:
 
 func _open_for_phase() -> void:
 	match _run.phase():
-		RunState.STATUS_PRE_MATCH:
+		RunCodes.STATUS_PRE_MATCH:
 			_open_screen(SCREEN_BOSS, RunUiConfig.KIND_FADE)
-		RunState.STATUS_POST_MATCH_REWARD:
+		RunCodes.STATUS_POST_MATCH_REWARD:
 			var offer: Variant = _run.current_offer()
 			var bundle: bool = offer is Dictionary and str(offer.kind) == DraftRecord.KIND_BUNDLE
 			_open_screen(SCREEN_DRAFT_BUNDLE if bundle else SCREEN_DRAFT_TREASURE, RunUiConfig.KIND_FADE)
-		RunState.STATUS_VICTORY, RunState.STATUS_DEFEAT, RunState.STATUS_ABANDONED:
+		RunCodes.STATUS_VICTORY, RunCodes.STATUS_DEFEAT, RunCodes.STATUS_ABANDONED:
 			_open_screen(_summary_of(_run.phase()), RunUiConfig.KIND_FADE)
 		_:
 			_open_menu(RunUiConfig.KIND_FADE)

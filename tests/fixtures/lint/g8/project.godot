@@ -1,0 +1,6 @@
+; Lint fixture (treasures story 004): one autoload, so G4 passes.
+config_version=5
+
+[autoload]
+
+Boot="*res://src/core/boot.gd"

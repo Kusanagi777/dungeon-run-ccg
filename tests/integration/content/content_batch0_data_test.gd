@@ -5,9 +5,9 @@
 ## `CardDatabase` with the validator map `Boot` composes (a fresh, `auto_free`d
 ## Boot instance, never the autoload; debug severity), so every `effects[]`
 ## and the boss `passive` go through the real `EffectValidator`, the boss
-## `ai_profile` through the real `BossAI` config validator, and the pending
-## owners report `W_VALIDATOR_PENDING` warnings. Every expected id below is a
-## GDD row, quoted; counts are the point of the test.
+## `ai_profile` through the real `BossAI` config validator. The batch-0 rows ship
+## inside the Alpha data set, so a count below is the Alpha one where the batch has
+## grown. Every expected id below is a GDD row, quoted.
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT := preload("res://src/core/boot.gd")
@@ -35,10 +35,11 @@ const WAR_STARTER: Array[String] = [
 	"neutral_crypt_brute", "war_pit_brawler", "neutral_ogre_porter",
 ]
 ## CN-3 B2 Torchbearer recipe's 13 neutrals, Gravekeeper back in Ogre Porter's
-## slots (content story 010; the story 001 deviation is undone).
+## slots (content story 010; the story 001 deviation is undone), and `ember_sprite`
+## in the two filler slots of `neutral_cellar_guard` since Alpha-B (CN-3 B2).
 const TORCH_NEUTRALS: Array[String] = [
 	"neutral_tunnel_rat", "neutral_wolf_rider", "neutral_banner_captain", "neutral_spark_fiend",
-	"neutral_torch_imp", "neutral_cellar_guard", "neutral_lantern_bearer", "neutral_bulwark_smith",
+	"neutral_torch_imp", "neutral_ember_sprite", "neutral_lantern_bearer", "neutral_bulwark_smith",
 	"neutral_dungeon_delver", "neutral_hush_owl", "neutral_gravekeeper", "neutral_shield_golem",
 	"neutral_crypt_brute",
 ]
@@ -105,12 +106,12 @@ func test_shipped_data_loads_ready_with_zero_errors() -> void:
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 
 
-func test_shipped_warnings_are_pool_size_and_pending_validators_only() -> void:
+func test_shipped_data_raises_no_pool_size_or_pending_validator_warning() -> void:
 	# Act
 	var report: ValidationReport = _loaded().report()
 
-	# Assert — CN-6.3 allows W_POOL_SIZE at MVP-0; every E_DELEGATED warning is
-	# a pending owner's W_VALIDATOR_PENDING. No W_BAND_HEALTH: match_rules.json
+	# Assert — every E_DELEGATED warning would be a pending owner's
+	# W_VALIDATOR_PENDING. No W_BAND_HEALTH: match_rules.json
 	# carries boss_starting_health_by_band (DD-M02, fix pass 2026-11-04), so
 	# stage 8 checks every boss and none deviates (content AC-10).
 	var pool_files: Array[String] = []
@@ -126,22 +127,21 @@ func test_shipped_warnings_are_pool_size_and_pending_validators_only() -> void:
 				fail("unexpected warning %s" % str(w))
 	pool_files.sort()
 	pending_files.sort()
-	# content story 002 (MVP-1 War set): the War collectible pool is 25 + the
-	# neutrals ≥ min_collectible_pool 30, so `cards_war.json` no longer warns;
-	# content story 005: the 10 MVP bundles ≥ min_bundle_pool 10, so
-	# `bundles.json` no longer warns either.
-	assert_array(pool_files).is_equal(["treasures.json"])
+	# Alpha (CN-1): every pool clears its floor, the 20 treasures last, so nothing warns;
+	# no owner is pending, so `_pending_files()` is empty too.
+	assert_array(pool_files).is_empty()
 	assert_array(pending_files).is_equal(_pending_files())
+	assert_array(pending_files).is_empty()
 
 
 # --- AC-2: War --------------------------------------------------------------------
 
-func test_hero_war_is_the_only_hero_with_h2_values() -> void:
+func test_hero_war_is_a_launch_hero_with_h2_values() -> void:
 	# Act
 	var db: CardDatabase = _loaded()
 
 	# Assert
-	assert_array(_ids(db.heroes())).is_equal(["hero_war"])
+	assert_array(_ids(db.heroes())).contains_exactly_in_any_order(["hero_war", "hero_decay", "hero_knowledge"])
 	var hero: Dictionary = db.hero("hero_war")
 	assert_str(hero["name"]).is_equal("Halvard, the Whetted")
 	assert_str(hero["set"]).is_equal("war")
@@ -294,7 +294,9 @@ func test_boss_cards_hold_the_two_torchbearer_b3_rows() -> void:
 func test_every_effect_list_passes_validate_effects_with_zero_rows() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
-	var caps: Dictionary = db.config("card_effects")
+	# Stage 7b's caps, as the loader builds them: Knowledge's hand-reading cards need
+	# `hand_size` for their F6 bound.
+	var caps: Dictionary = EffectValidator.stage7_caps({"card_effects": db.config("card_effects"), "match_rules": db.config("match_rules")})
 	var rows: Array = []
 
 	# Act — every host this batch authors (cards, the power, the boss passive)
@@ -356,6 +358,6 @@ func test_bundles_are_the_three_cn4_rows_with_set_theme_and_no_token() -> void:
 			assert_bool(card.get("token", false)).is_false()
 
 
-func test_treasure_pool_is_empty_at_batch0() -> void:
-	# Act / Assert — the 10 MVP treasures are story 006 (W_POOL_SIZE allowed)
-	assert_array(_loaded().treasure_pool()).is_empty()
+func test_treasure_pool_is_the_twenty_of_cn1() -> void:
+	# Act / Assert — CN-1 Alpha: 20 treasures (none at batch 0, 10 at MVP)
+	assert_int(_loaded().treasure_pool().size()).is_equal(20)
