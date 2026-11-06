@@ -124,9 +124,13 @@ func test_a_dead_token_holds_its_slot_until_the_gap_closes() -> void:
 	var row: BoardPresenter = _row(view, "PlayerRow")
 	var id: int = int(view.view_state().side(&"player").board[0].entity_id)
 	var held: Array = []
+	var freed: Array = []
 	view.queue().step_started.connect(func(step: AnimStep, _d: float) -> void:
 		if step.kind == AnimStep.GAP_CLOSE:
 			held.append((row.get("_leaving") as Dictionary).has(id)))
+	view.queue().step_finished.connect(func(step: AnimStep) -> void:
+		if step.kind == AnimStep.GAP_CLOSE:
+			freed.append((row.get("_leaving") as Dictionary).has(id)))
 
 	# Act
 	MatchViewHarness.inject(view, "minion_died", {"entity_id": id, "side": "player"}, CAUSE)
@@ -134,6 +138,7 @@ func test_a_dead_token_holds_its_slot_until_the_gap_closes() -> void:
 
 	# Assert
 	assert_array(held).is_equal([true])
+	assert_array(freed).override_failure_message("freed at the step's own final, not the drain").is_equal([false])
 	assert_dict(row.get("_leaving")).is_empty()
 	MatchViewHarness.close(view)
 

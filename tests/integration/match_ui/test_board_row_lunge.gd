@@ -34,6 +34,7 @@ func test_a_token_mid_lunge_keeps_its_offset_through_a_re_layout() -> void:
 	await view.get_tree().process_frame
 
 	# Assert: the slot moved under it, the offset did not reset
+	assert_bool(token.offset_transform_enabled).override_failure_message("the offset would hold and draw nothing").is_true()
 	assert_float(before_sort.length()).is_greater(NEAR_ZERO_PX)
 	assert_float(token.offset_transform_position.length()).is_greater(NEAR_ZERO_PX)
 	assert_object(token.position).is_not_equal(slot_before)

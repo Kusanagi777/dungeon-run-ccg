@@ -126,8 +126,11 @@ func test_the_feed_never_tells_a_fate_ahead_of_the_table() -> void:
 	var id: int = int(view.view_state().side(&"player").board[0].entity_id)
 	var ticker_before: String = _ticker(view).text
 
-	# Act: the view-state knows at once; the death has not played
+	# Act: the view-state knows at once, the death has not played, and a drawer opened now
+	# redraws the feed from what the display has reached
 	MatchViewHarness.inject(view, "minion_died", {"entity_id": id, "side": "player", "card_id": "neutral_torch_imp"}, CAUSE)
+	view.feed().open()
+	view.feed().close()
 	var while_queued: String = _ticker(view).text
 	MatchViewHarness.settle(view)
 
