@@ -20,7 +20,7 @@ const REQUIRED: Array[String] = [
 	"fresh_profile", "mid_run_floor4", "victory_sample", "defeat_sample", "locked_heroes", "abandoned_sample",
 	"draft_treasure_sample", "draft_bundle_sample", "draft_treasure_short", "resume_prompt", "data_error_sample",
 	"toast_sample", "draft_bundle_sample_ts150", "locked_heroes_ts150", "victory_sample_ts150", "defeat_sample_ts150",
-	"run_log_sample",
+	"run_log_sample", "unlock_toast_summary",
 ]
 const DESIGN: Rect2 = Rect2(0, 0, 1280, 720)
 ## A label reading like an unresolved `tr()` key.

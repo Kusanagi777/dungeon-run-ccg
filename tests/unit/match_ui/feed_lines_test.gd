@@ -298,8 +298,8 @@ func test_match_started_names_the_two_heroes() -> void:
 	names.learn({"key": "feed.match_started", "params": {"hero_id": PLAYER_HERO, "boss_id": BOSS_HERO}})
 
 	# Assert
-	assert_str(names.of(PLAYER_HERO)).is_equal("hero.hero_war.name")
-	assert_str(names.of(BOSS_HERO)).is_equal("boss.boss_torchbearer.name")
+	assert_str(names.of(PLAYER_HERO)).is_equal(tr("hero.hero_war.name"))
+	assert_str(names.of(BOSS_HERO)).is_equal(tr("boss.boss_torchbearer.name"))
 
 
 func test_a_null_source_reads_as_someone_without_an_error() -> void:
