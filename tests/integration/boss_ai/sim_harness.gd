@@ -49,6 +49,8 @@ const USEC_PER_MSEC: float = 1000.0
 const PERCENTILE_MEDIAN: float = 0.5
 const PERCENTILE_TAIL: float = 0.95
 const EVENT_REJECTED: String = "command_rejected"
+## The only ways A23 lets a match end.
+const CLEAN_END_REASONS: Array[String] = ["hero_dead", "turn_cap"]
 const REASON_OVERFLOW: String = "resolution_overflow"
 
 
@@ -121,7 +123,9 @@ static func seed_range(count: int) -> Array[int]:
 
 ## Plays [param boss_id] once per seed and writes the report. [param opponent] is
 ## `{hero_id}` or `{boss_id}`; a `{boss_id}` seat is that boss's deck and profile on the
-## first hero's body, without its passive, which only installs on the boss side.
+## first hero's body, without its passive, which only installs on the boss side. A
+## `deck` key replaces the seat's deck with that list of card ids, so a card that no
+## starter holds can be piloted too.
 ## [param options]: `band` plays the boss at that band's overlay instead of its own;
 ## `date` names the file instead of today; `verify` plays every match twice and compares.
 ## The seeds run across the floors of the boss's band in turn (run-structure F1).
@@ -149,6 +153,20 @@ func run(boss_id: String, seeds: Array[int], opponent: Dictionary, out_dir: Stri
 	var path: String = out_dir.path_join("%s_%s.json" % [boss_id, date])
 	_note_previous(path, report)
 	return report if _write(path, report) else {}
+
+
+## Whether [param report] holds what A23 asks of every match: no boss rejection, no
+## fault, no overflow, and no match ended any way but [constant CLEAN_END_REASONS].
+## [codeblock]
+## BossAiSimHarness.is_clean(report)   # true
+## [/codeblock]
+static func is_clean(report: Dictionary) -> bool:
+	if int(report.rejections) != 0 or int(report.faults) != 0 or int(report.overflows) != 0:
+		return false
+	for reason: String in report.end_reasons:
+		if not CLEAN_END_REASONS.has(reason):
+			return false
+	return true
 
 
 ## Where two reports differ, ignoring [constant VOLATILE_FIELDS]: the first differing
@@ -214,6 +232,8 @@ func _seat(boss_def: Dictionary, seed_value: int, floor_number: int, band: int, 
 	var hero_def: Dictionary = _hero(str(opponent.get("hero_id", "")))
 	var rival: Variant = _db.boss(str(opponent.boss_id)) if opponent.has("boss_id") else null
 	var player_deck: Array = rival.deck if rival != null else hero_def.starter_deck
+	if opponent.has("deck"):
+		player_deck = opponent.deck
 	var config: Dictionary = {
 		"floor": floor_number,
 		"band": band,

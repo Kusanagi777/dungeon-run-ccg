@@ -5,7 +5,8 @@
 ## User arguments: `--boss <id>` (required), `--seeds <n>` (default 100), `--hero <id>` or
 ## `--vs-boss <id>`, `--band <1-3>`, `--out <dir>`, `--verify`. A thin [SceneTree]:
 ## [BossAiSimHarness], the class, cannot be a main loop. Exits 0 with a report written,
-## 1 with a rejected boss command, a fault or an overflow in it, 2 if it could not run.
+## 1 with a rejected boss command, a fault, an overflow or any other unclean end in it, 2
+## if it could not run.
 ## A planner time over `planner_target_ms` is printed with the F7 note and is not a
 ## failure: A22 is measured on the target machine (story 018).
 extends SceneTree
@@ -42,8 +43,7 @@ func _initialize() -> void:
 		quit(EXIT_NOT_RUN)
 		return
 	_print_table(report)
-	var clean: bool = int(report.rejections) == 0 and int(report.faults) == 0 and int(report.overflows) == 0
-	quit(EXIT_CLEAN if clean else EXIT_DIRTY)
+	quit(EXIT_CLEAN if BossAiSimHarness.is_clean(report) else EXIT_DIRTY)
 
 
 ## `--key value` pairs and bare `--flag`s, as a Dictionary.

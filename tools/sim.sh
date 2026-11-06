@@ -10,8 +10,8 @@
 # documented in tests/integration/boss_ai/sim_main.gd. Run after
 # `godot --headless --path . --import`: the harness needs the class cache.
 #
-# Exit 0: report written, no boss rejection, fault or overflow. Exit 1: one of those is
-# in the report. Exit 2: could not run.
+# Exit 0: report written, no boss rejection, fault or overflow, and every match ended by
+# hero_dead or turn_cap. Exit 1: the report says otherwise. Exit 2: could not run.
 
 set -u
 
