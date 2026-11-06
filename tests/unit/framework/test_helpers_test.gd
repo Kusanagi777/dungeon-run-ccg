@@ -784,18 +784,20 @@ func test_apply_picks_keep_invariants_and_validate_reports_breaks() -> void:
 
 func test_match_config_for_run_uses_floor_boss_and_deck() -> void:
 	# Arrange
-	var run_state: Dictionary = RunFactory.make_run_state({"floor": 4, "treasures": ["treasure_x"]})
-	run_state.drafts.append(RunFactory.make_draft_record(1, RunFactory.KIND_TREASURE, ["treasure_x"], "treasure_x"))
+	var run_state: Dictionary = RunFactory.make_run_state({"floor": 4, "treasures": [TreasureFixtures.MVP_IDS[0]]})
+	run_state.drafts.append(RunFactory.make_draft_record(1, RunFactory.KIND_TREASURE, [TreasureFixtures.MVP_IDS[0]], TreasureFixtures.MVP_IDS[0]))
 	var rng: TestRngService = TestRngService.new()
+	var db: CardDatabase = TreasureFixtures.database()
+	var treasures: Treasures = Treasures.new(db, db.config("treasures_balance"))
 
 	# Act
-	var config: Dictionary = RunFactory.make_match_config_for(run_state, rng)
+	var config: Dictionary = RunFactory.make_match_config_for(run_state, rng, null, treasures)
 
 	# Assert (run-structure R3 / AC-9 shape)
 	assert_str(config.boss.boss_def_id).is_equal("boss_b1")
 	assert_int(config.band).is_equal(2)
 	assert_int(config.boss.health).is_equal(TestConstants.BOSS_STARTING_HEALTH_BY_BAND[1])
-	assert_array(config.player.hook_installers).contains_exactly(["treasure_x"])
+	assert_array(config.player.hook_installers.map(func(i: HookInstaller) -> String: return i.host_id)).contains_exactly([TreasureFixtures.MVP_IDS[0]])
 	assert_object(config.rng_match).is_same(rng.stream("match_4"))
 	assert_object(config.log).is_null()
 

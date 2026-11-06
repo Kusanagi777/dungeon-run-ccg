@@ -353,9 +353,9 @@ static func event_types(log: EventLog) -> Array:
 	return Array(log.events_since(0)).map(func(e: Dictionary) -> String: return str(e.type))
 
 
-## A [SpyMachine] over the stubs, on fixed clocks.
-func machine(config_overrides: Dictionary = {}) -> RunMachine:
-	var run: RunMachine = SpyMachine.new(db, meta, draft, treasures, run_config(config_overrides), _make_driver)
+## A [SpyMachine] over the stubs, on fixed clocks. [param archive] files its match logs.
+func machine(config_overrides: Dictionary = {}, archive: EventLogArchive = null) -> RunMachine:
+	var run: RunMachine = SpyMachine.new(db, meta, draft, treasures, run_config(config_overrides), _make_driver, archive)
 	run.unix_clock = func() -> int: return 1000
 	run.ticks_clock = func() -> int: return ticks
 	run.entropy = func() -> int: return 7
