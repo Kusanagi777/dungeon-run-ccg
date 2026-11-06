@@ -313,6 +313,8 @@ func _focus(target: Screen) -> void:
 
 func _finish_open() -> void:
 	state.transitioning = false
+	if _controller != null:
+		_controller.on_screen_settled.call_deferred()
 	if _base != null:
 		_focus(_base)
 		_base.on_revealed()

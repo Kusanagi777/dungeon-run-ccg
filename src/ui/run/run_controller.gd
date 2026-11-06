@@ -90,12 +90,12 @@ const LEGAL: Dictionary = {
 	SCREEN_NOTICE: [&"notice_new_run"],
 	SCREEN_DATA_ERROR: [&"quit_requested"],
 }
-## U4's terminal intents: each sets `committed` until the screen is swapped out.
-const TERMINAL: Array[StringName] = [&"pick", &"skip_pick", &"start_run", &"begin_match", &"continue", &"new_run_same_hero"]
 ## `run_warning` codes repeated as a status line (U5).
 const ACTIONABLE_WARNINGS: Array[String] = [RunCodes.W_SAVE_FAILED, RunCodes.W_BOSS_POOL_SHORT]
 const LOAD_QUIET: Array[StringName] = [&"OK", &"FRESH"]
 const FAULT_WARNING: String = "match_faulted"
+## An `option_ids` entry resolved to nothing (Edge Cases "Picks and input").
+const MISSING_WARNING: String = "ui_data_missing"
 
 ## What the shell is showing.
 var state: ShellState = ShellState.new()
@@ -173,7 +173,7 @@ func intent(name: StringName, args: Dictionary = {}) -> void:
 	if not (LEGAL.get(top, []) as Array).has(name):
 		_reject(name, &"bad_state")
 		return
-	if state.committed and TERMINAL.has(name):
+	if state.committed:
 		_reject(name, &"committed")
 		return
 	if top == SCREEN_CONFIRM:
@@ -190,6 +190,13 @@ func on_match_view_finished(_result: Variant) -> void:
 	_drain()
 	if state.base == &"":
 		_open_for_phase()
+
+
+## U4: the screen a terminal intent led to is up, so `committed` ends. `RunShell` calls
+## this deferred: a swap with no transition or landing still holds for the rest of the
+## frame, so a second press in it cannot reach the next screen (AC-20).
+func on_screen_settled() -> void:
+	state.committed = false
 
 
 ## A toast was shown: acks an unlock, once (U5). `ToastLayer.shown` connects here.
@@ -223,7 +230,10 @@ func _dispatch(name: StringName, args: Dictionary) -> void:
 		&"new_run_requested":
 			_open_hero_select()
 		&"continue_requested":
-			_open_overlay(SCREEN_RESUME)
+			if _meta.load_active_run() == null:
+				_reject(name, &"bad_state")
+			else:
+				_open_overlay(SCREEN_RESUME)
 		&"open_run_log":
 			_load_log_page(true)
 			_open_base(SCREEN_LOG, _log_model(), RunUiConfig.KIND_FADE)
@@ -617,12 +627,16 @@ func _open_for_phase() -> void:
 
 
 func _open_screen(id: StringName, kind: StringName) -> void:
-	_open_base(id, _model_for(id), kind)
+	var model: Dictionary = _model_for(id)
+	for option: Dictionary in model.get("options", []):
+		if bool(option.get("missing", false)):
+			_warn(MISSING_WARNING)
+			break
+	_open_base(id, model, kind)
 
 
 func _open_base(id: StringName, model: Dictionary, kind: StringName) -> void:
 	state.base = id
-	state.committed = false
 	screen_requested.emit(id, _with_overrides(model), kind)
 
 
