@@ -622,6 +622,23 @@
       "opt.mend": "Mend\nRestore 4 health"
     },
     "rejection_tooltip_s": 1.5,
+    "sfx_heavy_damage": 5,
+    "sfx_steps": {
+      "play_card": "sfx.ui.card_play",
+      "attack_lunge": "sfx.ui.attack_whoosh",
+      "damage_pop": "sfx.ui.damage",
+      "heal_pop": "sfx.ui.heal",
+      "shield_pop": "sfx.ui.shield_pop",
+      "death_group": "sfx.ui.death_thud",
+      "draw": "sfx.ui.draw",
+      "burn": "sfx.ui.burn",
+      "fatigue_label": "sfx.ui.heartbeat",
+      "turn_banner": "sfx.ui.turn_chime",
+      "intent_show": "sfx.ui.page_turn",
+      "overlay_open": "sfx.ui.overlay",
+      "overlay_close": "sfx.ui.overlay",
+      "mulligan_open": "sfx.ui.overlay"
+    },
     "reject": {
       "source_flash_s": 0.034,
       "source_flash_px": 2,

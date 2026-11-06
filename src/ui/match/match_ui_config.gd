@@ -33,7 +33,7 @@ const REQUIRED: Array[String] = [
 	"d_base", "speed_div", "silent_types", "feed_max_lines", "layout", "palette", "strings", "glyphs",
 	"hero", "board", "pop", "mulligan", "end_screen", "choice", "pause", "reject", "focus", "treasure",
 	"text_scale", "palette_high_contrast", "hand", "targeting", "intent", "skip_hint", "impact", "impact_ms",
-	"feed_font_px", "feed_quiet_types", "hand_dim_alpha", "rejection_tooltip_s",
+	"feed_font_px", "feed_quiet_types", "hand_dim_alpha", "rejection_tooltip_s", "sfx_steps", "sfx_heavy_damage",
 ]
 
 

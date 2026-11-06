@@ -49,6 +49,8 @@ const EVENT_REJECTED: String = "command_rejected"
 const EVENT_TURN_STARTED: String = "turn_started"
 const CONFIG_NAME: String = "match_ui"
 const AI_CONFIG_NAME: String = "ai_profiles"
+## The one audio table, shared with Run UI.
+const RUN_CONFIG_NAME: String = "run_ui"
 const TOP_BAR_MARGIN_PX: int = 24
 const INSPECT_GAP_PX: float = 60.0
 ## match-end.md §10: the one colour ramp, on its own fixed time.
@@ -94,6 +96,8 @@ var _intent: IntentBanner = null
 var _dropped_card: int = -1
 var _display_settings: MatchDisplay = null
 var _reading: ReadingPanel = null
+var _sfx_player: SfxPlayer = null
+var _sfx_config: Dictionary = {}
 var _reject: RejectPresenter = null
 var _tray: TreasureTray = null
 var _focus: FocusPresenter = null
@@ -336,6 +340,7 @@ func _read_services() -> void:
 	var db: CardDatabase = services.card_database
 	_config = db.config(CONFIG_NAME)
 	_ai_config = db.config(AI_CONFIG_NAME)
+	_sfx_config = (db.config(RUN_CONFIG_NAME) as Dictionary).get("sfx", {})
 	_settings = services.meta.get_settings()
 	_meta = services.meta
 	_settings_bus = services.settings_bus
@@ -345,6 +350,11 @@ func _read_services() -> void:
 
 
 func _build() -> void:
+	_sfx_player = SfxPlayer.new()
+	_sfx_player.name = "Sfx"
+	add_child(_sfx_player)
+	_sfx_player.configure(_sfx_config)
+	sfx.sink = _sfx_player.play
 	_queue = AnimationQueue.new(_config, _settings)
 	_speed = StringName(str(_settings.get(SETTING_ANIM_SPEED)))
 	_boss_pacing = AnimationQueue.boss_pacing(_config, _ai_config, _settings)
@@ -514,12 +524,14 @@ func _open_menu() -> void:
 	_sync_menu_motion()
 	_router.intent(InputRouter.INTENT_CANCEL)
 	_router.set_menu_open(true)
+	sfx.play(SfxStub.CUE_OVERLAY)
 	_pause.open()
 	_table.color = _ui.color("table_dark")
 
 
 func _on_menu_closed() -> void:
 	_router.set_menu_open(false)
+	sfx.play(SfxStub.CUE_OVERLAY)
 	_present(_last_display if not _queue.is_idle() else _display())
 
 
@@ -638,6 +650,7 @@ func _start() -> void:
 	if _started or _controller == null or _view == null:
 		return
 	_started = true
+	_sfx_player.play_music(SfxStub.MUSIC_AMBIENT)
 	_ui.query = _controller.query()
 	_ui.locate = _locate
 	_router.set_controller(_controller)
@@ -691,6 +704,8 @@ func _on_event(event: Dictionary) -> void:
 		else:
 			_queue.exit_boss_turn()
 	var steps: Array[AnimStep] = _view.apply(event)
+	if str(event.get("type", "")) == EVENT_REJECTED and not _loading:
+		sfx.play(SfxStub.CUE_DENY)
 	if _view.result != null:
 		_router.intent(InputRouter.INTENT_CANCEL)
 	var display: Dictionary = _display()
@@ -723,9 +738,25 @@ func _display() -> Dictionary:
 
 
 func _on_step_started(step: AnimStep, d_eff: float) -> void:
+	_raise_step_sound(step)
 	for presenter: Presenter in _presenters:
 		if presenter.claims(step):
 			presenter.on_step_started(step, d_eff)
+
+
+## Every sound is the audio half of a step the player saw start: a skipped one has none.
+func _raise_step_sound(step: AnimStep) -> void:
+	var cue: Variant = (_config.sfx_steps as Dictionary).get(String(step.kind))
+	if cue != null:
+		sfx.play(StringName(str(cue)))
+	match step.kind:
+		AnimStep.DAMAGE_POP:
+			var heavy: bool = int(step.data.get("amount", 0)) >= int(_config.sfx_heavy_damage)
+			sfx.play(SfxStub.CUE_IMPACT_HEAVY if heavy else SfxStub.CUE_IMPACT_LIGHT)
+		AnimStep.INTENT_COMMIT:
+			var intent: Variant = (step.data.get("display", {}) as Dictionary).get("intent")
+			if intent is Dictionary and (intent as Dictionary).get("kept", true) == false:
+				sfx.play(SfxStub.CUE_PLAN_CHANGED)
 
 
 func _finish_step(step: AnimStep) -> void:
@@ -768,6 +799,8 @@ func _on_command_requested(command: Dictionary) -> void:
 	_aim_rejection()
 	_reject.set_detail(_rejection_detail(command) if not _controller.is_read_only() else {})
 	var result: Dictionary = _controller.submit(command)
+	if result.accepted and str(command.get("type", "")) == MatchRecords.CMD_END_TURN:
+		sfx.play(SfxStub.CUE_END_TURN)
 	if not result.accepted:
 		_mulligan.on_rejected()
 		_choice.on_rejected()
@@ -801,6 +834,8 @@ func _on_session_started(session: Dictionary) -> void:
 	var kind: String = str(source.kind)
 	var targeted: bool = session.phase == InputRouter.SESSION_TARGET
 	_focus.focus_stop(source, false)
+	if kind == InputRouter.SOURCE_CARD:
+		sfx.play(SfxStub.CUE_CARD_LIFT)
 	_set_source_lifted(source, true, targeted or session.entered_by != TargetingSession.ENTERED_DRAG)
 	if targeted:
 		_open_target_phase(session, _source_centre(source))

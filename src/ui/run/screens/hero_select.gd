@@ -17,6 +17,7 @@ const BACK_POS: Vector2 = Vector2(40, 640)
 const START_POS: Vector2 = Vector2(560, 640)
 const DECK_POS: Vector2 = Vector2(1080, 640)
 const PORTRAIT: Vector2 = Vector2(120, 160)
+const HERO_STING: String = "hero_sting_%s"
 ## §5.2's 125 % / 150 % stack: the plate shrinks and the full text moves to the reading panel.
 const SCALED_PLATE_H: float = 56.0
 const FULL_SCALE: float = 1.5
@@ -274,6 +275,7 @@ func _select_id(id: String) -> void:
 
 func _select(index: int) -> void:
 	_selected = index
+	sfx_requested.emit(StringName(HERO_STING % str(_heroes[index].id)))
 	for i: int in _panels.size():
 		_panels[i].modulate.a = 1.0 if i == index else UiKit.DIM_ALPHA + (1.0 - UiKit.DIM_ALPHA) / 2.0
 	_deck.text = tr("hero.deck").format({"n": (_heroes[index].deck_rows as Array).size()})

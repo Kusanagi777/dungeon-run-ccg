@@ -253,6 +253,7 @@ func _centred_label(rect: Rect2) -> Label:
 func _add_actions(model: Dictionary, strip: ProgressStrip) -> void:
 	_pick = UiKit.button(tr("draft.pick"), true)
 	_pick.pressed.connect(func() -> void: _confirm(_current()))
+	_pick.set_meta(RunShell.META_SILENT, true)
 	add_child(_pick)
 	UiKit.place(_pick, Rect2(PICK_POS, _pick.custom_minimum_size))
 	var order: Array[Control] = []

@@ -27,6 +27,15 @@ const NO_TRANSITION: StringName = &"none"
 const OPTION_ACTIONS: Array[StringName] = [&"option_1", &"option_2", &"option_3"]
 const FOCUS_ENTRY_ACTIONS: Array[StringName] = [&"ui_focus_next", &"ui_focus_prev", &"ui_up", &"ui_down", &"ui_left", &"ui_right"]
 const BANNER_H_PX: float = 28.0
+## On a button whose press raises its own sound.
+const META_SILENT: StringName = &"sfx_silent"
+const SFX_HOVER: StringName = &"ui_hover"
+const SFX_SELECT: StringName = &"ui_select"
+const SFX_TICK: StringName = &"ui_slider_tick"
+const SFX_PICK: StringName = &"ui_pick"
+const SFX_UNLOCK: StringName = &"ui_unlock"
+const SFX_OVERLAY: StringName = &"sfx.ui.overlay"
+const SFX_BOSS_INTRO: String = "boss_intro_%d"
 const BUS_VOLUME: Dictionary = {"volume_master": "Master", "volume_music": "Music", "volume_sfx": "SFX"}
 const SETTING_KEYS: Array[StringName] = [
 	&"anim_speed", &"reduce_motion", &"text_scale", &"high_contrast_states", &"gamma", &"fullscreen",
@@ -51,6 +60,9 @@ var _banner: PanelContainer = null
 ## A pick's fly-to-strip is playing; the screen it decided waits in [member _held_open].
 var _landing: bool = false
 var _held_open: Array = []
+var _sfx: SfxPlayer = null
+# True while a screen is built: what it sets up is not the player acting.
+var _binding: bool = false
 
 @onready var _stack: Control = %ScreenStack
 @onready var _match_host: Control = %MatchHost
@@ -97,7 +109,10 @@ func open_base(id: StringName, read_model: Dictionary, kind: StringName = RunUiC
 	_base = _instance(id)
 	_stack.add_child(_base)
 	_stack.move_child(_base, 0)
+	_binding = true
 	_base.bind(read_model)
+	_binding = false
+	_raise_screen_sound(id, read_model)
 	_update_banner()
 	if kind == NO_TRANSITION or _transition == null:
 		_finish_open()
@@ -117,8 +132,11 @@ func push_overlay(id: StringName, read_model: Dictionary) -> void:
 	var overlay: Screen = _instance(id)
 	_stack.add_child(overlay)
 	_overlays.append(overlay)
+	_binding = true
 	overlay.bind(read_model)
 	_focus(overlay)
+	_binding = false
+	_sfx.play(SFX_OVERLAY)
 	_refresh_idle()
 
 
@@ -181,6 +199,12 @@ func _ready() -> void:
 	var ready_load: bool = db != null and db.state() == CardDatabase.State.READY
 	_config = db.config(CONFIG_NAME) if ready_load else _fallback_config()
 	RunText.install(_config)
+	_sfx = SfxPlayer.new()
+	_sfx.name = "Sfx"
+	add_child(_sfx)
+	_sfx.configure(_config.get("sfx", {}))
+	get_tree().node_added.connect(_on_node_added)
+	get_viewport().gui_focus_changed.connect(_on_focus_moved)
 	_transition = Transition.new(_fade, _config)
 	_transition.finished.connect(_on_transition_finished)
 	_toasts.configure(_config)
@@ -213,6 +237,7 @@ func _start_controller(db: CardDatabase) -> void:
 	_controller.skip_requested.connect(_transition.skip)
 	_controller.quit_requested.connect(_quit)
 	_toasts.shown.connect(_controller.on_toast_shown)
+	_toasts.shown.connect(_on_toast_shown)
 	if _services.settings_bus != null:
 		_services.settings_bus.settings_changed.connect(_on_setting_changed)
 	_settings = _controller.settings().duplicate()
@@ -238,6 +263,7 @@ func _instance(id: StringName) -> Screen:
 	node.set_anchors_preset(Control.PRESET_FULL_RECT)
 	node.intent_requested.connect(_on_intent)
 	node.landing_finished.connect(_end_landing)
+	node.sfx_requested.connect(_on_sfx_requested)
 	return node
 
 
@@ -306,7 +332,47 @@ func _on_match_view_finished(result: Variant) -> void:
 	_update_banner()
 
 
+func _raise_screen_sound(id: StringName, read_model: Dictionary) -> void:
+	if id == RunController.SCREEN_BOSS:
+		_sfx.play(StringName(SFX_BOSS_INTRO % int(read_model.get("band", 1))))
+		return
+	var event: Variant = (_config.get("sfx", {}).get("screens", {}) as Dictionary).get(String(id))
+	if event != null:
+		_sfx.play(StringName(str(event)))
+
+
+func _on_sfx_requested(event: StringName) -> void:
+	if not _binding:
+		_sfx.play(event)
+
+
+func _on_toast_shown(kind: StringName, _key: String) -> void:
+	if kind == &"unlock":
+		_sfx.play(SFX_UNLOCK)
+
+
+# One place wires every control's sound, so a screen stays free of audio.
+func _on_node_added(node: Node) -> void:
+	if not _stack.is_ancestor_of(node):
+		return
+	if node is BaseButton:
+		var button: BaseButton = node
+		if not button.has_meta(META_SILENT):
+			button.pressed.connect(_on_sfx_requested.bind(SFX_SELECT))
+		button.mouse_entered.connect(_on_sfx_requested.bind(SFX_HOVER))
+	elif node is Slider:
+		(node as Slider).value_changed.connect(func(_value: float) -> void: _on_sfx_requested(SFX_TICK))
+	elif node is OptionPanel:
+		(node as Control).mouse_entered.connect(_on_sfx_requested.bind(SFX_HOVER))
+
+
+func _on_focus_moved(_control: Control) -> void:
+	if not _match_showing():
+		_on_sfx_requested(SFX_HOVER)
+
+
 func _on_pick_landed(index: int, deck_size: int) -> void:
+	_sfx.play(SFX_PICK)
 	var speed: String = str(_settings.get("anim_speed", RunUiConfig.SPEED_NORMAL))
 	var reduce: bool = bool(_settings.get("reduce_motion", false))
 	var ms: int = RunUiConfig.t_transition(_config, RunUiConfig.KIND_FLY_TO_STRIP, speed, reduce)

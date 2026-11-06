@@ -18,6 +18,8 @@ const DIM_ALPHA: float = 0.75
 
 ## The player asked for [param intent_name]; `RunShell` wires it to `RunController.intent`.
 signal intent_requested(intent_name: StringName, args: Dictionary)
+## Raise audio event [param event]; a screen never plays a file (ui-code rule 5).
+signal sfx_requested(event: StringName)
 ## The animation [method play_landing] started has ended by itself.
 signal landing_finished
 
