@@ -184,9 +184,10 @@ static func normalised(value: Variant) -> Variant:
 	return value
 
 
-## True for a 16-digit hex seed, the R1 persisted form.
+## True for a 16-digit hex seed, the R1 persisted form. `is_valid_hex_number` alone
+## also takes a sign, which `RngService.parse_hex_u64` refuses.
 static func is_seed_hex(text: String) -> bool:
-	return text.length() == 16 and text.is_valid_hex_number()
+	return text.length() == 16 and text.is_valid_hex_number() and not text.begins_with("-") and not text.begins_with("+")
 
 
 ## The Edge Cases fallback for a record over `max_run_record_bytes`: in [param record],
