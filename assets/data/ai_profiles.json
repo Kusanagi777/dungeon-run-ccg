@@ -118,9 +118,6 @@
       "passive_driven": {
         "weights": {
           "w_passive": 2.5
-        },
-        "choice_preference": {
-          "deathrattle": 0.5
         }
       }
     },
