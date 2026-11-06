@@ -208,9 +208,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "neutral_dungeon_delver": 12,
+     "neutral_lantern_bearer": 10,
+     "neutral_ogre_porter": 8,
+     "neutral_shield_golem": 6
     },
     "boss_id": "boss_torchbearer",
     "band": 1,
@@ -224,9 +225,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "neutral_tunnel_rat": 12,
+     "neutral_wolf_rider": 10,
+     "war_iron_resolve": 8,
+     "war_iron_vanguard": 6
     },
     "boss_id": "boss_rat_king",
     "band": 1,
@@ -240,8 +242,9 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
+     "war_pit_brawler": 12,
+     "war_quartermaster": 10,
+     "war_rusted_axe": 8,
      "war_sharpen": 6
     },
     "boss_id": "boss_gatekeeper",
@@ -256,9 +259,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "war_shield_squire": 12,
+     "war_warcry": 10,
+     "neutral_banner_captain": 8,
+     "neutral_bulwark_smith": 6
     },
     "boss_id": "boss_rot_warden",
     "band": 2,
@@ -272,9 +276,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "neutral_cellar_guard": 12,
+     "neutral_crypt_brute": 10,
+     "neutral_dungeon_delver": 8,
+     "neutral_lantern_bearer": 6
     },
     "boss_id": "boss_blood_abbess",
     "band": 2,
@@ -288,9 +293,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "neutral_ogre_porter": 12,
+     "neutral_shield_golem": 10,
+     "neutral_tunnel_rat": 8,
+     "neutral_wolf_rider": 6
     },
     "boss_id": "boss_iron_tollman",
     "band": 2,
@@ -304,9 +310,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
-     "war_shield_squire": 8,
-     "war_sharpen": 6
+     "war_iron_resolve": 12,
+     "war_iron_vanguard": 10,
+     "war_pit_brawler": 8,
+     "war_quartermaster": 6
     },
     "boss_id": "boss_hollow_king",
     "band": 3,
@@ -320,9 +327,10 @@
     "turns": 9,
     "cards_played": 12,
     "damage_by_card": {
-     "neutral_tunnel_rat": 10,
+     "war_rusted_axe": 12,
+     "war_sharpen": 10,
      "war_shield_squire": 8,
-     "war_sharpen": 6
+     "war_warcry": 6
     },
     "boss_id": "boss_lich_archivist",
     "band": 3,
@@ -337,9 +345,24 @@
    "matches_played": 8,
    "turns": 72,
    "damage_by_card": {
-    "neutral_tunnel_rat": 80,
-    "war_shield_squire": 64,
-    "war_sharpen": 48
+    "neutral_dungeon_delver": 20,
+    "neutral_lantern_bearer": 16,
+    "neutral_ogre_porter": 20,
+    "neutral_shield_golem": 16,
+    "neutral_tunnel_rat": 20,
+    "neutral_wolf_rider": 16,
+    "war_iron_resolve": 20,
+    "war_iron_vanguard": 16,
+    "war_pit_brawler": 20,
+    "war_quartermaster": 16,
+    "war_rusted_axe": 20,
+    "war_sharpen": 16,
+    "war_shield_squire": 20,
+    "war_warcry": 16,
+    "neutral_banner_captain": 8,
+    "neutral_bulwark_smith": 6,
+    "neutral_cellar_guard": 12,
+    "neutral_crypt_brute": 10
    },
    "cards_drafted": 21,
    "treasures_taken": 3

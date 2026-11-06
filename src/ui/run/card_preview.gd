@@ -37,6 +37,11 @@ func setup() -> void:
 ## Shows [param row] (`RunReadModels.card_row`) at x [param left], its top at
 ## [param row_centre_y] minus half its height, clamped.
 func show_card(row: Dictionary, left: float, row_centre_y: float) -> void:
+	# A wrapped label measures itself at the width it last had, and a hidden panel gave it
+	# none: the panel would size to a column of single words, and a `Control` never
+	# shrinks back from that. So the width goes first.
+	for label: Label in [_name, _text]:
+		label.size.x = SIZE_PX.x - RunUiTheme.PANEL_PADDING_PX * 2.0
 	_name.text = str(row.name)
 	_meta.text = tr("card.meta").format({"cost": row.cost, "stats": row.stats})
 	_text.text = str(row.text)
