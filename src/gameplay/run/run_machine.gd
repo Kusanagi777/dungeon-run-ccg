@@ -569,7 +569,7 @@ func _build_match_config() -> Dictionary:
 		"log": _match_log,
 		"player": {
 			"hero_def_id": state.hero_id,
-			"deck": Array(state.deck),
+			"deck": Array(state.deck).duplicate(),
 			"hook_installers": _treasures.installers_for(state.treasures, state.treasure_state),
 		},
 		"boss": {

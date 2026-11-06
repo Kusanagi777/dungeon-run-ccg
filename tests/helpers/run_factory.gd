@@ -10,8 +10,9 @@
 ## `effective_treasure_floors`) are the GDD's own formulas so a test can state
 ## its expectation from the registry instead of a literal.
 ##
-## TODO(E2 story): swap to the production RunState / RunRecord / DraftRecord /
-## Offer types once Run Structure and Reward Draft exist.
+## The Dictionaries are the R1 JSON form, which is what Meta stores and what
+## `RunRecord.to_dict` writes; [method to_run_state] is the road to the production
+## `RunState`. `tests/helpers/run_harness.gd` drives the production `RunMachine`.
 class_name RunFactory
 extends RefCounted
 
@@ -196,15 +197,22 @@ static func make_match_summary(floor: int, result: String = "win", turns: int = 
 	return summary
 
 
+## [param run_state] as the production `RunState`, through `RunRecord.from_dict`.
+static func to_run_state(run_state: Dictionary) -> RunState:
+	return RunRecord.from_dict(run_state)
+
+
 ## R3's MatchConfig for the run's current floor, built through MatchFactory:
-## player deck = `run_state.deck`, boss = `boss_sequence[floor − 1]`.
-static func make_match_config_for(run_state: Dictionary, rng: TestRngService = null, log: TestEventLog = null) -> Dictionary:
+## player deck = `run_state.deck`, boss = `boss_sequence[floor - 1]`, and
+## `hook_installers = treasures.installers_for(...)` in pick order, `[]` with no
+## [param treasures].
+static func make_match_config_for(run_state: Dictionary, rng: TestRngService = null, log: TestEventLog = null, treasures: Treasures = null) -> Dictionary:
 	var floor: int = int(run_state.floor)
 	var config: Dictionary = MatchFactory.make_match_config(floor, rng, log)
 	config.band = band_of(floor, run_state.band_split)
 	config.player.hero_def_id = run_state.hero_id
 	config.player.deck = run_state.deck.duplicate()
-	config.player.hook_installers = run_state.treasures.duplicate()
+	config.player.hook_installers = treasures.installers_for(run_state.treasures, run_state.treasure_state) if treasures != null else []
 	config.boss.boss_def_id = run_state.boss_sequence[floor - 1]
 	config.boss.health = MatchFactory.boss_health_for_band(config.band)
 	return config

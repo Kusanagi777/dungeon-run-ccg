@@ -74,14 +74,14 @@ static func to_dict(state: RunState) -> Dictionary:
 		"seed_source": state.seed_source,
 		"hero_id": state.hero_id,
 		"floors_per_run": state.floors_per_run,
-		"band_split": Array(state.band_split),
-		"treasure_floors": Array(state.treasure_floors),
-		"boss_sequence": Array(state.boss_sequence),
+		"band_split": Array(state.band_split).duplicate(),
+		"treasure_floors": Array(state.treasure_floors).duplicate(),
+		"boss_sequence": Array(state.boss_sequence).duplicate(),
 		"floor": state.floor,
 		"status": state.status,
 		"reward_step": state.reward_step,
-		"deck": Array(state.deck),
-		"treasures": Array(state.treasures),
+		"deck": Array(state.deck).duplicate(),
+		"treasures": Array(state.treasures).duplicate(),
 		"drafts": draft_rows,
 		"match_attempts": state.match_attempts.duplicate(true),
 		"match_summaries": Array(state.match_summaries).duplicate(true),
@@ -184,9 +184,10 @@ static func normalised(value: Variant) -> Variant:
 	return value
 
 
-## True for a 16-digit hex seed, the R1 persisted form.
+## True for a 16-digit hex seed, the R1 persisted form. `is_valid_hex_number` alone
+## also takes a sign, which `RngService.parse_hex_u64` refuses.
 static func is_seed_hex(text: String) -> bool:
-	return text.length() == 16 and text.is_valid_hex_number()
+	return text.length() == 16 and text.is_valid_hex_number() and not text.begins_with("-") and not text.begins_with("+")
 
 
 ## The Edge Cases fallback for a record over `max_run_record_bytes`: in [param record],
@@ -254,14 +255,30 @@ static func _invariants_hold(d: Dictionary) -> bool:
 		return false
 	if not d.run_log.get("events") is Array:
 		return false
-	return _drafts_fit(d)
+	return _summaries_fit(d) and _drafts_fit(d)
+
+
+## R10: every summary is a row `totals` can fold: numeric `turns`, and a
+## `damage_by_card` of numbers when it has one.
+static func _summaries_fit(d: Dictionary) -> bool:
+	for row: Variant in d.match_summaries:
+		if not row is Dictionary or not _is_number(row.get("turns")):
+			return false
+		var damage: Variant = row.get("damage_by_card", {})
+		if not damage is Dictionary or not (damage as Dictionary).values().all(_is_number):
+			return false
+	return true
+
+
+static func _is_number(value: Variant) -> bool:
+	return value is int or value is float
 
 
 ## `reward_step` names a kind exactly in `post_match_reward`.
 static func _reward_step_fits(d: Dictionary) -> bool:
 	var step: Variant = d.get("reward_step")
 	if d.status == RunState.STATUS_POST_MATCH_REWARD:
-		return DraftRecord.KINDS.has(step)
+		return step is String and DraftRecord.KINDS.has(step)
 	return step == null
 
 
@@ -278,7 +295,7 @@ static func _drafts_fit(d: Dictionary) -> bool:
 		if seen.has(key):
 			return false
 		seen[key] = true
-		if row.picked_id != null:
+		if row.get("picked_id") != null:
 			if row.kind == DraftRecord.KIND_BUNDLE:
 				bundle_picks += 1
 			else:

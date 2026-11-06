@@ -151,17 +151,19 @@ func is_terminal() -> bool:
 	return TERMINAL_STATUSES.has(status)
 
 
-## R10 `totals` from the summaries so far.
+## R10 `totals` from the summaries so far. A damaged save reaches here on its way to
+## the archive (R8.1), so a value that is no number counts for nothing.
 func compute_totals() -> Dictionary:
 	var turns: int = 0
 	var damage_by_card: Dictionary = {}
 	for summary: Dictionary in match_summaries:
-		turns += int(summary.get("turns", 0))
+		turns += _whole(summary.get("turns", 0))
 		var damage: Variant = summary.get("damage_by_card", {})
 		if not damage is Dictionary:
 			continue
 		for card_id: Variant in damage:
-			damage_by_card[card_id] = int(damage_by_card.get(card_id, 0)) + int(damage[card_id])
+			if damage[card_id] is int or damage[card_id] is float:
+				damage_by_card[card_id] = int(damage_by_card.get(card_id, 0)) + _whole(damage[card_id])
 	var cards_drafted: int = 0
 	for record: DraftRecord in drafts:
 		if record.kind == DraftRecord.KIND_BUNDLE:
@@ -205,10 +207,10 @@ func read_model(db: CardDatabase, config: Dictionary) -> Dictionary:
 		"floors_per_run": floors_per_run,
 		"band": band(floor),
 		"hero": _hero_model(db),
-		"deck": Array(deck),
+		"deck": Array(deck).duplicate(),
 		"deck_size": deck.size(),
 		"deck_entries": _deck_entries(),
-		"treasures": Array(treasures),
+		"treasures": Array(treasures).duplicate(),
 		"drafts": draft_rows,
 		"match_summaries": Array(match_summaries).duplicate(true),
 		"attempt": attempts_on(floor),
@@ -224,6 +226,10 @@ func read_model(db: CardDatabase, config: Dictionary) -> Dictionary:
 	else:
 		model["boss"] = _boss_model(db, config)
 	return model
+
+
+static func _whole(value: Variant) -> int:
+	return int(value) if value is int or value is float else 0
 
 
 func _hero_model(db: CardDatabase) -> Dictionary:
