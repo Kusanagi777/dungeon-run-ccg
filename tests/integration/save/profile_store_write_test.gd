@@ -65,6 +65,68 @@ func test_save_writes_pretty_json_with_schema_version_as_first_key() -> void:
 	assert_bool(text.begins_with("{\n\t\"schema_version\"")).is_true()
 
 
+## What one `stringify` of the whole profile gives, as M1.1 specifies the file.
+func _plain_text(store: ProfileStore) -> String:
+	var profile: Dictionary = store.live_profile()
+	var ordered: Dictionary = {"schema_version": profile.schema_version}
+	ordered.merge(profile)
+	return JSON.stringify(ordered, "\t", false, true)
+
+
+func _file_text() -> String:
+	return FileAccess.get_file_as_string(_path("profile.json"))
+
+
+func test_file_with_a_run_log_is_byte_for_byte_a_plain_stringify() -> void:
+	# Arrange
+	var store: ProfileStore = _loaded_store()
+	store.archive_run(ProfileFixtures.full_record("run_a"))
+	store.archive_run(ProfileFixtures.victory("run_b"))
+
+	# Act
+	store.save_active_run({"run_id": "run_c", "ratio": 0.1})
+
+	# Assert
+	assert_str(_file_text()).is_equal(_plain_text(store))
+
+
+func test_file_stays_exact_through_load_prune_and_reset() -> void:
+	# Arrange: every event that changes the log under the held entry texts
+	var store: ProfileStore = _loaded_store({"run_log_cap": 2})
+	for run_id: String in ["run_a", "run_b", "run_c"]:
+		store.archive_run(ProfileFixtures.victory(run_id))
+
+	# Act / Assert: pruned
+	assert_str(_file_text()).is_equal(_plain_text(store))
+	assert_str(_file_text()).not_contains("run_a")
+
+	# Act / Assert: a new session prints what it loaded
+	store.release_lock()
+	store = _loaded_store({"run_log_cap": 2})
+	store.archive_run(ProfileFixtures.victory("run_d"))
+	assert_str(_file_text()).is_equal(_plain_text(store))
+	assert_str(_file_text()).not_contains("run_b")
+
+	# Act / Assert: a reset holds nothing over
+	store.reset_profile(ProfileFixtures.RESET_TOKEN)
+	assert_str(_file_text()).not_contains("run_d")
+	store.archive_run(ProfileFixtures.victory("run_e"))
+	assert_str(_file_text()).is_equal(_plain_text(store))
+	assert_int(store.run_log_count()).is_equal(1)
+
+
+func test_log_slot_text_inside_an_opaque_blob_does_not_move_the_log() -> void:
+	# Arrange: run_log precedes active_run, so the first match is the real slot
+	var store: ProfileStore = _loaded_store()
+	store.archive_run(ProfileFixtures.victory("run_a"))
+
+	# Act
+	store.save_active_run({"run_id": "run_b", "note": ProfileStore.LOG_SLOT})
+
+	# Assert
+	assert_str(_file_text()).is_equal(_plain_text(store))
+
+
 # --- AC-2 ----------------------------------------------------------------------
 
 func test_save_then_load_is_equal_key_for_key() -> void:
