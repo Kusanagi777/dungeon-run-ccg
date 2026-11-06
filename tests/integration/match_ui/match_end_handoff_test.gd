@@ -249,18 +249,22 @@ func test_the_feed_key_still_works_in_ended_and_does_not_finish_the_view() -> vo
 
 
 func test_a_menu_open_when_the_match_ends_closes_with_the_drain() -> void:
-	# Arrange: a queued match end under an open menu
-	var view: MatchView = await MatchViewHarness.open(self, "match_end_victory", [], {"anim_speed": "normal"})
+	# Arrange: the end reaches a player who has the menu up
+	var view: MatchView = await MatchViewHarness.open(self, "turn1_player", [], {"anim_speed": "normal"})
+	MatchViewHarness.run(view, FRAME_S)
 	var pause: PauseMenu = view.get("_pause")
+	view.router().intent(InputRouter.INTENT_MENU)
+	var opened: bool = pause.is_open()
 
 	# Act
-	pause.open()
-	view.queue().skip_all()
+	MatchViewHarness.inject(view, "match_ended", {"result": "win", "winner": "player", "reason": "hero_dead", "turns": 3, "final_health": {"player": 30, "boss": 0}})
 	MatchViewHarness.settle(view)
-	view.call("_on_drained")
 
-	# Assert: nothing but the banner is left to read once `Ended` is entered
+	# Assert: nothing but the banner is left to read
+	assert_bool(opened).is_true()
+	assert_bool(pause.is_open()).is_false()
 	assert_str(String(view.router().view_state())).is_equal(String(InputRouter.STATE_ENDED))
+	assert_bool(_banner(view).is_shown()).is_true()
 	MatchViewHarness.close(view)
 
 

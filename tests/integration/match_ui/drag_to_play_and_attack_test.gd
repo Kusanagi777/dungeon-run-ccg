@@ -113,16 +113,13 @@ func test_an_untargeted_card_shows_the_cast_zone_only_while_dragged() -> void:
 	MatchViewHarness.close(view)
 
 
-func test_a_targeted_spell_parks_at_top_y_438_upright_with_the_arrow_from_it() -> void:
-	# Arrange: the fixture's deck gives a spell with targets
+func test_a_parked_card_stands_at_top_y_438_upright_on_its_f1_x() -> void:
+	# Arrange
 	var view: MatchView = await _open("targeting_taunt")
-	var hand_ids: Array = view.hand().get("_order")
-	var entries: Array[Dictionary] = MatchViewHarness.legal(view, MatchRecords.CMD_USE_HERO_POWER)
-	var card: int = int(hand_ids[0])
+	var card: int = MatchViewHarness.hand_id(view, 0)
 	var slot_x: float = float((view.hand().get("_slots") as Dictionary)[card].x)
-	var session_source: Dictionary = {"kind": InputRouter.SOURCE_CARD, "id": card}
 
-	# Act: a parked source, as a Phase T session parks it
+	# Act: as a Phase T session parks it
 	view.hand().begin_drag(card, true)
 	var frame: CardFrame = view.hand().card(card)
 
@@ -131,8 +128,6 @@ func test_a_targeted_spell_parks_at_top_y_438_upright_with_the_arrow_from_it() -
 	assert_float(frame.position.x + frame.size.x / 2.0).is_equal(slot_x)
 	assert_float(frame.rotation_degrees).is_equal(0.0)
 	assert_float(frame.scale.x).is_equal(1.0)
-	assert_int(entries.size()).is_equal(1)
-	assert_int(int(session_source.id)).is_equal(card)
 	view.hand().end_drag(false)
 	MatchViewHarness.close(view)
 

@@ -22,7 +22,8 @@ func _state(view: MatchView) -> Dictionary:
 	}
 
 
-func _assert_parity(fixture: String, by_keys: Callable, by_mouse: Callable) -> void:
+## [param moves] says the action leaves a mark: a pair of no-ops must not pass as parity.
+func _assert_parity(fixture: String, by_keys: Callable, by_mouse: Callable, moves: bool = true) -> void:
 	# Arrange
 	var keys: MatchView = await _open(fixture)
 	var mouse: MatchView = await _open(fixture)
@@ -37,7 +38,7 @@ func _assert_parity(fixture: String, by_keys: Callable, by_mouse: Callable) -> v
 	# Assert
 	assert_dict(key_state).is_equal(mouse_state)
 	assert_array(MatchViewHarness.event_types(keys)).is_equal(MatchViewHarness.event_types(mouse))
-	assert_bool(key_state.hash() != before.hash() or before == key_state).is_true()
+	assert_bool(key_state != before).override_failure_message("the action changed nothing").is_equal(moves)
 	MatchViewHarness.close(keys)
 	MatchViewHarness.close(mouse)
 
@@ -86,7 +87,8 @@ func test_o17_cancelling_a_selection_with_esc_and_with_rmb() -> void:
 			MatchViewHarness.action(view, &"ui_cancel"),
 		func(view: MatchView) -> void:
 			MatchViewHarness.click(view, MatchViewHarness.card_point(view, MatchViewHarness.hand_id(view, _first_playable_slot(view))))
-			MatchViewHarness.click(view, Vector2(640, 400), MOUSE_BUTTON_RIGHT))
+			MatchViewHarness.click(view, Vector2(640, 400), MOUSE_BUTTON_RIGHT),
+		false)
 
 
 func test_o17_ending_the_turn() -> void:
