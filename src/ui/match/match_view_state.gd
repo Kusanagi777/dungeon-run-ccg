@@ -568,11 +568,16 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 
 
 func _apply_enchantment(applied: bool, p: Dictionary, group: int, seq: int, steps: Array[AnimStep]) -> void:
+	var direction: int = 1 if applied else -1
+	var attack_delta: int = int(p.get("attack_delta", 0))
+	var weapon: Dictionary = _weapon(int(p.get("instance_id", 0)))
+	if not weapon.is_empty():
+		weapon.attack = int(weapon.attack) + direction * attack_delta
+		steps.append(_step(AnimStep.WEAPON_UPDATE, [int(weapon.entity_id)], group, seq))
+		return
 	var target: Dictionary = _character(int(p.get("instance_id", 0)))
 	if target.is_empty():
 		return
-	var direction: int = 1 if applied else -1
-	var attack_delta: int = int(p.get("attack_delta", 0))
 	var health_delta: int = int(p.get("health_delta", 0))
 	if target.has("max_health"):
 		target.attack = int(target.attack) + direction * attack_delta
