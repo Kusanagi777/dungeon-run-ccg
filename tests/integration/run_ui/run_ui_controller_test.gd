@@ -183,6 +183,43 @@ func test_s23_back_from_hero_select_returns_to_the_menu() -> void:
 	assert_str(_rig.run.phase()).is_equal("menu")
 
 
+func test_s9_run_start_advances_by_itself_when_its_time_is_up() -> void:
+	# Arrange
+	await _start({"anim_speed": "fast"})
+	_rig.intent(&"skip")
+	await _rig.settle()
+	_rig.intent(&"new_run_requested")
+	_rig.intent(&"skip")
+	await _rig.settle()
+
+	# Act: no skip, no key
+	_rig.intent(&"start_run", {"hero_id": "hero_war", "seed_input": ""})
+	assert_str(_base()).is_equal("run_start")
+	var limit: int = Time.get_ticks_msec() + 2000
+	while _rig.shell.screen() == &"run_start" and Time.get_ticks_msec() < limit:
+		await get_tree().process_frame
+
+	# Assert
+	assert_str(_base()).is_equal("boss_intro")
+
+
+func test_s9_any_key_on_run_start_goes_straight_to_the_boss_intro() -> void:
+	# Arrange
+	await _start({"anim_speed": "normal"})
+	_rig.intent(&"skip")
+	await _rig.settle()
+	_rig.intent(&"new_run_requested")
+	_rig.intent(&"skip")
+	await _rig.settle()
+	_rig.intent(&"start_run", {"hero_id": "hero_war", "seed_input": ""})
+
+	# Act
+	await _rig.key(KEY_X)
+
+	# Assert
+	assert_str(_base()).is_equal("boss_intro")
+
+
 # --- AC-18 ------------------------------------------------------------------------
 
 func test_ac18_the_echo_shows_the_hex_and_start_passes_the_raw_text() -> void:
