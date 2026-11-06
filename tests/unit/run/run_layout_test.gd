@@ -78,6 +78,18 @@ func test_mvp_layout_comes_from_config_alone() -> void:
 	assert_array(Array(run.state.effective_treasure_floors())).is_equal([1, 3])
 
 
+func test_a_treasure_floor_equal_to_the_last_floor_is_ignored() -> void:
+	# Arrange: R5.1, no draft follows the last floor
+	var run: RunMachine = _harness().machine({"treasure_floors": [1, TestConstants.FLOORS_PER_RUN]})
+
+	# Act
+	assert_int(run.new_run(HERO, SEED_42)).is_equal(OK)
+
+	# Assert
+	assert_array(Array(run.state.effective_treasure_floors())).is_equal([1])
+	assert_bool(run.state.is_treasure_floor(TestConstants.FLOORS_PER_RUN)).is_false()
+
+
 # --- AC-2 to AC-5: F2 --------------------------------------------------------
 
 func test_sequence_has_eight_distinct_ids_in_band_order() -> void:
