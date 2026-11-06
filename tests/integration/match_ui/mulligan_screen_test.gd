@@ -266,13 +266,16 @@ func test_a_second_confirm_sends_nothing() -> void:
 	# Arrange
 	var view: MatchView = await _open("mulligan", {"anim_speed": "normal"})
 	var sent: Array[Dictionary] = MatchViewHarness.spy_commands(view)
+	var emitted: Array[int] = []
+	view.mulligan().confirmed.connect(func(_mask: Array) -> void: emitted.append(1))
 
 	# Act
 	view.mulligan().confirm()
 	view.mulligan().confirm()
 
-	# Assert
+	# Assert: the screen holds it itself, not only the router behind it
 	assert_int(sent.size()).is_equal(1)
+	assert_int(emitted.size()).is_equal(1)
 	view.queue().skip_all()
 	MatchViewHarness.close(view)
 

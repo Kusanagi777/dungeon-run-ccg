@@ -52,6 +52,8 @@ func test_a_click_selects_and_confirm_sends_exactly_one_choose() -> void:
 	var sent: Array[Dictionary] = MatchViewHarness.spy_commands(view)
 	var confirm: Button = view.choice().get("_confirm")
 	var off_before: bool = confirm.disabled
+	var emitted: Array[int] = []
+	view.choice().chosen.connect(func(index: int) -> void: emitted.append(index))
 
 	# Act
 	_click_option(view, 1)
@@ -59,9 +61,10 @@ func test_a_click_selects_and_confirm_sends_exactly_one_choose() -> void:
 	confirm.pressed.emit()
 	MatchViewHarness.settle(view)
 
-	# Assert
+	# Assert: the overlay holds it itself, not only the router behind it
 	assert_bool(off_before).is_true()
 	assert_int(sent.size()).is_equal(1)
+	assert_array(emitted).is_equal([1])
 	assert_str(str(sent[0].type)).is_equal(MatchRecords.CMD_CHOOSE)
 	assert_int(int(sent[0].option_index)).is_equal(1)
 	assert_that(view.view_state().pending_choice).is_null()
