@@ -21,18 +21,18 @@
 			"target_player_win_rate": 0.8
 		}
 	},
-	"data_version": "3b93bc46d9f99a29",
+	"data_version": "96f9b51f96f7ac8a",
 	"decision_count": 3078,
 	"end_reasons": {
 		"hero_dead": 100
 	},
 	"faults": 0,
 	"forecast": {
-		"p50_ms": 37.592,
-		"p95_ms": 290.486,
+		"p50_ms": 28.62,
+		"p95_ms": 211.869,
 		"runs": 995
 	},
-	"generated_at": "2026-11-06T02:17:52",
+	"generated_at": "2026-11-06T04:31:09",
 	"matches": [
 		{
 			"boss_rejections": 0,
@@ -1742,12 +1742,12 @@
 		"hero_id": ""
 	},
 	"overflows": 0,
-	"p50_planner_ms": 31.499,
-	"p95_planner_ms": 257.668,
+	"p50_planner_ms": 23.685,
+	"p95_planner_ms": 184.093,
 	"planner_target_ms": 500.0,
 	"play_turn": {
-		"p50_ms": 26.02,
-		"p95_ms": 192.94,
+		"p50_ms": 19.402,
+		"p95_ms": 145.627,
 		"runs": 916
 	},
 	"player_rejections": 0,
