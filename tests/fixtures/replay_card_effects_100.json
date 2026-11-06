@@ -1,0 +1,644 @@
+{
+  "boss_deck": [
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger",
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger",
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger",
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger"
+  ],
+  "commands": [
+    {
+      "issuer": "player",
+      "keep_mask": [
+        true,
+        true,
+        true
+      ],
+      "type": "mulligan"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 59,
+      "issuer": "player",
+      "target_id": 60,
+      "type": "attack"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "boss",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "boss",
+      "position": 2,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 64,
+      "issuer": "boss",
+      "target_id": 1,
+      "type": "attack"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 4,
+      "issuer": "player",
+      "position": 1,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 3,
+      "issuer": "player",
+      "position": 1,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 65,
+      "issuer": "player",
+      "target_id": 2,
+      "type": "attack"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 67,
+      "issuer": "boss",
+      "target_id": 70,
+      "type": "attack"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "position": 2,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "boss",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 68,
+      "issuer": "boss",
+      "target_id": 69,
+      "type": "attack"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 69,
+      "issuer": "player",
+      "target_id": 73,
+      "type": "attack"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 3,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "position": 2,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "boss",
+      "target_id": 72,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "boss",
+      "position": 2,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 64,
+      "issuer": "boss",
+      "target_id": 65,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 72,
+      "issuer": "boss",
+      "target_id": 76,
+      "type": "attack"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "option_index": 0,
+      "type": "choose"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 3,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "target_id": 82,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "position": 3,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 82,
+      "issuer": "boss",
+      "target_id": 80,
+      "type": "attack"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "position": 1,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "position": 5,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "issuer": "player",
+      "target_id": null,
+      "type": "use_hero_power"
+    },
+    {
+      "attacker_id": 84,
+      "issuer": "player",
+      "target_id": 82,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 81,
+      "issuer": "player",
+      "target_id": 72,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 78,
+      "issuer": "player",
+      "target_id": 85,
+      "type": "attack"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 85,
+      "issuer": "boss",
+      "target_id": 1,
+      "type": "attack"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "boss",
+      "position": 2,
+      "target_id": 86,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "boss",
+      "position": 4,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 75,
+      "issuer": "boss",
+      "target_id": 77,
+      "type": "attack"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 1,
+      "issuer": "player",
+      "target_id": 74,
+      "type": "attack"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 1,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 85,
+      "issuer": "boss",
+      "target_id": 94,
+      "type": "attack"
+    },
+    {
+      "hand_index": 4,
+      "issuer": "boss",
+      "position": 3,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 87,
+      "issuer": "boss",
+      "target_id": 93,
+      "type": "attack"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "boss",
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "boss",
+      "option_index": 1,
+      "type": "choose"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 1,
+      "issuer": "player",
+      "target_id": 95,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 92,
+      "issuer": "player",
+      "target_id": 95,
+      "type": "attack"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "target_id": 98,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "target_id": null,
+      "type": "use_hero_power"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 3,
+      "issuer": "boss",
+      "target_id": 90,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 3,
+      "issuer": "boss",
+      "position": 3,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "boss",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "boss",
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "boss",
+      "option_index": 0,
+      "type": "choose"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "issuer": "player",
+      "target_id": null,
+      "type": "use_hero_power"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "option_index": 0,
+      "type": "choose"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 91,
+      "issuer": "boss",
+      "target_id": 1,
+      "type": "attack"
+    },
+    {
+      "hand_index": 2,
+      "issuer": "boss",
+      "position": 4,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "boss",
+      "target_id": 106,
+      "type": "play_card"
+    },
+    {
+      "issuer": "boss",
+      "option_index": 1,
+      "type": "choose"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    },
+    {
+      "hand_index": 1,
+      "issuer": "player",
+      "position": 0,
+      "target_id": null,
+      "type": "play_card"
+    },
+    {
+      "attacker_id": 1,
+      "issuer": "player",
+      "target_id": 98,
+      "type": "attack"
+    },
+    {
+      "issuer": "player",
+      "target_id": null,
+      "type": "use_hero_power"
+    },
+    {
+      "hand_index": 0,
+      "issuer": "player",
+      "target_id": 107,
+      "type": "play_card"
+    },
+    {
+      "issuer": "player",
+      "type": "end_turn"
+    },
+    {
+      "attacker_id": 90,
+      "issuer": "boss",
+      "target_id": 1,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 102,
+      "issuer": "boss",
+      "target_id": 110,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 101,
+      "issuer": "boss",
+      "target_id": 1,
+      "type": "attack"
+    },
+    {
+      "attacker_id": 91,
+      "issuer": "boss",
+      "target_id": 111,
+      "type": "attack"
+    },
+    {
+      "issuer": "boss",
+      "type": "end_turn"
+    }
+  ],
+  "hero_set": "decay",
+  "player_deck": [
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger",
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger",
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger",
+    "decay_fx_row_09_husk_summoner",
+    "decay_fx_row_12_spiteful_corpse",
+    "decay_fx_row_13_plague_bearer",
+    "knowledge_fx_row_20_study",
+    "knowledge_fx_row_22_hoarder",
+    "neutral_fx_row_26_aura_lord",
+    "neutral_fx_row_34_twin_pinger"
+  ],
+  "seed": 7,
+  "treasures": []
+}
