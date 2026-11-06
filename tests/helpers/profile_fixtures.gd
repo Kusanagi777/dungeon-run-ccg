@@ -130,6 +130,9 @@ class UnlockDatabase:
 	func has(id: String) -> bool:
 		return _known_ids.has(id)
 
+	func config(config_name: String) -> Variant:
+		return ProfileFixtures.defaults_body() if config_name == "profile_defaults" else {}
+
 
 # --- Scratch directories and files ----------------------------------------------
 
