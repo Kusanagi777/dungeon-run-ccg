@@ -302,6 +302,7 @@ func _on_activated(index: int) -> void:
 		_confirm(index)
 		return
 	_selected = index
+	sfx_requested.emit(RunShell.SFX_SELECT)
 	_refresh_pick()
 
 
