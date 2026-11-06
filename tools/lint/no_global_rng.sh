@@ -29,14 +29,11 @@ export MSYS2_ARG_CONV_EXCL='*'
 
 PATTERN='(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|\.pick_random\(|RandomNumberGenerator\.new\('
 
-# The one permitted entropy call: Run Structure's run-creation command, the F1
-# empty-seed branch (ADR-0003 Decision 10(b)). A path list, not a pattern
-# exemption. `src/gameplay/run/run_machine.gd` holds `new_run`
-# (architecture.md §Directory layout); until the Run Structure epic adds it,
-# the entry is inert.
-ALLOW_LISTED=(
-	"src/gameplay/run/run_machine.gd"
-)
+# Paths the scan skips. Empty: the one permitted entropy call, the F1 empty-seed
+# branch, is `RngService.entropy_u64` under the already skipped src/core/rng/
+# (ADR-0003 Decision 10(b), erratum 2026-11-05). A path list, not a pattern
+# exemption.
+ALLOW_LISTED=()
 
 # Tests that drive a raw RandomNumberGenerator on purpose, or hold planted
 # violations as data (story rng-event-log/story-004 AC-3, amended 2026-11-03).

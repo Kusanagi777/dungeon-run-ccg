@@ -35,7 +35,7 @@ production/qa/
 
 ```bash
 godot --headless --path . --import
-godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode
+godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode -c
 ```
 
 Run the import first: a fresh clone has no `.godot/` class cache, and a run

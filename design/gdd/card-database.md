@@ -342,7 +342,7 @@ The `bundle_pool_size` formula is defined as:
 |----------|------|-------|--------|-------------|
 | n_bundles(hero_set) | int | 0–50 | data file | 8 per hero at v1 (DD-H05) |
 | n_bundles(neutral) | int | 0–50 | data file | 12 at v1 (DD-H05, raised from 6 on 2026-11-03); 2 at MVP (Content CN-1) |
-| min_bundle_pool | int | 3–30 | `card_database.json` (tuning knob, default 10) | warning threshold; 3 is the hard floor for one draft (DD-R04) and is an error below it. The real requirement is Reward Draft's registered `bundle_pool_min` (pity-dependent: 9 at MVP, 13 at v1) — Content sets this knob to at least that value for the batch it ships |
+| min_bundle_pool | int | 3–30 | `card_database.json` (tuning knob, default 13: v1 `B_min`, owner 2026-11-05) | warning threshold; 3 is the hard floor for one draft (DD-R04) and is an error below it. The real requirement is Reward Draft's registered `bundle_pool_min` (pity-dependent: 9 at MVP, 13 at v1) — Content sets this knob to at least that value for the batch it ships |
 
 **Output Range:** 0 to 100; 20 at v1 (8 + 12), 10 at MVP (8 + 2, DD-H06 / CN-1). Below 3, Reward
 Draft cannot fill one offer, so that case is `E_COUNT`, not a warning.

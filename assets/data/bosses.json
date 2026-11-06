@@ -715,7 +715,7 @@
       },
       "passive_text": {
         "key": "boss.boss_shadow_of_the_delve.passive",
-        "en": "The boss's minions have Stealth."
+        "en": "Minions the boss summons gain Stealth."
       },
       "deck": [
         "boss_lurker",

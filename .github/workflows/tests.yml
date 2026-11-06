@@ -91,7 +91,7 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
           set -o pipefail
           godot --headless -s -d --remote-debug tcp://127.0.0.1:0 \
-            res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode \
+            res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode -c \
             2>&1 | tee gdunit4-run.log
           if grep -q "No test cases found" gdunit4-run.log; then
             echo "gdUnit4 found no test cases under res://tests — treating as failure" >&2

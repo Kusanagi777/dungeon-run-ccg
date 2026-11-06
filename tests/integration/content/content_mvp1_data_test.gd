@@ -530,7 +530,7 @@ const REWARD_DRAFT_V1_BUNDLE_POOL_MIN: int = 13
 ## DD-H05's pool per hero: 8 hero-set bundles + 12 neutral (reward-draft.md F5).
 const WAR_BUNDLE_POOL_SIZE: int = 20
 ## card-database.md: `min_bundle_pool` default.
-const MIN_BUNDLE_POOL_DEFAULT: int = 10
+const MIN_BUNDLE_POOL_DEFAULT: int = 13
 
 
 func _band(bundle: Dictionary, db: CardDatabase, curve: Dictionary) -> String:

@@ -38,6 +38,7 @@ Review record for this run (2026-11-03, `/architecture-decision`, headless, no
   subscriber rule itself is unchanged. The knob source now cites
   `rng_event_log.json` (DD-T01) consistently, and the Ordering Note says three
   knobs, not two, matching Constraints and the guidelines.
+- **Erratum 2026-11-05 (test pass)**: the one entropy call moved from Run Structure's run-creation command to `RngService.entropy_u64`, the default of `RunMachine.entropy`, and the Decision 10(b) allow list is now empty.
 - **Erratum 2026-11-03 (code review)**: the Decision 10(b) lint token list, read as fixed strings, hit the injected-stream calls rules code is required to make (`stream.randi_range(`, `stream.randf(`, `stream.shuffle(`). The lint is now the regex `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|\.pick_random\(|RandomNumberGenerator\.new\(` (look-around-free: `(^|[^.\w])` skips `obj.` calls and identifiers ending in a token; `\.shuffle\(\)` is the argument-less global `Array.shuffle()`), matching ADR-0001's corrected G6 plus `RandomNumberGenerator\.new\(`.
 - **Erratum 2026-11-03 (code review)**: two name patterns, not one. The **full stream-name pattern** `^[a-z]+(_[0-9]+)?(/[a-z0-9_]+)*$` (`RngService.STREAM_NAME_PATTERN`, `is_valid_stream_name`) describes every stream's name, forks included (`ai_1/sim_3`). The **`stream()`-accepted pattern** is root names only, `^[a-z]+(_[0-9]+)?$` (`ROOT_STREAM_NAME_PATTERN`): `RngService.stream("ai_1/x")` is refused like `fork("a/b")` (assert in debug, `push_error` in release, returns `null`, creates no stream), because it would share the name `ai_1/x` with `stream("ai_1").fork("x")` under an F2 instead of an F3 seed. `/` names come only from `fork()`; snapshots key a fork by parent + label, never by a top-level `stream()` entry (rng-event-log rule 3; story 003's `snapshot()` / `restore()` must also clear each stream's fork memo on restore). Other off-pattern names keep Decision 2's "logged, still served". `run_seed` and `data_version` are read-only properties (a write is logged and ignored).
 - **Accepted 2026-11-03 by technical-director** on the owner's standing approval of the project plan (plan approved 2026-11-03; "accept each" step). Owner may revert to Proposed.
@@ -277,8 +278,9 @@ implements rules 11–19 and F6–F7. Specifically:
     `(^|[^.\w])(randi|randf|randi_range|randf_range|seed|randomize)\(|\.shuffle\(\)|\.pick_random\(|RandomNumberGenerator\.new\(`
     (erratum 2026-11-03, code review: a fixed-string list hit `stream.randf(`);
     any hit fails the build (rule 7; the one permitted entropy call lives in
-    Run Structure's run-creation command for the empty-seed branch of F1 and
-    is allow-listed by path). (c) The suite-level determinism rule is F6: a
+    `RngService.entropy_u64` under `src/core/rng/`, for the empty-seed branch of
+    F1, which the scan already skips, so no path is allow-listed: erratum
+    2026-11-05). (c) The suite-level determinism rule is F6: a
     test that runs a scripted command sequence twice asserts
     `EventLogAssertions.replay_equal(a, b)`. (d) The helper self-test's seed
     pins (F1/F2 examples) move into `tests/unit/rng_event_log/` and run on

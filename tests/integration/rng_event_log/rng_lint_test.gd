@@ -147,8 +147,8 @@ func test_ui_and_core_rng_are_outside_the_scope() -> void:
 	assert_str(result.text).contains("no_global_rng hits: 0\n")
 
 
-func test_allow_list_is_the_run_machine_path_not_a_pattern() -> void:
-	# Arrange — the allow-listed file and a sibling with the same call
+func test_allow_list_is_empty_so_run_machine_is_scanned_like_a_sibling() -> void:
+	# Arrange — the formerly allow-listed file and a sibling with the same call
 	_write("allow", "src/gameplay/run/run_machine.gd", [OFFENDING_LINES[5]])
 	var root: String = _write("allow", "src/gameplay/run/run_state.gd", [OFFENDING_LINES[5]])
 
@@ -158,8 +158,8 @@ func test_allow_list_is_the_run_machine_path_not_a_pattern() -> void:
 	# Assert
 	assert_int(result.exit).is_equal(EXIT_HITS)
 	assert_str(result.text).contains("no_global_rng src/gameplay/run/run_state.gd:5:")
-	assert_str(result.text).not_contains("run_machine.gd")
-	assert_str(result.text).contains("no_global_rng hits: 1\n")
+	assert_str(result.text).contains("no_global_rng src/gameplay/run/run_machine.gd:5:")
+	assert_str(result.text).contains("no_global_rng hits: 2\n")
 
 
 func test_rules_test_using_global_rng_fails() -> void:

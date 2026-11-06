@@ -65,7 +65,7 @@ commands:
   # suite's source path): wall-clock budgets never gate (coding standards;
   # sprint-3 QA plan Cross-cutting 2). They run in tests.yml's non-blocking
   # `performance` job: the same command with `-a res://tests/performance` and no `-i`.
-  test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode"
+  test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode -c"
   run: "godot --path . --windowed --resolution 1280x720"
   # smoke launches run/main_scene (res://src/scenes/main.tscn since 2026-11-04,
   # boot-composition-root story 006: Boot.boot() on the shipped data; verified
