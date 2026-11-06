@@ -1,0 +1,798 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_shield_squire",
+      "name": "Shield Squire",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_shield_squire.text",
+        "en": "Battlecry: Gain 2 Armor."
+      }
+    },
+    {
+      "id": "war_sharpen",
+      "name": "Sharpen",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "owner_weapon",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_sharpen.text",
+        "en": "Give your weapon +2 Attack this turn."
+      }
+    },
+    {
+      "id": "war_rusted_axe",
+      "name": "Rusted Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_rusted_axe.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "war_warcry",
+      "name": "Warcry",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_warcry.text",
+        "en": "Give your minions +1 Attack this turn."
+      }
+    },
+    {
+      "id": "war_iron_resolve",
+      "name": "Iron Resolve",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "armor",
+              "targets": "owner",
+              "amount": 4
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_iron_resolve.text",
+        "en": "Gain 4 Armor. Draw a card."
+      }
+    },
+    {
+      "id": "war_iron_vanguard",
+      "name": "Iron Vanguard",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_iron_vanguard.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "war_quartermaster",
+      "name": "Quartermaster",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": "owner_weapon"
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_quartermaster.text",
+        "en": "Battlecry: If you have a weapon, draw a card."
+      }
+    },
+    {
+      "id": "war_pit_brawler",
+      "name": "Pit Brawler",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "charge"
+      ],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_pit_brawler.text",
+        "en": "Charge."
+      }
+    },
+    {
+      "id": "war_whetstone_blade",
+      "name": "Whetstone Blade",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_whetstone_blade.text",
+        "en": ""
+      },
+      "token": true
+    },
+    {
+      "id": "war_blade_strike",
+      "name": "Blade Strike",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "owner.weapon_attack"
+              },
+              "spell_damage": false
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons",
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_blade_strike.text",
+        "en": "Deal damage equal to your weapon's Attack to an enemy minion."
+      }
+    },
+    {
+      "id": "war_throwing_axe",
+      "name": "Throwing Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_throwing_axe.text",
+        "en": "Battlecry: Deal 1 damage."
+      }
+    },
+    {
+      "id": "war_blade_apprentice",
+      "name": "Blade Apprentice",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "not": {
+              "exists": "owner_weapon"
+            }
+          },
+          "ops": [
+            {
+              "op": "equip",
+              "card_id": "war_whetstone_blade"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_blade_apprentice.text",
+        "en": "Battlecry: If you have no weapon, equip a 1/2 Whetstone Blade."
+      }
+    },
+    {
+      "id": "war_armorer",
+      "name": "Armorer",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": {
+                "ref": "owner.weapon_attack"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "armour",
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_armorer.text",
+        "en": "Battlecry: Gain Armor equal to your weapon's Attack."
+      }
+    },
+    {
+      "id": "war_cellar_raider",
+      "name": "Cellar Raider",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 3,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_cellar_raider.text",
+        "en": "Rush."
+      }
+    },
+    {
+      "id": "war_berserker",
+      "name": "Pit Berserker",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_berserker.text",
+        "en": "Whenever this minion takes damage, gain +2 Attack."
+      }
+    },
+    {
+      "id": "war_heavy_maul",
+      "name": "Heavy Maul",
+      "set": "war",
+      "type": "weapon",
+      "cost": 3,
+      "attack": 3,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons",
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_heavy_maul.text",
+        "en": "Battlecry: Gain 2 Armor."
+      }
+    },
+    {
+      "id": "war_cleave_through",
+      "name": "Cleave Through",
+      "set": "war",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "exists": "owner_weapon"
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "amount": 3
+                }
+              ],
+              "else": [
+                {
+                  "op": "damage",
+                  "amount": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons",
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_cleave_through.text",
+        "en": "Deal 2 damage to all enemy minions. If you have a weapon, deal 3 instead."
+      }
+    },
+    {
+      "id": "war_rally",
+      "name": "Rally",
+      "set": "war",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_rally.text",
+        "en": "Give your minions +1/+1."
+      }
+    },
+    {
+      "id": "war_shieldwall_veteran",
+      "name": "Shieldwall Veteran",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_shieldwall_veteran.text",
+        "en": "Taunt. Battlecry: Gain 3 Armor."
+      }
+    },
+    {
+      "id": "war_shield_maiden",
+      "name": "Shield Maiden",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_shield_maiden.text",
+        "en": "Taunt. Divine Shield."
+      }
+    },
+    {
+      "id": "war_duelists_edge",
+      "name": "Duelist's Edge",
+      "set": "war",
+      "type": "weapon",
+      "cost": 4,
+      "attack": 3,
+      "durability": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons",
+        "armour"
+      ],
+      "text": {
+        "key": "card.war_duelists_edge.text",
+        "en": "Whenever your hero attacks, gain 2 Armor."
+      }
+    },
+    {
+      "id": "war_pit_champion",
+      "name": "Pit Champion",
+      "set": "war",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "buff",
+              "keywords": [
+                "windfury"
+              ],
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro",
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_pit_champion.text",
+        "en": "Battlecry: Your hero has Windfury this turn."
+      }
+    },
+    {
+      "id": "war_twin_hatchets",
+      "name": "Twin Hatchets",
+      "set": "war",
+      "type": "weapon",
+      "cost": 5,
+      "attack": 2,
+      "durability": 4,
+      "rarity": "rare",
+      "keywords": [
+        "windfury"
+      ],
+      "effects": [],
+      "tags": [
+        "weapons",
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_twin_hatchets.text",
+        "en": "Windfury."
+      }
+    },
+    {
+      "id": "war_warlord",
+      "name": "Warlord of the Pit",
+      "set": "war",
+      "type": "minion",
+      "cost": 6,
+      "attack": 5,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_warlord.text",
+        "en": "Your other minions have +1 Attack."
+      }
+    },
+    {
+      "id": "war_kingsblade",
+      "name": "Kingsblade",
+      "set": "war",
+      "type": "weapon",
+      "cost": 6,
+      "attack": 4,
+      "durability": 2,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "weapons"
+      ],
+      "text": {
+        "key": "card.war_kingsblade.text",
+        "en": "Battlecry: Deal 2 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "war_headsman",
+      "name": "Headsman",
+      "set": "war",
+      "type": "minion",
+      "cost": 7,
+      "attack": 5,
+      "health": 5,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aggro"
+      ],
+      "text": {
+        "key": "card.war_headsman.text",
+        "en": "Battlecry: Destroy a damaged minion."
+      }
+    }
+  ]
+}

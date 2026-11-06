@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_neutral_tempo",
+      "name": "Quick March",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_tunnel_rat",
+        "neutral_wolf_rider",
+        "neutral_banner_captain"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tempo.text",
+        "en": "Fast bodies and a banner to lead them."
+      }
+    },
+    {
+      "id": "bundle_neutral_wall",
+      "name": "Hold the Line",
+      "set": "neutral",
+      "theme": "wall",
+      "cards": [
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_wall.text",
+        "en": "Taunt walls that buy you time."
+      }
+    },
+    {
+      "id": "bundle_war_armour_1",
+      "name": "Shield Wall",
+      "set": "war",
+      "theme": "armour",
+      "cards": [
+        "war_shield_squire",
+        "war_iron_resolve",
+        "war_iron_vanguard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_armour_1.text",
+        "en": "Armor up and hold the front."
+      }
+    }
+  ]
+}

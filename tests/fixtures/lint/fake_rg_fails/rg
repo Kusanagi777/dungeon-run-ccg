@@ -1,0 +1,5 @@
+#!/bin/sh
+# Lint fixture (boss_ai_code_gates_test.gd): a ripgrep of a good version that
+# errors on everything else, so the file listing fails.
+[ "$1" = "--version" ] && { echo "ripgrep 14.1.0"; exit 0; }
+exit 2

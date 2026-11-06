@@ -1,0 +1,855 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "knowledge_candle_acolyte",
+      "name": "Candle Acolyte",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "spell_damage": 1,
+      "effects": [],
+      "tags": [
+        "spell_damage"
+      ],
+      "text": {
+        "key": "card.knowledge_candle_acolyte.text",
+        "en": "Spell Damage +1."
+      }
+    },
+    {
+      "id": "knowledge_spark",
+      "name": "Spark",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells",
+        "draw"
+      ],
+      "text": {
+        "key": "card.knowledge_spark.text",
+        "en": "Deal 1 damage. Draw a card."
+      }
+    },
+    {
+      "id": "knowledge_lost_page",
+      "name": "Lost Page",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell",
+                "cost_le": 3
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "discover"
+      ],
+      "text": {
+        "key": "card.knowledge_lost_page.text",
+        "en": "Discover a spell that costs (3) or less."
+      }
+    },
+    {
+      "id": "knowledge_glyph_wards",
+      "name": "Glyph Wards",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "knowledge_ward",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_glyph_wards.text",
+        "en": "Summon two 0/2 Wards with Taunt."
+      }
+    },
+    {
+      "id": "knowledge_ink_sprite",
+      "name": "Ink Sprite",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_card_played",
+          "scope": {
+            "by": "owner",
+            "card": {
+              "type": "spell"
+            }
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_ink_sprite.text",
+        "en": "Whenever you cast a spell, gain +1/+1."
+      }
+    },
+    {
+      "id": "knowledge_frost_lance",
+      "name": "Frost Lance",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            },
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_frost_lance.text",
+        "en": "Deal 2 damage to a minion and Freeze it."
+      }
+    },
+    {
+      "id": "knowledge_archive_seeker",
+      "name": "Archive Seeker",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "discover"
+      ],
+      "text": {
+        "key": "card.knowledge_archive_seeker.text",
+        "en": "Battlecry: Discover a spell."
+      }
+    },
+    {
+      "id": "knowledge_apprentice",
+      "name": "Apprentice",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "scope": {
+            "zone": "hand"
+          },
+          "targets": {
+            "selector": "hand",
+            "filter": {
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "cost": -1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_apprentice.text",
+        "en": "Your spells cost (1) less."
+      }
+    },
+    {
+      "id": "knowledge_scrying",
+      "name": "Scrying",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "set": "knowledge"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "discover"
+      ],
+      "text": {
+        "key": "card.knowledge_scrying.text",
+        "en": "Discover a Knowledge card."
+      }
+    },
+    {
+      "id": "knowledge_study",
+      "name": "Study",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "draw"
+      ],
+      "text": {
+        "key": "card.knowledge_study.text",
+        "en": "Draw 2 cards."
+      }
+    },
+    {
+      "id": "knowledge_lightning_lash",
+      "name": "Lightning Lash",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_lightning_lash.text",
+        "en": "Deal 3 damage to a minion."
+      }
+    },
+    {
+      "id": "knowledge_rune_warden",
+      "name": "Rune Warden",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "spell_damage"
+      ],
+      "spell_damage": 1,
+      "effects": [],
+      "tags": [
+        "spell_damage"
+      ],
+      "text": {
+        "key": "card.knowledge_rune_warden.text",
+        "en": "Taunt. Spell Damage +1."
+      }
+    },
+    {
+      "id": "knowledge_glacial_wind",
+      "name": "Glacial Wind",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_glacial_wind.text",
+        "en": "Freeze all enemy minions."
+      }
+    },
+    {
+      "id": "knowledge_lorekeeper",
+      "name": "Lorekeeper",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "spell_damage": 1,
+      "effects": [],
+      "tags": [
+        "spell_damage"
+      ],
+      "text": {
+        "key": "card.knowledge_lorekeeper.text",
+        "en": "Spell Damage +1."
+      }
+    },
+    {
+      "id": "knowledge_scribe",
+      "name": "Scribe",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_card_played",
+          "scope": {
+            "by": "owner",
+            "card": {
+              "type": "spell"
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "draw"
+      ],
+      "text": {
+        "key": "card.knowledge_scribe.text",
+        "en": "Whenever you cast a spell, draw a card."
+      }
+    },
+    {
+      "id": "knowledge_meteor_bolt",
+      "name": "Meteor Bolt",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_meteor_bolt.text",
+        "en": "Deal 6 damage."
+      }
+    },
+    {
+      "id": "knowledge_chain_lightning",
+      "name": "Chain Lightning",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3
+            },
+            {
+              "op": "damage",
+              "amount": 2,
+              "targets": "random_enemy_minion"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells",
+        "spell_damage"
+      ],
+      "text": {
+        "key": "card.knowledge_chain_lightning.text",
+        "en": "Deal 3 damage to a minion, then 2 damage to a random enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_transmute",
+      "name": "Transmute",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_sheep"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_transmute.text",
+        "en": "Transform an enemy minion into a 1/1 Sheep."
+      }
+    },
+    {
+      "id": "knowledge_rime_elemental",
+      "name": "Rime Elemental",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_rime_elemental.text",
+        "en": "Battlecry: Freeze an enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_flamewave",
+      "name": "Flamewave",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spell_damage"
+      ],
+      "text": {
+        "key": "card.knowledge_flamewave.text",
+        "en": "Deal 3 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "knowledge_deep_study",
+      "name": "Deep Study",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "draw"
+      ],
+      "text": {
+        "key": "card.knowledge_deep_study.text",
+        "en": "Draw 3 cards."
+      }
+    },
+    {
+      "id": "knowledge_star_reader",
+      "name": "Star Reader",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 5,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.hand_size"
+              },
+              ">=",
+              5
+            ]
+          },
+          "targets": {
+            "selector": "random_enemy_character"
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3,
+              "spell_damage": false
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "draw"
+      ],
+      "text": {
+        "key": "card.knowledge_star_reader.text",
+        "en": "At the end of your turn, if you have 5 or more cards, deal 3 damage to a random enemy."
+      }
+    },
+    {
+      "id": "knowledge_grand_grimoire",
+      "name": "Grand Grimoire",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 6,
+      "attack": 4,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "spell_damage",
+        "battlecry",
+        "discover"
+      ],
+      "spell_damage": 2,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spell_damage",
+        "discover"
+      ],
+      "text": {
+        "key": "card.knowledge_grand_grimoire.text",
+        "en": "Spell Damage +2. Battlecry: Discover a spell."
+      }
+    },
+    {
+      "id": "knowledge_forbidden_tome",
+      "name": "Forbidden Tome",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 3,
+              "ops": [
+                {
+                  "op": "discover",
+                  "pool": "collectible",
+                  "filter": {
+                    "type": "spell"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "discover",
+        "draw"
+      ],
+      "text": {
+        "key": "card.knowledge_forbidden_tome.text",
+        "en": "Discover a spell. Repeat twice more."
+      }
+    },
+    {
+      "id": "knowledge_vault_golem",
+      "name": "Vault Golem",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 7,
+      "attack": 6,
+      "health": 7,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "passive_hand",
+          "targets": "self",
+          "ops": [
+            {
+              "op": "aura",
+              "cost": {
+                "mul": [
+                  {
+                    "ref": "owner.spells_cast_this_turn"
+                  },
+                  -1
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "spells"
+      ],
+      "text": {
+        "key": "card.knowledge_vault_golem.text",
+        "en": "Costs (1) less for each spell you've cast this turn."
+      }
+    },
+    {
+      "id": "knowledge_ward",
+      "name": "Ward",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 0,
+      "attack": 0,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.knowledge_ward.text",
+        "en": "Taunt."
+      },
+      "token": true
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "scripted_player_10_turns",
+  "description": "boss-ai A1, A3: a real match from run_seed 42 (BossAiBoard.started_match). The player plays up to two 0/6 Taunts each turn and ends it, so the boss cannot race and the match reaches ten boss turns; the boss deck holds twin vanilla minions (tie sets) and a random removal spell (sandbox randomness). No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "run_seed": 42,
+  "boss_turns": 10,
+  "deck_card": "bai_filler",
+  "player_deck": ["bai_shield"],
+  "boss_deck": ["bai_twin_a", "bai_twin_b", "bai_dice", "bai_cub"],
+  "player_script": ["play", "play", "end"],
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_shield", "type": "minion", "cost": 1, "attack": 0, "health": 6, "keywords": ["taunt"]},
+    {"id": "bai_twin_a", "type": "minion", "cost": 2, "attack": 1, "health": 3},
+    {"id": "bai_twin_b", "type": "minion", "cost": 2, "attack": 1, "health": 3},
+    {"id": "bai_cub", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_dice", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "random_enemy_minion", "ops": [{"op": "destroy"}]}]}
+  ]
+}

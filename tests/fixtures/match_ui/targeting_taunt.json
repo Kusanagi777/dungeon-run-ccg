@@ -1,0 +1,12 @@
+{
+  "config": {
+    "hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": [],
+    "player_deck": ["neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_torch_imp", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_torch_imp", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_torch_imp", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_torch_imp", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_torch_imp", "neutral_torch_imp", "neutral_tunnel_rat", "neutral_cellar_guard", "neutral_torch_imp"],
+    "boss_deck": ["boss_iron_gate", "boss_iron_gate", "neutral_torch_imp", "boss_rat", "boss_iron_gate", "boss_iron_gate", "neutral_torch_imp", "boss_rat", "boss_iron_gate", "boss_iron_gate", "neutral_torch_imp", "boss_rat", "boss_iron_gate", "boss_iron_gate", "neutral_torch_imp", "boss_rat", "boss_iron_gate", "boss_iron_gate", "neutral_torch_imp", "boss_rat", "boss_iron_gate", "boss_iron_gate", "neutral_torch_imp", "boss_rat"]
+  },
+  "profile": {},
+  "commands": [
+    {"type": "mulligan", "keep_mask": [true, true, true]},
+    {"macro": "play_and_pass", "count": 3}
+  ]
+}

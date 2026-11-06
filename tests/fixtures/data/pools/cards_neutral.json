@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_ogre",
+      "name": "Neutral Ogre",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "wild"
+      ],
+      "text": {
+        "key": "card.neutral_ogre.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 2
+    },
+    {
+      "id": "neutral_bat",
+      "name": "Neutral Bat",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "wild"
+      ],
+      "text": {
+        "key": "card.neutral_bat.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 2
+    },
+    {
+      "id": "neutral_mage",
+      "name": "Neutral Mage",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "wild"
+      ],
+      "text": {
+        "key": "card.neutral_mage.text",
+        "en": ""
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "config": {
+    "volume_master": 1.0,
+    "volume_music": 0.8,
+    "volume_sfx": 1.0,
+    "fullscreen": false,
+    "anim_speed": "normal",
+    "reduce_motion": false,
+    "text_scale": 1.0,
+    "high_contrast_states": false,
+    "telegraph_mode": "full",
+    "action_delay_ms": 600,
+    "gamma": 1.0,
+    "keep_run_records": true,
+    "language": "en"
+  }
+}

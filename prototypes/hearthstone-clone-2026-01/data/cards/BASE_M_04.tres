@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://yccgg3n61yw6"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_04"
+card_name = "Winged Scout"
+cost = 4
+attack = 4
+health = 5
+card_type = 0
+rarity = 1
+description = "A 4-cost baseline unit for mid-game testing."
+keywords = Array[String](["[]"])
+minion_tags = 0

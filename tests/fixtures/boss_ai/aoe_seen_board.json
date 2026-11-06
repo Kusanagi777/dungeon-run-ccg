@@ -1,0 +1,18 @@
+{
+  "name": "aoe_seen_board",
+  "description": "boss-ai A13 / F5: on turn 1 the player casts an aoe spell (damage all_enemy_minions) or, for the control case, a spell at the enemy hero; on the boss's turn it has 4 minions and a 5th in hand (default profile, band 2: w_over 1). No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "aoe_cast": "bai_flame",
+  "plain_cast": "bai_spark",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2},
+    {"id": "bai_flame", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "all_enemy_minions", "ops": [{"op": "damage", "amount": 1}]}]},
+    {"id": "bai_spark", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": "enemy_hero", "ops": [{"op": "damage", "amount": 1}]}]}
+  ],
+  "boss": {"mana": 3, "board": ["bai_grunt", "bai_grunt", "bai_grunt", "bai_grunt"], "hand": ["bai_grunt"]},
+  "player": {"health": 30, "board": []},
+  "expect": {"boss_board": 4}
+}

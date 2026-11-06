@@ -1,0 +1,87 @@
+# CCGS project configuration — single source of truth for project settings.
+# See .claude/docs/effects-map.md for full schema.
+
+schema_version: 1
+
+framework:
+  version: 1.2.0
+  last_upgraded: 2026-10-19
+
+project:
+  stage: Pre-Production
+
+# NOTE: this template ships with no `modes:` block, and the six knobs below must
+# never be added to one.
+#
+# `/start` DOES add `modes.rigor` and `modes.automation` here — that is its job,
+# and a `modes:` block containing those two is the expected state of a configured
+# project, not a mistake.
+#
+# What must stay absent is the six knobs `modes.rigor` FRONTS:
+# `modes.review_mode`, `modes.workflow`, `docs.density`, `qa.level`,
+# `modes.story_granularity` and `team.size`. Seeding any of them in this file
+# pins that value and shadows the rigor expansion, so the rigor `/start` infers
+# and saves would stop changing anything. `/start` states the same rule for the
+# settings it writes.
+#
+# Per-developer preferences belong in `project.local.yaml` (gitignored), not
+# here. `/settings --local <key>=<value>` writes there; `/settings <key>=<value>`
+# edits this file. See `.claude/docs/config-resolution.md` for the full
+# precedence order.
+
+modes:
+  rigor: standard
+  automation: guided
+
+engine:
+  name: "Godot"
+  version: "4.7.2"
+  language: "GDScript"
+  rendering: "Forward+"
+  physics: "Godot Physics 2D"
+
+specialists:
+  code: "godot-gdscript-specialist"
+  shader: "godot-shader-specialist"
+  ui: "godot-specialist"
+  additional: ["godot-gdextension-specialist"]
+
+naming:
+  classes: PascalCase
+  variables: snake_case
+  constants: SCREAMING_SNAKE
+  signals: past_tense
+  files: snake_case
+  scenes: snake_case
+
+commands:
+  # build: the `Windows Desktop` preset in export_presets.cfg (versioned;
+  # x86_64, embedded pck, no code signing). Needs the 4.7.2 export templates:
+  # `EXPORT_TEMPLATES=1 bash tools/setup.sh`. Verified 2026-11-03 (exit 0,
+  # ~111 MB exe). Not run in CI yet — see tests/README.md.
+  build: "godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe"
+  # test: the blocking suite. `-i res://tests/performance` drops every suite
+  # whose path contains it (gdUnit4 6.2.3 matches `-i` as a substring of the
+  # suite's source path): wall-clock budgets never gate (coding standards;
+  # sprint-3 QA plan Cross-cutting 2). They run in tests.yml's non-blocking
+  # `performance` job: the same command with `-a res://tests/performance` and no `-i`.
+  test: "godot --headless -s -d --remote-debug tcp://127.0.0.1:0 res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode -c"
+  run: "godot --path . --windowed --resolution 1280x720"
+  # smoke launches run/main_scene (res://src/scenes/main.tscn since 2026-11-04,
+  # boot-composition-root story 006: Boot.boot() on the shipped data; verified
+  # exit 0, no SCRIPT ERROR). Still run it under a timeout: with no
+  # main scene it never exits, and it exits 0 even on a parse error — read its
+  # output. Screenshot capture for run-and-observe: tools/capture.sh.
+  smoke: "godot --headless --quit-after 5"
+
+workflow_overrides:
+  system_overrides:
+    match-rules: full
+    card-effects: full
+
+performance:
+  enforce: warn
+  target_fps: 60
+  frame_budget_ms: 16.6
+  draw_call_limit: 500
+  memory_ceiling_mb: 1024

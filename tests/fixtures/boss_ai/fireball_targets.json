@@ -1,0 +1,16 @@
+{
+  "name": "fireball_targets",
+  "description": "boss-ai A14 / C6: control profile; a 6-damage single-target spell whose legal targets are a 6/6, a 1/1 and the player's hero at 30. No card here has a discover or choose_one op.",
+  "profile": "control",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_fireball", "type": "spell", "cost": 4, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"side": "enemy"}}, "ops": [{"op": "damage", "amount": 6}]}]},
+    {"id": "bai_giant", "type": "minion", "cost": 6, "attack": 6, "health": 6},
+    {"id": "bai_imp", "type": "minion", "cost": 1, "attack": 1, "health": 1}
+  ],
+  "boss": {"mana": 4, "board": [], "hand": ["bai_fireball"]},
+  "player": {"health": 30, "board": ["bai_giant", "bai_imp"]},
+  "expect": {"target": "bai_giant", "spell_targets": 3}
+}

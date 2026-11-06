@@ -1,0 +1,18 @@
+{
+  "name": "tie_set_board",
+  "description": "boss-ai F8 / C9 tie-break (story 006, A2 as amended 2026-11-04): default profile, band 2 (tie_epsilon 0.05). With boss.hand two identical 2-cost 2/2s and 2 mana, the two plays score the same (2*0.4 + 1*2/2 = 1.8) and nothing else is within tie_epsilon: a tie set of size 2. With single_hand (a 2/2 and a 1-cost 1/2: 1.8 vs 1.1) the tie set has size 1. ai_seeds are two ai_<floor> stream seeds whose first randi_range(0, 1) draws differ (the test checks this precondition). No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "ai_stream": "ai_1",
+  "ai_seeds": [1, 2],
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_squire", "type": "minion", "cost": 2, "attack": 2, "health": 2},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2}
+  ],
+  "boss": {"mana": 2, "board": [], "hand": ["bai_squire", "bai_squire"]},
+  "single_hand": ["bai_squire", "bai_grunt"],
+  "player": {"health": 30, "board": []},
+  "expect": {"tie_size": 2}
+}

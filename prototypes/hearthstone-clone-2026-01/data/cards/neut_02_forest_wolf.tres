@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://dshmiaqa1myj3"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_f13d1"]
+
+[resource]
+script = ExtResource("1_f13d1")
+card_name = "Forest Wolf"
+cost = 2
+attack = 3
+health = 2
+role_tag = 2
+biology_tag = 1

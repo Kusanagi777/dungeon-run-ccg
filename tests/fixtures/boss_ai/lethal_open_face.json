@@ -1,0 +1,14 @@
+{
+  "name": "lethal_open_face",
+  "description": "boss-ai A6: boss attackers 3 + 2 + 2 against a player at 6 with no Taunt. Lethal in every band; the tests set `band`. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_cub", "type": "minion", "cost": 2, "attack": 2, "health": 3}
+  ],
+  "boss": {"mana": 0, "board": ["bai_brute", "bai_cub", "bai_cub"], "hand": []},
+  "player": {"health": 6, "board": []}
+}

@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "power_fx_row_08_whetstone",
+      "name": "Test Power",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "exists": "owner_weapon"
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "owner_weapon",
+                  "attack": 1,
+                  "duration": "until_end_of_turn"
+                }
+              ],
+              "else": [
+                {
+                  "op": "equip",
+                  "card_id": "war_whetstone_blade"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_fx_row_08_whetstone.text",
+        "en": ""
+      },
+      "art": "powers/power_fx_row_08_whetstone"
+    },
+    {
+      "id": "power_fx_row_16_rot",
+      "name": "Test Power",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "test": [
+                  "target",
+                  {
+                    "is_dying": true
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "op": "summon",
+                  "card_id": "decay_husk",
+                  "position": "end"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_fx_row_16_rot.text",
+        "en": ""
+      },
+      "art": "powers/power_fx_row_16_rot"
+    },
+    {
+      "id": "power_fx_row_25_insight",
+      "name": "Test Power",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "deck_top",
+                "n": 1
+              },
+              "cost": 1,
+              "duration": "until_end_of_turn"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_fx_row_25_insight.text",
+        "en": ""
+      },
+      "art": "powers/power_fx_row_25_insight"
+    },
+    {
+      "id": "power_fx_row_44_brand",
+      "name": "Test Power",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_fx_row_44_brand.text",
+        "en": ""
+      },
+      "art": "powers/power_fx_row_44_brand"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bundles.schema.json",
+  "title": "bundles.json — BundleDef records (card-database CR-3)",
+  "description": "Agrees with the loader (src/core/data/record_schemas.gd), never replaces it (ADR-0002 Decision 9). tests/integration/content/content_validate_process_test.gd compares required/properties with RecordSchemas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "set",
+          "theme",
+          "cards",
+          "unlock",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,47}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "set": {
+            "enum": [
+              "war",
+              "decay",
+              "knowledge",
+              "neutral",
+              "fortune",
+              "order",
+              "shadow"
+            ]
+          },
+          "theme": {
+            "type": "string",
+            "pattern": "^[a-z_]+$"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{2,47}$"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "unlock": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "condition"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "condition": {
+                "type": "object"
+              }
+            }
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "en"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

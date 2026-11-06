@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_bone_shard",
+      "name": "Boss Bone Shard",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_bone_shard.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "boss_grave_rat",
+      "name": "Boss Grave Rat",
+      "set": "boss",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_grave_rat.text",
+        "en": ""
+      },
+      "token": false
+    }
+  ]
+}

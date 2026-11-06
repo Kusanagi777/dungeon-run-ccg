@@ -1,0 +1,19 @@
+{
+  "name": "late_game",
+  "description": "Player turn 17 Main after eight rounds of plays: high mana, crowded boards, the hero power affordable.",
+  "sample_seed": 110,
+  "boss_health": 120,
+  "decks": {"player": [["fx_grunt", 8], ["fx_brute", 8], ["fx_bolt", 4]], "boss": [["fx_grunt", 10], ["fx_brute", 10]]},
+  "commands": [
+    {"pick": "mulligan"},
+    {"repeat": 8, "commands": [
+      {"pick": "play_card", "issuer": "player", "optional": true},
+      {"pick": "play_card", "issuer": "player", "optional": true},
+      {"type": "end_turn", "issuer": "player"},
+      {"pick": "play_card", "issuer": "boss", "optional": true},
+      {"pick": "play_card", "issuer": "boss", "optional": true},
+      {"type": "end_turn", "issuer": "boss"}
+    ]}
+  ],
+  "expect": {"phase": "main", "active_side": "player", "turn": 17}
+}

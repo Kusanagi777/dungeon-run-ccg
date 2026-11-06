@@ -1,0 +1,11 @@
+{
+    "config": {
+        "treasure_floors": [
+            1,
+            3,
+            5
+        ],
+        "floors_per_run": 8
+    },
+    "schema_version": 1
+}

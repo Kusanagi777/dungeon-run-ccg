@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_fixture_fourth",
+      "name": "Fixture Fourth",
+      "set": "fortune",
+      "health": 30,
+      "hero_power": "power_whetstone",
+      "starter_deck": [
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler",
+        "fortune_fixture_gambler"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_fixture_fourth.text",
+        "en": "Fixture hero."
+      }
+    },
+    {
+      "id": "hero_fixture_scholar",
+      "name": "Fixture Scholar",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_fixture_study",
+      "starter_deck": [
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_fixture_scholar.text",
+        "en": "Fixture hero."
+      }
+    },
+    {
+      "id": "hero_fixture_wounded",
+      "name": "Fixture Wounded",
+      "set": "war",
+      "health": 27,
+      "hero_power": "power_whetstone",
+      "starter_deck": [
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit",
+        "war_fixture_recruit"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_fixture_wounded.text",
+        "en": "Fixture hero."
+      }
+    }
+  ]
+}

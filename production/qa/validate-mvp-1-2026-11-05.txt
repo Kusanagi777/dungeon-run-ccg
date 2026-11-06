@@ -1,0 +1,53 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[warning] W_SET_SHARE cards_boss.json.set_share.boss.minion — boss minion share 0.70 (7 / 10) outside 0.56 ± 0.08 (F1)
+[warning] W_SET_SHARE cards_boss.json.set_share.boss.spell — boss spell share 0.30 (3 / 10) outside 0.41 ± 0.08 (F1)
+[warning] W_SET_SHARE cards_neutral.json.set_share.neutral.minion — neutral minion share 0.93 (14 / 15) outside 0.82 ± 0.08 (F1)
+[warning] W_CURVE cards_neutral.json.curve.avg — avg_cost 2.73 (15 cards) outside 2.9–3.4 (F2)
+[warning] W_CURVE cards_neutral.json.curve.bucket[2] — cost bucket 3 share 0.40 (6 / 15) misses 0.24 by more than 0.08 (F2)
+[warning] W_CURVE cards_neutral.json.curve.bucket[5] — cost bucket 6+ share 0.00 (0 / 15) misses 0.1 by more than 0.08 (F2)
+[warning] W_BUDGET cards_neutral.json#neutral_banner_captain.budget — not checked — op aura has no F3 rate (partial value 4.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_gravekeeper.budget — not checked — op add_counter has no F3 rate, damage.amount is a value expression (partial value 5.0 vs budget 7.0)
+[warning] W_BUDGET cards_neutral.json#neutral_spark_fiend.budget — not checked — damage on selector "" (partial value 5.0 vs budget 7.0)
+[warning] W_BUDGET cards_war.json#war_armorer.budget — not checked — armor.amount is a value expression (partial value 5.0 vs budget 5.0)
+[warning] W_BUDGET cards_war.json#war_blade_apprentice.budget — not checked — op equip has no F3 rate (partial value 4.0 vs budget 5.0)
+[warning] W_BUDGET cards_war.json#war_blade_strike.budget — not checked — damage.amount is a value expression (partial value 0.0 vs budget 2.0)
+[warning] W_BUDGET cards_war.json#war_cleave_through.budget — value 9.0 vs budget 6.0 (Δ +3.0, rare tol 2.0; F3)
+[warning] W_BUDGET cards_war.json#war_rally.budget — not checked — buff on selector "all_friendly_minions" (partial value 0.0 vs budget 6.0)
+[warning] W_BUDGET cards_war.json#war_warcry.budget — not checked — buff on selector "all_friendly_minions" (partial value 0.0 vs budget 4.0)
+[warning] W_BUDGET cards_war.json#war_warlord.budget — not checked — op aura has no F3 rate (partial value 10.0 vs budget 13.0)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.set_stats — op set_stats is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.freeze — op freeze is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.summon — op summon is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.transform — op transform is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.discover — op discover is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.add_to_hand — op add_to_hand is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.copy_to_hand — op copy_to_hand is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.return_to_hand — op return_to_hand is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.mana — op mana is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.retrigger — op retrigger is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.ops_covered.set_counter — op set_counter is used by no collectible card (F5, 40 cards)
+[warning] W_COVERAGE content_budgets.json.coverage.modify_value — op modify_value is used by no boss passive or treasure (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.remove_keyword — exempt op remove_keyword is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.shuffle_into_deck — exempt op shuffle_into_deck is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.discard — exempt op discard is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.weapon_durability — exempt op weapon_durability is used by no collectible card (F5)
+[warning] W_COVERAGE_UNUSED content_budgets.json.coverage.ops_exempt.hero_power_refresh — exempt op hero_power_refresh is used by no collectible card (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.rush — keyword rush is on 1 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.windfury — keyword windfury is on 1 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.stealth — keyword stealth is on 0 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.lifesteal — keyword lifesteal is on 0 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.poisonous — keyword poisonous is on 0 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.freeze — keyword freeze is on 0 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.silence — keyword silence is on 1 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.deathrattle — keyword deathrattle is on 1 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.spell_damage — keyword spell_damage is on 0 collectible cards, under kw_min 2 (F5)
+[warning] W_COVERAGE content_budgets.json.coverage.kw_min.discover — keyword discover is on 0 collectible cards, under kw_min 2 (F5)
+[warning] E_DELEGATED match_ui.json — W_VALIDATOR_PENDING: configs.match_ui is not checked: its owner Match UI has not shipped validate_config
+[warning] E_DELEGATED profile_defaults.json — W_VALIDATOR_PENDING: configs.profile_defaults is not checked: its owner Meta Progression has not shipped validate_config
+[warning] E_DELEGATED reward_draft.json — W_VALIDATOR_PENDING: configs.reward_draft is not checked: its owner Reward Draft has not shipped validate_config
+[warning] E_DELEGATED run_structure.json — W_VALIDATOR_PENDING: configs.run_structure is not checked: its owner Run Structure has not shipped validate_config
+[warning] E_DELEGATED run_ui.json — W_VALIDATOR_PENDING: configs.run_ui is not checked: its owner Run UI has not shipped validate_config
+[warning] W_POOL_SIZE treasures.json — 0 < 6: treasures unlocked by default vs min_treasure_pool (2 treasure drafts × 3 offers, no repeats in a run)
+[warning] E_DELEGATED treasures_balance.json — W_VALIDATOR_PENDING: configs.treasures_balance is not checked: its owner Treasures has not shipped validate_config
+validate: Ready — 0 errors, 50 warnings (content checks 0 errors, 43 warnings), 70 records; load ms 82.26 (data_load_budget_ms 200) — root C:/Users/user/AppData/Local/Temp/claude/0a564ffc8743aeec/7ef1dc8b-e634-4e4a-aec4-ead51ee9bc51/scratchpad/mvp1/assets/data/

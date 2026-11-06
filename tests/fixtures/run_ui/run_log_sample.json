@@ -1,0 +1,57 @@
+{
+ "overrides": {
+  "rows": [
+   {
+    "run_id": "a",
+    "hero_id": "hero_war",
+    "hero": "Halvard, the Whetted",
+    "date": "2026-11-03",
+    "seed": "48A10CC0B2ED54EC",
+    "custom_seed": true,
+    "details": true,
+    "result": "Victory",
+    "floors": "8 of 8",
+    "deck_size": 36,
+    "top_cards": "Cleave Through, Iron Vanguard",
+    "retried": false
+   },
+   {
+    "run_id": "b",
+    "hero_id": "hero_war",
+    "hero": "Halvard, the Whetted",
+    "date": "2026-11-02",
+    "seed": "0123456789ABCDEF",
+    "custom_seed": false,
+    "details": true,
+    "result": "Defeat on floor 5 by Bone Collector",
+    "floors": "4 of 8",
+    "deck_size": 27,
+    "top_cards": "Rusted Axe",
+    "retried": true
+   },
+   {
+    "run_id": "c",
+    "hero_id": "hero_war",
+    "hero": "Halvard, the Whetted",
+    "date": "2026-11-01",
+    "seed": "FEDCBA9876543210",
+    "custom_seed": false,
+    "details": true,
+    "result": "Abandoned",
+    "floors": "2 of 8",
+    "deck_size": 21,
+    "top_cards": "",
+    "retried": false
+   }
+  ],
+  "filters": [
+   {
+    "id": "hero_war",
+    "name": "Halvard, the Whetted"
+   }
+  ],
+  "stats_lines": [],
+  "total": 3,
+  "more": false
+ }
+}

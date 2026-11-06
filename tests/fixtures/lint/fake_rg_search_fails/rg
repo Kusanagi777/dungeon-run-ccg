@@ -1,0 +1,8 @@
+#!/bin/sh
+# Lint fixture (boss_ai_code_gates_test.gd): a ripgrep that lists files and then
+# errors on every search, so a rule fails after the literal scan has run.
+[ "$1" = "--version" ] && { echo "ripgrep 14.1.0"; exit 0; }
+for arg; do
+	[ "$arg" = "--files" ] && { echo "src/ai/clean.gd"; exit 0; }
+done
+exit 2

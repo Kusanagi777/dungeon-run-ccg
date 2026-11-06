@@ -1,0 +1,18 @@
+{
+  "name": "player_board_full",
+  "description": "boss-ai A18 / Edge Cases board full: the player's board is 7 (a 3/6 and six 0/1 Stealth minions no attack or spell can reach); the boss holds a 0-cost destroy-a-minion spell and a 4/5 that can attack the hero (at 8) or the 3/6. Default band 2 plus the weight overrides below give the removal and the face attack equal base scores: removal 1.0*0.9 + 2.4*(3/12) = 1.5, face 3.0*(4/8) = 1.5. The full board raises removal by w_threat*0.25*f_threat = 2.4*0.25*0.25 = 0.15, three times tie_epsilon (0.05), so F8's tie set holds the removal alone and no ai_1 draw is taken (code review 2026-11-04, BAI-004 B1: the earlier 1/8 target raised it by exactly 0.05, a tie). ai_seeds is the inclusive seed range the tie-break test runs. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "weights": {"w_board": 1.0, "w_threat": 2.4, "w_face": 3.0},
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_doom", "type": "spell", "cost": 0, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"kind": "minion", "side": "enemy"}}, "ops": [{"op": "destroy"}]}]},
+    {"id": "bai_knight", "type": "minion", "cost": 4, "attack": 4, "health": 5},
+    {"id": "bai_target", "type": "minion", "cost": 3, "attack": 3, "health": 6},
+    {"id": "bai_shade", "type": "minion", "cost": 1, "attack": 0, "health": 1, "keywords": ["stealth"]}
+  ],
+  "boss": {"mana": 1, "board": ["bai_knight"], "hand": ["bai_doom"]},
+  "player": {"health": 8, "board": ["bai_target", "bai_shade", "bai_shade", "bai_shade", "bai_shade", "bai_shade", "bai_shade"]},
+  "expect": {"removal_target": "bai_target", "attacker": "bai_knight", "filler": "bai_shade", "ai_stream": "ai_1", "ai_seeds": [1, 40]}
+}

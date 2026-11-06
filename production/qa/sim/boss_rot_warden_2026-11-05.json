@@ -1,0 +1,1757 @@
+{
+	"band": 2,
+	"boss_id": "boss_rot_warden",
+	"by_floor": {
+		"4": {
+			"boss_win_rate": 0.705882352941177,
+			"boss_wins": 24,
+			"matches": 34,
+			"target_player_win_rate": 0.7
+		},
+		"5": {
+			"boss_win_rate": 0.757575757575758,
+			"boss_wins": 25,
+			"matches": 33,
+			"target_player_win_rate": 0.65
+		},
+		"6": {
+			"boss_win_rate": 0.696969696969697,
+			"boss_wins": 23,
+			"matches": 33,
+			"target_player_win_rate": 0.6
+		}
+	},
+	"data_version": "96f9b51f96f7ac8a",
+	"decision_count": 3413,
+	"end_reasons": {
+		"hero_dead": 100
+	},
+	"faults": 0,
+	"forecast": {
+		"p50_ms": 40.955,
+		"p95_ms": 287.768,
+		"runs": 1095
+	},
+	"generated_at": "2026-11-06T04:36:03",
+	"matches": [
+		{
+			"boss_rejections": 0,
+			"decisions": 42,
+			"faults": 0,
+			"final_health": {
+				"boss": 19,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "47cead3fa1dafb1c33ac2ad02631f4c0e6a46800d357c54d52850eaa22c9917e",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "1",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 16,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "79285e7fc5c0e237bdb0718b23d686ff61c73dadff954fcfea195a58de71feaf",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "2",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": -2
+			},
+			"floor": 6,
+			"log_hash": "be6f77efd1c333d2c63f0dc9a73217d2de7e6875570ce5ab0687364b58fbc94d",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "3",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 42,
+			"faults": 0,
+			"final_health": {
+				"boss": 7,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "1a214c75f01470144196bc50662572fb6408039baa678de36fb2a221b5ee3e98",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "4",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 29,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 8
+			},
+			"floor": 5,
+			"log_hash": "50791ded24a0498a4542d6794da54549977a248b748dd156f9cbc81e5dda5a82",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "5",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 5,
+				"player": -1
+			},
+			"floor": 6,
+			"log_hash": "c3be2d1d0c71edbe11728d8b266ecb0aa6ec98f66a5c5e44bbb6ce56dd55d245",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "6",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 28,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 11
+			},
+			"floor": 4,
+			"log_hash": "1be11f7996632720b8a5f8bd5563fffd4e64e2c5f01b8c01f146cc88a92377a8",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "7",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 37,
+			"faults": 0,
+			"final_health": {
+				"boss": 10,
+				"player": -1
+			},
+			"floor": 5,
+			"log_hash": "b47385ab5612fabe14023c8e9b259ca978323ece5f03f7b86b7facce8f6b5761",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "8",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 33,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 3
+			},
+			"floor": 6,
+			"log_hash": "3e0d09210c20e983a5f65853e33c6a2390481179a90fabda84c3398d106f2900",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "9",
+			"turns": 23,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 33,
+			"faults": 0,
+			"final_health": {
+				"boss": 26,
+				"player": -6
+			},
+			"floor": 4,
+			"log_hash": "97a7763283da6e72562d7033d86ef2200f4f51e2f820ddf390c6cdf7b4c562cb",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "10",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 37,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 6
+			},
+			"floor": 5,
+			"log_hash": "52faf5ab964aafa73f6ef7a5ec69da139206e99d5f5ab8604ad1201b9d7ef920",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "11",
+			"turns": 25,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 35,
+			"faults": 0,
+			"final_health": {
+				"boss": 15,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "c65af652d93d4a323b50b4ad2e9a0df04958266cf6098bc4500b2292711bad8b",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "12",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 38,
+			"faults": 0,
+			"final_health": {
+				"boss": 31,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "73f786da0f3d607b0c14b44cec46b1cd1a0aada78440d9d32fadaab0b28a9b23",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "13",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 29,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 7
+			},
+			"floor": 5,
+			"log_hash": "46c5743eb3ccdc62b0a640049afb1afcc94de4b0902c091713600296ed7251c9",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "14",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 40,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "7cfa202d6da9883722d5f9bfc78c5895236f2b68761e8d7a2ea3128ed835ade3",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "15",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 35,
+			"faults": 0,
+			"final_health": {
+				"boss": 27,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "665f0eb8cf4b95f1eb94a9eb3faf34d095cfff0cfee2c877ffe429947d18a99d",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "16",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 30,
+			"faults": 0,
+			"final_health": {
+				"boss": 11,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "ba5f270532ac67765318a6418077d81a183fbca63a1b1f5b3573d24ee8b59fdc",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "17",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 30,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 12
+			},
+			"floor": 6,
+			"log_hash": "e4a01b4370c71bfe924d37d21ceeb057993a233bdb9ab09042015c6c657ce249",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "18",
+			"turns": 23,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 47,
+			"faults": 0,
+			"final_health": {
+				"boss": 39,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "a5465ed7a7af91056522f6e56b92bd6e26ecd432a8f72acb1d12545409ad3d65",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "19",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 31,
+			"faults": 0,
+			"final_health": {
+				"boss": 31,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "44e205c0b7dacef3fca1c0236567973f3ce6afdc81b7a25c9171497c7cd088e7",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "20",
+			"turns": 18,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 3,
+				"player": -2
+			},
+			"floor": 6,
+			"log_hash": "78badb36905afe9d0221a408e7187d9741dc010ec10c9da234c2679967ebf606",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "21",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 42,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": -2
+			},
+			"floor": 4,
+			"log_hash": "b3e7af1c43553c22fffad953009f6d76ec5df2ddbcd29564d786a1226531d8a8",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "22",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 25,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 16
+			},
+			"floor": 5,
+			"log_hash": "6dd39b9f21cd9a53ee95e38fd9f7f05e73e480ad24730e8d10f18fbbcdca23d6",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "23",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 26,
+			"faults": 0,
+			"final_health": {
+				"boss": -2,
+				"player": 18
+			},
+			"floor": 6,
+			"log_hash": "0749333cf53394777e2619dafaa8222346e86103b5b11502cc611801d792adfd",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "24",
+			"turns": 17,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 45,
+			"faults": 0,
+			"final_health": {
+				"boss": 26,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "4a3bf8e823522da3a654666329358e5f14f04e0a4ab382342fc77370fdff9778",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "25",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 32,
+			"faults": 0,
+			"final_health": {
+				"boss": 14,
+				"player": -2
+			},
+			"floor": 5,
+			"log_hash": "8fd9dd1bd7254485482843ed011ae1b81f4e4b00db1ec43dbdb5a5fdda5eba67",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "26",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 49,
+			"faults": 0,
+			"final_health": {
+				"boss": 38,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "4160d3bff9669c89ac47ba120fb2d2e1b6482ffb70318fb05709c87675d3c355",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "27",
+			"turns": 26,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 26,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 10
+			},
+			"floor": 4,
+			"log_hash": "72fd2f57629e3c3361ee8fac44f687ee4cb14a5a2328a32ebce465a6a301ed61",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "28",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 43,
+			"faults": 0,
+			"final_health": {
+				"boss": 22,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "350bd2087f2a719da713a23686a7cad432a0d7cb033522dc1de0af94bf625776",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "29",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 25,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "f25716d362fd2d7fc2707c8765d74646db5be64725fc266b4de65c687f40667b",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "30",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 38,
+			"faults": 0,
+			"final_health": {
+				"boss": 15,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "83d5a5f37eff4494d2a9324c6a240c5ffa137b6be78b0a5872474ebe85bf7032",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "31",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 45,
+			"faults": 0,
+			"final_health": {
+				"boss": 26,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "775e05932aa8ec79e6ad6e01654ca022f748d74964b4b054d7308ba86504e66c",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "32",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 42,
+			"faults": 0,
+			"final_health": {
+				"boss": 25,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "428a504a3ec4b5ef7cf7f35e46a5926d23d5854f92af139fc05690118ee1cd06",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "33",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 24,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 18
+			},
+			"floor": 4,
+			"log_hash": "0e78708ed765a9ea434472ffc9a2c5a9f587340c7c760971adfd4684d1c6b38d",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "34",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 45,
+			"faults": 0,
+			"final_health": {
+				"boss": 28,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "a2f27a710a7f9133197c15810cb0913418a9c886886232bdc929dd4bfc7a6df4",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "35",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 37,
+			"faults": 0,
+			"final_health": {
+				"boss": 27,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "115fed64bb4d02078b574a42e029c19fa146a080cc57ffd11a5d4d70ba252ad4",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "36",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 31,
+			"faults": 0,
+			"final_health": {
+				"boss": 24,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "e8433c98c63985f4ad1e70d2be22ee96fe6cc0e49ca9c8d6f16ade74441987e4",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "37",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 30,
+			"faults": 0,
+			"final_health": {
+				"boss": 29,
+				"player": -7
+			},
+			"floor": 5,
+			"log_hash": "55fac779bb4be0b4de1a4e3bfcee4372a7d1b3435ab0aa64dde0483fba125235",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "38",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 28,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 8
+			},
+			"floor": 6,
+			"log_hash": "d69d792835b6d4e153a7c33698f08d6c3645b026220b0def3451a92191a4d67f",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "39",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 29,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "527943e4a161afcc4fc191f6f1b621282e2a738f4a8ac20e3db4b2991dae2cf5",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "40",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 20,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 20
+			},
+			"floor": 5,
+			"log_hash": "b12e4b6a9e8e15239c1c5790b13990ef55aee1af9cf1d472931fe35ad9ab4f11",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "41",
+			"turns": 15,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 43,
+			"faults": 0,
+			"final_health": {
+				"boss": 15,
+				"player": -3
+			},
+			"floor": 6,
+			"log_hash": "a0d6546221069a36560a62ea810aa6314338183fc67a8ae55d81cf7d0f193a86",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "42",
+			"turns": 27,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 44,
+			"faults": 0,
+			"final_health": {
+				"boss": 37,
+				"player": -15
+			},
+			"floor": 4,
+			"log_hash": "35bd60c4c82c4fc335ae90dd79703831441e4c27a9c15c6858ac109b67879623",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "43",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 33,
+			"faults": 0,
+			"final_health": {
+				"boss": 17,
+				"player": -1
+			},
+			"floor": 5,
+			"log_hash": "07ff6a1e4393c19c3f9aa4449c3663b745cba842beaf0d702ea517431838762a",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "44",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 22,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 18
+			},
+			"floor": 6,
+			"log_hash": "a1bafcf50ac9c908ead7d6fd110c31d5785986f48691779f9e1dddd040a72dee",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "45",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 9,
+				"player": -3
+			},
+			"floor": 4,
+			"log_hash": "ffaa76d98392085ec9a9871f13b77c61efa6dc7962e74df1cf4086d3a73896cc",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "46",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 30,
+			"faults": 0,
+			"final_health": {
+				"boss": 32,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "d0d01ebf711912eac9346df59303f88b8d9a148e245cd227e6b38d652299997b",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "47",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 20,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 17
+			},
+			"floor": 6,
+			"log_hash": "6a144eae1a6e81bac5c1fcf65a4f9c2d2a153ac7291736e76c4a976d624803ea",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "48",
+			"turns": 17,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 48,
+			"faults": 0,
+			"final_health": {
+				"boss": 26,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "07427197857ca9562ca99a8469f5e58e7cd52fbfbfcf77e5a1264c97e12578fd",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "49",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 41,
+			"faults": 0,
+			"final_health": {
+				"boss": 26,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "8e77adee53b428a879bbbdadaa0e33bc40b135c98ae45e0839b192a2a71421e5",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "50",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 37,
+			"faults": 0,
+			"final_health": {
+				"boss": 12,
+				"player": -2
+			},
+			"floor": 6,
+			"log_hash": "7689e51a4e3fd33aed6d0a5cb692dacf60a3e9f531fbad08f7d324b310c0f987",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "51",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 19,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "ba35fd77b888b6571047696f42578a9e9419b71ba080939ee5b2862d12d0946a",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "52",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 38,
+			"faults": 0,
+			"final_health": {
+				"boss": 20,
+				"player": -1
+			},
+			"floor": 5,
+			"log_hash": "7527bdf0a6db45fe34302978642ebbd16b71afc79c019af128c2c8ea4161970a",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "53",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 28,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 7
+			},
+			"floor": 6,
+			"log_hash": "8eb01a131c3b0723f9d75de949bfe71faf55ab79a60efbb70f9295876be18355",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "54",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 28,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "92c5e306a97b1009a15bae8ee4c97cfa2edbff26f04b7f1b90c1ae7077709610",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "55",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 22,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 21
+			},
+			"floor": 5,
+			"log_hash": "2d9cba51233a67ef7f727e5dcd3e8c65ca6132cc45391b1740b429b476cbbee3",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "56",
+			"turns": 17,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 9,
+				"player": -12
+			},
+			"floor": 6,
+			"log_hash": "d184979ddfda14d64984ccfb10f789025e4ae7d52b2e3cfbf7a63eea54831525",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "57",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 25,
+			"faults": 0,
+			"final_health": {
+				"boss": -2,
+				"player": 12
+			},
+			"floor": 4,
+			"log_hash": "7ffad44972d16bb206e1b72b2271b8bc342d786d109aa923496850a94a3be304",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "58",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 35,
+			"faults": 0,
+			"final_health": {
+				"boss": 19,
+				"player": -1
+			},
+			"floor": 5,
+			"log_hash": "77ced4eb693e9a0462d22887f4136640c7c0dc1e9c5ed47b2cf11d76f270d0e0",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "59",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 31,
+			"faults": 0,
+			"final_health": {
+				"boss": 24,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "857757dff0c808bad344f4d5b3e764a6e2ca670bca809c87ab1e15bead83867a",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "60",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 24,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 16
+			},
+			"floor": 4,
+			"log_hash": "604860684cb50a54ce8b39633fe49e6fc29108edc0fcf826de3f2d6ceaf77443",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "61",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 40,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "f561d22950ffb7d7a9de3865407e926e1022a83d061a6b8d913632d291c0715f",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "62",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 38,
+			"faults": 0,
+			"final_health": {
+				"boss": 10,
+				"player": -1
+			},
+			"floor": 6,
+			"log_hash": "ebc9e755369d21d11cac8473447d804a2471cca0988e6b7a0ca996a19178c5b6",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "63",
+			"turns": 25,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 42,
+			"faults": 0,
+			"final_health": {
+				"boss": 22,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "7e92e775db494e855411bde1f0708c250532a09bee0fb968fb0ca83148488757",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "64",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 38,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": -1
+			},
+			"floor": 5,
+			"log_hash": "7183f3812f0309488cea368a3d5872a047d78eb483890b14011d07558b627544",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "65",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "53b74659e8a2cd1ca81815a83b73f1db53d5967b0d1e5a71bc4dfc380c47532c",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "66",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 27,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 9
+			},
+			"floor": 4,
+			"log_hash": "6d47574f61cbc9634821a3c084f76d237bf695c070af849b1b07b014742302fc",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "67",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": -2
+			},
+			"floor": 5,
+			"log_hash": "cec4b54d5a258d647004002681b195dd7c287d3a22f024272f2dcffd01a3dea0",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "68",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 20,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 16
+			},
+			"floor": 6,
+			"log_hash": "4bedb8af6d2407dd61c422fb7315dd26d89d00e13b629761a000855ff5505f69",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "69",
+			"turns": 17,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 32,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "31cdf0a2209c44169a83fd8171066279e0378a0be14263fbfdcb9e78862473fd",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "70",
+			"turns": 20,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 44,
+			"faults": 0,
+			"final_health": {
+				"boss": 37,
+				"player": -2
+			},
+			"floor": 5,
+			"log_hash": "00157f59d8ecd85817e5e3739d2342b2f8ca2780e88b78b4a2f0d35dc013cde7",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "71",
+			"turns": 25,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 47,
+			"faults": 0,
+			"final_health": {
+				"boss": 18,
+				"player": -1
+			},
+			"floor": 6,
+			"log_hash": "b1dc8516ee9d3ad74ebeb56a2cc3565d098836a1531fdfa381dc4df4b71df823",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "72",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 15,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "6e6c749cc8b04ca34776741fb7051eed3599ca05dc479992a9b78e06073f7b9a",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "73",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 37,
+			"faults": 0,
+			"final_health": {
+				"boss": 37,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "baaae9d46ee3c3dce3259dc8daf8e9bc6c278de0c5c9b63e0d51a0e96d27be91",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "74",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 30,
+				"player": -1
+			},
+			"floor": 6,
+			"log_hash": "ae13b69d37d6a5cf1c42f66ff9c5815fb9fc6d54340b9855169a03f36fb4fd74",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "75",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 24,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 14
+			},
+			"floor": 4,
+			"log_hash": "6692010f5e6f500daf8d3d904b2148042401202a4d6b5da71d40c2018a105e8b",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "76",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 17,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 24
+			},
+			"floor": 5,
+			"log_hash": "ed5c60a0842e9b462e7a7df2dfd0b880f8f53499836d3f87b8cadd9ab50a6ff6",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "77",
+			"turns": 15,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 29,
+			"faults": 0,
+			"final_health": {
+				"boss": 23,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "538b1e7559b6a60fc7ea8aa894c948c3931e5069c62adec06e2aeb632f702d73",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "78",
+			"turns": 18,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 11,
+				"player": -3
+			},
+			"floor": 4,
+			"log_hash": "3ca42d1014d436c9b91b01399c72fc6b71b749b1dc7eed79fb2356184b01b277",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "79",
+			"turns": 27,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 32,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "a826f643df2687da3a93962108c45d50e1c46ff60d9d0fa2632047a561361242",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "80",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 16,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "e4b501d49828969fc8edcfbdd6607bf3cb1a73de959f8a0ad4383b81e068da08",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "81",
+			"turns": 24,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 29,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 9
+			},
+			"floor": 4,
+			"log_hash": "2d924401e61ba6492e70cb82e00ffc282ab3aa50135eed822058cec92022c3e3",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "82",
+			"turns": 21,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 32,
+			"faults": 0,
+			"final_health": {
+				"boss": 13,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "afb1f492db58618478273744556b7a370b72ee2114c981be949308d9182cd1d4",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "83",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 37,
+			"faults": 0,
+			"final_health": {
+				"boss": 10,
+				"player": -1
+			},
+			"floor": 6,
+			"log_hash": "404c3ed6d274a92ef3a168d0c5f63d0cba7ea3d92222b42c033ef806321ee73e",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "84",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 47,
+			"faults": 0,
+			"final_health": {
+				"boss": 30,
+				"player": -2
+			},
+			"floor": 4,
+			"log_hash": "465b34278b6cc0c245fd8331b4c59d055b1e5fa13d840863c60babbce883ae95",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "85",
+			"turns": 26,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 36,
+			"faults": 0,
+			"final_health": {
+				"boss": 32,
+				"player": -2
+			},
+			"floor": 5,
+			"log_hash": "b9ef5c643c6cdb2ea0f08908775631e1f138f205b2d08a0bdcfdb92280ad3868",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "86",
+			"turns": 21,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 35,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "334ce1bef1dc32cd114b2bd27f9759820c3cfbfb359b23f9fa2a906c8aa5ed50",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "87",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 15,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 20
+			},
+			"floor": 4,
+			"log_hash": "70c21f06df438cd16519df4eb77b59c7de99295beef4b76b9d37a7fdad05b8a7",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "88",
+			"turns": 17,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 24,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 14
+			},
+			"floor": 5,
+			"log_hash": "f936f89a0f2c89a0811e219e284733038c669bc2b42f12c2db85301bf1a60013",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "89",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 19,
+				"player": -2
+			},
+			"floor": 6,
+			"log_hash": "6868c855acce0fd158c57a15a59b31f35e944bd1455a7f97d12a104a44c98cbe",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "90",
+			"turns": 25,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 23,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 19
+			},
+			"floor": 4,
+			"log_hash": "3ae6ff42aeb949f846a09ebf599f720ecc91aa33471baa426c8fc790c819b271",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "91",
+			"turns": 17,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 41,
+			"faults": 0,
+			"final_health": {
+				"boss": 38,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "b7afcffc7058568e4c124814897e27eb67b3a8e4e66599a3653d1a6fcf986859",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "92",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 23,
+			"faults": 0,
+			"final_health": {
+				"boss": 0,
+				"player": 13
+			},
+			"floor": 6,
+			"log_hash": "c18eea13bd79583e21f23e2535f8e744d0672b8a037169702afba3378aca8d5d",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "93",
+			"turns": 19,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 28,
+			"faults": 0,
+			"final_health": {
+				"boss": 28,
+				"player": -7
+			},
+			"floor": 4,
+			"log_hash": "e836f2a654d8f1343a03c81c90862e11b1a076b7089da60234ed04af0d6d7b10",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "94",
+			"turns": 19,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 41,
+			"faults": 0,
+			"final_health": {
+				"boss": 35,
+				"player": 0
+			},
+			"floor": 5,
+			"log_hash": "5d7815efb689092637e21021a0c2a64ac037fdcf2cc016c7de4a3a7ca042ac56",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "95",
+			"turns": 23,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 31,
+			"faults": 0,
+			"final_health": {
+				"boss": 17,
+				"player": 0
+			},
+			"floor": 6,
+			"log_hash": "de5e38e5e4e70e3c00c4106d2e9ed974d59542ea516a96c98d92be285fa5d82c",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "96",
+			"turns": 18,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 34,
+			"faults": 0,
+			"final_health": {
+				"boss": 28,
+				"player": -1
+			},
+			"floor": 4,
+			"log_hash": "c8da238eb24a5dc94d21fbb91a7a6e6a028c82b66aaea3cab9bf0625b3250644",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "97",
+			"turns": 22,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 35,
+			"faults": 0,
+			"final_health": {
+				"boss": 11,
+				"player": -1
+			},
+			"floor": 5,
+			"log_hash": "f94ce7f9e0c05e6534a2824633130ff0d0d4a1dc9816159244505266b1ab5aa9",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "98",
+			"turns": 25,
+			"winner": "boss"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 30,
+			"faults": 0,
+			"final_health": {
+				"boss": -1,
+				"player": 8
+			},
+			"floor": 6,
+			"log_hash": "6fc33519dd950eab9c3382a9cf1a1833f698eaecb411c2ad4b99ed38e1ae9a84",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "99",
+			"turns": 23,
+			"winner": "player"
+		},
+		{
+			"boss_rejections": 0,
+			"decisions": 39,
+			"faults": 0,
+			"final_health": {
+				"boss": 15,
+				"player": 0
+			},
+			"floor": 4,
+			"log_hash": "f757df1920426744222dd6b33f38042317c7d24109ae665a53723a0bd254c698",
+			"overflows": 0,
+			"player_rejections": 0,
+			"reason": "hero_dead",
+			"seed": "100",
+			"turns": 24,
+			"winner": "boss"
+		}
+	],
+	"max_decisions_in_a_match": 49,
+	"mean_final_health": 15.97,
+	"mean_turns": 21.64,
+	"opponent": {
+		"hero_id": ""
+	},
+	"overflows": 0,
+	"p50_planner_ms": 28.795,
+	"p95_planner_ms": 255.707,
+	"planner_target_ms": 500.0,
+	"play_turn": {
+		"p50_ms": 23.346,
+		"p95_ms": 193.42,
+		"runs": 1054
+	},
+	"player_rejections": 0,
+	"rejections": 0,
+	"seeds": 100,
+	"win_rate": 0.72
+}

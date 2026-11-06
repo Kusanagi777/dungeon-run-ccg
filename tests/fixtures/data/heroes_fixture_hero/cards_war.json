@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "war_whetstone_blade",
+      "name": "Whetstone Blade",
+      "set": "war",
+      "type": "weapon",
+      "cost": 1,
+      "attack": 1,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_whetstone_blade.text",
+        "en": ""
+      },
+      "token": true
+    },
+    {
+      "id": "war_fixture_recruit",
+      "name": "War Fixture Recruit",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.war_fixture_recruit.text",
+        "en": ""
+      }
+    }
+  ]
+}

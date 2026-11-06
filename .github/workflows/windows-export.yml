@@ -1,0 +1,151 @@
+name: Windows Export
+
+# Story: boot-composition-root/story-008 (sprint 2 TASK-WINEXP, gate condition 8).
+# A separate workflow from tests.yml on purpose: it runs in parallel, a failure
+# here shows as its own red check and never gates or cancels the test job, and
+# the two files do not collide. Whether it blocks a merge is a branch-protection
+# decision (do not add it as a required check without the owner's say-so).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: windows-export-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  export:
+    name: Export Windows Desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      # Godot binary (~70 MB) and export templates (~1 GB unpacked) are cached
+      # keyed on the engine version (plus setup.sh, which owns the URLs), so a
+      # warm run downloads nothing. Bumping GODOT_VERSION busts both.
+      - name: Cache Godot binary and export templates
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/godot/${{ env.GODOT_VERSION }}-stable
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-export-${{ hashFiles('tools/setup.sh') }}
+
+      # setup.sh is idempotent: on a cache hit it only re-creates the
+      # ~/.local/bin/godot symlink; on a miss it downloads both.
+      - name: Install Godot and export templates
+        env:
+          EXPORT_TEMPLATES: "1"
+        run: bash tools/setup.sh
+
+      - name: Verify templates are present
+        run: |
+          dir="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          ls -la "$dir/windows_release_x86_64.exe"
+          cat "$dir/version.txt"
+
+      # Same two-pass import as tests.yml: the first headless import on a clean
+      # machine has been seen to exit 139; the second must succeed.
+      - name: Import project (build .godot class cache)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set +e
+          godot --headless --path . --import
+          first=$?
+          set -e
+          if [ "$first" -ne 0 ] && [ "$first" -ne 139 ]; then
+            echo "First import exited $first" >&2
+            exit "$first"
+          fi
+          godot --headless --path . --import
+
+      # Exactly project.yaml commands.build.
+      - name: Export Windows Desktop (release)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          mkdir -p build/windows
+          godot --headless --path . --export-release 'Windows Desktop' build/windows/deckdelve.exe
+
+      # The release template alone is ~109 MB, so a tiny file means a broken export.
+      - name: Verify the export
+        run: |
+          f=build/windows/deckdelve.exe
+          test -f "$f" || { echo "$f missing" >&2; exit 1; }
+          size=$(stat -c %s "$f")
+          echo "deckdelve.exe: $size bytes"
+          if [ "$size" -lt 50000000 ]; then
+            echo "deckdelve.exe is under 50 MB: export is not trustworthy" >&2
+            exit 1
+          fi
+          ls -la build/windows
+
+      # embed_pck=true in the preset, so the .exe is self-contained; the *.pck
+      # glob only matters if that option is ever turned off. upload-artifact
+      # zips the files, so the download is deckdelve-windows-<sha>.zip.
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          name: deckdelve-windows-${{ github.sha }}
+          path: |
+            build/windows/*.exe
+            build/windows/*.pck
+          if-no-files-found: error
+          retention-days: 14
+
+      # ADR-0009 Decision 4 / match-ui story 012: the release pack must not list the
+      # debug loader or the fixtures. The export filter's syntax is not sourceable, so
+      # this grep of the pack's file table is the test. The debug preset ships both.
+      - name: Check the release pack holds no debug seam
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          godot --headless --path . --export-pack 'Windows Desktop' build/release-check.pck
+          for needle in match_debug_loader tests/fixtures/; do
+            if grep -aq "$needle" build/release-check.pck; then
+              echo "release pack lists $needle" >&2
+              exit 1
+            fi
+          done
+          rm build/release-check.pck
+
+      # The playtest build. A release build fails its data load while any
+      # config validator is still pending (W_VALIDATOR_PENDING is an error in
+      # exported release builds — card-database story 004 review fix), and
+      # opens on the data-error screen by design. The debug build treats those
+      # as warnings and reaches the main menu. deckdelve-debug.console.exe
+      # opens a console window with the log, for bug reports.
+      - name: Export Windows Desktop (debug, playtest)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          mkdir -p build/windows-debug
+          godot --headless --path . --export-debug 'Windows Desktop Debug' build/windows-debug/deckdelve-debug.exe
+          f=build/windows-debug/deckdelve-debug.exe
+          test -f "$f" || { echo "$f missing" >&2; exit 1; }
+          size=$(stat -c %s "$f")
+          echo "deckdelve-debug.exe: $size bytes"
+          if [ "$size" -lt 50000000 ]; then
+            echo "deckdelve-debug.exe is under 50 MB: export is not trustworthy" >&2
+            exit 1
+          fi
+          ls -la build/windows-debug
+
+      - name: Upload Windows playtest build (debug)
+        uses: actions/upload-artifact@v7
+        with:
+          name: deckdelve-windows-debug-${{ github.sha }}
+          path: |
+            build/windows-debug/*.exe
+            build/windows-debug/*.pck
+          if-no-files-found: error
+          retention-days: 14

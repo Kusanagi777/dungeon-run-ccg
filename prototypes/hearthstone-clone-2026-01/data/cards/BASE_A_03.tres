@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://bvtm6tyc7r7p8"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_A_03"
+card_name = "Third Degree"
+cost = 3
+attack = 0
+health = 0
+card_type = 1
+rarity = 0
+description = "A 3-cost baseline action for cost verification."
+keywords = Array[String](["[]"])
+minion_tags = 0

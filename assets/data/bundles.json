@@ -1,0 +1,581 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_neutral_tempo",
+      "name": "Quick March",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_tunnel_rat",
+        "neutral_wolf_rider",
+        "neutral_banner_captain"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tempo.text",
+        "en": "Fast bodies and a banner to lead them."
+      }
+    },
+    {
+      "id": "bundle_neutral_wall",
+      "name": "Hold the Line",
+      "set": "neutral",
+      "theme": "wall",
+      "cards": [
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_shield_golem"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_wall.text",
+        "en": "Taunt walls that buy you time."
+      }
+    },
+    {
+      "id": "bundle_war_armour_1",
+      "name": "Shield Wall",
+      "set": "war",
+      "theme": "armour",
+      "cards": [
+        "war_shield_squire",
+        "war_iron_resolve",
+        "war_iron_vanguard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_armour_1.text",
+        "en": "Armor up and hold the front."
+      }
+    },
+    {
+      "id": "bundle_war_armour_2",
+      "name": "Bulwark",
+      "set": "war",
+      "theme": "armour",
+      "cards": [
+        "war_armorer",
+        "war_shieldwall_veteran",
+        "war_shield_maiden"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_armour_2.text",
+        "en": "Taunt bodies and Armor to outlast any fight."
+      }
+    },
+    {
+      "id": "bundle_war_aggro_1",
+      "name": "First Blood",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_cellar_raider",
+        "war_warcry",
+        "war_pit_brawler"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_aggro_1.text",
+        "en": "Rush and Charge: hit first, hit hard."
+      }
+    },
+    {
+      "id": "bundle_war_aggro_2",
+      "name": "The Pit",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_berserker",
+        "war_rally",
+        "war_pit_champion"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_aggro_2.text",
+        "en": "Pit fighters who grow in the brawl, and a champion to lead them."
+      }
+    },
+    {
+      "id": "bundle_war_aggro_3",
+      "name": "Warband",
+      "set": "war",
+      "theme": "aggro",
+      "cards": [
+        "war_warlord",
+        "war_headsman",
+        "war_cleave_through"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_aggro_3.text",
+        "en": "A warlord, an executioner and a sweep to clear the way."
+      }
+    },
+    {
+      "id": "bundle_war_weapons_1",
+      "name": "Whetted Steel",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_sharpen",
+        "war_rusted_axe",
+        "war_blade_apprentice"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons_1.text",
+        "en": "A first axe and the edge to sharpen it."
+      }
+    },
+    {
+      "id": "bundle_war_weapons_2",
+      "name": "Armoury",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_blade_strike",
+        "war_heavy_maul",
+        "war_quartermaster"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons_2.text",
+        "en": "Heavier steel, and the cards that pay off holding it."
+      }
+    },
+    {
+      "id": "bundle_war_weapons_3",
+      "name": "Kingsguard",
+      "set": "war",
+      "theme": "weapons",
+      "cards": [
+        "war_duelists_edge",
+        "war_twin_hatchets",
+        "war_kingsblade"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_weapons_3.text",
+        "en": "The finest blades in the delve."
+      }
+    },
+    {
+      "id": "bundle_neutral_tricks",
+      "name": "Sleight of Hand",
+      "set": "neutral",
+      "theme": "tricks",
+      "cards": [
+        "neutral_hush_owl",
+        "neutral_tunnel_shaman",
+        "neutral_hex_doctor"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tricks.text",
+        "en": "Quiet a threat, turn it inside out."
+      }
+    },
+    {
+      "id": "bundle_neutral_value",
+      "name": "Supply Line",
+      "set": "neutral",
+      "theme": "value",
+      "cards": [
+        "neutral_novice_scout",
+        "neutral_treasure_map",
+        "neutral_mimic"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_value.text",
+        "en": "Cards, crystals and a copy for later."
+      }
+    },
+    {
+      "id": "bundle_neutral_pings",
+      "name": "Sparks",
+      "set": "neutral",
+      "theme": "pings",
+      "cards": [
+        "neutral_spark_fiend",
+        "neutral_rockfall",
+        "neutral_powder_keg"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pings.text",
+        "en": "Small blasts that land where they please."
+      }
+    },
+    {
+      "id": "bundle_neutral_big",
+      "name": "Heavy Hitters",
+      "set": "neutral",
+      "theme": "big",
+      "cards": [
+        "neutral_stone_sentinel",
+        "neutral_hill_giant",
+        "neutral_war_mammoth"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_big.text",
+        "en": "Large bodies for the deep floors."
+      }
+    },
+    {
+      "id": "bundle_neutral_tempo_2",
+      "name": "Skirmishers",
+      "set": "neutral",
+      "theme": "tempo",
+      "cards": [
+        "neutral_rusty_dagger",
+        "neutral_cutpurse",
+        "neutral_storm_harpy"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tempo_2.text",
+        "en": "Slip in early and strike twice."
+      }
+    },
+    {
+      "id": "bundle_neutral_value_2",
+      "name": "Field Kit",
+      "set": "neutral",
+      "theme": "value",
+      "cards": [
+        "neutral_field_medic",
+        "neutral_blood_tick",
+        "neutral_miners_pick"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_value_2.text",
+        "en": "Keep your health and your hand topped up."
+      }
+    },
+    {
+      "id": "bundle_decay_deathrattle_1",
+      "name": "Carrion",
+      "set": "decay",
+      "theme": "deathrattle",
+      "cards": [
+        "decay_grave_rat",
+        "decay_carrion_crow",
+        "decay_last_rites"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_deathrattle_1.text",
+        "en": "Cheap deaths that pay you back."
+      }
+    },
+    {
+      "id": "bundle_decay_deathrattle_2",
+      "name": "Grave Goods",
+      "set": "decay",
+      "theme": "deathrattle",
+      "cards": [
+        "decay_rot_beetle",
+        "decay_crypt_leech",
+        "decay_relic_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_deathrattle_2.text",
+        "en": "What the dead leave behind."
+      }
+    },
+    {
+      "id": "bundle_decay_deathrattle_3",
+      "name": "The Boneyard",
+      "set": "decay",
+      "theme": "deathrattle",
+      "cards": [
+        "decay_boneyard_brute",
+        "decay_plaguebearer",
+        "decay_grave_titan"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_deathrattle_3.text",
+        "en": "Big bodies that rise again in pieces."
+      }
+    },
+    {
+      "id": "bundle_decay_husk_1",
+      "name": "Husk Tide",
+      "set": "decay",
+      "theme": "husk",
+      "cards": [
+        "decay_mass_grave",
+        "decay_husk_tender",
+        "decay_raise_dead"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_husk_1.text",
+        "en": "Fill the board with Husks."
+      }
+    },
+    {
+      "id": "bundle_decay_husk_2",
+      "name": "Mother's Brood",
+      "set": "decay",
+      "theme": "husk",
+      "cards": [
+        "decay_husk_herder",
+        "decay_shambling_heap",
+        "decay_husk_mother"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_husk_2.text",
+        "en": "Grow your Husks and breed more."
+      }
+    },
+    {
+      "id": "bundle_decay_husk_3",
+      "name": "Rot Bloom",
+      "set": "decay",
+      "theme": "husk",
+      "cards": [
+        "decay_grave_rat",
+        "decay_feast_of_worms",
+        "decay_plague_of_rot"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_husk_3.text",
+        "en": "Sow Husks, then burst them all."
+      }
+    },
+    {
+      "id": "bundle_decay_sacrifice_1",
+      "name": "Tithe",
+      "set": "decay",
+      "theme": "sacrifice",
+      "cards": [
+        "decay_plague_rat",
+        "decay_soul_tithe",
+        "decay_culling"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_sacrifice_1.text",
+        "en": "Spend a minion, buy a turn."
+      }
+    },
+    {
+      "id": "bundle_decay_sacrifice_2",
+      "name": "Offering",
+      "set": "decay",
+      "theme": "sacrifice",
+      "cards": [
+        "decay_grave_robber",
+        "decay_tomb_spider",
+        "decay_blight"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_sacrifice_2.text",
+        "en": "Feed the board to what stays on it."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spells_1",
+      "name": "Cantrips",
+      "set": "knowledge",
+      "theme": "spells",
+      "cards": [
+        "knowledge_ink_sprite",
+        "knowledge_frost_lance",
+        "knowledge_apprentice"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spells_1.text",
+        "en": "Small spells, and a hand to cheapen them."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spells_2",
+      "name": "Evocation",
+      "set": "knowledge",
+      "theme": "spells",
+      "cards": [
+        "knowledge_lightning_lash",
+        "knowledge_meteor_bolt",
+        "knowledge_glacial_wind"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spells_2.text",
+        "en": "Burn it, or freeze it where it stands."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spells_3",
+      "name": "Deep Vault",
+      "set": "knowledge",
+      "theme": "spells",
+      "cards": [
+        "knowledge_transmute",
+        "knowledge_rime_elemental",
+        "knowledge_vault_golem"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spells_3.text",
+        "en": "Spells that end a fight on their own."
+      }
+    },
+    {
+      "id": "bundle_knowledge_draw_1",
+      "name": "Open Books",
+      "set": "knowledge",
+      "theme": "draw",
+      "cards": [
+        "knowledge_spark",
+        "knowledge_study",
+        "knowledge_scribe"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_draw_1.text",
+        "en": "Turn every spell into another card."
+      }
+    },
+    {
+      "id": "bundle_knowledge_draw_2",
+      "name": "Long Reading",
+      "set": "knowledge",
+      "theme": "draw",
+      "cards": [
+        "knowledge_deep_study",
+        "knowledge_star_reader",
+        "knowledge_forbidden_tome"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_draw_2.text",
+        "en": "Read deep, and let the stars do the rest."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spell_damage_1",
+      "name": "Kindling",
+      "set": "knowledge",
+      "theme": "spell_damage",
+      "cards": [
+        "knowledge_candle_acolyte",
+        "knowledge_rune_warden",
+        "knowledge_lorekeeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spell_damage_1.text",
+        "en": "Every spell you cast hits harder."
+      }
+    },
+    {
+      "id": "bundle_knowledge_spell_damage_2",
+      "name": "Conflagration",
+      "set": "knowledge",
+      "theme": "spell_damage",
+      "cards": [
+        "knowledge_chain_lightning",
+        "knowledge_flamewave",
+        "knowledge_grand_grimoire"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_spell_damage_2.text",
+        "en": "Spells that scorch the whole board."
+      }
+    },
+    {
+      "id": "bundle_knowledge_discover_1",
+      "name": "Lost Library",
+      "set": "knowledge",
+      "theme": "discover",
+      "cards": [
+        "knowledge_lost_page",
+        "knowledge_archive_seeker",
+        "knowledge_scrying"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_discover_1.text",
+        "en": "Find the page you need."
+      }
+    },
+    {
+      "id": "bundle_neutral_wall_2",
+      "name": "Stone and Lamp",
+      "set": "neutral",
+      "theme": "wall",
+      "cards": [
+        "neutral_gate_guardian",
+        "neutral_temple_guard",
+        "neutral_old_lamplighter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_wall_2.text",
+        "en": "A wall that tends its own wounds."
+      }
+    },
+    {
+      "id": "bundle_neutral_tricks_2",
+      "name": "Hush and Hex",
+      "set": "neutral",
+      "theme": "tricks",
+      "cards": [
+        "neutral_smite_or_mend",
+        "neutral_muzzle",
+        "neutral_hourglass_mage"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_tricks_2.text",
+        "en": "Bend the turn your way."
+      }
+    },
+    {
+      "id": "bundle_neutral_pings_2",
+      "name": "Embers",
+      "set": "neutral",
+      "theme": "pings",
+      "cards": [
+        "neutral_ember_sprite",
+        "neutral_gravekeeper",
+        "neutral_hedge_wizard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pings_2.text",
+        "en": "Little fires, and something to feed them."
+      }
+    },
+    {
+      "id": "bundle_neutral_big_2",
+      "name": "Siege Train",
+      "set": "neutral",
+      "theme": "big",
+      "cards": [
+        "neutral_ogre_porter",
+        "neutral_great_cleaver",
+        "neutral_dungeon_warden"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_big_2.text",
+        "en": "Heavy steel and a heavier guard."
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://c8cnggha8y5xs"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_8s54b"]
+
+[resource]
+script = ExtResource("1_8s54b")
+id = "BASE_A_09"
+card_name = "Ninth Life"
+cost = 9
+card_type = 1
+rarity = 3
+description = "A 9-cost baseline action for legendary parsing."
+keywords = Array[String](["[]"])

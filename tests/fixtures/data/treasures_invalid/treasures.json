@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_valid",
+      "name": "Valid",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_valid.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_bad_trigger",
+      "name": "Bad Trigger",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_bad_trigger.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_boss_token",
+      "name": "Boss Token",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "boss_grave_rat",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_boss_token.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_two_affinities",
+      "name": "Two Affinities",
+      "rarity": "common",
+      "tags": [
+        "war",
+        "decay"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_two_affinities.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_legendary",
+      "name": "Legendary",
+      "rarity": "legendary",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_legendary.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_no_effects",
+      "name": "No Effects",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_no_effects.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_four_effects",
+      "name": "Four Effects",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_four_effects.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_unknown_tag",
+      "name": "Unknown Tag",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "frobnicate"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_unknown_tag.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_no_affinity",
+      "name": "No Affinity",
+      "rarity": "common",
+      "tags": [
+        "weapons",
+        "aggro"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_no_affinity.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_shield_aura",
+      "name": "Shield Aura",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1,
+              "keywords": [
+                "divine_shield"
+              ]
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_shield_aura.text",
+        "en": "Fixture record."
+      }
+    },
+    {
+      "id": "treasure_no_en",
+      "name": "No En",
+      "rarity": "common",
+      "tags": [
+        "universal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "targets": "owner",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_no_en.text"
+      }
+    }
+  ]
+}

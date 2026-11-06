@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_war",
+      "name": "Halvard, the Whetted",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_whetstone",
+      "starter_deck": [
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "war_shield_squire",
+        "war_sharpen",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "war_rusted_axe",
+        "war_warcry",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "war_iron_vanguard",
+        "war_quartermaster",
+        "neutral_crypt_brute",
+        "war_pit_brawler",
+        "neutral_ogre_porter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_war.text",
+        "en": "Every turn, the blade. The rest is footwork."
+      }
+    },
+    {
+      "id": "hero_decay",
+      "name": "Mother Wythe",
+      "set": "decay",
+      "health": 30,
+      "hero_power": "power_rot",
+      "starter_deck": [
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_tunnel_rat",
+        "decay_grave_rat",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "decay_carrion_crow",
+        "decay_culling",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "decay_husk_tender",
+        "decay_grave_warden",
+        "neutral_crypt_brute",
+        "decay_shambling_heap",
+        "neutral_ogre_porter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_decay.text",
+        "en": "Nothing in my garden is wasted — least of all the dead."
+      }
+    },
+    {
+      "id": "hero_knowledge",
+      "name": "Archivist Ilse",
+      "set": "knowledge",
+      "health": 30,
+      "hero_power": "power_insight",
+      "starter_deck": [
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_tunnel_rat",
+        "knowledge_candle_acolyte",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "knowledge_frost_lance",
+        "knowledge_archive_seeker",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "knowledge_study",
+        "knowledge_lightning_lash",
+        "neutral_crypt_brute",
+        "knowledge_lorekeeper",
+        "neutral_ogre_porter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_knowledge.text",
+        "en": "I have read the ending. I am only checking the page."
+      }
+    }
+  ]
+}

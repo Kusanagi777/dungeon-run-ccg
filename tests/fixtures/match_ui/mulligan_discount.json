@@ -1,0 +1,7 @@
+{
+  "config": {"hero": "hero_war", "boss": "boss_torchbearer", "seed": 1, "floor": 1, "band": 1, "treasures": ["treasure_quartermasters_ledger"], "player_deck": ["neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard", "neutral_ogre_porter", "neutral_cellar_guard"]},
+  "profile": {},
+  "commands": [
+
+  ]
+}

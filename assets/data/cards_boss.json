@@ -1,0 +1,954 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_ember_bolt",
+      "name": "Ember Bolt",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "enemy_hero",
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_ember_bolt.text",
+        "en": "Deal 1 damage to the enemy hero. Draw a card."
+      }
+    },
+    {
+      "id": "boss_tinder_imp",
+      "name": "Tinder Imp",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_tinder_imp.text",
+        "en": "At the end of your turn, deal 1 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_rat_pack",
+      "name": "Rat Pack",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "boss_rat",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_rat_pack.text",
+        "en": "Battlecry: Summon two 1/1 Rats."
+      }
+    },
+    {
+      "id": "boss_rat_matriarch",
+      "name": "Rat Matriarch",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "tag": "rat"
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_rat_matriarch.text",
+        "en": "Your Rats have +1/+1."
+      }
+    },
+    {
+      "id": "boss_iron_gate",
+      "name": "Iron Gate",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 1,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_iron_gate.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "boss_gate_warden",
+      "name": "Gate Warden",
+      "set": "boss",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_gate_warden.text",
+        "en": "Taunt. Battlecry: Give your other minions +0/+2."
+      }
+    },
+    {
+      "id": "boss_rat",
+      "name": "Rat",
+      "set": "boss",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "rat"
+      ],
+      "text": {
+        "key": "card.boss_rat.text",
+        "en": ""
+      },
+      "token": true
+    },
+    {
+      "id": "boss_rot_zombie",
+      "name": "Rot Zombie",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_rot_zombie.text",
+        "en": "Deathrattle: Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "boss_mass_rites",
+      "name": "Mass Rites",
+      "set": "boss",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "retrigger",
+              "trigger": "deathrattle"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_mass_rites.text",
+        "en": "Trigger the Deathrattles of all friendly minions."
+      }
+    },
+    {
+      "id": "boss_hollow_knight",
+      "name": "Hollow Knight",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_hollow_knight.text",
+        "en": "Divine Shield."
+      }
+    },
+    {
+      "id": "boss_crown_of_thorns",
+      "name": "Crown of Thorns",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            },
+            {
+              "op": "give_keyword",
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_crown_of_thorns.text",
+        "en": "Give your minions +1/+1 and Taunt."
+      }
+    },
+    {
+      "id": "boss_moss_poultice",
+      "name": "Moss Poultice",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_moss_poultice.text",
+        "en": "Restore 4 Health to your hero."
+      }
+    },
+    {
+      "id": "boss_hermit_crab",
+      "name": "Hermit Crab",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_hermit_crab.text",
+        "en": "Deathrattle: Restore 3 Health to your hero."
+      }
+    },
+    {
+      "id": "boss_blood_chalice",
+      "name": "Blood Chalice",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 4,
+              "targets": "owner_hero"
+            },
+            {
+              "op": "damage",
+              "amount": 2,
+              "targets": "enemy_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_blood_chalice.text",
+        "en": "Restore 4 Health to your hero. Deal 2 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_sister_of_blood",
+      "name": "Sister of Blood",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_sister_of_blood.text",
+        "en": "Lifesteal."
+      }
+    },
+    {
+      "id": "boss_toll_collector",
+      "name": "Toll Collector",
+      "set": "boss",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_enemy_minions",
+            "filter": {
+              "cost_ge": 3
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_toll_collector.text",
+        "en": "Battlecry: Deal 2 damage to all enemy minions that cost (3) or more."
+      }
+    },
+    {
+      "id": "boss_tollgate",
+      "name": "Tollgate",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_tollgate.text",
+        "en": "Taunt."
+      }
+    },
+    {
+      "id": "boss_bone_shard",
+      "name": "Bone Shard",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_bone_shard.text",
+        "en": "Deal 1 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "boss_soul_bolt",
+      "name": "Soul Bolt",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "any"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            },
+            {
+              "op": "heal",
+              "amount": 2,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_soul_bolt.text",
+        "en": "Deal 2 damage. Restore 2 Health to your hero."
+      }
+    },
+    {
+      "id": "boss_bog_toad",
+      "name": "Bog Toad",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_bog_toad.text",
+        "en": "Deathrattle: Draw a card."
+      }
+    },
+    {
+      "id": "boss_witchs_brew",
+      "name": "Witch's Brew",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "draw",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_witchs_brew.text",
+        "en": "Destroy a friendly minion. Draw 3 cards."
+      }
+    },
+    {
+      "id": "boss_frostbite",
+      "name": "Frostbite",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_frostbite.text",
+        "en": "Destroy a Frozen minion."
+      }
+    },
+    {
+      "id": "boss_hag_servant",
+      "name": "Hag Servant",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_hag_servant.text",
+        "en": "Battlecry: Freeze an enemy minion."
+      }
+    },
+    {
+      "id": "boss_lurker",
+      "name": "Lurker",
+      "set": "boss",
+      "type": "minion",
+      "cost": 2,
+      "attack": 3,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_lurker.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "boss_knife_in_the_dark",
+      "name": "Knife in the Dark",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_knife_in_the_dark.text",
+        "en": "Deal 4 damage to a damaged minion."
+      }
+    },
+    {
+      "id": "boss_scrap_plating",
+      "name": "Scrap Plating",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 5,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_scrap_plating.text",
+        "en": "Gain 5 Armor."
+      }
+    },
+    {
+      "id": "boss_junk_golem",
+      "name": "Junk Golem",
+      "set": "boss",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_junk_golem.text",
+        "en": "Battlecry: Gain 3 Armor."
+      }
+    },
+    {
+      "id": "boss_signal_torch",
+      "name": "Signal Torch",
+      "set": "boss",
+      "type": "weapon",
+      "cost": 2,
+      "attack": 2,
+      "durability": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_signal_torch.text",
+        "en": "Whenever your hero attacks, deal 1 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_pyre_bomb",
+      "name": "Pyre Bomb",
+      "set": "boss",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_pyre_bomb.text",
+        "en": "Deal 3 damage to the enemy hero."
+      }
+    },
+    {
+      "id": "boss_reflection",
+      "name": "Reflection",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "random_enemy_minion"
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_reflection.text",
+        "en": "Add a copy of a random enemy minion to your hand."
+      }
+    },
+    {
+      "id": "boss_mirror_golem",
+      "name": "Mirror Golem",
+      "set": "boss",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": {
+                "count": "all_enemy_minions"
+              },
+              "health": {
+                "count": "all_enemy_minions"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_mirror_golem.text",
+        "en": "Battlecry: Gain +1/+1 for each enemy minion."
+      }
+    },
+    {
+      "id": "boss_heartbeat",
+      "name": "Heartbeat",
+      "set": "boss",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_heartbeat.text",
+        "en": "Deal 1 damage to all enemy minions. Draw a card."
+      }
+    },
+    {
+      "id": "boss_heart_guardian",
+      "name": "Heart Guardian",
+      "set": "boss",
+      "type": "minion",
+      "cost": 6,
+      "attack": 5,
+      "health": 7,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.boss_heart_guardian.text",
+        "en": "Taunt. Deathrattle: Deal 2 damage to all enemy minions."
+      }
+    }
+  ]
+}

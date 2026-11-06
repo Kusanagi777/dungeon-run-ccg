@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "power_sharpen",
+      "name": "Sharpen",
+      "cost": 2,
+      "effects": [],
+      "text": {
+        "key": "power.power_sharpen.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "power_rot",
+      "name": "Rot",
+      "cost": 2,
+      "effects": [],
+      "text": {
+        "key": "power.power_rot.text",
+        "en": ""
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://p8ol8xbsqw8g"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_4acro"]
+
+[resource]
+script = ExtResource("1_4acro")
+card_name = "Traveling Merchant"
+cost = 1
+attack = 1
+health = 2
+description = "Deploy: Heal your Hero for 2."
+role_tag = 3

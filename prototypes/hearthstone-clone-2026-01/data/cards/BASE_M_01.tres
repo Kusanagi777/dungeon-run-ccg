@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://om5t5n3xknyt"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_01"
+card_name = "Tin Sentry"
+cost = 1
+attack = 1
+health = 2
+card_type = 0
+rarity = 0
+description = "A 1-cost baseline unit for early trades."
+keywords = Array[String](["[]"])
+minion_tags = 0

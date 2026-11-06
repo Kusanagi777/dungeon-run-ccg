@@ -1,0 +1,15 @@
+{
+  "name": "lethal_weapon_spell",
+  "description": "boss-ai A8: an empty boss board, 4 mana, a 2-cost 3/2 weapon and a 2-cost 3-damage spell against a player at 6: lethal only by equipping, swinging and casting. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 3,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 3},
+    {"id": "bai_axe", "type": "weapon", "cost": 2, "attack": 3, "health": 2},
+    {"id": "bai_bolt", "type": "spell", "cost": 2, "effects": [{"trigger": "cast", "targets": {"selector": "chosen", "filter": {"kind": "any", "side": "enemy"}}, "ops": [{"op": "damage", "amount": 3}]}]}
+  ],
+  "boss": {"mana": 4, "board": [], "hand": ["bai_axe", "bai_bolt"]},
+  "player": {"health": 6, "board": []}
+}

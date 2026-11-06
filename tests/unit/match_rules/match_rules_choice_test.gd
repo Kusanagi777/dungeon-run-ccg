@@ -1,0 +1,673 @@
+## Unit tests for the Choice phase and the Discover continuation (story
+## match-rules/story-016; design/gdd/match-rules.md C2 `choose` row,
+## `CHOICE_PENDING` / `INVALID_CHOICE`, States `Choice` and its transition
+## rows, C12 Discover, Edge Cases "If a Discover is raised during the boss's
+## turn"; ADR-0007 Decision 1 — the resolver keeps its continuation in
+## `state.effects.pending_choice`, the engine owns `Choice`; quick-design
+## 2026-11-04 — a paused spell runs no later step or `after_cast` until `choose`).
+##
+## The resolver is the `TestEffectResolver` double. A scripted play point (or
+## queued pass) calls `engine.discover(...)` and writes the rest of its effect
+## — "then deal N to X" — into `effects.pending_choice` as plain data; its
+## [member TestEffectResolver.resume_script] adds the chosen option to hand and
+## runs that rest, as Card Effects' `resume` will (card-effects story 010).
+extends GdUnitTestSuite
+
+const SIDE_PLAYER: String = MatchFactory.SIDE_PLAYER
+const SIDE_BOSS: String = MatchFactory.SIDE_BOSS
+const MARKER: StringName = &"test_pass_marker"
+const DEF_SCOUT: String = "neutral_test_scout_spell"
+const DEF_SEER: String = "neutral_test_seer"
+const OPTIONS: Array = ["neutral_test_opt_a", "neutral_test_opt_b", "neutral_test_opt_c"]
+const EFFECT_ID: String = "test_discover.0"
+const SPELL_DAMAGE: int = 2
+const MANA_POOL: int = 10
+## A log cap no fixture here reaches (review S1's reference run).
+const CAP_NOT_REACHED: int = 100_000
+
+
+class FixtureDb extends RefCounted:
+	var cards: Dictionary = {}
+
+	func has(id: String) -> bool:
+		return cards.has(id)
+
+	func card(id: String) -> Variant:
+		return cards.get(id)
+
+
+# --- helpers -----------------------------------------------------------------
+
+func _db() -> FixtureDb:
+	var db: FixtureDb = FixtureDb.new()
+	db.cards[DEF_SCOUT] = CardFactory.make_spell(DEF_SCOUT, 1)
+	db.cards[DEF_SEER] = CardFactory.make_minion(DEF_SEER, 1, 1, 1, ["battlecry"])
+	return db
+
+
+## A started engine past the mulligan (player Main, turn 1), the resume
+## script installed, [param side]'s hand replaced by [param hand] and its mana
+## set to [constant MANA_POOL]; [param rules_overrides] patch `match_rules`.
+func _engine(log: TestEventLog, resolver: TestEffectResolver, hand: Array, side: String = SIDE_PLAYER, rules_overrides: Dictionary = {}) -> RulesEngine:
+	resolver.resume_script = _resume
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {}, rules_overrides, resolver, _db())
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	if side == SIDE_BOSS:
+		assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+	_set_hand(engine, side, hand)
+	return engine
+
+
+func _set_hand(engine: RulesEngine, side: String, hand: Array) -> void:
+	var state: MatchState = engine.state()
+	var cards: Array = state.players[side].hand
+	cards.clear()
+	for def_id: Variant in hand:
+		cards.append(MatchFactory.make_card_instance(MatchFactory.alloc_entity_id(state), str(def_id), "hand"))
+	state.players[side].mana_current = MANA_POOL
+	state.players[side].mana_max = MANA_POOL
+
+
+func _player(engine: RulesEngine, side: String = SIDE_PLAYER) -> Dictionary:
+	return engine.state().players[side]
+
+
+func _hero_id(engine: RulesEngine, side: String) -> int:
+	return int(_player(engine, side).hero.entity_id)
+
+
+## A scripted effect `[discover(side, OPTIONS), deal_damage(target, amount)…]`:
+## raises the request and stores the rest of the effect as the resolver's
+## plain-data continuation (`then`: `[{target, amount}]`, source the host).
+func _discover(engine: RulesEngine, ctx: Dictionary, side: String, then: Array) -> void:
+	var source: Variant = ctx.get("source", ctx.get("source_id"))
+	@warning_ignore("return_value_discarded")
+	engine.discover(side, OPTIONS, MatchRecords.CHOICE_DISCOVER, source, EFFECT_ID)
+	engine.state().effects.pending_choice = {"effect_id": EFFECT_ID, "source": source, "then": then}
+
+
+## The double's `resume`: the chosen option into the chooser's hand
+## (`add_card_to_hand`), then the rest of the paused effect.
+func _resume(engine: RulesEngine, choice: Dictionary, index: int) -> void:
+	@warning_ignore("return_value_discarded")
+	engine.add_card_to_hand(str(choice.side), str(choice.options[index]))
+	var continuation: Variant = engine.state().effects.pending_choice
+	engine.state().effects.pending_choice = null
+	if continuation is Dictionary:
+		for hit: Dictionary in continuation.then:
+			@warning_ignore("return_value_discarded")
+			engine.apply_damage(int(hit.target), int(hit.amount), continuation.source)
+
+
+func _mark(engine: RulesEngine, ctx: Dictionary) -> void:
+	@warning_ignore("return_value_discarded")
+	engine.emit(MARKER, {"effect_id": str(ctx.get("effect_id", ""))})
+
+
+func _since(log: TestEventLog, before: int, type: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for event: Dictionary in log.events.slice(before):
+		if String(event.type) == type:
+			out.append(event)
+	return out
+
+
+func _assert_rejected(result: Dictionary, code: String) -> void:
+	assert_bool(result.accepted).is_false()
+	if not result.accepted:
+		assert_str(str(result.rejection.code)).is_equal(code)
+
+
+## Every plain-data field of [param state] (all but `log`, `rng_match`, `hooks`).
+func _plain_state(state: MatchState) -> Dictionary:
+	return {
+		"turn": state.turn, "active_side": state.active_side, "phase": state.phase,
+		"players": state.players, "pending_choice": state.pending_choice, "result": state.result,
+		"next_entity_id": state.next_entity_id, "effects": state.effects, "floor": state.floor,
+		"suspended_queue": state.suspended_queue, "suspended_steps": state.suspended_steps,
+		"suspended_action": state.suspended_action,
+	}
+
+
+## A player Scout spell `[discover(PLAYER, OPTIONS), deal_damage(BOSS_HERO, 2)]`
+## and a player minion that observes `after_cast`. Returns `[engine, spell id]`.
+func _paused_spell_fixture(log: TestEventLog, resolver: TestEffectResolver) -> Array:
+	var engine: RulesEngine = _engine(log, resolver, [DEF_SCOUT])
+	var observer: Dictionary = MatchFactory.summon(engine.state(), SIDE_PLAYER, 1, 1)
+	resolver.add_trigger(&"after_cast", int(observer.entity_id), "observer.0", _mark)
+	var then: Array = [{"target": _hero_id(engine, SIDE_BOSS), "amount": SPELL_DAMAGE}]
+	resolver.scripts[&"on_cast"] = [_discover.bind(SIDE_PLAYER, then)]
+	return [engine, int(_player(engine).hand[0].instance_id)]
+
+
+# --- quick-design 2026-11-04: a paused spell ------------------------------------
+
+func test_a_spell_paused_by_discover_runs_no_later_step_until_choose() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	var spell_id: int = fixture[1]
+	var boss_health: int = engine.health(_player(engine, SIDE_BOSS).hero)
+	var before: int = log.events.size()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null))
+
+	# Assert — accepted, paused: no damage, still resolving, no after_cast
+	assert_bool(result.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_array(_since(log, before, "damage_dealt")).is_empty()
+	assert_int(engine.health(_player(engine, SIDE_BOSS).hero)).is_equal(boss_health)
+	assert_int(_player(engine).resolving.size()).is_equal(1)
+	assert_int(int(_player(engine).resolving[0].instance_id)).is_equal(spell_id)
+	assert_array(resolver.candidates_for(&"after_cast")).is_empty()
+	assert_array(_since(log, before, "card_to_graveyard")).is_empty()
+
+
+func test_choose_resumes_the_paused_spell_in_seq_order_and_once() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	var spell_id: int = fixture[1]
+	var before: int = log.events.size()
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	var cast_seq: int = int(_since(log, before, "spell_cast")[0].seq)
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+
+	# Assert — card added, then damage 2, then after_cast and leaving resolving
+	assert_bool(result.accepted).is_true()
+	var added: Array[Dictionary] = _since(log, before, "card_added_to_hand")
+	var dealt: Array[Dictionary] = _since(log, before, "damage_dealt")
+	var observed: Array[Dictionary] = _since(log, before, String(MARKER))
+	var to_graveyard: Array[Dictionary] = _since(log, before, "card_to_graveyard")
+	assert_int(added.size()).is_equal(1)
+	assert_int(dealt.size()).is_equal(1)
+	assert_int(observed.size()).is_equal(1)
+	assert_int(to_graveyard.size()).is_equal(1)
+	assert_str(str(added[0].payload.card_id)).is_equal(str(OPTIONS[0]))
+	assert_int(int(dealt[0].payload.dealt)).is_equal(SPELL_DAMAGE)
+	assert_int(int(added[0].seq)).is_less(int(dealt[0].seq))
+	assert_int(int(dealt[0].seq)).is_less(int(observed[0].seq))
+	assert_int(int(dealt[0].seq)).is_less(int(to_graveyard[0].seq))
+	# GDD C6: the after_cast observers run before the card leaves resolving
+	assert_int(int(observed[0].seq)).is_less(int(to_graveyard[0].seq))
+	assert_int(int(to_graveyard[0].payload.instance_id)).is_equal(spell_id)
+	# the same cause_seq chain: the resumed effect is still the spell's
+	assert_int(int(added[0].cause_seq)).is_equal(cast_seq)
+	assert_int(int(dealt[0].cause_seq)).is_equal(cast_seq)
+	assert_int(resolver.candidates_for(&"after_cast").size()).is_equal(1)
+	assert_array(_player(engine).resolving).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_object(engine.pending_choice()).is_null()
+
+
+# --- AC-36: a boss Discover --------------------------------------------------------
+
+func test_a_boss_battlecry_discover_rejects_the_player_until_the_boss_chooses() -> void:
+	# Arrange — boss Main, a boss Battlecry that Discovers for the boss
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, [DEF_SEER], SIDE_BOSS)
+	_set_hand(engine, SIDE_PLAYER, [DEF_SCOUT])
+	resolver.scripts[&"battlecry"] = [_discover.bind(SIDE_BOSS, [])]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_BOSS, 0, 0, null)).accepted).is_true()
+	var request: Variant = engine.pending_choice()
+	var before: int = log.events.size()
+
+	# Act 1 — the player tries to act
+	var player_play: Dictionary = engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null))
+
+	# Assert 1
+	_assert_rejected(player_play, RulesEngine.R_CHOICE_PENDING)
+	assert_str(str(request.side)).is_equal(SIDE_BOSS)
+
+	# Act 2 — Boss AI answers
+	var hand_before: int = _player(engine, SIDE_BOSS).hand.size()
+	var result: Dictionary = engine.submit(MatchRecords.choose(SIDE_BOSS, 1))
+
+	# Assert 2
+	assert_bool(result.accepted).is_true()
+	assert_int(resolver.resume_calls.size()).is_equal(1)
+	assert_dict(resolver.resume_calls[0].choice).is_equal(request)
+	assert_int(int(resolver.resume_calls[0].option_index)).is_equal(1)
+	var hand: Array = _player(engine, SIDE_BOSS).hand
+	assert_int(hand.size()).is_equal(hand_before + 1)
+	assert_str(str(hand[hand.size() - 1].def_id)).is_equal(str(OPTIONS[1]))
+	EventLogAssertions.assert_payload(log.events.slice(before), &"choice_made", {"side": SIDE_BOSS, "option_index": 1})
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_str(String(engine.active_side())).is_equal(SIDE_BOSS)
+
+
+func test_a_discover_from_a_start_step_trigger_resumes_the_rest_of_the_start_step() -> void:
+	# Arrange — a boss-side minion Discovers "at the start of your turn"
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _engine(log, resolver, [])
+	var dawn: Dictionary = MatchFactory.summon(engine.state(), SIDE_BOSS, 1, 1)
+	var on_boss_turn: Callable = func(_e: RulesEngine, ctx: Dictionary) -> bool: return ctx.side == SIDE_BOSS
+	resolver.add_trigger(&"turn_start", int(dawn.entity_id), "dawn.0", _discover.bind(SIDE_BOSS, []), on_boss_turn)
+
+	# Act 1 — the player's End step, then the boss's Start step pauses
+	var before: int = log.events.size()
+	assert_bool(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+
+	# Assert 1 — no Start-step draw, no Main yet
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_array(_since(log, before, "card_drawn")).is_empty()
+
+	# Act 2
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_BOSS, 2)).accepted).is_true()
+
+	# Assert 2 — the draw (C4 Start 6) and Main (Start 7) ran once, after the pick
+	var drawn: Array[Dictionary] = _since(log, before, "card_drawn")
+	assert_int(drawn.size()).is_equal(1)
+	assert_int(int(_since(log, before, "card_added_to_hand")[0].seq)).is_less(int(drawn[0].seq))
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_str(String(engine.active_side())).is_equal(SIDE_BOSS)
+
+
+# --- States `Choice` guards --------------------------------------------------------
+
+func test_choice_guards_not_your_turn_invalid_choice_and_choice_pending() -> void:
+	# Arrange — a player Discover is pending
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+
+	# Act / Assert
+	_assert_rejected(engine.submit(MatchRecords.choose(SIDE_BOSS, 0)), RulesEngine.R_NOT_YOUR_TURN)
+	_assert_rejected(engine.submit(MatchRecords.choose(SIDE_PLAYER, OPTIONS.size())), RulesEngine.R_INVALID_CHOICE)
+	_assert_rejected(engine.submit(MatchRecords.choose(SIDE_PLAYER, -1)), RulesEngine.R_INVALID_CHOICE)
+	_assert_rejected(engine.submit(MatchRecords.end_turn(SIDE_PLAYER)), RulesEngine.R_CHOICE_PENDING)
+	_assert_rejected(engine.submit(MatchRecords.use_hero_power(SIDE_PLAYER, null)), RulesEngine.R_CHOICE_PENDING)
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_int(resolver.resume_calls.size()).is_zero()
+
+
+func test_legal_commands_in_choice_are_one_choose_per_option_and_the_concede() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+
+	# Act
+	var legal: Array = engine.legal_commands()
+
+	# Assert
+	var expected: Array = []
+	for i: int in OPTIONS.size():
+		expected.append(MatchRecords.choose(SIDE_PLAYER, i))
+	expected.append(MatchRecords.concede(SIDE_PLAYER))
+	assert_array(legal).is_equal(expected)
+
+
+func test_raising_the_request_emits_phase_changed_and_choice_requested() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	var spell_id: int = fixture[1]
+	var before: int = log.events.size()
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+
+	# Assert
+	var changed: Array[Dictionary] = _since(log, before, "phase_changed")
+	assert_int(changed.size()).is_equal(1)
+	assert_str(str(changed[0].payload.phase)).is_equal(MatchState.PHASE_CHOICE)
+	var requested: Array[Dictionary] = _since(log, before, "choice_requested")
+	assert_int(requested.size()).is_equal(1)
+	assert_dict(requested[0].payload).is_equal({
+		"side": SIDE_PLAYER, "kind": MatchRecords.CHOICE_DISCOVER, "options": OPTIONS,
+		"source_id": spell_id, "effect_id": EFFECT_ID,
+	})
+	EventLogAssertions.assert_not_contains_type(log.events.slice(before), &"discover_offered")
+
+
+func test_concede_in_choice_ends_the_match_and_the_spell_leaves_resolving() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.concede(SIDE_PLAYER))
+
+	# Assert
+	assert_bool(result.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_CONCEDE)
+	assert_str(str(engine.result().winner)).is_equal(SIDE_BOSS)
+	assert_array(_player(engine).resolving).is_empty()
+	assert_int(resolver.resume_calls.size()).is_zero()
+
+
+func test_an_event_cap_on_choice_made_still_moves_the_paused_spell_out_of_resolving() -> void:
+	# Arrange — a paused spell, and the log full right before `choose`
+	# (code review MR-016 S4; the 2026-11-03 guarantee: a fault still moves
+	# the card out of `resolving`)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var fixture: Array = _paused_spell_fixture(log, resolver)
+	var engine: RulesEngine = fixture[0]
+	var spell_id: int = fixture[1]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	log.max_events = log.events.size()
+
+	# Act
+	var result: Dictionary = engine.submit(MatchRecords.choose(SIDE_PLAYER, 0))
+
+	# Assert — Ended by the cap, the spell in the graveyard, nothing left parked
+	assert_bool(result.accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	assert_array(_player(engine).resolving).is_empty()
+	var graveyard_ids: Array[int] = []
+	for card: Dictionary in _player(engine).graveyard:
+		graveyard_ids.append(int(card.instance_id))
+	assert_array(graveyard_ids).contains([spell_id])
+	assert_dict(engine.state().suspended_action).is_empty()
+	assert_array(engine.state().suspended_queue).is_empty()
+	assert_object(engine.pending_choice()).is_null()
+	assert_int(resolver.resume_calls.size()).is_zero()
+
+
+# --- Refused requests (code review MR-016 S3) ------------------------------------------
+
+func test_a_discover_raised_during_setup_is_refused_and_leaves_no_pending_choice() -> void:
+	# Arrange — an `on_match_start` treasure hook Discovers (C3 step 4, phase
+	# Setup: States has no Setup → Choice row and Setup accepts no command, so
+	# nobody could answer it); its return value is recorded
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	resolver.resume_script = _resume
+	var returned: Array = []
+	resolver.hook_scripts["t_oracle.0"] = func(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+		returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_oracle.0"))
+	var oracle: HookInstaller = MatchFactory.make_hook_installer("t_oracle", SIDE_PLAYER, [&"on_match_start"])
+
+	# Act
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [oracle]}}, {}, resolver, _db())
+
+	# Assert — refused: an empty request, Mulligan reached, nothing parked
+	assert_int(returned.size()).is_equal(1)
+	assert_dict(returned[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MULLIGAN)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	EventLogAssertions.assert_not_contains_type(log, &"choice_requested")
+	# … and the match is not poisoned: the mulligan runs, a later Discover pauses
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	_set_hand(engine, SIDE_PLAYER, [DEF_SCOUT])
+	resolver.scripts[&"on_cast"] = [_discover.bind(SIDE_PLAYER, [])]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
+## A started engine past the mulligan whose player treasure `t_lens` has one
+## `on_draw` entry per [param scripts] item (`t_lens.<i>`, run in order).
+func _on_draw_hook_engine(log: TestEventLog, resolver: TestEffectResolver, scripts: Array[Callable]) -> RulesEngine:
+	var points: Array = []
+	for i: int in scripts.size():
+		points.append(&"on_draw")
+		resolver.hook_scripts["t_lens.%d" % i] = scripts[i]
+	var lens: HookInstaller = MatchFactory.make_hook_installer("t_lens", SIDE_PLAYER, points)
+	resolver.resume_script = _resume
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [lens]}}, {}, resolver, _db())
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+	return engine
+
+
+func _hook_discover(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary, returned: Array) -> void:
+	returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_lens.0"))
+
+
+func _hook_armor(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+	e.apply_armor(String(s), 1)
+
+
+func test_a_discover_from_an_in_primitive_hook_is_refused_and_the_next_entry_runs_with_no_choice() -> void:
+	# Arrange — `on_draw` entries [discover, gain 1 armour] (ADR-0005 rule-4
+	# exception: in-primitive entries run synchronously inside the draw; code
+	# review MR-016 S2, probe P2a: the armour ran while the choice was pending)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	var engine: RulesEngine = _on_draw_hook_engine(log, resolver, [_hook_discover.bind(returned), _hook_armor])
+	returned.clear()   # the turn-1 Start-step draw fired the hook too
+	var before: int = log.events.size()
+
+	# Act
+	engine.draw(SIDE_PLAYER, 1)
+
+	# Assert — refused: no Choice, nothing parked; the next entry is no longer
+	# running behind a pending request
+	assert_int(returned.size()).is_equal(1)
+	assert_dict(returned[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	EventLogAssertions.assert_not_contains_type(log.events.slice(before), &"choice_requested")
+	assert_int(_since(log, before, "armor_gained").size()).is_equal(1)
+
+
+func test_a_multi_card_draw_whose_on_draw_hook_discovers_draws_every_card_with_no_pending_choice() -> void:
+	# Arrange — one `on_draw` entry that Discovers; draw 2 (probe P2b: the
+	# second card was drawn after `choice_requested`, its own request dropped)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	var engine: RulesEngine = _on_draw_hook_engine(log, resolver, [_hook_discover.bind(returned)])
+	returned.clear()   # the turn-1 Start-step draw fired the hook too
+	var before: int = log.events.size()
+
+	# Act
+	engine.draw(SIDE_PLAYER, 2)
+
+	# Assert — both requests refused, both cards drawn, the match not paused
+	assert_int(_since(log, before, "card_drawn").size()).is_equal(2)
+	assert_int(returned.size()).is_equal(2)
+	assert_dict(returned[0]).is_empty()
+	assert_dict(returned[1]).is_empty()
+	EventLogAssertions.assert_not_contains_type(log.events.slice(before), &"choice_requested")
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+	assert_object(engine.pending_choice()).is_null()
+
+
+func test_a_discover_from_a_step_boundary_hook_still_pauses_and_resumes() -> void:
+	# Arrange — an `on_turn_start` treasure entry Discovers: a step-boundary
+	# hook (its own step, ADR-0005 rule 4), so it may pause (story 016)
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	resolver.hook_scripts["t_dawn.0"] = func(e: RulesEngine, _entry: Dictionary, s: StringName, _c: Dictionary) -> void:
+		returned.append(e.discover(String(s), OPTIONS, MatchRecords.CHOICE_DISCOVER, null, "t_dawn.0"))
+	var dawn: HookInstaller = MatchFactory.make_hook_installer("t_dawn", SIDE_PLAYER, [&"on_turn_start"])
+	resolver.resume_script = _resume
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, log, {"player": {"hook_installers": [dawn]}}, {}, resolver, _db())
+	var before: int = log.events.size()
+
+	# Act 1 — the mulligan runs the turn-1 Start step, whose hook Discovers
+	assert_bool(engine.submit(engine.legal_commands()[0]).accepted).is_true()
+
+	# Assert 1 — paused before the Start-step draw
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_CHOICE)
+	assert_dict(returned[0]).is_not_empty()
+	var drawn_before: int = _since(log, before, "card_drawn").size()
+
+	# Act 2
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert 2 — the draw ran once after the pick, then Main
+	var drawn: Array[Dictionary] = _since(log, before, "card_drawn")
+	assert_int(drawn.size()).is_equal(drawn_before + 1)
+	assert_int(int(_since(log, before, "card_added_to_hand")[0].seq)).is_less(int(drawn[drawn.size() - 1].seq))
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_MAIN)
+
+
+# --- C2 / ADR-0007: the suspended queue and step count ------------------------------
+
+## A Scout spell whose `on_cast` raises four queued triggers t1…t4 from the
+## spell itself; t1's pass Discovers, the others mark. Returns `[engine, spell id]`.
+func _queued_fixture(log: TestEventLog, resolver: TestEffectResolver, rules_overrides: Dictionary = {}) -> Array:
+	var engine: RulesEngine = _engine(log, resolver, [DEF_SCOUT], SIDE_PLAYER, rules_overrides)
+	var spell_id: int = int(_player(engine).hand[0].instance_id)
+	resolver.add_trigger(&"on_cast", spell_id, "t1", _discover.bind(SIDE_PLAYER, []))
+	for name: String in ["t2", "t3", "t4"]:
+		resolver.add_trigger(&"on_cast", spell_id, name, _mark)
+	return [engine, spell_id]
+
+
+func test_a_choice_raised_with_a_queue_parks_it_as_plain_data() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _queued_fixture(log, resolver)[0]
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+
+	# Assert — t2…t4 wait on MatchState; nothing in the state is an object
+	var state: MatchState = engine.state()
+	assert_str(state.phase).is_equal(MatchState.PHASE_CHOICE)
+	var waiting: Array[String] = []
+	for step: Dictionary in state.suspended_queue:
+		waiting.append(str(step.ctx.effect_id))
+	assert_array(waiting).is_equal(["t2", "t3", "t4"])
+	assert_int(state.suspended_steps).is_greater(0)
+	assert_array(resolver.pass_ids()).is_equal(["t1"])
+	GameAssertions.assert_json_representable(_plain_state(state), "MatchState")
+	var copy: Variant = engine.pending_choice()
+	copy.options.clear()
+	assert_int((state.pending_choice.options as Array).size()).is_equal(OPTIONS.size())
+
+
+func test_after_choose_the_parked_queue_resumes_in_order_with_its_cause_seq() -> void:
+	# Arrange
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _queued_fixture(log, resolver)[0]
+	var before: int = log.events.size()
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+	var cast_seq: int = int(_since(log, before, "spell_cast")[0].seq)
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert
+	assert_array(resolver.pass_ids()).is_equal(["t1", "t2", "t3", "t4"])
+	var resolved: Array[Dictionary] = _since(log, before, "trigger_resolved")
+	assert_int(resolved.size()).is_equal(4)
+	for event: Dictionary in resolved:
+		assert_int(int(event.cause_seq)).is_equal(cast_seq)
+	assert_int(int(_since(log, before, "card_added_to_hand")[0].cause_seq)).is_equal(int(resolved[0].seq))
+	assert_array(engine.state().suspended_queue).is_empty()
+	assert_dict(engine.state().suspended_action).is_empty()
+
+
+func test_the_step_count_carries_across_the_pause_to_the_step_cap() -> void:
+	# Arrange — cap 4: accept 1, on_cast 2, t1 3 (pauses), t2 4, t3 over the cap.
+	# A count restarted at choose would run t2…t4 as steps 1–3 and never fault.
+	var log: TestEventLog = TestEventLog.new()
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var engine: RulesEngine = _queued_fixture(log, resolver, {"resolution_step_cap": 4})[0]
+	assert_bool(engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null)).accepted).is_true()
+
+	# Act
+	assert_bool(engine.submit(MatchRecords.choose(SIDE_PLAYER, 0)).accepted).is_true()
+
+	# Assert
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_RESOLUTION_OVERFLOW)
+	EventLogAssertions.assert_payload(log, &"resolution_overflow", {"steps": 4})
+	assert_array(resolver.pass_ids()).is_equal(["t1", "t2"])
+
+
+# --- sprint-4 review S1 / NC-2: the engine half of an `event_cap` in `discover` -----
+
+## The player casts [constant DEF_SCOUT] under a production `EventLog` capped at
+## [param cap]; the scripted cast raises one request. Returns `[engine, log,
+## returned]`, `returned` holding what `discover` answered.
+func _capped_discover(cap: int) -> Array:
+	var log: EventLog = EventLog.new(cap, EventLog.SCOPE_MATCH)
+	var resolver: TestEffectResolver = TestEffectResolver.new()
+	var returned: Array = []
+	resolver.scripts[&"on_cast"] = [_discover_into.bind(returned)]
+	var engine: RulesEngine = MatchFactory.make_started_engine(null, null, {"log": log}, {}, resolver, _db())
+	@warning_ignore("return_value_discarded")
+	engine.submit(engine.legal_commands()[0])
+	_set_hand(engine, SIDE_PLAYER, [DEF_SCOUT])
+	@warning_ignore("return_value_discarded")
+	engine.submit(MatchRecords.play_card(SIDE_PLAYER, 0, null, null))
+	return [engine, log, returned]
+
+
+func _discover_into(engine: RulesEngine, ctx: Dictionary, returned: Array) -> void:
+	returned.append(engine.discover(SIDE_PLAYER, OPTIONS, MatchRecords.CHOICE_DISCOVER, ctx.get("source"), EFFECT_ID))
+
+
+## The index in an uncapped run of the first event [param matches] accepts: as
+## a cap, it is the event the log refuses.
+func _index_of(matches: Callable) -> int:
+	var run: Array = _capped_discover(CAP_NOT_REACHED)
+	var events: Array = (run[1] as EventLog).events_since(0)
+	(run[0] as RulesEngine).end_match()
+	for index: int in events.size():
+		if matches.call(events[index]):
+			return index
+	return -1
+
+
+func _assert_ended_by_the_cap_with_nothing_parked(run: Array) -> void:
+	var engine: RulesEngine = run[0]
+	assert_int((run[2] as Array).size()).is_equal(1)
+	assert_dict((run[2] as Array)[0]).is_empty()
+	assert_str(engine.phase()).is_equal(MatchState.PHASE_ENDED)
+	assert_str(str(engine.result().reason)).is_equal(MatchRecords.REASON_EVENT_CAP)
+	assert_object(engine.pending_choice()).is_null()
+	assert_dict(engine.state().suspended_action).is_empty()
+	var types: Array = (run[1] as EventLog).events_since(0).map(func(e: Dictionary) -> String: return str(e.type))
+	assert_array(types.slice(-2)).is_equal(["log_overflow", "match_ended"])
+	assert_array(_player(engine).resolving).is_empty()
+
+
+func test_a_cap_on_the_choice_phase_change_makes_discover_return_nothing_and_parks_nothing() -> void:
+	# Arrange
+	var at: int = _index_of(func(e: Dictionary) -> bool: return str(e.type) == "phase_changed" and str(e.payload.phase) == MatchState.PHASE_CHOICE)
+	assert_int(at).is_greater(0)
+
+	# Act
+	var run: Array = _capped_discover(at)
+
+	# Assert
+	_assert_ended_by_the_cap_with_nothing_parked(run)
+	(run[0] as RulesEngine).end_match()
+
+
+func test_a_cap_on_choice_requested_makes_discover_return_nothing_and_parks_nothing() -> void:
+	# Arrange
+	var at: int = _index_of(func(e: Dictionary) -> bool: return str(e.type) == "choice_requested")
+	assert_int(at).is_greater(0)
+
+	# Act
+	var run: Array = _capped_discover(at)
+
+	# Assert
+	_assert_ended_by_the_cap_with_nothing_parked(run)
+	(run[0] as RulesEngine).end_match()

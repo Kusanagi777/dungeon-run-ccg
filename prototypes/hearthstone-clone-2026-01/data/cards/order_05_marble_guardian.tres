@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://vopn4braktlv"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_juu2o"]
+
+[resource]
+script = ExtResource("1_juu2o")
+card_name = "Marble Guardian"
+cost = 5
+attack = 3
+health = 6
+description = "Ward. Resist (1)."
+role_tag = 6
+biology_tag = 2

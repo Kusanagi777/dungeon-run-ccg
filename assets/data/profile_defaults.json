@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "config": {
+    "volume_master": 1.0,
+    "volume_music": 0.8,
+    "volume_sfx": 1.0,
+    "fullscreen": false,
+    "anim_speed": "normal",
+    "reduce_motion": false,
+    "text_scale": 1.0,
+    "high_contrast_states": false,
+    "telegraph_mode": "full",
+    "action_delay_ms": 600,
+    "gamma": 1.0,
+    "keep_run_records": true,
+    "language": "en",
+    "knobs": {
+      "run_log_cap": 200,
+      "archive_top_cards": 10,
+      "max_profile_bytes": 2097152,
+      "max_save_ms": 50,
+      "backup_count": 1,
+      "io_retry_ms": 250,
+      "settings_write_debounce_ms": 500,
+      "lock_heartbeat_s": 30,
+      "lock_stale_s": 90,
+      "max_condition_depth": 3,
+      "max_condition_n": 999,
+      "max_condition_fan_out": 8,
+      "max_floor_clamp": 12,
+      "max_repairs_before_rebuild": 25,
+      "max_count": 999999,
+      "max_duration_s": 100000000,
+      "reset_confirm_token": "RESET"
+    }
+  }
+}

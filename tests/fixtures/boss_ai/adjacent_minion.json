@@ -1,0 +1,16 @@
+{
+  "name": "adjacent_minion",
+  "description": "boss-ai A17 / C6 position_sensitive: the boss has 3 minions on board, so legal_commands offers 4 positions per minion play. Its hand holds a 2/2 whose own Battlecry buffs its adjacent minions (position_sensitive: 4 candidates) and a plain 2/2 (1 candidate, rightmost = board.size). No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_grunt", "type": "minion", "cost": 1, "attack": 1, "health": 2},
+    {"id": "bai_banner", "type": "minion", "cost": 2, "attack": 2, "health": 2, "keywords": ["battlecry"], "effects": [{"trigger": "battlecry", "targets": "adjacent", "ops": [{"op": "buff", "attack": 1}]}]},
+    {"id": "bai_squire", "type": "minion", "cost": 2, "attack": 2, "health": 2}
+  ],
+  "boss": {"mana": 4, "board": ["bai_grunt", "bai_grunt", "bai_grunt"], "hand": ["bai_banner", "bai_squire"]},
+  "player": {"health": 30, "board": []},
+  "expect": {"positions": 4, "sensitive": "bai_banner", "plain": "bai_squire"}
+}

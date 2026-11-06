@@ -1,0 +1,719 @@
+{
+  "schema_version": 1,
+  "config": {
+    "d_base": {
+      "play_card": 0.25,
+      "attack_lunge": 0.35,
+      "damage_pop": 0.4,
+      "heal_pop": 0.4,
+      "death_group": 0.3,
+      "gap_close": 0.2,
+      "draw": 0.2,
+      "burn": 0.4,
+      "shield_pop": 0.25,
+      "badge": 0.15,
+      "stat_recolour": 0.15,
+      "turn_banner": 0.4,
+      "intent_show": 0.3,
+      "overlay_open": 0.2,
+      "overlay_close": 0.15,
+      "reject_shake": 0.2,
+      "end_banner": 0.6,
+      "mulligan_open": 0.2,
+      "mulligan_flip": 0.3,
+      "deck_tick": 0.15,
+      "fatigue_label": 0.4,
+      "discard": 0.25,
+      "summon": 0.2,
+      "summon_failed": 0.3,
+      "weapon_update": 0.2,
+      "weapon_shatter": 0.3,
+      "power_press": 0.15,
+      "power_relight": 0.15,
+      "attack_return": 0.15,
+      "rim_glow": 0.15,
+      "fizzle": 0.2,
+      "intent_commit": 0.3,
+      "boss_discovers": 0.4,
+      "treasure_flare": 0.15
+    },
+    "min_action_gap_s": 0.15,
+    "k_min": 0.25,
+    "speed_div": {
+      "normal": 1.0,
+      "fast": 2.0
+    },
+    "coalesce_threshold": 8,
+    "silent_types": [
+      "turn_reset",
+      "card_to_graveyard"
+    ],
+    "feed_max_lines": 200,
+    "feed_group_collapse": 6,
+    "feed_ticker_lines": 3,
+    "feed_font_px": 13,
+    "feed_quiet_types": [
+      "deck_shuffled",
+      "phase_changed",
+      "turn_ending",
+      "turn_ended",
+      "crystal_gained",
+      "mana_refilled",
+      "mana_spent",
+      "mana_added",
+      "spell_cast",
+      "attack_resolved",
+      "auras_recomputed",
+      "trigger_queued",
+      "trigger_resolved"
+    ],
+    "impact_ms": {
+      "hit_stop": 60,
+      "hit_stop_heavy": 90,
+      "shake": 120,
+      "slow": 400
+    },
+    "impact": {
+      "heavy_hero_damage": 5,
+      "shake_px": 3,
+      "shake_cycles": 3
+    },
+    "click_drag_px": 8,
+    "end_turn_arm_ms": 300,
+    "match_end_auto_s": 4,
+    "layout": {
+      "viewport": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "top_bar": [
+        0,
+        0,
+        1280,
+        40
+      ],
+      "boss_deck": [
+        24,
+        96,
+        76,
+        106
+      ],
+      "boss_portrait": [
+        1136,
+        96,
+        120,
+        160
+      ],
+      "boss_passive": [
+        1136,
+        208,
+        120,
+        48
+      ],
+      "boss_hand_count": [
+        1136,
+        262,
+        60,
+        28
+      ],
+      "boss_mana": [
+        1196,
+        262,
+        60,
+        28
+      ],
+      "boss_row": [
+        301,
+        176,
+        678,
+        126
+      ],
+      "end_turn": [
+        1116,
+        296,
+        140,
+        44
+      ],
+      "player_row": [
+        301,
+        334,
+        678,
+        126
+      ],
+      "player_portrait": [
+        24,
+        334,
+        120,
+        160
+      ],
+      "hero_power": [
+        152,
+        390,
+        48,
+        48
+      ],
+      "weapon_slot": [
+        152,
+        446,
+        48,
+        48
+      ],
+      "hand_zone": [
+        240,
+        462,
+        800,
+        258
+      ],
+      "player_deck": [
+        1180,
+        540,
+        76,
+        106
+      ],
+      "mana_bar": [
+        1060,
+        652,
+        196,
+        56
+      ],
+      "mana_text": [
+        1060,
+        652,
+        196,
+        20
+      ],
+      "mana_crystals": [
+        1060,
+        680,
+        196,
+        28
+      ],
+      "cast_zone": [
+        301,
+        176,
+        678,
+        284
+      ],
+      "position_zone": [
+        301,
+        334,
+        678,
+        150
+      ],
+      "end_banner": [
+        340,
+        260,
+        600,
+        200
+      ],
+      "feed_ticker": [
+        24,
+        48,
+        400,
+        42
+      ],
+      "feed_drawer": [
+        0,
+        40,
+        300,
+        290
+      ],
+      "feed_toggle": [
+        1160,
+        4,
+        44,
+        32
+      ],
+      "intent_banner": [
+        980,
+        52,
+        276,
+        36
+      ],
+      "skip_hint": [
+        980,
+        90,
+        152,
+        20
+      ],
+      "turn_banner": [
+        440,
+        215,
+        400,
+        48
+      ],
+      "replay_badge": [
+        540,
+        48,
+        200,
+        32
+      ],
+      "replay_exit": [
+        1096,
+        4,
+        56,
+        32
+      ],
+      "choice_row": [
+        278,
+        202,
+        723,
+        315
+      ],
+      "menu_button": [
+        1212,
+        0,
+        44,
+        44
+      ],
+      "pause_menu": [
+        440,
+        160,
+        400,
+        400
+      ],
+      "boss_mana_scaled": [
+        1196,
+        152,
+        56,
+        24
+      ],
+      "treasure_tray": [
+        24,
+        502,
+        136,
+        40
+      ]
+    },
+    "hero": {
+      "stamp_size": 40,
+      "crystal_px": 16,
+      "crystal_gap": 4,
+      "crystal_count": 10,
+      "lift_px": 4,
+      "power_lift_px": 2,
+      "power_press_scale": 0.9
+    },
+    "hand": {
+      "card_w": 150,
+      "card_h": 210,
+      "hand_gap": 8,
+      "hand_w": 800,
+      "hand_cx": 640,
+      "hand_base_y": 696,
+      "arc_h": 24,
+      "theta_step_max": 4.0,
+      "theta_total_max": 30.0,
+      "hover_scale": 1.5,
+      "hover_in_s": 0.1,
+      "viewport_w": 1280,
+      "return_s": 0.15,
+      "park_top_y": 438,
+      "lift_px": 8
+    },
+    "board": {
+      "token_w": 90,
+      "token_h": 126,
+      "gap": 8,
+      "lunge_reach": 0.7,
+      "lunge_out": 0.33,
+      "lunge_hold": 0.17
+    },
+    "targeting": {
+      "arrow_lift_px": 50,
+      "arrow_segments": 20,
+      "arrow_width_px": 6,
+      "head_px": 22,
+      "ring_px": 3,
+      "outline_px": 2,
+      "dash_px": 8,
+      "unlit_alpha": 0.6,
+      "snap_s": 0.08,
+      "badge_px": 20,
+      "badge_gap_px": 6,
+      "chip_w": 120,
+      "chip_h": 44,
+      "chip_gap_px": 8,
+      "chip_font_px": 14
+    },
+    "pop": {
+      "rise_px": 20,
+      "font_px": 22
+    },
+    "mulligan": {
+      "scales": [
+        {
+          "max_n": 3,
+          "scale": 1.5,
+          "gap": 24
+        },
+        {
+          "max_n": 4,
+          "scale": 1.2,
+          "gap": 16
+        },
+        {
+          "max_n": 5,
+          "scale": 1.0,
+          "gap": 16
+        }
+      ],
+      "row_top": 202,
+      "title_top": 98,
+      "sub_top": 136,
+      "pill_gap": 16,
+      "pill_h": 24,
+      "status_gap": 8,
+      "status_h": 20,
+      "confirm_gap": 12,
+      "confirm_w": 160,
+      "confirm_h": 44,
+      "replace_drop_px": 12,
+      "band_cx": 640
+    },
+    "end_screen": {
+      "continue_w": 160,
+      "continue_h": 44,
+      "continue_y": 400
+    },
+    "skip_hint": {
+      "delay_s": 1.0,
+      "fade_in_s": 0.12,
+      "fade_out_s": 0.08
+    },
+    "intent": {
+      "font_px": 16,
+      "icon_w": 36,
+      "reticle_px": 56,
+      "beat_bright": 1.3,
+      "hidden_glyph": "?",
+      "glyphs": {
+        "lethal": "L",
+        "attack_face": "F",
+        "attack_minion": "M",
+        "play_big_minion": "B",
+        "develop_board": "D",
+        "cast_removal": "R",
+        "cast_aoe": "A",
+        "heal": "H",
+        "hero_power": "P",
+        "equip_weapon": "W",
+        "pass": "—"
+      }
+    },
+    "hand_dim_alpha": 0.6,
+    "palette": {
+      "bg_edge": "#141820",
+      "table_dark": "#2B2118",
+      "table_lit": "#4A3626",
+      "parchment": "#E8DCC4",
+      "ink": "#1F1A14",
+      "text_light": "#F2E9D8",
+      "text_muted": "#B8AC96",
+      "text_ink": "#1F1A14",
+      "state_danger": "#FF5A4D",
+      "state_buff": "#3DBE5A",
+      "state_target": "#F5C542",
+      "state_freeze": "#5AC8E0",
+      "state_actionable": "#F2E9D8",
+      "mana_stamp": "#3B5A82",
+      "stamp_ring": "#6F655A",
+      "neutral": "#6F655A",
+      "war": "#9B2F23",
+      "war2": "#B07A3A",
+      "decay": "#355E3B",
+      "decay2": "#6B4C8A",
+      "knowledge": "#2C4F8A",
+      "knowledge2": "#C9A24A",
+      "boss_band_1": "#6B5B3C",
+      "boss_band_2": "#7A4A3A",
+      "boss_band_3": "#4E4660",
+      "crystal_spent": "#2B2118",
+      "crystal_temporary": "#C9A24A"
+    },
+    "glyphs": {
+      "taunt": "T",
+      "divine_shield": "D",
+      "frozen": "*",
+      "stealth": "S",
+      "windfury": "W",
+      "silenced": "/",
+      "summoning_sick": "z",
+      "rush": "R",
+      "charge": "C",
+      "lifesteal": "L",
+      "poisonous": "P"
+    },
+    "strings": {
+      "hud.turn.player": "Your turn · %d",
+      "hud.turn.boss": "Boss turn · %d",
+      "hud.turn.setup": "Starting hand",
+      "hud.floor": "Floor %d · %s",
+      "hud.end_turn": "End Turn",
+      "hud.deck": "%d",
+      "hud.hand": "Hand %d",
+      "hud.armor": "+%d",
+      "hud.fatigue": "Fatigue %d",
+      "hud.power.cost": "Cost %d",
+      "hud.power.used": "Already used this turn",
+      "reject.NOT_ENOUGH_MANA": "Not enough mana.",
+      "reject.NOT_ENOUGH_MANA.detail": "Not enough mana (needs {cost}, have {mana}).",
+      "reject.NOT_YOUR_TURN": "Wait for your turn.",
+      "reject.HERO_POWER_USED": "Your hero power is used this turn.",
+      "reject.NO_LEGAL_TARGET": "There is no legal target for this card.",
+      "reject.CHOICE_PENDING": "Make your choice first.",
+      "reject.WRONG_PHASE": "Wait for your turn.",
+      "reject.MATCH_ENDED": "The match is over.",
+      "mulligan.title": "Starting hand",
+      "mulligan.sub": "You go first. Replace any cards — they return to your deck first.",
+      "mulligan.sub_empty": "No cards in your opening hand.",
+      "mulligan.keep": "Keep",
+      "mulligan.replace": "✕ Replace",
+      "mulligan.status_keep_all": "Keeping all %d",
+      "mulligan.status_some": "Replacing %d of %d",
+      "mulligan.status_all": "Replacing all %d",
+      "mulligan.confirm": "Confirm",
+      "mulligan.start": "Start",
+      "mulligan.printed_cost": "Printed cost %d",
+      "end.victory.title": "Victory",
+      "end.victory.line": "{boss} is defeated.",
+      "end.defeat.title": "Defeat",
+      "end.defeat.line": "You fell to {boss}.",
+      "end.both_dead.title": "Defeat",
+      "end.both_dead.line": "Both heroes fell — a tie goes to the boss.",
+      "end.concede.title": "Conceded",
+      "end.concede.line": "You conceded to {boss}.",
+      "end.turn_cap.title": "Defeat",
+      "end.turn_cap.line": "The match reached the turn limit — the boss wins.",
+      "end.fault.title": "Rules fault",
+      "end.fault.line": "This floor is replayed, not lost.",
+      "end.facts": "Turn {turns} · You {hero_hp} health · {boss} {boss_hp}",
+      "end.fault_detail": "Error: {reason} · turn {turns}",
+      "end.continue": "Continue · %d",
+      "hud.feed": "L",
+      "hud.fatigue_next": "Fatigue: next %d",
+      "intent.lethal": "Lethal",
+      "intent.lethal.long": "The boss has lethal damage on the table: {amount}.",
+      "intent.attack_face": "Attack face",
+      "intent.attack_face.long": "The boss plans to attack your hero for {amount}.",
+      "intent.attack_minion": "Attack minion",
+      "intent.attack_minion.long": "The boss plans to attack one of your minions.",
+      "intent.play_big_minion": "Big minion",
+      "intent.play_big_minion.long": "The boss plans to play a big minion.",
+      "intent.develop_board": "Develop",
+      "intent.develop_board.long": "The boss plans to build its board.",
+      "intent.cast_removal": "Removal",
+      "intent.cast_removal.long": "The boss plans to remove one of your minions.",
+      "intent.cast_aoe": "Area spell",
+      "intent.cast_aoe.long": "The boss plans to hit the whole board.",
+      "intent.heal": "Heal",
+      "intent.heal.long": "The boss plans to heal.",
+      "intent.hero_power": "Hero power",
+      "intent.hero_power.long": "The boss plans to use its hero power.",
+      "intent.equip_weapon": "Weapon",
+      "intent.equip_weapon.long": "The boss plans to equip a weapon.",
+      "intent.pass": "Pass",
+      "intent.pass.long": "The boss plans to do nothing.",
+      "intent.plan_changed": "Plan changed",
+      "intent.thinking": "Boss thinking…",
+      "hud.skip_hint": "Click or Space to skip",
+      "hud.turn_banner": "Boss turn %d",
+      "hud.boss_discovers": "The boss discovers…",
+      "replay.badge": "Replay",
+      "replay.exit": "Exit",
+      "replay.not_replayable.engine": "Not replayable (engine changed)",
+      "replay.not_replayable.data": "Not replayable (data changed)",
+      "replay.not_replayable.unreadable": "Not replayable (the log cannot be read)",
+      "feed.more": "+{n} more",
+      "feed.someone": "Something",
+      "feed.a_card": "a card",
+      "feed.side.player": "You",
+      "feed.side.boss": "The boss",
+      "feed.unknown": "Unrecognised event: {type}",
+      "feed.match_started": "The match begins on floor {floor}.",
+      "feed.mulligan_offered": "Choose your starting hand.",
+      "feed.mulligan_resolved": "Starting hand set.",
+      "feed.turn_started": "Turn {turn}: {side}",
+      "feed.card_drawn": "{side} drew {card}.",
+      "feed.card_added_to_hand": "{side} gained {card}.",
+      "feed.card_burned": "{side} burned {card}: the hand was full.",
+      "feed.card_added_to_deck": "{card} was shuffled into a deck.",
+      "feed.fatigue_damage": "{side} took {amount} fatigue.",
+      "feed.card_played": "{side} played {card}.",
+      "feed.card_discarded": "{side} discarded {card}.",
+      "feed.minion_summoned": "{card} entered the board.",
+      "feed.summon_failed": "{card} found no room on the board.",
+      "feed.weapon_equipped": "{side} equipped {card}.",
+      "feed.weapon_durability_changed": "A weapon's durability changed to {durability}.",
+      "feed.weapon_destroyed": "{entity_id} broke.",
+      "feed.hero_power_used": "{side} used the hero power.",
+      "feed.hero_power_refreshed": "{side} refreshed the hero power.",
+      "feed.attack_declared": "{attacker} attacks {defender}.",
+      "feed.attack_cancelled": "{attacker}'s attack was cancelled.",
+      "feed.damage_dealt": "{source} deals {dealt} to {target}.",
+      "feed.divine_shield_popped": "{entity_id} lost Divine Shield.",
+      "feed.healed": "{source} restored {amount} to {target}.",
+      "feed.armor_gained": "{side} gained {amount} armour.",
+      "feed.armor_lost": "{side} lost {amount} armour.",
+      "feed.enchantment_applied": "{instance_id} was enchanted.",
+      "feed.enchantment_removed": "An enchantment left {instance_id}.",
+      "feed.minion_modified": "{entity_id} changed.",
+      "feed.silenced": "{entity_id} was silenced.",
+      "feed.frozen": "{entity_id} was frozen.",
+      "feed.thawed": "{entity_id} thawed.",
+      "feed.stealth_lost": "{entity_id} left Stealth.",
+      "feed.keyword_removed": "{entity_id} lost {keyword}.",
+      "feed.counter_changed": "{source_id}: {key} is now {value}.",
+      "feed.minion_died": "{card} died.",
+      "feed.effect_resolved": "{source_id} took effect.",
+      "feed.discover_offered": "{side} discovers.",
+      "feed.choice_requested": "{side} must choose.",
+      "feed.choice_made": "{side} chose.",
+      "feed.discover_picked": "{side} picked {card}.",
+      "feed.ai_intent_shown": "The boss intends: {intent}.",
+      "feed.ai_intent_committed": "The boss commits: {intent}.",
+      "feed.match_ended": "The match is over: {reason}.",
+      "feed.log_overflow": "Rules fault: the event log is full.",
+      "feed.resolution_overflow": "Rules fault: resolution ran too long.",
+      "feed.command_rejected": "Refused: {reason}",
+      "feed.diag.ai_decision": "AI decision: {kind}",
+      "feed.diag.ai_plan_aborted": "AI plan aborted: {reason}",
+      "feed.diag.ai_fault": "AI fault: {reason}",
+      "feed.diag.command_rejected": "Boss command refused: {code}",
+      "hud.portrait.health": "Health %d",
+      "hud.portrait.armor": "Armor %d",
+      "hud.portrait.weapon": "Weapon %d/%d",
+      "reject.BOARD_FULL": "Your board is full (7 minions).",
+      "reject.MUST_ATTACK_TAUNT": "A Taunt minion must be attacked first.",
+      "reject.TARGET_STEALTHED": "Stealthed minions can't be targeted.",
+      "reject.ILLEGAL_TARGET": "That can't be targeted.",
+      "reject.TARGET_REQUIRED": "Choose a target for this card.",
+      "reject.INVALID_POSITION": "A minion can't go there.",
+      "reject.CANNOT_ATTACK": "This character can't attack right now.",
+      "reject.ATTACKER_FROZEN": "Frozen characters can't attack.",
+      "reject.SUMMONING_SICK": "This minion needs a turn before it can attack.",
+      "reject.RUSH_CANNOT_HIT_HERO": "Rush minions can't attack heroes the turn they're played.",
+      "reject.ENGINE_BUSY": "Still resolving — try again.",
+      "reject.INVALID_INDEX": "That choice is no longer available.",
+      "reject.INVALID_MASK": "That choice is no longer available.",
+      "reject.INVALID_CHOICE": "That choice is no longer available.",
+      "targeting.no_target": "No target",
+      "choice.confirm": "Confirm",
+      "treasure.rarity.common": "Common",
+      "treasure.rarity.rare": "Rare",
+      "hud.menu": "≡",
+      "pause.title": "Paused",
+      "pause.resume": "Resume",
+      "pause.concede": "Concede",
+      "pause.volume_master": "Master",
+      "pause.volume_music": "Music",
+      "pause.volume_sfx": "Effects",
+      "pause.speed.normal": "Normal",
+      "pause.speed.fast": "Fast",
+      "pause.speed.instant": "Instant",
+      "pause.reduce_motion": "Reduce motion",
+      "pause.concede_title": "Concede the match?",
+      "pause.concede_body": "The run is recorded as a defeat on this floor.",
+      "pause.cancel": "Cancel",
+      "pause.concede_confirm": "Concede",
+      "choice.boss_discovers": "Boss discovers…",
+      "opt.smite": "Smite\nDeal 2 damage",
+      "opt.mend": "Mend\nRestore 4 health"
+    },
+    "rejection_tooltip_s": 1.5,
+    "sfx_heavy_damage": 5,
+    "sfx_steps": {
+      "play_card": "sfx.ui.card_play",
+      "attack_lunge": "sfx.ui.attack_whoosh",
+      "damage_pop": "sfx.ui.damage",
+      "heal_pop": "sfx.ui.heal",
+      "shield_pop": "sfx.ui.shield_pop",
+      "death_group": "sfx.ui.death_thud",
+      "draw": "sfx.ui.draw",
+      "burn": "sfx.ui.burn",
+      "fatigue_label": "sfx.ui.heartbeat",
+      "turn_banner": "sfx.ui.turn_chime",
+      "intent_show": "sfx.ui.page_turn",
+      "overlay_open": "sfx.ui.overlay",
+      "overlay_close": "sfx.ui.overlay",
+      "mulligan_open": "sfx.ui.overlay"
+    },
+    "reject": {
+      "source_flash_s": 0.034,
+      "source_flash_px": 2,
+      "shake_px": 3,
+      "font_px": 14,
+      "max_w": 300,
+      "flash_s": 0.1,
+      "flash": {
+        "MUST_ATTACK_TAUNT": "taunts",
+        "NOT_ENOUGH_MANA": "mana_bar"
+      }
+    },
+    "choice": {
+      "card_scale": 1.5,
+      "gap": 24,
+      "confirm_w": 160,
+      "confirm_h": 44,
+      "confirm_gap": 12,
+      "plate_font_px": 20,
+      "plate_corner_px": 4
+    },
+    "pause": {
+      "row_h": 36,
+      "gap": 8,
+      "font_px": 16,
+      "title_px": 20,
+      "label_w": 110,
+      "open_scale": 0.95
+    },
+    "text_scale": {
+      "base_font_px": 16,
+      "end_turn_max_w": 200,
+      "boss_mana_moves_at": 1.25,
+      "intent_min_x": 432,
+      "full": 1.5,
+      "stamp_max_px": 56,
+      "passive_top_y": 184,
+      "feed_ticker_lines": 2,
+      "feed_ticker_h": 48,
+      "feed_line_gap": -4,
+      "feed_drawer_w": 360,
+      "fatigue_lines": 3,
+      "reading": {
+        "from": 1.25,
+        "font_px": 18,
+        "w": 360,
+        "max_h": 360,
+        "bottom_y": 644,
+        "gap": 8,
+        "right_max_x": 748,
+        "left_min_x": 8
+      }
+    },
+    "palette_high_contrast": {
+      "state_danger": "#FF8C42",
+      "state_buff": "#4FA3FF"
+    },
+    "treasure": {
+      "chip_px": 40,
+      "hit_px": 44,
+      "pitch_px": 48,
+      "flare_grow_px": 2,
+      "glyph_font_px": 18,
+      "tooltip_font_px": 14,
+      "tooltip_max_w": 300,
+      "hover_delay_s": 0.3,
+      "rarity_frame": {
+        "common": "neutral",
+        "rare": "knowledge2"
+      }
+    },
+    "focus": {
+      "ring_px": 2,
+      "ring_offset_px": 3
+    }
+  }
+}

@@ -1,0 +1,359 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "decay_fx_row_09_husk_summoner",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 2,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_09_husk_summoner.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_09_husk_summoner"
+    },
+    {
+      "id": "decay_fx_row_10_sacrifice",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_10_sacrifice.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_10_sacrifice"
+    },
+    {
+      "id": "decay_fx_row_11_grave_feeder",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly_minion"
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_11_grave_feeder.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_11_grave_feeder"
+    },
+    {
+      "id": "decay_fx_row_12_spiteful_corpse",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "source.attack"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_12_spiteful_corpse.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_12_spiteful_corpse"
+    },
+    {
+      "id": "decay_fx_row_13_plague_bearer",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "poisonous",
+        "deathrattle"
+      ],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "from": {
+                "pool": "collectible",
+                "filter": {
+                  "set": "decay"
+                }
+              },
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_13_plague_bearer.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_13_plague_bearer"
+    },
+    {
+      "id": "decay_fx_row_14_reanimate",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_trigger": "deathrattle"
+            }
+          },
+          "ops": [
+            {
+              "op": "retrigger",
+              "trigger": "deathrattle"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_14_reanimate.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_14_reanimate"
+    },
+    {
+      "id": "decay_fx_row_15_rot_armor",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "test": [
+                  "target",
+                  {
+                    "has_trigger": "deathrattle"
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "attack": 4,
+                  "health": 4
+                }
+              ],
+              "else": [
+                {
+                  "op": "buff",
+                  "attack": 2,
+                  "health": 2
+                }
+              ]
+            },
+            {
+              "op": "give_keyword",
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_15_rot_armor.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_15_rot_armor"
+    },
+    {
+      "id": "decay_fx_row_46_husk_purge",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "set_counter",
+              "key": "n",
+              "value": {
+                "count": {
+                  "selector": "all_friendly_minions",
+                  "filter": {
+                    "tag": "husk"
+                  }
+                }
+              }
+            },
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "tag": "husk"
+                }
+              }
+            },
+            {
+              "op": "damage",
+              "targets": "all_enemy_characters",
+              "amount": {
+                "ref": "counter.n"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [],
+      "text": {
+        "key": "card.decay_fx_row_46_husk_purge.text",
+        "en": ""
+      },
+      "token": false,
+      "art": "cards/decay_fx_row_46_husk_purge"
+    },
+    {
+      "id": "decay_husk",
+      "name": "Test Card",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "spell_damage": 0,
+      "effects": [],
+      "tags": [
+        "husk"
+      ],
+      "text": {
+        "key": "card.decay_husk.text",
+        "en": ""
+      },
+      "token": true,
+      "art": "cards/decay_husk"
+    }
+  ]
+}

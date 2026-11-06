@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://di8plkwdscynj"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_6bi4k"]
+
+[resource]
+script = ExtResource("1_6bi4k")
+card_name = "Smoke Bomb"
+cost = 2
+description = "Return an enemy unit to its owner's hand."

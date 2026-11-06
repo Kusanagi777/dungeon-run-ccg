@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_skull",
+      "name": "Boss Skull",
+      "set": "boss",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_skull.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "boss_claw",
+      "name": "Boss Claw",
+      "set": "boss",
+      "type": "weapon",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "text": {
+        "key": "card.boss_claw.text",
+        "en": ""
+      },
+      "attack": 2,
+      "durability": 2
+    }
+  ]
+}

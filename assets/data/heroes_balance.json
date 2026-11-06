@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "config": {
+    "starter_curve": {
+      "avg_min": 2.4,
+      "avg_max": 2.8,
+      "max_cost": 5,
+      "bucket": {
+        "0": [
+          0,
+          0
+        ],
+        "1": [
+          3,
+          4
+        ],
+        "2": [
+          4,
+          5
+        ],
+        "3": [
+          3,
+          4
+        ],
+        "4": [
+          1,
+          2
+        ],
+        "5": [
+          1,
+          2
+        ],
+        "6_plus": [
+          0,
+          0
+        ]
+      }
+    },
+    "plan_min": 4,
+    "plan_max": 7,
+    "plan_tags": {
+      "war": [
+        "weapons",
+        "aggro",
+        "armour"
+      ],
+      "decay": [
+        "deathrattle",
+        "sacrifice",
+        "husk"
+      ],
+      "knowledge": [
+        "spells",
+        "draw",
+        "spell_damage",
+        "discover"
+      ]
+    },
+    "hp_value_min": 1.5,
+    "hp_value_max": 2.5,
+    "vanilla_2drop": 5.0,
+    "p_kill": 0.45,
+    "hero_set_size": 25,
+    "hero_set_size_tol": 3,
+    "set_share": {
+      "war": {
+        "minion": 0.52,
+        "spell": 0.24,
+        "weapon": 0.24
+      },
+      "decay": {
+        "minion": 0.68,
+        "spell": 0.32,
+        "weapon": 0.0
+      },
+      "knowledge": {
+        "minion": 0.44,
+        "spell": 0.56,
+        "weapon": 0.0
+      }
+    },
+    "set_share_tol": 0.08,
+    "synergy_min": 5
+  }
+}

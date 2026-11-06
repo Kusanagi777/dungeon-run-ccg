@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "power_whetstone",
+      "name": "Whetstone",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "exists": "owner_weapon"
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "owner_weapon",
+                  "attack": 1,
+                  "duration": "until_end_of_turn"
+                }
+              ],
+              "else": [
+                {
+                  "op": "equip",
+                  "card_id": "war_whetstone_blade"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_whetstone.text",
+        "en": "Equip a 1/2 Whetstone Blade. If you have a weapon, give it +1 Attack this turn instead."
+      }
+    },
+    {
+      "id": "power_mend",
+      "name": "Mend",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_mend.text",
+        "en": "Restore 3 Health to your hero."
+      }
+    },
+    {
+      "id": "power_drain",
+      "name": "Drain",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            },
+            {
+              "op": "heal",
+              "amount": 2,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_drain.text",
+        "en": "Deal 2 damage to a minion. Restore 2 Health to your hero."
+      }
+    },
+    {
+      "id": "power_rot",
+      "name": "Rot",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "test": [
+                  "target",
+                  {
+                    "is_dying": true
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "op": "summon",
+                  "card_id": "decay_husk",
+                  "position": "end"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_rot.text",
+        "en": "Deal 1 damage to a minion. If it dies, summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "power_insight",
+      "name": "Insight",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "deck_top",
+                "n": 1
+              },
+              "cost": 1,
+              "duration": "until_end_of_turn"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_insight.text",
+        "en": "Draw a card. It costs (1) more this turn."
+      }
+    },
+    {
+      "id": "power_reinforce",
+      "name": "Reinforce",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_reinforce.text",
+        "en": "Gain 3 Armor."
+      }
+    },
+    {
+      "id": "power_brand",
+      "name": "Brand",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_brand.text",
+        "en": "Deal 2 damage to the enemy hero."
+      }
+    }
+  ]
+}

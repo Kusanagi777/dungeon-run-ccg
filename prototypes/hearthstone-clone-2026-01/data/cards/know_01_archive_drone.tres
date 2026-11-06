@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://xnxynjqwhdgp"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_o6o8i"]
+
+[resource]
+script = ExtResource("1_o6o8i")
+card_name = "Archive Drone"
+cost = 2
+attack = 1
+health = 3
+description = "Conduit (1)."
+role_tag = 3
+biology_tag = 2

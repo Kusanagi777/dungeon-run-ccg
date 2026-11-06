@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "config": {
+    "restart_budget_ms": 5000,
+    "transition_ms": {
+      "fade": 250,
+      "intro_slide": 300,
+      "draft_reveal": 360,
+      "fly_to_strip": 400,
+      "toast_in_out": 200
+    },
+    "run_start_ms": 600,
+    "toast_base_ms": 5000,
+    "toast_per_char_ms": 30,
+    "toast_min_ms": 5000,
+    "toast_max_ms": 8000,
+    "toast_gap_ms": 150,
+    "toast_queue_max": 8,
+    "node_d": 24,
+    "seg_len": 40,
+    "strip_max_w": 640,
+    "option_gap": {
+      "treasure": 48,
+      "bundle": 40
+    },
+    "preselect_hero": "last_played",
+    "default_focus": {
+      "summary": "new_run_same_hero"
+    },
+    "speed_factor": {
+      "instant": 0,
+      "fast": 0.5,
+      "normal": 1.0
+    },
+    "reduce_motion_factor": 0.5,
+    "copied_flash_ms": 1500,
+    "seg_len_min": 4,
+    "initials_min_seg": 16,
+    "design_width": 1280,
+    "option_w": {
+      "treasure": 150,
+      "bundle": 340
+    },
+    "option_y": {
+      "treasure": 240,
+      "bundle": 136
+    },
+    "run_log_page": 20,
+    "settings_steps": {
+      "volume": 0.05,
+      "action_delay": 50,
+      "action_delay_min": 0,
+      "action_delay_max": 2000,
+      "gamma": 0.05,
+      "gamma_min": 0.8,
+      "gamma_max": 1.4
+    },
+    "palette": {
+      "bg_edge": "#141820",
+      "table_dark": "#2B2118",
+      "table_lit": "#4A3626",
+      "parchment": "#E8DCC4",
+      "ink": "#1F1A14",
+      "text_light": "#F2E9D8",
+      "text_muted": "#B8AC96",
+      "text_ink": "#1F1A14",
+      "state_danger": "#FF5A4D",
+      "state_actionable": "#F2E9D8",
+      "neutral": "#6F655A",
+      "war": "#9B2F23",
+      "war2": "#B07A3A",
+      "decay": "#355E3B",
+      "decay2": "#6B4C8A",
+      "knowledge": "#2C4F8A",
+      "knowledge2": "#C9A24A",
+      "boss_band_1": "#6B5B3C",
+      "boss_band_2": "#7A4A3A",
+      "boss_band_3": "#4E4660"
+    },
+    "palette_high_contrast": {
+      "state_danger": "#FF8A1E"
+    },
+    "sfx": {},
+    "reading_panel": {
+      "font_px": 18,
+      "max_w": 360
+    },
+    "font_px": {
+      "hero": 48,
+      "title": 28,
+      "heading": 20,
+      "body": 16,
+      "small": 13,
+      "muted": 14
+    },
+    "controls": {},
+    "glossary": {},
+    "strings": {}
+  }
+}

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cao637uoaycw8"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_raclo"]
+
+[resource]
+script = ExtResource("1_raclo")
+card_name = "Chain Lightning"
+cost = 4
+description = "Deal 3 damage to 3 random enemies."

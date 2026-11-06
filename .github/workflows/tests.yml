@@ -1,0 +1,209 @@
+name: Automated Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Run GdUnit4 Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      # tools/setup.sh is the same idempotent toolchain install the dev
+      # container uses: Godot 4.7.2 (linux.x86_64 from the official GitHub
+      # release) symlinked as `godot` under ~/.local/bin, plus gdUnit4 if
+      # addons/gdUnit4 were ever missing (it is committed, so this is a no-op).
+      - name: Install Godot 4.7.2 and gdUnit4
+        run: bash tools/setup.sh
+
+      # The grep gates are validated on ripgrep 14 (no look-around; ADR-0001
+      # erratum 2026-11-03). Installed explicitly from the Ubuntu archive
+      # (24.04 ships 14.1.0) rather than trusting the runner image, and the
+      # version is printed so an image change shows in the log.
+      # tools/lint/gates.sh refuses (exit 2) on rg < 14 as well.
+      - name: Install ripgrep >= 14
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ripgrep
+          rg --version
+
+      # A fresh checkout has no .godot/ class cache. Without the import,
+      # GdUnitCmdTool.gd fails to load and the test run exits 1 having run
+      # nothing. Godot's very first headless import on a clean machine has been
+      # seen to exit 139 (segfault on shutdown after writing the cache), so one
+      # retry is tolerated; the second import must succeed.
+      - name: Import project (build .godot class cache)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set +e
+          godot --headless --path . --import
+          first=$?
+          set -e
+          if [ "$first" -ne 0 ] && [ "$first" -ne 139 ]; then
+            echo "First import exited $first" >&2
+            exit "$first"
+          fi
+          godot --headless --path . --import
+
+      # Blocking: the rules / presentation split (ADR-0001 Decision 6), the
+      # no-global-RNG lint (ADR-0003 Decision 10(b), rng-event-log rule 7) and
+      # the per-file parse check (ADR-0001 Implementation Guidelines).
+      # gates.sh prints `<gate> hits: <n>` per gate and no_global_rng.sh
+      # `no_global_rng hits: <n>`; each exits 1 on any hit, 2 when it could not
+      # run. parse-check.sh prints `ok:` / `PARSE FAIL:` per rules or UI file, one
+      # godot run per file, and needs the class cache built above. All three
+      # run even when one fails, so the log shows every finding.
+      - name: Lint gates G1-G7, no-global-RNG lint and per-file parse check
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          status=0
+          bash tools/lint/gates.sh . || status=1
+          bash tools/lint/no_global_rng.sh . || status=1
+          bash tools/lint/parse-check.sh || status=1
+          exit "$status"
+
+      # Blocking: the src/ai gates (boss-ai A29, ADR-0006 Validation Criteria;
+      # boss-ai story 012). Prints `<rule> hits: <n>` per rule; exits 1 on any
+      # hit, 2 when it could not run, as gates.sh does.
+      - name: Boss AI code gates
+        run: bash tools/ci/ai_code_gates.sh .
+
+      # Exactly project.yaml commands.test. Exit 0 = all passed; 100 = a test
+      # failed; 101 = passed with leaked nodes (warning, but fails this job so
+      # leaks get fixed); 105 = a test script does not parse; 103/104 = gdUnit4
+      # could not run. --remote-debug prints two ERROR lines about port
+      # 127.0.0.1:0 on every run; they are expected. A run that prints
+      # "No test cases found" exits 0 and is NOT a pass, so it is rejected below.
+      # `-i res://tests/performance` keeps wall-clock budgets out of this
+      # blocking run; the `performance` job below runs them.
+      - name: Run GdUnit4 tests
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set -o pipefail
+          godot --headless -s -d --remote-debug tcp://127.0.0.1:0 \
+            res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests -i res://tests/performance --ignoreHeadlessMode -c \
+            2>&1 | tee gdunit4-run.log
+          if grep -q "No test cases found" gdunit4-run.log; then
+            echo "gdUnit4 found no test cases under res://tests — treating as failure" >&2
+            exit 1
+          fi
+
+      # Blocking: the content validate command (content CN-6.3, story 007;
+      # ADR-0002 Key Interfaces) loads assets/data/ with Boot's validator map
+      # and prints the report. Exit 0 Ready, 1 Failed, 2 could not run; any
+      # non-zero exit fails the job. This runs the editor binary (a debug
+      # build), so pending owners' W_VALIDATOR_PENDING rows are warnings here;
+      # a release binary would make them errors (tests/README.md).
+      - name: Content validate command
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          godot --headless --path . -s res://tools/content/validate.gd -- --data-root res://assets/data/
+
+      # gdUnit4 writes reports/report_<n>/ (HTML + JUnit results.xml) at the
+      # project root; reports/ is gitignored.
+      - name: Upload gdUnit4 report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gdunit4-report
+          path: |
+            reports/
+            gdunit4-run.log
+          if-no-files-found: warn
+
+  # Non-blocking: the wall-clock budgets under tests/performance/ (sprint-3 QA
+  # plan Cross-cutting 2; rng-event-log story 010 — 10,000 appends +
+  # events_since(0) < 50 ms, restore at 10,000 draws < 5 ms). Thresholds still
+  # fail the suite, but `continue-on-error` keeps a red result from failing the
+  # workflow or blocking a merge: a shared runner is too noisy to gate on time.
+  # One retry; every `PERF ...` timing line goes to the job summary. Read the
+  # timings there, not only the job colour.
+  performance:
+    name: Performance budgets (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: true
+
+      - name: Install Godot 4.7.2 and gdUnit4
+        run: bash tools/setup.sh
+
+      - name: Import project (build .godot class cache)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set +e
+          godot --headless --path . --import
+          first=$?
+          set -e
+          if [ "$first" -ne 0 ] && [ "$first" -ne 139 ]; then
+            echo "First import exited $first" >&2
+            exit "$first"
+          fi
+          godot --headless --path . --import
+
+      - name: Run performance suites (one retry)
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          set -o pipefail
+          perf_run() {
+            godot --headless -s -d --remote-debug tcp://127.0.0.1:0 \
+              res://addons/gdUnit4/bin/GdUnitCmdTool.gd -a res://tests/performance --ignoreHeadlessMode -c \
+              2>&1 | tee -a perf-run.log
+          }
+          set +e
+          perf_run
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "Performance run exited $status; retrying once" | tee -a perf-run.log
+            perf_run
+            status=$?
+          fi
+          set -e
+          {
+            echo "### Performance budgets (non-blocking)"
+            echo '```'
+            grep '^PERF ' perf-run.log || echo "no PERF lines printed"
+            echo '```'
+            echo "Final exit code: $status"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if grep -q "No test cases found" perf-run.log; then
+            echo "gdUnit4 found no performance suites under res://tests/performance" >&2
+            exit 1
+          fi
+          # Exit 100 = a budget assertion missed: report it as a warning
+          # annotation and keep the check green (budgets are advisory until
+          # measured on a release build). Any other non-zero exit means the
+          # suite could not run (parse error 105, crash) and fails the job.
+          if [ "$status" -eq 100 ]; then
+            echo "::warning title=Performance budget missed::See the job summary for the PERF lines"
+            echo "Budget miss reported as a warning (exit 100)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          exit "$status"
+
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gdunit4-perf-report
+          path: |
+            reports/
+            perf-run.log
+          if-no-files-found: warn

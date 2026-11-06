@@ -1,0 +1,34 @@
+{
+  "name": "feature_terms",
+  "description": "boss-ai F1 / F2 terms the A11-A18 fixtures leave at 0 (code review 2026-11-04, BAI-004 S2 mutants S2-S7, S11, C4): default band 2, 10 mana, an empty boss board, the player at 30 with a 3/4. The boss hand holds 1-cost 2/2s that differ in one F2 term each (vanilla, Spell Damage 1, an aura, Taunt), a 2/3 weapon and a heal-4 on its own hero; the tests damage the boss hero by boss_damage first. Each body's BV differs from the vanilla 2/2's by exactly its term: Spell Damage +2 per point, aura +2, Taunt x1.2 (+0.5 more in DEFENSIVE). The aura is card-effects row 26's shape (all other friendly minions +1/+1) and reaches nothing on an empty board. No card here has a discover or choose_one op.",
+  "profile": "default",
+  "band": 2,
+  "deck_card": "bai_filler",
+  "cards": [
+    {"id": "bai_filler", "type": "minion", "cost": 1, "attack": 1, "health": 1},
+    {"id": "bai_pup", "type": "minion", "cost": 1, "attack": 2, "health": 2},
+    {"id": "bai_sage", "type": "minion", "cost": 1, "attack": 2, "health": 2, "keywords": ["spell_damage"], "spell_damage": 1},
+    {"id": "bai_lord", "type": "minion", "cost": 1, "attack": 2, "health": 2, "keywords": ["aura"], "effects": [{"trigger": "aura", "targets": {"selector": "all_friendly_minions", "filter": {"not_self": true}}, "ops": [{"op": "aura", "attack": 1, "health": 1}]}]},
+    {"id": "bai_guardian", "type": "minion", "cost": 1, "attack": 2, "health": 2, "keywords": ["taunt"]},
+    {"id": "bai_axe", "type": "weapon", "cost": 1, "attack": 2, "health": 3},
+    {"id": "bai_mend", "type": "spell", "cost": 1, "effects": [{"trigger": "cast", "targets": "owner_hero", "ops": [{"op": "heal", "amount": 4}]}]},
+    {"id": "bai_brute", "type": "minion", "cost": 3, "attack": 3, "health": 4}
+  ],
+  "boss": {"mana": 10, "board": [], "hand": ["bai_pup", "bai_sage", "bai_lord", "bai_guardian", "bai_axe", "bai_mend"]},
+  "player": {"health": 30, "board": ["bai_brute"]},
+  "expect": {
+    "boss_damage": 10,
+    "vanilla": "bai_pup",
+    "spell_damage": "bai_sage",
+    "spell_damage_points": 1,
+    "aura": "bai_lord",
+    "taunt": "bai_guardian",
+    "weapon": "bai_axe",
+    "weapon_attack": 2,
+    "weapon_durability": 3,
+    "heal": "bai_mend",
+    "heal_amount": 4,
+    "blocker": "bai_brute",
+    "synergy_tag": "taunt"
+  }
+}

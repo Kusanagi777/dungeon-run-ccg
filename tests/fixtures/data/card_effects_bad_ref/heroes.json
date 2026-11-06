@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "hero_war",
+      "name": "Test Hero",
+      "set": "war",
+      "health": 30,
+      "hero_power": "power_fx_plain",
+      "starter_deck": [
+        "neutral_test_vanilla_1_1",
+        "neutral_test_vanilla_2_2",
+        "neutral_test_vanilla_3_4",
+        "neutral_test_vanilla_2_5",
+        "neutral_test_taunt",
+        "neutral_test_charge",
+        "neutral_test_rush",
+        "neutral_test_divine_shield",
+        "neutral_test_windfury",
+        "neutral_test_stealth",
+        "neutral_test_lifesteal",
+        "neutral_test_poisonous",
+        "neutral_test_weapon_2_2",
+        "neutral_test_bolt",
+        "neutral_test_draw_two"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "hero.hero_war.text",
+        "en": ""
+      },
+      "art": "heroes/hero_war"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "mulligan",
+  "description": "Setup done, the mulligan offered: only the player's mulligan is legal.",
+  "sample_seed": 101,
+  "decks": {"player": [["fx_grunt", 10], ["fx_bolt", 5]], "boss": [["fx_grunt", 15]]},
+  "commands": [],
+  "expect": {"phase": "mulligan", "active_side": "player", "turn": 0}
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "config": {
+    "restart_budget_ms": 5000,
+    "transition_ms": {
+      "fade": 250,
+      "intro_slide": 300,
+      "draft_reveal": 360,
+      "fly_to_strip": 400,
+      "toast_in_out": 200
+    },
+    "run_start_ms": 600,
+    "toast_base_ms": 5000,
+    "toast_per_char_ms": 30,
+    "toast_min_ms": 5000,
+    "toast_max_ms": 8000,
+    "toast_gap_ms": 150,
+    "toast_queue_max": 8,
+    "node_d": 24,
+    "seg_len": 40,
+    "strip_max_w": 640,
+    "option_gap": {
+      "treasure": 48,
+      "bundle": 40
+    },
+    "preselect_hero": "last_played",
+    "default_focus": {
+      "summary": "new_run_same_hero"
+    }
+  }
+}

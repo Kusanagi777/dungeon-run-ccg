@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://guviiv2vffy4"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_xesnk"]
+
+[resource]
+script = ExtResource("1_xesnk")
+card_name = "Brood Mother"
+cost = 4
+attack = 2
+health = 4
+description = "Deploy: Summon two 1/1 [Vermin] Rats."
+role_tag = 4
+biology_tag = 7

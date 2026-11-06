@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://x3od2epkn7n1"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_ya8ib"]
+
+[resource]
+script = ExtResource("1_ya8ib")
+card_name = "Ogre Bully"
+cost = 3
+attack = 3
+health = 4
+description = "Bully: Gain +2 Attack when attacking."
+role_tag = 2

@@ -1,0 +1,117 @@
+# Story 015: Freeze, thaw and Silence
+
+> **Epic**: Match Rules
+> **Status**: Complete
+> **Layer**: Core
+> **Type**: Logic
+> **Estimate**: M
+> **Manifest Version**: 2026-11-03
+> **Last Updated**: 2026-11-04
+
+## Context
+
+**GDD**: `design/gdd/match-rules.md` (C13 Freeze and Silence semantics; F6 Health, buff loss and Silence clamp; C4 End step 4 — thaw; C12 Freeze, Silence, Aura rows; Edge Cases "Keywords and status"; States — character status sub-states)
+**Requirement**: `TR-match-rules-005` (`freeze`, `silence` primitives and their one event each)
+*(Requirement text lives in `docs/architecture/tr-registry.yaml` — read fresh at review time)*
+
+**ADR Governing Implementation**: ADR-0007: Effect Resolver / Validator Boundary (the engine owns the primitives and never writes `base_*` after creation except via Silence or `transform`; the `silenced` flag is what the resolver reads to skip the definition's triggers)
+**ADR Decision Summary**: `silence(target)` and `freeze(target)` are engine primitives; `silenced` is plain state the resolver consults (who responds: "not silenced"); aura *reception* is re-applied by `recompute_auras()` so Silence stops only the target's own aura emission.
+**ADR Version**: 2026-11-03
+
+**Engine**: Godot 4.7.2 | **Risk**: HIGH
+**Engine Notes**: HIGH by version; APIs used predate 4.3. No engine-specific verification.
+
+The thaw rule covers Hearthstone's three cases with one comparison and no hidden counter: at the controller's End step a character thaws if it was frozen before this turn began or had already used its attacks when frozen; otherwise it stays Frozen through the next turn. Silence is one step that strips keywords, enchantments, Deathrattles and triggers, then clamps `damage_taken` with F6 so a buffed, damaged minion keeps its current health where it can but never exceeds its new maximum.
+
+**Control Manifest Rules (this layer)**:
+- Required: `RulesEngine` owns … the 24 primitives (ADR-0007); one effect pass = one C10 step (ADR-0007)
+- Forbidden: never write match state directly from `src/gameplay/effects/**` — `frozen`, `silenced` are in gate G7's field list (ADR-0007); never call the death check or `recompute_auras()` between ops (ADR-0007)
+- Guardrail: `submit()` ≤ 5 ms worst case (ADR-0007, ADR-0001)
+
+---
+
+## Acceptance Criteria
+
+*From GDD `design/gdd/match-rules.md`, scoped to this story:*
+
+- [ ] AC-24 **GIVEN** a 2/2 minion with +2 health and `damage_taken 3`, **WHEN** Silenced, **THEN** `max_health 2`, `damage_taken 1`, `health 1`, keywords empty, `frozen false`, `silenced true`, `silenced` emitted once (F6: `damage_taken' = max(0, 3 − (4 − 2))`); **GIVEN** the same minion buffed by an aura instead, **WHEN** the aura source dies, **THEN** the minion dies in the same resolution loop, after the source (aura loss leaves `damage_taken` untouched); **GIVEN** a minion with Divine Shield, Taunt and a Deathrattle, **WHEN** Silenced, **THEN** all three are removed in one step and when it later dies no `trigger_resolved(deathrattle)` fires; a shield already popped is not restored.
+- [ ] AC-25 **GIVEN** a minion Frozen during the opponent's turn, **WHEN** its controller's End step runs, **THEN** it thaws (`thawed`; `frozen_on_turn < turn`); **GIVEN** a minion Frozen during its own turn before attacking, **THEN** it is still Frozen after that End step and thaws at the following own End step; **GIVEN** a minion Frozen after it had used its attacks (`attacks_remaining == 0`), **THEN** it thaws at this End step; freezing an already-frozen character re-stamps `frozen_on_turn` and the thaw rule still evaluates once at the End step.
+- [ ] C13 exclusions **GIVEN** a Frozen minion, **WHEN** Silenced, **THEN** it thaws immediately and may attack this turn if it has attacks remaining and is not summoning-sick; **AND** Silence does **not** clear `summoning_sick`, `attacks_used` or `pending_destroy` and does not restore health lost to damage; **GIVEN** a Silenced minion buffed by another minion's aura, **THEN** the received aura is re-applied by the next `recompute_auras()` (net no change to received auras; only its own emitted aura stops).
+
+---
+
+## Implementation Notes
+
+*Derived from ADR-0007 Decision 1, 5 and GDD C13 / F6 / C4 End step 4:*
+
+- `freeze(target)`: `frozen = true`, `frozen_on_turn = turn`, emit `frozen`. A frozen character fails `can_attack` (`ATTACKER_FROZEN`, story 012); a frozen hero keeps its weapon.
+- Thaw rule (End step 4 for side S, every S character): thaw if `frozen_on_turn < turn` **or** `attacks_remaining(c) == 0`; set `frozen = false`, emit `thawed`. Otherwise it stays Frozen and thaws at the next own End step.
+- `silence(target)` on a minion, in one step: (1) `old_max = max_health(t)`; remove every non-aura enchantment (one `enchantment_removed` each is **not** emitted here — the GDD's single `silenced` event is the one event for the step; record the removed ids in its payload); (2) clear all keywords, Deathrattles and triggered effects granted by the definition or enchantments — `keywords.clear()`; (3) `silenced = true` (the resolver skips the definition's triggers and Deathrattles for this entity; Deathrattles from enchantments were removed in 1); (4) `damage_taken = max(0, damage_taken − (old_max − max_health(t)))`; (5) `frozen = false`; (6) emit `silenced{target, removed_enchantments, removed_keywords}`. Aura enchantments it *receives* are stripped and re-applied by the loop's `recompute_auras()`; the resolver stops emitting the target's own aura because `silenced` is set.
+- Silence never touches `summoning_sick`, `attacks_used`, `pending_destroy`, `base_*`.
+- The resolver double honours `silenced` (skips scripted triggers for that `entity_id`) so the "no Deathrattle after Silence" case is observable with no Card Effects code.
+
+---
+
+## Out of Scope
+
+*Handled by neighbouring stories — do not implement here:*
+
+- Story 009: the loop that re-applies auras and kills the aura-dependent minion
+- Story 012: `ATTACKER_FROZEN`
+- Card Effects epic: the `freeze` / `silence` DSL ops and skipping silenced sources in `resolve`
+
+---
+
+## Files
+
+*The code and test files this story creates or changes. `/create-stories` lists the
+planned ones; `/dev-story` replaces the list with the files it changed; `/story-done`
+checks scope against it.*
+
+- `src/gameplay/match/rules_engine.gd` — `silence` complete (C13 steps 1–6, F6 clamp, one `silenced {entity_id, removed_enchantments, removed_keywords}`), End step 4 thaw stage (`STAGE_TURN_THAW`, `_thaw`); `freeze` unchanged (story 006 already re-stamped)
+- `tests/helpers/test_effect_resolver.gd` — a silenced candidate answers no registered trigger (Deathrattle read from the raise-time snapshot); a silenced `auras` source emits nothing (additive: only silenced entities behave differently)
+- `tests/unit/match_rules/match_rules_freeze_silence_test.gd` — 13 tests (new)
+- `tests/unit/match_rules/match_rules_primitives_test.gd` — `silenced` payload assertion widened to the completed payload (one line)
+
+---
+
+## QA Test Cases
+
+*N/A — no qa-lead specs at this tier; implement against the Acceptance Criteria above*
+
+---
+
+## Test Evidence
+
+*Governed by `qa.level`: at `qa.level: minimal` tests are **waived** (advisory, never "must exist and pass"), but a Visual/Feel or UI story's retained screenshot is not.*
+
+**Story Type**: Logic
+**Required evidence**:
+- Logic: `tests/unit/match_rules/match_rules_freeze_silence_test.gd` — must exist and pass (`/story-done` checks that it EXISTS; pass/fail is established by `/gate-check` and `/smoke-check`, both later). `qa.level: standard` — BLOCKING.
+
+**Status**: [x] Created and passing (13 test functions)
+
+---
+
+## Dependencies
+
+- Depends on: `production/epics/match-rules/story-013-attack-resolution.md`, `production/epics/match-rules/story-009-resolution-loop.md`
+- Unlocks: `production/epics/match-rules/story-017-clone-and-replay.md`
+
+---
+
+## Readiness (2026-11-04, `/story-readiness` read by hand)
+
+**Verdict: READY** (tier `workflow: full`, `match-rules` override). ADR-0007 Accepted (2026-11-03, matches `ADR Version`); manifest 2026-11-03 current; TR-match-rules-005 active; dependencies story 009 and story 013 Complete (013 merged at M1); 3 criteria (balanced minimum 2), each observable; Out of Scope stated; no open markers; no asset references; Test Evidence names the test file. QL-STORY-READY skipped — Lean mode.
+
+## Completion Notes
+**Completed**: 2026-11-04 (started 03:52:01 UTC, ended 03:55:49 UTC implementation + verification; closed 03:57 UTC)
+**Criteria**: 3/3 passing — AC-24 (`test_silence_strips_a_buffed_damaged_minion_and_clamps_damage_by_f6`, `test_aura_loss_leaves_damage_and_kills_the_minion_after_its_source_in_one_loop`, `test_silence_removes_divine_shield_taunt_and_deathrattle_and_it_never_fires` with its unsilenced control, `test_silence_does_not_restore_a_popped_divine_shield`); AC-25 (the four thaw cases plus the End-step order test); C13 exclusions (`test_a_frozen_minion_silenced_thaws_at_once_and_may_attack_this_turn`, `test_silence_keeps_sickness_attacks_used_pending_destroy_base_stats_and_damage`, `test_a_silenced_minion_keeps_received_auras_and_stops_emitting_its_own`). 11 of 13 tests seen failing against the pre-story code; the two that passed are the story-009 aura-loss behaviour and the unsilenced Deathrattle control, both expected to pass before this story.
+**Deviations**:
+- ADVISORY — the `silenced` payload is `{entity_id, removed_enchantments, removed_keywords}` (the Implementation Notes' `target` is spelled `entity_id`, like `frozen` / `thawed` and every other status event); `removed_enchantments` holds value copies of the removed enchantments (enchantments have no ids). The story-006 primitives test's exact-payload assertion was widened to match.
+- ADVISORY — the thaw stage runs no C10 step of its own (thawing raises no trigger), so `resolution_step_cap` counts are unchanged by it; `thawed` carries `cause_seq 0` like `turn_ending`.
+- Aura-granted keywords on received aura enchantments are left for `recompute_auras()` (C13 step 1: Silence stops emission, not reception).
+**Test Evidence**: `tests/unit/match_rules/match_rules_freeze_silence_test.gd` (13 tests). Full suite 1238 test cases, 0 failures (exit 0); smoke exit 0, no SCRIPT ERROR; suite SCRIPT ERROR count 85, unchanged from baseline (intentional negative tests).
+**Run result**: N/A — a rules-engine Logic story with no scene, screen or UI surface: Freeze/Silence are observable only through the event log and state the tests assert.
+**Engine specialist check**: NOT ASSESSED — no agent spawning in this lane; APIs used (`Array.assign`, `duplicate(true)`, `maxi`) predate 4.3.
+**Reviewed by**: independent `/code-review` 2026-11-04 (by hand, `code-review-s4-mr015-017`): **NOT ASSESSED** (engine-specialist and qa-tester passes could not be spawned), substantively APPROVED WITH SUGGESTIONS, no blocking defects. Fixes (sprint 4, lane 2 wave 3 review-fix slot): S2 the F6 Silence clamp forgives only lost maximum health — `damage_taken = max(0, damage_taken − max(0, old_max − new_max))`, so removing a health debuff or a `set_stats` health adds no damage — `1cbd30f` (`test_silencing_an_undamaged_minion_with_a_health_debuff_adds_no_damage`, `test_silencing_a_damaged_minion_after_set_stats_health_restores_its_printed_health`); GDD F6 / C13 step 4 still state the unclamped term and need the designer's edit. S4 already covered by card-effects 012 (`card_effects_auras_enchantments_test.gd` "damaged minion gains an aura, then is Silenced" and "a silenced recipient keeps the aura"): review mutant M12 re-run 2026-11-04 fails both, so no match-rules test was added. S1 (match-ui) `MatchViewState` re-projects `silenced` from its payload — stats, keywords, freeze and F6 health — `6e233ab` (three tests in `match_view_state_projection_test.gd`). Open: S3 (Deathrattle after `destroy` then `silence` — match-rules C12 vs card-effects 009 AC-21, a GDD decision before card-effects 009), N1 (thaw rule vs Windfury / summoning sickness, design question), N2 (queued trigger of a later-silenced source has no match-rules test), N3. QL-TEST-COVERAGE skipped — Lean mode

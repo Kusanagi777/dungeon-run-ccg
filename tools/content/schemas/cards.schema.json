@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cards.schema.json",
+  "title": "cards_<set>.json — CardDef records (card-database CR-1, CR-2, CR-3)",
+  "description": "Agrees with the loader (src/core/data/record_schemas.gd), never replaces it (ADR-0002 Decision 9). tests/integration/content/content_validate_process_test.gd compares required/properties with RecordSchemas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "set",
+          "type",
+          "cost",
+          "rarity",
+          "keywords",
+          "effects",
+          "tags",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,47}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "set": {
+            "enum": [
+              "war",
+              "decay",
+              "knowledge",
+              "neutral",
+              "boss",
+              "fortune",
+              "order",
+              "shadow"
+            ]
+          },
+          "type": {
+            "enum": [
+              "minion",
+              "spell",
+              "weapon"
+            ]
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "attack": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+          },
+          "health": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          },
+          "durability": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9
+          },
+          "rarity": {
+            "enum": [
+              "common",
+              "rare",
+              "legendary"
+            ]
+          },
+          "keywords": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "taunt",
+                "charge",
+                "rush",
+                "divine_shield",
+                "windfury",
+                "stealth",
+                "lifesteal",
+                "poisonous",
+                "freeze",
+                "silence",
+                "battlecry",
+                "deathrattle",
+                "spell_damage",
+                "discover",
+                "aura"
+              ]
+            }
+          },
+          "spell_damage": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z_]+$"
+            }
+          },
+          "text": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "en"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
+          "token": {
+            "type": "boolean"
+          },
+          "art": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "minion"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "required": [
+                "attack",
+                "health"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "durability"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "weapon"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "required": [
+                "attack",
+                "durability"
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "health"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "spell"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "attack"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "health"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "durability"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

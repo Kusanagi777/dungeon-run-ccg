@@ -1,0 +1,50 @@
+{
+  "config": {
+    "hero": "hero_war",
+    "boss": "boss_torchbearer",
+    "seed": 1,
+    "floor": 1,
+    "band": 1,
+    "treasures": [],
+    "player_deck": [
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend",
+      "neutral_smite_or_mend"
+    ]
+  },
+  "profile": {},
+  "commands": [
+    {
+      "type": "mulligan",
+      "keep_mask": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "macro": "end_turns",
+      "count": 1
+    },
+    {
+      "macro": "play_all"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_torchbearer",
+      "name": "The Torchbearer",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_end",
+        "scope": {
+          "side": "owner"
+        },
+        "targets": "enemy_hero",
+        "ops": [
+          {
+            "op": "damage",
+            "amount": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_torchbearer.passive",
+        "en": "At the end of the boss's turn, deal 1 damage to the enemy hero."
+      },
+      "deck": [
+        "boss_ember_bolt",
+        "boss_ember_bolt",
+        "boss_tinder_imp",
+        "boss_tinder_imp",
+        "neutral_tunnel_rat",
+        "neutral_tunnel_rat",
+        "neutral_wolf_rider",
+        "neutral_wolf_rider",
+        "neutral_banner_captain",
+        "neutral_banner_captain",
+        "neutral_spark_fiend",
+        "neutral_spark_fiend",
+        "neutral_torch_imp",
+        "neutral_torch_imp",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "neutral_lantern_bearer",
+        "neutral_lantern_bearer",
+        "neutral_bulwark_smith",
+        "neutral_bulwark_smith",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "neutral_hush_owl",
+        "neutral_hush_owl",
+        "neutral_ogre_porter",
+        "neutral_ogre_porter",
+        "neutral_shield_golem",
+        "neutral_shield_golem",
+        "neutral_crypt_brute",
+        "neutral_crypt_brute"
+      ],
+      "ai_profile": "boss_torchbearer",
+      "tags": [
+        "burn"
+      ],
+      "intro_text": {
+        "key": "boss.boss_torchbearer.intro",
+        "en": "The Torchbearer burns you for 1 at the end of each of its turns."
+      }
+    }
+  ]
+}

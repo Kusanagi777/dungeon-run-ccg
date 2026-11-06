@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://d0krtwbxygdcm"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_xefav"]
+
+[resource]
+script = ExtResource("1_xefav")
+card_name = "Gilded Colossus"
+cost = 7
+attack = 7
+health = 7
+description = "Taunt. Deploy: If played, gain 2 Gold."
+role_tag = 6
+biology_tag = 2

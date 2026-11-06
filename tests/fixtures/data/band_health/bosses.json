@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_rot_warden",
+      "name": "Rot Warden",
+      "band": 1,
+      "health": 35,
+      "hero_power": "power_sharpen",
+      "passive": null,
+      "deck": [
+        "boss_bone_shard",
+        "war_iron_axe"
+      ],
+      "ai_profile": "default",
+      "tags": [
+        "undead"
+      ],
+      "intro_text": {
+        "key": "boss.boss_rot_warden.intro",
+        "en": ""
+      },
+      "art": "bosses/boss_rot_warden"
+    },
+    {
+      "id": "boss_bone_king",
+      "name": "Bone King",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "ops": [
+          {
+            "op": "summon",
+            "card": "boss_grave_rat"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_bone_king.passive",
+        "en": "Summons a rat each turn."
+      },
+      "deck": [
+        "boss_bone_shard",
+        "boss_grave_rat"
+      ],
+      "ai_profile": "default",
+      "tags": [],
+      "intro_text": {
+        "key": "boss.boss_bone_king.intro",
+        "en": ""
+      }
+    }
+  ]
+}

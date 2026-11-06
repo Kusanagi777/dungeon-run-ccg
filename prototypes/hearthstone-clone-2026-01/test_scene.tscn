@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bpi0f1ah05b4k"]
+
+[ext_resource type="Script" uid="uid://bktbbe3f0w1we" path="res://bulk_card_update.gd" id="1_uhqqe"]
+
+[node name="Test scene" type="Node2D"]
+script = ExtResource("1_uhqqe")

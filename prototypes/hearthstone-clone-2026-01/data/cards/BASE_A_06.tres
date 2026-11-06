@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://cgrspv3veooww"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_uj7y0"]
+
+[resource]
+script = ExtResource("1_uj7y0")
+id = "BASE_A_06"
+card_name = "Sixth Sense"
+cost = 6
+card_type = 1
+rarity = 2
+description = "A 6-cost baseline action for rarity parsing."
+keywords = Array[String](["[]"])

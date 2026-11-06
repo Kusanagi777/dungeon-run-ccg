@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://b382vihuuhxq6"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = "BASE_M_05"
+card_name = "Alpha Beast"
+cost = 5
+attack = 5
+health = 6
+card_type = 0
+rarity = 1
+description = "A 5-cost baseline unit for power-curve testing."
+keywords = Array[String](["[]"])
+minion_tags = 0

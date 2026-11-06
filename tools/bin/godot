@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+# dungeon-run-ccg godot wrapper (PATH searches skip any file with this marker)
+#
+# Runs Godot with a `user://` private to the current worktree, so parallel
+# worktrees do not collide on fixed paths such as `user://tmp`. Put this folder
+# first on PATH and every `godot ...` in project.yaml commands.* runs verbatim:
+#
+#   export PATH="$PWD/tools/bin:$PATH"
+#   godot --self-check
+#
+# Interface (tests/README.md "Running Godot on a dev machine" has the detail):
+#   godot <args>         Every argument, stdout, stderr and the exit code are the
+#                        engine's, unchanged. It never adds `--path`.
+#   godot --self-check   Prints the binary, version, user dir and templates.
+#
+# Exit codes of its own: 127 no engine found; 2 root inside the repository;
+# 1 (--self-check only) the engine did not honour the isolation.
+#
+# Engine, first match wins:
+#   1. $GODOT_BIN
+#   2. engine.path in project.local.yaml (this worktree's, then the main checkout's)
+#   3. the next `godot` / `godot.exe` on PATH that is not a copy of this script
+# An engine named by 1 or 2 that cannot run, or that is a copy of this script, is
+# an error, not a reason to try 3.
+#
+# user:// lives in <root>/<key>, set through APPDATA (Windows) or XDG_DATA_HOME:
+#   <root>  $GODOT_USERDATA_ROOT, else dungeon-run-ccg-userdata under the temp dir
+#   <key>   $GODOT_WORKTREE_KEY, else the worktree's folder name + a path hash,
+#           for the worktree holding the current directory
+#
+# GODOT_WRAPPER_REAL_USERDATA is internal: it carries the real location to a
+# wrapper started from inside an isolated Godot, whose APPDATA is already moved.
+#
+# Bash only (Git Bash on Windows). PowerShell and cmd are not covered.
+#
+# Story: boot-composition-root/story-010.
+
+set -u
+
+MARKER='dungeon-run-ccg godot wrapper'
+
+windows=0
+case "${OSTYPE:-}" in
+	msys* | cygwin*) windows=1 ;;
+esac
+
+die() {
+	printf 'godot wrapper: %s\n' "$2" >&2
+	exit "$1"
+}
+
+# --- Which worktree ----------------------------------------------------------
+
+repo_top=""
+main_top=""
+if rev="$(git rev-parse --path-format=absolute --show-toplevel --git-common-dir 2> /dev/null)"; then
+	repo_top="${rev%%$'\n'*}"
+	common_dir="${rev##*$'\n'}"
+	main_top="${common_dir%/*}"
+fi
+worktree="${repo_top:-$PWD}"
+
+# --- Which engine ------------------------------------------------------------
+
+bin=""
+bin_source=""
+bin_error=""
+
+# True for a file that can run. The Windows download unpacks to a folder whose
+# own name ends in `.exe`, and a folder passes `-x`.
+is_runnable() {
+	[ -f "$1" ] && [ -x "$1" ]
+}
+
+# True for this script or a copy of it, such as another worktree's tools/bin:
+# skipping only ourselves, two copies on PATH would run each other for ever.
+is_wrapper() {
+	head -c 256 "$1" 2> /dev/null | grep -q "$MARKER"
+}
+
+# The one YAML reader the bash helpers share; it takes both `engine.path: x` and
+# `path: x` nested under `engine:`.
+read_engine_path() {
+	local reader
+	reader="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../.claude/scripts/yaml-get.awk"
+	[ -f "$reader" ] || return 0
+	LC_ALL=C YG_PATH=engine.path awk -f "$reader" "$1"
+}
+
+resolve_binary() {
+	if [ -n "${GODOT_BIN:-}" ]; then
+		if is_runnable "$GODOT_BIN" && is_wrapper "$GODOT_BIN"; then
+			bin_error="GODOT_BIN is set to '$GODOT_BIN', which is this wrapper, not the engine: running it would start itself for ever. Name the engine; on Windows, the *_console.exe inside the download folder."
+		elif is_runnable "$GODOT_BIN"; then
+			bin="$GODOT_BIN"
+			bin_source="GODOT_BIN"
+		else
+			bin_error="GODOT_BIN is set to '$GODOT_BIN', which is not an executable file. On Windows it names the *_console.exe inside the download folder."
+		fi
+		return
+	fi
+
+	local file path
+	for file in "$worktree/project.local.yaml" "$main_top/project.local.yaml"; do
+		[ -f "$file" ] || continue
+		path="$(read_engine_path "$file")"
+		[ -n "$path" ] || continue
+		if is_runnable "$path" && is_wrapper "$path"; then
+			bin_error="engine.path in $file is '$path', which is this wrapper, not the engine: running it would start itself for ever."
+		elif is_runnable "$path"; then
+			bin="$path"
+			bin_source="engine.path in $file"
+		else
+			bin_error="engine.path in $file is '$path', which is not an executable file."
+		fi
+		return
+	done
+
+	local dir name candidate
+	local dirs=()
+	IFS=: read -r -a dirs <<< "${PATH:-}"
+	for dir in "${dirs[@]}"; do
+		for name in godot godot.exe; do
+			candidate="${dir:-.}/$name"
+			if is_runnable "$candidate" && ! is_wrapper "$candidate"; then
+				bin="$candidate"
+				bin_source="PATH"
+				return
+			fi
+		done
+	done
+
+	bin_error="no Godot binary found. Set GODOT_BIN to the engine (on Windows, the *_console.exe build), or engine.path in project.local.yaml, or put godot on PATH."
+}
+
+# --- Which user directory ----------------------------------------------------
+
+isolate() {
+	local root key hash repo
+	root="${GODOT_USERDATA_ROOT:-${TMPDIR:-/tmp}/dungeon-run-ccg-userdata}"
+	root="${root%/}"
+
+	if [ -n "${GODOT_WORKTREE_KEY:-}" ]; then
+		key="$GODOT_WORKTREE_KEY"
+	else
+		hash="$(printf '%s' "$worktree" | cksum)"
+		printf -v key '%s-%08x' "${worktree##*/}" "${hash%% *}"
+	fi
+	key="${key//[^A-Za-z0-9._-]/_}"
+
+	if [ "$windows" = 1 ]; then
+		isolated="$(cygpath -am "$root/$key")"
+		real="${GODOT_WRAPPER_REAL_USERDATA:-${APPDATA:-}}"
+		engine_dir="Godot"
+		shopt -s nocasematch
+	else
+		case "$root" in
+			/*) isolated="$root/$key" ;;
+			*) isolated="$PWD/$root/$key" ;;
+		esac
+		real="${GODOT_WRAPPER_REAL_USERDATA:-${XDG_DATA_HOME:-${HOME:-}/.local/share}}"
+		engine_dir="godot"
+	fi
+
+	for repo in "$repo_top" "$main_top"; do
+		[ -n "$repo" ] || continue
+		case "$isolated/" in
+			"$repo"/*) die 2 "GODOT_USERDATA_ROOT resolves to '$isolated', inside the repository '$repo'. Godot would import it." ;;
+		esac
+	done
+	shopt -u nocasematch
+
+	[ -d "$isolated" ] || mkdir -p "$isolated" || die 2 "cannot create '$isolated'; check GODOT_USERDATA_ROOT."
+	link_templates
+
+	export GODOT_WRAPPER_REAL_USERDATA="$real"
+	if [ "$windows" = 1 ]; then
+		export APPDATA="${isolated//\//\\}"
+	else
+		export XDG_DATA_HOME="$isolated"
+	fi
+}
+
+# Moving the data directory also moves export_templates/, so the real one is
+# linked in. Once a link is there this costs one stat. Godot makes an empty
+# export_templates/ on first import, which must give way or templates installed
+# later never appear; a folder holding files is left alone. A failure here is
+# not fatal: only an export needs templates, and --self-check reports them.
+link_templates() {
+	local link="$isolated/$engine_dir/export_templates"
+	local target="$real/$engine_dir/export_templates"
+	[ -L "$link" ] && return
+	[ -d "$target" ] || return
+	mkdir -p "${link%/*}"
+	rmdir "$link" 2> /dev/null
+	[ -e "$link" ] && return
+	if [ "$windows" = 1 ]; then
+		# A junction needs no admin rights, and Git Bash's `ln -s` makes a copy.
+		MSYS2_ARG_CONV_EXCL='*' cmd.exe /c mklink /J "$(cygpath -aw "$link")" "$(cygpath -aw "$target")" > /dev/null 2>&1
+	else
+		ln -s "$target" "$link" 2> /dev/null
+	fi
+}
+
+# --- Self-check --------------------------------------------------------------
+
+self_check() {
+	local status=0 version user_dir template_dir file visible
+	if [ -n "$bin" ]; then
+		printf 'binary:    %s (from %s)\n' "$bin" "$bin_source"
+	else
+		printf 'binary:    none: %s\n' "$bin_error"
+		status=127
+	fi
+
+	if [ -n "$bin" ]; then
+		version="$("$bin" --headless --version 2> /dev/null | tail -n 1 | tr -d '\r')"
+		if [ -n "$version" ]; then
+			printf 'version:   %s\n' "$version"
+		else
+			printf 'version:   no output. On Windows use the *_console.exe build.\n'
+			status=1
+		fi
+
+		user_dir="$("$bin" --headless --path "$worktree" -s res://tools/ci/print_user_dir.gd 2> /dev/null | tr -d '\r' | tail -n 1)"
+		case "$user_dir" in
+			"$isolated"/*) printf 'user dir:  %s\n' "$user_dir" ;;
+			*)
+				printf 'user dir:  NOT ISOLATED: engine reports %s, expected under %s\n' "${user_dir:-nothing}" "$isolated"
+				status=1
+				;;
+		esac
+	else
+		version=""
+		printf 'user dir:  %s (planned; no engine to ask)\n' "$isolated"
+	fi
+
+	if [[ "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?\.[a-z0-9]+ ]]; then
+		template_dir="$isolated/$engine_dir/export_templates/${BASH_REMATCH[0]}"
+		visible=1
+		for file in windows_debug_x86_64.exe windows_release_x86_64.exe; do
+			[ -f "$template_dir/$file" ] || visible=0
+		done
+		if [ "$visible" = 1 ]; then
+			printf 'templates: visible at %s\n' "$template_dir"
+		else
+			printf 'templates: NOT VISIBLE at %s (only an export needs them)\n' "$template_dir"
+			if [ "$windows" = 1 ]; then
+				printf '           install: run the editor outside this wrapper, Editor > Manage Export Templates; they go to %s/%s/export_templates and the next run links them\n' "$real" "$engine_dir"
+			else
+				printf '           install: EXPORT_TEMPLATES=1 bash tools/setup.sh; they go to %s/%s/export_templates and the next run links them\n' "$real" "$engine_dir"
+			fi
+		fi
+	else
+		printf 'templates: not checked, no engine version\n'
+	fi
+	return "$status"
+}
+
+# --- Run ---------------------------------------------------------------------
+
+resolve_binary
+if [ "${1:-}" = "--self-check" ]; then
+	isolate
+	self_check
+	exit
+fi
+[ -n "$bin" ] || die 127 "$bin_error"
+isolate
+exec "$bin" "$@"

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3 uid="uid://d0y8scdiht65u"]
+
+[ext_resource type="Script" uid="uid://1prkicmuv6ut" path="res://data/card_data.gd" id="1_pixjp"]
+
+[resource]
+script = ExtResource("1_pixjp")
+card_name = "Corpse Explosion"
+cost = 2
+description = "Sacrifice (1): Deal 3 damage to the enemy Hero and heal yourself for 3."

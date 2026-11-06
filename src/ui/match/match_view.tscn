@@ -1,0 +1,88 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://src/ui/match/match_view.gd" id="1_view"]
+[ext_resource type="PackedScene" path="res://src/ui/match/board_row.tscn" id="2_board"]
+[ext_resource type="PackedScene" path="res://src/ui/match/hero_panel.tscn" id="3_hero"]
+[ext_resource type="PackedScene" path="res://src/ui/match/hand_fan.tscn" id="4_hand"]
+[ext_resource type="PackedScene" path="res://src/ui/match/targeting_arrow.tscn" id="5_arrow"]
+[ext_resource type="PackedScene" path="res://src/ui/match/event_feed.tscn" id="6_feed"]
+[ext_resource type="PackedScene" path="res://src/ui/match/choice_overlay.tscn" id="7_choice"]
+[ext_resource type="PackedScene" path="res://src/ui/match/mulligan_screen.tscn" id="8_mulligan"]
+[ext_resource type="PackedScene" path="res://src/ui/match/banner.tscn" id="9_banner"]
+[ext_resource type="PackedScene" path="res://src/ui/match/pause_menu.tscn" id="10_pause"]
+
+[node name="MatchView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_view")
+
+[node name="Table" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BossPanel" parent="." instance=ExtResource("3_hero")]
+unique_name_in_owner = true
+layout_mode = 1
+side = &"boss"
+
+[node name="PlayerPanel" parent="." instance=ExtResource("3_hero")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="BossRow" parent="." instance=ExtResource("2_board")]
+unique_name_in_owner = true
+layout_mode = 1
+side = &"boss"
+
+[node name="PlayerRow" parent="." instance=ExtResource("2_board")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="Chrome" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HandFan" parent="." instance=ExtResource("4_hand")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="TargetingArrow" parent="." instance=ExtResource("5_arrow")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="EventFeed" parent="." instance=ExtResource("6_feed")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="ChoiceOverlay" parent="." instance=ExtResource("7_choice")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="MulliganScreen" parent="." instance=ExtResource("8_mulligan")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="Banner" parent="." instance=ExtResource("9_banner")]
+unique_name_in_owner = true
+layout_mode = 1
+
+[node name="PauseMenu" parent="." instance=ExtResource("10_pause")]
+unique_name_in_owner = true
+layout_mode = 1

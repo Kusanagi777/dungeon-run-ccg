@@ -1,0 +1,723 @@
+# Architecture Decision Registry
+#
+# PURPOSE: Single source of truth for key architectural stances that all ADRs
+# must agree on. Skills check this before writing new ADRs to detect conflicts
+# at authoring time — before stories are created against contradictory decisions.
+#
+# RULES:
+#   - Register a stance when it constrains how OTHER systems must be built.
+#     An internal implementation detail that affects only one ADR does not need
+#     to be registered.
+#   - Never delete entries — set status: "superseded_by: ADR-NNNN" instead,
+#     quoted: unquoted, the second colon makes the file invalid YAML.
+#   - When a stance changes: update the entry, set revised: to today's date,
+#     add a comment with the old value, and run /architecture-review to check
+#     what ADRs are now invalidated.
+#   - adr: is the authoritative source. All other ADRs that depend on this
+#     stance list themselves in referenced_by.
+#
+# WRITTEN BY: /architecture-decision (Phase 5 — after ADR is approved)
+# READ BY:    /architecture-decision (Step 2 — before authoring begins)
+#             /architecture-review (Phase 4 — cross-ADR conflict baseline)
+#             /create-stories (to embed architectural constraints in stories)
+#             /dev-story (to check implementation against accepted stances)
+#
+# SEARCH PATTERNS (for skills using Grep):
+#   All state owners:       Grep pattern="^  - state:" path="docs/registry/architecture.yaml"
+#   Who owns player_health: Grep pattern="state: player_health"
+#   All signal contracts:   Grep pattern="pattern: signal"
+#   Budget for combat:      Grep pattern="system: combat"
+#   All forbidden patterns: Grep pattern="^  - pattern:" (forbidden_patterns section)
+#   Superseded entries:     Grep pattern="superseded_by: ADR-"
+#
+# LAYOUT: the one shape .claude/scripts/registry.sh reads. Each section is a
+#   key at column 0 holding a block list, or [] while it is empty. Each entry
+#   starts with its section's name key ("- state:", "- contract:", "- system:"
+#   or "- target_fps:" for the frame budget, "- purpose:", "- pattern:"), the
+#   dash at column 2 (or 0, the same for every entry of a section); its fields
+#   sit two columns past the dash. Quote a value that holds ": ", such as
+#   "superseded_by: ADR-NNNN". A line in any other shape is reported as
+#   unsupported layout, with its number.
+#
+# Populated 2026-11-03 by technical-director at acceptance of ADR-0001..0011,
+# from the authoring runs' suggested rows plus the acceptance review.
+
+version: 1
+last_updated: "2026-11-03"
+
+# ─── STATE OWNERSHIP ─────────────────────────────────────────────────────────
+# Who is the authoritative owner of each piece of shared game state.
+# Conflicts: two ADRs claiming to own the same state = data race / authority bug.
+#
+# Register state when it is READ or WRITTEN by more than one system.
+# Internal-only state (never accessed by another system) does not need to be registered.
+#
+# Required fields: state, owner_system, adr, interface, referenced_by[], added
+# interface: how other systems access this state (read-only property, method call,
+#   signal, shared resource, etc.) — this is the contract other ADRs depend on.
+
+state_ownership:
+  - state: match_state
+    status: active
+    owner_system: match-rules
+    adr: docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    interface: "RulesEngine primitives are the only mutators; RulesEngine.state() live read for src/gameplay/effects/** only; MatchQuery value copies and clone() for everyone else"
+    write_access: match-rules-only
+    referenced_by:
+      - docs/architecture/adr-0001-rules-presentation-split.md
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: effect_runtime
+    status: active
+    owner_system: card-effects
+    adr: docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    interface: "Plain data in MatchState.effects (once_marks, counters, per_turn, pending_choice); code only in EffectResolver; copied by RulesEngine.clone()"
+    write_access: card-effects-only
+    referenced_by:
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: match_hooks
+    status: active
+    owner_system: match-rules
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    interface: "MatchState.hooks (HookRegistry, plain-data HookEntry rows in installation order); installed only by EffectResolver.bind at C3 step 1; fold/run_triggers called only by RulesEngine; copy() by value"
+    write_access: match-rules-only
+    referenced_by:
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: run_state
+    status: active
+    owner_system: run-structure
+    adr: docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    interface: "RunMachine owns the typed RunState and the MatchDriver lifetime; UI reads RunMachine.read_model() via RunController; persisted only through MetaApi.save_active_run()"
+    write_access: run-structure-only
+    referenced_by:
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: card_database_snapshot
+    status: active
+    owner_system: card-database
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    interface: "CardDatabase queries and config(name) return frozen, id-sorted data; config() read once at owner construction; read-only from any thread after load()"
+    write_access: card-database-only
+    referenced_by:
+      - docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: rng_streams
+    status: active
+    owner_system: rng-event-log
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    interface: "RngService(run_seed, data_version).stream(name) memoised RngStream; injected via MatchConfig.rng_match / rng_ai; snapshot()/restore() by draws count"
+    write_access: owner-of-stream-draws-only
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: event_log
+    status: active
+    owner_system: rng-event-log
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    interface: "EventLog.append (engine and driver only, main thread), subscribe(callback) synchronous main-thread delivery, events_since(seq); one fresh match log per attempt (ADR-0008)"
+    write_access: append-only-main-thread
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: profile_file
+    status: active
+    owner_system: meta-progression-persistence
+    adr: docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    interface: "user://profile.json and companions written only by ProfileStore through AtomicFileWriter; everyone else goes through MetaApi"
+    write_access: profile-store-only
+    referenced_by:
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: settings_record
+    status: active
+    owner_system: meta-progression-persistence
+    adr: docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    interface: "MetaApi.set_setting / get_settings; consumers listen to SettingsBus.settings_changed(key, value); MatchDriver.on_setting_changed forwards telegraph_mode only"
+    write_access: profile-store-only
+    referenced_by:
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - state: turn_plan
+    status: active
+    owner_system: boss-ai
+    adr: docs/architecture/adr-0006-boss-ai-planner-threading.md
+    interface: "PlannerTask.result() returns TurnPlan (commands, diagnostics, expected_checksum) computed on a RulesEngine.clone(); replayed into the live engine only by MatchDriver.tick()"
+    write_access: boss-ai-only
+    referenced_by:
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+
+# ─── INTERFACE CONTRACTS ──────────────────────────────────────────────────────
+# How systems are required to communicate with each other.
+# Conflicts: one ADR expects signal, another expects direct call = integration bug.
+#
+# Register a contract when the communication pattern between two systems is
+# explicitly decided in an ADR and other systems must follow the same pattern.
+#
+# pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
+
+interfaces:
+  - contract: ui_commands
+    status: active
+    pattern: direct_call
+    producer: match-ui
+    consumers:
+      - match-rules
+    adr: docs/architecture/adr-0001-rules-presentation-split.md
+    signal_signature: "MatchController.submit(command) -> CommandResult; MatchDriver.submit stamps issuer = player"
+    referenced_by:
+      - docs/architecture/adr-0001-rules-presentation-split.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: match_handoff
+    status: active
+    pattern: signal
+    producer: run-ui
+    consumers:
+      - match-ui
+      - run-structure
+    adr: docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    signal_signature: "RunController.match_requested(driver: MatchDriver); MatchView.match_view_finished(result: MatchResult)"
+    referenced_by:
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: match_ended
+    status: active
+    pattern: signal
+    producer: match-driver
+    consumers:
+      - run-structure
+    adr: docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    signal_signature: "MatchDriver.match_ended(result: MatchResult), RunMachine connected first; RulesEngine.match_ended is never connected in production"
+    referenced_by:
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: config_access
+    status: active
+    pattern: direct_call
+    producer: card-database
+    consumers:
+      - all-config-owners
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    signal_signature: "CardDatabase.config(name) -> Dictionary (frozen), called once in the owner's _init or bind; illegal before Ready"
+    referenced_by:
+      - docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: validator_injection
+    status: active
+    pattern: direct_call
+    producer: card-database
+    consumers:
+      - card-effects
+      - boss-ai
+      - treasures
+      - meta-progression
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    signal_signature: "stage 7a configs[name].call(body, db) -> Array; stage 7b record.call(host_kind, host_id, value, db, configs) -> Array; stubs take the same arity"
+    referenced_by:
+      - docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: hook_installation
+    status: active
+    pattern: direct_call
+    producer: run-structure
+    consumers:
+      - match-rules
+      - card-effects
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    signal_signature: "MatchConfig.player/boss.hook_installers -> EffectResolver.bind(engine, installers) -> HookRegistry.install(installer) -> bool"
+    referenced_by:
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: hook_evaluators
+    status: active
+    pattern: direct_call
+    producer: card-effects
+    consumers:
+      - match-rules
+    adr: docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    signal_signature: "HookRegistry.set_evaluators(apply_value_hook(entry, side, value, ctx) -> int, run_hook_effect(entry, side, ctx)); unset by copy() and unbind()"
+    referenced_by:
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: event_delivery
+    status: active
+    pattern: direct_call
+    producer: rng-event-log
+    consumers:
+      - match-ui
+      - match-driver
+      - run-ui
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    signal_signature: "EventLog.subscribe(callback(event: Dictionary)) once per event, seq order, after append, main thread; events_since(seq)"
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: persistence_api
+    status: active
+    pattern: direct_call
+    producer: meta-progression
+    consumers:
+      - run-structure
+      - run-ui
+    adr: docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    signal_signature: "@abstract MetaApi (M1.3 surface incl. load_status); MetaFacade or MetaStub injected by Boot.boot({meta})"
+    referenced_by:
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: planner_task_seam
+    status: active
+    pattern: direct_call
+    producer: match-driver
+    consumers:
+      - boss-ai
+    adr: docs/architecture/adr-0006-boss-ai-planner-threading.md
+    signal_signature: "PlannerTask.start(work: Callable), poll() -> bool once per tick, result() -> Variant, checkpoint(); work runs over RulesEngine.clone()"
+    referenced_by:
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: anim_step_queue
+    status: active
+    pattern: direct_call
+    producer: match-ui
+    consumers:
+      - match-ui-presenters
+    adr: docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    signal_signature: "AnimationQueue.enqueue(AnimStep), advance(delta) from MatchView._process, skip_all(); the queue's timer ends a step, never a Tween"
+    referenced_by:
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: run_ui_intents
+    status: active
+    pattern: signal
+    producer: run-ui-screens
+    consumers:
+      - run-ui-controller
+    adr: docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    signal_signature: "RunController.intent(name, args); signals screen_requested, match_requested, toast; ui_intent_rejected"
+    referenced_by:
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - contract: settings_bus
+    status: active
+    pattern: signal
+    producer: meta-progression-persistence
+    consumers:
+      - match-ui
+      - run-ui
+      - boss-ai
+    adr: docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    signal_signature: "SettingsBus.settings_changed(key: StringName, value: Variant)"
+    referenced_by:
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+
+# ─── PERFORMANCE BUDGETS ──────────────────────────────────────────────────────
+# Frame time allocations per system, against a defined total frame budget.
+# Conflicts: allocations that sum to more than the total budget = unshippable.
+#
+# Register a budget when an ADR explicitly claims a frame time allocation.
+# The registry lets /architecture-review verify the total doesn't exceed the target.
+# No total frame budget (target_fps) entry is registered: no ADR in 0001..0011
+# claims one. Non-frame budgets (load, save, memory) carry budget_ms only where
+# they are times; memory budgets put the figure in notes.
+
+performance_budgets:
+  - system: boss_ai_main_thread
+    status: active
+    budget_ms: 2.0
+    adr: docs/architecture/adr-0006-boss-ai-planner-threading.md
+    notes: "Per frame, src/ai/** on the main thread (ai-code.md, boss-ai A30); MatchDriver.tick() = one poll + replay bounded by replay_budget_ms (default 2)"
+    referenced_by:
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - system: hook_fold
+    status: active
+    budget_ms: 0.05
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    notes: "12-entry fold, no allocation (treasures F5, TR-treasures-004)"
+    referenced_by:
+      - docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    added: 2026-11-03
+    revised: ""
+
+  - system: data_load
+    status: active
+    budget_ms: 200
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    notes: "Load time, not frame time: CardDatabase Unloaded to Ready, synchronous at boot (data_load_budget_ms)"
+    referenced_by:
+      - docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    added: 2026-11-03
+    revised: ""
+
+  - system: profile_save
+    status: active
+    budget_ms: 50
+    adr: docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    notes: "Synchronous atomic save at run_log_cap 200; measured at Vertical Slice (meta-progression AC-27)"
+    referenced_by:
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    added: 2026-11-03
+    revised: ""
+
+  - system: event_log_memory
+    status: active
+    budget_ms: 0
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    notes: "Memory, not time: open match log 2 MB (log_memory_budget_bytes) giving max_match_events 10,000; avg_event_bytes re-measured at VS"
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    added: 2026-11-03
+    revised: ""
+
+  - system: match_ui_skip_all
+    status: active
+    budget_ms: 100
+    adr: docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    notes: "Skip-all drains a 300-step stream on the min-spec machine (match-ui U4)"
+    referenced_by:
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+    revised: ""
+
+  - system: run_ui_restart
+    status: active
+    budget_ms: 5000
+    adr: docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    notes: "Interaction latency, not frame time: run-ui restart flow"
+    referenced_by:
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+
+# ─── API DECISIONS ───────────────────────────────────────────────────────────
+# Which engine APIs are chosen for which purpose across the project.
+# Conflicts: two ADRs using different APIs for the same purpose = inconsistent
+# implementation that breaks when one system expects the other's API.
+#
+# Register an API decision when the choice is non-obvious and other ADRs might
+# make a different choice for the same purpose without knowing this was decided.
+
+api_decisions:
+  - purpose: json_parsing
+    status: active
+    api: "JSON.new().parse(text) inside DataLoader only"
+    not: ".tres resources, load(), JSON.parse_string outside DataLoader"
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    reason: "Instance form exposes error line/message for E_PARSE; one parser avoids per-system loaders (TD-008)"
+    referenced_by:
+      - docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: data_fingerprint
+    status: active
+    api: "HashingContext HASH_SHA256 over canonical JSON.stringify(body, '', true, true), first 16 hex"
+    not: "authored content-version strings"
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    reason: "Derived data_version (CR-9) feeds RngService and RunRecord"
+    referenced_by:
+      - docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: rng_generator
+    status: active
+    api: "One RandomNumberGenerator per named RngStream, seeded by FNV-1a 64 + SplitMix64"
+    not: "global randi/randf/randomize, Array.shuffle, pick_random under src/gameplay or src/ai"
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    reason: "Reproducible runs (Pillar 4, TD-007); restore by reseed-and-discard"
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: persisted_int64
+    status: active
+    api: "16-hex string for every 64-bit value in JSON"
+    not: "JSON number (parse_string returns float, loses precision above 2^53)"
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    reason: "Observed in probe E on 4.7.2"
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: atomic_rename
+    status: active
+    api: "AtomicFileWriter: tmp, flush/close, size check, rename json to bak, DirAccess.rename_absolute tmp to absent json"
+    not: "FileAccess WRITE on the final path; rename over an existing target"
+    adr: docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    reason: "Previous good copy always survives; Windows semantics gated by atomic_write_platform_test"
+    referenced_by:
+      - docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+      - docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: planner_threading
+    status: active
+    api: "WorkerThreadPool.add_task + is_task_completed per tick + wait_for_task_completion once (WorkerPoolPlannerTask)"
+    not: "dedicated Thread; worker over the live engine; time-slicing except as data-selected fallback"
+    adr: docs/architecture/adr-0006-boss-ai-planner-threading.md
+    reason: "Probe A: deterministic, 70-90 ms off-thread; time-slicing overshoots 2 ms with large chunks"
+    referenced_by:
+      - docs/architecture/adr-0006-boss-ai-planner-threading.md
+      - docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: ui_animation
+    status: active
+    api: "Tween created and killed by presenters; Control.offset_transform_* for lifts in containers"
+    not: "AnimationPlayer / AnimationTree for data-driven steps"
+    adr: docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    reason: "Queue owns timing, presenters own visuals; skip-all and coalescing need code-built tweens"
+    referenced_by:
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+  - purpose: evidence_capture
+    status: active
+    api: "tools/capture.sh: xvfb-run + --rendering-driver opengl3 + --write-movie, last frame kept"
+    not: "--headless --write-movie (crashes, exit 134); relying on silent Vulkan fallback"
+    adr: docs/architecture/adr-0010-renderer-choice-vs-xvfb-screenshot-capture.md
+    reason: "CI has no GPU or Vulkan ICD; shipped Windows build stays Forward+"
+    referenced_by:
+      - docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+      - docs/architecture/adr-0010-renderer-choice-vs-xvfb-screenshot-capture.md
+      - docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
+    revised: ""
+
+
+# ─── FORBIDDEN PATTERNS ──────────────────────────────────────────────────────
+# Architecture anti-patterns explicitly banned by accepted ADRs.
+# When writing a new ADR, check this list — if the proposed approach matches
+# a forbidden pattern, it must be reworked before the ADR can be Accepted.
+#
+# Register a pattern when an ADR explicitly bans it AND other ADRs might
+# unknowingly use it (i.e., it's a tempting but wrong approach for this project).
+
+forbidden_patterns:
+  - pattern: node_in_rules_tier
+    status: active
+    description: "Nothing under src/gameplay/ or src/ai/ extends Node or references a Node, autoload or scene"
+    why: "TD-001/TD-005: rules bound to the scene tree cannot run headless or be tested"
+    adr: docs/architecture/adr-0001-rules-presentation-split.md
+    added: 2026-11-03
+
+  - pattern: second_autoload
+    status: active
+    description: "Boot is the only autoload; it owns no game state and only scene roots and debug loaders call it"
+    why: "TD-001 god-object singleton"
+    adr: docs/architecture/adr-0001-rules-presentation-split.md
+    added: 2026-11-03
+
+  - pattern: resolver_direct_state_write
+    status: active
+    description: "src/gameplay/effects/** writes match state only through engine primitives (grep gate G7)"
+    why: "One event per mutation; TD-002/TD-004"
+    adr: docs/architecture/adr-0007-effect-resolver-validator-boundary.md
+    added: 2026-11-03
+
+  - pattern: engine_signal_connected_in_production
+    status: active
+    description: "RulesEngine.match_ended is never connected outside tests; MatchDriver emits its own match_ended"
+    why: "Run Structure must hear match end first and after subscribers"
+    adr: docs/architecture/adr-0008-match-driver-ownership-and-handoff.md
+    added: 2026-11-03
+
+  - pattern: worker_touches_live_engine
+    status: active
+    description: "A PlannerTask works only on RulesEngine.clone(); never the live engine, live EventLog, driver, a Node or Boot"
+    why: "Live appends and signals must stay on the main thread; forecast runs while the player acts"
+    adr: docs/architecture/adr-0006-boss-ai-planner-threading.md
+    added: 2026-11-03
+
+  - pattern: subscriber_off_main_thread
+    status: active
+    description: "EventLog subscribers run only on the main thread; no worker appends to or subscribes to a live log"
+    why: "UI code must never run off-thread"
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    added: 2026-11-03
+
+  - pattern: global_rng_in_rules
+    status: active
+    description: "No randi, randf, randomize, Array.shuffle, pick_random or RandomNumberGenerator.new under src/gameplay or src/ai"
+    why: "TD-007 unseeded randomness; breaks replay"
+    adr: docs/architecture/adr-0003-seeded-rng-service-and-event-log.md
+    added: 2026-11-03
+
+  - pattern: json_parse_outside_card_database
+    status: active
+    description: "No FileAccess.open, JSON parse or load() of res://assets/data outside CardDatabase/DataLoader (tools/content/validate.gd excepted)"
+    why: "One loader, one validation pipeline (TD-008)"
+    adr: docs/architecture/adr-0002-data-format-effect-schema-config-loading.md
+    added: 2026-11-03
+
+  - pattern: global_modifier_singleton
+    status: active
+    description: "No ModifierManager-style global registry; hooks live per match on MatchState.hooks"
+    why: "TD-009 modifier half: unscoped, global, back-referencing"
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    added: 2026-11-03
+
+  - pattern: hook_priority_field
+    status: active
+    description: "No priority, weight or order field and no sort on hook entries; installation order only"
+    why: "Undefined ties in the prototype; tray order must equal evaluation order"
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    added: 2026-11-03
+
+  - pattern: hook_back_reference
+    status: active
+    description: "HookEntry/HookInstaller hold no reference to the registry, engine, log or a Node"
+    why: "TD-009 self-removing modifier calling the singleton"
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    added: 2026-11-03
+
+  - pattern: clamp_inside_fold
+    status: active
+    description: "Value hooks are clamped once by the engine after the whole fold, never per entry"
+    why: "Per-entry clamping changes results (1-1-1 must give 0 via -1)"
+    adr: docs/architecture/adr-0005-owner-scoped-hook-registry.md
+    added: 2026-11-03
+
+  - pattern: direct_write_to_final_user_path
+    status: active
+    description: "No FileAccess WRITE on user://profile.json or user://logs/** finals; only AtomicFileWriter"
+    why: "A crash mid-write would destroy the last good copy"
+    adr: docs/architecture/adr-0004-save-format-and-atomic-profile-write.md
+    added: 2026-11-03
+
+  - pattern: headless_write_movie
+    status: active
+    description: "Evidence capture never uses --headless --write-movie"
+    why: "Observed crash (exit 134) on 4.7.2"
+    adr: docs/architecture/adr-0010-renderer-choice-vs-xvfb-screenshot-capture.md
+    added: 2026-11-03
+
+  - pattern: forward_plus_only_effects_v1
+    status: active
+    description: "v1 UI uses only the renderer-neutral subset; no Forward+-only effects"
+    why: "CI evidence renders on Compatibility; the two paths must stay equivalent"
+    adr: docs/architecture/adr-0010-renderer-choice-vs-xvfb-screenshot-capture.md
+    added: 2026-11-03
+
+  - pattern: tween_ends_a_step
+    status: active
+    description: "An AnimStep ends on the queue's timer, never on Tween.finished or a presenter signal"
+    why: "Skip-all and the idle invariant need timing owned in one place"
+    adr: docs/architecture/adr-0009-match-ui-animation-queue-and-scene-partition.md
+    added: 2026-11-03
+
+  - pattern: screen_holds_run_state
+    status: active
+    description: "Run UI screens hold no run data and never use set_meta/get_meta; RunController is the only talker"
+    why: "TD-009 run state in set_meta strings on nodes"
+    adr: docs/architecture/adr-0011-run-ui-shell-and-meta-stub-seam.md
+    added: 2026-11-03
