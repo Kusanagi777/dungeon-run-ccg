@@ -178,7 +178,7 @@ func set_hover(id: int, duration_s: float = -1.0) -> void:
 	var previous: int = _hovered
 	_hovered = id
 	if _cards.has(previous):
-		_place(previous, _slots[previous], previous == id)
+		_place(previous, _slots[previous], true)
 		_set_z(previous)
 	if not _cards.has(id):
 		return
