@@ -51,20 +51,18 @@ static func spare_deck() -> Array:
 	return deck
 
 
-## [param player_deck] and [param boss_deck] default to [method spare_deck], so a test's
-## opening hand is known. Started, phase Mulligan.
-func _init(database_in: CardDatabase, hero_id_in: String, boss_id: String, seed_value: int = DEFAULT_SEED, player_deck: Array = [], boss_deck: Array = []) -> void:
-	db = database_in
-	var hero: Dictionary = db.hero(hero_id_in)
-	var boss: Dictionary = db.boss(boss_id)
-	var rng: RngService = RngService.new(seed_value, db.data_version())
-	log = EventLog.new(EventLog.max_events_for(db.config("rng_event_log")), EventLog.SCOPE_MATCH)
-	var config: Dictionary = {
+## A run-structure R3 `MatchConfig` on the shipped records, for this class or a
+## [MatchDriver]. [param player_deck] and [param boss_deck] default to
+## [method spare_deck], so a test's opening hand is known.
+static func match_config(database_in: CardDatabase, hero_id_in: String, boss_id: String, match_log: EventLog, seed_value: int = DEFAULT_SEED, player_deck: Array = [], boss_deck: Array = []) -> Dictionary:
+	var boss: Dictionary = database_in.boss(boss_id)
+	var rng: RngService = RngService.new(seed_value, database_in.data_version())
+	return {
 		"floor": DEFAULT_FLOOR,
 		"band": int(boss.band),
 		"rng_match": rng.stream("match_%d" % DEFAULT_FLOOR),
 		"rng_ai": rng.stream("ai_%d" % DEFAULT_FLOOR),
-		"log": log,
+		"log": match_log,
 		"player": {
 			"hero_def_id": hero_id_in,
 			"deck": player_deck.duplicate() if not player_deck.is_empty() else ShippedMatch.spare_deck(),
@@ -79,6 +77,14 @@ func _init(database_in: CardDatabase, hero_id_in: String, boss_id: String, seed_
 			"ai_id": str(boss.ai_profile),
 		},
 	}
+
+
+## Started, phase Mulligan. The decks default as in [method match_config].
+func _init(database_in: CardDatabase, hero_id_in: String, boss_id: String, seed_value: int = DEFAULT_SEED, player_deck: Array = [], boss_deck: Array = []) -> void:
+	db = database_in
+	var hero: Dictionary = db.hero(hero_id_in)
+	log = EventLog.new(EventLog.max_events_for(db.config("rng_event_log")), EventLog.SCOPE_MATCH)
+	var config: Dictionary = ShippedMatch.match_config(db, hero_id_in, boss_id, log, seed_value, player_deck, boss_deck)
 	engine = RulesEngine.new(db, db.config("match_rules"), EffectResolver.new(db, db.config("card_effects"), str(hero.set)))
 	engine.start(config)
 
