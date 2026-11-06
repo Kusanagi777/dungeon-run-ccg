@@ -77,7 +77,7 @@ Fix (all in ADR-0006 unless noted):
 
 ## ADR-0009 — Match UI animation queue + scene partition
 
-### (a) Engine claims
+### (a) ADR-0009 Engine claims
 
 | # | Claim | Status | Citation / test |
 |---|---|---|---|
@@ -111,7 +111,7 @@ Notes (non-blocking): (1) add the lambda-capture sentence to Guidelines; (2) `Ma
 
 ## ADR-0010 — Renderer choice vs Xvfb screenshot capture
 
-### (a) Engine claims
+### (a) ADR-0010 Engine claims
 
 | # | Claim | Status | Citation |
 |---|---|---|---|
@@ -139,7 +139,7 @@ Cosmetic note: Decision 6 says "MSAA/FXAA/SMAA 2D are off in `project.godot`" �
 
 ## ADR-0011 — Run UI shell + Meta stub seam
 
-### (a) Engine claims
+### (a) ADR-0011 Engine claims
 
 | # | Claim | Status | Citation / test |
 |---|---|---|---|
@@ -160,7 +160,7 @@ Cosmetic note: Decision 6 says "MSAA/FXAA/SMAA 2D are off in `project.godot`" �
 
 ### (b) Deprecated APIs — none; Guidelines ban the `dep` patterns explicitly. (c) `cbp` idioms — none violated; the ADR already applies `cbp:148–150` (device ids) and `cbp:130–134` (dual focus).
 
-### (d) Verdict: **APPROVE WITH NOTES**
+### (d) ADR-0011 Verdict: **APPROVE WITH NOTES**
 
 Notes: (1) on the next touch, replace "exact property name NOT SOURCEABLE" with the observed `focus_behavior_recursive` / `mouse_behavior_recursive` and add the typed-Dictionary row; (2) the Verification (1) test should set both properties on the base screen (mouse and focus are separate systems since 4.6 — `bc:55`); (3) the Alpha Controls-page row the review asked for will rely on the ADR-0004 addendum findings below.
 
@@ -168,7 +168,7 @@ Notes: (1) on the next touch, replace "exact property name NOT SOURCEABLE" with 
 
 ## ADR-0004 — Decision addendum (2026-11-03), input remapping storage
 
-### (a) Engine claims
+### (a) ADR-0004 Engine claims
 
 | # | Claim | Status | Citation / test |
 |---|---|---|---|
@@ -180,7 +180,7 @@ Notes: (1) on the next touch, replace "exact property name NOT SOURCEABLE" with 
 
 ### (b) Deprecated APIs — none. (c) `cbp` idioms — the addendum should explicitly cite `cbp:148–150` / `dep:53`: never store or compare `device == 0`.
 
-### (d) Verdict: **APPROVE WITH NOTES**
+### (d) ADR-0004 Verdict: **APPROVE WITH NOTES**
 
 Notes: (1) add rows for claims 1–4 to ADR-0004's Engine Compatibility Details table (the review's advisory); (2) state in addendum 1 that `device` is **not** serialised and why (claim 3), pending the joypad test; (3) name the JSON round-trip + `int()` coercion test in Verification; (4) state that `cancel` is a project action distinct from the engine's built-in `ui_cancel`, and whether `ui_*` built-ins are rebindable (they are the gamepad path in ADR-0011 §5).
 

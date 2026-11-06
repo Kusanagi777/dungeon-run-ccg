@@ -207,7 +207,7 @@ estimated_story_count: 12
 ...
 ```
 
-### Schema Definition
+### Story Schema Definition
 
 ```json
 {
@@ -266,7 +266,7 @@ estimated_story_count: 12
 }
 ```
 
-### Validation Rules
+### Story Validation Rules
 
 - [ ] Each story has unique story ID matching pattern `^[A-Z]+-[A-Z0-9]+-[0-9]+$`
 - [ ] Story IDs are sequential by epic (e.g., `COMBAT-BASIC-1`, `COMBAT-BASIC-2`, etc.)

@@ -201,7 +201,7 @@ Run all checks against a `hud-design.md`-based document.
 - [ ] Tuning Knobs present for player-adjustable elements
 - [ ] Acceptance Criteria — at least 5 specific testable criteria
 
-### Quality Checks
+### HUD Quality Checks
 
 - [ ] No HUD element covers the center play area without a visibility rule to
   hide it

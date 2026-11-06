@@ -50,7 +50,7 @@ criteria directly. Review the GDD Formulas section before writing tests.*
 
 ## Manual QA Checklist
 
-### [Story Title] — [Type]
+### [Story Title] — Manual [Type]
 **Verification method**: [Screenshot + designer sign-off | Playtest session |
 Manual step-through | Comparison against reference footage]
 **Who must sign off**: [designer / lead-programmer / qa-lead / art-director]

@@ -224,6 +224,7 @@ public partial class GdUnit4CSharpApi : RefCounted
 
 	public void ExecuteAsync(Array<Dictionary> tests, Callable listener)
 	{
+		// There is no .NET test runner when the gdunit4.api dependency is absent.
 	}
 
 	public static bool IsTestSuite(CSharpScript script)

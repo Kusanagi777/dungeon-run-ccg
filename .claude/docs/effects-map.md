@@ -557,7 +557,7 @@ working code
 
 ---
 
-### Value intent
+### Value intent for `modes.workflow`
 
 | Value | Token/time cost | Required before code | Best for |
 |-------|----------------|---------------------|----------|
@@ -795,7 +795,7 @@ recommend and proceed — the tradeoff between user control and speed
 
 ---
 
-### Value intent
+### Value intent for `modes.automation`
 
 | Value | Speed | Control | What changes |
 |-------|-------|---------|--------------|
@@ -980,7 +980,7 @@ The list is a YAML list of these strings. Skills check whether the current decis
 
 ---
 
-### Affected skills
+### Affected skills for `modes.automation_always_ask`
 
 | Skill | Categories typically triggered |
 |-------|--------------------------------|
@@ -1005,7 +1005,7 @@ The list is a YAML list of these strings. Skills check whether the current decis
 
 ---
 
-### Value intent
+### Value intent for `modes.story_granularity`
 
 | Value | Story shape | Stories per sprint | Best for |
 |-------|-------------|-------------------|----------|
@@ -1015,7 +1015,7 @@ The list is a YAML list of these strings. Skills check whether the current decis
 
 ---
 
-### Affected skills
+### Affected skills for `modes.story_granularity`
 
 | Skill | coarse | balanced | fine |
 |-------|--------|----------|------|
@@ -1045,7 +1045,7 @@ The list is a YAML list of these strings. Skills check whether the current decis
 
 ---
 
-### Value intent
+### Value intent for `docs.density`
 
 | Value | Per-section output style |
 |-------|--------------------------|
@@ -1065,7 +1065,7 @@ The list is a YAML list of these strings. Skills check whether the current decis
 
 ---
 
-### Affected skills
+### Affected skills for `docs.density`
 
 | Skill | terse | balanced | thorough |
 |-------|-------|----------|----------|
@@ -1103,7 +1103,7 @@ The list is a YAML list of these strings. Skills check whether the current decis
 
 ---
 
-### Affected skills
+### Affected skills for `testing.framework`
 
 | Skill | How `testing.framework` is used |
 |-------|--------------------------------|
@@ -1147,7 +1147,7 @@ closing, or produces a warning and lets work continue — per test type
 
 ---
 
-### Affected skills
+### Affected skills for `testing.strict`
 
 | Skill | strict.[type]: true | strict.[type]: false |
 |-------|---------------------|----------------------|
@@ -1185,7 +1185,7 @@ closing, or produces a warning and lets work continue — per test type
 
 ---
 
-### Value intent
+### Value intent for `qa.level`
 
 | Aspect | minimal | standard | full |
 |--------|---------|----------|------|
@@ -1202,7 +1202,7 @@ closing, or produces a warning and lets work continue — per test type
 
 ---
 
-### Affected skills
+### Affected skills for `qa.level`
 
 | Skill | minimal | standard | full |
 |-------|---------|----------|------|
@@ -1264,7 +1264,7 @@ closing, or produces a warning and lets work continue — per test type
 
 ---
 
-### Value intent
+### Value intent for `strict_gate_checks`
 
 | Value | Behavior |
 |-------|----------|
@@ -1273,7 +1273,7 @@ closing, or produces a warning and lets work continue — per test type
 
 ---
 
-### Affected skills
+### Affected skills for `strict_gate_checks`
 
 | Skill | true | false |
 |-------|------|-------|
@@ -1315,7 +1315,7 @@ closing, or produces a warning and lets work continue — per test type
 
 ---
 
-### Affected skills
+### Affected skills for `team.size`
 
 | Skill | individual | small | studio |
 |-------|------|-------|--------|
@@ -1363,7 +1363,7 @@ which specialists are routed and which architecture sections are required
 
 ---
 
-### Value intent
+### Value intent for `platform.multiplayer`
 
 | Value | Meaning |
 |-------|---------|
@@ -1372,7 +1372,7 @@ which specialists are routed and which architecture sections are required
 
 ---
 
-### Affected skills
+### Affected skills for `platform.multiplayer`
 
 | Skill | multiplayer: true | multiplayer: false |
 |-------|------------------|-------------------|
@@ -1400,7 +1400,7 @@ decide networking scope from the story, GDD or architecture in front of them.
 
 ---
 
-### Value intent
+### Value intent for `platform.online`
 
 | Value | Meaning |
 |-------|---------|
@@ -1409,7 +1409,7 @@ decide networking scope from the story, GDD or architecture in front of them.
 
 ---
 
-### Affected skills
+### Affected skills for `platform.online`
 
 | Skill | online: true | online: false |
 |-------|--------------|---------------|
@@ -1442,7 +1442,7 @@ must tell them apart)
 
 ---
 
-### Value intent
+### Value intent for `platform.cert_tier`
 
 | Value | Required compliance | Best for |
 |-------|---------------------|----------|
@@ -1453,7 +1453,7 @@ must tell them apart)
 
 ---
 
-### Affected skills
+### Affected skills for `platform.cert_tier`
 
 | Skill | none | itch | steam | console |
 |-------|------|------|-------|---------|
@@ -1464,7 +1464,7 @@ must tell them apart)
 
 ## accessibility.target
 
-> ### RESERVED - NOT IMPLEMENTED
+> ### RESERVED - NOT IMPLEMENTED for `accessibility.target`
 >
 > **No skill or hook reads this setting. Setting it has no effect.** Everything
 > below describes the intended design, not current behaviour.
@@ -1490,7 +1490,7 @@ must tell them apart)
 
 ---
 
-### Value intent
+### Value intent for `accessibility.target`
 
 | Value | Required features | Specialist routing |
 |-------|-------------------|--------------------|
@@ -1500,7 +1500,7 @@ must tell them apart)
 
 ---
 
-### Affected skills
+### Affected skills for `accessibility.target`
 
 | Skill | none | standard | aaa |
 |-------|------|----------|-----|
@@ -1513,7 +1513,7 @@ must tell them apart)
 
 ## cadence.sprint_length and cadence.milestone_length
 
-> ### RESERVED - NOT IMPLEMENTED
+> ### RESERVED - NOT IMPLEMENTED for `cadence.sprint_length and cadence.milestone_length`
 >
 > **No skill or hook reads this setting. Setting it has no effect.** Everything
 > below describes the intended design, not current behaviour.
@@ -1536,7 +1536,7 @@ must tell them apart)
 
 ---
 
-### Affected skills
+### Affected skills for `cadence.sprint_length and cadence.milestone_length`
 
 | Skill | What changes |
 |-------|--------------|
@@ -1594,7 +1594,7 @@ must tell them apart)
 
 ---
 
-### Value intent
+### Value intent for `performance.enforce`
 
 | Value | Behavior |
 |-------|----------|
@@ -1650,7 +1650,7 @@ required at `standard` and `minimal` levels.
 
 ---
 
-### Affected skills
+### Affected skills for `project.stage`
 
 | Skill | How it uses stage |
 |-------|------------------|
@@ -1665,7 +1665,7 @@ required at `standard` and `minimal` levels.
 
 ## project.kind
 
-> ### RESERVED - NOT IMPLEMENTED
+> ### RESERVED - NOT IMPLEMENTED for `project.kind`
 >
 > **No skill or hook reads this setting. Setting it has no effect.** Everything
 > below describes the intended design, not current behaviour.
@@ -1682,7 +1682,7 @@ required at `standard` and `minimal` levels.
 
 ---
 
-### Value intent
+### Value intent for `project.kind`
 
 | Value | Meaning | What's deactivated |
 |-------|---------|-------------------|
@@ -1694,7 +1694,7 @@ required at `standard` and `minimal` levels.
 
 ---
 
-### Affected skills
+### Affected skills for `project.kind`
 
 | Skill | game | tool | engine | mod | library |
 |-------|------|------|--------|-----|---------|
@@ -1737,7 +1737,7 @@ implementation, review, and architecture validation
 
 ---
 
-### Affected skills
+### Affected skills for `engine.name and specialists`
 
 | Skill | How engine.name is used |
 |-------|------------------------|
@@ -1774,7 +1774,7 @@ implementation, review, and architecture validation
 
 ---
 
-### Fields
+### Fields for `commands`
 
 Each command can be a simple string (used on all OSes) or an OS-aware map:
 
@@ -1824,7 +1824,7 @@ keys are inside the locked file, not a local override).
 
 ---
 
-### Engine defaults
+### Engine defaults for `commands`
 
 When `/setup-engine` runs, it populates `commands` based on engine choice — except
 the **build** row, which it must **ask** for. The build artifact is named by a
@@ -1857,7 +1857,7 @@ Users override per-project as needed via `/settings commands.<field>=<value>` or
 
 ---
 
-### Affected skills
+### Affected skills for `commands`
 
 | Skill | How `commands` is used |
 |-------|------------------------|
@@ -1905,7 +1905,7 @@ conventions into a brief, manifest or spec. **NOT by `/code-review` and NOT by
 
 ---
 
-### Fields
+### Fields for `naming`
 
 | Field | Values | Godot default | Unity default | Unreal default |
 |-------|--------|---------------|---------------|----------------|
@@ -1923,7 +1923,7 @@ conventions into a brief, manifest or spec. **NOT by `/code-review` and NOT by
 
 ---
 
-### Affected skills
+### Affected skills for `naming`
 
 | Skill | How naming is used |
 |-------|--------------------|
@@ -1975,7 +1975,7 @@ skeleton-first output files for recovery
 
 ---
 
-### Value intent
+### Value intent for `features.session_state`
 
 | Value | Intent |
 |-------|--------|
@@ -2078,7 +2078,7 @@ and resumes at the first `incomplete` section. No `active.md` needed.
 
 ---
 
-### Affected skills
+### Affected skills for `features.session_state`
 
 Skills interact with session state in two ways: **inference** (reading `active.md`
 to resolve a missing argument) and **extraction** (appending a SESSION EXTRACT
@@ -2134,7 +2134,7 @@ the `<!-- CHECKPOINT -->` block; the others append a SESSION EXTRACT.
 
 ## features.token_budget_warn_at
 
-> ### RESERVED - NOT IMPLEMENTED
+> ### RESERVED - NOT IMPLEMENTED for `features.token_budget_warn_at`
 >
 > **No skill or hook reads this setting. Setting it has no effect.** Everything
 > below describes the intended design, not current behaviour.
@@ -2284,7 +2284,7 @@ for you only)
 
 ---
 
-### Fields
+### Fields for `framework`
 
 ```yaml
 framework:
@@ -2299,7 +2299,7 @@ framework:
 
 ---
 
-### Affected skills
+### Affected skills for `framework`
 
 None. No skill or hook reads `framework.version` or `last_upgraded` — `/adopt`
 does not consult them and no hook checks their age. They record which template

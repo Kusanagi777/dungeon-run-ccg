@@ -102,10 +102,10 @@ Fix: keep `held` on `_Turn` and drop new cards after every accepted action of a 
 
 ## Code Review: BAI-009 defensive mode and sandbox fidelity (`bd61da1`; A31, DD-X22)
 
-### Engine Specialist Findings: CLEAN
+### BAI-009 — Engine Specialist Findings: CLEAN
 Observation checked: `int(enchantment.attack_delta)` in `_board_damage` reads the key directly. Dropped: `MatchRecords.enchantment` and `apply_aura` always set it.
 
-### Testability: GAPS
+### BAI-009 — Testability: GAPS
 - **A20**: see D2.
 - **`boss_ai_defensive_mode_test.gd:328-332`**, doomed boss: `chosen` is never asserted, and the last command being `end_turn` is true of every turn. A boss that scores and passes satisfies it. The Edge Case says it "still plays the best-scoring DEFENSIVE action".
 - **`scorer.gd:422` and `:439`**: no fixture reaches the `f_self` floor or cap, so removing either passes.
@@ -114,19 +114,19 @@ Observation checked: `int(enchantment.attack_delta)` in `_board_damage` reads th
 ### ADR Compliance: COMPLIANT
 ADR-0006 checked. No hook is stubbed in `src/ai/**`.
 
-### Standards Compliance: 6/6
-### Architecture: CLEAN
+### BAI-009 — Standards Compliance: 6/6
+### BAI-009 — Architecture: CLEAN
 `ThreatEstimate` reads no hand. `LethalSearch.is_taunter` going public keeps one Taunt definition.
-### SOLID: COMPLIANT
+### BAI-009 — SOLID: COMPLIANT
 
 ### Game-Specific Concerns
 A31 matches F1 line by line: `unsafe` on the after-state, the same attacker's trade, lethal excluded, board-only `reach`, no extra simulation, and the score recomputed through the same `_weighted`. It reads the profile already multiplied for DEFENSIVE. The story's deviations (float `incoming`, sandbox arguments, the exception living in `score_all`) are sound.
 
-### Positive Observations
+### BAI-009 — Positive Observations
 - The exception is a second pass over results already computed, so a lone `score()` stays plain F1 and the cost claim is testable (`test_the_exception_costs_no_extra_simulation`).
 - GDD-pinned scores are asserted, not just signs.
 
-### Required Changes
+### BAI-009 — Required Changes
 
 **D2. Defect, test evidence only: A20 has not run on the production resolver, and the reason it could not has gone.** `tests/unit/boss_ai/boss_ai_defensive_mode_test.gd:5-11` and `:88`. Confidence: **VERIFIED.**
 
@@ -134,7 +134,7 @@ The story allows the test double only "if those epics have not landed", and says
 
 I expect the re-pointed test to pass, and I do not suspect `src/`. `card_effects_value_hooks_test.gd` covers `modify_heal` on a live engine (`:530`) and a clone folding `modify_cost` (`test_a_clone_folds_through_its_own_resolver_to_the_same_cost`), but no test combines them, and that combination is what A20 asserts. Note the fixture's `mul` must be an op the production `modify_value` accepts.
 
-### Suggestions
+### BAI-009 — Suggestions
 - Assert `chosen` in the doomed-boss test.
 - Add fixtures that reach the `f_self` floor and cap.
 - **Nit:** `_board_damage` sums weapon attack without the `maxi(0, ...)` of `_weapon_attack`; a negative enchantment would lower `reach`. Rare.
@@ -142,13 +142,13 @@ I expect the re-pointed test to pass, and I do not suspect `src/`. `card_effects
 ### Design question for the owner
 **F6 "frozen minions that will thaw" against C13.** `threat_estimate.gd:64-65` counts every frozen minion, and F1 and the QA plan say to. But under C13, a player minion frozen at the boss's Main does not attack on the player's next turn: a minion frozen on the boss's turn thaws at the End of that player turn, having missed it, and one frozen before attacking on its own turn stays frozen through its next turn. So F6's qualifier selects nothing at the boss's Main, and a boss that freezes its biggest threat gets no credit in `reach` or DEFENSIVE. No shipped card has a `freeze` op, so nothing is affected today. It belongs with the QA plan's open C13 wording gap.
 
-### Verdict: CHANGES REQUIRED
+### BAI-009 — Verdict: CHANGES REQUIRED
 
 ---
 
 ## Code Review: MR-019 rules engine performance pass (`4d2b046`..`17efca2`)
 
-### Engine Specialist Findings: CLEAN
+### MR-019 — Engine Specialist Findings: CLEAN
 Confirmed by my own trace, below.
 
 ### Testability: GAPS (none blocking)
@@ -158,15 +158,15 @@ Confirmed by my own trace, below.
 - **`match_golden_logs.gd:144`, `:212`, `:243`:** `_capture_full_board`, `_capture_aura_source_life` and `_capture_aura_holders` never turn the audit on, though the story says "the golden suite runs with it on". Five other captures do.
 - **`match_rules_golden_log_test.gd:118`:** the name claims the AC-38 match; the body checks count, types and concede, with constants copied by hand.
 
-### ADR Compliance: COMPLIANT
+### MR-019 — ADR Compliance: COMPLIANT
 - ADR-0007: C10 order unchanged; `recompute_calls == drain_iterations` holds by construction.
 - ADR-0005: no allocation added in the fold.
 - GDD C1 / story 018: the index sits on the engine, not on records, and is not in `MatchState` or the snapshot.
 - The story's own deviations (position in the hint, clone copies the index, opt-in audit) are sound and recorded.
 
-### Standards Compliance: 6/6
-### Architecture: CLEAN
-### SOLID: COMPLIANT
+### MR-019 — Standards Compliance: 6/6
+### MR-019 — Architecture: CLEAN
+### MR-019 — SOLID: COMPLIANT
 
 ### Game-Specific Concerns: can cached state go stale or leak?
 **No defect found.** The golden logs use `TestEffectResolver` only, so I traced each item against the production `EffectResolver` too.
@@ -196,17 +196,17 @@ Confirmed by my own trace, below.
 
 **Regenerated goldens: verified.** Merge `1e23a4c` rewrote 15 of the 16 after MR-019. With the empty `"aura_hosts":[],` key removed, all 15 hash byte-equal to `17efca2`, so the regeneration changed nothing else. That key comes from card-effects 013's `effect_runtime` field.
 
-### Positive Observations
+### MR-019 — Positive Observations
 - Id-checked hints are the right design: correctness does not depend on every writer remembering the index.
 - The A/B caught two cuts that met their count budgets and bought nothing, and the record says so plainly.
 - `trigger_order` and `aura_holders` exist because mutants survived without them.
 - R4 was declined on measurement and the record shows the check of each candidate. No budget was moved.
 - Provisional figures are labelled as such, and release is NOT ASSESSED rather than inferred.
 
-### Required Changes
+### MR-019 — Required Changes
 None for the code. **The story is not closed by this review:** AC-3 (13.3 ms against 5 ms) goes to the owner as R6, and AC-3 and AC-4 need release figures.
 
-### Suggestions
+### MR-019 — Suggestions
 - **Close R3's one gap.** "Within an action only primitives write the zones" is enforced by nothing. Scenario: a later op reorders `board` in place with no serial bump, and the next raise in that action gets the old order with no failure. R2's self-check has no equivalent here. Extend `set_lookup_audit` to compare the reused buffer with a fresh walk.
 - **Nit, `rules_engine.gd:3930`:** no entry of `_where` is ever erased, so dead ids are copied on every clone, a cost that grows with match length. Small at current sizes; worth a line in the R5 re-measure.
 - Fix the Testability items, and turn the audit on in the three captures or correct the story's sentence.

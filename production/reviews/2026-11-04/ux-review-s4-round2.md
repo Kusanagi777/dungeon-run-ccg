@@ -121,7 +121,7 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 **Platform Target**: PC, mouse primary / keyboard complete / gamepad Partial post-v1 / no touch
 **Accessibility Tier**: Standard (+3 elevations), committed
 
-### Round-1 resolution
+### Targeting — Round-1 resolution
 | Round 1 | Status | Evidence |
 |---|---|---|
 | B1: click precedence | **Resolved** | §7.4 is a ranked table per phase (P / T / C) with first-match semantics. The principle is stated: reversible outranks irreversible, with lit targets in T as the one exception. Hover pre-signals rank 3. There is a separate drag-release table, and §7.2's four overlapping rows are replaced. Six ACs cover the C / P / T resolutions, the double-click and drag release. Rank 3 analysis: ruling 5 |
@@ -134,7 +134,7 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 | A7: Escape chain | Routed | §15 row |
 | A8: resolution criterion | Resolved | §14 AC |
 
-### Completeness: 15/15 sections present
+### Targeting — Completeness: 15/15 sections present
 
 ### Quality Issues: 0 blocking, 5 advisory
 1. **A1: Rank 6's examples are overridden by rank 4 inside a zone** [ADVISORY]
@@ -168,11 +168,11 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 - A3 (triple-click) needs an engine check.
 - The rest is as in round 1: shape-first cues, discrete presses, contrast. The 150 % case is now covered.
 
-### Pattern Library: CONSISTENT
+### Targeting — Pattern Library: CONSISTENT
 - §7.4 is flagged for Click-to-Select rule 2 and match-ui U5.
 - The badges and the Escape-chain row are flagged.
 
-### Verdict: APPROVED
+### Targeting — Verdict: APPROVED
 **Blocking issues**: 0
 **Advisory issues**: 5
 **Dimensions not assessed**: 0
@@ -189,7 +189,7 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 **Platform Target**: PC, mouse primary / keyboard complete / gamepad Partial post-v1 / no touch
 **Accessibility Tier**: Standard (+3 elevations), committed
 
-### Round-1 resolution
+### Mulligan — Round-1 resolution
 | Round 1 | Status | Evidence |
 |---|---|---|
 | B1: 5-card row covers base elements | **Resolved** | Safe band x 208–1072, y ≥ 98, centred on 640, 864 px wide. Its clearances check out: End Turn 1116 (44 px), hero power 152–200 (8 px), ticker bottom 90 (8 px). The card-scale rule gives n ≤ 3 at 1.5x (723 ≤ 864), n = 4 at 1.2x (768, x 256–1024) and n = 5 at 1.0x (814, x 233–1047). A pixel-equality AC covers the unobstructed rects at 100 % and 150 % |
@@ -201,9 +201,9 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 | A4: n = 4 and n ≥ 6 | Resolved / routed | n = 4 is fixed by the rule; n ≥ 6 at 125 / 150 % is routed as unspecified |
 | A6: resolution criterion | Resolved | §14 AC |
 
-### Completeness: 15/15 sections present
+### Mulligan — Completeness: 15/15 sections present
 
-### Quality Issues: 0 blocking, 5 advisory
+### Mulligan — Quality Issues: 0 blocking, 5 advisory
 1. **A1: The stack rule assumes 1.15 line boxes without saying how they are enforced** [ADVISORY; shared with match-end A3]
    - What's wrong: every y in the stack table depends on line box = 1.15 × font size. The art bible names "Godot's built-in default theme font", whose natural line height this repo does not source. If it is taller than 1.15 em, an unadjusted `Label` overruns the reserved boxes and the "no two boxes overlap" ACs fail.
    - Fix: state the mechanism (for example, line spacing set on the label so that its line box is 1.15 × size) and measure glyph-ink bounds in the ts125 / ts150 ACs.
@@ -219,21 +219,21 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
    - What's wrong: after the amendment, MUI-009's Implementation Notes still say "this story wires `1`–`3` toggles", while the amended AC requires `1`–`5`.
    - Fix: correct the note.
 
-### GDD Alignment: ALIGNED (routed gaps)
+### Mulligan — GDD Alignment: ALIGNED (routed gaps)
 - The F1 contradiction (round-1 B3) is gone.
 - U8 / F6 still assume 3 cards. The conflict is routed, and the MUI-009 ACs are amended.
 - The `hand()`-in-`Mulligan` confirmation is routed.
 
-### Accessibility: COMPLIANT
+### Mulligan — Accessibility: COMPLIANT
 - Target tier: Standard.
 - Text scaling is fully specified for n ≤ 5.
 - The context promised under the dim stays visible at every v1 hand size and scale.
 - The modified-cost cue has its colour-blind backup.
 
-### Pattern Library: CONSISTENT
+### Mulligan — Pattern Library: CONSISTENT
 - The safe band, refined overlay, keys and rejection-copy override are all flagged in §15.
 
-### Verdict: APPROVED
+### Mulligan — Verdict: APPROVED
 **Blocking issues**: 0
 **Advisory issues**: 5
 **Dimensions not assessed**: 0
@@ -250,7 +250,7 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 **Platform Target**: PC, mouse primary / keyboard complete / gamepad Partial post-v1 / no touch
 **Accessibility Tier**: Standard (+3 elevations), committed
 
-### Round-1 resolution
+### Match End — Round-1 resolution
 | Round 1 | Status | Evidence |
 |---|---|---|
 | B1: lock / close on projection | **Resolved for pause and overlays** | Play-out → Ending → Entering. Pause, feed and Menu stay reachable until the queue reaches the `match_ended` step; only a targeting session is cancelled on receipt; a confirmed concede is immediate. This agrees with match-ui States, `hud.md` Menu and "Pause anywhere". The outcome-hiding half depends on the feed (new B1 below) |
@@ -261,7 +261,7 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 | A4: wireframe | Resolved | — |
 | A5: resolution criterion | Resolved | — |
 
-### Completeness: 15/15 sections present
+### Match End — Completeness: 15/15 sections present
 
 ### Quality Issues: 1 blocking, 5 advisory
 1. **B1: Feed lines are projected on receipt, so the ticker shows the outcome during the play-out** [BLOCKING]
@@ -297,13 +297,13 @@ This spec is ready for handoff to `/team-ui` Phase 2 (Visual Design).
 - The Edge Cases wording change ("Input is locked from the moment `result` is set") is routed.
 - The other round-1 routed gaps are unchanged.
 
-### Accessibility: COMPLIANT
+### Match End — Accessibility: COMPLIANT
 - Target tier: Standard.
 - "Pause anywhere … including during boss playback" now holds through a lethal boss turn.
 - Text scale is fully specified.
 - B1 is a spoiler and consistency issue, not an accessibility gap.
 
-### Pattern Library: CONSISTENT
+### Match End — Pattern Library: CONSISTENT
 - Overlay, Escape / Cancel (4a), Button and Disabled-during-guard follow their patterns.
 - The Event Feed pattern's implementation note is the source B1 cites. A fix of type (a) needs it amended.
 

@@ -91,7 +91,7 @@ None in code. DQ-1 needs an owner answer.
 
 ### Engine Specialist Findings: CLEAN for this story's coroutine chain (see Story 007 table)
 
-### Testability: GAPS
+### Story 008 — Testability: GAPS
 All seven ACs and N3, N4 map to tests. Strong ones: A10's three tests, `test_a_plan_that_runs_out_with_the_player_alive_is_aborted_too` (a sweep that asserts it reached the case), the checksum against a live replay, and the time-sliced `to_dict` equality. Gaps:
 - **A3's "replay" is a re-run.** `test_ai_draws_per_turn_equal_tie_draws_plus_the_one_new_fork_and_replay_equally` calls `_ten_turns` twice (`boss_ai_plan_turn_test.gd:202-203`). That proves determinism and the draw formula, not "replayed from its `stream_seed` and command list". The AC is marked done on a weaker proof. The tie-draw count also ignores choice ties, which is safe only because the fixture has none.
 - The root-sandbox fault branch (`boss_ai.gd:463-465`) has no test.
@@ -108,9 +108,9 @@ All seven ACs and N3, N4 map to tests. Strong ones: A10's three tests, `test_a_p
 ### Architecture: MINOR ISSUES
 Stale docs: `boss_ai.gd:8` says `choose` arrives later; `planner_task.gd:10,26` show the no-planner calls (D-1); `scorer.gd:47-51` says "until a caller passes it".
 
-### SOLID: COMPLIANT
+### Story 008 — SOLID: COMPLIANT
 
-### Game-Specific Concerns
+### Story 008 — Game-Specific Concerns
 **Determinism: clean.** One `sim_<turn>` fork per turn, memoised, counted through the `draws` delta (`boss_ai.gd:458-460`); every `score_all` gets it; ties and root Choices are the only live `ai_<floor>` draws and all reach `ai_draws`; the root's `rng_match` moves only by accepted commands. No draw reaches a global RNG (G6 and `no_global_rng.sh` 0 hits).
 
 **Isolation: clean.** Scratch log, copied stream, `test_planning_writes_nothing_to_the_live_log`. `RngStream`'s header says a worker never uses a live stream, but ADR-0006 hands it `ai_<floor>` on purpose: fix the comment, not the code.
@@ -123,18 +123,18 @@ Stale docs: `boss_ai.gd:8` says `choose` arrives later; `planner_task.gd:10,26` 
 
 **Debug residue: none.** `src/ai/` holds no `print`, `breakpoint`, TODO or mutant marker. All five awaits are present, including the `_plan_pass` one the story's incident lost. `MAX_REJECTIONS`, `ALTERNATIVES_MAX`, the normalisers, `trade_quality`, the tie band, the pre-filter and `next_mana_max` were compared against the GDD by hand and match. No stray `.bak`, `.orig` or mutation file is tracked.
 
-### Positive Observations
+### Story 008 — Positive Observations
 - `TurnPlan` is genuinely plain data with one shared checksum for both sides of a replay.
 - Routing by `command_index` solves a real gap in the story's payload shape.
 - The deviations list is thorough and honest, D-1 included.
 
-### Required Changes
+### Story 008 — Required Changes
 - **D-1 (defect, blocking).** `boss_ai.gd:437`: `func plan_task(sandbox: RulesEngine, planner: PlannerTask = null) -> Callable:`. With no planner, `plan_turn` substitutes `_NoYield` (`boss_ai.gd:452`), so a `TimeSlicedPlannerTask` runs the whole plan inside `start()` on the main thread and reports success. F7 puts band 3 at about 2,190 ms. Nothing fails: only A30's windowed profile would show it.
   - This is the shape everyone is told to write. Story 014's AC (`story-014...md:36`), the ADR-0006 diagram (line 248), the manifest and `planner_task.gd:10,26` all say `plan_task(sandbox)`. Story 008 notes the trap, but a note does not reach a driver built to its AC against a fake task.
   - Shipped `planner_mode` is `worker`, so the default path is unaffected; the fallback and `--ai-sync` are.
   - **Fix:** make `planner` required on `plan_task`, keeping the default on `plan_turn`. Update the immediate-task test callers, `planner_task.gd`, story 014's AC, and through their owner ADR-0006, ADR-0008 and the manifest. Answer to the review's question: time-sliced runs can yield, and the test proves it, but only when the caller passes the task.
 
-### Suggestions
+### Story 008 — Suggestions
 - Make A3's test a real replay, or restate the AC.
 - Add a root-fault test and a checkpoint in `_execute_lethal`.
 - Correct the manifest's "≤ 30 commands + ≤ 30 diagnostics": 31 is right by C2, and `choose` commands are not counted either, so a plan can exceed 31. Same for the QA plan's edge case.
@@ -152,43 +152,43 @@ Stale docs: `boss_ai.gd:8` says `choose` arrives later; `planner_task.gd:10,26` 
 
 ### Engine Specialist Findings: CLEAN (see Story 007 table)
 
-### Testability: GAPS
+### Story 010 — Testability: GAPS
 A16, the Discover score, `cost_fit` at and over the limit, one preference case per profile, Choose One, collapse, ties and the QA "`choose` inside a plan" case are covered, with real engine Choices. `test_a_scorer_without_op_values_answers_at_the_c6_fallback_row` is close to vacuous: it asserts only that a removed key is absent, not what its name says.
 
-### ADR Compliance: COMPLIANT
+### Story 010 — ADR Compliance: COMPLIANT
 - ADR-0006: pure over the clone, returns an index.
 - ADR-0008: `-> int`, with `last_choice` for the task. Sound.
 
 ### Standards Compliance: 6/6
 
-### Architecture: CLEAN
+### Story 010 — Architecture: CLEAN
 
 ### SOLID: ISSUES FOUND
 `Chooser` hard-codes the boss side (D-4).
 
-### Game-Specific Concerns
+### Story 010 — Game-Specific Concerns
 **Determinism: clean.** Root ties draw from `ai_<floor>` and count in `ai_draws` (`boss_ai.gd:642`); trial and node ties draw from their own copy; collapse precedes the tie-break, so duplicates cost nothing. `next_mana_max` matches the engine's Start step (`rules_engine.gd:2388`) on either side's turn.
 
 **Hidden information: clean.** A player's request returns `NO_OPTION` before its options are read.
 
 **Performance:** `Chooser.choose` builds a `CandidateSet` per Choice, so the annotation memo is lost. Minor.
 
-### Positive Observations
+### Story 010 — Positive Observations
 - The C7 readings of `damage_all`, `low_cost` and tags are written down rather than silently chosen.
 - The passive_driven gap was raised, not filled with an invented number.
 
-### Required Changes
+### Story 010 — Required Changes
 None for this story's ACs.
 
-### Suggestions
+### Story 010 — Suggestions
 - **D-4 (defect, not blocking now; must be fixed before story 016).** `chooser.gd:70` returns `NO_OPTION` for any side but `boss`, while `plan_turn` and `LethalSearch` are side-neutral. C11 and story 016 pilot the hero seat with a second `BossAI`. There, `neutral_smite_or_mend` leaves the root sandbox stuck in `Choice`: `_answer_choices` returns (`boss_ai.gd:636`), `_is_own_main` is false, and the plan ends with no `end_turn` and no diagnostic. Trials score it as if nothing resolved. Fix: pass the planner's own side. `test_a_players_pending_choice_is_never_scored` would then pass that side too.
 - Also record a fault when `_answer_choices` gives up (`boss_ai.gd:636-637`) rather than ending the plan silently.
 - Give the vacuous test a real assertion.
 
-### Design question for the owner
+### Story 010 — Design question for the owner
 - **DQ-4 (already open in the story).** `passive_driven` has no `choice_preference` rows, so shipped `boss_rot_warden` scores a preference of 0 and C7's clause does nothing. Confirmed in `ai_profiles.json`.
 
-### Verdict: APPROVED WITH SUGGESTIONS
+### Story 010 — Verdict: APPROVED WITH SUGGESTIONS
 
 ---
 
@@ -199,20 +199,20 @@ None for this story's ACs.
 ### Testability: TESTABLE
 Every QA NC-8 row is met: shipped 500 against the registry; 50 and 1000 accepted; 49, 1001, 49.9, 1000.1, 0, negative, string, null, bool, NaN and infinities rejected with `E_AI_WEIGHT_RANGE` on the right field; key required; nested `runtime` proven read-only through `CardDatabase`; bounds in `RANGES`; byte-identical plan at 50 and 1,000; unknown keys still rejected. Every fixture with a `runtime` block carries the key.
 
-### ADR Compliance: COMPLIANT
+### Planner Target Time — ADR Compliance: COMPLIANT
 Matches handoff section 4 and DD-X18: value 500, range 50 to 1,000, `runtime` block, counts untouched. Only the validator in `src/` names it; `BossAI` is never handed `runtime`.
 
-### Standards Compliance: 6/6
-### Architecture: CLEAN
-### SOLID: COMPLIANT
+### Planner Target Time — Standards Compliance: 6/6
+### Planner Target Time — Architecture: CLEAN
+### Planner Target Time — SOLID: COMPLIANT
 
-### Game-Specific Concerns
+### Planner Target Time — Game-Specific Concerns
 None. It is not a clock: nothing in `src/ai` or `src/gameplay` reads it.
 
-### Positive Observations
+### Planner Target Time — Positive Observations
 Same-commit validator and data, with the F9 line updated as the data test requires.
 
-### Required Changes
+### Planner Target Time — Required Changes
 None.
 
 ### Suggestions (nits)
@@ -220,4 +220,4 @@ None.
 - `integral: false` accepts `500.5`. Harmless; set it `true` if whole milliseconds are meant.
 - `sprint-005.md` still lists the knob as missing (the QA plan noted this).
 
-### Verdict: APPROVED WITH SUGGESTIONS
+### Planner Target Time — Verdict: APPROVED WITH SUGGESTIONS

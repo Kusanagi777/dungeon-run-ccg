@@ -334,7 +334,7 @@ not be checked.
 
 ## Phase 2: Systems Design
 
-### What Happens in This Phase
+### What Happens in Systems Design
 
 You create all the design documents that define how your game works. Nothing
 gets coded yet -- this is pure design. Each system identified in the systems
@@ -492,7 +492,7 @@ checklist and what each tier drops.
 
 ## Phase 3: Technical Setup
 
-### What Happens in This Phase
+### What Happens in Technical Setup
 
 You make key technical decisions, document them as Architecture Decision Records
 (ADRs), validate them through review, and produce a control manifest that
@@ -639,7 +639,7 @@ checklist and what each tier drops.
 
 ## Phase 4: Pre-Production
 
-### What Happens in This Phase
+### What Happens in Pre-Production
 
 You create UX specs for key screens, prototype risky mechanics, turn design
 documents into implementable stories, plan your first sprint, and build a
@@ -835,7 +835,7 @@ checklist and what each tier drops.
 
 ## Phase 5: Production
 
-### What Happens in This Phase
+### What Happens in Production
 
 This is the core production loop. You work in sprints (typically 1-2 weeks),
 implementing features story by story, tracking progress, and closing stories
@@ -1023,7 +1023,7 @@ checklist and what each tier drops.
 
 ## Phase 6: Polish
 
-### What Happens in This Phase
+### What Happens in Polish
 
 Your game is feature-complete. Now you make it good. This phase focuses on
 performance, balance, accessibility, audio, visual polish, and playtesting.
@@ -1206,7 +1206,7 @@ checklist and what each tier drops.
 
 ## Phase 7: Release
 
-### What Happens in This Phase
+### What Happens in Release
 
 Your game is polished, tested, and ready. Now you ship it.
 

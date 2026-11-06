@@ -218,7 +218,7 @@ Output
 
 ## Spline-Based Generation (Road with Trees)
 
-### 1. Create PCG Graph
+### 1. Create a Spline PCG Graph
 
 ```
 Spline Input

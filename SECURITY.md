@@ -62,8 +62,8 @@ When contributing hooks, skills, or agents:
   and opt-in by the user
 - **No reading secrets or environment variables** beyond what is minimally
   required and clearly documented in the skill's header
-- **Skills must not write outside their documented scope** without an explicit
-  user confirmation step
+- **Explicit user confirmation is required** before a skill writes outside
+  its documented scope
 
 ## Disclosure Policy
 

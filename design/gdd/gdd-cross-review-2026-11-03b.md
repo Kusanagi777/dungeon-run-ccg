@@ -120,10 +120,10 @@ Phase 2 checks with no finding (stated so a silent skip is distinguishable): 2a 
 
 Pillar map (3f) unchanged from the first report; the D-04 fix removes the one Pillar 3 tension (no boss-imposed `hidden`). Player fantasies (3g) unchanged. 3a/3b unchanged. 3c: `PLAN_MAX 7` leaves War's starter the most plan-heavy of the three (7 / 5 / 6) — reward-draft re-derived F1 so War's floor-1 affinity does not over-pull (`armour` 150 vs `weapons` 175); no dominant strategy introduced. 3d: temporary mana is a bounded source with an automatic sink (expires at End step). 3e: unchanged except D-06 (resolved).
 
-### Blocking
+### Game Design Blocking
 None.
 
-### Warnings
+### Game Design Warnings
 D-01, D-03, D-05 remain open as listed in Part A (none asks for a GDD change this run; D-03 awaits the owner).
 
 ---
@@ -135,10 +135,10 @@ Scenarios walked: 4 (S-02, S-04, S-05 re-walked; suspend → resume new)
 #### Blockers
 None.
 
-#### Warnings
+#### Cross-System Scenario Warnings
 None.
 
-#### Info
+#### Cross-System Scenario Info
 ℹ️ S-02 residual — match-ui fixture list has no 5-card mulligan case (Bottomless Satchel); see Part A.
 
 ---

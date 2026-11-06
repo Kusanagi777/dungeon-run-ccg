@@ -210,7 +210,7 @@ Written to `production/session-logs/decision-log.md` (append-only, never
 truncated, created if absent). The user reviews the log post-session to
 audit choices made.
 
-### Helper
+### Decision Logging Helper
 
 ```bash
 log_decision "<skill-name>" "<decision-point>" "<options>" "<chosen>" "<reason>" "<category>"

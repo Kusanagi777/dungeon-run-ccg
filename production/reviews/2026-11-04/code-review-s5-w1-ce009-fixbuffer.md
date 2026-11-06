@@ -113,7 +113,7 @@ None against this branch alone. R1 (Part 3) changes lines CE-009 adds, and may l
 
 - **N5 (nit).** `_op_retrigger` reads `run_ctx.resolver` with no guard (`ops.gd:421`), unlike `_scales`. Production always sets it.
 
-### Testability: GAPS
+### L7 W1 Fix Buffer — Testability: GAPS
 
 No test covers: retrigger on a Silenced `pending_destroy` minion (H1), retrigger of a `once_per_turn` Deathrattle (D3), a `count: 2` `source_slot` summon with the source in play (D1), or a retriggered Gravekeeper reading its counter (the QA plan's optional case). The code path reads live, which is right.
 
@@ -123,27 +123,27 @@ No test covers: retrigger on a Silenced `pending_destroy` minion (H1), retrigger
 
 `queue_triggers` is in the ADR erratum but not in the control manifest. ADR Consequences say the manifest must restrict engine-surface additions by directory.
 
-### Standards Compliance: 6/6 passing
+### L7 W1 Fix Buffer — Standards Compliance: 6/6 passing
 
 ### Architecture: CLEAN. SOLID: COMPLIANT
 
 `queue_triggers` keeps Q engine-owned. `retrigger_entries` reusing `_collect` is the right shape, and is also the cause of H1.
 
-### Game-Specific Concerns
+### L7 W1 Fix Buffer — Game-Specific Concerns
 
 Mass Rites is live on a Boss AI clone: the clone test covers isolation. `op_values.retrigger` is unchanged.
 
-### Positive Observations
+### L7 W1 Fix Buffer — Positive Observations
 
 - The S1 sweep found three sites the sprint-4 review missed, and runs on the production `EventLog`.
 - L7 wrote the test that exposes R1 before CE-009 landed, and said so in the commit message.
 - G7 has a planted fixture per alternative.
 
-### Required Changes
+### L7 W1 Fix Buffer — Required Changes
 
 R1, below.
 
-### Suggestions
+### L7 W1 Fix Buffer — Suggestions
 
 H1, N5, add `queue_triggers` to the manifest, resolve D1 to D3.
 

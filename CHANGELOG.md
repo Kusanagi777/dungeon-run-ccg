@@ -292,7 +292,7 @@ A minor release. [UPGRADING.md](UPGRADING.md#v113--v120) lists the
 answered is never taken as an answer, and the shipped permissions approve
 less.** A fix release for 1.1.2.
 
-### Fixed
+### Fixed in 1.1.3
 
 - **The 14 longest skills keep their later phases after a compaction.** Claude
   Code re-attaches only the first part of an invoked skill after a compaction,
@@ -367,7 +367,7 @@ less.** A fix release for 1.1.2.
   permission mode covers, and three overstatements in `/story-done`, the
   workflow guide and UPGRADING.
 
-### Security
+### Security in 1.1.3
 
 - **The shipped allow rules no longer approve deleting a branch or writing files
   without asking.** Four allow rules had no space before their `*`, so they
@@ -1096,7 +1096,7 @@ Code 2.1.281 to 2.1.284, on Windows, Linux (bash 5 and 3.2) and macOS. **If you 
 **Skills and agents work again outside auto mode.** A fix release for
 [#128](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/128).
 
-### Fixed
+### Fixed in 1.1.1
 
 - **Skills no longer abort before they start.** In 1.1.0, every skill that reads
   your config began with a shell command Claude Code refuses to run unless it is
@@ -1127,7 +1127,7 @@ for the form every skill's config line must take, if you write your own.
 not a question you answer once at setup and forget.** A solo game jam and a
 studio production no longer have to carry the same overhead.
 
-### Added
+### Added in 1.1.0
 
 - **Sessions start in ask-before-write mode.** CCGS sets Claude Code's
   permission mode to `default` in the project settings, so a terminal session
@@ -1208,7 +1208,7 @@ studio production no longer have to carry the same overhead.
   game you're making and CCGS suggests a level, instead of asking you to guess
   what "standard" means for a weekend jam versus a two-year production.
 
-### Changed
+### Changed in 1.1.0
 
 - **Claude no longer starts the four risky commands by itself.** `/hotfix`,
   `/day-one-patch`, `/dev-story` and `/story-done` now run only when you type
@@ -1257,7 +1257,7 @@ studio production no longer have to carry the same overhead.
   more room for actual work. Older notes can be archived without losing
   anything.
 
-### Fixed
+### Fixed in 1.1.0
 
 - **Unity and Unreal projects were silently skipping three commit and
   session checks.** The hooks that look for hardcoded gameplay values,

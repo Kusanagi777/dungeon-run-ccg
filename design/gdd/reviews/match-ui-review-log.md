@@ -39,7 +39,7 @@ Reviewed-Content-Hash: design/art/art-bible.md 1dd9cdde34eb11cc75938aaac8d5da5ec
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 Reviewed-Content-Hash: .claude/rules/ui-code.md 37c1a82d0cffa30e10fb93ee97b97773c155368f
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Follow-up Review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: standard
 Scope signal: L
 Specialists: none (lean — main review only; no Agent calls)

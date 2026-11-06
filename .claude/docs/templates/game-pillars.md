@@ -130,7 +130,7 @@ between X and Y, this pillar says we choose __."]
 
 **Design Test**: [Concrete decision it resolves]
 
-#### What This Means for Each Department
+#### Pillar 2 by Department
 
 | Department | This Pillar Says... | Example |
 | ---- | ---- | ---- |
@@ -140,11 +140,11 @@ between X and Y, this pillar says we choose __."]
 | **Narrative** | [Constraint/inspiration] | [Example] |
 | **Engineering** | [Constraint/inspiration] | [Example] |
 
-#### Serving This Pillar
+#### Serving Pillar 2
 - [Example]
 - [Example]
 
-#### Violating This Pillar
+#### Violating Pillar 2
 - [Example]
 - [Example]
 
@@ -158,7 +158,7 @@ between X and Y, this pillar says we choose __."]
 
 **Design Test**: [Concrete decision it resolves]
 
-#### What This Means for Each Department
+#### Pillar 3 by Department
 
 | Department | This Pillar Says... | Example |
 | ---- | ---- | ---- |
@@ -168,11 +168,11 @@ between X and Y, this pillar says we choose __."]
 | **Narrative** | [Constraint/inspiration] | [Example] |
 | **Engineering** | [Constraint/inspiration] | [Example] |
 
-#### Serving This Pillar
+#### Serving Pillar 3
 - [Example]
 - [Example]
 
-#### Violating This Pillar
+#### Violating Pillar 3
 - [Example]
 - [Example]
 

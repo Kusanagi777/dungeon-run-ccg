@@ -35,7 +35,7 @@ the 5.8 engine source; the sources are listed at the end of this file.
 
 ---
 
-## HIGH RISK — Will Break Existing Code
+## High-Risk Changes in Detail
 
 ### Substrate Material System (Production-Ready in 5.7)
 **Versions:** UE 5.5 (Beta), 5.7 (production-ready; enabled automatically for new projects)
@@ -92,7 +92,7 @@ New lighting system for many shadow-casting dynamic lights.
 
 ---
 
-## MEDIUM RISK — Behavioral Changes
+## Medium-Risk Changes in Detail
 
 ### Enhanced Input System (Now Default)
 **Versions:** UE 5.1+ (recommended), 5.7 (default)

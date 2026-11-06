@@ -397,7 +397,7 @@ CCGS Skill Testing Framework/      → renamed studio-tests/; move any specs you
 question nobody answered is never an answer; the shipped allow rules approve
 less; settings read the same from a subfolder
 
-### What Changed
+### What Changed (v1.1.2 → v1.1.3)
 
 | Category | Changes |
 |----------|---------|
@@ -412,7 +412,7 @@ No setting changes meaning, and nothing is migrated automatically.
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v1.1.2 → v1.1.3)
 
 **Existing files to overwrite (no user content):**
 ```
@@ -437,7 +437,7 @@ CCGS Skill Testing Framework/
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v1.1.2 → v1.1.3)
 
 **`.claude/settings.json`** — if you have not edited it, overwrite it with the
 shipped file. If you have, remove these from `allow`: `Bash(git status*)`,
@@ -483,7 +483,7 @@ one — merge them into one.
 parse commands that report the right result; Unity and Unreal treated like
 Godot; hook warnings you can see; skills that read the whole argument
 
-### What Changed
+### What Changed (v1.1.1 → v1.1.2)
 
 | Category | Changes |
 |----------|---------|
@@ -498,7 +498,7 @@ No setting changes meaning, and nothing is migrated automatically.
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v1.1.1 → v1.1.2)
 
 **Existing files to overwrite (no user content):**
 ```
@@ -544,7 +544,7 @@ CCGS Skill Testing Framework/
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v1.1.1 → v1.1.2)
 
 **`.claude/settings.json`** — if you have not edited it, overwrite it with the
 shipped file. If you have, change the `matcher` of the
@@ -697,7 +697,7 @@ for this release.
 **Commit range:** `d056997..v1.1.1`
 **Key themes:** Fix for skills and agents failing to start outside auto mode ([#128](https://github.com/Donchitos/Claude-Code-Game-Studios/issues/128))
 
-### What Changed
+### What Changed (v1.1.0 → v1.1.1)
 
 | Category | Changes |
 |----------|---------|
@@ -710,7 +710,7 @@ No settings, config files or agents change. Your `project.yaml` and
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v1.1.0 → v1.1.1)
 
 **Existing files to overwrite (no user content):**
 ```
@@ -722,7 +722,7 @@ No settings, config files or agents change. Your `project.yaml` and
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v1.1.0 → v1.1.1)
 
 **Skills you have edited yourself.** If you customised a skill, keep your
 version and change two lines in it — the config line and the `allowed-tools`
@@ -756,7 +756,7 @@ This is the biggest config change since the template's `production/stage.txt`
 [CHANGELOG.md](CHANGELOG.md#110--2026-09-23) for the full list of additions —
 this section covers what to do about it.
 
-### What Changed
+### What Changed (v1.0 → v1.1)
 
 See [CHANGELOG.md](CHANGELOG.md#110--2026-09-23) for the complete list. The
 short version: `project.yaml` replaces `production/stage.txt`,
@@ -793,7 +793,7 @@ If yours is one that does -- several interacting systems, or a design someone
 else has to implement -- `standard` and `full` are one `/settings` call away,
 and `/help` and `/gate-check` will suggest raising it as your project grows.
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v1.0 → v1.1)
 
 **Take `.claude/` as a whole. Do not copy a subset.** v1.1 adds around 73 new
 files under that directory — `automation-modes.md`, `workflow-modes.md`,
@@ -846,7 +846,7 @@ safe.
 for new projects, and `.claude/scripts/migrate-v1-config.sh` builds it from
 your legacy config files for existing ones.)
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v1.0 → v1.1)
 
 #### `project.yaml` (new — this is YOUR data, not template infrastructure)
 
@@ -895,7 +895,7 @@ home permanently; `--finalize` migration never deletes it.
 **Released:** 2026-04-02
 **Key themes:** Art direction integration, asset specification pipeline
 
-### What Changed
+### What Changed (v0.4.1)
 
 | Category | Changes |
 |----------|---------|
@@ -909,7 +909,7 @@ home permanently; `--finalize` migration never deletes it.
 | **`/design-system` update** | Routing table expanded with art-director + technical-artist for Combat, UI, Dialogue, Animation/VFX, Character categories. Visual/Audio section now mandatory (with art-director Task spawn) for 7 system categories. |
 | **`workflow-catalog.yaml`** | `/art-bible` added to Technical Setup (required). `/asset-spec` added to Pre-Production (optional, repeatable). |
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v0.4.1)
 
 **New files to add:**
 ```
@@ -930,7 +930,7 @@ README.md
 UPGRADING.md
 ```
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v0.4.1)
 
 None — all changes are to infrastructure files with no user content.
 
@@ -942,7 +942,7 @@ None — all changes are to infrastructure files with no user content.
 **Commit range:** `49d1e45..HEAD`
 **Key themes:** New `/vertical-slice` gate, skill polish & bug fixes, contributor docs
 
-### What Changed
+### What Changed (v1.0.0-beta → v1.0)
 
 | Category | Changes |
 |----------|---------|
@@ -955,7 +955,7 @@ None — all changes are to infrastructure files with no user content.
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v1.0.0-beta → v1.0)
 
 **New files to add:**
 ```
@@ -972,7 +972,7 @@ SECURITY.md
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v1.0.0-beta → v1.0)
 
 None — all changes are to infrastructure files with no user content.
 
@@ -984,7 +984,7 @@ None — all changes are to infrastructure files with no user content.
 **Commit range:** `6c041ac..HEAD`
 **Key themes:** Director gates system, gate intensity modes, Godot C# specialist
 
-### What Changed
+### What Changed (v0.4.x → v1.0)
 
 | Category | Changes |
 |----------|---------|
@@ -998,7 +998,7 @@ None — all changes are to infrastructure files with no user content.
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v0.4.x → v1.0)
 
 **New files to add:**
 ```
@@ -1031,7 +1031,7 @@ UPGRADING.md
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v0.4.x → v1.0)
 
 No files require manual merging in this release. All changes are to infrastructure files with no user content.
 
@@ -1070,7 +1070,7 @@ individual run with `--review [mode]` on any gate-using skill:
 
 ---
 
-### After Upgrading
+### After Upgrading (v0.4.x → v1.0)
 
 1. Run `/start` once to set your preferred review mode — or create `production/review-mode.txt` manually with `full`, `lean`, or `solo`.
 2. If you're mid-project, review `.claude/docs/director-gates.md` to understand which gates apply to your current phase.
@@ -1084,7 +1084,7 @@ individual run with `--review [mode]` on any gate-using skill:
 **Commit range:** `04ed5d5..HEAD`
 **Key themes:** Genre-agnostic agents, new skills, skill fixes
 
-### What Changed
+### What Changed (v0.4.0 → v0.4.1)
 
 | Category | Changes |
 |----------|---------|
@@ -1094,7 +1094,7 @@ individual run with `--review [mode]` on any gate-using skill:
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v0.4.0 → v0.4.1)
 
 **New files to add:**
 ```
@@ -1123,13 +1123,13 @@ individual run with `--review [mode]` on any gate-using skill:
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v0.4.0 → v0.4.1)
 
 No files require manual merging in this release. All changes are to infrastructure files with no user content.
 
 ---
 
-### After Upgrading
+### After Upgrading (v0.4.0 → v0.4.1)
 
 1. Run `/skill-test catalog` to verify all skills are indexed.
 2. Run `/skill-test lint [skill-name]` after any skill edits to check structural compliance.
@@ -1143,7 +1143,7 @@ No files require manual merging in this release. All changes are to infrastructu
 **Commit range:** `b1cad29..HEAD`
 **Key themes:** Full UX/UI pipeline, complete story lifecycle, brownfield adoption, comprehensive QA/testing framework, pipeline integrity, 29 new skills
 
-### What Changed
+### What Changed (v0.3.0 → v0.4.0)
 
 | Category | Changes |
 |----------|---------|
@@ -1166,7 +1166,7 @@ No files require manual merging in this release. All changes are to infrastructu
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v0.3.0 → v0.4.0)
 
 **New files to add:**
 ```
@@ -1250,7 +1250,7 @@ UPGRADING.md
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v0.3.0 → v0.4.0)
 
 #### `.claude/settings.json`
 
@@ -1267,7 +1267,7 @@ If you've added project-specific knowledge to agent `.md` files, do a diff and m
 
 ---
 
-### New Features
+### New Features (v0.3.0 → v0.4.0)
 
 #### Complete Story Lifecycle
 
@@ -1344,7 +1344,7 @@ Three new directory-scoped CLAUDE.md files (`design/`, `src/`, `docs/`) provide 
 
 ---
 
-### After Upgrading
+### After Upgrading (v0.3.0 → v0.4.0)
 
 1. **Verify new hooks** are registered in `.claude/settings.json` — check for all four: `log-agent-stop.sh`, `notify.sh`, `post-compact.sh`, `validate-skill-change.sh`.
 
@@ -1377,7 +1377,7 @@ The `/design-systems` skill was renamed to `/map-systems` for clarity
 **Action required:** Update any documentation, notes, or scripts that invoke
 `/design-systems`. The new invocation is `/map-systems`.
 
-### What Changed
+### What Changed (v0.2.0 → v0.3.0)
 
 | Category | Changes |
 |----------|---------|
@@ -1391,7 +1391,7 @@ The `/design-systems` skill was renamed to `/map-systems` for clarity
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v0.2.0 → v0.3.0)
 
 **New files to add:**
 ```
@@ -1422,9 +1422,9 @@ UPGRADING.md
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v0.2.0 → v0.3.0)
 
-#### `.claude/settings.json`
+#### `.claude/settings.json` (v0.2.0 → v0.3.0)
 
 The new version adds a `statusLine` configuration block pointing to
 `.claude/statusline.sh`. If you haven't customized `settings.json`, overwriting
@@ -1438,7 +1438,7 @@ is safe. Otherwise, add this block manually:
 
 ---
 
-### New Features
+### New Features (v0.2.0 → v0.3.0)
 
 #### Custom Status Line
 
@@ -1467,7 +1467,7 @@ future sessions without requiring manual file edits.
 
 ---
 
-### After Upgrading
+### After Upgrading (v0.2.0 → v0.3.0)
 
 1. **Delete the old skill directory:**
    ```bash
@@ -1491,7 +1491,7 @@ future sessions without requiring manual file edits.
 **Commit range:** `ad540fe..e289ce9`
 **Key themes:** Context Resilience, AskUserQuestion integration, `/map-systems` skill
 
-### What Changed
+### What Changed (v0.1.0 → v0.2.0)
 
 | Category | Changes |
 |----------|---------|
@@ -1507,7 +1507,7 @@ future sessions without requiring manual file edits.
 
 ---
 
-### Files: Safe to Overwrite
+### Files: Safe to Overwrite (v0.1.0 → v0.2.0)
 
 These are pure infrastructure — you have not customized them. Copy the new
 versions directly with no risk to your project content.
@@ -1580,7 +1580,7 @@ If you *have* customized agent prompts, see "Merge carefully" below.
 
 ---
 
-### Files: Merge Carefully
+### Files: Merge Carefully (v0.1.0 → v0.2.0)
 
 These files contain both template structure and your project-specific content.
 Do **not** overwrite them — merge the changes manually.
@@ -1600,7 +1600,7 @@ rules-reference, review-workflow).
 - Slimmer imports list (drop the 5 redundant `@` imports if present)
 - Updated collaboration protocol wording
 
-#### `.claude/docs/technical-preferences.md`
+#### `.claude/docs/technical-preferences.md` (v0.1.0 → v0.2.0)
 
 If you ran `/setup-engine`, this file has your engine config, naming
 conventions, and performance budgets. Keep all of it. The template version
@@ -1612,13 +1612,13 @@ Minor structural update — a `## Next Steps` section was added pointing to
 `/map-systems`. Add that section to your copy if you want the updated
 guidance, but it's not required.
 
-#### `.claude/settings.json`
+#### `.claude/settings.json` (v0.1.0 → v0.2.0)
 
 Check whether the new version adds any permission rules you want. The change
 was minor (schema update). If you haven't customized your `settings.json`,
 overwriting is safe.
 
-#### Customized agent files
+#### Customized agent files (v0.1.0 → v0.2.0)
 
 If you've added project-specific knowledge or custom behavior to any agent
 `.md` file, do a diff and manually add the new AskUserQuestion integration
@@ -1627,7 +1627,7 @@ collaborative protocol block at the end of the system prompt.
 
 ---
 
-### Files: Delete
+### Files: Delete (v0.1.0 → v0.2.0)
 
 These files were removed in v0.2.0. If present in your repo, you can safely
 delete them — they're replaced by better-organized alternatives.
@@ -1639,7 +1639,7 @@ docs/MULTI-STAGE-DOCUMENT-WORKFLOW.md → content merged into context-management
 
 ---
 
-### After Upgrading
+### After Upgrading (v0.1.0 → v0.2.0)
 
 1. **Run `/project-stage-detect`** to verify the system reads your project
    correctly with the new detection logic.

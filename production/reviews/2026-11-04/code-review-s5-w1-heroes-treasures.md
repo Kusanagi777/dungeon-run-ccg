@@ -98,7 +98,7 @@ S1 (a type-aware check, shared with heroes 002); T2; the `start` extraction.
 
 ## Code Review: treasures 001, installers, passive, `collect_state`
 
-### Engine Specialist Findings: ISSUES FOUND
+### Treasures 001 and 009 — Engine Specialist Findings: ISSUES FOUND
 - **S2 (defect, low, inferred, not run)** `treasures.gd:58` and `:66`. `by_treasure` is type-checked by nothing: `{schema_version: 1, by_treasure: null}` fails the typed assignment, and a non-Dictionary entry fails `host_state: Dictionary`. The code handles a hand-edited `schema_version` and has a test saying so, but not this. Run Structure treats the blob as opaque, so nothing upstream catches it. GDD: reset, never crash, is the pattern.
 - Dropped after checking: StringName-in-loop and key concerns (NOT SOURCEABLE, no producer); fixture failure-path behaviour (test helper only).
 
@@ -119,22 +119,22 @@ ADR-0005, Key Interfaces, rules 2, 3, 5, 8, 10.
 
 ### Standards Compliance: 6/6
 
-### Architecture: CLEAN
+### Treasures 001 and 009 — Architecture: CLEAN
 No RunState, log, RNG or Node. Warnings via a pure helper keeps `installers_for` stateless, a good call.
 
-### SOLID: COMPLIANT
+### Treasures 001 and 009 — SOLID: COMPLIANT
 Minor: the dedupe rule exists twice (see Testability).
 
-### Game-Specific Concerns
+### Treasures 001 and 009 — Game-Specific Concerns
 A saved state with an unknown version is re-reported at every `begin_match` until `collect_state` rewrites it; a repeated id is re-reported every match. AC-4 and AC-10 say "one". Story 011 should decide when to log.
 
-### Positive Observations
+### Treasures 001 and 009 — Positive Observations
 `treasures_v1.json` matches T8 and T9 on all 20 records (ids, rarity, tags, effects, unlock keys and M10 conditions; compared by hand), and `MVP_IDS` matches T8's column. The JSON float `schema_version` case was anticipated. Notes for later stories are the best in the batch.
 
-### Required Changes
+### Treasures 001 and 009 — Required Changes
 None in this story.
 
-### Suggestions
+### Treasures 001 and 009 — Suggestions
 S2; one shared dedupe; a shipped-passive test; ADR-0005 erratum for `MatchResult`.
 
 ### Verdict: APPROVED WITH SUGGESTIONS

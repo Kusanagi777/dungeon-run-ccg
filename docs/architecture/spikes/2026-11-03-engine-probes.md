@@ -100,7 +100,7 @@ is single-machine, 4 cores.
 
 ## Probe B — Atomic profile write (meta-progression M1/M4/M6: tmp → rename)
 
-### Method
+### Probe B Method
 
 Headless `SceneTree` script (`probe_b/probe_b.gd`) against `user://`:
 
@@ -161,7 +161,7 @@ NOT SOURCEABLE (do not assume):
 
 ## Probe C — Renderer vs Xvfb screenshot capture (`.claude/docs/run-and-observe.md`; match-ui fixtures)
 
-### Method
+### Probe C Method
 
 `probe_c/`: a `Control` main scene — full-screen dark `ColorRect`, red/green/blue
 `ColorRect`s at known positions, a `Label` — with

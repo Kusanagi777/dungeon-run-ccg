@@ -399,7 +399,7 @@ Project-wide commitments are in `design/accessibility-requirements.md` (Standard
 
 Default in `Idle`: the left-most **playable** card, else End Turn (hud.md). Empty hand: stop 1 is skipped. Inside a targeting session `Tab` cycles positions / targets only (`targeting.md`).
 
-**Screen reader announcements for key state changes**: Not committed (Standard tier; AccessKit live regions NOT SOURCEABLE — accessibility-requirements Open Questions). Accessible names are still required so nothing blocks a later pass: "Card 3 of 7: <name>, <cost> mana[, costs 1 less than printed][, not enough mana]" (Card (Hand) pattern) and the preview's full text as `tooltip_text`.
+**Screen reader announcements for key state changes**: Not committed (Standard tier; AccessKit live regions NOT SOURCEABLE — accessibility-requirements Open Questions). Accessible names are still required so nothing blocks a later pass: `Card 3 of 7: <name>, <cost> mana[, costs 1 less than printed][, not enough mana]` (Card (Hand) pattern) and the preview's full text as `tooltip_text`.
 
 **`text_scale` reading path (decision taken here)**: the 150x210 card and its 12 px text box do **not** scale (art bible §4 fixed slots; accessibility-requirements Visual). At 125 % / 150 % Card Inspect shows the 1.5x preview **plus** the reading panel (§5.1 rule) with the name, a reminder line per keyword (string table `keywords.json`, Card Inspect Implementation Notes) and the rules text at 22.5 / 27 px with no line cap. This is the "reading panel on focus rather than reflow" option accessibility-requirements recommends and the pattern library's Open Question asks `/ux-design hand` to settle; §15 records it as taken.
 

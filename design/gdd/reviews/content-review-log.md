@@ -33,7 +33,7 @@ Reviewed-Content-Hash: design/gdd/reward-draft.md 40e87d43e0dd3bb8e64a161bfb36ba
 Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba0a8aa4a701
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Follow-up Review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: standard
 Scope signal: XL
 Specialists: none (lean mode — no specialist agents spawned; main-review AC check only)

@@ -49,10 +49,10 @@ after it runs `project.yaml` holds the real values.
 **User-driven collaboration, not autonomous execution.**
 Every task follows: **Question -> Options -> Decision -> Draft -> Approval**
 
-- Agents MUST ask "May I write this to [filepath]?" before using Write/Edit tools
-  (exempt: `active.md` appends, agent memory, a subagent's new file at the path
-  its orchestrating skill named; see `.claude/rules/agent-memory.md`)
-- Agents MUST show drafts or summaries before requesting approval
+- For writes that require approval, show the draft or summary and ask "May I
+  write this to [filepath]?" before using Write/Edit tools. The documented
+  exceptions cover `active.md` appends, agent memory, and a subagent's new file
+  at the path its orchestrating skill named (see `.claude/rules/agent-memory.md`).
 - Multi-file changes require explicit approval for the full changeset
 - No commits without user instruction
 - A skipped or dismissed question is not an answer: act on nothing, re-ask in

@@ -93,39 +93,39 @@ Hidden information: see R-1.
 
 ## Code Review: Story 015, tick, bounded replay, match_ended, shutdown
 
-### Engine Specialist Findings: ISSUES FOUND
+### Story 015 — Engine Specialist Findings: ISSUES FOUND
 See the disposition table at the end. Nothing in it blocks this story.
 
-### Testability: GAPS
+### Story 015 — Testability: GAPS
 All four criteria and the QA rows map to tests. Mutation reasoning leaves the gaps in S-3 to S-6.
 
-### ADR Compliance: DRIFT
+### Story 015 — ADR Compliance: DRIFT
 - **ADR-0003: COMPLIANT** apart from D-1 (one narrow path appends to a sealed log).
 - **ADR-0006 replay protocol and ADR-0008 Decisions 4, 5, 9: COMPLIANT.**
 - **ADR DRIFT (WARNING):** the optional fifth argument `clock` is not in ADR-0008 Key Interfaces. The story records this; the ADR still needs the line.
 - **MINOR DEVIATION (INFO):** the checksum is computed once at the end from the log rather than folded per command. Equivalent. `at_index = commands.size()` for a final mismatch is a reading the story asks to have confirmed; it is reasonable.
 
-### Standards Compliance: 6/6 passing
+### Story 015 — Standards Compliance: 6/6 passing
 
-### Architecture: CLEAN
+### Story 015 — Architecture: CLEAN
 
-### SOLID: COMPLIANT
+### Story 015 — SOLID: COMPLIANT
 
-### Game-Specific Concerns
+### Story 015 — Game-Specific Concerns
 - Frame budget: bounded replay is correct. `tick_over_budget` has a problem with the shipped data (Q-4).
 - Determinism: pacing never changes what is replayed by design, but the test does not prove it (S-4).
 - Resource cleanup: correct by reading (S-5 for the gap).
 
-### Positive Observations
+### Story 015 — Positive Observations
 - `_ended` is checked at every append site, and the order of `_pending_plan` checks after each step holds up against overflow, concede and lethal.
 - Engine and subscriber time is kept out of the driver's own work, with a test that charges ten budgets per event.
 - `shutdown()` on an unfinished match calls `end_match()`, which the graph needs, and the live-match `weakref` test would catch its removal.
 - `test_a_poll_that_spent_the_budget_still_replays_one_command` pins a boundary that is easy to get wrong.
 
-### Required Changes
+### Story 015 — Required Changes
 None.
 
-### Suggestions
+### Story 015 — Suggestions
 - **D-1. Defect, low: a rejected replay command at the log cap appends to a sealed log.** `match_driver.gd:263-265` runs `_diverge` before `_after_engine_step`. When the engine's own `command_rejected` append is the one that overflows, `_reject` calls `fault(event_cap)`, the log seals, and `_ended` is still false. `_diverge` then appends `ai_fault` to a sealed log, which is a caller bug (`event_log.gd:164-166`, debug assert). The end state is still correct, the trigger is one exact append, and release only warns, so this does not hold the story. Fix in BAI-014: step first, or check `_engine.phase()`. VERIFIED by reading.
 - **S-2. Design question, low:** every real plan ends in `end_turn` (`boss_ai.gd:578-583`), so on a real final mismatch the driver's `end_turn` is always refused and logs `command_rejected {side: boss}`. `test_a_checksum_mismatch_faults_at_the_end_and_ends_the_turn` uses a plan with no `end_turn`, which the planner cannot produce in normal play. Consider guarding on `active_side()`. The AC says submit, so this is the owner's call.
 - **S-3. Test gaps:** no test shuts down with a plan pending, so removing line 199 survives (a later `tick()` would replay into a torn-down engine). Line 176: no test runs a tick with outside time followed by an over-budget tick, so a stale `_outside_usec` survives. Line 296: no test has the divergence `end_turn` end the match.

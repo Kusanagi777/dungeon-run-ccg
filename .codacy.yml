@@ -1,0 +1,11 @@
+---
+# These fixtures intentionally contain JSON syntax errors or duplicate keys.
+exclude_paths:
+  - tests/fixtures/data/bad_values/cards_decay.json
+  - tests/fixtures/data/parse_error/cards_war.json
+  - tests/fixtures/data/parse_error/match_rules.json
+  - tests/fixtures/data/strict_json/cards_neutral.json
+  - tests/fixtures/data/strict_json/cards_war.json
+  - tests/fixtures/data/strict_json/heroes.json
+  - tests/fixtures/data/strict_json/match_rules.json
+  - tests/fixtures/data/three_errors/match_ui.json

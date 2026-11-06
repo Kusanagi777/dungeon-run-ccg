@@ -132,7 +132,7 @@ None.
 ### Engine Specialist Findings: N/A
 Shell and test code. Not sent to the specialist.
 
-### Testability: GAPS
+### BAI-012 — Testability: GAPS
 `qa-tester` ran. A4 is covered, with the control test `test_a4_the_same_spell_played_in_public_does_play_x`. Limits: `kept = true` holds only because `deck_card` costs 9 (disclosed), and `ai_decision` is read from `plan.diagnostics`, not the log. AC-3 is covered per symbol. The "could not run" path of `AI-LITERAL` has no test (D-1).
 
 ### ADR Compliance: DRIFT
@@ -141,7 +141,7 @@ Shell and test code. Not sent to the specialist.
 
 ### Standards Compliance: N/A (script and tests)
 
-### Architecture: MINOR ISSUES
+### BAI-012 — Architecture: MINOR ISSUES
 Header line 24 says "nothing under src/ai writes a log directly". `boss_ai.gd:635` does, through `RulesEngine.emit`.
 
 ### SOLID: N/A
@@ -169,22 +169,22 @@ Most of these need intent, and a gate of this kind catches accidents, so I would
 - `ALTERNATIVES_MAX` 3 is C9's payload shape, `alternatives[≤3]`.
 - Neither belongs in `ai_profiles.json`. Both should be pinned to their value in the gate (D-2).
 
-### Positive Observations
+### BAI-012 — Positive Observations
 - `hits: <n>` per rule, with `could not run` printed instead of a count for rg-based rules.
 - The tokeniser reads `1e3`, `0x10`, `1_000` and `.5` whole.
 - The `const` rule closes the `OP_UNVALUED = 1.0` hole.
 - The story discloses the C1.3 breach in plain terms and did not soften it.
 
-### Required Changes
+### BAI-012 — Required Changes
 - **D-1 (defect, blocking):** `tools/ci/ai_code_gates.sh:138-139`. `mapfile < <(rg --files ...)` discards rg's exit status, and `[ "${#files[@]}" -eq 0 ] && return 0` turns no input into `AI-LITERAL hits: 0`. The header promises exit 2 for "rg or awk erroring" and "a refusal never prints a hit count". Verified: an empty `src/ai` exits 0 with PASS. Fix: treat zero files or an rg failure as could-not-run, add a fixture.
 - **D-2 (defect, blocking):** `ai_code_gates.sh:39,49`. Allow-lists match a name anywhere with any value. Scope `RANGES`, `NORMALISERS` and `BOARD_SELECTORS` to their files, and pin each `ALLOWED_CONSTS` entry to its file and value. The script comments already name those files. Also pin the `NORMALISERS` key set, or a new weight still passes unseen.
 - **D-3 (defect, blocking):** `src/ai/scorer.gd:115,118-120`, ticked at `story-012...md:37`. A29 says every value in F1-F9 is read from `ai_profiles.json`. `design/gdd/boss-ai.md:466-467` gives `flat_bonus` and `taunt_bonus` the source "data file". They are literals in `Scorer.NORMALISERS`, and `ai_profiles.json` has no such keys. The gate passes only because the table's name is allow-listed. Either move them to data, or the owner amends F2's Source column. The AC cannot stay ticked as it reads. The schema is in `boss_ai.gd`, so this is the owning lane's.
 
-### Suggestions
+### BAI-012 — Suggestions
 - **S-5:** narrow the `engine.emit` exemption to the one line in `boss_ai.gd`, matching on file as the `_resume.emit` case does.
 - **S-6:** record the C1.3 breach (Q-7 below) in `docs/tech-debt-register.md`. I found it only in stories and the review. The story says nothing in the suite guards it until the held tests land.
 
-### Design questions for the owner
+### BAI-012 — Design questions for the owner
 - **Q-5:** does `play_turn` stay in `src/ai`? Its only callers are tests, and it writes to a log through `engine.emit`. Story 016 says the harness goes through the driver.
 - **Q-6:** which `NORMALISERS` entries are normalisers? `windfury 0.5`, `weapon_bv 0.8` and `trade_even_band 0.2` are formula constants in F2 and F3 with no data source, and A29's "every value" covers them. `board_full_threat`, `defensive_taunt_bv`, `big_minion_cost` and the `cost_fit_*` pair come from prose outside F1-F9.
 - **Q-7:** C1.3 on the real plan: the search and the trial read the boss's own deck order (BAI-007 D-2). Shipped reach, by the story's account: none. The trial fix is the design call the story names.

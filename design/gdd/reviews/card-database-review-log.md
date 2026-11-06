@@ -37,7 +37,7 @@ Reviewed-Content-Hash: design/gdd/meta-progression.md e1b2d83f2eee16edc639e9093c
 Reviewed-Content-Hash: design/gdd/match-ui.md 6645f862cbd413853a0afdec2f3ccf775e811547
 Reviewed-Content-Hash: design/gdd/rng-event-log.md cb06cb1680292fc0af6b80262894d273f27d1fa8
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Follow-up Review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: standard
 Scope signal: L
 Specialists: none (lean mode — main review only; qa-lead AC check performed inline)

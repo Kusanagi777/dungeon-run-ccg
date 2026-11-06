@@ -262,7 +262,7 @@ Output
 
 ---
 
-## Camera Shake
+## Camera Shake from Gameplay Code
 
 ### Trigger Camera Shake
 

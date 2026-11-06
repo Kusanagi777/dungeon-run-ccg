@@ -42,7 +42,7 @@ Still valid: ADR-0004, 0006, 0009 cite rng-event-log.md for other requirements (
 
 ## DD-X20 — boss-ai.md and content.md: Boss AI values `add_counter`
 
-### Change Summary
+### Change Summary for DD-X20
 Changed sections:
 - boss-ai C6: `add_counter` joins the op list with the row `add_counter 0.5` and its rationale (the floor of the table, with `armor`; the reading `damage` op already carries the payoff). `set_counter` stays unvalued.
 - boss-ai F9: a note under the schema block. The decided row moves into the `op_values:` list together with `ai_profiles.json` (content story 010), because `boss_ai_profiles_data_test.gd` pins the shipped file to that list.
@@ -54,7 +54,7 @@ Key changes affecting architecture: none structural. The op value table is data 
 
 Downstream GDDs to re-check: none in the registry (`op_values` has no entity). card-effects C11 row 45 is the reading op, unchanged.
 
-### ADRs in scope
+### ADRs in scope for DD-X20
 boss-ai.md (standard): 8 ADRs (Foundation 0001, 0002, 0003, 0004, 0010 plus 0005, 0006, 0007, 0008, which name boss-ai.md). content.md: ADR-0002 and 0003 name it. A search of `docs/architecture/` for `add_counter`, `op_values` values and `gravekeeper` finds `op_values` only as a constructor parameter name (ADR-0001, ADR-0008, architecture.md), with no row or value quoted.
 - All in-scope ADRs: **Still Valid**. None quotes an op value or the Gravekeeper deferral, so no erratum is needed.
 
@@ -66,7 +66,7 @@ boss-ai.md (standard): 8 ADRs (Foundation 0001, 0002, 0003, 0004, 0010 plus 0005
 
 ## DD-X21 — match-rules.md, card-effects.md, content.md: destroy then Silence
 
-### Change Summary
+### Change Summary for DD-X21
 Changed sections:
 - match-rules C12 (Silence and Deathrattle rows): a minion already `pending_destroy` keeps its Deathrattles when Silenced, so destroy-then-silence **fires**. The old row read "not if Silenced before [it died]".
 - match-rules C13 Silence step (2): the `pending_destroy` exception, with its reason (the mark is irrevocable; `health ≤ 0` is not protected, because a later op can heal it back). The snapshot is still the one taken at the death check.
@@ -81,14 +81,14 @@ Key changes affecting architecture: the `silence` primitive's behaviour on a `pe
 
 Downstream GDDs to re-check: none in the registry. boss-ai sandbox resolves through the same engine, so no text change is needed.
 
-### ADRs in scope
+### ADRs in scope for DD-X21
 match-rules and card-effects are pinned `full`, so all 11 ADRs are in scope. 7 name match-rules.md (0001, 0003, 0005, 0006, 0007, 0008, 0009); 3 name card-effects.md (0002, 0005, 0007); content.md is named by 0002 and 0003. A search of `docs/architecture/` for Silence / Deathrattle / `pending_destroy` rules finds only ADR-0007's responder rule ("source live, not silenced"). That rule still holds: a queued instance resolves, and the change is in what Silence removes. ADR-0007's closed `E_FX_*` list is unchanged.
 - All 11: **Still Valid**. No erratum: no ADR quotes the old C12 sentence.
 
 ### Shipped data checked (read-only)
 `assets/data/cards_*.json`, `bosses.json`, `treasures.json`, `hero_powers.json`: **no card destroys and silences one target**. The only `destroy` is `war_headsman` and the only `silence` is `neutral_hush_owl`. No planned card in content CN-2 / CN-3 does both.
 
-### Stories
+### Stories for DD-X21
 - `production/epics/card-effects/story-009-…`: AC-21 stands; match-rules AC-46 and the `silence` primitive change added to scope and Files. The sprint-4 blocker is cleared in `production/sprint-status.yaml`.
 - New `production/epics/card-effects/story-017-validator-silence-before-destroy.md` (Logic, S): AC-47. Card-effects EPIC (17 stories, coverage line), match-rules EPIC coverage line, `production/epics/index.md`.
 
@@ -96,7 +96,7 @@ match-rules and card-effects are pinned `full`, so all 11 ADRs are in scope. 7 n
 
 ## DD-X22 — boss-ai.md: non-lethal face attacks
 
-### Change Summary
+### Change Summary for DD-X22
 Changed sections:
 - C6: an **Attack valuation** paragraph records the pre-filter value as built by boss-ai story 005: one `damage` row, plus the `destroy` row on a kill, with lethal face attacks ranked first. A non-lethal face attack is one `damage` row whatever its Attack, and is valued after simulation by `f_face`.
 - F1: a **Vulnerability exception** with `reach`, `unsafe` and `vulnerable(a)` defined, plus a worked example and a new variables row. When the exception holds, `f_face = 0` and `f_self = −min(1, reach / (boss_health + boss_armor))`.
@@ -112,10 +112,10 @@ Unchanged: weights, F2–F9, DEFENSIVE mode (F6), lethal search, budgets.
 
 Key changes affecting architecture: none. The rule is scorer arithmetic over states the one-ply sandbox already simulates, so it adds no simulation and no new seam.
 
-### ADRs in scope
+### ADRs in scope for DD-X22
 8 ADRs (as DD-X20). A search of `docs/architecture/` for `f_face`, `f_self`, `defensive_margin` and the attack valuation finds nothing. All in scope are **Still Valid**; no erratum.
 
-### Stories
+### Stories for DD-X22
 - `production/epics/boss-ai-match-driver/story-009-defensive-mode-and-sandbox-fidelity.md`: A31 AC, an Implementation Notes paragraph, Files (`src/ai/scorer.gd`, the new test and fixture), estimate S → M.
 - `story-005-…`: its "Open (design)" item is marked resolved; no pre-filter code change.
 - Boss-ai EPIC: story-table row, Definition of Done count 31.
@@ -124,7 +124,7 @@ Key changes affecting architecture: none. The rule is scorer arithmetic over sta
 
 ## DD-X23 — match-ui.md and boss-ai.md: the commit beat stretches over planning
 
-### Change Summary
+### Change Summary for DD-X23
 Changed sections:
 - match-ui U6 step 2: the beat starts at End Turn on the intent already shown and lasts `max(intent_banner_s, planner run)`, capped at `planner_target_ms` 500 ms. Past the cap, "boss thinking" shows until the plan arrives, then playback.
 - match-ui F4 `intent_banner_s` row: the stretch is planning time, not playback, so `max_turn_playback_s` is unchanged.
@@ -138,13 +138,13 @@ Key changes affecting architecture: the latency row that ADR-0009 and ADR-0006 q
 
 Downstream GDDs to re-check: none in the registry.
 
-### ADRs in scope
+### ADRs in scope for DD-X23
 match-ui.md (standard): Foundation ADR-0001, 0002, 0003, 0004, 0010 plus the ADRs naming match-ui.md (0006, 0008, 0009, 0011), 9 in all. A search for the commit-beat latency and "300 ms banner beat" hits ADR-0006 and ADR-0009.
 - **ADR-0009** (Match UI animation queue): Needs Review → **Updated in place (erratum 2026-11-04, DD-X23)**. The Related latency line is updated. Decisions 1–4 still hold, because boss-turn mode already starts on `turn_started{side: boss}` and the beat is view-state.
 - **ADR-0006** (planner threading): Needs Review → **Updated in place (erratum 2026-11-04, DD-X23)**. The Validation Criteria flag from DD-X18 is resolved, and Performance Implications is reworded. The "boss thinking" branch of the tick diagram is unchanged.
 - ADR-0001, 0002, 0003, 0004, 0008, 0010, 0011: **Still Valid**, since none quotes the beat.
 
-### Other documents fixed
+### Other documents fixed for DD-X23
 - `architecture.md`: the TR-match-ui-005 baseline row, §Performance budgets "Boss AI planner per run" and "UI input latency".
 - `control-manifest.md`: the "Boss AI worker" guardrail.
 - `tr-registry.yaml`: TR-match-ui-005, `revised: 2026-11-04` (same intent, ID kept).

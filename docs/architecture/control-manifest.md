@@ -164,7 +164,7 @@ sandbox write that is not `submit`.
 
 *Applies to: `src/gameplay/match/**`, `src/gameplay/effects/**`, `src/gameplay/run/match_driver.gd`, `src/ai/**`*
 
-### Required Patterns
+### Core Layer Required Patterns
 
 - **`RulesEngine` owns `MatchState`, `next_entity_id`, the phase machine, `win_loss_check`, the C10 loop (death check → `recompute_auras()` → queue pop), `RESOLUTION_STEP_CAP` and the 24 primitives**; it fires trigger points with `ctx.candidates` already in engine order — source: ADR-0007
 - **`RulesEngine._init(db, rules_config, resolver)`; `start(config)` constructs `state.hooks = HookRegistry.new()` then calls `resolver.bind(self, config.player.hook_installers + config.boss.hook_installers)` as C3 step 1, before `on_match_start`**; `resolver.unbind()` when `phase` becomes `Ended` (breaks the `RefCounted` cycle) — source: ADR-0007, ADR-0005
@@ -211,7 +211,7 @@ sandbox write that is not `submit`.
 - **Settings during a match**: the driver snapshots settings at construction; `telegraph_mode` is applied via `on_setting_changed` → `boss_ai.set_telegraph_mode` when no task is live, else deferred to `_on_task_done()`; no other key reaches the rules — source: ADR-0008
 - **`MatchDebugLoader` and the boss-ai sim harness build their driver through the same `driver_factory` with `ImmediatePlannerTask`, submit through `driver.submit`, and `tick()` until `is_planning()` is false** — source: ADR-0008, ADR-0009
 
-### Forbidden Approaches
+### Core Layer Forbidden Approaches
 
 - **Never let the resolver own the C10 loop or the trigger queue** — the loop is match-rules' rule; Match Rules must be testable without Card Effects — source: ADR-0007 (Alt 1)
 - **Never compile effects to GDScript Callables at load** — Callables cannot live in `MatchState`, so `clone()` and `restore(log)` break; a frozen record would carry code — source: ADR-0007 (Alt 2)
@@ -257,7 +257,7 @@ sandbox write that is not `submit`.
 - **Never invoke a Boss AI entry point inline from `submit` or `tick`** — only through `PlannerTask.start` — source: ADR-0008
 - **`MatchController` holds nothing but the driver reference** — source: ADR-0008
 
-### Performance Guardrails
+### Core Layer Performance Guardrails
 
 - **`RulesEngine.submit()`**: ≤ 5 ms worst case (50-step Deathrattle chain, includes resolver passes); **`legal_commands()`**: ≤ 2 ms (`targeting_spec` memoised per `def_id`) — source: ADR-0007, ADR-0001
 - **Hook fold**: 12-entry fold < 0.05 ms; three treasures add < 2 ms per match; ≤ 12 entries per match (`entry_count()` asserted in debug); `copy()` ≤ 12 small `duplicate(true)` calls per Boss AI clone — source: ADR-0005
@@ -272,7 +272,7 @@ sandbox write that is not `submit`.
 
 *Applies to: `src/gameplay/run/run_machine.gd`, `src/gameplay/draft/**`, `src/gameplay/treasures/**`, `src/gameplay/heroes/**`, `src/gameplay/meta/**`, config owners*
 
-### Required Patterns
+### Feature Layer Required Patterns
 
 - **`RunMachine._init(db, meta, draft, treasures, run_config, driver_factory)`**; `begin_match()` builds `MatchConfig` per R3, creates a **fresh match `EventLog`** per attempt (`EventLog.new(max_match_events, "match", meta)`; the run-scope log is a different instance), calls the injected `driver_factory.call(config)`, and connects `driver.match_ended` **first** — source: ADR-0008, ADR-0003
 - **`run_seed` comes from `RngService.run_seed_from_input(input, entropy)`**; the one permitted entropy call is Run Structure's run-creation command for the empty-seed branch, allow-listed by path in `tools/lint/no_global_rng.sh` — source: ADR-0003
@@ -287,7 +287,7 @@ sandbox write that is not `submit`.
 - **Every config owner reads its body once at construction and exposes a `static` validator registered at `Boot`** (`RulesEngine.validate_rules_config` (returns `ValidationReport` entry dictionaries; code-review fix 2026-11-03), `EffectValidator.validate_config`, `BossAI.validate_profiles_config`, `RunMachine.validate_config`, `RewardDraft.validate_config`, `Treasures.validate_config`, `Heroes.validate_config`, `MatchViewState.validate_config`, `RunController.validate_config`, `MetaProgression.validate_profile_defaults`, `ContentValidator.validate_config`, `EventLog.validate_config`) — source: ADR-0002
 - **All Boss AI numbers (`slice_ms`, `replay_budget_ms`, `planner_mode`, profile values) come from `ai_profiles.json`** (boss-ai A29) — source: ADR-0006
 
-### Forbidden Approaches
+### Feature Layer Forbidden Approaches
 
 - **Never mutate `RunState` from `src/gameplay/treasures/`** — source: ADR-0005
 - **Never re-implement the treasure pool membership predicate outside `Treasures.pool()`** — source: ADR-0005
@@ -298,7 +298,7 @@ sandbox write that is not `submit`.
 - **`RunDebugLoader` never builds a `MatchDriver`** (run-ui U10) — source: ADR-0008
 - **Never save, serialise or pause a live match from `RunMachine`** — `suspend()` returns `E_BAD_PHASE` in `in_match` — source: ADR-0008
 
-### Performance Guardrails
+### Feature Layer Performance Guardrails
 
 - **Run UI load budgets the Feature layer feeds**: `select_ready` ≤ 300 ms, `intro_ready` ≤ 300 ms; restart flow ≤ `restart_budget_ms` 5000 — source: ADR-0011
 - **`MetaStub` memory**: one `RunRecord` and the settings record — source: ADR-0011
@@ -309,7 +309,7 @@ sandbox write that is not `submit`.
 
 *Applies to: `src/ui/**`, `src/scenes/**` — rendering, UI, animation, input*
 
-### Required Patterns
+### Presentation Layer Required Patterns
 
 - **UI talks to the rules through exactly three channels**: commands in (`MatchController.submit(Command) -> CommandResult`, `RunController.intent(name, args)`), events out (`subscribe(Callable)` / `events_since(seq)` delivering `{seq, turn, type, payload, cause_seq}` in order), queries out (`MatchQuery.*`, `RunMachine.read_model()` — value copies only); presenters are projections of events and render numbers from events, not queries — source: ADR-0001
 - **`queue_free` appears only under `src/ui/`**, and in Match UI only for presenter children (number pops, tokens on death) after `apply_final` — source: ADR-0001, ADR-0009
@@ -343,7 +343,7 @@ sandbox write that is not `submit`.
 - **`FeedPresenter` uses `RichTextLabel`; if images are inlined, `add_image()` / `update_image()` take `width_unit` / `height_unit`** (4.7 rename) — source: ADR-0009
 - **A UI scene may print `RenderingServer.get_current_rendering_method()` / `get_current_rendering_driver_name()` / `get_video_adapter_name()` once in debug builds** so the log names the capture path — source: ADR-0010
 
-### Forbidden Approaches
+### Presentation Layer Forbidden Approaches
 
 - **Never hold a `MatchState`, `RunState` or a live rules object in `src/ui/**`; never call `.submit(` outside `*_controller.gd`, `*_driver.gd` and the `*_view.gd` input path** — gate G5 — source: ADR-0001
 - **Never `AnimationPlayer` / `AnimationTree` per presenter for data-driven steps** — the timeline would become the authority and durations would move into `.tres` files — source: ADR-0009 (Alt 1)
@@ -371,7 +371,7 @@ sandbox write that is not `submit`.
 - **Never `WorldEnvironment` glow, HDR, tonemapping, SSR / SSAO, `AreaLight3D`, 3D viewports, `SubViewport` with 3D content, or any Forward+-only project setting in v1**; MSAA / FXAA / SMAA 2D stay off; gamma is never a colour-token change — source: ADR-0010
 - **Never a custom shader that is not a `canvas_item` shader, or one that uses features absent in the Compatibility backend** — source: ADR-0010
 
-### Performance Guardrails
+### Presentation Layer Performance Guardrails
 
 - **Skip-all → display = view-state ≤ 100 ms** (a 300-step recorded stream on the min-spec machine) — source: ADR-0009
 - **`MatchQuery.*` ≤ 2 ms each**, called only on hover / drag — source: ADR-0009

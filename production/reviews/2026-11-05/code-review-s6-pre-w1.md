@@ -146,7 +146,7 @@ Merge: no conflict with trunk (`git merge-tree` clean, no shared files). The sto
 ### Engine Specialist Findings: CLEAN (two NOT SOURCEABLE points)
 `godot-gdscript-specialist` found the lambda captures sound and no thread-unsafe state it could verify. Its two unsourced points are under "Can a real driver run a boss turn".
 
-### Testability: GAPS
+### Boot Composition Root 009 — Testability: GAPS
 From `qa-tester`, verified by me unless marked. See Suggestions.
 - `OS.is_debug_build()` at `boot.gd:179` has no seam: removing it survives.
 - `test_shipped_data_boots_to_a_factory` (`boot_driver_factory_test.gd:381-387`) asserts only `is_valid()`, so no test builds a driver from shipped data through the factory or asserts the shipped `worker` class.
@@ -154,7 +154,7 @@ From `qa-tester`, verified by me unless marked. See Suggestions.
 - An invalid non-null override silently becomes a worker (`boot.gd:177`).
 - Dropped, unverified or too minor: `slice_ms` below 0.001, `_result.ok` after a reload.
 
-### ADR Compliance: COMPLIANT
+### Boot Composition Root 009 — ADR Compliance: COMPLIANT
 - **ADR-0008 D1:** the shape matches. New driver per call; `meta.get_settings()` taken inside the lambda, so per call.
 - **ADR-0006 Guidelines:** default worker, `time_sliced` or `--ai-sync` fallback, new object per call.
 - **ADR-0001 D4, ADR-0011 D4:** `boot.gd` is the one `src/core` file that may name these classes.
@@ -187,23 +187,23 @@ From `qa-tester`, verified by me unless marked. See Suggestions.
 - **But no test or run in this repo has ever driven `MatchDriver` through the real pool.** `boss_ai_planner_task_test.gd` names no `WorkerThreadPool` and drives injected fakes; the factory tests never call `start()`. That is by design here (TD-012), and BAI-017 owns it, still Ready, not built. W1 work should not treat the default path as proven.
 - UNVERIFIED, specialist claims, NOT SOURCEABLE: (a) `static var _label_regex` (`rng_stream.gd:46`) is shared and `fork()` searches it on the worker; whether concurrent `RegEx.search` is safe is unsourced. (b) `_result = work.call()` (`worker_pool_planner_task.gd:73`) needs the coroutine never to suspend. On (b), `ImmediatePlannerTask` uses the same idiom and `match_driver_replay_test.gd` exercises it, though on the main thread. Both belong in BAI-017's checks.
 
-### Standards Compliance: 6/6
-### Architecture: CLEAN
-### SOLID: COMPLIANT
+### Boot Composition Root 009 — Standards Compliance: 6/6
+### Boot Composition Root 009 — Architecture: CLEAN
+### Boot Composition Root 009 — SOLID: COMPLIANT
 
-### Game-Specific Concerns
+### Boot Composition Root 009 — Game-Specific Concerns
 Nothing on a frame path. `_check_runtime` requires `planner_mode` and `slice_ms`, and a missing `runtime` is a row, so `db.config(...).runtime.planner_mode` is safe after `Ready`.
 
-### Positive Observations
+### Boot Composition Root 009 — Positive Observations
 - The method is 15 lines of derived, stateless composition.
 - The failed-load test uses a `meta` override deliberately, so a check on `meta` alone would fail it.
 - `test_the_source_scan_finds_a_planted_reference` proves the scan can fail.
 - The deviations section is honest, including the AC-3 grep being false as written.
 
-### Required Changes
+### Boot Composition Root 009 — Required Changes
 None.
 
-### Suggestions
+### Boot Composition Root 009 — Suggestions
 1. Add `debug_build: bool = OS.is_debug_build()` to `driver_factory`, plus a release-build test (`boot.gd:170,179`). This closes the only unseen half of AC-2.
 2. Treat a non-null invalid override as an error, not a silent worker (`boot.gd:177`). A stale `Callable` in a test would otherwise start a real pool task, which ADR-0006 forbids under gdUnit.
 3. Derive the scan's class list from `tests/` and tighten the fixture exemption to refuse `.gd` paths (`boot_driver_factory_test.gd:33,153`).
@@ -221,6 +221,6 @@ The factory seam itself is right, so this is not a 009 defect. Needs a decision 
 
 **DQ-3. `--ai-sync` in release.** Confirm "ignored", then one line in ADR-0006 (`:393-394`, and manifest line 195, which has no "debug" qualifier).
 
-### Verdict: APPROVED WITH SUGGESTIONS
+### Boot Composition Root 009 — Verdict: APPROVED WITH SUGGESTIONS
 
 This approval covers the factory and its selection logic. It does not cover a real worker run, which is BAI-017's.

@@ -153,7 +153,7 @@ ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "radius",
 
 ## godot-rust (Rust Bindings)
 
-### Project Setup
+### Rust Project Setup
 ```
 project/
 ├── rust/

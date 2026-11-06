@@ -21,42 +21,41 @@ ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
 CLEAN = os.path.join(ROOT, "tests/fixtures/data/clean")
 
 
-def card(id, type, cost, set_, effects, keywords=(), attack=None, health=None, durability=None, extra=None):
+def card(card_id, card_type, cost, set_, effects, keywords=(), *, extra=None, is_token=False):
     """CardFactory.make_card_def shape (same defaults, same field order)."""
     rec = {
-        "id": id, "name": "Test Card", "set": set_, "type": type, "cost": cost,
-        "attack": 1 if attack is None else attack, "health": 1 if health is None else health,
-        "durability": 1 if durability is None else durability,
+        "id": card_id, "name": "Test Card", "set": set_, "type": card_type, "cost": cost,
+        "attack": 1, "health": 1, "durability": 1,
         "rarity": "common", "keywords": list(keywords), "spell_damage": 0,
-        "effects": effects, "tags": [], "text": {"key": "card.%s.text" % id, "en": ""},
-        "token": False, "art": "cards/%s" % id,
+        "effects": effects, "tags": [], "text": {"key": "card.%s.text" % card_id, "en": ""},
+        "token": is_token, "art": "cards/%s" % card_id,
     }
     rec.update(extra or {})
-    if type == "spell":
+    if card_type == "spell":
         for k in ("attack", "health", "durability"):
             rec.pop(k)
-    elif type == "weapon":
+    elif card_type == "weapon":
         rec.pop("health")
     else:
         rec.pop("durability")
     return rec
 
 
-def power(id, effects):
-    return {"id": id, "name": "Test Power", "cost": 2, "effects": effects,
-            "text": {"key": "power.%s.text" % id, "en": ""}, "art": "powers/%s" % id}
+def power(power_id, effects):
+    return {"id": power_id, "name": "Test Power", "cost": 2, "effects": effects,
+            "text": {"key": "power.%s.text" % power_id, "en": ""}, "art": "powers/%s" % power_id}
 
 
-def boss(id, passive, deck):
-    return {"id": id, "name": "Test Boss", "band": 1, "health": 30, "hero_power": "power_fx_row_44_brand",
-            "passive": passive, "passive_text": {"key": "boss.%s.passive" % id, "en": ""},
+def boss(boss_id, passive, deck):
+    return {"id": boss_id, "name": "Test Boss", "band": 1, "health": 30, "hero_power": "power_fx_row_44_brand",
+            "passive": passive, "passive_text": {"key": "boss.%s.passive" % boss_id, "en": ""},
             "deck": deck, "ai_profile": "default", "tags": [],
-            "intro_text": {"key": "boss.%s.intro" % id, "en": ""}, "art": "bosses/%s" % id}
+            "intro_text": {"key": "boss.%s.intro" % boss_id, "en": ""}, "art": "bosses/%s" % boss_id}
 
 
-def treasure(id, effects):
-    return {"id": id, "name": "Test Treasure", "rarity": "common", "tags": ["universal"], "effects": effects,
-            "unlock": None, "text": {"key": "treasure.%s.text" % id, "en": ""}, "art": "treasures/%s" % id}
+def treasure(treasure_id, effects):
+    return {"id": treasure_id, "name": "Test Treasure", "rarity": "common", "tags": ["universal"], "effects": effects,
+            "unlock": None, "text": {"key": "treasure.%s.text" % treasure_id, "en": ""}, "art": "treasures/%s" % treasure_id}
 
 
 def fx(text):
@@ -115,23 +114,23 @@ ROWS = [
 ]
 # The tokens the rows summon, equip or transform into (CR-3 `token: true`).
 TOKENS = [
-    card("war_token_axe", W, 2, "war", [], attack=3, durability=2, extra={"token": True}),
-    card("war_whetstone_blade", W, 1, "war", [], attack=1, durability=2, extra={"token": True}),
-    card("decay_husk", M, 1, "decay", [], attack=1, health=1, extra={"token": True, "tags": ["husk"]}),
-    card("neutral_sheep", M, 1, "neutral", [], attack=1, health=1, extra={"token": True}),
+    card("war_token_axe", W, 2, "war", [], extra={"attack": 3, "durability": 2}, is_token=True),
+    card("war_whetstone_blade", W, 1, "war", [], extra={"attack": 1, "durability": 2}, is_token=True),
+    card("decay_husk", M, 1, "decay", [], extra={"attack": 1, "health": 1, "tags": ["husk"]}, is_token=True),
+    card("neutral_sheep", M, 1, "neutral", [], extra={"attack": 1, "health": 1}, is_token=True),
 ]
 BOSS_DECK = ["boss_fx_grave_rat", "neutral_test_vanilla_1_1"]
 
 
 def vanilla_set():
     """CardFactory.make_fixture_card_set(), field for field."""
-    out = [card("neutral_test_vanilla_1_1", M, 1, "neutral", [], attack=1, health=1),
-           card("neutral_test_vanilla_2_2", M, 2, "neutral", [], attack=2, health=2),
-           card("neutral_test_vanilla_3_4", M, 3, "neutral", [], attack=3, health=4),
-           card("neutral_test_vanilla_2_5", M, 4, "neutral", [], attack=2, health=5)]
+    out = [card("neutral_test_vanilla_1_1", M, 1, "neutral", [], extra={"attack": 1, "health": 1}),
+           card("neutral_test_vanilla_2_2", M, 2, "neutral", [], extra={"attack": 2, "health": 2}),
+           card("neutral_test_vanilla_3_4", M, 3, "neutral", [], extra={"attack": 3, "health": 4}),
+           card("neutral_test_vanilla_2_5", M, 4, "neutral", [], extra={"attack": 2, "health": 5})]
     for kw in ["taunt", "charge", "rush", "divine_shield", "windfury", "stealth", "lifesteal", "poisonous"]:
-        out.append(card("neutral_test_%s" % kw, M, 2, "neutral", [], [kw], attack=2, health=2))
-    out.append(card("neutral_test_weapon_2_2", W, 2, "neutral", [], attack=2, durability=2))
+        out.append(card("neutral_test_%s" % kw, M, 2, "neutral", [], [kw], extra={"attack": 2, "health": 2}))
+    out.append(card("neutral_test_weapon_2_2", W, 2, "neutral", [], extra={"attack": 2, "durability": 2}))
     eff = lambda ops, targets=None: dict({"trigger": "cast", "scope": {}, "condition": {}, "ops": ops, "once_per_turn": False}, **({"targets": targets} if targets else {}))
     out.append(card("neutral_test_bolt", S, 1, "neutral", [eff([{"op": "damage", "amount": 1}], {"selector": "chosen", "filter": {"kind": "any"}})]))
     out.append(card("neutral_test_draw_two", S, 2, "neutral", [eff([{"op": "draw", "count": 2}])]))
@@ -141,9 +140,9 @@ def vanilla_set():
 def infra():
     """Folder-only records: a boss card for boss decks, and three neutral
     cards tagged `fixture` behind three bundles (DD-R04 `min_bundle_pool` 3)."""
-    cards = [card("boss_fx_grave_rat", M, 1, "boss", [], attack=1, health=1)]
+    cards = [card("boss_fx_grave_rat", M, 1, "boss", [], extra={"attack": 1, "health": 1})]
     for i in (1, 2, 3):
-        cards.append(card("neutral_fx_infra_%d" % i, M, 1, "neutral", [], attack=1, health=1, extra={"tags": ["fixture"]}))
+        cards.append(card("neutral_fx_infra_%d" % i, M, 1, "neutral", [], extra={"attack": 1, "health": 1, "tags": ["fixture"]}))
     bundles = [{"id": "bundle_neutral_fx_%s" % x, "name": "Test Bundle", "set": "neutral", "theme": "fixture",
                 "cards": ["neutral_fx_infra_1", "neutral_fx_infra_2", "neutral_fx_infra_3"], "unlock": None,
                 "text": {"key": "bundle.bundle_neutral_fx_%s.text" % x, "en": ""}} for x in ("a", "b", "c")]
@@ -155,11 +154,9 @@ def row_records():
     for row, kind, id_, type_, set_, kws, dsl, extra in ROWS:
         effects = fx(dsl) if dsl else []
         if kind == "card":
-            stats = {}
-            if extra and "attack" in extra:
-                stats = {"attack": extra["attack"], "durability": extra.get("durability")}
-            rec = card(id_, type_, 2, set_, effects, kws, attack=stats.get("attack", 2), health=2,
-                       durability=stats.get("durability", 2), extra={k: v for k, v in (extra or {}).items() if k not in ("attack", "durability")})
+            overrides = {"attack": 2, "health": 2, "durability": 2}
+            overrides.update(extra or {})
+            rec = card(id_, type_, 2, set_, effects, kws, extra=overrides)
         elif kind == "hero_power":
             rec = power(id_, effects)
         elif kind == "passive":
@@ -217,8 +214,9 @@ def main():
     flat = rows + TOKENS
     write_json(os.path.join(ROOT, "tests/fixtures/cards_effects_test.json"), flat)
     write_folder(os.path.join(ROOT, "tests/fixtures/data/card_effects_v1"), flat + vanilla_set() + infra())
-    bad = card("neutral_fx_bad_ref", M, 2, "neutral", [], attack=2, health=2,
-               extra={"effects": [{"trigger": "battlecry", "ops": [{"op": "summon", "card_id": "nope"}]}], "keywords": ["battlecry"]})
+    bad = card("neutral_fx_bad_ref", M, 2, "neutral", [], ["battlecry"],
+               extra={"attack": 2, "health": 2,
+                      "effects": [{"trigger": "battlecry", "ops": [{"op": "summon", "card_id": "nope"}]}]})
     plain_power = power("power_fx_plain", [])
     plain_boss = {"id": "boss_fx_plain", "name": "Test Boss", "band": 1, "health": 30, "hero_power": "power_fx_plain",
                   "passive": None, "deck": BOSS_DECK, "ai_profile": "default", "tags": [],

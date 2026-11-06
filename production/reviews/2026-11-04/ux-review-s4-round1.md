@@ -123,7 +123,7 @@ Address the 1 blocking issue above, then re-run `/ux-review`.
 **Platform Target**: PC, mouse primary / keyboard complete / gamepad Partial post-v1 / no touch
 **Accessibility Tier**: Standard (+3 elevations), committed
 
-### Completeness: 15/15 sections present
+### Targeting — Completeness: 15/15 sections present
 All required sections are present. The rejection copy covers all 21 match-rules C2 codes (counted). There is no resolution / scaled-window criterion; see A8.
 
 ### Quality Issues: 1 blocking, 8 advisory
@@ -188,7 +188,7 @@ All required sections are present. The rejection copy covers all 21 match-rules 
   - `rejection.detail` shape (match-rules owner).
   - New fixtures and poses.
 
-### Accessibility: GAPS
+### Targeting — Accessibility: GAPS
 - Target tier: Standard.
 - A1 (keyboard-only completion for War), A6 (no 150 % fixture).
 - Click-to-select gives every step as a discrete press, satisfying Hold-to-press alternatives.
@@ -198,7 +198,7 @@ All required sections are present. The rejection copy covers all 21 match-rules 
 - The spec references the patterns and does not re-specify them. Its additions are flagged in §15: ghost token, cast zone, `A` badges, extended cycle order, initial position = right-most gap.
 - A7.
 
-### Verdict: NEEDS REVISION
+### Targeting — Verdict: NEEDS REVISION
 **Blocking issues**: 1 — must be resolved before implementation
 **Advisory issues**: 8 — recommended but not blocking
 **Dimensions not assessed**: 0
@@ -215,7 +215,7 @@ Address the 1 blocking issue above, then re-run `/ux-review`.
 **Platform Target**: PC, mouse primary / keyboard complete / gamepad Partial post-v1 / no touch
 **Accessibility Tier**: Standard (+3 elevations), committed
 
-### Completeness: 15/15 sections present
+### Mulligan — Completeness: 15/15 sections present
 All required sections are present. Empty (n = 0), error (rejected), opening / closing and the setting variants are documented. There is no resolution criterion (A6).
 
 ### Quality Issues: 3 blocking, 6 advisory
@@ -280,16 +280,16 @@ All required sections are present. Empty (n = 0), error (rejected), opening / cl
 
   The deadlines say "before MUI-009 readiness", but MUI-009 is already Ready. Its "3 cards / 8 subsets" AC must be amended before implementation.
 
-### Accessibility: GAPS
+### Mulligan — Accessibility: GAPS
 - Target tier: Standard.
 - B2 (text scale), B1 (context the spec relies on for cognitive load is hidden at n = 5).
 - Keep vs replace has five non-colour cues. No timer. Focus is trapped. Contrast table OK.
 
-### Pattern Library: INCONSISTENCIES FOUND
+### Mulligan — Pattern Library: INCONSISTENCIES FOUND
 - A3 (unflagged keys).
 - Other deviations are flagged correctly: overlay refinement, double-click, `1`–`9`, `0`, base-dim reading.
 
-### Verdict: NEEDS REVISION
+### Mulligan — Verdict: NEEDS REVISION
 **Blocking issues**: 3 — must be resolved before implementation
 **Advisory issues**: 6 — recommended but not blocking
 **Dimensions not assessed**: 0
@@ -306,7 +306,7 @@ Address the 3 blocking issues above, then re-run `/ux-review`.
 **Platform Target**: PC, mouse primary / keyboard complete / gamepad Partial post-v1 / no touch
 **Accessibility Tier**: Standard (+3 elevations), committed
 
-### Completeness: 15/15 sections present
+### Match End — Completeness: 15/15 sections present
 All required sections are present. The absence of empty, loading and error states is justified explicitly: the fault is a designed variant. The auto-advance has a duration (4 s) and a visible countdown. There is no resolution criterion (A5).
 
 ### Quality Issues: 2 blocking, 5 advisory
@@ -349,7 +349,7 @@ All required sections are present. The absence of empty, loading and error state
 7. **A5 — No resolution criterion** [ADVISORY]
    - Fix: add 1280x720 plus a uniformly scaled fullscreen criterion.
 
-### GDD Alignment: ALIGNED (routed gaps)
+### Match End — GDD Alignment: ALIGNED (routed gaps)
 - match-ui U9 (variants, the fault copy and the "no stinger / no saturation / still auto-advances" rule, `MATCH_END_AUTO_S`, exactly-once `match_view_finished`, never navigates), U5 / DD-X09 (`Esc` and the menu button do nothing), U4.5 (skip during the banner), F3, F6 rect, O13, O19, UI Requirements "Match end overlay": covered.
 - match-rules C14 (`hero_dead` / `both_dead` / `concede` / `turn_cap`, faults `resolution_overflow` / `event_cap`, `MatchResult` fields): covered. DD-M12 tie copy covered.
 - B1 conflicts with match-ui States.
@@ -362,7 +362,7 @@ All required sections are present. The absence of empty, loading and error state
   - Concede stinger.
   - MUI-011 citation. MUI-011 is already Ready; its AC does not contradict the arm guard.
 
-### Accessibility: GAPS
+### Match End — Accessibility: GAPS
 - Target tier: Standard.
 - B1 (Pause anywhere), B2 (text scale).
 - Reading time is justified against the Cognitive row. The flash budget is respected (one 400 ms ramp; one text change per second). Every variant has non-colour cues. Contrast table OK.
@@ -370,7 +370,7 @@ All required sections are present. The absence of empty, loading and error state
 ### Pattern Library: CONSISTENT
 - Overlay row "Match-end banner", Escape / Cancel step (4a), Button (Primary) and the Error State rule are all followed. The countdown is flagged as new.
 
-### Verdict: NEEDS REVISION
+### Match End — Verdict: NEEDS REVISION
 **Blocking issues**: 2 — must be resolved before implementation
 **Advisory issues**: 5 — recommended but not blocking
 **Dimensions not assessed**: 0

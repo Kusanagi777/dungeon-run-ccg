@@ -39,7 +39,7 @@ Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Follow-up Review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: full
 Scope signal: XL
 Specialists: none (lean mode — single-session review; specialist delegation skipped by configuration, not by omission)
@@ -78,7 +78,7 @@ Reviewed-Content-Hash: design/gdd/systems-index.md b6cea95eef89f3f0015d0cd1ff03c
 Reviewed-Content-Hash: design/design-decisions.md 7a7fd2f58edfa5bdefa2d9e376b809a4a529615f
 Reviewed-Content-Hash: design/gdd/gdd-cross-review-2026-11-03.md c735c9738a373e58a095ba1c942ee89f0de6685a
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Final Re-review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: full
 Scope signal: XL
 Specialists: none (lean mode — single-session review; specialist delegation skipped by configuration, not by omission)

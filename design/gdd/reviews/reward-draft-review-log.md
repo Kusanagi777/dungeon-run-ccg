@@ -35,7 +35,7 @@ Reviewed-Content-Hash: design/gdd/game-concept.md 942314097524c7e2f25ad786643fba
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
 Reviewed-Content-Hash: design/design-decisions.md 96d205e052b6b069575e43201d735fb254843a13
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Follow-up Review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: standard
 Scope signal: L
 Specialists: none (lean mode — economy-designer, systems-designer, game-designer, qa-lead, creative-director not spawned)

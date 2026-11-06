@@ -39,7 +39,7 @@ Reviewed-Content-Hash: design/gdd/run-ui.md 8d242eaafec4a3b0db63f3db3c65cd4771d3
 Reviewed-Content-Hash: design/gdd/meta-progression.md bdfd4ad9111612ebe5d33596746caadfa5dc873f
 Reviewed-Content-Hash: design/gdd/systems-index.md 1a5454bb731d1a57ff78d52c6cb98ae3d49598fc
 
-## Review — 2026-11-03 — Verdict: NEEDS REVISION
+## Follow-up Review — 2026-11-03 — Verdict: NEEDS REVISION
 Review mode: lean · Workflow: standard
 Scope signal: L
 Specialists: none (lean mode — single-session review; no `systems-designer` / `qa-lead` pass)
