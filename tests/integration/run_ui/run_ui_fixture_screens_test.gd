@@ -236,6 +236,26 @@ func test_ac5_bundle_panels_sit_on_their_slots_with_cards_and_a_preview() -> voi
 	assert_bool(DESIGN.encloses(screen._preview.get_global_rect())).override_failure_message(str(screen._preview.get_global_rect())).is_true()
 
 
+func test_bundle_card_names_stay_horizontal_beside_their_stamp() -> void:
+	# The art row must not collapse an autowrap name to one character wide.
+	var screen: Screen = await _open("draft_bundle_sample", &"draft_bundle")
+	var rows: Array[Control] = []
+	for panel: OptionPanel in screen._panels:
+		for node: Node in panel.find_children("*", "PanelContainer", true, false):
+			if node.focus_mode == Control.FOCUS_ALL:
+				rows.append(node)
+	assert_int(rows.size()).is_equal(9)
+	for row: Control in rows:
+		var label: Label = row.find_child("*", true, false) as Label
+		for child: Node in row.find_children("*", "Label", true, false):
+			label = child
+			break
+		assert_object(label).is_not_null()
+		assert_float(label.size.x).override_failure_message(label.text).is_greater(120.0)
+		assert_int(label.get_line_count()).override_failure_message("%s lines %d" % [label.text, label.get_line_count()]).is_equal(1)
+		assert_float(row.size.y).override_failure_message(label.text).is_less_equal(float(screen.ROW_H))
+
+
 func test_ac5_focusing_a_bundle_shows_its_hints_and_blur_clears_them() -> void:
 	var screen: Screen = await _open("draft_bundle_sample", &"draft_bundle")
 	screen.handle_option_key(1)
