@@ -364,6 +364,7 @@ static func run_record(run_id: String, overrides: Dictionary = {}) -> Dictionary
 		"seed_source": "random",
 		"hero_id": HERO_WAR,
 		"floors_per_run": FLOORS_PER_RUN,
+		"status": "victory",
 		"boss_sequence": [],
 		"deck": [],
 		"treasures": [],
@@ -387,12 +388,12 @@ static func victory(run_id: String, hero_id: String = HERO_WAR, turns: int = 50,
 
 
 static func defeat(run_id: String, hero_id: String, floor: int, boss_id: String, summaries: Array = []) -> Dictionary:
-	return run_record(run_id, {"hero_id": hero_id, "match_summaries": summaries, "result": {"outcome": "defeat",
+	return run_record(run_id, {"hero_id": hero_id, "status": "defeat", "match_summaries": summaries, "result": {"outcome": "defeat",
 		"floors_cleared": floor - 1, "floor_reached": floor, "ended_by": boss_id, "abandon_reason": null}})
 
 
 static func abandoned(run_id: String, hero_id: String, floor: int, reason: String) -> Dictionary:
-	return run_record(run_id, {"hero_id": hero_id, "result": {"outcome": "abandoned", "floors_cleared": floor - 1,
+	return run_record(run_id, {"hero_id": hero_id, "status": "abandoned", "result": {"outcome": "abandoned", "floors_cleared": floor - 1,
 		"floor_reached": floor, "ended_by": null, "abandon_reason": reason}})
 
 

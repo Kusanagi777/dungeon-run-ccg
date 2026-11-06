@@ -144,6 +144,7 @@ func test_windows_only_open_backup_never_costs_the_profile() -> void:
 	# Act
 	var outcome: Error = _writer.write(_final, "third", _bak)
 	reader.close()
+	print("PLATFORM open backup: %s %s" % [error_string(outcome), _writer.last_error_detail()])
 
 	# Assert: either the write went through or `profile.json` is as it was
 	var expected: String = "third" if outcome == OK else "second"
@@ -164,6 +165,7 @@ func test_windows_only_open_profile_never_costs_the_profile() -> void:
 	# Act
 	var outcome: Error = _writer.write(_final, "third", _bak)
 	reader.close()
+	print("PLATFORM open profile: %s %s" % [error_string(outcome), _writer.last_error_detail()])
 
 	# Assert
 	var expected: String = "third" if outcome == OK else "second"

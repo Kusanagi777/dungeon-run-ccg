@@ -38,8 +38,8 @@ const BINDINGS_KEY: String = "bindings"
 const LOG_SLOT: String = "__run_log_entries__"
 ## The wrapper [method _entry_text] prints an entry in, at its depth in the file.
 const ENTRY_WRAP_KEY: String = "k"
-const ENTRY_WRAP_HEAD: int = 10
-const ENTRY_WRAP_TAIL: int = 5
+const ENTRY_WRAP_OPEN: String = "{\n\t\"k\": [\n"
+const ENTRY_WRAP_CLOSE: String = "\n\t]\n}"
 
 ## The channel every settings consumer reads (ADR-0004 Key Interfaces).
 var settings_bus: SettingsBus = SettingsBus.new()
@@ -548,7 +548,7 @@ func _forget_log_text() -> void:
 ## [param entry] printed as a member of a top-level array: two tabs deep.
 func _entry_text(entry: Dictionary) -> String:
 	var wrapped: String = JSON.stringify({ENTRY_WRAP_KEY: [entry]}, "\t", false, true)
-	return wrapped.substr(ENTRY_WRAP_HEAD, wrapped.length() - ENTRY_WRAP_HEAD - ENTRY_WRAP_TAIL)
+	return wrapped.trim_prefix(ENTRY_WRAP_OPEN).trim_suffix(ENTRY_WRAP_CLOSE)
 
 
 ## `backup_count` above 1: `.bak` copies down to `.bak2`, `.bak3` before the write.

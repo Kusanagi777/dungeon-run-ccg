@@ -210,6 +210,28 @@ func test_archive_stats_survive_a_restart() -> void:
 	assert_dict(next.get_stats()).is_equal(stats)
 
 
+func test_archive_folds_a_record_as_run_record_serialises_it() -> void:
+	# Arrange: the field names this system reads are Run Structure's (R1), so a record goes
+	# through the real to_dict, with a seed above 2^53
+	var source: Dictionary = ProfileFixtures.defeat(RUN_ID, DECAY, 3, ProfileFixtures.BOSS_B,
+		[ProfileFixtures.match_summary(ProfileFixtures.BOSS_A, true)])
+	source["run_seed_hex"] = "FFFFFFFFFFFFFF01"
+	var record: Dictionary = RunRecord.to_dict(RunRecord.from_dict(source))
+	var meta: MetaFacade = _loaded()
+
+	# Act
+	meta.archive_run(record)
+	var next: MetaFacade = _restart(meta)
+
+	# Assert
+	var stats: Dictionary = next.get_stats()
+	assert_int(stats.runs_lost).is_equal(1)
+	assert_int(stats.heroes[DECAY].best_floor_reached).is_equal(3)
+	assert_int(stats.bosses[ProfileFixtures.BOSS_A].defeated).is_equal(1)
+	assert_int(stats.bosses[ProfileFixtures.BOSS_B].defeated_by).is_equal(1)
+	assert_str(next.run_log_entry(RUN_ID).run_seed_hex).is_equal("FFFFFFFFFFFFFF01")
+
+
 # --- AC-21 / M3.4 --------------------------------------------------------------
 
 func test_archive_ac21_custom_seed_first_win_grants_and_sets_no_best() -> void:
