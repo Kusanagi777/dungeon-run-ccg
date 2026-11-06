@@ -28,6 +28,8 @@ const ONE_BLOW: int = 1
 var db: CardDatabase
 ## The health of every boss, when above 0.
 var boss_health: int = 0
+## `reward_draft` knobs laid over the data's, for [method machine].
+var draft_overrides: Dictionary = {}
 ## Every `MatchConfig` the factory received, oldest first.
 var configs: Array[Dictionary] = []
 var drivers: Array[MatchDriver] = []
@@ -40,7 +42,9 @@ func _init(database: CardDatabase) -> void:
 ## A real `RunMachine` over [param meta]. [param archive] files its match logs.
 func machine(meta: MetaApi, overrides: Dictionary = {}, archive: EventLogArchive = null) -> RunMachine:
 	var treasures: Treasures = Treasures.new(db, db.config("treasures_balance"))
-	var draft: RewardDraft = RewardDraft.new(db, treasures, meta, db.config("reward_draft"))
+	var draft_config: Dictionary = (db.config("reward_draft") as Dictionary).duplicate(true)
+	draft_config.merge(draft_overrides, true)
+	var draft: RewardDraft = RewardDraft.new(db, treasures, meta, draft_config)
 	var config: Dictionary = (db.config("run_structure") as Dictionary).duplicate(true)
 	config["max_match_events"] = EventLog.max_events_for(db.config("rng_event_log"))
 	config["engine_version"] = ENGINE_VERSION
