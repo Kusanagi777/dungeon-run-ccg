@@ -1,4 +1,4 @@
-## Integration: the grep gates G1–G7 (`tools/lint/gates.sh`) have been watched
+## Integration: the grep gates G1–G8 (`tools/lint/gates.sh`) have been watched
 ## failing (story boot-composition-root/story-005 AC-4; ADR-0001 Decision 6 —
 ## "the gate script is run once against a deliberately broken file before it
 ## is trusted").
@@ -19,7 +19,7 @@ extends GdUnitTestSuite
 const GATES_SCRIPT := "res://tools/lint/gates.sh"
 const FIXTURES := "res://tests/fixtures/lint/"
 const PROJECT_ROOT := "res://"
-const GATES: Array[String] = ["G1", "G2", "G2b", "G3", "G4", "G5", "G6", "G7"]
+const GATES: Array[String] = ["G1", "G2", "G2b", "G3", "G4", "G5", "G6", "G7", "G8"]
 ## Exit codes of `gates.sh`.
 const EXIT_CLEAN := 0
 const EXIT_HITS := 1
@@ -180,6 +180,22 @@ func test_g7_clean_fixture_of_reads_and_primitive_calls_passes() -> void:
 	assert_int(result.exit).is_equal(EXIT_CLEAN)
 	assert_str(result.text).contains("G7 hits: 0
 ")
+
+
+func test_g8_fixture_every_node_reach_in_the_treasures_chain_fails_but_the_rest_of_match_does_not() -> void:
+	# Arrange — lines 6-9 of node_reach.gd each hold one alternative of the gate
+	var result: Dictionary = _run_gates(FIXTURES + "g8")
+
+	# Assert
+	assert_int(result.exit).is_equal(EXIT_HITS)
+	for line: int in range(6, 10):
+		assert_str(result.text).contains("G8 src/gameplay/treasures/node_reach.gd:%d:" % line)
+	assert_str(result.text).contains("G8 src/gameplay/match/hook_registry.gd:5:")
+	assert_str(result.text).contains("G8 src/gameplay/match/hook_installer.gd:5:")
+	assert_str(result.text).contains("G8 hits: 6\n")
+	assert_str(result.text).not_contains("board_reader.gd")
+	assert_str(result.text).not_contains("commented.gd")
+	_assert_only_gate_hits(result.text, "G8")
 
 
 func test_real_tree_passes_every_gate() -> void:

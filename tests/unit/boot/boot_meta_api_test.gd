@@ -42,6 +42,11 @@ const EXPECTED_RETURNS: Dictionary = {
 	"validate_unlock_defs": [TYPE_ARRAY, ""],
 	"reset_profile": [TYPE_INT, "Error"],
 	"load_status": [TYPE_STRING_NAME, ""],
+	# M1.3's `get_stats()`, and what the settings and Run Log screens ask of the owner.
+	"is_read_only": [TYPE_BOOL, ""],
+	"get_stats": [TYPE_DICTIONARY, ""],
+	"run_log_count": [TYPE_INT, ""],
+	"clear_run_records": [TYPE_INT, "Error"],
 }
 
 
@@ -49,6 +54,18 @@ const EXPECTED_RETURNS: Dictionary = {
 ## (Godot 4.7 typed-return rule, breaking-changes.md 4.6→4.7).
 class ConcreteMeta:
 	extends MetaApi
+
+	func is_read_only() -> bool:
+		return false
+
+	func get_stats() -> Dictionary:
+		return {}
+
+	func run_log_count() -> int:
+		return 0
+
+	func clear_run_records() -> Error:
+		return OK
 
 	func load_profile() -> Dictionary:
 		return {}

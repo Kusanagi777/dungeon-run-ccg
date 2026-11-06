@@ -8,8 +8,9 @@
 ## load real fixture roots through a real `DataLoader`; the happy path loads
 ## with explicit `func(...): return []` validator stubs (control manifest).
 ##
-## `MetaStub` reads `config()`, `heroes()` and `treasure_pool()` from the
-## real `CardDatabase` (card-database story 006).
+## With no `meta` override `Boot` composes the real `MetaFacade` over `user://`, and
+## this instance is never in the tree, so `after_test` drops the lock `_exit_tree`
+## would have dropped.
 extends GdUnitTestSuite
 
 const BOOT_SCRIPT := preload("res://src/core/boot.gd")
@@ -18,12 +19,29 @@ const AUTOLOAD_PREFIX := "autoload/"
 const READY_FIXTURE := "res://tests/fixtures/data/minimal/"
 const FAILED_FIXTURE := "res://tests/fixtures/data/parse_error/"
 const SERVICE_FIELDS: Array[String] = ["card_database", "profile_store", "meta", "settings_bus"]
-## The only script variables Boot may declare: service handles and the flag.
-const BOOT_FIELDS: Array[String] = ["booted", "_services", "_result"]
+## The only script variables Boot may declare: service handles, the flag, and the
+## upkeep handles of the composition (planner tasks, ADR-0006; the profile's lock,
+## debounce and bindings, ADR-0004 Decisions 6 and 8).
+const BOOT_FIELDS: Array[String] = [
+	"booted", "_services", "_result", "_planner_tasks", "_profile_store", "_debounce_timer", "_input_bindings",
+]
+## The files a `MetaFacade` loads from and locks (ADR-0004).
+const PROFILE_FILES: Array[String] = ["user://profile.json", "user://profile.bak", "user://profile.lock"]
+
+
+var _boots: Array[BOOT_SCRIPT] = []
+
+
+func after_test() -> void:
+	for boot: BOOT_SCRIPT in _boots:
+		boot._release_profile()
+	_boots.clear()
 
 
 func _fresh_boot() -> BOOT_SCRIPT:
-	return auto_free(BOOT_SCRIPT.new())
+	var boot: BOOT_SCRIPT = auto_free(BOOT_SCRIPT.new())
+	_boots.append(boot)
+	return boot
 
 
 ## The full accept-all map (card-database story 004: a missing validator is
@@ -134,18 +152,20 @@ func test_boot_card_database_override_is_used() -> void:
 	# Arrange
 	var boot: BOOT_SCRIPT = _fresh_boot()
 	var db: CardDatabase = _loaded_database()
+	for file_name: String in PROFILE_FILES:
+		DirAccess.remove_absolute(file_name)
 
 	# Act
 	var result: BootResult = boot.boot({"card_database": db})
 
-	# Assert -- the given instance, and the MVP Meta line over it
+	# Assert -- the given instance, and the real Meta over it, loaded from no file
 	var services: Services = boot.services()
 	assert_bool(result.ok).is_true()
 	assert_object(result.report).is_same(db.report())
 	assert_object(services.card_database).is_same(db)
-	assert_bool(services.meta is MetaStub).is_true()
+	assert_bool(services.meta is MetaFacade).is_true()
 	assert_str(String(services.meta.load_status())).is_equal("FRESH")
-	assert_object(services.profile_store).is_null()
+	assert_object(services.profile_store).is_same((services.meta as MetaFacade).store())
 
 
 func test_boot_unloaded_card_database_override_is_loaded_by_boot() -> void:
@@ -156,8 +176,8 @@ func test_boot_unloaded_card_database_override_is_loaded_by_boot() -> void:
 	# Act
 	var result: BootResult = boot.boot({"card_database": db})
 
-	# Assert -- Ready with no error; the pending validators are visible as
-	# W_VALIDATOR_PENDING warnings in this debug build (code review 2026-11-03)
+	# Assert -- Ready with no error; a pending validator would show as a
+	# W_VALIDATOR_PENDING warning in this debug build (code review 2026-11-03)
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 	assert_bool(result.ok).is_true()
 	assert_str(String(result.load_status)).is_equal("Ready")
@@ -230,10 +250,10 @@ func test_boot_wrong_type_meta_override_is_logged_and_not_used() -> void:
 	await _assert_override_logged(func() -> void: out.result = boot.boot({"meta": db, "card_database": db}),
 		"Boot.boot(): override \"meta\" has the wrong type (Object); not used")
 
-	# Assert -- the MVP Meta line stands in
+	# Assert -- the real Meta stands in
 	assert_bool(out.result.ok).is_true()
 	assert_object(boot.services().card_database).is_same(db)
-	assert_bool(boot.services().meta is MetaStub).is_true()
+	assert_bool(boot.services().meta is MetaFacade).is_true()
 
 
 func test_boot_wrong_type_card_database_override_is_logged_and_not_used() -> void:

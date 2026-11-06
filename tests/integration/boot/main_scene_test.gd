@@ -1,4 +1,4 @@
-## Integration: `main.tscn`'s composition seam and the `RunShell` stub
+## Integration: `main.tscn`'s composition seam and `RunShell`
 ## (boot-composition-root story 006; ADR-0001 Decision 4, ADR-0011 Decision 1,
 ## architecture.md §Data Flow 5 steps 1 and 5).
 ##
@@ -34,6 +34,28 @@ func _shell(services: Services) -> RunShell:
 	add_child(shell)
 	await get_tree().process_frame
 	return shell
+
+
+## The screen instanced under [param shell] as [param node_name], or null.
+func _screen_node(shell: RunShell, node_name: String) -> Control:
+	return shell.find_child(node_name, true, false) as Control
+
+
+## The text of every report row `data_error` listed, in order.
+func _error_rows(shell: RunShell) -> Array[String]:
+	var rows: Array[String] = []
+	for label: Node in _screen_node(shell, "DataError").find_children("*", "Label", true, false):
+		if (label as Label).text.contains("  ["):
+			rows.append((label as Label).text)
+	return rows
+
+
+## The row text `data_error` draws for each entry of [param report] (run-ui U2).
+func _expected_rows(report: ValidationReport) -> Array[String]:
+	var rows: Array[String] = []
+	for row: Dictionary in RunReadModels.data_error(report).rows:
+		rows.append("%s  %s  [%s]  %s" % [row.file, row.id, row.code, row.message])
+	return rows
 
 
 # --- Main.boot_overrides: the debug command-line seam ------------------------------
@@ -75,8 +97,8 @@ func test_shell_over_a_ready_load_shows_main_menu() -> void:
 
 	# Assert
 	assert_str(String(shell.screen())).is_equal("main_menu")
-	assert_bool((shell.get_node("%MainMenu") as Control).visible).is_true()
-	assert_bool((shell.get_node("%DataError") as Control).visible).is_false()
+	assert_bool(_screen_node(shell, "MainMenu").visible).is_true()
+	assert_object(_screen_node(shell, "DataError")).is_null()
 
 
 func test_shell_over_a_failed_load_shows_data_error_with_every_report_row() -> void:
@@ -89,12 +111,11 @@ func test_shell_over_a_failed_load_shows_data_error_with_every_report_row() -> v
 
 	# Assert — Failed has no main menu (TD-008); one Label per CR-8 row
 	assert_str(String(shell.screen())).is_equal("data_error")
-	assert_bool((shell.get_node("%MainMenu") as Control).visible).is_false()
-	assert_bool((shell.get_node("%DataError") as Control).visible).is_true()
-	var rows: Array[Node] = shell.get_node("%ErrorRows").get_children()
+	assert_object(_screen_node(shell, "MainMenu")).is_null()
+	assert_bool(_screen_node(shell, "DataError").visible).is_true()
+	var rows: Array[String] = _error_rows(shell)
 	assert_int(rows.size()).is_equal(lines.size())
-	for i: int in rows.size():
-		assert_str((rows[i] as Label).text).is_equal(lines[i])
+	assert_array(rows).is_equal(_expected_rows(services.card_database.report()))
 	assert_str(lines[0]).starts_with("[error] E_PARSE")
 
 
@@ -119,25 +140,20 @@ func test_shell_over_the_shipped_data_with_the_debug_map_shows_main_menu() -> vo
 	assert_str(String(shell.screen())).override_failure_message(shell.services().card_database.report().to_text()).is_equal("main_menu")
 
 
-func test_shell_over_the_shipped_data_with_the_release_map_shows_data_error() -> void:
-	# Arrange — an exported (release) build: every pending validator is an
-	# error, so the shipped load fails by design (ADR-0002 Decision 4)
+func test_shell_over_the_shipped_data_with_the_release_map_shows_main_menu() -> void:
+	# Arrange — an exported (release) build: a pending validator would be an error and
+	# fail the load (ADR-0002 Decision 4). None is pending, so the shipped data is Ready
+	# and a release build reaches the menu (sprint-006 prerequisite 15)
 	var services: Services = _shipped_services(false)
-	var lines: PackedStringArray = services.card_database.report().to_text().split("\n")
 
 	# Act
 	var shell: RunShell = await _shell(services)
 
-	# Assert — no main menu; every error row is a pending validator (the loader
-	# files an error-severity pending entry as `E_DELEGATED`, message prefixed
-	# `W_VALIDATOR_PENDING:`)
-	assert_str(String(shell.screen())).is_equal("data_error")
-	assert_bool((shell.get_node("%MainMenu") as Control).visible).is_false()
-	assert_int(shell.get_node("%ErrorRows").get_child_count()).is_equal(lines.size())
-	var pending_errors: Array = Array(lines).filter(func(l: String) -> bool:
-		return l.begins_with("[error] E_DELEGATED") and l.contains("W_VALIDATOR_PENDING"))
-	assert_int(pending_errors.size()).is_equal(services.card_database.report().errors().size())
-	assert_int(pending_errors.size()).is_greater(0)
+	# Assert
+	assert_array(services.card_database.report().errors()).override_failure_message(services.card_database.report().to_text()).is_empty()
+	assert_str(String(shell.screen())).is_equal("main_menu")
+	assert_bool(_screen_node(shell, "MainMenu").visible).is_true()
+	assert_object(_screen_node(shell, "DataError")).is_null()
 
 
 func test_shell_stores_services_on_the_root_only() -> void:
@@ -150,7 +166,10 @@ func test_shell_stores_services_on_the_root_only() -> void:
 	# Assert — the bag is held by the shell root and handed nowhere deeper
 	assert_object(shell.services()).is_same(services)
 	for child: Node in shell.find_children("*", "", true, false):
-		assert_bool(child.get_script() == null).override_failure_message("%s has a script" % child.name).is_true()
+		for property: Dictionary in child.get_property_list():
+			if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+				assert_bool(child.get(property.name) is Services) \
+					.override_failure_message("%s holds the bag in %s" % [child.name, property.name]).is_false()
 
 
 func test_shell_frees_without_orphans() -> void:

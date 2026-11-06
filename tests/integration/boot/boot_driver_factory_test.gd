@@ -92,6 +92,8 @@ func after_test() -> void:
 	for driver: MatchDriver in _drivers:
 		driver.shutdown()
 	_drivers = []
+	# Never in the tree, so `_exit_tree` will not drop a real `MetaFacade`'s lock.
+	_boot._release_profile()
 
 
 # --- helpers -----------------------------------------------------------------
@@ -101,7 +103,7 @@ func _boot_with_mode(mode: String) -> void:
 	var runtime: Dictionary = _db.bodies[BossAI.CONFIG_NAME].runtime
 	runtime["planner_mode"] = mode
 	runtime["slice_ms"] = SLICE_MS
-	var result: BootResult = _boot.boot({"card_database": _db})
+	var result: BootResult = _boot.boot({"card_database": _db, "meta": MetaStub.new(_db)})
 	GameAssertions.fail_if(not result.ok, "the fixture boot did not end Ready")
 
 
@@ -376,6 +378,7 @@ func test_each_shipping_planner_mode_loads_ready() -> void:
 
 		# Assert
 		assert_bool(result.ok).override_failure_message("%s: %s" % [mode, result.report.to_text()]).is_true()
+		boot._release_profile()
 
 
 func test_shipped_data_boots_to_a_factory() -> void:
