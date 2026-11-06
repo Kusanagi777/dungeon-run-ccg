@@ -43,6 +43,8 @@ var _boss_panel: HeroPresenter = null
 # `func(index: int) -> Rect2`, the treasure chips' hit rects; [method set_treasures].
 var _treasure_rect: Callable = Callable()
 var _treasures: int = 0
+# `func() -> Rect2` by stop kind, for a control that moves at a text scale.
+var _live_rects: Dictionary = {}
 var _stop: Dictionary = {}
 var _card_index: int = -1
 var _active: bool = false
@@ -56,6 +58,11 @@ func configure(hand: HandPresenter, player_row: BoardPresenter, boss_row: BoardP
 	_boss_row = boss_row
 	_player_panel = player_panel
 	_boss_panel = boss_panel
+
+
+## [param rects] is `{stop kind: func() -> Rect2}`: the stops whose rect is not their layout's.
+func set_live_rects(rects: Dictionary) -> void:
+	_live_rects = rects
 
 
 ## The tray's [param count] chips, with [param rect_of]: `func(index: int) -> Rect2`.
@@ -188,10 +195,13 @@ func focus_stop(stop: Dictionary, inspect: bool) -> void:
 ## The screen rect of [param stop].
 func rect_of(stop: Dictionary) -> Rect2:
 	var id: int = int(stop.get("id", 0))
-	match str(stop.get("kind", "")):
+	var kind: String = str(stop.get("kind", ""))
+	if _live_rects.has(kind):
+		return (_live_rects[kind] as Callable).call()
+	match kind:
 		InputRouter.SOURCE_CARD:
 			var card: CardFrame = _hand.card(id)
-			return card.get_global_rect() if card != null else Rect2()
+			return card.get_global_transform() * Rect2(Vector2.ZERO, card.size) if card != null else Rect2()
 		InputRouter.SOURCE_ATTACKER:
 			var token: MinionToken = _player_row.token(id)
 			return token.get_global_rect() if token != null else _player_panel.portrait_rect()

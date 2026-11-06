@@ -27,6 +27,15 @@ const NO_TRANSITION: StringName = &"none"
 const OPTION_ACTIONS: Array[StringName] = [&"option_1", &"option_2", &"option_3"]
 const FOCUS_ENTRY_ACTIONS: Array[StringName] = [&"ui_focus_next", &"ui_focus_prev", &"ui_up", &"ui_down", &"ui_left", &"ui_right"]
 const BANNER_H_PX: float = 28.0
+## On a button whose press raises its own sound.
+const META_SILENT: StringName = &"sfx_silent"
+const SFX_HOVER: StringName = &"ui_hover"
+const SFX_SELECT: StringName = &"ui_select"
+const SFX_TICK: StringName = &"ui_slider_tick"
+const SFX_PICK: StringName = &"ui_pick"
+const SFX_UNLOCK: StringName = &"ui_unlock"
+const SFX_OVERLAY: StringName = &"sfx.ui.overlay"
+const SFX_BOSS_INTRO: String = "boss_intro_%d"
 const BUS_VOLUME: Dictionary = {"volume_master": "Master", "volume_music": "Music", "volume_sfx": "SFX"}
 const SETTING_KEYS: Array[StringName] = [
 	&"anim_speed", &"reduce_motion", &"text_scale", &"high_contrast_states", &"gamma", &"fullscreen",
@@ -48,6 +57,12 @@ var _focus_stack: Array[Control] = []
 var _match_view: Control = null
 var _settings: Dictionary = {}
 var _banner: PanelContainer = null
+## A pick's fly-to-strip is playing; the screen it decided waits in [member _held_open].
+var _landing: bool = false
+var _held_open: Array = []
+var _sfx: SfxPlayer = null
+# True while a screen is built: what it sets up is not the player acting.
+var _binding: bool = false
 
 @onready var _stack: Control = %ScreenStack
 @onready var _match_host: Control = %MatchHost
@@ -82,6 +97,9 @@ func screen() -> StringName:
 ## Opens base [param id] over [param read_model], freeing the old base and every
 ## overlay, and runs transition [param kind] (`&"none"` for no transition).
 func open_base(id: StringName, read_model: Dictionary, kind: StringName = RunUiConfig.KIND_FADE) -> void:
+	if _landing:
+		_held_open = [id, read_model, kind]
+		return
 	if _transition != null:
 		_transition.skip()
 	_clear_overlays()
@@ -91,7 +109,10 @@ func open_base(id: StringName, read_model: Dictionary, kind: StringName = RunUiC
 	_base = _instance(id)
 	_stack.add_child(_base)
 	_stack.move_child(_base, 0)
+	_binding = true
 	_base.bind(read_model)
+	_binding = false
+	_raise_screen_sound(id, read_model)
 	_update_banner()
 	if kind == NO_TRANSITION or _transition == null:
 		_finish_open()
@@ -111,8 +132,11 @@ func push_overlay(id: StringName, read_model: Dictionary) -> void:
 	var overlay: Screen = _instance(id)
 	_stack.add_child(overlay)
 	_overlays.append(overlay)
+	_binding = true
 	overlay.bind(read_model)
 	_focus(overlay)
+	_binding = false
+	_sfx.play(SFX_OVERLAY)
 	_refresh_idle()
 
 
@@ -152,6 +176,21 @@ func swap_in_match(driver: MatchDriver, info: Dictionary) -> void:
 	_refresh_idle()
 
 
+## Hides the run screens and plays the archived log at [param path] over them. Nothing
+## here touches the run: the viewer ends in [method _on_replay_finished], on the screen
+## it started from. A log [MatchReplay] refuses changes nothing.
+func swap_in_replay(path: String, hero_id: String, boss_id: String) -> void:
+	var view: Control = MatchReplay.create_view(path, _services.card_database, hero_id, boss_id)
+	if view == null:
+		return
+	Signal(view, &"match_view_finished").connect(_on_replay_finished)
+	_stack.visible = false
+	_banner.visible = false
+	_match_view = view
+	_match_host.add_child(view)
+	_refresh_idle()
+
+
 func _ready() -> void:
 	if _services == null:
 		_services = Boot.services()
@@ -160,6 +199,12 @@ func _ready() -> void:
 	var ready_load: bool = db != null and db.state() == CardDatabase.State.READY
 	_config = db.config(CONFIG_NAME) if ready_load else _fallback_config()
 	RunText.install(_config)
+	_sfx = SfxPlayer.new()
+	_sfx.name = "Sfx"
+	add_child(_sfx)
+	_sfx.configure(_config.get("sfx", {}))
+	get_tree().node_added.connect(_on_node_added)
+	get_viewport().gui_focus_changed.connect(_on_focus_moved)
 	_transition = Transition.new(_fade, _config)
 	_transition.finished.connect(_on_transition_finished)
 	_toasts.configure(_config)
@@ -185,11 +230,14 @@ func _start_controller(db: CardDatabase) -> void:
 	_controller.overlay_closed.connect(pop_overlay)
 	_controller.screen_refreshed.connect(_on_screen_refreshed)
 	_controller.match_requested.connect(swap_in_match)
+	_controller.replay_requested.connect(swap_in_replay)
+	_controller.pick_landed.connect(_on_pick_landed)
 	_controller.toast.connect(_toasts.enqueue)
 	_controller.committed_changed.connect(_on_committed_changed)
 	_controller.skip_requested.connect(_transition.skip)
 	_controller.quit_requested.connect(_quit)
 	_toasts.shown.connect(_controller.on_toast_shown)
+	_toasts.shown.connect(_on_toast_shown)
 	if _services.settings_bus != null:
 		_services.settings_bus.settings_changed.connect(_on_setting_changed)
 	_settings = _controller.settings().duplicate()
@@ -214,6 +262,8 @@ func _instance(id: StringName) -> Screen:
 	node.cfg = _config
 	node.set_anchors_preset(Control.PRESET_FULL_RECT)
 	node.intent_requested.connect(_on_intent)
+	node.landing_finished.connect(_end_landing)
+	node.sfx_requested.connect(_on_sfx_requested)
 	return node
 
 
@@ -282,15 +332,93 @@ func _on_match_view_finished(result: Variant) -> void:
 	_update_banner()
 
 
+func _raise_screen_sound(id: StringName, read_model: Dictionary) -> void:
+	if id == RunController.SCREEN_BOSS:
+		_sfx.play(StringName(SFX_BOSS_INTRO % int(read_model.get("band", 1))))
+		return
+	var event: Variant = (_config.get("sfx", {}).get("screens", {}) as Dictionary).get(String(id))
+	if event != null:
+		_sfx.play(StringName(str(event)))
+
+
+func _on_sfx_requested(event: StringName) -> void:
+	if not _binding:
+		_sfx.play(event)
+
+
+func _on_toast_shown(kind: StringName, _key: String) -> void:
+	if kind == &"unlock":
+		_sfx.play(SFX_UNLOCK)
+
+
+# One place wires every control's sound, so a screen stays free of audio.
+func _on_node_added(node: Node) -> void:
+	if not _stack.is_ancestor_of(node):
+		return
+	if node is BaseButton:
+		var button: BaseButton = node
+		if not button.has_meta(META_SILENT):
+			button.pressed.connect(_on_sfx_requested.bind(SFX_SELECT))
+		button.mouse_entered.connect(_on_sfx_requested.bind(SFX_HOVER))
+	elif node is Slider:
+		(node as Slider).value_changed.connect(func(_value: float) -> void: _on_sfx_requested(SFX_TICK))
+	elif node is OptionPanel:
+		(node as Control).mouse_entered.connect(_on_sfx_requested.bind(SFX_HOVER))
+
+
+func _on_focus_moved(_control: Control) -> void:
+	if not _match_showing():
+		_on_sfx_requested(SFX_HOVER)
+
+
+func _on_pick_landed(index: int, deck_size: int) -> void:
+	_sfx.play(SFX_PICK)
+	var speed: String = str(_settings.get("anim_speed", RunUiConfig.SPEED_NORMAL))
+	var reduce: bool = bool(_settings.get("reduce_motion", false))
+	var ms: int = RunUiConfig.t_transition(_config, RunUiConfig.KIND_FLY_TO_STRIP, speed, reduce)
+	if ms > 0 and _base != null:
+		_landing = _base.play_landing(index, deck_size, ms / RunUiConfig.MS_PER_S, reduce)
+
+
+func _end_landing() -> void:
+	if not _landing:
+		return
+	_landing = false
+	_base.finish_landing()
+	if not _held_open.is_empty():
+		var held: Array = _held_open
+		_held_open = []
+		open_base(held[0], held[1], held[2])
+
+
+func _on_replay_finished(_result: Variant) -> void:
+	_match_view.queue_free()
+	_match_view = null
+	_stack.visible = true
+	_update_banner()
+	if _top() != null:
+		_focus(_top())
+	_refresh_idle()
+
+
+# A live match, or a replay over a run screen.
+func _match_showing() -> bool:
+	return _match_view != null or state.base == RunController.SCREEN_MATCH
+
+
 ## U5: a queued toast may start only here.
 func _refresh_idle() -> void:
 	var base: StringName = state.base
-	var held: bool = base == RunController.SCREEN_MATCH or base == RunController.SCREEN_RUN_START or base == RunController.SCREEN_DATA_ERROR
+	var held: bool = _match_showing() or base == RunController.SCREEN_RUN_START or base == RunController.SCREEN_DATA_ERROR
 	_toasts.set_idle(not state.transitioning and not held and state.top() != RunController.SCREEN_CONFIRM)
 
 
 func _input(event: InputEvent) -> void:
-	if _controller == null or state.base == RunController.SCREEN_MATCH or not _is_press(event):
+	if _controller == null or _match_showing() or not _is_press(event):
+		return
+	if _landing:
+		_end_landing()
+		get_viewport().set_input_as_handled()
 		return
 	var at_run_start: bool = state.top() == RunController.SCREEN_RUN_START
 	if state.transitioning or at_run_start:
@@ -299,7 +427,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if state.base == RunController.SCREEN_MATCH or _top() == null:
+	if _match_showing() or _top() == null:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		var _closed: bool = _top().close_drawer()
@@ -384,7 +512,7 @@ func _build_banner() -> void:
 
 func _update_banner() -> void:
 	var text: String = _controller.read_only_text() if _controller != null else ""
-	_banner.visible = not text.is_empty() and state.base != RunController.SCREEN_MATCH
+	_banner.visible = not text.is_empty() and not _match_showing()
 	var row: Node = _banner.get_node("Row")
 	(row.get_child(0) as Label).text = text
 	(row.get_child(1) as Button).visible = state.base == RunController.SCREEN_MENU and text == tr("banner.locked")

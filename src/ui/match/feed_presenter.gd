@@ -4,8 +4,8 @@
 ## the feed shows only those the display has reached, so it never tells a card's fate
 ## ahead of the table: `present` carries the count as `feed_total`.
 ##
-## `Esc` and RMB close an open drawer first (hud.md `feed:open`, chain step 2). Story 019
-## owns the rest of the chain and can call [method close].
+## `feed_toggle`, `Esc` and RMB reach it through [InputRouter] (hud.md `feed:open`, chain
+## step 2), so a rebound key is the only key; RMB over the drawer itself closes it here.
 ## [codeblock]
 ## feed.set_names("hero_war", "boss_torchbearer")
 ## feed.open()
@@ -116,6 +116,20 @@ func toggle() -> void:
 		open()
 
 
+## hud.md §10.2 at [param scale]: at the full step the ticker holds two lines, not three,
+## and the drawer widens; the lines it keeps do not change.
+func set_text_scale(scale: float) -> void:
+	var cfg: Dictionary = ui.config.text_scale
+	var full: bool = scale >= float(cfg.full)
+	var ticker: Rect2 = ui.rect("feed_ticker")
+	_ticker_count = int(cfg.feed_ticker_lines) if full else int(ui.config.feed_ticker_lines)
+	_ticker.size.y = float(cfg.feed_ticker_h) if full else ticker.size.y
+	_ticker.add_theme_constant_override(&"line_separation", int(cfg.feed_line_gap) if full else 0)
+	_drawer.size.x = float(cfg.feed_drawer_w) if full else ui.rect("feed_drawer").size.x
+	_drawer_text.size.x = _drawer.size.x - PANEL_MARGIN_PX * 2.0
+	_refresh()
+
+
 ## U11 `feed:open`, `L` and the top-bar button.
 func open() -> void:
 	_open = true
@@ -129,22 +143,6 @@ func close() -> void:
 	_open = false
 	_drawer.visible = false
 	_ticker.visible = true
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if ui == null:
-		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		var key: Key = (event as InputEventKey).keycode
-		if key == KEY_L:
-			toggle()
-			get_viewport().set_input_as_handled()
-		elif key == KEY_ESCAPE and _open:
-			close()
-			get_viewport().set_input_as_handled()
-	elif _is_right_press(event) and _open:
-		close()
-		get_viewport().set_input_as_handled()
 
 
 func _on_drawer_input(event: InputEvent) -> void:

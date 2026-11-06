@@ -221,6 +221,17 @@ func card(id: String) -> Variant:
 	return _record("card", "CardDef", id)
 
 
+## The frozen record `id` of any type, or `null` without a logged error: for an id a log
+## names, which may be a card, a hero power or a treasure.
+## Example: `db.any_record("power_sharpen").name`.
+func any_record(id: String) -> Variant:
+	var source: Dictionary = _source("any_record")
+	if source.is_empty():
+		return null
+	var at: Variant = source.index_of.get(id)
+	return null if at == null else source.records_by_type[at.type][at.position]
+
+
 ## The frozen HeroDef `id`, or `null` as for [method card]. Example: `db.hero("hero_war").starter_deck`.
 func hero(id: String) -> Variant:
 	return _record("hero", "HeroDef", id)

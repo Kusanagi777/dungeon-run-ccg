@@ -17,6 +17,9 @@ const PORTRAIT_FONT_PX: int = 24
 const STAMP_FONT_PX: int = 24
 const COUNT_FONT_PX: int = 16
 const SMALL_FONT_PX: int = 14
+const STAMP_INSET_PX: float = 4.0
+const PASSIVE_INSET: Vector2 = Vector2(4, 2)
+const FATIGUE_LINE_PX: float = 18.0
 const USED_ALPHA: float = 0.5
 const BLOCKED_ALPHA: float = 0.5
 const USED_GLYPH: String = "✓"
@@ -59,6 +62,9 @@ var _passive: Label = null
 var _tooltip: Panel = null
 var _tooltip_text: Label = null
 var _mana_flash: Panel = null
+var _stamp_box: Panel = null
+var _passive_box: Panel = null
+var _hand_box: Panel = null
 # What is on screen now: the fields sync_report compares.
 var _shown: Dictionary = {}
 
@@ -75,8 +81,8 @@ func setup(context: MatchUiContext) -> void:
 	_initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var stamp: float = float(ui.config.hero.stamp_size)
 	var stamp_rect := Rect2(_portrait_rect.size - Vector2(stamp + 4, stamp + 4), Vector2(stamp, stamp))
-	var stamp_box: Panel = _panel(stamp_rect, _round_style(ui.color("ink")), _portrait)
-	_health = _label(Rect2(Vector2.ZERO, stamp_rect.size), STAMP_FONT_PX, "text_light", stamp_box)
+	_stamp_box = _panel(stamp_rect, _round_style(ui.color("ink")), _portrait)
+	_health = _label(Rect2(Vector2.ZERO, stamp_rect.size), STAMP_FONT_PX, "text_light", _stamp_box)
 	_center(_health)
 	_armor_box = _panel(Rect2(stamp_rect.position - Vector2(stamp + 4, 0), stamp_rect.size), _round_style(ui.color("ink")), _portrait)
 	_armor = _label(Rect2(Vector2.ZERO, stamp_rect.size), COUNT_FONT_PX, "text_light", _armor_box)
@@ -236,6 +242,7 @@ func restyle() -> void:
 func set_text_scale(scale: float) -> void:
 	_tooltip.size = TOOLTIP_SIZE * scale
 	_tooltip_text.size = _tooltip.size - TOOLTIP_PADDING
+	_fit_stamps(scale)
 	if side == SIDE_BOSS:
 		var moved: bool = scale >= float(ui.config.text_scale.boss_mana_moves_at)
 		var rect: Rect2 = ui.rect("boss_mana_scaled" if moved else "boss_mana")
@@ -243,6 +250,30 @@ func set_text_scale(scale: float) -> void:
 		box.position = rect.position
 		box.size = rect.size
 		_mana_text.size = rect.size
+		var hand: Rect2 = ui.rect("boss_hand_count")
+		_hand_box.size.x = hand.size.x + (ui.rect("boss_mana").size.x if moved else 0.0)
+		_hand_count.size.x = _hand_box.size.x
+		var plate: Rect2 = ui.rect("boss_passive")
+		var top: float = float(ui.config.text_scale.passive_top_y) if scale >= float(ui.config.text_scale.full) else plate.position.y
+		_passive_box.position.y = top
+		_passive_box.size.y = plate.end.y - top
+		_passive.size.y = _passive_box.size.y - PASSIVE_INSET.y * 2.0
+
+
+## The health and armour stamps grow with their numerals, anchored to the portrait's
+## corner, and the pile's fatigue label takes its extra lines (hud.md §10.2).
+func _fit_stamps(scale: float) -> void:
+	var cfg: Dictionary = ui.config.text_scale
+	var stamp: float = minf(float(ui.config.hero.stamp_size) * scale, float(cfg.stamp_max_px))
+	var at: Vector2 = _portrait_rect.size - Vector2(stamp + STAMP_INSET_PX, stamp + STAMP_INSET_PX)
+	for box: Panel in [_stamp_box, _armor_box]:
+		box.size = Vector2.ONE * stamp
+		(box.get_child(0) as Control).size = box.size
+		(box.get_theme_stylebox("panel") as StyleBoxFlat).set_corner_radius_all(int(stamp))
+	_stamp_box.position = at
+	_armor_box.position = at - Vector2(stamp + STAMP_INSET_PX, 0)
+	var lines: int = 1 if scale <= 1.0 else int(cfg.fatigue_lines)
+	_fatigue.size.y = FATIGUE_LINE_PX * scale * lines
 
 
 ## Rejection Feedback: the mana bar's outline flashes while [param on].
@@ -381,10 +412,14 @@ func _build_boss_strip() -> void:
 	_mana_text = _label(Rect2(Vector2.ZERO, mana_rect.size), SMALL_FONT_PX, "text_light", mana_box)
 	_center(_mana_text)
 	var plate: Rect2 = ui.rect("boss_passive")
-	var plate_box: Panel = _panel(plate, _style(ui.color("ink"), 0, ui.color("ink")))
-	_passive = _label(Rect2(Vector2(4, 2), plate.size - Vector2(8, 4)), 12, "text_light", plate_box)
+	_passive_box = _panel(plate, _style(ui.color("ink"), 0, ui.color("ink")))
+	_passive = _label(Rect2(PASSIVE_INSET, plate.size - PASSIVE_INSET * 2.0), 12, "text_light", _passive_box)
 	_passive.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_passive.clip_text = true
+	_hand_box = hand_box
+	# hud.md §4.2: the stamps sit over the plate's corner, and the plate is drawn later.
+	_stamp_box.z_index = 1
+	_armor_box.z_index = 1
 
 
 func _present_player(hero: Dictionary, mana: Dictionary) -> void:

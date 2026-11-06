@@ -29,6 +29,8 @@ const KEY_REDUCE_MOTION: StringName = &"reduce_motion"
 ## `anim_speed` labels, in the selector's order (DD-X07).
 const SPEEDS: Array[String] = ["normal", "fast", "instant"]
 const VOLUME_STEP: float = 0.05
+## Over the hand fan, whose cards draw above the table.
+const MENU_Z: int = 320
 
 var _meta: MetaApi = null
 var _style: Dictionary = {}
@@ -44,6 +46,11 @@ var _reduce: CheckButton = null
 var _ring: Control = null
 # True while the menu writes its own controls, so a refresh is not read as a change.
 var _syncing: bool = false
+var _open: bool = false
+var _open_s: float = 0.0
+var _close_s: float = 0.0
+var _scale_from: float = 1.0
+var _tween: Tween = null
 
 
 ## Builds the menu. [param style] is `{rect: Rect2, fill, text, muted, ring: Color,
@@ -52,6 +59,7 @@ func configure(style: Dictionary, meta: MetaApi) -> void:
 	_style = style
 	_meta = meta
 	visible = false
+	z_index = MENU_Z
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_panel = Panel.new()
 	var box := StyleBoxFlat.new()
@@ -71,16 +79,33 @@ func configure(style: Dictionary, meta: MetaApi) -> void:
 	add_child(_ring)
 
 
-## True while the menu is up.
+## True while the menu is up. A closing menu is not: it only fades.
 func is_open() -> bool:
-	return visible
+	return _open
+
+
+## `overlay_open` / `overlay_close` in seconds, 0 for none, and the scale the panel opens
+## from, 1 under `reduce_motion` (interaction-patterns Modal Dialog).
+func set_motion(open_s: float, close_s: float, scale_from: float) -> void:
+	_open_s = open_s
+	_close_s = close_s
+	_scale_from = scale_from
+
+
+## Ends a running open or close at its end state, for a pose.
+func finish_motion() -> void:
+	if _tween != null:
+		_tween.kill()
+	_settle()
 
 
 ## Opens on the main page with focus on Resume.
 func open() -> void:
 	_sync()
+	_open = true
 	visible = true
 	_show_main(_resume)
+	_animate()
 
 
 ## Opens the concede confirm with focus on Cancel: a reflexive `Enter` is safe.
@@ -100,11 +125,36 @@ func back() -> void:
 
 ## Closes the menu and gives keyboard focus back.
 func close() -> void:
-	if not visible:
+	if not _open:
 		return
-	visible = false
+	_open = false
 	get_viewport().gui_release_focus()
 	closed.emit()
+	_animate()
+
+
+func _animate() -> void:
+	if _tween != null:
+		_tween.kill()
+	var seconds: float = _open_s if _open else _close_s
+	_panel.pivot_offset = _panel.size / 2.0
+	if seconds <= 0.0:
+		_settle()
+		return
+	if _open:
+		modulate.a = 0.0
+		_panel.scale = Vector2.ONE * _scale_from
+	_tween = create_tween().set_parallel().set_ease(Tween.EASE_OUT)
+	_tween.tween_property(self, "modulate:a", 1.0 if _open else 0.0, seconds)
+	_tween.tween_property(_panel, "scale", Vector2.ONE * (1.0 if _open else _scale_from), seconds)
+	_tween.chain().tween_callback(_settle)
+
+
+func _settle() -> void:
+	_tween = null
+	modulate.a = 1.0
+	_panel.scale = Vector2.ONE
+	visible = _open
 
 
 func _process(_delta: float) -> void:

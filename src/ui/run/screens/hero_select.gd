@@ -17,6 +17,12 @@ const BACK_POS: Vector2 = Vector2(40, 640)
 const START_POS: Vector2 = Vector2(560, 640)
 const DECK_POS: Vector2 = Vector2(1080, 640)
 const PORTRAIT: Vector2 = Vector2(120, 160)
+const HERO_STING: String = "hero_sting_%s"
+## §5.2's 125 % / 150 % stack: the plate shrinks and the full text moves to the reading panel.
+const SCALED_PLATE_H: float = 56.0
+const FULL_SCALE: float = 1.5
+const LOCKED_H_FULL: float = 112.0
+const SEED_SHIFT_FULL: float = 24.0
 
 var _model: Dictionary = {}
 var _heroes: Array = []
@@ -29,6 +35,8 @@ var _deck: Button = null
 var _seed: LineEdit = null
 var _echo: Label = null
 var _drawers: Array[DeckDrawer] = []
+var _scale: float = 1.0
+var _reading: UiTooltip = null
 
 
 func bind(model: Dictionary) -> void:
@@ -38,6 +46,7 @@ func bind(model: Dictionary) -> void:
 	_panels.clear()
 	_locked.clear()
 	_drawers.clear()
+	_scale = float(model.get("text_scale", 1.0))
 	cancel_intent = &"back"
 	add_child(UiKit.backdrop(color("bg_edge")))
 	var title: Label = UiKit.label(tr("hero.title"), RunUiTheme.LABEL_TITLE)
@@ -51,6 +60,10 @@ func bind(model: Dictionary) -> void:
 		_add_locked(i, locked_rows[i], locked_rows.size())
 	_add_seed_row()
 	_add_actions()
+	_reading = UiTooltip.new()
+	add_child(_reading)
+	var reading: Dictionary = cfg.reading_panel
+	_reading.configure(color("parchment"), color("text_ink"), roundi(float(reading.font_px) * _scale), float(reading.max_w), get_viewport_rect())
 	_select_id(str(model.get("selected", "")))
 	var order: Array[Control] = []
 	order.assign(_panels)
@@ -97,12 +110,12 @@ func _add_hero(index: int, hero: Dictionary) -> void:
 	style.border_color = color(str(hero.secondary))
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(RunUiTheme.CORNER_PX)
-	style.set_content_margin_all(RunUiTheme.PANEL_PADDING_PX * 2)
+	style.set_content_margin_all(RunUiTheme.PANEL_PADDING_PX * (2 if _scale < FULL_SCALE else 1))
 	panel.add_theme_stylebox_override(&"panel", style)
 	var scroll: ScrollContainer = UiKit.scroll()
 	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.add_child(scroll)
-	var column: VBoxContainer = UiKit.vbox(6)
+	var column: VBoxContainer = UiKit.vbox(6 if _scale < FULL_SCALE else 2)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll.add_child(column)
@@ -114,15 +127,36 @@ func _add_hero(index: int, hero: Dictionary) -> void:
 	facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(facts)
 	facts.add_child(UiKit.label(str(hero.name), &"", true))
-	facts.add_child(UiKit.label(tr("hero.health").format({"n": hero.health}), RunUiTheme.LABEL_SMALL))
+	var health: Label = UiKit.label(tr("hero.health").format({"n": hero.health}), RunUiTheme.LABEL_SMALL)
+	if _scale < FULL_SCALE:
+		facts.add_child(health)
 	facts.add_child(UiKit.label(str(hero.identity), RunUiTheme.LABEL_SMALL, true))
-	facts.add_child(UiKit.label(str(hero.blurb), RunUiTheme.LABEL_SMALL, true))
-	facts.add_child(UiKit.label(str(hero.stats_line), RunUiTheme.LABEL_SMALL))
+	var scaled: bool = _scale > 1.0
+	var blurb: Label = UiKit.label(str(hero.blurb), RunUiTheme.LABEL_SMALL, _scale < FULL_SCALE)
+	blurb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	var stats: Label = UiKit.label(str(hero.stats_short if _scale >= FULL_SCALE else hero.stats_line), RunUiTheme.LABEL_SMALL)
+	(column if scaled else facts).add_child(blurb)
+	if _scale >= FULL_SCALE:
+		var line: HBoxContainer = UiKit.hbox(16)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.add_child(health)
+		line.add_child(stats)
+		column.add_child(line)
+	else:
+		(column if scaled else facts).add_child(stats)
 	var plate: PanelContainer = UiKit.panel(RunUiTheme.PANEL_PARCHMENT)
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(plate)
-	var power: Label = UiKit.label(tr("hero.power").format({"cost": hero.power_cost, "name": hero.power_name, "text": hero.power_text}), RunUiTheme.LABEL_INK, true)
+	var power_text: String = tr("hero.power").format({"cost": hero.power_cost, "name": hero.power_name, "text": hero.power_text})
+	var power: Label = UiKit.label(power_text, RunUiTheme.LABEL_INK, true)
 	plate.add_child(power)
+	if scaled:
+		plate.custom_minimum_size.y = SCALED_PLATE_H
+		plate.clip_contents = true
+		power.max_lines_visible = 1
+		power.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		panel.highlighted.connect(_show_reading.bind(power_text, panel))
+		panel.unhighlighted.connect(_hide_reading)
 	column.add_child(UiKit.label(_curve_text(hero.curve), RunUiTheme.LABEL_SMALL))
 	panel.activated.connect(_on_hero_activated)
 	panel.double_activated.connect(func(i: int) -> void:
@@ -138,6 +172,15 @@ func _add_hero(index: int, hero: Dictionary) -> void:
 	_drawers.append(drawer)
 
 
+# §5.2: focus or hover opens the whole power text, under the panel it belongs to.
+func _show_reading(_index: int, text: String, panel: OptionPanel) -> void:
+	_reading.show_below(Vector2(panel.get_global_rect().get_center().x, panel.get_global_rect().end.y), text)
+
+
+func _hide_reading(_index: int) -> void:
+	_reading.hide_now()
+
+
 func _curve_text(curve: Array) -> String:
 	var parts: PackedStringArray = []
 	for cost: int in curve.size():
@@ -151,7 +194,7 @@ func _add_locked(index: int, row: Dictionary, count: int) -> void:
 	panel.setup(index, 0.0)
 	panel.theme_type_variation = RunUiTheme.PANEL_NEUTRAL
 	add_child(panel)
-	UiKit.place(panel, Rect2(x, LOCKED_Y, PANEL_SIZE.x, LOCKED_H))
+	UiKit.place(panel, Rect2(x, LOCKED_Y, PANEL_SIZE.x, LOCKED_H_FULL if _scale >= FULL_SCALE else LOCKED_H))
 	var column: VBoxContainer = UiKit.vbox(2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(column)
@@ -176,14 +219,15 @@ func _add_seed_row() -> void:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(label)
-	UiKit.place(label, SEED_LABEL_RECT)
+	var shift := Vector2(0, SEED_SHIFT_FULL if _scale >= FULL_SCALE else 0.0)
+	UiKit.place(label, Rect2(SEED_LABEL_RECT.position + shift, SEED_LABEL_RECT.size))
 	_seed = LineEdit.new()
 	_seed.placeholder_text = tr("hero.seed_placeholder")
 	add_child(_seed)
-	UiKit.place(_seed, SEED_RECT)
+	UiKit.place(_seed, Rect2(SEED_RECT.position + shift, SEED_RECT.size))
 	_echo = UiKit.label(tr("hero.seed_random"), RunUiTheme.LABEL_SMALL)
 	add_child(_echo)
-	UiKit.place(_echo, ECHO_RECT)
+	UiKit.place(_echo, Rect2(ECHO_RECT.position + shift, ECHO_RECT.size))
 	_seed.text_changed.connect(_on_seed_changed)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_start())
 
@@ -231,6 +275,7 @@ func _select_id(id: String) -> void:
 
 func _select(index: int) -> void:
 	_selected = index
+	sfx_requested.emit(StringName(HERO_STING % str(_heroes[index].id)))
 	for i: int in _panels.size():
 		_panels[i].modulate.a = 1.0 if i == index else UiKit.DIM_ALPHA + (1.0 - UiKit.DIM_ALPHA) / 2.0
 	_deck.text = tr("hero.deck").format({"n": (_heroes[index].deck_rows as Array).size()})

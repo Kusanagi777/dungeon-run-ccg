@@ -14,6 +14,7 @@ extends Presenter
 
 const SHAKE_STEPS: int = 4
 const KEY_FORMAT: String = "reject.%s"
+const DETAIL_FORMAT: String = "reject.%s.detail"
 const MISSING_FORMAT: String = "??%s"
 
 ## Keeps the tooltip and flash up: `--pose=reject:<code>` freezes them for a capture.
@@ -28,6 +29,9 @@ var _anchor: Vector2 = Vector2.ZERO
 # Target name to `func(on: bool)`.
 var _flash_targets: Dictionary = {}
 var _flashing: Callable = Callable()
+# What the coming rejection's detail copy fills in; `{}` for its plain copy.
+var _detail: Dictionary = {}
+var _outline: Panel = null
 var _hide: Tween = null
 var _done: Dictionary = {}
 # Where the origin rests while it shakes.
@@ -42,6 +46,16 @@ func setup(context: MatchUiContext) -> void:
 	_tooltip = UiTooltip.new()
 	add_child(_tooltip)
 	_tooltip.configure(ui.color("parchment"), ui.color("text_ink"), int(_cfg.font_px), float(_cfg.max_w), ui.rect("viewport"))
+	var ring := StyleBoxFlat.new()
+	ring.draw_center = false
+	ring.border_color = ui.color("state_danger")
+	ring.set_border_width_all(int(_cfg.source_flash_px))
+	_outline = Panel.new()
+	_outline.add_theme_stylebox_override("panel", ring)
+	_outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outline.top_level = true
+	_outline.visible = false
+	add_child(_outline)
 
 
 func bind(_view_state: MatchViewState) -> void:
@@ -80,6 +94,17 @@ func set_origin(origin: Control, anchor: Vector2) -> void:
 	_anchor = anchor
 
 
+## `{cost, mana}` of the command about to be sent, for `reject.<code>.detail`; `{}` when
+## it has no price. Rejections only race on this (targeting.md §12).
+func set_detail(detail: Dictionary) -> void:
+	_detail = detail
+
+
+## The outline flash that stands in for the shake, and the danger colour it holds.
+func restyle() -> void:
+	(_outline.get_theme_stylebox("panel") as StyleBoxFlat).border_color = ui.color("state_danger")
+
+
 ## `{target name: func(on: bool)}`, one per `reject_flash` value.
 func set_flash_targets(targets: Dictionary) -> void:
 	_flash_targets = targets
@@ -92,7 +117,9 @@ func _begin(step: AnimStep, d_eff: float) -> void:
 	var code: String = str(step.data.get("code", ""))
 	_show_reason(code)
 	_flash(code)
-	if d_eff > 0.0 and not reduce_motion and is_instance_valid(_origin):
+	if reduce_motion:
+		_flash_source()
+	elif d_eff > 0.0 and is_instance_valid(_origin):
 		_shake(step, d_eff)
 
 
@@ -102,6 +129,10 @@ func _show_reason(code: String) -> void:
 	if text == key:
 		push_warning("RejectPresenter: no copy for %s" % key)
 		text = MISSING_FORMAT % key
+	var detail_key: String = DETAIL_FORMAT % code
+	if not _detail.is_empty() and tr(detail_key) != detail_key:
+		text = tr(detail_key).format(_detail)
+	_detail = {}
 	_tooltip.show_above(_anchor, text)
 	if _hide != null:
 		_hide.kill()
@@ -110,6 +141,20 @@ func _show_reason(code: String) -> void:
 		_hide = create_tween()
 		_hide.tween_interval(float(ui.config.rejection_tooltip_s))
 		_hide.tween_callback(_tooltip.hide_now)
+
+
+# targeting.md §6: under `reduce_motion` the source's outline flashes for two frames.
+func _flash_source() -> void:
+	if not is_instance_valid(_origin):
+		return
+	var rect: Rect2 = _origin.get_global_rect()
+	_outline.position = rect.position
+	_outline.size = rect.size
+	_outline.visible = true
+	if not frozen:
+		var off: Tween = create_tween()
+		off.tween_interval(float(_cfg.source_flash_s))
+		off.tween_callback(_outline.hide)
 
 
 func _flash(code: String) -> void:

@@ -458,6 +458,7 @@
       "hud.power.cost": "Cost %d",
       "hud.power.used": "Already used this turn",
       "reject.NOT_ENOUGH_MANA": "Not enough mana.",
+      "reject.NOT_ENOUGH_MANA.detail": "Not enough mana (needs {cost}, have {mana}).",
       "reject.NOT_YOUR_TURN": "Wait for your turn.",
       "reject.HERO_POWER_USED": "Your hero power is used this turn.",
       "reject.NO_LEGAL_TARGET": "There is no legal target for this card.",
@@ -621,7 +622,26 @@
       "opt.mend": "Mend\nRestore 4 health"
     },
     "rejection_tooltip_s": 1.5,
+    "sfx_heavy_damage": 5,
+    "sfx_steps": {
+      "play_card": "sfx.ui.card_play",
+      "attack_lunge": "sfx.ui.attack_whoosh",
+      "damage_pop": "sfx.ui.damage",
+      "heal_pop": "sfx.ui.heal",
+      "shield_pop": "sfx.ui.shield_pop",
+      "death_group": "sfx.ui.death_thud",
+      "draw": "sfx.ui.draw",
+      "burn": "sfx.ui.burn",
+      "fatigue_label": "sfx.ui.heartbeat",
+      "turn_banner": "sfx.ui.turn_chime",
+      "intent_show": "sfx.ui.page_turn",
+      "overlay_open": "sfx.ui.overlay",
+      "overlay_close": "sfx.ui.overlay",
+      "mulligan_open": "sfx.ui.overlay"
+    },
     "reject": {
+      "source_flash_s": 0.034,
+      "source_flash_px": 2,
       "shake_px": 3,
       "font_px": 14,
       "max_w": 300,
@@ -645,12 +665,32 @@
       "gap": 8,
       "font_px": 16,
       "title_px": 20,
-      "label_w": 110
+      "label_w": 110,
+      "open_scale": 0.95
     },
     "text_scale": {
       "base_font_px": 16,
       "end_turn_max_w": 200,
-      "boss_mana_moves_at": 1.25
+      "boss_mana_moves_at": 1.25,
+      "intent_min_x": 432,
+      "full": 1.5,
+      "stamp_max_px": 56,
+      "passive_top_y": 184,
+      "feed_ticker_lines": 2,
+      "feed_ticker_h": 48,
+      "feed_line_gap": -4,
+      "feed_drawer_w": 360,
+      "fatigue_lines": 3,
+      "reading": {
+        "from": 1.25,
+        "font_px": 18,
+        "w": 360,
+        "max_h": 360,
+        "bottom_y": 644,
+        "gap": 8,
+        "right_max_x": 748,
+        "left_min_x": 8
+      }
     },
     "palette_high_contrast": {
       "state_danger": "#FF8C42",

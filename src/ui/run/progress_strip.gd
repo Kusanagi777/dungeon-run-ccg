@@ -61,6 +61,9 @@ var _stops: Array[Control] = []
 var _tip: Label = null
 var _segments: Array[Rect2] = []
 var _segment_color: Color = Color.WHITE
+var _chip_end: float = CHIP_X
+var _deck: Label = null
+var _deck_size: int = 0
 
 
 ## Lays out the strip from [param model] (`RunReadModels.strip`) on F4's geometry.
@@ -103,16 +106,34 @@ func show_strip(cfg: Dictionary, model: Dictionary) -> void:
 		chip.focus_exited.connect(_show_tip.bind(""))
 		_stops.append(chip)
 		x += CHIP_PX + CHIP_GAP
-	var deck: Label = UiKit.label(tr("strip.deck").format({"n": int(model.get("deck_size", 0))}))
-	deck.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	deck.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	add_child(deck)
-	UiKit.place(deck, DECK_RECT)
+	_chip_end = x
+	_deck_size = int(model.get("deck_size", 0))
+	_deck = UiKit.label(tr("strip.deck").format({"n": _deck_size}))
+	_deck.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_deck.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	add_child(_deck)
+	UiKit.place(_deck, DECK_RECT)
 	_tip = UiKit.label("", RunUiTheme.LABEL_SMALL)
 	_tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_tip)
 	UiKit.place(_tip, TIP_RECT)
 	queue_redraw()
+
+
+## Where a pick lands: the deck count when [param to_deck], else the next treasure chip.
+func landing_point(to_deck: bool) -> Vector2:
+	var local: Vector2 = DECK_RECT.get_center() if to_deck else Vector2(_chip_end + CHIP_PX / 2.0, ROW_H / 2.0)
+	return local + position
+
+
+## Counts the deck label up to [param deck_size] on [param tween] over [param seconds],
+## in `text_light`: an animation is no readout of a state (run-ui Visual/Audio).
+func tick_deck(tween: Tween, deck_size: int, seconds: float) -> void:
+	tween.tween_method(_show_deck, _deck_size, deck_size, seconds)
+
+
+func _show_deck(count: int) -> void:
+	_deck.text = tr("strip.deck").format({"n": count})
 
 
 ## Every focus stop, nodes then treasure chips, for the screen's Focus Order.

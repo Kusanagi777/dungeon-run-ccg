@@ -77,13 +77,21 @@ func configure(context: MatchUiContext) -> void:
 	_health_text = _stamp_label(HEALTH_CENTRE)
 
 
+## The rules text of [param face]: `""` for a vanilla card, whose text is an empty message
+## that `tr` answers with its key.
+static func rules_text(face: Dictionary) -> String:
+	var key: String = str(face.get("text_key", ""))
+	var text: String = TranslationServer.translate(key) if key != "" else ""
+	return "" if text == key else text
+
+
 ## Shows [param face] (`MatchUiContext.card_face`) at [param effective_cost], the
 ## projection's cost (DD-X26): a cost off the printed one gets the modified stamp.
 func show_card(face: Dictionary, effective_cost: int) -> void:
 	_face = face
 	_cost = effective_cost
 	_name.text = tr(str(face.get("name_key", "")))
-	_rules.text = tr(str(face.get("text_key", ""))) if str(face.get("text_key", "")) != "" else ""
+	_rules.text = rules_text(face)
 	var type: String = str(face.get("type", ""))
 	_art.text = str(TYPE_INITIALS.get(type, ""))
 	_cost_text.text = str(effective_cost)
@@ -93,9 +101,9 @@ func show_card(face: Dictionary, effective_cost: int) -> void:
 	_rules.position = (TEXT_RECT if has_stats else SPELL_TEXT_RECT).position
 	_rules.size = (TEXT_RECT if has_stats else SPELL_TEXT_RECT).size
 	if has_stats:
-		_attack_text.text = str(face.get("attack")) if face.get("attack") != null else ""
+		_attack_text.text = str(int(face.attack)) if face.get("attack") != null else ""
 		var durability: Variant = face.get("durability", face.get("health"))
-		_health_text.text = str(durability) if durability != null else ""
+		_health_text.text = str(int(durability)) if durability != null else ""
 	var glyphs: PackedStringArray = []
 	for keyword: Variant in face.get("keywords", []):
 		glyphs.append(_ui.glyph(str(keyword)))
