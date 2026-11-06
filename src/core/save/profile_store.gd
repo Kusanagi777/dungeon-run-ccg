@@ -32,6 +32,8 @@ const RUNS_DIR: String = "runs"
 ## M8.1: fields an ArchivedRun does not keep.
 const ARCHIVE_DROPPED_KEYS: Array[String] = ["run_log", "rng_snapshot", "draft_state", "treasure_state"]
 const OTHERS_KEY: String = "_others"
+## The M9 key absent from the defaults (ADR-0004 addendum 1).
+const BINDINGS_KEY: String = "bindings"
 
 ## The channel every settings consumer reads (ADR-0004 Key Interfaces).
 var settings_bus: SettingsBus = SettingsBus.new()
@@ -251,11 +253,14 @@ func get_settings() -> Dictionary:
 
 
 ## Publishes every setting once (Boot step 4): the bus then answers a consumer
-## that mounts later.
+## that mounts later. An absent `bindings` is published as `{}`, its M9 meaning, so
+## `reset_profile` takes a rebind off `InputMap` (ADR-0004 addendum 2).
 func publish_settings() -> void:
 	var settings: Dictionary = get_settings()
 	for key: Variant in settings:
 		settings_bus.publish(StringName(str(key)), settings[key])
+	if not settings.has(BINDINGS_KEY):
+		settings_bus.publish(StringName(BINDINGS_KEY), {})
 
 
 ## Writes a pending settings change. `OK` when none is pending.

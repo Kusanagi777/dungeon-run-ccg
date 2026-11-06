@@ -189,9 +189,10 @@ func test_publish_settings_sends_every_setting_once() -> void:
 	# Act
 	store.publish_settings()
 
-	# Assert: a late consumer can ask the bus
-	assert_int(_published.size()).is_equal(ProfileFixtures.settings_defaults().size())
+	# Assert: a late consumer can ask the bus; `bindings` is M9's too, absent from the defaults
+	assert_int(_published.size()).is_equal(ProfileFixtures.settings_defaults().size() + 1)
 	assert_float(store.settings_bus.get_setting(&"gamma")).is_equal(ProfileFixtures.settings_defaults().gamma)
+	assert_dict(store.settings_bus.get_setting(&"bindings")).is_empty()
 
 
 # --- Notifications -------------------------------------------------------------

@@ -824,6 +824,22 @@ func test_reset_publishes_the_default_settings() -> void:
 	assert_float(meta.settings_bus.get_setting(&"gamma")).is_equal(ProfileFixtures.settings_defaults().gamma)
 
 
+func test_reset_publishes_empty_bindings_so_input_map_returns_to_the_defaults() -> void:
+	# Arrange: Boot re-applies on settings_changed{bindings}; a rebind must not outlive reset
+	var meta: MetaFacade = _loaded()
+	meta.set_setting(&"bindings", {"ui_accept": []})
+	var published: Array = []
+	meta.settings_bus.settings_changed.connect(func(key: StringName, value: Variant) -> void:
+		if key == &"bindings":
+			published.append(value))
+
+	# Act
+	meta.reset_profile(ProfileFixtures.RESET_TOKEN)
+
+	# Assert
+	assert_array(published).is_equal([{}])
+
+
 func test_load_publishes_every_setting_for_late_consumers() -> void:
 	# Arrange
 	var profile: Dictionary = ProfileFixtures.profile_dict()
