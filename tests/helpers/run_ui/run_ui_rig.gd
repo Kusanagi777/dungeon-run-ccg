@@ -353,12 +353,20 @@ func _best(legal: Array) -> Dictionary:
 	return pick
 
 
-## Wins the current floor through the real view and banner.
+## Wins the current floor through the real view and banner: the engine ends the match as
+## a hero death would, so a deep floor does not depend on the scripted play winning it.
 func win_floor() -> void:
-	boss_health = 1
 	var match_view: Control = await begin()
-	await play_out(match_view)
+	await force_win(match_view)
 	await continue_banner(match_view)
+
+
+## Ends the running match as a win, up to the banner.
+func force_win(match_view: Control) -> void:
+	var driver: MatchDriver = run._driver
+	driver._engine._end_match(MatchRecords.SIDE_PLAYER, MatchRecords.REASON_HERO_DEAD)
+	driver._after_engine_step()
+	await drain(match_view)
 
 
 ## Concedes the current match through the real view and banner.
