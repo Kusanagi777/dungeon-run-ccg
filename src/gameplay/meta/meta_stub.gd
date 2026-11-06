@@ -45,6 +45,8 @@ var _mirror: RefCounted
 var _defaults: Dictionary
 var _settings: Dictionary
 var _active_run: Variant = null
+## The `reset_confirm_token` knob; empty when the body carries no knobs.
+var _reset_token: String = ""
 
 
 ## Builds the stub from [param db], a `Ready` `CardDatabase`, alone. Reads
@@ -58,7 +60,9 @@ var _active_run: Variant = null
 func _init(db: CardDatabase, mirror: RefCounted = null) -> void:
 	_db = db
 	_mirror = mirror
-	_defaults = ProfileStore.settings_defaults(db.config("profile_defaults"))
+	var body: Dictionary = db.config("profile_defaults")
+	_defaults = ProfileStore.settings_defaults(body)
+	_reset_token = str(Dictionary(body.get(ProfileStore.KNOBS_KEY, {})).get(ProfileDefaults.TOKEN_KNOB, ""))
 	_settings = _defaults.duplicate(true)
 	settings_bus = SettingsBus.new()
 
@@ -270,9 +274,13 @@ func validate_unlock_defs(_defs: Array) -> Array:
 
 
 ## Resets the in-memory record — settings back to the defaults, no active
-## run — and returns `OK`. Emits nothing. Recorded in [member calls]. (M1.3)
+## run — and returns `OK`; a token other than the `reset_confirm_token` knob is
+## `E_RANGE` and changes nothing, as on `MetaFacade`. Emits nothing. Recorded in
+## [member calls] whatever the outcome. (M1.3)
 func reset_profile(confirm_token: String) -> Error:
 	_record(&"reset_profile", [confirm_token])
+	if not _reset_token.is_empty() and confirm_token != _reset_token:
+		return SaveErrors.E_RANGE
 	_settings = _defaults.duplicate(true)
 	_active_run = null
 	return OK

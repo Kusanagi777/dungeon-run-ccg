@@ -32,6 +32,14 @@ const RUNS_DIR: String = "runs"
 ## M8.1: fields an ArchivedRun does not keep.
 const ARCHIVE_DROPPED_KEYS: Array[String] = ["run_log", "rng_snapshot", "draft_state", "treasure_state"]
 const OTHERS_KEY: String = "_others"
+## The M9 key absent from the defaults (ADR-0004 addendum 1).
+const BINDINGS_KEY: String = "bindings"
+## What [method _serialised] stands in the file for `run_log[]`, then replaces.
+const LOG_SLOT: String = "__run_log_entries__"
+## The wrapper [method _entry_text] prints an entry in, at its depth in the file.
+const ENTRY_WRAP_KEY: String = "k"
+const ENTRY_WRAP_OPEN: String = "{\n\t\"k\": [\n"
+const ENTRY_WRAP_CLOSE: String = "\n\t]\n}"
 
 ## The channel every settings consumer reads (ADR-0004 Key Interfaces).
 var settings_bus: SettingsBus = SettingsBus.new()
@@ -52,6 +60,12 @@ var _settings_pending: bool = false
 var _unsaved: bool = false
 var _on_disk: bool = false
 var _final_is_corrupt: bool = false
+## The JSON text of each `run_log[]` entry, in order. An ArchivedRun never changes, and
+## it is nearly all of the file: printing it on every save is what broke `max_save_ms`
+## (AC-27). Filled lazily by [method _log_text]; may be shorter than the log.
+var _log_texts: PackedStringArray = PackedStringArray()
+## [member _log_texts] joined as the file holds them; `""` until the next write needs it.
+var _log_block: String = ""
 
 
 ## [param defaults] are the M9 defaults, [param knobs] the tuning knobs; [param root]
@@ -95,6 +109,7 @@ func load_profile() -> Dictionary:
 	var outcome: Dictionary = _read_chain(locked)
 	_status = outcome.status
 	_repairs = 0
+	_forget_log_text()
 	if outcome.status == SaveErrors.STATUS_SCHEMA_NEWER:
 		_profile = _fresh_profile()
 		_state = State.READ_ONLY
@@ -170,9 +185,12 @@ func archive_run(record: Dictionary, rules: Callable = Callable()) -> Dictionary
 		granted = rules.call(_profile, record)
 	var entries: Array = _profile.run_log
 	entries.append(archived_form(record))
+	_log_block = ""
 	var cap: int = int(_knobs.run_log_cap)
 	if entries.size() > cap:
-		_profile["run_log"] = entries.slice(entries.size() - cap)
+		var dropped: int = entries.size() - cap
+		_profile["run_log"] = entries.slice(dropped)
+		_log_texts = _log_texts.slice(dropped)
 	return {"ok": save_profile() == OK, "unlocks_granted": granted}
 
 
@@ -251,11 +269,14 @@ func get_settings() -> Dictionary:
 
 
 ## Publishes every setting once (Boot step 4): the bus then answers a consumer
-## that mounts later.
+## that mounts later. An absent `bindings` is published as `{}`, its M9 meaning, so
+## `reset_profile` takes a rebind off `InputMap` (ADR-0004 addendum 2).
 func publish_settings() -> void:
 	var settings: Dictionary = get_settings()
 	for key: Variant in settings:
 		settings_bus.publish(StringName(str(key)), settings[key])
+	if not settings.has(BINDINGS_KEY):
+		settings_bus.publish(StringName(BINDINGS_KEY), {})
 
 
 ## Writes a pending settings change. `OK` when none is pending.
@@ -302,6 +323,7 @@ func reset_profile(confirm_token: String) -> Error:
 	var seq: int = int(_profile.get("write_seq", 0))
 	_profile = _fresh_profile()
 	_profile["write_seq"] = seq
+	_forget_log_text()
 	return _write()
 
 
@@ -492,13 +514,41 @@ func _write() -> Error:
 
 
 ## The JSON text, `schema_version` first (M1.1), keys in insertion order, floats at
-## full precision so a load equals the save (AC-2).
+## full precision so a load equals the save (AC-2). `run_log[]` is spliced in from
+## [method _log_text]; the bytes are the ones one `stringify` of the whole would give.
 func _serialised(seq: int, now: int) -> String:
 	var ordered: Dictionary = {"schema_version": _profile.schema_version}
 	ordered.merge(_profile)
 	ordered["write_seq"] = seq
 	ordered["updated_at"] = now
-	return JSON.stringify(ordered, "\t", false, true)
+	if (_profile.run_log as Array).is_empty():
+		return JSON.stringify(ordered, "\t", false, true)
+	ordered["run_log"] = LOG_SLOT
+	var text: String = JSON.stringify(ordered, "\t", false, true)
+	var slot: String = "\"%s\"" % LOG_SLOT
+	var at: int = text.find(slot)
+	return text.substr(0, at) + _log_text() + text.substr(at + slot.length())
+
+
+## `run_log[]` as JSON at its depth in the file. Prints only the entries not yet held.
+func _log_text() -> String:
+	if _log_block.is_empty():
+		var entries: Array = _profile.run_log
+		for index: int in range(_log_texts.size(), entries.size()):
+			_log_texts.append(_entry_text(entries[index]))
+		_log_block = "[\n" + ",\n".join(_log_texts) + "\n\t]"
+	return _log_block
+
+
+func _forget_log_text() -> void:
+	_log_texts.clear()
+	_log_block = ""
+
+
+## [param entry] printed as a member of a top-level array: two tabs deep.
+func _entry_text(entry: Dictionary) -> String:
+	var wrapped: String = JSON.stringify({ENTRY_WRAP_KEY: [entry]}, "\t", false, true)
+	return wrapped.trim_prefix(ENTRY_WRAP_OPEN).trim_suffix(ENTRY_WRAP_CLOSE)
 
 
 ## `backup_count` above 1: `.bak` copies down to `.bak2`, `.bak3` before the write.
