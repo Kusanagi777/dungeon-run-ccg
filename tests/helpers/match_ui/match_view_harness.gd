@@ -26,6 +26,29 @@ const FRAME_S: float = 1.0 / 60.0
 const SETTLE_CAP_S: float = 60.0
 
 static var _db: CardDatabase = null
+# The seq of the last event [method inject] made up.
+static var _injected_seq: int = 100000
+
+
+## A task that does its work at once and answers only when the gate lets it: a suite holds
+## the planner open past the point it wants to look at. `gate.held` is read on every poll.
+class GatedTask:
+	extends ImmediatePlannerTask
+
+	var gate: Dictionary = {}
+
+	func _init(shared: Dictionary) -> void:
+		gate = shared
+
+	func start(work: Callable) -> void:
+		super(work)
+		_live = bool(gate.held)
+
+	func poll() -> bool:
+		if bool(gate.held):
+			return false
+		_live = false
+		return true
 
 
 ## The shipped database, loaded once with the real validators.
@@ -51,17 +74,22 @@ static func immediate_planner() -> Callable:
 	return func() -> PlannerTask: return ImmediatePlannerTask.new()
 
 
+## A planner source whose tasks wait on [param gate], `{held: bool}`.
+static func gated_planner(gate: Dictionary) -> Callable:
+	return func() -> PlannerTask: return GatedTask.new(gate)
+
+
 ## Launches `match_view.tscn` on fixture [param fixture] under [param host], as the
 ## command line would, with [param args] after `--fixture` and [param settings] in the
 ## profile. `anim_speed` is `instant` unless [param settings] says otherwise. The caller
-## frees the view with [method close].
-static func open(host: Node, fixture: String, args: Array = [], settings: Dictionary = {}) -> MatchView:
+## frees the view with [method close]. [param planner] replaces the immediate one.
+static func open(host: Node, fixture: String, args: Array = [], settings: Dictionary = {}, planner: Callable = Callable()) -> MatchView:
 	var profile: Dictionary = {"anim_speed": "instant"}
 	profile.merge(settings, true)
 	var boot: Node = fresh_boot(profile)
 	var launch: PackedStringArray = PackedStringArray(["--fixture=" + fixture])
 	launch.append_array(PackedStringArray(args))
-	return await _enter(host, boot, launch, immediate_planner(), null)
+	return await _enter(host, boot, launch, planner if planner.is_valid() else immediate_planner(), null)
 
 
 ## Starts `match_view.tscn` under [param host] with [param controller], as `RunShell`
@@ -181,6 +209,35 @@ static func press_end_turn(view: MatchView) -> bool:
 		return false
 	button.pressed.emit()
 	return true
+
+
+## Hands the view an event the engine did not make, as if it had just arrived: for a
+## state the fixtures cannot reach. Answers its `seq`.
+static func inject(view: MatchView, type: String, payload: Dictionary, cause: int = 0) -> int:
+	_injected_seq += 1
+	view.call("_on_event", {"seq": _injected_seq, "turn": view.view_state().turn, "type": type, "payload": payload, "cause_seq": cause})
+	return _injected_seq
+
+
+## A point on hand card [param id] that no neighbour covers: left of centre, where a later
+## card does not reach.
+static func card_point(view: MatchView, id: int) -> Vector2:
+	var slot: Dictionary = (view.hand().get("_slots") as Dictionary)[id]
+	var cfg: Dictionary = view.hand().get("_cfg")
+	var local := Vector2(-float(cfg.card_w) * 0.4, -float(cfg.card_h) / 2.0)
+	return Vector2(float(slot.x), float(slot.y)) + local.rotated(deg_to_rad(float(slot.rot)))
+
+
+## The id of the player's hand card [param index].
+static func hand_id(view: MatchView, index: int) -> int:
+	return int(view.view_state().side(&"player").hand[index].instance_id)
+
+
+## The commands the router asks for from now on, filled in as they happen.
+static func spy_commands(view: MatchView) -> Array[Dictionary]:
+	var sent: Array[Dictionary] = []
+	view.router().command_requested.connect(func(command: Dictionary) -> void: sent.append(command))
+	return sent
 
 
 ## Every event type the match log holds, in order.
