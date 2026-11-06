@@ -37,7 +37,7 @@ func _run_gates(root: String, env_path: String = "") -> Dictionary:
 		code = OS.execute("bash", [script_path, root_path], output, true)
 	else:
 		# Through bash, not /usr/bin/env: Windows cannot launch POSIX paths directly.
-		code = OS.execute("bash", ["-c", 'PATH="$1" exec "$BASH" "$2" "$3"', "bash", env_path, script_path, root_path], output, true)
+		code = OS.execute("bash", [ProjectSettings.globalize_path("res://tests/fixtures/lint/launch/with_path.sh"), env_path, script_path, root_path], output, true)
 	return {"exit": code, "text": "\n".join(output)}
 
 

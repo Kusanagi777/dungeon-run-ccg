@@ -25,8 +25,8 @@ func _parse_check(fake_exit: int, prints_ok: bool) -> Dictionary:
 	var output: Array = []
 	var godot: String = _bash_path(ProjectSettings.globalize_path(FAKE_GODOT))
 	var script_path: String = ProjectSettings.globalize_path(PARSE_CHECK)
-	var command: String = 'GODOT="$1" FAKE_GODOT_EXIT="$2" FAKE_GODOT_OK="$3" exec "$BASH" "$4"'
-	var code: int = OS.execute("bash", ["-c", command, "bash", godot, str(fake_exit), "1" if prints_ok else "0", script_path], output, true)
+	var launcher: String = ProjectSettings.globalize_path("res://tests/fixtures/lint/launch/with_fake_godot.sh")
+	var code: int = OS.execute("bash", [launcher, godot, str(fake_exit), "1" if prints_ok else "0", script_path], output, true)
 	return {"exit": code, "text": "\n".join(output)}
 
 
