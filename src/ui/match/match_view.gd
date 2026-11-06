@@ -1075,7 +1075,8 @@ func _show_info(card: int, token: int, over_power: bool) -> void:
 	var held_id: int = int(held.get("id", -1))
 	var held_token: bool = kind == FocusPresenter.KIND_BOSS_TOKEN or (kind == InputRouter.SOURCE_ATTACKER and _player_row.has_token(held_id))
 	var shown_card: int = card if card != -1 or kind != InputRouter.SOURCE_CARD else held_id
-	_hand.set_hover(shown_card)
+	# A pointer keeps its tween at any speed (F2); a keyed preview is a hand step, so `instant` lands it.
+	_hand.set_hover(shown_card, 0.0 if card == -1 and _speed == SPEED_INSTANT else -1.0)
 	_show_inspect(token if token != -1 or not held_token else held_id)
 	_show_reading(shown_card)
 	_player_panel.show_power_tooltip(over_power or kind == InputRouter.SOURCE_HERO_POWER)
