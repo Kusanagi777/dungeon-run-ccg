@@ -161,6 +161,11 @@ func legal_commands() -> Array:
 	return _engine.legal_commands()
 
 
+## The power seated on [param side]; `""` for none.
+func hero_power_id(side: String) -> String:
+	return str(_player(side).hero_power.def_id)
+
+
 ## U2 `hero_power_state(side)`: `{state, reason_code}`, `state` one of
 ## [constant POWER_READY], [constant POWER_BLOCKED] and [constant POWER_USED].
 ## `reason_code` is null unless blocked, and then the C2 code `submit` would answer,

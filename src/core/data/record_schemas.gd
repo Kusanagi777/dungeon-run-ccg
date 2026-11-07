@@ -38,6 +38,11 @@ const ID_PATTERN: String = "^[a-z][a-z0-9_]{2,47}$"
 ## card-database CR-3 theme-tag pattern (CardDef / BossDef / TreasureDef `tags`, BundleDef `theme`).
 const TAG_PATTERN: String = "^[a-z_]+$"
 ## card-database CR-3 `set` enum (CR-2 prefixes).
+## Sets are open: any `cards_<id>.json` in the data root adds one. These two lists are the
+## sets that can never own a hero or a bundle.
+const NON_HERO_SETS: Array[String] = ["neutral", "boss"]
+const NON_BUNDLE_SETS: Array[String] = ["boss"]
+## The sets with a manifest row. Others are discovered (`DataLoader`).
 const SETS: Array[String] = ["war", "decay", "knowledge", "neutral", "boss", "fortune", "order", "shadow"]
 ## card-database CR-3 `type` enum (DD-M08).
 const TYPES: Array[String] = ["minion", "spell", "weapon"]
@@ -54,15 +59,12 @@ const KEYWORDS: Array[String] = [
 ## The one parametrised keyword (CR-3 `spell_damage`).
 const SPELL_DAMAGE_KEYWORD: String = "spell_damage"
 ## HeroDef `set`: a hero set — never `neutral` or `boss` (CR-3).
-const HERO_SETS: Array[String] = ["war", "decay", "knowledge", "fortune", "order", "shadow"]
 ## BundleDef `set`: a hero set or `neutral` — never `boss` (CR-3).
-const BUNDLE_SETS: Array[String] = ["war", "decay", "knowledge", "neutral", "fortune", "order", "shadow"]
 ## card-database Formulas: the `card_database.json` knobs and their ranges,
-## `[min, max]` inclusive (`max_records` has no stated ceiling: `[1]`).
+## `[min, max]` inclusive.
 const KNOB_RANGES: Dictionary = {
 	"min_collectible_pool": [10, 100],
 	"min_bundle_pool": [3, 30],
-	"max_records": [1],
 	"data_load_budget_ms": [50, 1000],
 	"data_memory_budget_mb": [1, 32],
 }
@@ -78,7 +80,7 @@ const CARD_DATABASE_FILE: String = "card_database.json"
 const CARD_FIELDS: Dictionary = {
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1, "max_len": 32},
-	"set": {"kind": "enum", "required": true, "enum": SETS},
+	"set": {"kind": "string", "required": true, "min_len": 1, "pattern": "tag"},
 	"type": {"kind": "enum", "required": true, "enum": TYPES},
 	"cost": {"kind": "int", "required": true, "min": 0, "max": 10},
 	"attack": {"kind": "int", "required": false, "min": 0, "max": 99},
@@ -102,9 +104,10 @@ const CARD_BY_TYPE: Dictionary = {
 const HERO_FIELDS: Dictionary = {
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1},
-	"set": {"kind": "enum", "required": true, "enum": HERO_SETS},
+	"set": {"kind": "string", "required": true, "min_len": 1, "pattern": "tag", "not": NON_HERO_SETS},
 	"health": {"kind": "int", "required": true, "min": 1},
 	"hero_power": {"kind": "string", "required": true, "min_len": 1},
+	"extra_powers": {"kind": "array", "required": false, "count": 2},
 	"starter_deck": {"kind": "string_list", "required": true, "count": 15},  # DD-R03, counted at stage 6
 	"unlock": {"kind": "unlock", "required": true},
 	"text": {"kind": "text", "required": true},
@@ -145,7 +148,7 @@ const TREASURE_FIELDS: Dictionary = {
 const BUNDLE_FIELDS: Dictionary = {
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1},
-	"set": {"kind": "enum", "required": true, "enum": BUNDLE_SETS},
+	"set": {"kind": "string", "required": true, "min_len": 1, "pattern": "tag", "not": NON_BUNDLE_SETS},
 	"theme": {"kind": "string", "required": true, "pattern": "tag"},
 	"cards": {"kind": "string_list", "required": true, "count": 3},  # DD-R04, counted at stage 6
 	"unlock": {"kind": "unlock", "required": true},
@@ -263,6 +266,8 @@ static func _check_field(ctx: Dictionary, key: String, spec: Dictionary, value: 
 				return _fault(ctx, ValidationReport.E_SCHEMA, key, "%s`%s` length %d outside %s" % [where, key, length, _len_range(spec)])
 			if spec.get("pattern") == "tag" and _tag_re().search(value) == null:
 				return _fault(ctx, ValidationReport.E_SCHEMA, key, "%s`%s` \"%s\" does not match %s" % [where, key, value, TAG_PATTERN])
+			if spec.has("not") and Array(spec.not).has(value):
+				return _fault(ctx, ValidationReport.E_BAD_ENUM, key, "%s`%s` \"%s\" is not allowed here" % [where, key, value])
 		"enum":
 			if not value is String or not Array(spec.enum).has(value):
 				return _fault(ctx, ValidationReport.E_BAD_ENUM, key, "%s`%s` \"%s\" is not one of %s" % [where, key, str(value), ", ".join(spec.enum)])

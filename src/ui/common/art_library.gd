@@ -27,6 +27,9 @@ var _fallback_set: Dictionary = {}
 var _fallback_type: Dictionary = {}
 var _heroes: Dictionary = {}
 var _bosses: Dictionary = {}
+var _treasures: Dictionary = {}
+var _powers: Dictionary = {}
+var _intents: Dictionary = {}
 var _cache: Dictionary = {}
 
 
@@ -57,6 +60,9 @@ static func load_map(path: String = MAP_PATH) -> ArtLibrary:
 	library._fallback_type = body.get("fallback_type", {})
 	library._heroes = body.get("heroes", {})
 	library._bosses = body.get("bosses", {})
+	library._treasures = body.get("treasures", {})
+	library._powers = body.get("powers", {})
+	library._intents = body.get("intents", {})
 	return library
 
 
@@ -82,6 +88,26 @@ func card_stamp(card_id: String, card_type: String = "", card_set: String = "") 
 func portrait(group: String, id_name: String) -> Dictionary:
 	var table: Dictionary = _heroes if group == "heroes" else _bosses
 	return _colored(str(table.get(id_name, "")), true)
+
+
+## `{texture, tint, key}` for treasure [param treasure_id], tinted to sit on parchment.
+func treasure_stamp(treasure_id: String) -> Dictionary:
+	return _colored(str(_treasures.get(treasure_id, "")), false)
+
+
+## `{texture, tint, key}` for hero power [param power_id], tinted to sit on a dark button.
+func power_stamp(power_id: String) -> Dictionary:
+	return _colored(str(_powers.get(power_id, "")), true)
+
+
+## `{texture, tint, key}` for boss intent [param intent_key], tinted to sit on a dark plate.
+func intent_stamp(intent_key: String) -> Dictionary:
+	return _colored(str(_intents.get(intent_key, "")), true)
+
+
+## `{texture, tint, key}` for the stamp [param key] itself, tinted to sit on parchment.
+func named_stamp(key: String) -> Dictionary:
+	return _colored(key, false)
 
 
 ## The glyph texture for [param name] (a keyword or `attack` / `health` / `durability` / `cost`).
@@ -110,6 +136,17 @@ func surface(surface_name: String) -> Texture2D:
 ## A parchment [StyleBoxTexture] with [param margin_px] of content inset, or `null`.
 func parchment_panel(margin_px: int) -> StyleBox:
 	var tex: Texture2D = surface("parchment_tile")
+	if tex == null:
+		return null
+	var box := StyleBoxTexture.new()
+	box.texture = tex
+	box.set_content_margin_all(margin_px)
+	return box
+
+
+## The torn-edge card sheet as a [StyleBoxTexture] with [param margin_px] inset, or `null`.
+func parchment_sheet(margin_px: int) -> StyleBox:
+	var tex: Texture2D = surface("parchment_card")
 	if tex == null:
 		return null
 	var box := StyleBoxTexture.new()

@@ -44,6 +44,8 @@ func _init(db: CardDatabase, limits: Dictionary) -> void:
 	_limits = limits
 	for hero: Dictionary in db.heroes():
 		_add_record(&"hero", hero)
+		for extra: Variant in hero.get("extra_powers", []):
+			_add_record(&"power", {"id": (extra as Dictionary).get("power", ""), "unlock": (extra as Dictionary).get("unlock")})
 		if hero.get("unlock") == null:
 			_launch_heroes.append(str(hero.get("id", "")))
 	for treasure: Dictionary in db.treasure_pool():

@@ -1,0 +1,792 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "shadow_footpad",
+      "name": "Footpad",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 1,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_footpad.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "shadow_lurker",
+      "name": "Gloom Lurker",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_lurker.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "shadow_cutpurse",
+      "name": "Alley Cutter",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "attack": 3,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_cutpurse.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "shadow_night_stalker",
+      "name": "Night Stalker",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_night_stalker.text",
+        "en": "Stealth."
+      }
+    },
+    {
+      "id": "shadow_hollow_watcher",
+      "name": "Hollow Watcher",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "stealth",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "adjacent",
+              "keyword": "stealth"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_hollow_watcher.text",
+        "en": "Stealth. Battlecry: Give adjacent minions Stealth."
+      }
+    },
+    {
+      "id": "shadow_night_queen",
+      "name": "The Night Queen",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 6,
+      "attack": 6,
+      "health": 5,
+      "rarity": "legendary",
+      "keywords": [
+        "stealth",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            },
+            {
+              "op": "give_keyword",
+              "keyword": "stealth"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_night_queen.text",
+        "en": "Stealth. Battlecry: Give your other minions +1 Attack and Stealth."
+      }
+    },
+    {
+      "id": "shadow_veil",
+      "name": "Veil",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            },
+            {
+              "op": "give_keyword",
+              "keyword": "stealth"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_veil.text",
+        "en": "Give a friendly minion +1 Attack and Stealth."
+      }
+    },
+    {
+      "id": "shadow_smoke_bomb",
+      "name": "Smoke Bomb",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "stealth"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_smoke_bomb.text",
+        "en": "Give your minions Stealth."
+      }
+    },
+    {
+      "id": "shadow_assassins_mark",
+      "name": "Assassin's Mark",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_keyword": "stealth"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "stealth"
+      ],
+      "text": {
+        "key": "card.shadow_assassins_mark.text",
+        "en": "Give a friendly minion with Stealth +3 Attack."
+      }
+    },
+    {
+      "id": "shadow_spiderling",
+      "name": "Spiderling",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_spiderling.text",
+        "en": "Poisonous."
+      }
+    },
+    {
+      "id": "shadow_adder",
+      "name": "Cellar Adder",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_adder.text",
+        "en": "Poisonous."
+      }
+    },
+    {
+      "id": "shadow_poisoner",
+      "name": "Poisoner",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "poisonous"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_poisoner.text",
+        "en": "Battlecry: Give a friendly minion Poisonous."
+      }
+    },
+    {
+      "id": "shadow_widow",
+      "name": "Tunnel Widow",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "poisonous",
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_widow.text",
+        "en": "Poisonous. Taunt."
+      }
+    },
+    {
+      "id": "shadow_ancient_wyrm",
+      "name": "Ancient Wyrm",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 7,
+      "attack": 5,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "poisonous",
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_ancient_wyrm.text",
+        "en": "Poisonous. Stealth."
+      }
+    },
+    {
+      "id": "shadow_envenom_blade",
+      "name": "Envenomed Blade",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "poisonous"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_envenom_blade.text",
+        "en": "Give a friendly minion Poisonous."
+      }
+    },
+    {
+      "id": "shadow_venom_dart",
+      "name": "Venom Dart",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_venom_dart.text",
+        "en": "Deal 2 damage to a minion."
+      }
+    },
+    {
+      "id": "shadow_toxic_cloud",
+      "name": "Toxic Cloud",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "all_enemy_minions",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "venom"
+      ],
+      "text": {
+        "key": "card.shadow_toxic_cloud.text",
+        "en": "Deal 2 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "shadow_knife_thrower",
+      "name": "Knife Thrower",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  1
+                ]
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_knife_thrower.text",
+        "en": "Battlecry: If you played another card this turn, deal 2 damage to a random enemy."
+      }
+    },
+    {
+      "id": "shadow_cutthroat",
+      "name": "Cutthroat",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  1
+                ]
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "self",
+                  "attack": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_cutthroat.text",
+        "en": "Battlecry: If you played another card this turn, gain +2 Attack."
+      }
+    },
+    {
+      "id": "shadow_ambusher",
+      "name": "Ambusher",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "rush",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  1
+                ]
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "self",
+                  "attack": 2,
+                  "health": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_ambusher.text",
+        "en": "Rush. Battlecry: If you played another card this turn, gain +2/+2."
+      }
+    },
+    {
+      "id": "shadow_duskblade",
+      "name": "Duskblade",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 5,
+      "attack": 5,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_duskblade.text",
+        "en": "Rush."
+      }
+    },
+    {
+      "id": "shadow_backstab",
+      "name": "Backstab",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 0,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_damaged": false
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_backstab.text",
+        "en": "Deal 2 damage to an undamaged minion."
+      }
+    },
+    {
+      "id": "shadow_quick_step",
+      "name": "Quick Step",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_quick_step.text",
+        "en": "Return a friendly minion to your hand. Draw a card."
+      }
+    },
+    {
+      "id": "shadow_bloody_work",
+      "name": "Bloody Work",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": {
+                "add": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_bloody_work.text",
+        "en": "Deal damage to a minion equal to the cards you played this turn, plus 1."
+      }
+    },
+    {
+      "id": "shadow_last_light",
+      "name": "Last Light",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": {
+                "ref": "owner.cards_played_this_turn"
+              },
+              "ops": [
+                {
+                  "op": "damage",
+                  "targets": "enemy_hero",
+                  "amount": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ambush"
+      ],
+      "text": {
+        "key": "card.shadow_last_light.text",
+        "en": "Deal 3 damage to the enemy hero for each card you played this turn."
+      }
+    }
+  ]
+}

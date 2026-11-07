@@ -56,6 +56,7 @@ func bind(model: Dictionary) -> void:
 	_add_action(tr("settings.clear"), &"clear_run_records_requested")
 	_add_action(tr("settings.reset"), &"reset_profile_requested")
 	_back = UiKit.button(tr("common.back"), true)
+	_back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_back.pressed.connect(send.bind(&"back", {}))
 	column.add_child(_back)
 	_order.append(_back)

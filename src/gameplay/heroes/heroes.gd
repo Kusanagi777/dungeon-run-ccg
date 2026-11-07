@@ -50,13 +50,19 @@ const CONFIG_SPEC: Dictionary = {
 	"hp_value_max": {"kind": K_NUMBER, "range": [1.0, 3.0], "row": "HP_VALUE_MAX, safe 1.0-3.0"},
 	"vanilla_2drop": {"kind": K_NUMBER, "above": 0.0, "row": "F3 VANILLA_2DROP, above 0, no safe range stated"},
 	"p_kill": {"kind": K_NUMBER, "range": [0.3, 0.6], "row": "F3 p_kill, the variable's range 0.3-0.6"},
-	"hero_set_size": {"kind": K_INT, "range": [1, null], "row": "F4 HERO_SET_SIZE, above 0, no safe range stated"},
-	"hero_set_size_tol": {"kind": K_INT, "range": [1, null], "row": "F4 set size tolerance, above 0, no safe range stated"},
 	"set_share": {"kind": K_SET_MAP, "row": "F4 SET_SHARE, no safe range stated", "entry": {"kind": K_OBJECT, "fields": {
 		"minion": SHARE_ROW, "spell": SHARE_ROW, "weapon": SHARE_ROW,
 	}}},
 	"set_share_tol": {"kind": K_NUMBER, "range": [0.04, 0.15], "row": "SET_SHARE tolerance, safe 0.04-0.15"},
 	"synergy_min": {"kind": K_INT, "range": [3, 8], "row": "SYNERGY_MIN, safe 3-8"},
+	"balance": {"kind": K_OBJECT, "row": "Relative balance report", "fields": {
+		"class_tol": {"kind": K_NUMBER, "range": [0.0, null], "row": "class tolerance, win rate points"},
+		"power_tol": {"kind": K_NUMBER, "range": [0.0, null], "row": "power tolerance, win rate points"},
+		"archetype_tol": {"kind": K_NUMBER, "range": [0.0, null], "row": "archetype tolerance, win rate points"},
+		"boss_tol": {"kind": K_NUMBER, "range": [0.0, null], "row": "boss tolerance, win rate points"},
+		"seeds": {"kind": K_INT, "range": [1, null], "row": "seeds per matchup"},
+		"bosses_per_band": {"kind": K_INT, "range": [1, null], "row": "bosses sampled per band"},
+	}},
 }
 
 ## min / max pairs that must not be inverted: `[low path, high path]`.
@@ -69,6 +75,14 @@ const ORDERED_PAIRS: Array = [
 var _db: CardDatabase
 ## The frozen `heroes_balance` body, read once here (ADR-0002).
 var _balance: Dictionary
+
+
+## Every power id of [param hero] (a `HeroDef`), the starting power first.
+static func power_ids(hero: Dictionary) -> Array[String]:
+	var ids: Array[String] = [str(hero.get("hero_power", ""))]
+	for extra: Variant in hero.get("extra_powers", []):
+		ids.append(str((extra as Dictionary).get("power", "")))
+	return ids
 
 
 ## Keeps [param db], the frozen `CardDatabase`, and reads `heroes_balance` once.
@@ -318,7 +332,7 @@ static func _check_set_map(rows: Array[Dictionary], value: Variant, spec: Dictio
 		return
 	for key: Variant in value:
 		var entry: String = "%s.%s" % [path, str(key)]
-		if not RecordSchemas.HERO_SETS.has(key):
+		if RecordSchemas.NON_HERO_SETS.has(key):
 			rows.append(_row(ValidationReport.E_UNKNOWN_FIELD, entry, "`%s` names no hero set (card-database CR-3)" % entry))
 			continue
 		_check_value(rows, value[key], spec.entry, entry)

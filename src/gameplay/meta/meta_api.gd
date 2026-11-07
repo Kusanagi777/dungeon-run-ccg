@@ -103,6 +103,10 @@ var settings_bus: SettingsBus
 @abstract func is_treasure_unlocked(treasure_id: String) -> bool
 
 
+## True when an extra hero power may be chosen: its unlock key is granted.
+@abstract func is_power_unlocked(power_id: String) -> bool
+
+
 ## Display read model for [param key]:
 ## [code]{met: bool, progress: float, parts: Array}[/code]. (M1.3, F6)
 @abstract func unlock_progress(key: String) -> Dictionary

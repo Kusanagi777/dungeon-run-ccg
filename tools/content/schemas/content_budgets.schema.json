@@ -24,7 +24,6 @@
         "text_max_chars",
         "pick_rate",
         "time",
-        "neutral_set_size",
         "set_share",
         "share_tol"
       ],
@@ -342,12 +341,6 @@
             }
           },
           "description": "F6"
-        },
-        "neutral_set_size": {
-          "type": "integer",
-          "minimum": 35,
-          "maximum": 60,
-          "description": "NEUTRAL_SET_SIZE, safe 35-60"
         },
         "set_share": {
           "type": "object",

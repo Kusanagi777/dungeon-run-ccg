@@ -171,6 +171,11 @@ func is_treasure_unlocked(treasure_id: String) -> bool:
 	return _ids_of(_db.treasure_pool()).has(treasure_id)
 
 
+## Every power is open at the stub.
+func is_power_unlocked(_power_id: String) -> bool:
+	return true
+
+
 ## The F6 shape for a met condition: `{met: true, progress: 1.0, parts: []}`.
 func unlock_progress(_key: String) -> Dictionary:
 	return {"met": true, "progress": 1.0, "parts": []}

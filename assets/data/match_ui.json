@@ -210,9 +210,9 @@
       ],
       "feed_ticker": [
         24,
-        48,
+        42,
         400,
-        42
+        52
       ],
       "feed_drawer": [
         0,
@@ -427,6 +427,12 @@
       "decay2": "#6B4C8A",
       "knowledge": "#2C4F8A",
       "knowledge2": "#C9A24A",
+      "fortune": "#7D5E14",
+      "fortune2": "#3A3532",
+      "order": "#4F5B66",
+      "order2": "#BDB39A",
+      "shadow": "#3F3A48",
+      "shadow2": "#5B4A78",
       "boss_band_1": "#6B5B3C",
       "boss_band_2": "#7A4A3A",
       "boss_band_3": "#4E4660",
@@ -492,7 +498,7 @@
       "end.facts": "Turn {turns} · You {hero_hp} health · {boss} {boss_hp}",
       "end.fault_detail": "Error: {reason} · turn {turns}",
       "end.continue": "Continue · %d",
-      "hud.feed": "L",
+      "hud.feed": "Log",
       "hud.fatigue_next": "Fatigue: next %d",
       "intent.lethal": "Lethal",
       "intent.lethal.long": "The boss has lethal damage on the table: {amount}.",

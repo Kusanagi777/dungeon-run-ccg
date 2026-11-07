@@ -211,6 +211,7 @@ func _card(card_id: String, rect: Rect2) -> Control:
 	add_child(frame)
 	frame.configure(ui)
 	frame.scale = Vector2.ONE * float(_cfg.card_scale)
+	frame.set_text_zoom(float(_cfg.card_scale))
 	frame.position = rect.position
 	var face: Dictionary = ui.card_face(card_id)
 	frame.show_card(face, int(face.get("cost", 0)) if face.get("cost") != null else 0)

@@ -141,8 +141,9 @@ func open_new_run() -> Error:
 
 ## T2 and T18 (R2): starts a run with [param hero_id] from [param seed_input], where
 ## an empty input means a random seed. Rejected, with no event and no save, as
-## `E_CONFIG` (a layout F1 and F2 cannot use), `E_UNKNOWN_ID` or `E_HERO_LOCKED`.
-func new_run(hero_id: String, seed_input: String) -> Error:
+## `E_CONFIG` (a layout F1 and F2 cannot use), `E_UNKNOWN_ID`, `E_HERO_LOCKED` or
+## `E_POWER_LOCKED`. An empty [param power_id] is the hero's starting power.
+func new_run(hero_id: String, seed_input: String, power_id: String = "") -> Error:
 	if not _is_legal("new_run"):
 		return RunCodes.E_BAD_PHASE
 	if not _layout_is_usable():
@@ -152,11 +153,17 @@ func new_run(hero_id: String, seed_input: String) -> Error:
 		return RunCodes.E_UNKNOWN_ID
 	if not _meta.is_hero_unlocked(hero_id):
 		return RunCodes.E_HERO_LOCKED
+	var power: String = power_id if not power_id.is_empty() else str(hero.hero_power)
+	if not Heroes.power_ids(hero).has(power):
+		return RunCodes.E_UNKNOWN_ID
+	if power != str(hero.hero_power) and not _meta.is_power_unlocked(power):
+		return RunCodes.E_POWER_LOCKED
 	_clear_run()
 	_abandon_saved_run()
 	var warnings: Array[Dictionary] = []
 	var run_seed: int = _resolve_seed(seed_input, warnings)
 	var run_state: RunState = _fresh_state(hero, run_seed, seed_input)
+	run_state.hero_power_id = power
 	state = run_state
 	rng = _make_rng(run_seed, state.data_version)
 	_open_log(EventLog.new(_max_events(), EventLog.SCOPE_RUN, _log_meta()))
@@ -168,6 +175,7 @@ func new_run(hero_id: String, seed_input: String) -> Error:
 	_emit(RunCodes.EVENT_RUN_STARTED, {
 		"run_seed_hex": state.run_seed_hex,
 		"hero_id": hero_id,
+		"hero_power_id": power,
 		"data_version": state.data_version,
 		"log_schema_version": EventLog.LOG_SCHEMA_VERSION,
 		"boss_ids": Array(state.boss_sequence),
@@ -569,6 +577,7 @@ func _build_match_config() -> Dictionary:
 		"log": _match_log,
 		"player": {
 			"hero_def_id": state.hero_id,
+			"hero_power": _seated_power(),
 			"deck": Array(state.deck).duplicate(),
 			"hook_installers": _treasures.installers_for(state.treasures, state.treasure_state),
 		},
@@ -660,6 +669,15 @@ func _layout_is_usable() -> bool:
 	return total == floors
 
 
+## The power this run seats: the chosen one, or the hero's starting power when the
+## record has none or names one the hero no longer owns.
+func _seated_power() -> String:
+	var hero: Variant = _hero_def(state.hero_id)
+	if hero == null:
+		return state.hero_power_id
+	return state.hero_power_id if Heroes.power_ids(hero).has(state.hero_power_id) else str(hero.hero_power)
+
+
 ## The HeroDef [param hero_id], or null: `CardDatabase.hero` asserts on other ids.
 func _hero_def(hero_id: String) -> Variant:
 	for hero: Dictionary in _db.heroes():
@@ -734,6 +752,8 @@ func _enter_resumed_state() -> void:
 		RunCodes.warn(run_log, RunCodes.W_COERCED_STATUS, {"floor": state.floor})
 	if not _meta.is_hero_unlocked(state.hero_id):
 		RunCodes.warn(run_log, RunCodes.W_HERO_LOCKED_AT_RESUME, {"hero_id": state.hero_id})
+	if not state.hero_power_id.is_empty() and _seated_power() != state.hero_power_id:
+		RunCodes.warn(run_log, RunCodes.W_POWER_REMOVED, {"hero_power_id": state.hero_power_id})
 	var engine_version: String = str(_config.get("engine_version", ""))
 	if engine_version != state.engine_version:
 		RunCodes.warn(run_log, RunCodes.W_ENGINE_VERSION_CHANGED, {"saved": state.engine_version, "installed": engine_version})
@@ -925,6 +945,7 @@ func _roster() -> Array[Dictionary]:
 			"set": hero["set"],
 			"health": hero.health,
 			"hero_power": hero.hero_power,
+			"extra_powers": Array(hero.get("extra_powers", [])).duplicate(),
 			"starter_deck": Array(hero.starter_deck).duplicate(),
 			"unlocked": _meta.is_hero_unlocked(hero.id),
 		})

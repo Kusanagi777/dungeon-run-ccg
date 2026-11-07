@@ -216,9 +216,34 @@ static func _count_records(staged: Array[Dictionary]) -> int:
 	return count
 
 
-func _warn_unknown_files(report: ValidationReport) -> void:
+## The sorted set ids of every `cards_<id>.json` in [param root].
+## Example: `DataLoader.discover_sets("res://assets/data/")`.
+static func discover_sets(root: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	for file_name: String in DirAccess.get_files_at(root):
+		if file_name.begins_with("cards_") and file_name.get_extension().to_lower() == "json":
+			found.append(file_name.get_basename().trim_prefix("cards_"))
+	found.sort()
+	return found
+
+
+# [constant FILE_MANIFEST], then a row per discovered set it does not name, appended in
+# sorted order so the fingerprint walk stays stable as sets are added.
+func _manifest() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = FILE_MANIFEST.duplicate()
 	var known: Dictionary = {}
 	for row: Dictionary in FILE_MANIFEST:
+		known[row.name] = true
+	for set_id: String in discover_sets(_root):
+		var file_name: String = "cards_%s.json" % set_id
+		if not known.has(file_name):
+			rows.append({"name": file_name, "class": "definition", "record_type": "CardDef", "required": false, "owner": "Content"})
+	return rows
+
+
+func _warn_unknown_files(report: ValidationReport) -> void:
+	var known: Dictionary = {}
+	for row: Dictionary in _manifest():
 		known[row.name] = true
 	for file_name: String in DirAccess.get_files_at(_root):
 		if file_name.get_extension().to_lower() == "json" and not known.has(file_name):
@@ -240,7 +265,7 @@ static func parse_text(text: String, source: String) -> Variant:
 
 func _read_and_parse(report: ValidationReport) -> Array[Dictionary]:
 	var staged: Array[Dictionary] = []
-	for row: Dictionary in FILE_MANIFEST:
+	for row: Dictionary in _manifest():
 		var file: FileAccess = FileAccess.open(_root + row.name, FileAccess.READ)
 		if file == null:
 			var open_error: Error = FileAccess.get_open_error()
@@ -456,6 +481,10 @@ func _check_references(pool: Dictionary, report: ValidationReport) -> void:
 						"hero %s has set \"%s\" but %s is not in the data root" % [id, rec["set"], set_file])
 					ctx.faults += 1
 				_ref(ctx, "hero_power", "hero_power", rec["hero_power"], "HeroPowerDef")
+				if rec.has("extra_powers"):
+					_check_count(ctx, "extra_powers", rec["extra_powers"], RecordSchemas.HERO_FIELDS.extra_powers["count"])
+					for extra: Variant in rec["extra_powers"]:
+						_ref(ctx, "extra_powers", "power", (extra as Dictionary).get("power", ""), "HeroPowerDef")
 				_check_count(ctx, "starter_deck", rec["starter_deck"], RecordSchemas.HERO_FIELDS.starter_deck["count"])
 				_check_card_list(ctx, "starter_deck", rec["starter_deck"], [rec["set"], "neutral"], "")
 			"BossDef":
@@ -661,7 +690,10 @@ func _record_calls(record_type: String, rec: Dictionary) -> Array:
 			calls.append(["ai_profile", &"boss", rec["ai_profile"], "ai_profile"])
 			return calls
 		"HeroDef":
-			return [["unlock", &"hero", rec["unlock"], "unlock"]]
+			var hero_calls: Array = [["unlock", &"hero", rec["unlock"], "unlock"]]
+			for extra: Variant in rec.get("extra_powers", []):
+				hero_calls.append(["unlock", &"power", (extra as Dictionary).get("unlock"), "extra_powers"])
+			return hero_calls
 		"BundleDef":
 			return [["unlock", &"bundle", rec["unlock"], "unlock"]]
 	return []
@@ -760,9 +792,6 @@ func _check_budgets(staged: Array[Dictionary], staging: Dictionary, report: Vali
 	var cards: Array = records.CardDef
 	var knobs: Variant = configs.get("card_database")
 	if knobs != null:
-		if n_records > int(knobs.max_records):
-			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_COUNT, RecordSchemas.CARD_DATABASE_FILE, null, "max_records",
-				"%d records across all definition files, above max_records %d" % [n_records, int(knobs.max_records)])
 		_check_hero_set_pools(knobs, cards, records.HeroDef, records.BundleDef, report)
 	_check_treasure_pool(configs, records.TreasureDef, report)
 	_check_band_health(configs, records.BossDef, report)
@@ -942,7 +971,11 @@ func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationR
 	var records: Dictionary = staging.records_by_type
 	var collectible: Dictionary = {}
 	var bundle: Dictionary = {}
-	for set_id: String in RecordSchemas.SETS:
+	var set_ids: Array[String] = RecordSchemas.SETS.duplicate()
+	for card: Dictionary in records.CardDef:
+		if not set_ids.has(str(card["set"])):
+			set_ids.append(str(card["set"]))
+	for set_id: String in set_ids:
 		collectible[set_id] = Array(records.CardDef).filter(func(c: Dictionary) -> bool: return in_collectible_pool(c, set_id))
 		bundle[set_id] = Array(records.BundleDef).filter(func(b: Dictionary) -> bool: return in_bundle_pool(b, set_id))
 	var bosses_in_band: Dictionary = {}

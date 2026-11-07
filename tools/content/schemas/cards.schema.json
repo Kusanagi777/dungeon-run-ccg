@@ -41,16 +41,8 @@
             "maxLength": 32
           },
           "set": {
-            "enum": [
-              "war",
-              "decay",
-              "knowledge",
-              "neutral",
-              "boss",
-              "fortune",
-              "order",
-              "shadow"
-            ]
+            "type": "string",
+            "pattern": "^[a-z_]+$"
           },
           "type": {
             "enum": [

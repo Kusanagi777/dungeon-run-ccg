@@ -60,8 +60,6 @@
     "hp_value_max": 2.5,
     "vanilla_2drop": 5.0,
     "p_kill": 0.45,
-    "hero_set_size": 25,
-    "hero_set_size_tol": 3,
     "set_share": {
       "war": {
         "minion": 0.52,
@@ -80,6 +78,14 @@
       }
     },
     "set_share_tol": 0.08,
-    "synergy_min": 5
+    "synergy_min": 5,
+    "balance": {
+      "class_tol": 5,
+      "power_tol": 5,
+      "archetype_tol": 7,
+      "boss_tol": 7,
+      "seeds": 4,
+      "bosses_per_band": 2
+    }
   }
 }

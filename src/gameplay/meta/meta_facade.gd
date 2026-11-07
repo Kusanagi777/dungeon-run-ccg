@@ -131,6 +131,11 @@ func is_treasure_unlocked(treasure_id: String) -> bool:
 	return _record_available(treasure_id)
 
 
+## See [method MetaApi.is_power_unlocked].
+func is_power_unlocked(power_id: String) -> bool:
+	return _record_available(power_id)
+
+
 ## F6: `{met, progress, parts}`. A granted key stays met even if its condition
 ## later tightened (M3.3); a key no data defines reads as unmet, or met if granted.
 func unlock_progress(key: String) -> Dictionary:

@@ -40,6 +40,7 @@ const FEED_OPEN_METHOD: StringName = &"is_open"
 const POSE_CHOICE: String = "choice"
 const POSE_REJECT: String = "reject"
 const POSE_FOCUS: String = "focus"
+const TOP_BAR_RULE_ALPHA: float = 0.5
 const POSE_MENU: String = "menu"
 const POSE_MENU_CONCEDE: String = "concede"
 const POSE_TREASURE_PREFIX: String = "treasure:"
@@ -464,12 +465,21 @@ func _build_chrome() -> void:
 	bar.size = bar_rect.size
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_chrome.add_child(bar)
+	var edge := ColorRect.new()
+	edge.color = Color(_ui.color("stamp_ring"), TOP_BAR_RULE_ALPHA)
+	edge.position = Vector2(bar_rect.position.x, bar_rect.end.y)
+	edge.size = Vector2(bar_rect.size.x, 1.0)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chrome.add_child(edge)
 	_turn_label = _bar_label(bar_rect, HORIZONTAL_ALIGNMENT_CENTER)
+	UiFonts.apply(_turn_label)
 	_floor_label = _bar_label(bar_rect.grow_individual(-TOP_BAR_MARGIN_PX, 0, 0, 0), HORIZONTAL_ALIGNMENT_LEFT)
 	_floor_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	UiFonts.apply(_floor_label)
 	var rect: Rect2 = _ui.rect("end_turn")
 	_end_turn = Button.new()
 	_end_turn.text = tr("hud.end_turn")
+	UiFonts.apply(_end_turn)
 	_end_turn.position = rect.position
 	_end_turn.size = rect.size
 	_end_turn.focus_mode = Control.FOCUS_NONE
@@ -619,7 +629,7 @@ func _bar_label(rect: Rect2, alignment: HorizontalAlignment) -> Label:
 
 func _button_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = _ui.color("table_dark")
+	style.bg_color = _ui.color("ink")
 	style.set_corner_radius_all(4)
 	style.set_border_width_all(2)
 	style.border_color = _ui.color("table_dark")
@@ -699,7 +709,10 @@ func _start() -> void:
 
 
 func _apply_identity() -> void:
-	_player_panel.set_identity(_ui.hero_identity(str(_match_info.get("hero_def_id", ""))))
+	var identity: Dictionary = _ui.hero_identity(str(_match_info.get("hero_def_id", "")))
+	if _ui.query != null and _ui.query.has_method("hero_power_id") and not _ui.query.hero_power_id("player").is_empty():
+		identity["power_id"] = _ui.query.hero_power_id("player")
+	_player_panel.set_identity(identity)
 	var boss_id: String = str(_match_info.get("boss_def_id", ""))
 	_boss_panel.set_identity(_ui.boss_identity(boss_id))
 	_banner.set_boss(boss_id)

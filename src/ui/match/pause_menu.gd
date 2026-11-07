@@ -222,6 +222,7 @@ func _column(area: Vector2) -> VBoxContainer:
 func _title(key: String) -> Label:
 	var label: Label = _text(key)
 	label.add_theme_font_size_override("font_size", int(_style.title_px))
+	UiFonts.apply(label)
 	return label
 
 

@@ -1,51 +1,68 @@
-## `hero_select` (run-ui U2, U7; hero-select.md §5): available heroes as lit panels at
-## F4's slots, locked ones as grey silhouettes with their hint, the seed field with its
-## echo, Start, Back and the deck drawer. Selection is local: no command until Start.
-## Start is disabled while a locked panel holds focus (AC-3), and `start_run` carries the
-## raw seed text, never the echo (AC-18).
+## `hero_select` (run-ui U2, U7; hero-select.md): a scrolling roster of class tabs, any
+## number of them, and one detail page for the focused class with its three powers. A
+## locked class stays focusable and shows what earns it; a locked power shows its
+## condition and cannot be chosen. Selection is local: no command until Start, and
+## `start_run` carries the raw seed text, never the echo (AC-18).
 extends Screen
 
-const PANEL_SIZE: Vector2 = Vector2(340, 340)
-const PANEL_Y: float = 72.0
-const LOCKED_Y: float = 428.0
-const LOCKED_H: float = 88.0
-const LIFT_PX: float = 8.0
+const ROSTER_RECT: Rect2 = Rect2(40, 72, 116, 448)
+const DETAIL_RECT: Rect2 = Rect2(172, 72, 1068, 448)
+const TAB_SIZE: Vector2 = Vector2(92, 62)
+const TAB_GAP: int = 6
+const PORTRAIT: Vector2 = Vector2(120, 160)
+const LEFT_W: float = 480.0
+const COLUMN_GAP: int = 24
+const BARS_H: float = 112.0
+const DETAIL_PADDING_PX: int = 16
+const PANEL_ALPHA: float = 0.92
+const HAIRLINE_ALPHA: float = 0.55
+const SELECTED_BORDER_PX: int = 2
+const IDENTITY_RULE_PX: float = 3.0
+const PLATE_PADDING_PX: int = 12
+## A tab that is not selected shades down; a locked class shades further.
+const TAB_REST: Color = Color(0.68, 0.68, 0.68)
+const TAB_LOCKED: Color = Color(0.4, 0.4, 0.4)
+## A locked power's button reads as faint ink.
+const POWER_LOCKED_ALPHA: float = 0.6
 const SEED_LABEL_RECT: Rect2 = Rect2(280, 540, 260, 44)
 const SEED_RECT: Rect2 = Rect2(548, 540, 332, 44)
 const ECHO_RECT: Rect2 = Rect2(548, 584, 332, 24)
 const BACK_POS: Vector2 = Vector2(40, 640)
 const START_POS: Vector2 = Vector2(560, 640)
 const DECK_POS: Vector2 = Vector2(1080, 640)
-const PORTRAIT: Vector2 = Vector2(120, 160)
 const HERO_STING: String = "hero_sting_%s"
-## §5.2's 125 % / 150 % stack: the plate shrinks and the full text moves to the reading panel.
-const SCALED_PLATE_H: float = 56.0
-const FULL_SCALE: float = 1.5
-const LOCKED_H_FULL: float = 112.0
-const SEED_SHIFT_FULL: float = 24.0
 
 var _model: Dictionary = {}
-var _heroes: Array = []
-var _panels: Array[OptionPanel] = []
-var _locked: Array[OptionPanel] = []
-var _selected: int = -1
-var _locked_focused: bool = false
+## Unlocked classes first, then locked ones. A locked row has no `powers`.
+var _rows: Array = []
+var _tabs: Array[OptionPanel] = []
+var _tab_styles: Array[StyleBoxFlat] = []
+var _tab_art: Array[Control] = []
+var _current: int = -1
+## class id -> the power chosen for it on this screen.
+var _chosen: Dictionary = {}
+var _detail: VBoxContainer = null
+var _power_buttons: Array[Button] = []
+var _plate_text: Label = null
 var _start: Button = null
 var _deck: Button = null
+var _back: Button = null
 var _seed: LineEdit = null
 var _echo: Label = null
-var _drawers: Array[DeckDrawer] = []
+var _drawers: Dictionary = {}
 var _scale: float = 1.0
-var _reading: UiTooltip = null
 
 
 func bind(model: Dictionary) -> void:
 	clear()
 	_model = model
-	_heroes = model.get("heroes", [])
-	_panels.clear()
-	_locked.clear()
+	_rows = (model.get("heroes", []) as Array) + (model.get("locked", []) as Array)
+	_tabs.clear()
+	_tab_styles.clear()
+	_tab_art.clear()
 	_drawers.clear()
+	_chosen.clear()
+	_current = -1
 	_scale = float(model.get("text_scale", 1.0))
 	cancel_intent = &"back"
 	var backdrop: ColorRect = UiKit.backdrop(color("bg_edge"))
@@ -55,33 +72,25 @@ func bind(model: Dictionary) -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(title)
 	UiKit.place(title, Rect2(0, 8, float(cfg.design_width), 48))
-	for i: int in _heroes.size():
-		_add_hero(i, _heroes[i])
-	var locked_rows: Array = model.get("locked", [])
-	for i: int in locked_rows.size():
-		_add_locked(i, locked_rows[i], locked_rows.size())
+	_add_roster()
+	_add_detail()
 	_add_seed_row()
 	_add_actions()
-	_reading = UiTooltip.new()
-	add_child(_reading)
-	var reading: Dictionary = cfg.reading_panel
-	_reading.configure(color("parchment"), color("text_ink"), roundi(float(reading.font_px) * _scale), float(reading.max_w), get_viewport_rect())
-	_select_id(str(model.get("selected", "")))
-	var order: Array[Control] = []
-	order.assign(_panels)
-	order.append_array(_locked)
-	if _seed != null:
-		order.append(_seed)
-	order.append_array([_start, _back_button(), _deck])
-	UiKit.chain_focus(order)
+	for row: Dictionary in model.get("heroes", []):
+		_chosen[str(row.id)] = str(row.selected_power)
+		var drawer: DeckDrawer = DeckDrawer.new()
+		add_child(drawer)
+		drawer.show_rows(tr("hero.deck_title").format({"n": (row.deck_rows as Array).size()}), row.deck_rows, [])
+		_drawers[str(row.id)] = drawer
+	_show(_initial_row())
 
 
 func default_focus() -> Control:
-	return _start if _selected >= 0 else (_panels[0] if not _panels.is_empty() else null)
+	return _start if not _is_locked() else (_tabs[0] if not _tabs.is_empty() else null)
 
 
 func close_drawer() -> bool:
-	for drawer: DeckDrawer in _drawers:
+	for drawer: DeckDrawer in _drawers.values():
 		if drawer.is_open():
 			drawer.toggle()
 			_deck.grab_focus()
@@ -90,9 +99,8 @@ func close_drawer() -> bool:
 
 
 func handle_option_key(index: int) -> void:
-	var all: Array[OptionPanel] = _panels.duplicate()
-	if index < all.size():
-		all[index].grab_focus()
+	if index < _tabs.size():
+		_tabs[index].grab_focus()
 
 
 func set_committed(on: bool) -> void:
@@ -100,118 +108,212 @@ func set_committed(on: bool) -> void:
 	_refresh_start()
 
 
-func _add_hero(index: int, hero: Dictionary) -> void:
-	var count: int = _heroes.size()
-	var x: float = RunUiConfig.slot_x(index, count, int(PANEL_SIZE.x), int(cfg.option_gap.bundle), int(cfg.design_width))
-	var panel: OptionPanel = OptionPanel.new()
-	panel.setup(index, LIFT_PX)
-	add_child(panel)
-	UiKit.place(panel, Rect2(Vector2(x, PANEL_Y), PANEL_SIZE))
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = color(str(hero.primary))
-	style.border_color = color(str(hero.secondary))
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(RunUiTheme.CORNER_PX)
-	style.set_content_margin_all(RunUiTheme.PANEL_PADDING_PX * (2 if _scale < FULL_SCALE else 1))
-	panel.add_theme_stylebox_override(&"panel", style)
+func _initial_row() -> int:
+	var wanted: String = str(_model.get("selected", ""))
+	for i: int in _rows.size():
+		if str(_rows[i].id) == wanted:
+			return i
+	return 0 if not _rows.is_empty() else -1
+
+
+func _is_locked() -> bool:
+	return _current < 0 or not (_rows[_current] as Dictionary).has("powers")
+
+
+func _add_roster() -> void:
 	var scroll: ScrollContainer = UiKit.scroll()
-	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
-	panel.add_child(scroll)
-	var column: VBoxContainer = UiKit.vbox(6 if _scale < FULL_SCALE else 2)
+	add_child(scroll)
+	UiKit.place(scroll, ROSTER_RECT)
+	var column: VBoxContainer = UiKit.vbox(TAB_GAP)
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll.add_child(column)
-	var top: HBoxContainer = UiKit.hbox(12)
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i: int in _rows.size():
+		column.add_child(_tab(i, _rows[i]))
+
+
+func _tab(index: int, row: Dictionary) -> OptionPanel:
+	var tab: OptionPanel = OptionPanel.new()
+	tab.setup(index, 0.0)
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color.TRANSPARENT
+	style.set_border_width_all(SELECTED_BORDER_PX)
+	style.border_color = Color.TRANSPARENT
+	style.set_corner_radius_all(RunUiTheme.CORNER_PX)
+	style.set_content_margin_all(SELECTED_BORDER_PX + 1)
+	tab.add_theme_stylebox_override(&"panel", style)
+	var stamp: Dictionary = ArtLibrary.shared().portrait("heroes", str(row.id))
+	var fill: Color = color(str(row.get("primary", "neutral")))
+	var art: ColorRect = UiKit.portrait(fill, str(row.get("initial", str(row.name).left(1))), TAB_SIZE, stamp.get("texture"), stamp.get("tint", Color.WHITE))
+	tab.add_child(art)
+	tab.tooltip_text = str(row.name)
+	tab.focus_entered.connect(_show.bind(index))
+	tab.double_activated.connect(func(_i: int) -> void: _on_start())
+	_tabs.append(tab)
+	_tab_styles.append(style)
+	_tab_art.append(art)
+	return tab
+
+
+func _add_detail() -> void:
+	var panel: PanelContainer = PanelContainer.new()
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(color("ink"), PANEL_ALPHA)
+	style.border_color = Color(color("neutral"), HAIRLINE_ALPHA)
+	style.set_border_width_all(RunUiTheme.BORDER_PX)
+	style.set_corner_radius_all(RunUiTheme.CORNER_PX)
+	style.set_content_margin_all(DETAIL_PADDING_PX)
+	panel.add_theme_stylebox_override(&"panel", style)
+	add_child(panel)
+	UiKit.place(panel, DETAIL_RECT)
+	var scroll: ScrollContainer = UiKit.scroll()
+	panel.add_child(scroll)
+	_detail = UiKit.vbox(8)
+	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_detail)
+
+
+func _show(index: int) -> void:
+	if index == _current or index < 0:
+		return
+	var open: bool = _drawers.values().any(func(drawer: DeckDrawer) -> bool: return drawer.is_open())
+	_current = index
+	var row: Dictionary = _rows[index]
+	for i: int in _tabs.size():
+		var chosen: bool = i == index
+		var locked: bool = not (_rows[i] as Dictionary).has("powers")
+		_tab_styles[i].border_color = color("state_actionable") if chosen else Color.TRANSPARENT
+		_tab_art[i].modulate = TAB_LOCKED if locked else (Color.WHITE if chosen else TAB_REST)
+	for child: Node in _detail.get_children():
+		_detail.remove_child(child)
+		child.queue_free()
+	_power_buttons.clear()
+	_plate_text = null
+	if _is_locked():
+		_fill_locked(row)
+	else:
+		sfx_requested.emit(StringName(HERO_STING % str(row.id)))
+		_fill_hero(row)
+		_deck.text = tr("hero.deck").format({"n": (row.deck_rows as Array).size()})
+	# Each class has a drawer and Deck toggles the current one, so an open drawer follows.
+	for id: String in _drawers:
+		(_drawers[id] as DeckDrawer).set_open(open and id == str(row.id))
+	_refresh_start()
+	_chain()
+
+
+func _heading(row: Dictionary, band_token: String) -> void:
+	_detail.add_child(UiKit.label(str(row.name), RunUiTheme.LABEL_TITLE))
+	var band: ColorRect = UiKit.rule(color(band_token))
+	band.custom_minimum_size.y = IDENTITY_RULE_PX
+	_detail.add_child(band)
+
+
+func _fill_locked(row: Dictionary) -> void:
+	_heading(row, "neutral")
+	_detail.add_child(UiKit.label(tr("hero.locked").format({"name": row.name}), RunUiTheme.LABEL_HEADING))
+	var hint: String = str(row.get("hint", ""))
+	if not hint.is_empty():
+		_detail.add_child(UiKit.label(hint, &"", true))
+
+
+func _fill_hero(row: Dictionary) -> void:
+	_heading(row, str(row.secondary))
+	var columns: HBoxContainer = UiKit.hbox(COLUMN_GAP)
+	columns.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail.add_child(columns)
+	columns.add_child(_left_column(row))
+	columns.add_child(_right_column(row))
+
+
+func _left_column(row: Dictionary) -> Control:
+	var column: VBoxContainer = UiKit.vbox(8)
+	column.custom_minimum_size.x = LEFT_W
+	var top: HBoxContainer = UiKit.hbox(16)
 	column.add_child(top)
-	var stamp: Dictionary = ArtLibrary.shared().portrait("heroes", str(hero.id))
-	top.add_child(UiKit.portrait(color(str(hero.secondary)), str(hero.initial), PORTRAIT, stamp.get("texture"), stamp.get("tint", Color.WHITE)))
+	var stamp: Dictionary = ArtLibrary.shared().portrait("heroes", str(row.id))
+	top.add_child(UiKit.portrait(color(str(row.primary)), str(row.initial), PORTRAIT, stamp.get("texture"), stamp.get("tint", Color.WHITE)))
 	var facts: VBoxContainer = UiKit.vbox(4)
 	facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(facts)
-	facts.add_child(UiKit.label(str(hero.name), &"", true))
-	var health: Label = UiKit.label(tr("hero.health").format({"n": hero.health}), RunUiTheme.LABEL_SMALL)
-	if _scale < FULL_SCALE:
-		facts.add_child(health)
-	facts.add_child(UiKit.label(str(hero.identity), RunUiTheme.LABEL_SMALL, true))
-	var scaled: bool = _scale > 1.0
-	var blurb: Label = UiKit.label(str(hero.blurb), RunUiTheme.LABEL_SMALL, _scale < FULL_SCALE)
-	blurb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	var stats: Label = UiKit.label(str(hero.stats_short if _scale >= FULL_SCALE else hero.stats_line), RunUiTheme.LABEL_SMALL)
-	(column if scaled else facts).add_child(blurb)
-	if _scale >= FULL_SCALE:
-		var line: HBoxContainer = UiKit.hbox(16)
-		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		line.add_child(health)
-		line.add_child(stats)
-		column.add_child(line)
-	else:
-		(column if scaled else facts).add_child(stats)
+	facts.add_child(UiKit.label(tr("hero.health").format({"n": row.health}), RunUiTheme.LABEL_SMALL))
+	facts.add_child(UiKit.label(str(row.identity), RunUiTheme.LABEL_SMALL, true))
+	facts.add_child(UiKit.label(str(row.blurb), RunUiTheme.LABEL_MUTED, true))
+	facts.add_child(UiKit.label(str(row.stats_line), RunUiTheme.LABEL_MUTED, true))
+	column.add_child(UiKit.label(tr("hero.curve"), RunUiTheme.LABEL_MUTED))
+	var bars: CurveBars = CurveBars.new()
+	column.add_child(bars)
+	bars.show_curve(row.curve, color("text_muted"), color("text_light"), roundi(float(cfg.font_px.small) * _scale), BARS_H)
+	return column
+
+
+func _right_column(row: Dictionary) -> Control:
+	var column: VBoxContainer = UiKit.vbox(10)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(UiKit.label(tr("hero.power_title"), RunUiTheme.LABEL_HEADING))
+	var buttons: HBoxContainer = UiKit.hbox(8)
+	column.add_child(buttons)
+	for power: Dictionary in row.powers:
+		var button: Button = UiKit.button(str(power.name))
+		button.custom_minimum_size.x = 0.0
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.clip_text = true
+		if not bool(power.unlocked):
+			button.modulate.a = POWER_LOCKED_ALPHA
+		button.pressed.connect(_pick_power.bind(power))
+		button.focus_entered.connect(_show_power_text.bind(power))
+		button.mouse_entered.connect(_show_power_text.bind(power))
+		button.mouse_exited.connect(_show_chosen_text)
+		buttons.add_child(button)
+		_power_buttons.append(button)
 	var plate: PanelContainer = UiKit.panel(RunUiTheme.PANEL_PARCHMENT)
-	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var paper: StyleBox = ArtLibrary.shared().parchment_panel(PLATE_PADDING_PX)
+	if paper != null:
+		plate.add_theme_stylebox_override(&"panel", paper)
 	column.add_child(plate)
-	var power_text: String = tr("hero.power").format({"cost": hero.power_cost, "name": hero.power_name, "text": hero.power_text})
-	var power: Label = UiKit.label(power_text, RunUiTheme.LABEL_INK, true)
-	plate.add_child(power)
-	if scaled:
-		plate.custom_minimum_size.y = SCALED_PLATE_H
-		plate.clip_contents = true
-		power.max_lines_visible = 1
-		power.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		panel.highlighted.connect(_show_reading.bind(power_text, panel))
-		panel.unhighlighted.connect(_hide_reading)
-	column.add_child(UiKit.label(_curve_text(hero.curve), RunUiTheme.LABEL_SMALL))
-	panel.activated.connect(_on_hero_activated)
-	panel.double_activated.connect(func(i: int) -> void:
-		_select(i)
-		_on_start())
-	panel.highlighted.connect(func(_i: int) -> void:
-		_locked_focused = false
-		_refresh_start())
-	_panels.append(panel)
-	var drawer: DeckDrawer = DeckDrawer.new()
-	add_child(drawer)
-	drawer.show_rows(tr("hero.deck_title").format({"n": (hero.deck_rows as Array).size()}), hero.deck_rows, [])
-	_drawers.append(drawer)
+	_plate_text = UiKit.label("", RunUiTheme.LABEL_INK_BODY, true)
+	plate.add_child(_plate_text)
+	_refresh_powers()
+	_show_chosen_text()
+	return column
 
 
-# §5.2: focus or hover opens the whole power text, under the panel it belongs to.
-func _show_reading(_index: int, text: String, panel: OptionPanel) -> void:
-	_reading.show_below(Vector2(panel.get_global_rect().get_center().x, panel.get_global_rect().end.y), text)
+func _chosen_power() -> Dictionary:
+	var row: Dictionary = _rows[_current]
+	for power: Dictionary in row.powers:
+		if str(power.id) == str(_chosen.get(str(row.id), "")):
+			return power
+	return row.powers[0]
 
 
-func _hide_reading(_index: int) -> void:
-	_reading.hide_now()
+func _pick_power(power: Dictionary) -> void:
+	if not bool(power.unlocked):
+		_show_power_text(power)
+		return
+	_chosen[str((_rows[_current] as Dictionary).id)] = str(power.id)
+	_refresh_powers()
+	_show_chosen_text()
 
 
-func _curve_text(curve: Array) -> String:
-	var parts: PackedStringArray = []
-	for cost: int in curve.size():
-		parts.append("%d:%d" % [cost, int(curve[cost])])
-	return tr("hero.curve").format({"list": "  ".join(parts)})
+func _refresh_powers() -> void:
+	var row: Dictionary = _rows[_current]
+	var chosen: String = str(_chosen_power().id)
+	for i: int in _power_buttons.size():
+		var picked: bool = str(row.powers[i].id) == chosen
+		_power_buttons[i].theme_type_variation = RunUiTheme.BUTTON_PRIMARY if picked else &""
 
 
-func _add_locked(index: int, row: Dictionary, count: int) -> void:
-	var x: float = RunUiConfig.slot_x(index, count, int(PANEL_SIZE.x), int(cfg.option_gap.bundle), int(cfg.design_width))
-	var panel: OptionPanel = OptionPanel.new()
-	panel.setup(index, 0.0)
-	panel.theme_type_variation = RunUiTheme.PANEL_NEUTRAL
-	add_child(panel)
-	UiKit.place(panel, Rect2(x, LOCKED_Y, PANEL_SIZE.x, LOCKED_H_FULL if _scale >= FULL_SCALE else LOCKED_H))
-	var column: VBoxContainer = UiKit.vbox(2)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(column)
-	column.add_child(UiKit.label(tr("hero.locked").format({"name": row.name})))
-	var hint: String = str(row.get("hint", ""))
-	if not hint.is_empty():
-		column.add_child(UiKit.label(hint, RunUiTheme.LABEL_SMALL, true))
-	panel.highlighted.connect(func(_i: int) -> void:
-		_locked_focused = true
-		_refresh_start())
-	panel.unhighlighted.connect(func(_i: int) -> void:
-		_locked_focused = false
-		_refresh_start())
-	_locked.append(panel)
+func _show_chosen_text() -> void:
+	if not _is_locked():
+		_show_power_text(_chosen_power())
+
+
+func _show_power_text(power: Dictionary) -> void:
+	if _plate_text == null:
+		return
+	var text: String = tr("hero.power").format({"cost": power.cost, "name": power.name, "text": power.text})
+	if not bool(power.unlocked):
+		text += "\n" + tr("hero.power_locked").format({"condition": power.condition})
+	_plate_text.text = text
 
 
 func _add_seed_row() -> void:
@@ -222,15 +324,14 @@ func _add_seed_row() -> void:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(label)
-	var shift := Vector2(0, SEED_SHIFT_FULL if _scale >= FULL_SCALE else 0.0)
-	UiKit.place(label, Rect2(SEED_LABEL_RECT.position + shift, SEED_LABEL_RECT.size))
+	UiKit.place(label, SEED_LABEL_RECT)
 	_seed = LineEdit.new()
 	_seed.placeholder_text = tr("hero.seed_placeholder")
 	add_child(_seed)
-	UiKit.place(_seed, Rect2(SEED_RECT.position + shift, SEED_RECT.size))
+	UiKit.place(_seed, SEED_RECT)
 	_echo = UiKit.label(tr("hero.seed_random"), RunUiTheme.LABEL_SMALL)
 	add_child(_echo)
-	UiKit.place(_echo, Rect2(ECHO_RECT.position + shift, ECHO_RECT.size))
+	UiKit.place(_echo, ECHO_RECT)
 	_seed.text_changed.connect(_on_seed_changed)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_start())
 
@@ -242,11 +343,11 @@ func _on_seed_changed(text: String) -> void:
 
 
 func _add_actions() -> void:
-	var back: Button = UiKit.button(tr("common.back"))
-	back.name = "Back"
-	back.pressed.connect(send.bind(&"back", {}))
-	add_child(back)
-	UiKit.place(back, Rect2(BACK_POS, back.custom_minimum_size))
+	_back = UiKit.button(tr("common.back"))
+	_back.name = "Back"
+	_back.pressed.connect(send.bind(&"back", {}))
+	add_child(_back)
+	UiKit.place(_back, Rect2(BACK_POS, _back.custom_minimum_size))
 	_start = UiKit.button(tr("hero.start"), true)
 	_start.pressed.connect(_on_start)
 	add_child(_start)
@@ -257,44 +358,27 @@ func _add_actions() -> void:
 	UiKit.place(_deck, Rect2(DECK_POS, _deck.custom_minimum_size))
 
 
-func _back_button() -> Control:
-	return get_node("Back") as Control
-
-
-func _on_hero_activated(index: int) -> void:
-	if index == _selected:
-		_on_start()
-	else:
-		_select(index)
-
-
-func _select_id(id: String) -> void:
-	for i: int in _heroes.size():
-		if str(_heroes[i].id) == id:
-			_select(i)
-			return
-	_refresh_start()
-
-
-func _select(index: int) -> void:
-	_selected = index
-	sfx_requested.emit(StringName(HERO_STING % str(_heroes[index].id)))
-	for i: int in _panels.size():
-		_panels[i].modulate.a = 1.0 if i == index else UiKit.DIM_ALPHA + (1.0 - UiKit.DIM_ALPHA) / 2.0
-	_deck.text = tr("hero.deck").format({"n": (_heroes[index].deck_rows as Array).size()})
-	_refresh_start()
+func _chain() -> void:
+	var order: Array[Control] = []
+	order.assign(_tabs)
+	order.append_array(_power_buttons)
+	if _seed != null:
+		order.append(_seed)
+	order.append_array([_start, _back, _deck])
+	UiKit.chain_focus(order)
 
 
 func _refresh_start() -> void:
-	_start.disabled = _selected < 0 or _locked_focused or _committed
-	_deck.disabled = _selected < 0
+	_start.disabled = _is_locked() or _committed
+	_deck.disabled = _is_locked()
 
 
 func _toggle_deck() -> void:
-	if _selected >= 0:
-		_drawers[_selected].toggle()
+	if not _is_locked():
+		(_drawers[str((_rows[_current] as Dictionary).id)] as DeckDrawer).toggle()
 
 
 func _on_start() -> void:
-	if _selected >= 0 and not _locked_focused:
-		send(&"start_run", {"hero_id": str(_heroes[_selected].id), "seed_input": _seed.text if _seed != null else ""})
+	if not _is_locked():
+		var row: Dictionary = _rows[_current]
+		send(&"start_run", {"hero_id": str(row.id), "seed_input": _seed.text if _seed != null else "", "power_id": str(_chosen_power().id)})

@@ -22,7 +22,7 @@ var _stamp: TextureRect = null
 ## Builds the panel, hidden.
 func setup() -> void:
 	theme_type_variation = RunUiTheme.PANEL_PARCHMENT
-	var parchment: StyleBox = ArtLibrary.shared().parchment_panel(RunUiTheme.PANEL_PADDING_PX)
+	var parchment: StyleBox = ArtLibrary.shared().parchment_panel(RunUiTheme.PARCHMENT_PADDING_PX)
 	if parchment != null:
 		add_theme_stylebox_override(&"panel", parchment)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -37,7 +37,7 @@ func setup() -> void:
 	_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stamp.visible = false
 	column.add_child(_stamp)
-	_name = UiKit.label("", RunUiTheme.LABEL_INK, true)
+	_name = UiKit.label("", RunUiTheme.LABEL_INK_HEADING, true)
 	_meta = UiKit.label("", RunUiTheme.LABEL_INK)
 	_text = UiKit.label("", RunUiTheme.LABEL_INK, true)
 	column.add_child(_name)
@@ -52,7 +52,7 @@ func show_card(row: Dictionary, left: float, row_centre_y: float) -> void:
 	# none: the panel would size to a column of single words, and a `Control` never
 	# shrinks back from that. So the width goes first.
 	for label: Label in [_name, _text]:
-		label.size.x = SIZE_PX.x - RunUiTheme.PANEL_PADDING_PX * 2.0
+		label.size.x = SIZE_PX.x - RunUiTheme.PARCHMENT_PADDING_PX * 2.0
 	var stamp: Dictionary = ArtLibrary.shared().card_stamp(str(row.get("id", "")))
 	_stamp.visible = not stamp.is_empty()
 	if _stamp.visible:

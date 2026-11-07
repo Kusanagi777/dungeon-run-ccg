@@ -203,6 +203,424 @@
         "key": "power.power_brand.text",
         "en": "Deal 2 damage to the enemy hero."
       }
+    },
+    {
+      "id": "power_battle_cry",
+      "name": "Battle Cry",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_battle_cry.text",
+        "en": "Give a friendly minion +2 Attack this turn."
+      }
+    },
+    {
+      "id": "power_brace",
+      "name": "Brace",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2,
+              "targets": "owner"
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "exists": "owner_weapon"
+              },
+              "then": [
+                {
+                  "op": "armor",
+                  "amount": 2,
+                  "targets": "owner"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_brace.text",
+        "en": "Gain 2 Armor. If you have a weapon, gain 2 more."
+      }
+    },
+    {
+      "id": "power_harvest",
+      "name": "Harvest",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_harvest.text",
+        "en": "Destroy a friendly minion. Draw a card."
+      }
+    },
+    {
+      "id": "power_raise",
+      "name": "Raise",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_raise.text",
+        "en": "Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "power_frostbind",
+      "name": "Frostbind",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_frostbind.text",
+        "en": "Freeze a minion."
+      }
+    },
+    {
+      "id": "power_study",
+      "name": "Study",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell",
+                "cost_le": 1
+              }
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_study.text",
+        "en": "Discover a spell that costs (1) or less."
+      }
+    },
+    {
+      "id": "power_toss",
+      "name": "Toss",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 2
+                }
+              ],
+              "else": [
+                {
+                  "op": "armor",
+                  "amount": 2,
+                  "targets": "owner"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_toss.text",
+        "en": "Flip a coin. Heads: deal 2 damage to a random enemy. Tails: gain 2 Armor."
+      }
+    },
+    {
+      "id": "power_loaded_die",
+      "name": "Loaded Die",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 2,
+              "ops": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_loaded_die.text",
+        "en": "Deal 1 damage to a random enemy, twice."
+      }
+    },
+    {
+      "id": "power_stake",
+      "name": "Stake",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_stake.text",
+        "en": "Add a Coin to your hand."
+      }
+    },
+    {
+      "id": "power_ward",
+      "name": "Ward",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_ward.text",
+        "en": "Give a friendly minion Divine Shield."
+      }
+    },
+    {
+      "id": "power_stand_fast",
+      "name": "Stand Fast",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "taunt"
+            },
+            {
+              "op": "buff",
+              "attack": 0,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_stand_fast.text",
+        "en": "Give a friendly minion Taunt and +1 Health."
+      }
+    },
+    {
+      "id": "power_muster",
+      "name": "Muster",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "order_recruit",
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_muster.text",
+        "en": "Summon a 1/2 Recruit with Taunt."
+      }
+    },
+    {
+      "id": "power_garrote",
+      "name": "Garrote",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "keywords": [
+                "stealth"
+              ],
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_garrote.text",
+        "en": "Give a friendly minion +1 Attack and Stealth this turn."
+      }
+    },
+    {
+      "id": "power_vanish",
+      "name": "Vanish",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            },
+            {
+              "op": "mana",
+              "amount": 1,
+              "duration": "this_turn"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_vanish.text",
+        "en": "Return a friendly minion to your hand. Gain 1 mana this turn."
+      }
+    },
+    {
+      "id": "power_envenom",
+      "name": "Envenom",
+      "cost": 2,
+      "effects": [
+        {
+          "trigger": "hero_power",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "keywords": [
+                "poisonous"
+              ],
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "power.power_envenom.text",
+        "en": "Give a friendly minion Poisonous this turn."
+      }
     }
   ]
 }

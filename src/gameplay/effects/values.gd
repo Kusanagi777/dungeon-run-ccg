@@ -238,6 +238,9 @@ static func holds(condition: Variant, run: Dictionary) -> bool:
 		return false
 	if c.has("not"):
 		return not holds(c.get("not"), run)
+	if c.has("flip"):
+		# Draws from the match stream, like a random selector, so seeds and replays hold.
+		return resolver.bound_engine().rng_match().randi_range(1, 100) <= int(c.flip)
 	if c.has("is_owner_turn"):
 		return (String(resolver.bound_engine().active_side()) == str(run.owner)) == bool(c.is_owner_turn)
 	if c.get("cmp") is Array and (c.cmp as Array).size() == 3:

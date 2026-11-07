@@ -28,6 +28,11 @@ func toggle() -> void:
 		_first.grab_focus()
 
 
+## Shows or hides the drawer without moving focus.
+func set_open(on: bool) -> void:
+	visible = on
+
+
 ## Fills the drawer: [param title], [param deck_rows] (`RunReadModels.deck_rows`) and
 ## [param treasures].
 func show_rows(title: String, deck_rows: Array, treasures: Array) -> void:

@@ -1,0 +1,845 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "order_squire",
+      "name": "Order Squire",
+      "set": "order",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 0,
+              "health": 1,
+              "targets": "adjacent"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_squire.text",
+        "en": "Battlecry: Give adjacent minions +1 Health."
+      }
+    },
+    {
+      "id": "order_line_sergeant",
+      "name": "Line Sergeant",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.board_size"
+                  },
+                  ">=",
+                  3
+                ]
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "attack": 1,
+                  "health": 1,
+                  "targets": "self"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_line_sergeant.text",
+        "en": "Battlecry: If you have 3 or more minions, gain +1/+1."
+      }
+    },
+    {
+      "id": "order_standard_bearer",
+      "name": "Standard Bearer",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_standard_bearer.text",
+        "en": "Your other minions have +1 Attack."
+      }
+    },
+    {
+      "id": "order_drillmaster",
+      "name": "Drillmaster",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1,
+              "targets": "adjacent"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_drillmaster.text",
+        "en": "Battlecry: Give adjacent minions +1/+1."
+      }
+    },
+    {
+      "id": "order_phalanx",
+      "name": "Phalanx",
+      "set": "order",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.board_size"
+                  },
+                  ">=",
+                  3
+                ]
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "attack": 0,
+                  "health": 2,
+                  "targets": "self"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_phalanx.text",
+        "en": "Taunt. Battlecry: If you have 3 or more minions, gain +2 Health."
+      }
+    },
+    {
+      "id": "order_marshal",
+      "name": "Field Marshal",
+      "set": "order",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_marshal.text",
+        "en": "Battlecry: Give your other minions +1/+1."
+      }
+    },
+    {
+      "id": "order_muster_call",
+      "name": "Muster Call",
+      "set": "order",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "order_recruit",
+              "count": 2,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_muster_call.text",
+        "en": "Summon two 1/2 Recruits with Taunt."
+      }
+    },
+    {
+      "id": "order_close_ranks",
+      "name": "Close Ranks",
+      "set": "order",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_friendly_minions",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 0,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_close_ranks.text",
+        "en": "Give your minions +2 Health."
+      }
+    },
+    {
+      "id": "order_hold_the_line",
+      "name": "Hold the Line",
+      "set": "order",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "all_friendly_minions",
+              "keyword": "taunt"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_hold_the_line.text",
+        "en": "Give your minions Taunt. Draw a card."
+      }
+    },
+    {
+      "id": "order_warded_recruit",
+      "name": "Warded Recruit",
+      "set": "order",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_warded_recruit.text",
+        "en": "Divine Shield."
+      }
+    },
+    {
+      "id": "order_temple_guard",
+      "name": "Ivory Acolyte",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_temple_guard.text",
+        "en": "Divine Shield."
+      }
+    },
+    {
+      "id": "order_aegis_knight",
+      "name": "Aegis Knight",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield",
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_aegis_knight.text",
+        "en": "Divine Shield. Taunt."
+      }
+    },
+    {
+      "id": "order_shield_priest",
+      "name": "Shield Priest",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_shield_priest.text",
+        "en": "Battlecry: Give a friendly minion Divine Shield."
+      }
+    },
+    {
+      "id": "order_ivory_sentinel",
+      "name": "Ivory Sentinel",
+      "set": "order",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "divine_shield",
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_ivory_sentinel.text",
+        "en": "Divine Shield. Taunt."
+      }
+    },
+    {
+      "id": "order_ivory_bastion",
+      "name": "The Ivory Bastion",
+      "set": "order",
+      "type": "minion",
+      "cost": 6,
+      "attack": 4,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_ivory_bastion.text",
+        "en": "Battlecry: Give your other minions Divine Shield."
+      }
+    },
+    {
+      "id": "order_aegis",
+      "name": "Aegis",
+      "set": "order",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "divine_shield"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_aegis.text",
+        "en": "Give a friendly minion Divine Shield. Draw a card."
+      }
+    },
+    {
+      "id": "order_bless_arms",
+      "name": "Bless Arms",
+      "set": "order",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_divine_shield": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "aegis"
+      ],
+      "text": {
+        "key": "card.order_bless_arms.text",
+        "en": "Give a friendly minion with Divine Shield +2/+2."
+      }
+    },
+    {
+      "id": "order_oathbound",
+      "name": "Oathbound",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_oathbound.text",
+        "en": "Battlecry: Restore 2 Health to your hero."
+      }
+    },
+    {
+      "id": "order_mender",
+      "name": "Temple Mender",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_mender.text",
+        "en": "At the end of your turn, restore 1 Health to your hero."
+      }
+    },
+    {
+      "id": "order_vow_keeper",
+      "name": "Vow Keeper",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_vow_keeper.text",
+        "en": "Battlecry: Give a friendly minion +1/+2."
+      }
+    },
+    {
+      "id": "order_high_warden",
+      "name": "High Warden",
+      "set": "order",
+      "type": "minion",
+      "cost": 6,
+      "attack": 5,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_high_warden.text",
+        "en": "Taunt. Battlecry: Restore 6 Health to your hero."
+      }
+    },
+    {
+      "id": "order_the_unbroken",
+      "name": "The Unbroken",
+      "set": "order",
+      "type": "minion",
+      "cost": 8,
+      "attack": 7,
+      "health": 9,
+      "rarity": "legendary",
+      "keywords": [
+        "divine_shield",
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_the_unbroken.text",
+        "en": "Divine Shield. Taunt."
+      }
+    },
+    {
+      "id": "order_oath_of_iron",
+      "name": "Oath of Iron",
+      "set": "order",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_oath_of_iron.text",
+        "en": "Give a friendly minion +1/+2."
+      }
+    },
+    {
+      "id": "order_sworn_blessing",
+      "name": "Sworn Blessing",
+      "set": "order",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_sworn_blessing.text",
+        "en": "Give a friendly minion +2/+3."
+      }
+    },
+    {
+      "id": "order_renewal",
+      "name": "Renewal",
+      "set": "order",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "oath"
+      ],
+      "text": {
+        "key": "card.order_renewal.text",
+        "en": "Restore 6 Health to your hero."
+      }
+    },
+    {
+      "id": "order_recruit",
+      "name": "Recruit",
+      "set": "order",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "formation"
+      ],
+      "text": {
+        "key": "card.order_recruit.text",
+        "en": "Taunt."
+      },
+      "token": true
+    }
+  ]
+}

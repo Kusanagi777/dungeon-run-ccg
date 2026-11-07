@@ -48,6 +48,7 @@ func setup(context: MatchUiContext) -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title = _label(TITLE_FONT_PX, "text_light")
+	UiFonts.apply(_title)
 	_sub = _label(BODY_FONT_PX, "text_muted")
 	_status = _label(BODY_FONT_PX, "text_light")
 	_printed = _printed_line()
@@ -225,6 +226,7 @@ func _open_screen(offered: Variant) -> void:
 		add_child(frame)
 		frame.configure(ui)
 		frame.scale = Vector2.ONE * scale_by
+		frame.set_text_zoom(scale_by)
 		frame.position = Vector2(left + i * (card_size.x + gap), top)
 		frame.show_card(ui.card_face(str(entry.get("card_id", ""))), int(entry.get("effective_cost", 0)))
 		frame.mouse_filter = Control.MOUSE_FILTER_STOP
