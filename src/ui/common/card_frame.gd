@@ -36,6 +36,11 @@ const TYPE_INITIALS: Dictionary = {"minion": "M", "spell": "S", "weapon": "W"}
 const TYPE_MINION: String = "minion"
 const TYPE_WEAPON: String = "weapon"
 const DASH_COUNT: int = 12
+## How far an art box's class colour fades into the paper: a print, not a paint chip.
+const ART_WASH: float = 0.55
+## The stat glyph sits behind its numeral as a watermark.
+const GLYPH_PX: float = 26.0
+const GLYPH_ALPHA: float = 0.24
 
 var _ui: MatchUiContext = null
 var _face: Dictionary = {}
@@ -53,6 +58,9 @@ var _health_text: Label = null
 var _badges: Label = null
 var _stamp: Dictionary = {}
 var _keyword_icons: Array[Texture2D] = []
+var _zoom: float = 1.0
+# Label -> [font px, size] at zoom 1.
+var _base: Dictionary = {}
 
 
 ## Stores the palette source and builds the labels. Call once, in the tree or not.
@@ -64,6 +72,7 @@ func configure(context: MatchUiContext) -> void:
 	_fill = _ui.color("table_lit")
 	_name = _label(NAME_RECT.grow_individual(-NAME_PADDING_PX, 0, 0, 0), NAME_FONT_PX)
 	_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UiFonts.apply(_name, UiFonts.WEIGHT_BOLD)
 	_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_name.clip_text = true
 	_art = _label(ART_RECT, ART_FONT_PX)
@@ -77,6 +86,8 @@ func configure(context: MatchUiContext) -> void:
 	_cost_text = _stamp_label(COST_CENTRE)
 	_attack_text = _stamp_label(ATTACK_CENTRE)
 	_health_text = _stamp_label(HEALTH_CENTRE)
+	for stamp: Label in [_cost_text, _attack_text, _health_text]:
+		UiFonts.apply(stamp, UiFonts.WEIGHT_BOLD)
 
 
 ## The rules text of [param face]: `""` for a vanilla card, whose text is an empty message
@@ -103,7 +114,8 @@ func show_card(face: Dictionary, effective_cost: int) -> void:
 	_attack_text.visible = has_stats
 	_health_text.visible = has_stats
 	_rules.position = (TEXT_RECT if has_stats else SPELL_TEXT_RECT).position
-	_rules.size = (TEXT_RECT if has_stats else SPELL_TEXT_RECT).size
+	_rules.size = (TEXT_RECT if has_stats else SPELL_TEXT_RECT).size * _zoom
+	(_base[_rules] as Array)[1] = (TEXT_RECT if has_stats else SPELL_TEXT_RECT).size
 	if has_stats:
 		_attack_text.text = str(int(face.attack)) if face.get("attack") != null else ""
 		var durability: Variant = face.get("durability", face.get("health"))
@@ -140,6 +152,19 @@ func set_fill(fill: Color) -> void:
 		queue_redraw()
 
 
+## A card shown at [param zoom] rasterises its text at that size and scales it back, so
+## `scale` on this node enlarges the face without blurring the words.
+func set_text_zoom(zoom: float) -> void:
+	if is_equal_approx(zoom, _zoom):
+		return
+	_zoom = zoom
+	for label: Label in _base:
+		var row: Array = _base[label]
+		label.add_theme_font_size_override("font_size", roundi(float(row[0]) * zoom))
+		label.size = (row[1] as Vector2) * zoom
+		label.scale = Vector2.ONE / zoom
+
+
 ## True when the cost shown differs from the printed one.
 func cost_modified() -> bool:
 	return _face.get("cost") != null and _cost != int(_face.cost)
@@ -165,8 +190,8 @@ func _draw() -> void:
 	body.border_color = _dim(_face.get("primary", _ui.color("neutral")))
 	draw_style_box(body, Rect2(Vector2.ZERO, SIZE))
 	draw_rect(NAME_RECT, _dim(_ui.color("ink")))
-	var art_fill: Color = _face.get("secondary", _ui.color("neutral"))
-	draw_rect(ART_RECT, art_fill)
+	var art_fill: Color = (_face.get("secondary", _ui.color("neutral")) as Color).lerp(_ui.color("parchment"), ART_WASH)
+	draw_rect(ART_RECT, _dim(art_fill))
 	if not _stamp.is_empty():
 		var art: Texture2D = _stamp.texture
 		draw_texture_rect(art, ArtLibrary.fit_rect(art, ART_RECT), false, _stamp.tint)
@@ -217,9 +242,8 @@ func _draw_stat_glyph(glyph_name: String, centre: Vector2) -> void:
 	var tex: Texture2D = _ui.art().glyph_texture(glyph_name)
 	if tex == null:
 		return
-	var side: float = 10.0
-	var at: Vector2 = centre + Vector2(-STAMP_RADIUS + 1.0, -STAMP_RADIUS + 1.0)
-	draw_texture_rect(tex, Rect2(at, Vector2(side, side)), false, _dim(_ui.color("text_light")))
+	var at: Vector2 = centre - Vector2.ONE * GLYPH_PX / 2.0
+	draw_texture_rect(tex, Rect2(at, Vector2.ONE * GLYPH_PX), false, Color(_dim(_ui.color("text_light")), GLYPH_ALPHA))
 
 
 func _draw_keyword_icons() -> void:
@@ -240,7 +264,7 @@ func _refresh_colors() -> void:
 	var light: Color = _ui.color("text_light")
 	_name.add_theme_color_override("font_color", _dim(light))
 	_rules.add_theme_color_override("font_color", _dim(_ui.color("text_ink")))
-	_art.add_theme_color_override("font_color", light)
+	_art.add_theme_color_override("font_color", _ui.color("text_ink"))
 	_badges.add_theme_color_override("font_color", _dim(light))
 	_attack_text.add_theme_color_override("font_color", _dim(light))
 	_health_text.add_theme_color_override("font_color", _dim(light))
@@ -257,6 +281,7 @@ func _label(rect: Rect2, font_px: int) -> Label:
 	label.add_theme_font_size_override("font_size", font_px)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(label)
+	_base[label] = [font_px, rect.size]
 	return label
 
 

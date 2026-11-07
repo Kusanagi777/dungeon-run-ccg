@@ -594,7 +594,7 @@ func start(config: Dictionary) -> void:
 		player_health = rule("starting_health_player")
 	else:
 		player_health = int(hero_def.health)
-		_state.players[MatchRecords.SIDE_PLAYER].hero_power.def_id = str(hero_def.hero_power)
+		_state.players[MatchRecords.SIDE_PLAYER].hero_power.def_id = str(config.player.get("hero_power", hero_def.hero_power))
 	_state.players[MatchRecords.SIDE_PLAYER].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_PLAYER, player_health)
 	_state.players[MatchRecords.SIDE_BOSS].hero = MatchRecords.hero(_take_entity_id(), MatchRecords.SIDE_BOSS, int(config.boss.health))
 	var boss_power: Variant = config.boss.get("hero_power")

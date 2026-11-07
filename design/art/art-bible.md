@@ -247,7 +247,8 @@ the hero's primary is reserved for the hero.
 
 ### Typography and card readability (placeholder v1)
 
-Godot's built-in default theme font, no custom font file in v1. Sizes are for the 1280x720 logical
+Two faces (changed 2026-11-06, section 11): Alegreya for titles, names, buttons and numerals, and
+Godot's built-in sans for rules text and log lines. Sizes are for the 1280x720 logical
 viewport (DD-T05, `canvas_items` stretch); the minimum rendered size anywhere is 12 px and
 anything at 12 px must also be readable at 1.5x in the hover preview.
 
@@ -399,3 +400,24 @@ Godot still draws the frame, the name band, the rules text, and the circular sta
 Hearthstone chrome, no cosmic sheet, and no pixel dungeon. Sources, filenames, authors,
 licenses, and the packs that were checked and left out are `THIRD_PARTY_ART.md`.
 The id map is `assets/art/art_map.json`.
+
+## 11. Presentation pass (2026-11-06)
+
+The runtime art made the default-engine chrome around it the weakest thing on screen. This pass
+keeps the palette tokens and the F4 and F6 slots and changes what surrounds the documents:
+
+- **Type.** Alegreya (OFL, `assets/fonts/`) with lining figures for titles, names, buttons and
+  numerals, through `UiFonts`. The menu wordmark is 88 px. Rules text stays in the plain sans.
+- **Wood.** `table_wood.png` is regraded to about 60% saturation, so the grain stops competing
+  with the cards.
+- **Chrome.** Secondary buttons are ink with a 1 px hairline. The one primary action on a screen
+  is a slip of parchment with ink text. Focus is four corner marks in `state_actionable`, 2 px
+  wide and 3 px off the control.
+- **Documents.** Bundles, treasures, board tokens and run summaries are parchment with ink text
+  and ruled rows. Art boxes wash the class colour 55% into the paper, so saturated colour stays
+  in portraits and state.
+- **Hero select.** Panels are ink; colour lives in the portrait and one identity rule. An
+  unselected hero shades its portrait only, so its text stays readable.
+- **Stamps replace placeholder letters.** Treasures, hero powers and boss intents resolve through
+  `art_map.json`. Stat glyphs moved from 10 px rim marks to a 26 px watermark behind the numeral.
+- **Boss stamps** sit on the portrait's top corner, so they no longer cover the passive plate.

@@ -36,7 +36,9 @@ class StripNode:
 		var radius: float = float(cfg.node_d) / 2.0
 		var band: Color = RunUiConfig.color(cfg, str(data.band_color))
 		var light: Color = RunUiConfig.color(cfg, "text_light")
-		var font: Font = get_theme_default_font()
+		var font: Font = UiFonts.serif(UiFonts.WEIGHT_BOLD)
+		if font == null:
+			font = get_theme_default_font()
 		var font_px: int = int(cfg.font_px.small)
 		match str(data.state):
 			RunCodes.PIP_CLEARED:
@@ -99,6 +101,7 @@ func show_strip(cfg: Dictionary, model: Dictionary) -> void:
 	for treasure: Dictionary in model.get("treasures", []):
 		var chip: Button = Button.new()
 		chip.text = str(treasure.initial)
+		_round(chip, cfg)
 		chip.tooltip_text = "%s\n%s" % [treasure.name, treasure.text]
 		add_child(chip)
 		UiKit.place(chip, Rect2(x, (ROW_H - CHIP_PX) / 2.0, CHIP_PX, CHIP_PX))
@@ -118,6 +121,17 @@ func show_strip(cfg: Dictionary, model: Dictionary) -> void:
 	add_child(_tip)
 	UiKit.place(_tip, TIP_RECT)
 	queue_redraw()
+
+
+# A held treasure reads as a stamp, not a key: the ink circle in all its states.
+func _round(chip: Button, cfg: Dictionary) -> void:
+	for state: StringName in [&"normal", &"hover", &"pressed"]:
+		var style: StyleBoxFlat = StyleBoxFlat.new()
+		style.bg_color = RunUiConfig.color(cfg, "ink")
+		style.border_color = RunUiConfig.color(cfg, "text_light" if state == &"hover" else "neutral")
+		style.set_border_width_all(RunUiTheme.BORDER_PX)
+		style.set_corner_radius_all(int(CHIP_PX))
+		chip.add_theme_stylebox_override(state, style)
 
 
 ## Where a pick lands: the deck count when [param to_deck], else the next treasure chip.

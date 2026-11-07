@@ -7,6 +7,30 @@
       "set": "war",
       "health": 30,
       "hero_power": "power_whetstone",
+      "extra_powers": [
+        {
+          "power": "power_battle_cry",
+          "unlock": {
+            "key": "power_battle_cry",
+            "condition": {
+              "type": "floor_reached",
+              "n": 5,
+              "hero": "hero_war"
+            }
+          }
+        },
+        {
+          "power": "power_brace",
+          "unlock": {
+            "key": "power_brace",
+            "condition": {
+              "type": "runs_won",
+              "n": 1,
+              "hero": "hero_war"
+            }
+          }
+        }
+      ],
       "starter_deck": [
         "neutral_tunnel_rat",
         "neutral_tunnel_rat",
@@ -36,6 +60,30 @@
       "set": "decay",
       "health": 30,
       "hero_power": "power_rot",
+      "extra_powers": [
+        {
+          "power": "power_harvest",
+          "unlock": {
+            "key": "power_harvest",
+            "condition": {
+              "type": "floor_reached",
+              "n": 5,
+              "hero": "hero_decay"
+            }
+          }
+        },
+        {
+          "power": "power_raise",
+          "unlock": {
+            "key": "power_raise",
+            "condition": {
+              "type": "runs_won",
+              "n": 1,
+              "hero": "hero_decay"
+            }
+          }
+        }
+      ],
       "starter_deck": [
         "neutral_torch_imp",
         "neutral_torch_imp",
@@ -65,6 +113,30 @@
       "set": "knowledge",
       "health": 30,
       "hero_power": "power_insight",
+      "extra_powers": [
+        {
+          "power": "power_frostbind",
+          "unlock": {
+            "key": "power_frostbind",
+            "condition": {
+              "type": "floor_reached",
+              "n": 5,
+              "hero": "hero_knowledge"
+            }
+          }
+        },
+        {
+          "power": "power_study",
+          "unlock": {
+            "key": "power_study",
+            "condition": {
+              "type": "runs_won",
+              "n": 1,
+              "hero": "hero_knowledge"
+            }
+          }
+        }
+      ],
       "starter_deck": [
         "neutral_torch_imp",
         "neutral_torch_imp",
@@ -86,6 +158,184 @@
       "text": {
         "key": "hero.hero_knowledge.text",
         "en": "I have read the ending. I am only checking the page."
+      }
+    },
+    {
+      "id": "hero_fortune",
+      "name": "Lady Tallow",
+      "set": "fortune",
+      "health": 30,
+      "hero_power": "power_toss",
+      "extra_powers": [
+        {
+          "power": "power_loaded_die",
+          "unlock": {
+            "key": "power_loaded_die",
+            "condition": {
+              "type": "floor_reached",
+              "n": 5,
+              "hero": "hero_fortune"
+            }
+          }
+        },
+        {
+          "power": "power_stake",
+          "unlock": {
+            "key": "power_stake",
+            "condition": {
+              "type": "runs_won",
+              "n": 1,
+              "hero": "hero_fortune"
+            }
+          }
+        }
+      ],
+      "starter_deck": [
+        "neutral_tunnel_rat",
+        "fortune_pickpocket",
+        "fortune_lucky_rat",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "fortune_card_sharp",
+        "fortune_moneylender",
+        "fortune_dice_thrower",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "fortune_tax_collector",
+        "fortune_gilded_guard",
+        "neutral_crypt_brute",
+        "fortune_slot_machine",
+        "neutral_ogre_porter"
+      ],
+      "unlock": {
+        "key": "hero_fortune",
+        "condition": {
+          "type": "runs_won",
+          "n": 1
+        }
+      },
+      "text": {
+        "key": "hero.hero_fortune.text",
+        "en": "The dungeon deals. I only count the cards."
+      }
+    },
+    {
+      "id": "hero_order",
+      "name": "Warden Cassia",
+      "set": "order",
+      "health": 30,
+      "hero_power": "power_ward",
+      "extra_powers": [
+        {
+          "power": "power_stand_fast",
+          "unlock": {
+            "key": "power_stand_fast",
+            "condition": {
+              "type": "floor_reached",
+              "n": 5,
+              "hero": "hero_order"
+            }
+          }
+        },
+        {
+          "power": "power_muster",
+          "unlock": {
+            "key": "power_muster",
+            "condition": {
+              "type": "runs_won",
+              "n": 1,
+              "hero": "hero_order"
+            }
+          }
+        }
+      ],
+      "starter_deck": [
+        "neutral_tunnel_rat",
+        "order_squire",
+        "order_warded_recruit",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "order_line_sergeant",
+        "order_oathbound",
+        "order_temple_guard",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "order_drillmaster",
+        "order_shield_priest",
+        "neutral_crypt_brute",
+        "order_phalanx",
+        "neutral_ogre_porter"
+      ],
+      "unlock": {
+        "key": "hero_order",
+        "condition": {
+          "type": "floor_reached",
+          "n": 5
+        }
+      },
+      "text": {
+        "key": "hero.hero_order.text",
+        "en": "Nothing passes. That is the whole of the law."
+      }
+    },
+    {
+      "id": "hero_shadow",
+      "name": "The Lamplighter",
+      "set": "shadow",
+      "health": 30,
+      "hero_power": "power_garrote",
+      "extra_powers": [
+        {
+          "power": "power_vanish",
+          "unlock": {
+            "key": "power_vanish",
+            "condition": {
+              "type": "floor_reached",
+              "n": 5,
+              "hero": "hero_shadow"
+            }
+          }
+        },
+        {
+          "power": "power_envenom",
+          "unlock": {
+            "key": "power_envenom",
+            "condition": {
+              "type": "runs_won",
+              "n": 1,
+              "hero": "hero_shadow"
+            }
+          }
+        }
+      ],
+      "starter_deck": [
+        "neutral_tunnel_rat",
+        "shadow_footpad",
+        "shadow_spiderling",
+        "neutral_cellar_guard",
+        "neutral_cellar_guard",
+        "shadow_lurker",
+        "shadow_adder",
+        "shadow_knife_thrower",
+        "neutral_dungeon_delver",
+        "neutral_dungeon_delver",
+        "shadow_night_stalker",
+        "shadow_poisoner",
+        "neutral_crypt_brute",
+        "shadow_widow",
+        "neutral_ogre_porter"
+      ],
+      "unlock": {
+        "key": "hero_shadow",
+        "condition": {
+          "type": "boss_defeated",
+          "n": 8,
+          "boss_id": "any"
+        }
+      },
+      "text": {
+        "key": "hero.hero_shadow.text",
+        "en": "Every lamp I light leaves a darker corner."
       }
     }
   ]

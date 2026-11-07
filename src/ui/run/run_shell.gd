@@ -63,7 +63,7 @@ const FALLBACK_CONFIG: Dictionary = {
 		"text_muted": "#B8AC96", "ink": "#1F1A14", "neutral": "#6F655A", "table_lit": "#4A3626",
 		"parchment": "#E8DCC4", "text_ink": "#1F1A14", "state_danger": "#FF5A4D",
 	},
-	"font_px": {"hero": 48, "title": 28, "heading": 20, "body": 16, "small": 13, "muted": 14},
+	"font_px": {"hero": 88, "title": 28, "heading": 20, "body": 16, "small": 13, "muted": 14},
 	"strings": {
 		"error.title": "The game data failed to load",
 		"error.count": "{n} problems: fix the data files and restart",

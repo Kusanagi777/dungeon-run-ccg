@@ -67,3 +67,16 @@ func test_every_mapped_path_loads() -> void:
 func _records(file_name: String) -> Array:
 	var parsed: Dictionary = JsonText.parse(FileAccess.get_file_as_string("res://assets/data/%s" % file_name))
 	return (parsed.data as Dictionary).records
+
+
+func test_every_shipped_treasure_and_power_resolves_a_stamp() -> void:
+	var library: ArtLibrary = ArtLibrary.load_map()
+	for row: Array in [["res://assets/data/treasures.json", library.treasure_stamp], ["res://assets/data/hero_powers.json", library.power_stamp]]:
+		var parsed: Dictionary = JsonText.parse(FileAccess.get_file_as_string(str(row[0])))
+		for record: Dictionary in parsed.data.records:
+			var stamp: Dictionary = (row[1] as Callable).call(str(record.id))
+			assert_bool(stamp.is_empty()).override_failure_message(str(record.id)).is_false()
+
+
+func test_an_unmapped_treasure_keeps_the_text_only_slip() -> void:
+	assert_bool(ArtLibrary.load_map().treasure_stamp("treasure_unknown").is_empty()).is_true()

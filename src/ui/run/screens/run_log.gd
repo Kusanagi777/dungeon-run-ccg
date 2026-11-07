@@ -6,6 +6,7 @@ extends Screen
 
 const MARGIN_PX: int = 40
 const COPY_W: float = 88.0
+const FILTER_W: float = 280.0
 
 var _model: Dictionary = {}
 var _filter: String = ""
@@ -44,9 +45,7 @@ func bind(model: Dictionary) -> void:
 		column.add_child(_new_run)
 		_order.append(_new_run)
 	else:
-		_add_filter(filters, tr("log.filter_all"), "")
-		for hero: Dictionary in model.get("filters", []):
-			_add_filter(filters, str(hero.name), str(hero.id))
+		_add_filter(filters, model.get("filters", []))
 	var scroll: ScrollContainer = UiKit.scroll()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
@@ -73,15 +72,21 @@ func default_focus() -> Control:
 	return _first_row if _first_row != null else _back
 
 
-func _add_filter(row: HBoxContainer, text: String, hero_id: String) -> void:
-	var button: Button = UiKit.button(text)
-	button.pressed.connect(func() -> void:
-		_filter = hero_id
-		_fill_rows()
-		if _first_row != null:
-			_first_row.grab_focus())
-	row.add_child(button)
-	_order.append(button)
+# One dropdown, so the row holds any number of classes.
+func _add_filter(row: HBoxContainer, heroes: Array) -> void:
+	var picker: OptionButton = OptionButton.new()
+	picker.theme_type_variation = &"Button"
+	picker.custom_minimum_size = Vector2(FILTER_W, UiKit.MIN_HIT_PX)
+	picker.add_item(tr("log.filter_all"))
+	picker.set_item_metadata(0, "")
+	for hero: Dictionary in heroes:
+		picker.add_item(str(hero.name))
+		picker.set_item_metadata(picker.item_count - 1, str(hero.id))
+	picker.item_selected.connect(func(index: int) -> void:
+		_filter = str(picker.get_item_metadata(index))
+		_fill_rows())
+	row.add_child(picker)
+	_order.append(picker)
 
 
 func _fill_rows() -> void:

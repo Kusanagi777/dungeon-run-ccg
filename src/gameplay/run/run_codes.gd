@@ -19,6 +19,8 @@ const E_BAD_PHASE: Error = ERR_UNAVAILABLE
 const E_HERO_LOCKED: Error = ERR_UNAUTHORIZED
 ## The run layout cannot be played (Edge Cases "Configuration and content").
 const E_CONFIG: Error = ERR_UNCONFIGURED
+## `new_run` with an extra power Meta reports locked.
+const E_POWER_LOCKED: Error = ERR_LOCKED
 ## `draft_pick` of a kind other than `reward_step` (R5.3).
 const E_DRAFT_KIND: Error = ERR_INVALID_PARAMETER
 ## `draft_pick` of an id the offer does not hold (R5.3).
@@ -56,6 +58,7 @@ const W_THEME_ADJACENT: String = "theme_adjacent"
 const W_SEED_IGNORED: String = "seed_ignored"
 const W_TURN_CAP: String = "turn_cap"
 const W_SAVE_FAILED: String = "save_failed"
+const W_POWER_REMOVED: String = "power_removed"
 const W_RECORD_TRUNCATED: String = "record_truncated"
 const W_COERCED_STATUS: String = "coerced_status"
 const W_HERO_LOCKED_AT_RESUME: String = "hero_locked_at_resume"
@@ -104,6 +107,8 @@ static func code_name(code: Error) -> StringName:
 			return &"E_HERO_LOCKED"
 		E_CONFIG:
 			return &"E_CONFIG"
+		E_POWER_LOCKED:
+			return &"E_POWER_LOCKED"
 		E_DRAFT_KIND:
 			return &"E_DRAFT_KIND"
 		E_NOT_OFFERED:

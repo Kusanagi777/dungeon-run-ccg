@@ -62,6 +62,7 @@ const SCREEN_REPLAYS: StringName = &"replay_list"
 const SCREEN_SETTINGS: StringName = &"settings"
 const SCREEN_CONTROLS: StringName = &"controls"
 const SCREEN_GLOSSARY: StringName = &"glossary"
+const SCREEN_UNLOCKS: StringName = &"unlocks"
 const SCREEN_PAUSE: StringName = &"pause"
 const SCREEN_CONFIRM: StringName = &"confirm"
 const SCREEN_NOTICE: StringName = &"notice"
@@ -69,7 +70,7 @@ const SCREEN_DATA_ERROR: StringName = &"data_error"
 ## U2's intent column per screen; every other (screen, intent) pair is `bad_state`
 ## (AC-11). `skip` is legal anywhere a transition or `run_start` can end.
 const LEGAL: Dictionary = {
-	SCREEN_MENU: [&"new_run_requested", &"continue_requested", &"open_run_log", &"open_settings", &"retry_lock", &"quit_requested"],
+	SCREEN_MENU: [&"new_run_requested", &"continue_requested", &"open_run_log", &"open_unlocks", &"open_settings", &"retry_lock", &"quit_requested"],
 	SCREEN_RESUME: [&"continue", &"abandon", &"back"],
 	SCREEN_HERO: [&"start_run", &"back"],
 	SCREEN_RUN_START: [],
@@ -85,6 +86,7 @@ const LEGAL: Dictionary = {
 	SCREEN_SETTINGS: [&"set_setting", &"clear_run_records_requested", &"reset_profile_requested", &"open_controls", &"open_glossary", &"back"],
 	SCREEN_CONTROLS: [&"set_binding", &"reset_bindings", &"back"],
 	SCREEN_GLOSSARY: [&"back"],
+	SCREEN_UNLOCKS: [&"back"],
 	SCREEN_PAUSE: [&"close", &"open_settings", &"open_glossary", &"set_setting", &"abandon", &"go_main_menu"],
 	SCREEN_CONFIRM: [&"confirm", &"cancel"],
 	SCREEN_NOTICE: [&"notice_new_run"],
@@ -212,7 +214,7 @@ func debug_open(screen: StringName, run_model: Dictionary, overrides: Dictionary
 	_debug_overrides = overrides
 	state.overlays.clear()
 	match screen:
-		SCREEN_RESUME, SCREEN_SETTINGS, SCREEN_CONTROLS, SCREEN_GLOSSARY:
+		SCREEN_RESUME, SCREEN_SETTINGS, SCREEN_CONTROLS, SCREEN_GLOSSARY, SCREEN_UNLOCKS:
 			_open_menu(&"none")
 			_open_overlay(screen)
 		SCREEN_PAUSE:
@@ -237,6 +239,8 @@ func _dispatch(name: StringName, args: Dictionary) -> void:
 		&"open_run_log":
 			_load_log_page(true)
 			_open_base(SCREEN_LOG, _log_model(), RunUiConfig.KIND_FADE)
+		&"open_unlocks":
+			_open_overlay(SCREEN_UNLOCKS)
 		&"open_settings":
 			_open_overlay(SCREEN_SETTINGS)
 		&"open_controls":
@@ -258,7 +262,7 @@ func _dispatch(name: StringName, args: Dictionary) -> void:
 		&"close":
 			_pop()
 		&"start_run":
-			_on_start_run(str(args.get("hero_id", "")), str(args.get("seed_input", "")))
+			_on_start_run(str(args.get("hero_id", "")), str(args.get("seed_input", "")), str(args.get("power_id", "")))
 		&"begin_match":
 			_begin_match()
 		&"open_pause":
@@ -336,18 +340,18 @@ func _on_confirm_intent(name: StringName) -> void:
 
 ## S7 / AC-14: a saved run must be given up first; [method RunMachine.new_run] then
 ## ends it as `abandoned / player` (R2 step 1).
-func _on_start_run(hero_id: String, seed_input: String) -> void:
+func _on_start_run(hero_id: String, seed_input: String, power_id: String = "") -> void:
 	if _meta.load_active_run() == null:
 		_commit()
-		_new_run(hero_id, seed_input)
+		_new_run(hero_id, seed_input, power_id)
 		return
 	_ask(RunText.t("hero.replace.title"), RunText.t("hero.replace.body"), RunText.t("hero.replace.confirm"), "", func() -> void:
 		_commit()
-		_new_run(hero_id, seed_input))
+		_new_run(hero_id, seed_input, power_id))
 
 
-func _new_run(hero_id: String, seed_input: String) -> void:
-	var code: Error = _run.new_run(hero_id, seed_input)
+func _new_run(hero_id: String, seed_input: String, power_id: String = "") -> void:
+	var code: Error = _run.new_run(hero_id, seed_input, power_id)
 	if code != OK:
 		_uncommit_with(code)
 		return
@@ -698,6 +702,8 @@ func _model_for(id: StringName) -> Dictionary:
 			return _models.controls()
 		SCREEN_GLOSSARY:
 			return _models.glossary()
+		SCREEN_UNLOCKS:
+			return _models.unlocks()
 		SCREEN_PAUSE:
 			return _models.pause(run_model)
 		SCREEN_LOG:

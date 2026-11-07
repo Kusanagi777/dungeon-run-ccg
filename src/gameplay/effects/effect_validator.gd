@@ -618,6 +618,9 @@ static func _check_condition(condition: Variant, path: String, ctx: Dictionary) 
 			_check_test(arg, where, ctx)
 		"holding":
 			_check_filter(arg, where, ctx)
+		"flip":
+			if not arg is int and not arg is float or int(arg) < 1 or int(arg) > 99:
+				_add(ctx, E_FX_SCHEMA, where, "`flip` is a percent chance from 1 to 99")
 		"is_owner_turn":
 			if not arg is bool:
 				_add(ctx, E_FX_SCHEMA, where, "`is_owner_turn` is a bool")

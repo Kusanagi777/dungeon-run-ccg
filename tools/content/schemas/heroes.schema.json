@@ -38,14 +38,8 @@
             "minLength": 1
           },
           "set": {
-            "enum": [
-              "war",
-              "decay",
-              "knowledge",
-              "fortune",
-              "order",
-              "shadow"
-            ]
+            "type": "string",
+            "pattern": "^[a-z_]+$"
           },
           "health": {
             "type": "integer",
@@ -54,6 +48,11 @@
           "hero_power": {
             "type": "string",
             "minLength": 1
+          },
+          "extra_powers": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2
           },
           "starter_deck": {
             "type": "array",

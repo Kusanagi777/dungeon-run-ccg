@@ -129,6 +129,12 @@ FIXTURES = {
     "resume_prompt": {"active_run": mid_run()},
     "run_log_sample": {"overrides": {"rows": log_rows(), "filters": [{"id": HERO["id"], "name": HERO["name"]}], "stats_lines": [], "total": 3, "more": False}},
     "data_error_sample": {"overrides": {"rows": [{"file": "cards_war.json", "id": "war_%d" % i, "code": "E_SCHEMA", "message": "row %d does not fit the schema" % i} for i in range(12)], "report_text": "12 rows"}},
+    "unlocks_sample": {"overrides": {"count_line": "1 of 4 unlocked", "sections": [{"title": "Treasures", "rows": [
+        {"kind": "treasure", "id": "treasure_dogeared_grimoire", "name": "Dog-eared Grimoire", "text": "Your spells cost (1) less.", "condition": "Win a run as Archivist Ilse", "progress": "0 / 1", "unlocked": False},
+        {"kind": "treasure", "id": "treasure_grave_tithe", "name": "Grave Tithe", "text": "Whenever a friendly minion dies, summon a 1/1 Husk. (Once per turn.)", "condition": "Win a run as Mother Wythe", "progress": "0 / 1", "unlocked": False},
+        {"kind": "treasure", "id": "treasure_living_armory", "name": "Living Armory", "text": "Start each match with a random Legendary minion in your hand.", "condition": "Win a run", "progress": "1 / 1", "unlocked": True},
+        {"kind": "treasure", "id": "treasure_plague_bell", "name": "Plague Bell", "text": "Your Husks have +1 Attack.", "condition": "Reach floor 5 as Mother Wythe", "progress": "3 / 5", "unlocked": False},
+    ]}]}},
     "toast_sample": {"toasts": [{"kind": "unlock", "key": "unlock.a", "title": "New hero unlocked: Mother Wythe", "subtitle": "Win 1 runs", "swatch": "decay"}, {"kind": "warning", "title": "The run could not be saved. Check disk space."}, {"kind": "unlock", "key": "unlock.b", "title": "New treasure unlocked: Plague Bell", "subtitle": "Win 1 runs"}]},
 }
 for base in ("draft_bundle_sample", "locked_heroes", "victory_sample", "defeat_sample"):

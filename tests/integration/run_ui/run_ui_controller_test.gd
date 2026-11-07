@@ -8,7 +8,7 @@ const SEED_HEX: String = "48A10CC0B2ED54EC"
 ## U2's intent column, screen by screen. `run_log.new_run_requested` is the zero-runs
 ## button; `open_replays`, `play_replay` and `open_glossary` are the Alpha additions.
 const U2: Dictionary = {
-	&"main_menu": [&"new_run_requested", &"continue_requested", &"open_run_log", &"open_settings", &"retry_lock", &"quit_requested"],
+	&"main_menu": [&"new_run_requested", &"continue_requested", &"open_run_log", &"open_unlocks", &"open_settings", &"retry_lock", &"quit_requested"],
 	&"resume_prompt": [&"continue", &"abandon", &"back"],
 	&"hero_select": [&"start_run", &"back"],
 	&"run_start": [],
@@ -25,12 +25,13 @@ const U2: Dictionary = {
 	&"settings": [&"set_setting", &"clear_run_records_requested", &"reset_profile_requested", &"open_controls", &"open_glossary", &"back"],
 	&"controls": [&"set_binding", &"reset_bindings", &"back"],
 	&"glossary": [&"back"],
+	&"unlocks": [&"back"],
 	&"pause": [&"close", &"open_settings", &"open_glossary", &"set_setting", &"abandon", &"go_main_menu"],
 	&"confirm": [&"confirm", &"cancel"],
 	&"notice": [&"notice_new_run"],
 	&"data_error": [&"quit_requested"],
 }
-const OVERLAYS: Array[StringName] = [&"resume_prompt", &"run_detail", &"replay_list", &"settings", &"controls", &"glossary", &"pause", &"confirm", &"notice"]
+const OVERLAYS: Array[StringName] = [&"resume_prompt", &"run_detail", &"replay_list", &"settings", &"controls", &"glossary", &"unlocks", &"pause", &"confirm", &"notice"]
 
 var _rig: RunUiRig = null
 

@@ -18,7 +18,7 @@ const STAMP_FONT_PX: int = 24
 const COUNT_FONT_PX: int = 16
 const SMALL_FONT_PX: int = 14
 const STAMP_INSET_PX: float = 4.0
-const PASSIVE_INSET: Vector2 = Vector2(4, 2)
+const PASSIVE_INSET: Vector2 = Vector2(4, 0)
 const FATIGUE_LINE_PX: float = 18.0
 const USED_ALPHA: float = 0.5
 const BLOCKED_ALPHA: float = 0.5
@@ -30,6 +30,14 @@ const TOOLTIP_GAP: float = 8.0
 const BURN_CARD_SCALE: float = 0.5
 const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.tscn")
 const TOOLTIP_PADDING: Vector2 = Vector2(16, 12)
+## The passive plate holds three 12 px lines only when they are set tight.
+const PASSIVE_LINE_SPACING: int = -3
+## The empty weapon slot's watermark.
+const SLOT_GLYPH_ALPHA: float = 0.24
+const SLOT_GLYPH_INSET_PX: float = 12.0
+const POWER_ART_INSET_PX: float = 6.0
+## The pile: a second card edge showing under the top one.
+const PILE_OFFSET: Vector2 = Vector2(3, 3)
 
 ## Which side's panel this is; set on the instance in `match_view.tscn`.
 @export var side: StringName = SIDE_PLAYER
@@ -54,8 +62,10 @@ var _fatigue: Label = null
 var _power: Panel = null
 var _power_style: StyleBoxFlat = null
 var _power_glyph: Label = null
+var _power_art: TextureRect = null
 var _weapon: Panel = null
 var _weapon_text: Label = null
+var _weapon_slot: TextureRect = null
 var _mana_text: Label = null
 var _crystals: Array[ColorRect] = []
 var _hand_count: Label = null
@@ -92,17 +102,21 @@ func setup(context: MatchUiContext) -> void:
 	_initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var stamp: float = float(ui.config.hero.stamp_size)
-	var stamp_rect := Rect2(_portrait_rect.size - Vector2(stamp + 4, stamp + 4), Vector2(stamp, stamp))
+	var stamp_rect := Rect2(_stamp_origin(stamp), Vector2(stamp, stamp))
 	_stamp_box = _panel(stamp_rect, _round_style(ui.color("ink")), _portrait)
 	_health = _label(Rect2(Vector2.ZERO, stamp_rect.size), STAMP_FONT_PX, "text_light", _stamp_box)
 	_center(_health)
+	UiFonts.apply(_health, UiFonts.WEIGHT_BOLD)
 	_armor_box = _panel(Rect2(stamp_rect.position - Vector2(stamp + 4, 0), stamp_rect.size), _round_style(ui.color("ink")), _portrait)
 	_armor = _label(Rect2(Vector2.ZERO, stamp_rect.size), COUNT_FONT_PX, "text_light", _armor_box)
 	_center(_armor)
+	UiFonts.apply(_armor, UiFonts.WEIGHT_BOLD)
 	var deck_rect: Rect2 = ui.rect("player_deck" if player else "boss_deck")
-	var deck_box: Panel = _panel(deck_rect, _style(ui.color("table_dark"), 2, ui.color("stamp_ring")))
+	var _under: Panel = _panel(Rect2(deck_rect.position + PILE_OFFSET, deck_rect.size), _style(ui.color("ink"), 1, ui.color("stamp_ring")))
+	var deck_box: Panel = _panel(deck_rect, _style(ui.color("ink"), 1, ui.color("stamp_ring")))
 	_deck = _label(Rect2(Vector2.ZERO, deck_rect.size), STAMP_FONT_PX, "text_light", deck_box)
 	_center(_deck)
+	UiFonts.apply(_deck, UiFonts.WEIGHT_BOLD)
 	_fatigue = _label(Rect2(deck_rect.position + Vector2(0, deck_rect.size.y), Vector2(deck_rect.size.x, 18)), SMALL_FONT_PX, "state_danger")
 	_center(_fatigue)
 	_fatigue.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -137,6 +151,12 @@ func set_identity(identity: Dictionary) -> void:
 		_portrait_art.texture = stamp.texture
 		_portrait_art.modulate = stamp.tint
 	_power_id = str(identity.get("power_id", ""))
+	if _power_art != null:
+		var mark: Dictionary = ui.art().power_stamp(_power_id)
+		_power_art.texture = mark.get("texture")
+		_power_art.modulate = mark.get("tint", Color.WHITE)
+		_power_style.bg_color = _primary
+		_refresh_power_mark(false)
 	_name_key = str(identity.get("name_key", ""))
 	_passive_key = str(identity.get("passive_key", ""))
 	if _power_glyph != null:
@@ -203,6 +223,7 @@ func present(state: Dictionary) -> void:
 		"hand": int(data.hand) if data.hand is int else (data.hand as Array).size(),
 	}
 	_health.text = str(hero.health) if hero.health != null else ""
+	_stamp_box.visible = hero.health != null
 	_armor_box.visible = int(hero.armor) > 0
 	_armor.text = tr("hud.armor") % int(hero.armor)
 	_deck.text = str(int(data.deck_count))
@@ -286,7 +307,7 @@ func set_text_scale(scale: float) -> void:
 func _fit_stamps(scale: float) -> void:
 	var cfg: Dictionary = ui.config.text_scale
 	var stamp: float = minf(float(ui.config.hero.stamp_size) * scale, float(cfg.stamp_max_px))
-	var at: Vector2 = _portrait_rect.size - Vector2(stamp + STAMP_INSET_PX, stamp + STAMP_INSET_PX)
+	var at: Vector2 = _stamp_origin(stamp)
 	for box: Panel in [_stamp_box, _armor_box]:
 		box.size = Vector2.ONE * stamp
 		(box.get_child(0) as Control).size = box.size
@@ -295,6 +316,13 @@ func _fit_stamps(scale: float) -> void:
 	_armor_box.position = at - Vector2(stamp + STAMP_INSET_PX, 0)
 	var lines: int = 1 if scale <= 1.0 else int(cfg.fatigue_lines)
 	_fatigue.size.y = FATIGUE_LINE_PX * scale * lines
+
+
+# The player's stamps sit on the portrait's bottom corner. The boss's bottom edge is the
+# passive plate, which must stay readable, so its stamps sit on the top corner.
+func _stamp_origin(stamp: float) -> Vector2:
+	var y: float = STAMP_INSET_PX if side == SIDE_BOSS else _portrait_rect.size.y - stamp - STAMP_INSET_PX
+	return Vector2(_portrait_rect.size.x - stamp - STAMP_INSET_PX, y)
 
 
 ## Rejection Feedback: the mana bar's outline flashes while [param on].
@@ -399,14 +427,33 @@ func _build_player_slots() -> void:
 	_power_style = _style(ui.color("war"), 2, ui.color("ink"))
 	_power = _panel(_power_rect, _power_style)
 	_power.pivot_offset = _power_rect.size / 2.0
+	_power_art = TextureRect.new()
+	_power_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_power_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_power_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_power_art.position = Vector2.ONE * POWER_ART_INSET_PX
+	_power_art.size = _power_rect.size - Vector2.ONE * POWER_ART_INSET_PX * 2.0
+	_power.add_child(_power_art)
 	_power_glyph = _label(Rect2(Vector2.ZERO, _power_rect.size), 20, "text_light", _power)
 	_center(_power_glyph)
+	UiFonts.apply(_power_glyph, UiFonts.WEIGHT_BOLD)
 	var weapon_rect: Rect2 = ui.rect("weapon_slot")
-	_weapon = _panel(weapon_rect, _style(ui.color("table_dark"), 2, ui.color("stamp_ring")))
+	_weapon = _panel(weapon_rect, _style(ui.color("ink"), 1, ui.color("stamp_ring")))
+	_weapon_slot = TextureRect.new()
+	_weapon_slot.texture = ui.art().glyph_texture("attack")
+	_weapon_slot.modulate = Color(ui.color("text_light"), SLOT_GLYPH_ALPHA)
+	_weapon_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_weapon_slot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_weapon_slot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_weapon_slot.position = Vector2.ONE * SLOT_GLYPH_INSET_PX
+	_weapon_slot.size = weapon_rect.size - Vector2.ONE * SLOT_GLYPH_INSET_PX * 2.0
+	_weapon.add_child(_weapon_slot)
 	_weapon_text = _label(Rect2(Vector2.ZERO, weapon_rect.size), COUNT_FONT_PX, "text_light", _weapon)
 	_center(_weapon_text)
+	UiFonts.apply(_weapon_text, UiFonts.WEIGHT_BOLD)
 	_mana_text = _label(ui.rect("mana_text"), COUNT_FONT_PX, "text_light")
 	_mana_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiFonts.apply(_mana_text, UiFonts.WEIGHT_BOLD)
 	var flash_style: StyleBoxFlat = _style(Color.TRANSPARENT, int(ui.config.targeting.outline_px), ui.color("state_danger"))
 	flash_style.draw_center = false
 	_mana_flash = _panel(ui.rect("mana_bar"), flash_style)
@@ -437,6 +484,7 @@ func _build_boss_strip() -> void:
 	_passive = _label(Rect2(PASSIVE_INSET, plate.size - PASSIVE_INSET * 2.0), 12, "text_light", _passive_box)
 	_passive.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_passive.clip_text = true
+	_passive.add_theme_constant_override("line_spacing", PASSIVE_LINE_SPACING)
 	_hand_box = hand_box
 	# hud.md §4.2: the stamps sit over the plate's corner, and the plate is drawn later.
 	_stamp_box.z_index = 1
@@ -446,10 +494,12 @@ func _build_boss_strip() -> void:
 func _present_player(hero: Dictionary, mana: Dictionary) -> void:
 	var used: bool = str(hero.power_state) == MatchViewState.POWER_USED
 	_power_glyph.text = USED_GLYPH if used else tr(MatchStrings.POWER_NAME_KEY % _power_id).left(POWER_INITIAL_CHARS)
+	_refresh_power_mark(used)
 	if used:
 		_power.modulate.a = USED_ALPHA
 	var weapon: Variant = hero.weapon
 	_weapon.modulate.a = 1.0
+	_weapon_slot.visible = weapon == null
 	_weapon_text.text = "%d/%d" % [int(weapon.attack), int(weapon.durability)] if weapon != null else ""
 	_mana_text.text = "%d/%d" % [int(mana.available), int(mana.max)]
 	var available: int = int(mana.available)
@@ -464,6 +514,13 @@ func _present_player(hero: Dictionary, mana: Dictionary) -> void:
 		elif i < int(mana.max):
 			token = "crystal_spent"
 		_crystals[i].color = ui.color(token)
+
+
+# The power's stamp, or its letter when none resolves; the used tick always shows.
+func _refresh_power_mark(used: bool) -> void:
+	var has_art: bool = _power_art.texture != null
+	_power_art.visible = has_art and not used
+	_power_glyph.visible = used or not has_art
 
 
 ## hud.md §4.2: the burned card face up over the player's pile, dissolving. A boss burn

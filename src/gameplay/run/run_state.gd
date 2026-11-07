@@ -48,6 +48,8 @@ var run_seed: int = 0
 var run_seed_hex: String = ""
 var seed_source: String = SEED_RANDOM
 var hero_id: String = ""
+## The power chosen for this run; empty reads as the hero's starting power.
+var hero_power_id: String = ""
 var floors_per_run: int = 0
 var band_split: Array[int] = []
 var treasure_floors: Array[int] = []
@@ -235,7 +237,7 @@ static func _whole(value: Variant) -> int:
 func _hero_model(db: CardDatabase) -> Dictionary:
 	for hero: Dictionary in db.heroes():
 		if hero.id == hero_id:
-			return {"id": hero_id, "name": hero.name, "set": hero["set"], "health": hero.health, "hero_power": hero.hero_power}
+			return {"id": hero_id, "name": hero.name, "set": hero["set"], "health": hero.health, "hero_power": hero_power_id if Heroes.power_ids(hero).has(hero_power_id) else hero.hero_power}
 	return {"id": hero_id}
 
 

@@ -1,0 +1,961 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "fortune_lucky_rat",
+      "name": "Lucky Rat",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "self",
+                  "attack": 1,
+                  "health": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_lucky_rat.text",
+        "en": "Battlecry: Flip a coin. Heads: gain +1/+1."
+      }
+    },
+    {
+      "id": "fortune_card_sharp",
+      "name": "Card Sharp",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_card_sharp.text",
+        "en": "Battlecry: Flip a coin. Heads: draw a card."
+      }
+    },
+    {
+      "id": "fortune_dice_thrower",
+      "name": "Dice Thrower",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "random_enemy_character",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_dice_thrower.text",
+        "en": "Battlecry: Deal 2 damage to a random enemy."
+      }
+    },
+    {
+      "id": "fortune_tumbler",
+      "name": "Tumbler",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "random_enemy_character",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_tumbler.text",
+        "en": "Deathrattle: Deal 2 damage to a random enemy."
+      }
+    },
+    {
+      "id": "fortune_crooked_croupier",
+      "name": "Crooked Croupier",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_crooked_croupier.text",
+        "en": "At the end of your turn, flip a coin. Heads: deal 2 damage to a random enemy."
+      }
+    },
+    {
+      "id": "fortune_roulette",
+      "name": "Roulette",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 3
+                }
+              ],
+              "else": [
+                {
+                  "op": "armor",
+                  "amount": 3,
+                  "targets": "owner"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_roulette.text",
+        "en": "Flip a coin. Heads: deal 3 damage to a random enemy. Tails: gain 3 Armor."
+      }
+    },
+    {
+      "id": "fortune_loaded_bones",
+      "name": "Loaded Bones",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 3,
+              "ops": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_loaded_bones.text",
+        "en": "Deal 1 damage to a random enemy, three times."
+      }
+    },
+    {
+      "id": "fortune_double_down",
+      "name": "Double Down",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_double_down.text",
+        "en": "Draw a card. Flip a coin. Heads: draw another."
+      }
+    },
+    {
+      "id": "fortune_cheat_fate",
+      "name": "Cheat Fate",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "random_enemy_character",
+              "amount": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "gamble"
+      ],
+      "text": {
+        "key": "card.fortune_cheat_fate.text",
+        "en": "Deal 1 damage to a random enemy. Flip a coin. Heads: draw a card."
+      }
+    },
+    {
+      "id": "fortune_pickpocket",
+      "name": "Pickpocket",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_pickpocket.text",
+        "en": "Battlecry: Add a Coin to your hand."
+      }
+    },
+    {
+      "id": "fortune_moneylender",
+      "name": "Moneylender",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_moneylender.text",
+        "en": "Battlecry: Add a Coin to your hand."
+      }
+    },
+    {
+      "id": "fortune_tax_collector",
+      "name": "Tax Collector",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "attack": 3,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "holding": {
+                  "token": true
+                }
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "self",
+                  "attack": 2,
+                  "health": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_tax_collector.text",
+        "en": "Battlecry: If you're holding a Coin, gain +2/+1."
+      }
+    },
+    {
+      "id": "fortune_gilded_guard",
+      "name": "Gilded Guard",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "holding": {
+                  "token": true
+                }
+              },
+              "then": [
+                {
+                  "op": "armor",
+                  "amount": 3,
+                  "targets": "owner"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_gilded_guard.text",
+        "en": "Taunt. Battlecry: If you're holding a Coin, gain 3 Armor."
+      }
+    },
+    {
+      "id": "fortune_strongbox",
+      "name": "Strongbox",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 6,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_strongbox.text",
+        "en": "Taunt. Deathrattle: Add 2 Coins to your hand."
+      }
+    },
+    {
+      "id": "fortune_treasurer",
+      "name": "Treasurer",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 6,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_treasurer.text",
+        "en": "Battlecry: Add 3 Coins to your hand."
+      }
+    },
+    {
+      "id": "fortune_coin_purse",
+      "name": "Coin Purse",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_coin_purse.text",
+        "en": "Add 2 Coins to your hand."
+      }
+    },
+    {
+      "id": "fortune_bribe",
+      "name": "Bribe",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_bribe.text",
+        "en": "Return an enemy minion to its owner's hand."
+      }
+    },
+    {
+      "id": "fortune_wishing_well",
+      "name": "Wishing Well",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "minion"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_wishing_well.text",
+        "en": "Discover a minion."
+      }
+    },
+    {
+      "id": "fortune_high_roller",
+      "name": "High Roller",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 4,
+      "attack": 4,
+      "health": 4,
+      "rarity": "common",
+      "keywords": [
+        "discover",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_high_roller.text",
+        "en": "Battlecry: Discover a spell."
+      }
+    },
+    {
+      "id": "fortune_slot_machine",
+      "name": "Slot Machine",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "self",
+                  "attack": 3,
+                  "health": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_slot_machine.text",
+        "en": "Battlecry: Flip a coin. Heads: gain +3/+3."
+      }
+    },
+    {
+      "id": "fortune_big_spender",
+      "name": "Big Spender",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 5,
+      "attack": 5,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "give_keyword",
+                  "targets": "self",
+                  "keyword": "taunt"
+                },
+                {
+                  "op": "buff",
+                  "targets": "self",
+                  "attack": 0,
+                  "health": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_big_spender.text",
+        "en": "Battlecry: Flip a coin. Heads: gain Taunt and +2 Health."
+      }
+    },
+    {
+      "id": "fortune_wild_card",
+      "name": "Wild Card",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "minion",
+                "rarity": "legendary"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_wild_card.text",
+        "en": "Discover a Legendary minion."
+      }
+    },
+    {
+      "id": "fortune_all_in",
+      "name": "All In",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "all_enemy_minions",
+                  "amount": 5
+                }
+              ],
+              "else": [
+                {
+                  "op": "draw",
+                  "count": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_all_in.text",
+        "en": "Flip a coin. Heads: deal 5 damage to all enemy minions. Tails: draw 3 cards."
+      }
+    },
+    {
+      "id": "fortune_fortunes_favorite",
+      "name": "Fortune's Favorite",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 7,
+      "attack": 6,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 6,
+              "ops": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_character",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_fortunes_favorite.text",
+        "en": "Battlecry: Deal 1 damage to a random enemy, six times."
+      }
+    },
+    {
+      "id": "fortune_jackpot",
+      "name": "Jackpot",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 8,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "enemy_hero",
+                  "amount": 12
+                }
+              ],
+              "else": [
+                {
+                  "op": "armor",
+                  "amount": 12,
+                  "targets": "owner"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "jackpot"
+      ],
+      "text": {
+        "key": "card.fortune_jackpot.text",
+        "en": "Flip a coin. Heads: deal 12 damage to the enemy hero. Tails: gain 12 Armor."
+      }
+    },
+    {
+      "id": "fortune_coin",
+      "name": "Coin",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 0,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "mana",
+              "amount": 1,
+              "duration": "this_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "hoard"
+      ],
+      "text": {
+        "key": "card.fortune_coin.text",
+        "en": "Gain 1 mana this turn."
+      },
+      "token": true
+    }
+  ]
+}

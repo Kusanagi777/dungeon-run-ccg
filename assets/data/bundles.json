@@ -576,6 +576,438 @@
         "key": "bundle.bundle_neutral_big_2.text",
         "en": "Heavy steel and a heavier guard."
       }
+    },
+    {
+      "id": "bundle_fortune_gamble_1",
+      "name": "Long Odds",
+      "set": "fortune",
+      "theme": "gamble",
+      "cards": [
+        "fortune_lucky_rat",
+        "fortune_card_sharp",
+        "fortune_roulette"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_gamble_1.text",
+        "en": "Small bets that land more often than they should."
+      }
+    },
+    {
+      "id": "bundle_fortune_gamble_2",
+      "name": "House Dice",
+      "set": "fortune",
+      "theme": "gamble",
+      "cards": [
+        "fortune_dice_thrower",
+        "fortune_tumbler",
+        "fortune_loaded_bones"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_gamble_2.text",
+        "en": "Random damage, and plenty of it."
+      }
+    },
+    {
+      "id": "bundle_fortune_gamble_3",
+      "name": "Marked Deck",
+      "set": "fortune",
+      "theme": "gamble",
+      "cards": [
+        "fortune_crooked_croupier",
+        "fortune_double_down",
+        "fortune_cheat_fate"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_gamble_3.text",
+        "en": "Every flip might pay for itself."
+      }
+    },
+    {
+      "id": "bundle_fortune_hoard_1",
+      "name": "Petty Cash",
+      "set": "fortune",
+      "theme": "hoard",
+      "cards": [
+        "fortune_pickpocket",
+        "fortune_moneylender",
+        "fortune_coin_purse"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_hoard_1.text",
+        "en": "Coins now, for something better later."
+      }
+    },
+    {
+      "id": "bundle_fortune_hoard_2",
+      "name": "Paid Guards",
+      "set": "fortune",
+      "theme": "hoard",
+      "cards": [
+        "fortune_tax_collector",
+        "fortune_gilded_guard",
+        "fortune_strongbox"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_hoard_2.text",
+        "en": "Bodies that fight harder with a Coin in hand."
+      }
+    },
+    {
+      "id": "bundle_fortune_hoard_3",
+      "name": "Deep Pockets",
+      "set": "fortune",
+      "theme": "hoard",
+      "cards": [
+        "fortune_treasurer",
+        "fortune_bribe",
+        "fortune_coin_purse"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_hoard_3.text",
+        "en": "A fat purse buys its way out of trouble."
+      }
+    },
+    {
+      "id": "bundle_fortune_jackpot_1",
+      "name": "Big Table",
+      "set": "fortune",
+      "theme": "jackpot",
+      "cards": [
+        "fortune_slot_machine",
+        "fortune_big_spender",
+        "fortune_all_in"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jackpot_1.text",
+        "en": "Expensive swings with a large upside."
+      }
+    },
+    {
+      "id": "bundle_fortune_jackpot_2",
+      "name": "Lucky Find",
+      "set": "fortune",
+      "theme": "jackpot",
+      "cards": [
+        "fortune_wishing_well",
+        "fortune_high_roller",
+        "fortune_wild_card"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jackpot_2.text",
+        "en": "Reach for cards you never packed."
+      }
+    },
+    {
+      "id": "bundle_fortune_jackpot_3",
+      "name": "High Stakes",
+      "set": "fortune",
+      "theme": "jackpot",
+      "cards": [
+        "fortune_all_in",
+        "fortune_fortunes_favorite",
+        "fortune_jackpot"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jackpot_3.text",
+        "en": "Everything on one flip."
+      }
+    },
+    {
+      "id": "bundle_order_formation_1",
+      "name": "Banner Line",
+      "set": "order",
+      "theme": "formation",
+      "cards": [
+        "order_standard_bearer",
+        "order_marshal",
+        "order_muster_call"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_formation_1.text",
+        "en": "One banner lifts every blade beside it."
+      }
+    },
+    {
+      "id": "bundle_order_formation_2",
+      "name": "Shield Wall",
+      "set": "order",
+      "theme": "formation",
+      "cards": [
+        "order_close_ranks",
+        "order_hold_the_line",
+        "order_squire"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_formation_2.text",
+        "en": "Stand together and nothing gets through."
+      }
+    },
+    {
+      "id": "bundle_order_formation_3",
+      "name": "Parade Ground",
+      "set": "order",
+      "theme": "formation",
+      "cards": [
+        "order_drillmaster",
+        "order_line_sergeant",
+        "order_phalanx"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_formation_3.text",
+        "en": "Rewards for a full and ordered board."
+      }
+    },
+    {
+      "id": "bundle_order_aegis_1",
+      "name": "Ivory Vanguard",
+      "set": "order",
+      "theme": "aegis",
+      "cards": [
+        "order_aegis_knight",
+        "order_ivory_sentinel",
+        "order_aegis"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_aegis_1.text",
+        "en": "Shields that hold the front."
+      }
+    },
+    {
+      "id": "bundle_order_aegis_2",
+      "name": "Blessed Steel",
+      "set": "order",
+      "theme": "aegis",
+      "cards": [
+        "order_bless_arms",
+        "order_ivory_bastion",
+        "order_temple_guard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_aegis_2.text",
+        "en": "A shield is also a promise of worse to come."
+      }
+    },
+    {
+      "id": "bundle_order_aegis_3",
+      "name": "Temple Watch",
+      "set": "order",
+      "theme": "aegis",
+      "cards": [
+        "order_shield_priest",
+        "order_warded_recruit",
+        "order_bless_arms"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_aegis_3.text",
+        "en": "Cheap wards, placed where they count."
+      }
+    },
+    {
+      "id": "bundle_order_oath_1",
+      "name": "Sworn Service",
+      "set": "order",
+      "theme": "oath",
+      "cards": [
+        "order_mender",
+        "order_vow_keeper",
+        "order_oath_of_iron"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_oath_1.text",
+        "en": "Slow, patient strength."
+      }
+    },
+    {
+      "id": "bundle_order_oath_2",
+      "name": "Long Vigil",
+      "set": "order",
+      "theme": "oath",
+      "cards": [
+        "order_sworn_blessing",
+        "order_renewal",
+        "order_oathbound"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_oath_2.text",
+        "en": "Heal, build, and outlast."
+      }
+    },
+    {
+      "id": "bundle_order_oath_3",
+      "name": "Last Stand",
+      "set": "order",
+      "theme": "oath",
+      "cards": [
+        "order_high_warden",
+        "order_the_unbroken",
+        "order_renewal"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_oath_3.text",
+        "en": "The last wall in the delve."
+      }
+    },
+    {
+      "id": "bundle_shadow_stealth_1",
+      "name": "Quiet Hands",
+      "set": "shadow",
+      "theme": "stealth",
+      "cards": [
+        "shadow_cutpurse",
+        "shadow_veil",
+        "shadow_smoke_bomb"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_stealth_1.text",
+        "en": "Unseen until the blade is already in."
+      }
+    },
+    {
+      "id": "bundle_shadow_stealth_2",
+      "name": "Court of Dusk",
+      "set": "shadow",
+      "theme": "stealth",
+      "cards": [
+        "shadow_hollow_watcher",
+        "shadow_assassins_mark",
+        "shadow_night_queen"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_stealth_2.text",
+        "en": "The dark has a queen, and she keeps her court close."
+      }
+    },
+    {
+      "id": "bundle_shadow_stealth_3",
+      "name": "Night Shift",
+      "set": "shadow",
+      "theme": "stealth",
+      "cards": [
+        "shadow_footpad",
+        "shadow_night_stalker",
+        "shadow_veil"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_stealth_3.text",
+        "en": "Cheap shadows on every side."
+      }
+    },
+    {
+      "id": "bundle_shadow_venom_1",
+      "name": "Bitter Edge",
+      "set": "shadow",
+      "theme": "venom",
+      "cards": [
+        "shadow_envenom_blade",
+        "shadow_venom_dart",
+        "shadow_adder"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_venom_1.text",
+        "en": "One scratch is enough."
+      }
+    },
+    {
+      "id": "bundle_shadow_venom_2",
+      "name": "Nest",
+      "set": "shadow",
+      "theme": "venom",
+      "cards": [
+        "shadow_toxic_cloud",
+        "shadow_ancient_wyrm",
+        "shadow_widow"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_venom_2.text",
+        "en": "Things that kill what they touch."
+      }
+    },
+    {
+      "id": "bundle_shadow_venom_3",
+      "name": "Apothecary",
+      "set": "shadow",
+      "theme": "venom",
+      "cards": [
+        "shadow_poisoner",
+        "shadow_spiderling",
+        "shadow_venom_dart"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_venom_3.text",
+        "en": "Poison, measured and applied."
+      }
+    },
+    {
+      "id": "bundle_shadow_ambush_1",
+      "name": "Knife Work",
+      "set": "shadow",
+      "theme": "ambush",
+      "cards": [
+        "shadow_cutthroat",
+        "shadow_backstab",
+        "shadow_quick_step"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_ambush_1.text",
+        "en": "Play two cards and the second one cuts deeper."
+      }
+    },
+    {
+      "id": "bundle_shadow_ambush_2",
+      "name": "Sudden Steel",
+      "set": "shadow",
+      "theme": "ambush",
+      "cards": [
+        "shadow_ambusher",
+        "shadow_duskblade",
+        "shadow_bloody_work"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_ambush_2.text",
+        "en": "Strike the moment they arrive."
+      }
+    },
+    {
+      "id": "bundle_shadow_ambush_3",
+      "name": "The Last Lamp",
+      "set": "shadow",
+      "theme": "ambush",
+      "cards": [
+        "shadow_last_light",
+        "shadow_quick_step",
+        "shadow_knife_thrower"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_ambush_3.text",
+        "en": "A long turn with a sharp end."
+      }
     }
   ]
 }

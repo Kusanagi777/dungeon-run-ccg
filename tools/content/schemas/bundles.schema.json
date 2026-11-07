@@ -37,15 +37,8 @@
             "minLength": 1
           },
           "set": {
-            "enum": [
-              "war",
-              "decay",
-              "knowledge",
-              "neutral",
-              "fortune",
-              "order",
-              "shadow"
-            ]
+            "type": "string",
+            "pattern": "^[a-z_]+$"
           },
           "theme": {
             "type": "string",

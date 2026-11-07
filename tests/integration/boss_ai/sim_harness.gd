@@ -253,6 +253,8 @@ func _seat(boss_def: Dictionary, seed_value: int, floor_number: int, band: int, 
 			"ai_id": str(boss_def.ai_profile),
 		},
 	}
+	if opponent.has("hero_power"):
+		config.player["hero_power"] = str(opponent.hero_power)
 	seat.driver = _driver_factory.call(config, _still_clock)
 	var seat_def: Dictionary = rival if rival != null else {"id": hero_def.id, "ai_profile": PILOT_PROFILE}
 	seat.pilot = _pilot(seat_def, rng.stream(PILOT_STREAM % floor_number), seat.log)

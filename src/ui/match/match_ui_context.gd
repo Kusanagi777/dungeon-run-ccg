@@ -10,9 +10,10 @@
 class_name MatchUiContext
 extends RefCounted
 
-## Palette tokens of a card's border and art box by set; another set reads as neutral.
-const SET_PRIMARY: Dictionary = {"war": "war", "decay": "decay", "knowledge": "knowledge", "boss": "boss_band_1"}
-const SET_SECONDARY: Dictionary = {"war": "war2", "decay": "decay2", "knowledge": "knowledge2", "boss": "boss_band_1"}
+## A set's colours are the palette tokens `<set>` and `<set>2`; a set without them reads as
+## neutral, so a new set needs palette data and no code. Boss cards use the band colour.
+const BOSS_SET: String = "boss"
+const BOSS_SET_TOKEN: String = "boss_band_1"
 const FALLBACK_TOKEN: String = "neutral"
 const BAND_TOKEN: String = "boss_band_%d"
 
@@ -67,6 +68,15 @@ func rect(zone: String) -> Rect2:
 	return Rect2(float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
 
+## The palette token of [param card_set], with [param suffix] `""` for primary or `"2"`
+## for secondary.
+func set_token(card_set: String, suffix: String = "") -> String:
+	if card_set == BOSS_SET:
+		return BOSS_SET_TOKEN
+	var token: String = card_set + suffix
+	return token if _colors.has(token) else FALLBACK_TOKEN
+
+
 ## The art library (parchment, stamps, glyphs). Never null.
 func art() -> ArtLibrary:
 	if _art == null:
@@ -85,8 +95,8 @@ func card_face(card_id: String) -> Dictionary:
 		var record: Variant = _db.card(card_id)
 		if record is Dictionary:
 			card_set = str(record.get("set", ""))
-	face["primary"] = color(str(SET_PRIMARY.get(card_set, FALLBACK_TOKEN)))
-	face["secondary"] = color(str(SET_SECONDARY.get(card_set, FALLBACK_TOKEN)))
+	face["primary"] = color(set_token(card_set))
+	face["secondary"] = color(set_token(card_set, "2"))
 	face["card_id"] = card_id
 	face["set"] = card_set
 	return face
@@ -113,7 +123,7 @@ func hero_identity(hero_def_id: String) -> Dictionary:
 		return {"primary": color(FALLBACK_TOKEN), "initial": "", "power_id": ""}
 	return {
 		"id": hero_def_id,
-		"primary": color(str(SET_PRIMARY.get(str(record.get("set", "")), FALLBACK_TOKEN))),
+		"primary": color(set_token(str(record.get("set", "")))),
 		"initial": str(record.get("name", "")).left(1),
 		"power_id": str(record.get("hero_power", "")),
 		"name_key": MatchStrings.HERO_NAME_KEY % hero_def_id,

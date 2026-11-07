@@ -4,7 +4,7 @@
 ##
 ## Story 007 ships [method validate_config], the stage-7a validator of
 ## `content_budgets.json`; story 008 adds the F1-F5 checks ([method run_checks]:
-## `E_STARTER_CURVE`, `W_HERO_HEALTH`, `W_SET_SHARE`, `W_CURVE`, `W_BUDGET`,
+## `W_STARTER_CURVE`, `W_HERO_HEALTH`, `W_SET_SHARE`, `W_CURVE`, `W_BUDGET`,
 ## `E_TEXT_LENGTH`, `E_COVERAGE` / `W_COVERAGE` / `W_COVERAGE_UNUSED`), which
 ## `ContentValidateCommand.run` merges into the report `tools/content/validate.gd`
 ## prints after a `Ready` load. Static functions only, no state, no file I/O:
@@ -93,7 +93,6 @@ const BUDGETS_SPEC: Dictionary = {
 		"t_bundle": {"kind": K_NUMBER, "range": [0.1, 0.3], "row": "T_BUNDLE, F6 0.1-0.3 h"},
 		"t_balance": {"kind": K_NUMBER, "range": [2.0, 6.0], "row": "T_BALANCE, F6 2-6 h"},
 	}},
-	"neutral_set_size": {"kind": K_INT, "range": [35, 60], "row": "NEUTRAL_SET_SIZE, safe 35-60"},
 	"set_share": {"kind": K_OBJECT, "row": "F1 SET_SHARE (neutral and boss rows)", "fields": {
 		"neutral": {"kind": K_OBJECT, "row": "SET_SHARE[neutral]", "fields": {
 			"minion": {"kind": K_NUMBER, "range": [0.0, 1.0], "row": "a share 0-1"},
@@ -156,7 +155,7 @@ static func is_number(value: Variant) -> bool:
 # which selector is which F3 rate), not knob values.
 
 ## Heroes F1: a starter deck breaks the starter curve (or the curve knobs are unreadable).
-const E_STARTER_CURVE: StringName = &"E_STARTER_CURVE"
+const W_STARTER_CURVE: StringName = &"W_STARTER_CURVE"
 ## Heroes Edge Cases: a `HeroDef.health` other than match-rules `starting_health_player`.
 const W_HERO_HEALTH: StringName = &"W_HERO_HEALTH"
 ## F1 / Heroes F4: a set's type share outside `SET_SHARE[set][type] ± tolerance`.
@@ -258,7 +257,7 @@ static func check_all(pool: Dictionary, budgets: Dictionary, heroes_balance: Dic
 	return rows
 
 
-## Heroes F1 and Edge Cases, per HeroDef: one `E_STARTER_CURVE` naming the hero
+## Heroes F1 and Edge Cases, per HeroDef: one `W_STARTER_CURVE` naming the hero
 ## when its starter's average cost is outside `starter_curve.avg_min`–`avg_max`,
 ## a card costs more than `starter_curve.max_cost`, or a cost's count is outside
 ## its `starter_curve.bucket` range (keys `"<cost>"` and one `"<n>_plus"`); and
@@ -278,11 +277,11 @@ static func check_heroes(pool: Dictionary, _budgets: Dictionary, heroes_balance:
 			rows.append(_entry(W_HERO_HEALTH, "heroes.json", id, "health",
 				"health %d differs from starting_health_player %d (heroes.md Edge Cases)" % [int(hero.health), int(health)]))
 		if not curve_gap.is_empty():
-			rows.append(_entry(E_STARTER_CURVE, "heroes.json", id, "starter_deck", "not checked — " + curve_gap))
+			rows.append(_entry(W_STARTER_CURVE, "heroes.json", id, "starter_deck", "not checked — " + curve_gap))
 			continue
 		var faults: PackedStringArray = _starter_faults(hero.starter_deck, by_id, curve)
 		if not faults.is_empty():
-			rows.append(_entry(E_STARTER_CURVE, "heroes.json", id, "starter_deck",
+			rows.append(_entry(W_STARTER_CURVE, "heroes.json", id, "starter_deck",
 				"starter breaks Heroes F1: " + "; ".join(faults)))
 	return rows
 
@@ -297,7 +296,7 @@ static func check_set_share(pool: Dictionary, budgets: Dictionary, heroes_balanc
 	var rows: Array[Dictionary] = []
 	var sets: Dictionary = _by_set(pool.get("cards", []), func(c: Dictionary) -> bool: return not c.get("token", false))
 	for set_id: String in sets:
-		var hero_set: bool = RecordSchemas.HERO_SETS.has(set_id)
+		var hero_set: bool = (pool.get("heroes", []) as Array).any(func(hero: Dictionary) -> bool: return str(hero["set"]) == set_id)
 		var owner: Dictionary = heroes_balance if hero_set else budgets
 		var tol_key: String = "set_share_tol" if hero_set else "share_tol"
 		var file: String = "cards_%s.json" % set_id

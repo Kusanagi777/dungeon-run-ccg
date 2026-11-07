@@ -91,7 +91,6 @@
       "t_bundle": 0.2,
       "t_balance": 4
     },
-    "neutral_set_size": 45,
     "set_share": {
       "neutral": {
         "minion": 0.82,

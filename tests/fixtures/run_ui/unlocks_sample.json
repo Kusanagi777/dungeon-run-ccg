@@ -1,0 +1,16 @@
+{
+  "overrides": {
+    "count_line": "1 of 4 unlocked",
+    "sections": [
+      {
+        "title": "Treasures",
+        "rows": [
+          {"kind": "treasure", "id": "treasure_dogeared_grimoire", "name": "Dog-eared Grimoire", "text": "Your spells cost (1) less.", "condition": "Win a run as Archivist Ilse", "progress": "0 / 1", "unlocked": false},
+          {"kind": "treasure", "id": "treasure_grave_tithe", "name": "Grave Tithe", "text": "Whenever a friendly minion dies, summon a 1/1 Husk. (Once per turn.)", "condition": "Win a run as Mother Wythe", "progress": "0 / 1", "unlocked": false},
+          {"kind": "treasure", "id": "treasure_living_armory", "name": "Living Armory", "text": "Start each match with a random Legendary minion in your hand.", "condition": "Win a run", "progress": "1 / 1", "unlocked": true},
+          {"kind": "treasure", "id": "treasure_plague_bell", "name": "Plague Bell", "text": "Your Husks have +1 Attack.", "condition": "Reach floor 5 as Mother Wythe", "progress": "3 / 5", "unlocked": false}
+        ]
+      }
+    ]
+  }
+}

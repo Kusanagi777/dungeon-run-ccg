@@ -185,6 +185,7 @@ func set_hover(id: int, duration_s: float = -1.0) -> void:
 	var card: CardFrame = _cards[id]
 	card.z_index = HOVER_Z
 	var slot: Dictionary = _hover_slot(id)
+	card.set_text_zoom(float(slot.get("scale", 1.0)))
 	if seconds <= 0.0:
 		_place(id, slot, true)
 		return

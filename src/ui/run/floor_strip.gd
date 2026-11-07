@@ -19,16 +19,19 @@ var _cfg: Dictionary = {}
 var _cells: Array = []
 var _index: int = 0
 var _tip: Label = null
+# The ink for what sits on the sheet rather than on a filled cell.
+var _paper_ink: Color = Color.WHITE
 
 
 ## Shows [param cells] (`RunReadModels.floor_cells`).
 func show_cells(cfg: Dictionary, cells: Array) -> void:
 	_cfg = cfg
 	_cells = cells
+	_paper_ink = RunUiConfig.color(cfg, "text_ink")
 	focus_mode = Control.FOCUS_ALL
 	custom_minimum_size = Vector2(cells.size() * PITCH_PX, ROW_H_PX + MARK_H_PX * 2.0)
 	if _tip == null:
-		_tip = UiKit.label("", RunUiTheme.LABEL_SMALL)
+		_tip = UiKit.label("", RunUiTheme.LABEL_INK)
 		add_child(_tip)
 		UiKit.place(_tip, Rect2(0, ROW_H_PX + MARK_H_PX, cells.size() * PITCH_PX, MARK_H_PX))
 	focus_entered.connect(_select.bind(0))
@@ -58,7 +61,9 @@ func _select(index: int) -> void:
 
 
 func _draw() -> void:
-	var font: Font = get_theme_default_font()
+	var font: Font = UiFonts.serif(UiFonts.WEIGHT_BOLD)
+	if font == null:
+		font = get_theme_default_font()
 	var font_px: int = int(_cfg.get("font_px", {}).get("small", 13))
 	var radius: float = float(_cfg.get("node_d", 24)) / 2.0
 	for i: int in _cells.size():
@@ -75,7 +80,8 @@ func _draw() -> void:
 		var initial: String = str(cell.initial)
 		if not initial.is_empty():
 			var width: float = font.get_string_size(initial, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
-			draw_string(font, centre + Vector2(-width / 2.0, font_px / 2.5), initial, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, light)
+			var ink: Color = light if str(cell.state) == RunReadModels.CELL_CLEARED else _paper_ink
+			draw_string(font, centre + Vector2(-width / 2.0, font_px / 2.5), initial, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, ink)
 		if int(cell.attempt) > 1:
 			var mark: String = tr("summary.cell.mark").format({"n": int(cell.attempt)})
-			draw_string(font, Vector2(PITCH_PX * i + 4.0, ROW_H_PX + MARK_H_PX - 4.0), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, light)
+			draw_string(font, Vector2(PITCH_PX * i + 4.0, ROW_H_PX + MARK_H_PX - 4.0), mark, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, _paper_ink)

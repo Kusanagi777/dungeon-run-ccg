@@ -15,6 +15,9 @@ extends Presenter
 
 const PANEL_MARGIN_PX: float = 8.0
 const DRAWER_BORDER_PX: int = 2
+## Three lines of 13 px text fit the ticker only when they are set tight.
+const TICKER_LINE_SEPARATION: int = -3
+const TOGGLE_BORDER_PX: int = 1
 
 var _view: MatchViewState = null
 var _names: FeedNames = null
@@ -45,6 +48,7 @@ func setup(context: MatchUiContext) -> void:
 	_quiet = FeedLines.quiet_keys(ui.config.feed_quiet_types)
 	_ticker = _rich_text(ui.rect("feed_ticker"), self)
 	_ticker.scroll_active = false
+	_ticker.add_theme_constant_override("line_separation", TICKER_LINE_SEPARATION)
 	_ticker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var rect: Rect2 = ui.rect("feed_drawer")
 	var style := StyleBoxFlat.new()
@@ -167,7 +171,10 @@ static func _is_right_press(event: InputEvent) -> bool:
 func _build_toggle() -> void:
 	var rect: Rect2 = ui.rect("feed_toggle")
 	var style := StyleBoxFlat.new()
-	style.bg_color = ui.color("table_dark")
+	style.bg_color = ui.color("ink")
+	style.border_color = ui.color("stamp_ring")
+	style.set_border_width_all(TOGGLE_BORDER_PX)
+	style.set_corner_radius_all(4)
 	_toggle = Button.new()
 	_toggle.text = tr("hud.feed")
 	_toggle.position = rect.position
@@ -176,6 +183,7 @@ func _build_toggle() -> void:
 	for state: String in ["normal", "hover", "pressed"]:
 		_toggle.add_theme_stylebox_override(state, style)
 	_toggle.add_theme_color_override("font_color", ui.color("text_light"))
+	UiFonts.apply(_toggle)
 	_toggle.pressed.connect(toggle)
 	add_child(_toggle)
 

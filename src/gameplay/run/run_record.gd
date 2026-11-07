@@ -73,6 +73,7 @@ static func to_dict(state: RunState) -> Dictionary:
 		"run_seed_hex": state.run_seed_hex,
 		"seed_source": state.seed_source,
 		"hero_id": state.hero_id,
+		"hero_power_id": state.hero_power_id,
 		"floors_per_run": state.floors_per_run,
 		"band_split": Array(state.band_split).duplicate(),
 		"treasure_floors": Array(state.treasure_floors).duplicate(),
@@ -112,6 +113,7 @@ static func from_dict(raw: Dictionary) -> RunState:
 		state.run_seed = RngService.parse_hex_u64(state.run_seed_hex)
 	state.seed_source = str(d.get("seed_source", RunState.SEED_RANDOM))
 	state.hero_id = str(d.get("hero_id", ""))
+	state.hero_power_id = str(d.get("hero_power_id", ""))
 	state.floors_per_run = _int_of(d, "floors_per_run", 0)
 	state.band_split.assign(_ints_of(d, "band_split"))
 	state.treasure_floors.assign(_ints_of(d, "treasure_floors"))

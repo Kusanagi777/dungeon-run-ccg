@@ -33,12 +33,15 @@ const LABEL_MARGIN_PX: float = 6.0
 const HINT_FONT_PX: int = 13
 const PULSE_SCALE: float = 1.06
 
+## The stamp sits inside the icon cell by this much.
+const ICON_INSET_PX: float = 6.0
 var _view: MatchViewState = null
 var _cfg: Dictionary = {}
 var _plan_changed_s: float = 0.0
 var _plate: Panel = null
 var _plate_style: StyleBoxFlat = null
 var _icon: Label = null
+var _icon_art: TextureRect = null
 var _label: Label = null
 var _amount: Label = null
 var _reticle: Panel = null
@@ -242,6 +245,13 @@ func _build_plate() -> void:
 	add_child(_plate)
 	_icon = _text(Rect2(0, 0, icon_w, rect.size.y), font_px, "text_light", _plate)
 	_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_icon_art = TextureRect.new()
+	_icon_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_icon_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_icon_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_icon_art.position = Vector2(ICON_INSET_PX, ICON_INSET_PX)
+	_icon_art.size = Vector2(icon_w, rect.size.y) - Vector2.ONE * ICON_INSET_PX * 2.0
+	_plate.add_child(_icon_art)
 	var label_w: float = rect.size.x - icon_w * 2.0
 	_label = _text(Rect2(icon_w, 0, label_w, rect.size.y), font_px, "text_light", _plate)
 	_label.clip_text = true
@@ -314,6 +324,11 @@ func _render() -> void:
 	var amount: Variant = _intent.get("amount") if has_intent and mode == MODE_FULL else null
 	var target: Variant = _intent.get("target_id") if has_intent and mode == MODE_FULL else null
 	_icon.text = str(_cfg.hidden_glyph) if hidden else str((_cfg.glyphs as Dictionary).get(key, ""))
+	var mark: Dictionary = {} if hidden else ui.art().intent_stamp(key)
+	_icon_art.visible = not mark.is_empty()
+	_icon_art.texture = mark.get("texture")
+	_icon_art.modulate = mark.get("tint", Color.WHITE)
+	_icon.self_modulate.a = 0.0 if _icon_art.visible else 1.0
 	_label.text = "" if hidden else tr(KEY_LABEL % key)
 	_amount.text = str(int(amount)) if amount != null else ""
 	if _plan_left_s > 0.0:

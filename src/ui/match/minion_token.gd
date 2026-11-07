@@ -68,6 +68,7 @@ func configure(context: MatchUiContext) -> void:
 	offset_transform_pivot_ratio = Vector2(0.5, 0.5)
 	_art = _label(ART_RECT, ART_FONT_PX)
 	_centre(_art)
+	_art.add_theme_color_override("font_color", _ui.color("text_ink"))
 	_badges = _label(BADGE_RECT, BADGE_FONT_PX)
 	_badges.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_attack = _stamp_label(ATTACK_CENTRE)
@@ -144,12 +145,17 @@ func _draw() -> void:
 	if _face.is_empty():
 		return
 	var body := StyleBoxFlat.new()
-	body.bg_color = _ui.color("ink")
+	var parchment: Texture2D = _ui.art().surface("parchment_card")
+	if parchment != null:
+		draw_texture_rect(parchment, Rect2(Vector2.ZERO, size), false)
+		body.draw_center = false
+	else:
+		body.bg_color = _ui.color("parchment")
 	body.set_corner_radius_all(CORNER_PX)
 	body.set_border_width_all(FRAME_PX)
 	body.border_color = _face.get("primary", _ui.color("neutral"))
 	draw_style_box(body, Rect2(Vector2.ZERO, size))
-	draw_rect(ART_RECT, _face.get("secondary", _ui.color("neutral")))
+	draw_rect(ART_RECT, (_face.get("secondary", _ui.color("neutral")) as Color).lerp(_ui.color("parchment"), CardFrame.ART_WASH))
 	if not _stamp.is_empty():
 		var art: Texture2D = _stamp.texture
 		draw_texture_rect(art, ArtLibrary.fit_rect(art, ART_RECT, 1.0), false, _stamp.tint)
@@ -221,9 +227,9 @@ func _draw_stat_glyph(glyph_name: String, centre: Vector2) -> void:
 	var tex: Texture2D = _ui.art().glyph_texture(glyph_name)
 	if tex == null:
 		return
-	var side: float = 9.0
-	var at: Vector2 = centre + Vector2(-STAMP_RADIUS + 1.0, -STAMP_RADIUS + 1.0)
-	draw_texture_rect(tex, Rect2(at, Vector2(side, side)), false, _ui.color("text_light"))
+	var side: float = STAMP_RADIUS * 1.5
+	var at: Vector2 = centre - Vector2.ONE * side / 2.0
+	draw_texture_rect(tex, Rect2(at, Vector2.ONE * side), false, Color(_ui.color("text_light"), CardFrame.GLYPH_ALPHA))
 
 
 func _draw_keyword_icons() -> void:
@@ -255,6 +261,7 @@ func _stamp_label(centre: Vector2) -> Label:
 	var box := Vector2(STAMP_RADIUS, STAMP_RADIUS)
 	var label: Label = _label(Rect2(centre - box, box * 2.0), STAMP_FONT_PX)
 	_centre(label)
+	UiFonts.apply(label, UiFonts.WEIGHT_BOLD)
 	return label
 
 

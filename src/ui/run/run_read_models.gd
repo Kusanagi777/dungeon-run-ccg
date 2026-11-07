@@ -10,9 +10,9 @@ class_name RunReadModels
 extends RefCounted
 
 ## Colour tokens by hero set; another set reads as neutral.
-const SET_PRIMARY: Dictionary = {"war": "war", "decay": "decay", "knowledge": "knowledge"}
-const SET_SECONDARY: Dictionary = {"war": "war2", "decay": "decay2", "knowledge": "knowledge2"}
 const NEUTRAL_TOKEN: String = "neutral"
+## How far back the picker looks for the power last played with a class.
+const RECENT_RUNS: int = 20
 const BAND_TOKEN: String = "boss_band_%d"
 const STARTER_HERO: String = "hero_war"
 const CELL_CLEARED: String = "cleared"
@@ -48,9 +48,72 @@ func main_menu(run_model: Dictionary, load_line: String, status_line: String) ->
 		"runs": int(stats.get("runs_started", 0)),
 		"wins": int(stats.get("runs_won", 0)),
 		"best_floor": int(stats.get("best_floor_reached", 0)),
+		"floors": int(_db.config("run_structure").get("floors_per_run", 0)),
 		"load_line": load_line,
 		"status_line": status_line,
 	}
+
+
+## `unlocks`: every record with an `unlock`, by kind, and the count earned. A kind with
+## nothing to earn has no section.
+func unlocks() -> Dictionary:
+	var sections: Array[Dictionary] = []
+	var earned: int = 0
+	var total: int = 0
+	var bundles: Dictionary = {}
+	for hero: Dictionary in _db.heroes():
+		for bundle: Dictionary in _db.bundle_pool(str(hero.get("set", ""))):
+			bundles[str(bundle.id)] = bundle
+	var powers: Array[Dictionary] = []
+	for hero: Dictionary in _db.heroes():
+		for extra: Dictionary in hero.get("extra_powers", []):
+			var power: Dictionary = _db.hero_power(str(extra.power))
+			powers.append({"id": power.id, "name": power.name, "text": power.get("text"), "unlock": extra.unlock})
+	for kind: Array in [["hero", _db.heroes()], ["power", powers], ["treasure", _db.treasure_pool()], ["bundle", bundles.values()]]:
+		var rows: Array[Dictionary] = []
+		for record: Dictionary in kind[1]:
+			if record.get("unlock") is Dictionary:
+				rows.append(_unlock_row(str(kind[0]), record))
+		for row: Dictionary in rows:
+			earned += 1 if bool(row.unlocked) else 0
+		total += rows.size()
+		if not rows.is_empty():
+			sections.append({"title": RunText.t("unlocks.kind.%s" % str(kind[0])), "rows": rows})
+	return {"sections": sections, "count_line": RunText.t("unlocks.count", {"n": earned, "total": total})}
+
+
+func _unlock_row(kind: String, record: Dictionary) -> Dictionary:
+	var unlock: Dictionary = record.unlock
+	var key: String = str(unlock.get("key", ""))
+	var hint: Dictionary = _meta.unlock_hint(key)
+	var target: Variant = hint.get("target")
+	var progress: String = ""
+	if target != null:
+		var need: int = int(target)
+		progress = RunText.t("unlocks.progress", {"have": mini(roundi(float(hint.get("progress", 0.0)) * need), need), "need": need})
+	return {
+		"kind": kind,
+		"id": str(record.id),
+		"name": str(record.get("name", record.id)),
+		"text": RunText.data(record.get("text")) if kind == "treasure" or kind == "power" else "",
+		"condition": _condition_text(unlock.get("condition", {}), hint),
+		"progress": progress,
+		"unlocked": _meta.is_unlocked(key),
+	}
+
+
+# What to do, naming the hero: the shared hint text leaves it out, and for a hero-bound
+# condition that is the part the player needs.
+func _condition_text(condition: Dictionary, hint: Dictionary) -> String:
+	var text_key: String = str(hint.get("text_key", ""))
+	var n: int = int(condition.get("n", hint.get("target", 1) if hint.get("target") != null else 1))
+	var text: String = RunText.t(text_key, {"n": n}) if not text_key.is_empty() else ""
+	if str(condition.get("type", "")) == "runs_won" and n == 1:
+		text = RunText.t("unlocks.win_one")
+	elif str(condition.get("type", "")) == "boss_defeated" and str(condition.get("boss_id", UnlockEvaluator.BOSS_ANY)) == UnlockEvaluator.BOSS_ANY:
+		text = RunText.t("unlocks.defeat_bosses", {"n": n})
+	var hero_id: String = str(condition.get("hero", ""))
+	return text if hero_id.is_empty() or text.is_empty() else RunText.t("unlocks.as_hero", {"text": text, "hero": _hero_name(hero_id)})
 
 
 ## `resume_prompt` (U2).
@@ -83,7 +146,7 @@ func run_start(run_model: Dictionary, duration_ms: int) -> Dictionary:
 	var hero: Dictionary = run_model.get("hero", {})
 	return {
 		"hero_name": str(hero.get("name", "")),
-		"hero_color": SET_PRIMARY.get(str(hero.get("set", "")), NEUTRAL_TOKEN),
+		"hero_color": _set_token(str(hero.get("set", ""))),
 		"seed": str(run_model.get("run_seed_hex", "")),
 		"duration_ms": duration_ms,
 	}
@@ -201,7 +264,7 @@ func summary(run_model: Dictionary, unlock_keys: Array, status_line: String) -> 
 		"hero_id": str(hero.get("id", "")),
 		"hero_name": str(hero.get("name", hero.get("id", ""))),
 		"hero_initial": _initial(str(hero.get("name", ""))),
-		"hero_color": SET_PRIMARY.get(str(hero.get("set", "")), NEUTRAL_TOKEN),
+		"hero_color": _set_token(str(hero.get("set", ""))),
 		"hero_available": _meta.is_hero_unlocked(str(hero.get("id", ""))),
 		"floors_cleared": int(data.get("floors_cleared", 0)),
 		"floors": floors,
@@ -317,11 +380,13 @@ func unlock_toast(key: String, kind: String, id: String) -> Dictionary:
 			"hero":
 				var hero: Dictionary = _db.hero(id)
 				name = str(hero.get("name", id))
-				swatch = SET_PRIMARY.get(str(hero.get("set", "")), NEUTRAL_TOKEN)
+				swatch = _set_token(str(hero.get("set", "")))
 			"treasure":
 				name = str((_db.treasure(id) as Dictionary).get("name", id))
 			"bundle":
 				name = str((_db.bundle(id) as Dictionary).get("name", id))
+			"power":
+				name = str((_db.hero_power(id) as Dictionary).get("name", id))
 	return {"key": key, "title": RunText.t("unlock.toast.%s" % kind, {"name": name}), "subtitle": _hint_text(key), "swatch": swatch}
 
 
@@ -453,6 +518,7 @@ func _hero_panel(row: Dictionary) -> Dictionary:
 	var power: Dictionary = _power_of(row.get("hero_power"))
 	var stats: Dictionary = _meta.stats_for_hero(id)
 	var ids: Array = row.get("starter_deck", [])
+	var powers: Array[Dictionary] = _power_rows(row)
 	return {
 		"id": id,
 		"name": str(row.get("name", id)),
@@ -460,13 +526,15 @@ func _hero_panel(row: Dictionary) -> Dictionary:
 		"health": int(row.get("health", 0)),
 		"identity": RunText.data(hero.get("text")),
 		"blurb": RunText.t("hero.blurb.%s" % set_id),
-		"primary": SET_PRIMARY.get(set_id, NEUTRAL_TOKEN),
-		"secondary": SET_SECONDARY.get(set_id, NEUTRAL_TOKEN),
+		"primary": _set_token(set_id),
+		"secondary": _set_token(set_id, "2"),
 		"power_name": str(power.get("name", "")),
 		"power_cost": power.get("cost"),
 		"power_text": str(power.get("text", "")),
 		"stats_line": RunText.t("hero.stats", {"w": int(stats.get("runs_won", stats.get("wins", 0))), "l": int(stats.get("runs_lost", stats.get("losses", 0))), "f": int(stats.get("best_floor_reached", stats.get("best_floor", 0)))}),
 		"stats_short": RunText.t("hero.stats_short", {"w": int(stats.get("runs_won", stats.get("wins", 0))), "l": int(stats.get("runs_lost", stats.get("losses", 0))), "f": int(stats.get("best_floor_reached", stats.get("best_floor", 0)))}),
+		"powers": powers,
+		"selected_power": _last_power(id, powers),
 		"curve": _curve(ids),
 		"deck_rows": deck_rows(ids, []),
 	}
@@ -483,6 +551,33 @@ func _locked_panel(row: Dictionary) -> Dictionary:
 			var target: int = int(hint.target)
 			hint_text = RunText.t("hero.locked.progress", {"hint": hint_text, "have": floori(float(hint.get("progress", 0.0)) * target), "need": target})
 	return {"id": id, "name": str(row.get("name", id)), "hint": hint_text}
+
+
+# A class's powers for the picker: the starting one, then each extra with its condition.
+func _power_rows(row: Dictionary) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = [_power_choice(str(row.get("hero_power", "")), true, "")]
+	for extra: Dictionary in row.get("extra_powers", []):
+		var id: String = str(extra.get("power", ""))
+		var unlock: Dictionary = extra.get("unlock", {})
+		var condition: String = _condition_text(unlock.get("condition", {}), _meta.unlock_hint(str(unlock.get("key", ""))))
+		rows.append(_power_choice(id, _meta.is_power_unlocked(id), condition))
+	return rows
+
+
+func _power_choice(id: String, unlocked: bool, condition: String) -> Dictionary:
+	var power: Dictionary = _power_of(id)
+	return {"id": id, "name": str(power.get("name", id)), "cost": power.get("cost"), "text": str(power.get("text", "")), "unlocked": unlocked, "condition": condition}
+
+
+# The power last played with [param hero_id] while it is still open, else the first.
+func _last_power(hero_id: String, powers: Array[Dictionary]) -> String:
+	for entry: Variant in _meta.run_log(0, RECENT_RUNS):
+		if entry is Dictionary and str(entry.get("hero_id", "")) == hero_id:
+			for power: Dictionary in powers:
+				if power.id == str(entry.get("hero_power_id", "")) and bool(power.unlocked):
+					return str(power.id)
+			break
+	return str(powers[0].id)
 
 
 func _preselected(panels: Array[Dictionary]) -> String:
@@ -635,6 +730,12 @@ func _log_stats() -> PackedStringArray:
 		if int(stats.get("runs_started", 0)) > 0:
 			lines.append(RunText.t("log.stats", {"hero": str(hero.get("name", hero.id)), "w": int(stats.get("runs_won", 0)), "l": int(stats.get("runs_lost", 0)), "f": int(stats.get("best_floor_reached", 0))}))
 	return lines
+
+
+# A set's palette token, `<set>` or `<set>2`, or neutral when the palette has none.
+func _set_token(set_id: String, suffix: String = "") -> String:
+	var token: String = set_id + suffix
+	return token if (_config.palette as Dictionary).has(token) else NEUTRAL_TOKEN
 
 
 func _hint_text(key: String) -> String:

@@ -97,6 +97,36 @@ static func portrait(fill: Color, initial: String, size: Vector2, stamp: Texture
 	return node
 
 
+## An ink stamp: a [param size_px] circle with [param text] in the display face, the
+## mark a card's cost sits on. It takes no input.
+static func stamp(text: String, size_px: float, fill: Color, ring: Color) -> Panel:
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = fill
+	style.border_color = ring
+	style.set_border_width_all(RunUiTheme.BORDER_PX)
+	style.set_corner_radius_all(int(size_px))
+	var node: Panel = Panel.new()
+	node.custom_minimum_size = Vector2.ONE * size_px
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_theme_stylebox_override(&"panel", style)
+	var numeral: Label = label(text, RunUiTheme.LABEL_SMALL)
+	numeral.set_anchors_preset(Control.PRESET_FULL_RECT)
+	numeral.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	numeral.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	UiFonts.apply(numeral, UiFonts.WEIGHT_BOLD)
+	node.add_child(numeral)
+	return node
+
+
+## A 1 px ruled line of [param tint], the ledger's row divider.
+static func rule(tint: Color) -> ColorRect:
+	var node: ColorRect = ColorRect.new()
+	node.color = tint
+	node.custom_minimum_size.y = 1.0
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return node
+
+
 ## A flexible spacer for a box container.
 static func spacer() -> Control:
 	var node: Control = Control.new()

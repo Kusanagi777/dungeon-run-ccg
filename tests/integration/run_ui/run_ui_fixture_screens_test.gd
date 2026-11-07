@@ -4,9 +4,10 @@
 extends GdUnitTestSuite
 
 ## Fixture, screen (Acceptance Criteria; U10).
+const MIN_ROW_NAME_W: float = 100.0
 const SCREENS: Array = [
 	["fresh_profile", &"main_menu"], ["fresh_profile", &"hero_select"], ["fresh_profile", &"run_log"], ["fresh_profile", &"settings"],
-	["fresh_profile", &"controls"], ["fresh_profile", &"glossary"],
+	["fresh_profile", &"controls"], ["fresh_profile", &"glossary"], ["unlocks_sample", &"unlocks"],
 	["locked_heroes", &"hero_select"], ["locked_heroes_ts150", &"hero_select"],
 	["mid_run_floor4", &"boss_intro"], ["mid_run_floor4", &"pause"],
 	["draft_treasure_sample", &"draft_treasure"], ["draft_treasure_short", &"draft_treasure"],
@@ -17,7 +18,7 @@ const SCREENS: Array = [
 	["run_log_sample", &"run_log"], ["toast_sample", &"main_menu"],
 ]
 const REQUIRED: Array[String] = [
-	"fresh_profile", "mid_run_floor4", "victory_sample", "defeat_sample", "locked_heroes", "abandoned_sample",
+	"unlocks_sample", "fresh_profile", "mid_run_floor4", "victory_sample", "defeat_sample", "locked_heroes", "abandoned_sample",
 	"draft_treasure_sample", "draft_bundle_sample", "draft_treasure_short", "resume_prompt", "data_error_sample",
 	"toast_sample", "draft_bundle_sample_ts150", "locked_heroes_ts150", "victory_sample_ts150", "defeat_sample_ts150",
 	"run_log_sample", "unlock_toast_summary",
@@ -131,9 +132,9 @@ func test_the_toast_sample_shows_its_toasts_in_turn() -> void:
 
 # --- AC-1 to AC-8 -------------------------------------------------------------------
 
-func test_ac1_a_fresh_menu_has_four_rows_no_continue_and_zero_runs() -> void:
+func test_ac1_a_fresh_menu_has_five_rows_no_continue_and_zero_runs() -> void:
 	var screen: Screen = await _open("fresh_profile", &"main_menu")
-	assert_array(_buttons(screen)).is_equal([tr("menu.new_run"), tr("menu.run_log"), tr("menu.settings"), tr("menu.quit")])
+	assert_array(_buttons(screen)).is_equal([tr("menu.new_run"), tr("menu.run_log"), tr("menu.unlocks"), tr("menu.settings"), tr("menu.quit")])
 	assert_array(RunUiRig.texts(screen)).contains([tr("menu.stats").format({"runs": 0, "wins": 0, "best": 0})])
 
 
@@ -242,6 +243,32 @@ func test_ac5_focusing_a_bundle_shows_its_hints_and_blur_clears_them() -> void:
 	assert_str(screen._hint2.text).starts_with("Deck ")
 	_rig.shell.get_viewport().gui_release_focus()
 	assert_str(screen._hint2.text).is_empty()
+
+
+func test_an_open_deck_drawer_follows_the_selected_hero() -> void:
+	# Each hero owns a drawer and Deck toggles the selected one: one left open was stranded
+	var screen: Screen = await _open("fresh_profile", &"hero_select")
+	screen._select(0)
+	screen._toggle_deck()
+	screen._select(1)
+	assert_bool(screen._drawers[0].is_open()).is_false()
+	assert_bool(screen._drawers[1].is_open()).is_true()
+	screen._toggle_deck()
+	assert_bool(screen._drawers.any(func(drawer: DeckDrawer) -> bool: return drawer.is_open())).is_false()
+
+
+func test_the_unlocks_rows_name_the_hero_and_the_progress() -> void:
+	var screen: Screen = await _open("unlocks_sample", &"unlocks")
+	assert_array(RunUiRig.texts(screen)).contains(["Win a run as Archivist Ilse", "3 / 5", tr("unlocks.done")])
+
+
+func test_a_bundle_row_gives_the_card_name_the_row() -> void:
+	# A wrapped label inside the row's HBox measured zero wide: one letter per line
+	var screen: Screen = await _open("draft_bundle_sample", &"draft_bundle")
+	var names: Array[Node] = screen.find_children("*", "Label", true, false).filter(func(node: Node) -> bool: return (node as Label).theme_type_variation == RunUiTheme.LABEL_INK_BODY)
+	assert_array(names).is_not_empty()
+	for label: Node in names:
+		assert_float((label as Label).size.x).override_failure_message((label as Label).text).is_greater(MIN_ROW_NAME_W)
 
 
 func test_ac5_options_keep_their_f4_size_at_100_and_150_percent() -> void:

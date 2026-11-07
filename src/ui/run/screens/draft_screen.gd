@@ -9,9 +9,19 @@ extends Screen
 const HEADER_Y: float = 200.0
 const TREASURE_H: float = 210.0
 const BUNDLE_H: float = 320.0
-const ROW_H: float = 64.0
+const ROW_H: float = 44.0
+const ROW_GAP: int = 0
 ## From a bundle panel's top to its first card row (draft-picker.md §5.1).
-const ROW_TOP: float = 76.0
+const ROW_TOP: float = 84.0
+const ROW_RULE_ALPHA: float = 0.22
+const COST_STAMP_PX: float = 28.0
+const ROW_ICON_PX: float = 32.0
+const TREASURE_ICON_H: float = 36.0
+## Two lines of name, held on every slip so the stamps share a line.
+const TREASURE_NAME_H: float = 40.0
+## F4 fixes the slip at 150x210, so it takes a narrower inset and tighter lines than a sheet.
+const TREASURE_PADDING_PX: int = 10
+const TREASURE_LINE_SPACING: int = -2
 const HINT_RECT: Rect2 = Rect2(0, 462, 1280, 24)
 const HINT2_RECT: Rect2 = Rect2(0, 488, 1280, 24)
 const SKIP_POS: Vector2 = Vector2(40, 640)
@@ -188,7 +198,11 @@ func _add_title(model: Dictionary, bundle: bool) -> void:
 func _add_option(index: int, option: Dictionary, rect: Rect2, bundle: bool) -> void:
 	var panel: OptionPanel = OptionPanel.new()
 	panel.setup(index, LIFT_PX)
-	panel.theme_type_variation = RunUiTheme.PANEL_LIT if bundle else RunUiTheme.PANEL_PARCHMENT
+	panel.theme_type_variation = RunUiTheme.PANEL_PARCHMENT
+	if not bundle:
+		var slip: StyleBox = ArtLibrary.shared().parchment_panel(TREASURE_PADDING_PX)
+		if slip != null:
+			panel.add_theme_stylebox_override(&"panel", slip)
 	add_child(panel)
 	UiKit.place(panel, rect)
 	panel.clip_contents = true
@@ -203,9 +217,7 @@ func _add_option(index: int, option: Dictionary, rect: Rect2, bundle: bool) -> v
 	if bundle:
 		_fill_bundle(column, option, index, rect)
 	else:
-		column.add_child(UiKit.label(str(option.name), RunUiTheme.LABEL_INK, true))
-		column.add_child(UiKit.label(str(option.rarity), RunUiTheme.LABEL_INK))
-		column.add_child(UiKit.label(str(option.text), RunUiTheme.LABEL_INK, true))
+		_fill_treasure(column, option)
 	panel.activated.connect(_on_activated)
 	panel.double_activated.connect(_confirm)
 	panel.highlighted.connect(_on_highlighted)
@@ -213,37 +225,77 @@ func _add_option(index: int, option: Dictionary, rect: Rect2, bundle: bool) -> v
 	_panels.append(panel)
 
 
+func _fill_treasure(column: VBoxContainer, option: Dictionary) -> void:
+	# Past 100 % text the slip holds words only: F4 keeps its size, so the stamp gives way.
+	var scaled: bool = get_theme_default_font_size() > int(cfg.font_px.body)
+	var name_label: Label = UiKit.label(str(option.name), RunUiTheme.LABEL_INK_BODY, true)
+	UiFonts.apply(name_label, UiFonts.WEIGHT_BOLD)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_constant_override(&"line_spacing", TREASURE_LINE_SPACING)
+	column.add_child(name_label)
+	var stamp: Dictionary = ArtLibrary.shared().treasure_stamp(str(option.get("id", "")))
+	if not scaled:
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.custom_minimum_size.y = TREASURE_NAME_H
+		if not stamp.is_empty():
+			column.add_child(_stamp_icon(stamp, Vector2(0.0, TREASURE_ICON_H)))
+	var rarity: Label = UiKit.label(str(option.rarity), RunUiTheme.LABEL_INK_MUTED)
+	rarity.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(rarity)
+	var text: Label = UiKit.label(str(option.text), RunUiTheme.LABEL_INK, true)
+	text.add_theme_constant_override(&"line_spacing", TREASURE_LINE_SPACING)
+	column.add_child(text)
+
+
+func _stamp_icon(stamp: Dictionary, minimum: Vector2) -> TextureRect:
+	var icon: TextureRect = TextureRect.new()
+	icon.texture = stamp.texture
+	icon.modulate = stamp.tint
+	icon.custom_minimum_size = minimum
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
+
+
 func _fill_bundle(column: VBoxContainer, option: Dictionary, index: int, rect: Rect2) -> void:
-	column.add_child(UiKit.label(str(option.name), RunUiTheme.LABEL_HEADING))
-	column.add_child(UiKit.label(str(option.pitch), RunUiTheme.LABEL_SMALL, true))
+	column.add_child(UiKit.label(str(option.name), RunUiTheme.LABEL_INK_HEADING))
+	column.add_child(UiKit.label(str(option.pitch), RunUiTheme.LABEL_INK_MUTED, true))
 	var scroll: ScrollContainer = UiKit.scroll()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
-	var rows: VBoxContainer = UiKit.vbox(8)
+	var rows: VBoxContainer = UiKit.vbox(ROW_GAP)
 	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(rows)
+	var ruled: StyleBoxFlat = StyleBoxFlat.new()
+	ruled.bg_color = Color.TRANSPARENT
+	ruled.border_color = Color(color("text_ink"), ROW_RULE_ALPHA)
+	ruled.border_width_top = RunUiTheme.BORDER_PX
 	var cards: Array = option.get("cards", [])
 	for i: int in cards.size():
 		var card: Dictionary = cards[i]
-		var row: PanelContainer = UiKit.panel(RunUiTheme.PANEL_DARK)
+		var row: PanelContainer = PanelContainer.new()
+		row.add_theme_stylebox_override(&"panel", ruled)
 		row.custom_minimum_size.y = ROW_H
 		UiKit.focus_row(row)
 		var line: HBoxContainer = UiKit.hbox(8)
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var cost: Panel = UiKit.stamp(str(card.cost), COST_STAMP_PX, color("ink"), color("neutral"))
+		cost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(cost)
 		var stamp: Dictionary = ArtLibrary.shared().card_stamp(str(card.id))
 		if not stamp.is_empty():
-			var icon: TextureRect = TextureRect.new()
-			icon.texture = stamp.texture
-			icon.modulate = stamp.tint
-			icon.custom_minimum_size = Vector2(40.0, 40.0)
-			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			line.add_child(icon)
-		line.add_child(UiKit.label("(%s) %s" % [card.cost, card.name], RunUiTheme.LABEL_SMALL, true))
+			line.add_child(_stamp_icon(stamp, Vector2.ONE * ROW_ICON_PX))
+		# Wrapped text in an HBox measures zero wide, so the name takes the row and trims.
+		var name_label: Label = UiKit.label(str(card.name), RunUiTheme.LABEL_INK_BODY)
+		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_label.clip_text = true
+		line.add_child(name_label)
 		row.add_child(line)
 		rows.add_child(row)
-		var centre_y: float = rect.position.y + ROW_TOP + ROW_H / 2.0 + i * (ROW_H + 8.0)
+		var centre_y: float = rect.position.y + ROW_TOP + ROW_H / 2.0 + i * (ROW_H + ROW_GAP)
 		var left: float = _preview_left(index, rect)
 		row.mouse_entered.connect(_show_preview.bind(card, left, centre_y))
 		row.focus_entered.connect(_show_preview.bind(card, left, centre_y))

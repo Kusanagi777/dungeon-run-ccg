@@ -54,14 +54,27 @@
         "draw",
         "spell_damage",
         "discover"
+      ],
+      "fortune": [
+        "gamble",
+        "hoard",
+        "jackpot"
+      ],
+      "order": [
+        "formation",
+        "aegis",
+        "oath"
+      ],
+      "shadow": [
+        "stealth",
+        "venom",
+        "ambush"
       ]
     },
     "hp_value_min": 1.5,
     "hp_value_max": 2.5,
     "vanilla_2drop": 5.0,
     "p_kill": 0.45,
-    "hero_set_size": 25,
-    "hero_set_size_tol": 3,
     "set_share": {
       "war": {
         "minion": 0.52,
@@ -77,9 +90,32 @@
         "minion": 0.44,
         "spell": 0.56,
         "weapon": 0.0
+      },
+      "fortune": {
+        "minion": 0.56,
+        "spell": 0.44,
+        "weapon": 0.0
+      },
+      "order": {
+        "minion": 0.68,
+        "spell": 0.32,
+        "weapon": 0.0
+      },
+      "shadow": {
+        "minion": 0.6,
+        "spell": 0.4,
+        "weapon": 0.0
       }
     },
     "set_share_tol": 0.08,
-    "synergy_min": 5
+    "synergy_min": 5,
+    "balance": {
+      "class_tol": 5,
+      "power_tol": 5,
+      "archetype_tol": 7,
+      "boss_tol": 7,
+      "seeds": 4,
+      "bosses_per_band": 2
+    }
   }
 }

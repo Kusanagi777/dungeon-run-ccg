@@ -194,7 +194,7 @@ const REF_FIXED_PATHS: PackedStringArray = ["context.amount", "context.value", "
 const REF_COUNTER_ROOT: String = "counter"
 
 ## C4 condition forms. Each condition is a one-key object.
-const CONDITION_FORMS: PackedStringArray = ["cmp", "exists", "test", "holding", "is_owner_turn", "all", "any", "not"]
+const CONDITION_FORMS: PackedStringArray = ["cmp", "exists", "test", "holding", "is_owner_turn", "all", "any", "not", "flip"]
 ## `cmp` comparison operators (C4).
 const CMP_OPERATORS: PackedStringArray = ["==", "!=", "<", "<=", ">", ">="]
 ## The references a `test` condition may name (C4).

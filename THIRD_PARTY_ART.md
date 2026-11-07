@@ -127,3 +127,11 @@ Paths above are under `assets/art/`.
 | https://opengameart.org/content/skill-item-and-spell-icons | Page license field: CC0, author pauliuw. Archive not downloaded. | game-icons already supplies the glyphs. |
 | https://opengameart.org/content/rpg-characters-avatars | Page license field: CC0, author System G6. The page describes a 128×128 pixel atlas. Archive not opened. | Pixel avatars do not match the ink-stamp direction. Portraits use the same silhouette stamps as the cards. |
 | https://opengameart.org/content/card-game-art | Page license field: CC0, author quartxio. One sheet (`vesselsweep`) was opened to judge the style and was not committed. | The sheet is a winged heroic figure, not a ledger stamp. Mixing it with the sketchbook studies would break the document look. |
+
+## Fonts
+
+| File | Font | Author | License | Source |
+| --- | --- | --- | --- | --- |
+| `assets/fonts/Alegreya-VariableFont_wght.ttf` | Alegreya | The Alegreya Project Authors (Huerta Tipográfica) | SIL Open Font License 1.1, `assets/fonts/OFL-Alegreya.txt` | [google/fonts](https://github.com/google/fonts/tree/main/ofl/alegreya) |
+
+`assets/art/surfaces/table_wood.png` was regraded on 2026-11-06 (saturation and level only); its source and license are unchanged.

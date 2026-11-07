@@ -69,6 +69,7 @@ func setup(context: MatchUiContext) -> void:
 	_panel.visible = false
 	add_child(_panel)
 	_title = _label(TITLE_Y, TITLE_FONT_PX, "text_light", rect.size.x)
+	UiFonts.apply(_title)
 	_line = _label(LINE_Y, LINE_FONT_PX, "text_light", rect.size.x)
 	_facts = _label(FACTS_Y, LINE_FONT_PX, "text_muted", rect.size.x)
 	var cfg: Dictionary = ui.config.end_screen

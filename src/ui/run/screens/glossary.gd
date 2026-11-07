@@ -31,6 +31,7 @@ func bind(model: Dictionary) -> void:
 		rows.add_child(line)
 		order.append(line)
 	_back = UiKit.button(tr("common.back"), true)
+	_back.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_back.pressed.connect(send.bind(&"back", {}))
 	column.add_child(_back)
 	order.append(_back)
