@@ -40,7 +40,10 @@ const HERO_FIXTURE: String = "hero_fixture"
 ## Heroes H-5: signature cards are not marked in data, so the ids are named here
 ## (the "exact value IS the point" exception; story 003 notes). Each with the score
 ## the story checked by hand, recounted independently 2026-11-04.
-const WAR_SIGNATURES: Dictionary = {"war_duelists_edge": 17, "war_pit_champion": 19, "war_cleave_through": 19}
+## F5 counts every non-token card in the hero's set (heroes.md F5), so the two
+## Law of the Jungle War cards that share a tag (`war_jungle_bone_honing`,
+## `war_jungle_ridge_bladesmith`) add 2 to each score.
+const WAR_SIGNATURES: Dictionary = {"war_duelists_edge": 19, "war_pit_champion": 21, "war_cleave_through": 21}
 ## F2: War scores 7, counting Content's `armour` tag on `war_iron_vanguard`.
 const WAR_PLAN_CARDS: int = 7
 ## F2 / F5 bounds in the shipped body, and the out-of-band fixture counts of AC-3.

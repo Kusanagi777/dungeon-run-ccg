@@ -149,7 +149,7 @@ is made.
 - [x] All seven expansion gates passed with the limitations above.
 - [x] Updated the skill, design, ledger, iteration log, README and collection index.
 - [x] Inspected the new screens and verified exported content.
-- [ ] Repository-wide regression is clean; older contract failures remain below.
+- [x] The four older failing suites below are fixed (2026-11-08); a repository-wide run has not been repeated.
 
 ### Repository-wide regression limitations
 
@@ -173,3 +173,23 @@ The owning Content/Heroes validator implementations were unchanged by this
 expansion. These failures remain explicit follow-up work; the full-suite gate
 has not been waived or reported as passing. Generator drift and `git diff
 --check` both pass on the final files.
+
+## 2026-11-08 — older suite fixes, iteration 3
+
+Before committing, the expansion suites were re-run: **70/70** passed, plus
+**232/232** card-database unit cases. Content validate returned `Ready`, 0 errors,
+212 warnings, loading in 197.63 ms. The expansion was then committed as `5d6b821`.
+
+The four suites from `jungle-final/report_5` reproduced as 95 cases with 32
+failures and one runtime error. All four test files were stale; no validator
+code changed.
+
+| Suite | Fix |
+| --- | --- |
+| `content_budget_checks_test.gd` | Set-share pools now include a hero of the set, because a set counts as a hero set only when a pool hero owns it. The literal scan checks `src/ui/` files for F1–F6 constant names only, not bare default values; new matcher cases cover both. Removed `neutral_set_size`. |
+| `content_validate_command_test.gd` | Removed `neutral_set_size` from the valid fixture and from the safe-range test. |
+| `heroes_plan_and_synergy_test.gd` | The +2 per War signature comes from two Jungle War cards (`war_jungle_bone_honing`, `war_jungle_ridge_bladesmith`), not the core archetype pool as iteration 2 said. Heroes F5 counts every card in the hero's set, so the expected scores are now 19/21/21. |
+| `heroes_validate_config_test.gd` | Removed `hero_set_size` and `hero_set_size_tol`. The unknown-set case now uses `set_share.boss`; any hero-shaped set id is allowed (AC-19). |
+
+Result: `tests/unit/content` and `tests/unit/heroes` passed **103/103**, with zero
+errors, failures, skips or orphans.

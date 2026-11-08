@@ -39,7 +39,6 @@ func _valid_body() -> Dictionary:
 		"text_max_chars": 90.0,
 		"pick_rate": {"min": 0.15, "max": 0.55, "min_sample": 30.0},
 		"time": {"t_card": 0.42, "t_boss_card": 0.33, "t_boss": 2.5, "t_bundle": 0.2, "t_balance": 4.0},
-		"neutral_set_size": 45.0,
 		"set_share": {"neutral": {"minion": 0.82, "spell": 0.11, "weapon": 0.07},
 			"boss": {"minion": 0.56, "spell": 0.41, "weapon": 0.03}},
 		"share_tol": 0.08,
@@ -175,7 +174,6 @@ func test_validate_config_accepts_the_safe_range_ends() -> void:
 	_with(body, "text_max_chars", 70.0)
 	_with(body, "coverage.kw_min", 4.0)
 	_with(body, "curve.bucket_tol", 0.15)
-	_with(body, "neutral_set_size", 60.0)
 
 	# Act / Assert
 	assert_array(ContentValidator.validate_config(body, null)).is_empty()

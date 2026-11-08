@@ -23,7 +23,6 @@ const OUT_OF_RANGE: Array = [
 	["hp_value_max", 0.9], ["hp_value_max", 3.1],
 	["set_share_tol", 0.03], ["set_share_tol", 0.16],
 	["synergy_min", 2], ["synergy_min", 9],
-	["hero_set_size", 0], ["hero_set_size_tol", 0],
 	["vanilla_2drop", 0.0], ["vanilla_2drop", -1.0],
 	["p_kill", 0.29], ["p_kill", 0.61],
 	["set_share.war.minion", -0.01], ["set_share.war.weapon", 1.01],
@@ -41,7 +40,7 @@ const AT_THE_EDGES: Array = [
 	{"hp_value_min": 1.0, "hp_value_max": 1.0},
 	{"set_share_tol": 0.04}, {"set_share_tol": 0.15},
 	{"synergy_min": 3}, {"synergy_min": 8},
-	{"hero_set_size": 1}, {"hero_set_size_tol": 1}, {"vanilla_2drop": 0.01},
+	{"vanilla_2drop": 0.01},
 	{"p_kill": 0.3}, {"p_kill": 0.6},
 	{"set_share.war.minion": 0.0}, {"set_share.war.minion": 1.0},
 	{"starter_curve.bucket.1": [0, 15]}, {"starter_curve.bucket.1": [7, 7]},
@@ -62,13 +61,13 @@ const REQUIRED_PATHS: Array = [
 	"starter_curve.bucket", "starter_curve.bucket.0", "starter_curve.bucket.1", "starter_curve.bucket.2",
 	"starter_curve.bucket.3", "starter_curve.bucket.4", "starter_curve.bucket.5", "starter_curve.bucket.6_plus",
 	"plan_min", "plan_max", "plan_tags", "hp_value_min", "hp_value_max", "vanilla_2drop", "p_kill",
-	"hero_set_size", "hero_set_size_tol", "set_share", "set_share.war.minion", "set_share.war.spell",
+	"set_share", "set_share.war.minion", "set_share.war.spell",
 	"set_share.war.weapon", "set_share_tol", "synergy_min",
 ]
 
 const UNKNOWN_PATHS: Array = [
 	"extra_key", "starter_curve.extra_key", "starter_curve.bucket.7", "plan_tags.neutral",
-	"set_share.not_a_set", "set_share.war.artifact",
+	"set_share.boss", "set_share.war.artifact",
 ]
 
 ## `[dotted path, wrong value, the field the entry names]`.
@@ -90,7 +89,6 @@ const WRONG_SHAPE: Array = [
 	["plan_tags.war", [], "plan_tags.war"],
 	["plan_tags.war", [1], "plan_tags.war[0]"],
 	["plan_tags.war", ["weapons", ""], "plan_tags.war[1]"],
-	["hero_set_size", 25.5, "hero_set_size"],
 	["set_share", 1, "set_share"],
 	["set_share", {}, "set_share"],
 	["set_share.war", 0.5, "set_share.war"],
@@ -212,7 +210,7 @@ func test_each_extra_key_is_one_unknown_field_entry_naming_it() -> void:
 func _extra_value(path: String) -> Variant:
 	if path.begins_with("plan_tags."):
 		return ["fixture_tag"]
-	if path == "set_share.not_a_set":
+	if path == "set_share.boss":
 		return {"minion": 0.5, "spell": 0.5, "weapon": 0.0}
 	return 1
 

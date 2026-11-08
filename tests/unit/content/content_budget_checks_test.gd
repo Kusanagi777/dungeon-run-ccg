@@ -49,7 +49,6 @@ func _budgets() -> Dictionary:
 		"text_max_chars": 90,
 		"pick_rate": {"min": 0.15, "max": 0.55, "min_sample": 30},
 		"time": {"t_card": 0.42, "t_boss_card": 0.33, "t_boss": 2.5, "t_bundle": 0.2, "t_balance": 4},
-		"neutral_set_size": 45,
 		"set_share": {"neutral": {"minion": 0.82, "spell": 0.11, "weapon": 0.07},
 			"boss": {"minion": 0.56, "spell": 0.41, "weapon": 0.03}},
 		"share_tol": 0.08,
@@ -89,6 +88,12 @@ func _conforming_starter() -> Array:
 		for i: int in pair[1]:
 			ids.append("war_c%d" % pair[0])
 	return ids
+
+
+## A hero of [param hero_set], so `check_set_share` reads that set's row from
+## `heroes_balance` (a set is a hero set only when a hero in the pool owns it).
+func _hero_of(hero_set: String) -> Dictionary:
+	return CardFactory.make_hero_def("hero_" + hero_set, hero_set)
 
 
 func _war_hero(starter: Array, overrides: Dictionary = {}) -> Dictionary:
@@ -200,7 +205,7 @@ func test_set_share_knowledge_one_weapon_of_25_raises_no_warning() -> void:
 	# heroes.md AC-4: 1 weapon of 25 = 0.04, inside 0 ± 0.08.
 	var cards: Array = _cards("knowledge", "minion", 11) + _cards("knowledge", "spell", 13) + _cards("knowledge", "weapon", 1)
 
-	var rows: Array = ContentValidator.check_set_share(_pool(cards), _budgets(), _heroes_balance())
+	var rows: Array = ContentValidator.check_set_share(_pool(cards, [_hero_of("knowledge")]), _budgets(), _heroes_balance())
 
 	assert_array(rows).is_empty()
 
@@ -210,7 +215,7 @@ func test_set_share_knowledge_three_weapons_of_25_warns_naming_set_and_type() ->
 	# 11 / 25 also misses 0.56; only the weapon row is the AC's point.)
 	var cards: Array = _cards("knowledge", "minion", 11) + _cards("knowledge", "spell", 11) + _cards("knowledge", "weapon", 3)
 
-	var rows: Array = ContentValidator.check_set_share(_pool(cards), _budgets(), _heroes_balance())
+	var rows: Array = ContentValidator.check_set_share(_pool(cards, [_hero_of("knowledge")]), _budgets(), _heroes_balance())
 
 	assert_array(_codes(rows).filter(func(c: StringName) -> bool: return c != ContentValidator.W_SET_SHARE)).is_empty()
 	var weapon: Array = rows.filter(func(r: Dictionary) -> bool: return r.field == "set_share.knowledge.weapon")
@@ -240,7 +245,7 @@ func test_set_share_tokens_excluded_from_the_set() -> void:
 	cards.append(CardFactory.make_weapon("war_token_blade_2", 1, 1, 2, {"set": "war", "token": true}))
 	cards.append(CardFactory.make_weapon("war_token_blade_3", 1, 1, 2, {"set": "war", "token": true}))
 
-	var rows: Array = ContentValidator.check_set_share(_pool(cards), _budgets(), _heroes_balance())
+	var rows: Array = ContentValidator.check_set_share(_pool(cards, [_hero_of("war")]), _budgets(), _heroes_balance())
 
 	assert_array(rows).is_empty()
 
@@ -627,17 +632,21 @@ const CONSTANT_DECL: String = "\\b(const|var)\\s+(CURVE_\\w+|BUDGET_TOL\\w*|PRES
 ## knob with a distinctive default is added to CN-6 step 2.
 const DEFAULT_LITERAL: String = "(?<![\\w.])(2\\.9|3\\.4|0\\.16|0\\.22|0\\.24|0\\.18|0\\.08|11\\.5|0\\.55|0\\.90?|90)(?![\\w.])"
 const SCAN_ROOTS: Array[String] = ["res://src/", "res://tools/content/"]
+## UI presentation constants (alphas, washes, lightening) legitimately reuse
+## numbers such as 0.22 or 0.55, so files here are checked for the F1-F6
+## constant names only, not for the bare default values.
+const PRESENTATION_ROOT: String = "res://src/ui/"
 
 
 ## The code part of each line of [param text] (from the first `#` on is dropped).
-func _literal_hits(text: String) -> Array[String]:
+func _literal_hits(text: String, decl_only: bool = false) -> Array[String]:
 	var decl: RegEx = RegEx.create_from_string(CONSTANT_DECL)
 	var literal: RegEx = RegEx.create_from_string(DEFAULT_LITERAL)
 	var hits: Array[String] = []
 	for line: String in text.split("\n"):
 		var hash_at: int = line.find("#")
 		var code: String = line if hash_at < 0 else line.substr(0, hash_at)
-		if decl.search(code) != null or literal.search(code) != null:
+		if decl.search(code) != null or (not decl_only and literal.search(code) != null):
 			hits.append(line.strip_edges())
 	return hits
 
@@ -659,6 +668,10 @@ func test_literal_matcher_catches_each_forbidden_form() -> void:
 	for line: String in ["## TEXT_MAX_CHARS, safe 70-110", "var x: int = 190", "var y: float = 10.08",
 			"\"row\": \"CURVE_AVG_MIN, safe 2.6-3.8\"", "budgets.text_max_chars"]:
 		assert_array(_literal_hits(line)).override_failure_message("false hit: %s" % line).is_empty()
+	# Presentation files: knob names are still caught, bare UI alphas are not.
+	assert_array(_literal_hits("const TEXT_MAX_CHARS: int = 80", true)).has_size(1)
+	assert_array(_literal_hits("const RULE_ALPHA: float = 0.22", true)).is_empty()
+	assert_array(_literal_hits("const RULE_ALPHA: float = 0.22")).has_size(1)
 
 
 func test_no_f1_f6_constant_or_default_literal_in_tools_content_or_src() -> void:
@@ -667,7 +680,8 @@ func test_no_f1_f6_constant_or_default_literal_in_tools_content_or_src() -> void
 	for root: String in SCAN_ROOTS:
 		for path: String in _gd_files_under(root):
 			scanned += 1
-			for hit: String in _literal_hits(FileAccess.get_file_as_string(path)):
+			var decl_only: bool = path.begins_with(PRESENTATION_ROOT)
+			for hit: String in _literal_hits(FileAccess.get_file_as_string(path), decl_only):
 				hits.append("%s: %s" % [path, hit])
 
 	assert_int(scanned).override_failure_message("scan found no .gd file — the gate did not run").is_greater(10)
