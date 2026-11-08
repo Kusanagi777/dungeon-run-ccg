@@ -153,6 +153,8 @@ func card_text(card_id: String) -> Dictionary:
 		"attack": record.get("attack"),
 		"health": record.get("health"),
 		"keywords": (record.get("keywords", []) as Array).duplicate(),
+		"tribes": (record.get("tribes", []) as Array).duplicate(),
+		"schools": (record.get("schools", []) as Array).duplicate(),
 	}
 
 

@@ -29,6 +29,9 @@
       "tags": [
         "formation"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_squire.text",
         "en": "Battlecry: Give adjacent minions +1 Health."
@@ -76,6 +79,9 @@
       "tags": [
         "formation"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_line_sergeant.text",
         "en": "Battlecry: If you have 3 or more minions, gain +1/+1."
@@ -113,6 +119,9 @@
       "tags": [
         "formation"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_standard_bearer.text",
         "en": "Your other minions have +1 Attack."
@@ -145,6 +154,9 @@
       ],
       "tags": [
         "formation"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_drillmaster.text",
@@ -194,6 +206,9 @@
       "tags": [
         "formation"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_phalanx.text",
         "en": "Taunt. Battlecry: If you have 3 or more minions, gain +2 Health."
@@ -232,6 +247,9 @@
       "tags": [
         "formation"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_marshal.text",
         "en": "Battlecry: Give your other minions +1/+1."
@@ -261,6 +279,9 @@
       "tags": [
         "formation"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.order_muster_call.text",
         "en": "Summon two 1/2 Recruits with Taunt."
@@ -289,6 +310,9 @@
       ],
       "tags": [
         "formation"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.order_close_ranks.text",
@@ -322,6 +346,9 @@
       "tags": [
         "formation"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.order_hold_the_line.text",
         "en": "Give your minions Taunt. Draw a card."
@@ -342,6 +369,9 @@
       "effects": [],
       "tags": [
         "aegis"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_warded_recruit.text",
@@ -364,6 +394,9 @@
       "tags": [
         "aegis"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_temple_guard.text",
         "en": "Divine Shield."
@@ -385,6 +418,9 @@
       "effects": [],
       "tags": [
         "aegis"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_aegis_knight.text",
@@ -424,6 +460,9 @@
       "tags": [
         "aegis"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_shield_priest.text",
         "en": "Battlecry: Give a friendly minion Divine Shield."
@@ -445,6 +484,9 @@
       "effects": [],
       "tags": [
         "aegis"
+      ],
+      "tribes": [
+        "construct"
       ],
       "text": {
         "key": "card.order_ivory_sentinel.text",
@@ -482,6 +524,9 @@
       ],
       "tags": [
         "aegis"
+      ],
+      "tribes": [
+        "construct"
       ],
       "text": {
         "key": "card.order_ivory_bastion.text",
@@ -521,6 +566,9 @@
       "tags": [
         "aegis"
       ],
+      "schools": [
+        "holy"
+      ],
       "text": {
         "key": "card.order_aegis.text",
         "en": "Give a friendly minion Divine Shield. Draw a card."
@@ -557,6 +605,9 @@
       "tags": [
         "aegis"
       ],
+      "schools": [
+        "holy"
+      ],
       "text": {
         "key": "card.order_bless_arms.text",
         "en": "Give a friendly minion with Divine Shield +2/+2."
@@ -588,6 +639,9 @@
       ],
       "tags": [
         "oath"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_oathbound.text",
@@ -621,6 +675,9 @@
       ],
       "tags": [
         "oath"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_mender.text",
@@ -661,6 +718,9 @@
       "tags": [
         "oath"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_vow_keeper.text",
         "en": "Battlecry: Give a friendly minion +1/+2."
@@ -694,6 +754,9 @@
       "tags": [
         "oath"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.order_high_warden.text",
         "en": "Taunt. Battlecry: Restore 6 Health to your hero."
@@ -715,6 +778,9 @@
       "effects": [],
       "tags": [
         "oath"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_the_unbroken.text",
@@ -751,6 +817,9 @@
       "tags": [
         "oath"
       ],
+      "schools": [
+        "holy"
+      ],
       "text": {
         "key": "card.order_oath_of_iron.text",
         "en": "Give a friendly minion +1/+2."
@@ -786,6 +855,9 @@
       "tags": [
         "oath"
       ],
+      "schools": [
+        "holy"
+      ],
       "text": {
         "key": "card.order_sworn_blessing.text",
         "en": "Give a friendly minion +2/+3."
@@ -814,6 +886,9 @@
       "tags": [
         "oath"
       ],
+      "schools": [
+        "holy"
+      ],
       "text": {
         "key": "card.order_renewal.text",
         "en": "Restore 6 Health to your hero."
@@ -834,6 +909,9 @@
       "effects": [],
       "tags": [
         "formation"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.order_recruit.text",

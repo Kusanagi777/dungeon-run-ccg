@@ -183,18 +183,19 @@ func test_space_activates_a_focused_option_and_a_focused_button() -> void:
 	assert_int(_rig.run.state.drafts.size()).is_equal(1)
 
 
-func test_ac19_hero_select_number_keys_focus_and_enter_selects_then_starts() -> void:
+func test_ac19_hero_select_number_keys_select_then_start_button_begins_run() -> void:
 	# Arrange
 	await _start()
 	await _enter()
 	var screen: Screen = _rig.top()
-	var second: String = str(screen._heroes[1].id)
+	var second: String = str(screen._rows[1].id)
 
 	# Act
 	await _rig.key(KEY_2)
 	assert_int((_rig.focus() as OptionPanel).index()).is_equal(1)
 	await _rig.key(KEY_ENTER)
-	assert_int(screen._selected).is_equal(1)
+	assert_int(screen._current).is_equal(1)
+	await _tab_to(tr("hero.start"))
 	await _enter()
 
 	# Assert
@@ -208,7 +209,7 @@ func test_a_number_key_past_the_last_option_is_ignored() -> void:
 	assert_str(_base()).is_equal("main_menu")
 	await _enter()
 	var before: Control = _rig.focus()
-	var heroes: int = (_rig.top()._heroes as Array).size()
+	var heroes: int = (_rig.top()._rows as Array).size()
 	if heroes < 3:
 		await _rig.key(KEY_3)
 		assert_object(_rig.focus()).is_same(before)

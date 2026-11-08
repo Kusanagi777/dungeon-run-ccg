@@ -74,6 +74,7 @@ static func to_dict(state: RunState) -> Dictionary:
 		"seed_source": state.seed_source,
 		"hero_id": state.hero_id,
 		"hero_power_id": state.hero_power_id,
+		"featured_collection_id": state.featured_collection_id,
 		"floors_per_run": state.floors_per_run,
 		"band_split": Array(state.band_split).duplicate(),
 		"treasure_floors": Array(state.treasure_floors).duplicate(),
@@ -114,6 +115,7 @@ static func from_dict(raw: Dictionary) -> RunState:
 	state.seed_source = str(d.get("seed_source", RunState.SEED_RANDOM))
 	state.hero_id = str(d.get("hero_id", ""))
 	state.hero_power_id = str(d.get("hero_power_id", ""))
+	state.featured_collection_id = str(d.get("featured_collection_id", ""))
 	state.floors_per_run = _int_of(d, "floors_per_run", 0)
 	state.band_split.assign(_ints_of(d, "band_split"))
 	state.treasure_floors.assign(_ints_of(d, "treasure_floors"))
@@ -227,11 +229,14 @@ static func _has_required_fields(d: Dictionary) -> bool:
 
 
 static func _ids_resolve(d: Dictionary, db: CardDatabase) -> bool:
+	var collection_id: Variant = d.get("featured_collection_id", "")
+	if not collection_id is String or (not str(collection_id).is_empty() and db.collection(collection_id) == null):
+		return false
 	if not db.heroes().any(func(hero: Dictionary) -> bool: return hero.id == d.hero_id):
 		return false
 	for list_name: String in ["boss_sequence", "deck", "treasures"]:
 		for id: Variant in d[list_name]:
-			if not id is String or not db.has(id):
+			if not id is String or not db.has(id) or not DataLoader.collection_allows(db.any_record(id), collection_id):
 				return false
 	for row: Variant in d.drafts:
 		if row is Dictionary and row.get("picked_id") is String and not db.has(row.picked_id):

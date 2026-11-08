@@ -121,7 +121,7 @@ class FakeCardDatabase:
 	func hero_power(id: String) -> Variant:
 		return records.get(id)
 
-	func collectible_pool(hero_set: String) -> Array:
+	func collectible_pool(hero_set: String, collection_id: String = "") -> Array:
 		pool_queries.append(hero_set)
 		return pools.get(hero_set, [])
 

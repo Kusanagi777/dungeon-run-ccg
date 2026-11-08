@@ -28,6 +28,10 @@ const EXPECTED_RETURNS: Dictionary = {
 	"unlocked_ids": [TYPE_ARRAY, ""],
 	"unlocked_keys": [TYPE_ARRAY, ""],
 	"is_treasure_unlocked": [TYPE_BOOL, ""],
+	"is_power_unlocked": [TYPE_BOOL, ""],
+	"is_collection_unlocked": [TYPE_BOOL, ""],
+	"load_trial": [TYPE_NIL, "Variant"],
+	"save_trial": [TYPE_INT, "Error"],
 	"unlock_progress": [TYPE_DICTIONARY, ""],
 	"unlock_hint": [TYPE_DICTIONARY, ""],
 	"set_setting": [TYPE_INT, "Error"],
@@ -98,6 +102,9 @@ class ConcreteMeta:
 		return []
 
 	func is_treasure_unlocked(_treasure_id: String) -> bool:
+		return true
+
+	func is_power_unlocked(_power_id: String) -> bool:
 		return true
 
 	func unlock_progress(_key: String) -> Dictionary:
@@ -261,8 +268,9 @@ func test_every_meta_api_method_is_abstract() -> void:
 		var flags: int = declared[name].flags
 
 		# Assert
+		var has_default: bool = ["is_collection_unlocked", "load_trial", "save_trial"].has(name)
 		assert_bool(flags & METHOD_FLAG_VIRTUAL_REQUIRED != 0) \
-			.override_failure_message("%s is not @abstract" % name).is_true()
+			.override_failure_message("%s abstract/default contract" % name).is_equal(not has_default)
 
 
 # --- AC-2: the signal and the one field ---------------------------------------

@@ -27,6 +27,17 @@ bash tools/setup.sh          # installs Godot 4.7.2 to ~/.local and gdUnit4 into
 godot --headless --path . --import
 ```
 
+## Expansions
+
+| Collection | Cards | Class legendaries | New bosses | Run items |
+| --- | ---: | ---: | ---: | ---: |
+| [Law of the Jungle](design/expansions/law-of-the-jungle.md) | 138 | 12 | 2 | 3 |
+
+Open **New run → Expansions** to inspect Primal Crown and its loaner deck.
+Unlock the collection with 20 run victories, two victories per class, and the
+three-encounter mastery trial. Then select the featured collection before
+starting a run. Core-only runs retain their original content pools.
+
 ## Studio tooling
 
 This project is built with the [Claude Code Game Studios](https://github.com/Donchitos/Claude-Code-Game-Studios)

@@ -26,7 +26,7 @@ class ReversedPoolDatabase:
 		_reversed = source.treasure_pool().duplicate()
 		_reversed.reverse()
 
-	func treasure_pool() -> Array:
+	func treasure_pool(collection_id: String = "") -> Array:
 		return _reversed
 
 

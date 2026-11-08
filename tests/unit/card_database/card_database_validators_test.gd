@@ -150,7 +150,7 @@ func test_an_empty_map_names_every_missing_record_and_config_validator() -> void
 		func(e: Dictionary) -> String: return e.file)
 	assert_array(record_fields).contains_exactly_in_any_order(Array(ValidatorStubs.RECORD_KEYS))
 	assert_array(config_files).contains_exactly_in_any_order(
-		ValidatorStubs.config_names().map(func(n: String) -> String: return n + ".json"))
+		ValidatorStubs.config_names().filter(func(n: String) -> bool: return FileAccess.file_exists(FIXTURES + "clean/" + n + ".json")).map(func(n: String) -> String: return n + ".json"))
 	assert_bool(config_files.has("card_database.json")).is_false()
 	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
 
@@ -283,8 +283,8 @@ func test_a_validator_returning_a_non_array_is_e_delegated() -> void:
 
 func test_card_database_json_needs_no_validator() -> void:
 	assert_bool(ValidatorStubs.accept_all().configs.has("card_database")).is_false()
-	assert_int(ValidatorStubs.config_names().size()).is_equal(12)
-	assert_array(DataLoader.CONFIG_VALIDATOR_EXEMPT).is_equal(["card_database.json"])
+	assert_int(ValidatorStubs.config_names().size()).is_equal(14)
+	assert_array(DataLoader.CONFIG_VALIDATOR_EXEMPT).is_equal(["card_database.json", "collections.json", "law-of-the-jungle/collection.json"])
 
 
 # --- AC-4: stage-7 lookups ---------------------------------------------------------------

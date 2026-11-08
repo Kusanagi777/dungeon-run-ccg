@@ -143,11 +143,16 @@ func open_new_run() -> Error:
 ## an empty input means a random seed. Rejected, with no event and no save, as
 ## `E_CONFIG` (a layout F1 and F2 cannot use), `E_UNKNOWN_ID`, `E_HERO_LOCKED` or
 ## `E_POWER_LOCKED`. An empty [param power_id] is the hero's starting power.
-func new_run(hero_id: String, seed_input: String, power_id: String = "") -> Error:
+func new_run(hero_id: String, seed_input: String, power_id: String = "", collection_id: String = "") -> Error:
 	if not _is_legal("new_run"):
 		return RunCodes.E_BAD_PHASE
 	if not _layout_is_usable():
 		return RunCodes.E_CONFIG
+	if not collection_id.is_empty():
+		if _db.collection(collection_id) == null:
+			return RunCodes.E_UNKNOWN_ID
+		if not _meta.is_collection_unlocked(collection_id):
+			return RunCodes.E_COLLECTION_LOCKED
 	var hero: Variant = _hero_def(hero_id)
 	if hero == null:
 		return RunCodes.E_UNKNOWN_ID
@@ -164,6 +169,7 @@ func new_run(hero_id: String, seed_input: String, power_id: String = "") -> Erro
 	var run_seed: int = _resolve_seed(seed_input, warnings)
 	var run_state: RunState = _fresh_state(hero, run_seed, seed_input)
 	run_state.hero_power_id = power
+	run_state.featured_collection_id = collection_id
 	state = run_state
 	rng = _make_rng(run_seed, state.data_version)
 	_open_log(EventLog.new(_max_events(), EventLog.SCOPE_RUN, _log_meta()))
@@ -572,6 +578,7 @@ func _build_match_config() -> Dictionary:
 	return {
 		"floor": state.floor,
 		"band": state.band(state.floor),
+		"featured_collection_id": state.featured_collection_id,
 		"rng_match": rng.stream(STREAM_MATCH % state.floor),
 		"rng_ai": rng.stream(STREAM_AI % state.floor),
 		"log": _match_log,
@@ -616,7 +623,7 @@ func _generate_boss_sequence(warnings: Array[Dictionary]) -> Array[String]:
 		var band: int = index + 1
 		var needed: int = state.band_split[index]
 		var pool: Array = []
-		for boss: Dictionary in _db.bosses_in_band(band):
+		for boss: Dictionary in _db.bosses_in_band(band, state.featured_collection_id):
 			pool.append(boss.id)
 		stream.shuffle(pool)
 		for i: int in range(needed):

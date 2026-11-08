@@ -601,11 +601,16 @@ func start(config: Dictionary) -> void:
 	if boss_power is String:
 		_state.players[MatchRecords.SIDE_BOSS].hero_power.def_id = boss_power
 	# C3 step 3: decks, player first
-	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck)
-	_build_deck(MatchRecords.SIDE_BOSS, config.boss.deck)
+	_build_deck(MatchRecords.SIDE_PLAYER, config.player.deck, bool(config.get("scripted_decks", false)))
+	_build_deck(MatchRecords.SIDE_BOSS, config.boss.deck, bool(config.get("scripted_decks", false)))
 	# C3 step 4: on_match_start, before any card is drawn — each entry a step
 	for side: String in MatchRecords.SIDES:
 		_run_hook_steps(&"on_match_start", side, {})
+	# Authored mastery trials supply public opening prey and prescribed draws.
+	if config.has("opening_board"):
+		for side: String in MatchRecords.SIDES:
+			for card_id: String in config.opening_board.get(side, []):
+				summon_minion(side, card_id, _state.players[side].board.size())
 	# C3 step 5: starting hands, fold then clamp once
 	_draw(MatchRecords.SIDE_PLAYER, _starting_hand_size(MatchRecords.SIDE_PLAYER, rule("starting_hand_player")), false)
 	_draw(MatchRecords.SIDE_BOSS, _starting_hand_size(MatchRecords.SIDE_BOSS, rule("starting_hand_boss")), false)
@@ -3743,13 +3748,16 @@ func _log_skipped_installers(installers: Array[HookInstaller]) -> void:
 
 ## C3 step 3 for [param side]: one `CardInstance` per entry of [param def_ids]
 ## in list order, one `rng_match` shuffle, one `deck_shuffled`.
-func _build_deck(side: String, def_ids: Array) -> void:
+func _build_deck(side: String, def_ids: Array, scripted: bool = false) -> void:
 	var deck: Array = _state.players[side].deck
 	for def_id: Variant in def_ids:
 		deck.append(MatchRecords.card_instance(_take_entity_id(), str(def_id), "deck"))
 	var stream: Variant = _state.rng_match
-	stream.shuffle(deck)
-	emit(&"deck_shuffled", {"side": side, "instance_ids": _instance_ids(deck)})
+	if not scripted:
+		stream.shuffle(deck)
+		emit(&"deck_shuffled", {"side": side, "instance_ids": _instance_ids(deck)})
+	else:
+		emit(&"deck_ordered", {"side": side, "instance_ids": _instance_ids(deck)})
 
 
 ## C3 step 5: the `modify_starting_hand_size` fold over [param base], clamped
@@ -4179,7 +4187,7 @@ func _fresh_resolver() -> Variant:
 		return null
 	if _resolver is EffectResolver:
 		var live: EffectResolver = _resolver
-		return EffectResolver.new(_db, live.effects_config(), live.player_hero_set())
+		return EffectResolver.new(_db, live.effects_config(), live.player_hero_set(), live.featured_collection_id())
 	return _resolver.clone_unbound()
 
 

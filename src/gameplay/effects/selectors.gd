@@ -448,7 +448,7 @@ static func chosen_candidates(resolver: EffectResolver, filter: Dictionary, owne
 ## Whether the character [param entity] satisfies every predicate of
 ## [param filter] (C3: AND over the predicates), "friendly" / "enemy" relative
 ## to [param owner], `not_self` against [param source_id]. Definition fields
-## (`cost`, `set`, `type`, `tag`, `rarity`, `token`, `has_trigger`) are read
+## (`cost`, `set`, `type`, `tag`, `tribe`, `school`, `rarity`, `token`, `has_trigger`) are read
 ## from the entity's `def_id` through the resolver's memo; a hero has no
 ## definition, so they never match it. Value predicates take an int or a C4
 ## value expression, evaluated in pass context [param run] (story 007);
@@ -513,6 +513,11 @@ static func matches(resolver: EffectResolver, entity: Dictionary, filter: Dictio
 			"tag":
 				var def: Dictionary = resolver.definition(str(entity.get("def_id", "")))
 				if not (def.get("tags", []) as Array).has(want):
+					return false
+			"tribe", "school":
+				var def: Dictionary = resolver.definition(str(entity.get("def_id", "")))
+				var field: String = "tribes" if str(key) == "tribe" else "schools"
+				if not (def.get(field, []) as Array).has(want):
 					return false
 			"token":
 				var def: Dictionary = resolver.definition(str(entity.get("def_id", "")))

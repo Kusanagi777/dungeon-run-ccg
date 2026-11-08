@@ -119,7 +119,7 @@ func test_every_hero_set_has_a_blurb_and_a_colour() -> void:
 	for hero: Dictionary in db.heroes():
 		var set_id: String = str(hero.get("set", ""))
 		assert_bool(_strings().has("hero.blurb.%s" % set_id)).override_failure_message(set_id).is_true()
-		assert_bool(RunReadModels.SET_PRIMARY.has(set_id)).override_failure_message(set_id).is_true()
+		assert_bool(RunUiRig.config().palette.has(set_id)).override_failure_message(set_id).is_true()
 
 
 func test_every_unlock_condition_a_hint_can_name_has_a_string() -> void:

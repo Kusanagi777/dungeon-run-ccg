@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "config": {
+    "collections": [
+      {
+        "id": "law-of-the-jungle",
+        "name": "Law of the Jungle",
+        "path": "law-of-the-jungle"
+      }
+    ]
+  }
+}

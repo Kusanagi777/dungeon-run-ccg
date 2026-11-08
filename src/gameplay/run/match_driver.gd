@@ -67,6 +67,13 @@
 class_name MatchDriver
 extends RefCounted
 
+signal command_committed(command: Dictionary)
+
+var _featured_collection_id: String = ""
+var _commands: Array = []
+var _command_start_seqs: Array[int] = []
+var _replay_valid: bool = true
+
 ## Emitted once on the main thread, after the `match_ended` event reached the
 ## log's subscribers. [param result] is the C14 `MatchResult`.
 signal match_ended(result: Dictionary)
@@ -126,6 +133,7 @@ var _pending_plan: TurnPlan = null
 var _replay_index: int = 0
 ## The log's last `seq` when the plan began: what it gained since is the replay.
 var _replay_start_seq: int = 0
+var _replay_start_command: int = 0
 ## The one concede slot; empty when nothing is queued. A field, never a captured
 ## local: lambdas capture by value.
 var _queued_concede: Dictionary = {}
@@ -157,6 +165,7 @@ func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, planner_f
 	_replay_budget_usec = int(float(profiles.runtime.replay_budget_ms) * USEC_PER_MSEC)
 	var boss_def: Dictionary = db.boss(str(config.boss.boss_def_id))
 	var profile: Dictionary = _resolve_profile(profiles, boss_def, int(config.band))
+	_featured_collection_id = str(config.get("featured_collection_id", ""))
 	_resolver = _build_resolver(db, _hero_set(db, str(config.player.hero_def_id)))
 	_engine = _build_engine(db, _resolver)
 	_boss_ai = _build_boss_ai(boss_def, profile, config, db, profiles)
@@ -164,7 +173,19 @@ func _init(config: Dictionary, db: CardDatabase, settings: Dictionary, planner_f
 		_boss_ai.set_telegraph_mode(str(settings[SETTING_TELEGRAPH]))
 	_query = MatchQuery.new(_engine, db, settings)
 	_engine.start(_with_boss_power(config, boss_def))
-	_after_engine_step()
+	for command: Dictionary in config.get("commands", []):
+		var command_start: int = int(_log.size())
+		var replayed: Dictionary = _engine.submit(command)
+		if not bool(replayed.accepted):
+			_replay_valid = false
+			push_error("MatchDriver: saved command replay rejected")
+			break
+		_commands.append(command.duplicate(true))
+		_command_start_seqs.append(command_start)
+	if _replay_valid:
+		_replay_valid = _restore_continuation(config.get("continuation", {}))
+	if _replay_valid:
+		_after_engine_step()
 
 
 ## The player's way in (ADR-0008 Decision 2): [param command] goes to the live
@@ -182,7 +203,7 @@ func submit(command: Dictionary) -> Dictionary:
 	if _task != null and not _ended and str(stamped.get("type", "")) == MatchRecords.CMD_CONCEDE:
 		_queued_concede = stamped
 		return MatchRecords.command_result(false, RulesEngine.R_ENGINE_BUSY, DETAIL_CONCEDE_QUEUED, -1, -1)
-	var result: Dictionary = _engine.submit(stamped)
+	var result: Dictionary = _submit_live(stamped)
 	_after_engine_step()
 	return result
 
@@ -399,6 +420,7 @@ func _take_plan(outcome: Variant) -> void:
 	_pending_plan = plan
 	_replay_index = 0
 	_replay_start_seq = _log.size()
+	_replay_start_command = _commands.size()
 
 
 ## DD-X31: says so, closes a boss Choice and ends the boss's turn if it is the boss's.
@@ -445,8 +467,8 @@ func _replay_one() -> void:
 		return
 	var command: Dictionary = (plan.commands[index] as Dictionary).duplicate(true)
 	command["issuer"] = MatchRecords.SIDE_BOSS
-	var result: Dictionary = _submit_live(command)
 	_replay_index = index + 1
+	var result: Dictionary = _submit_live(command)
 	# The step comes first: a rejection can itself hit the event cap and end the
 	# match, and the log is then sealed against the fault.
 	_after_engine_step()
@@ -518,7 +540,12 @@ func _append_event(type: StringName, payload: Dictionary) -> void:
 ## driver's own work.
 func _submit_live(command: Dictionary) -> Dictionary:
 	var before: int = _clock.call()
+	var command_start: int = int(_log.size())
 	var result: Dictionary = _engine.submit(command)
+	if bool(result.accepted):
+		_commands.append(command.duplicate(true))
+		_command_start_seqs.append(command_start)
+		command_committed.emit(command.duplicate(true))
 	_outside_usec += _clock.call() - before
 	return result
 
@@ -561,7 +588,7 @@ func _resolve_profile(profiles: Dictionary, boss_def: Dictionary, band: int) -> 
 
 
 func _build_resolver(db: CardDatabase, hero_set: String) -> EffectResolver:
-	return EffectResolver.new(db, db.config("card_effects"), hero_set)
+	return EffectResolver.new(db, db.config("card_effects"), hero_set, _featured_collection_id)
 
 
 func _build_engine(db: CardDatabase, resolver: EffectResolver) -> RulesEngine:
@@ -570,3 +597,82 @@ func _build_engine(db: CardDatabase, resolver: EffectResolver) -> RulesEngine:
 
 func _build_boss_ai(boss_def: Dictionary, profile: Dictionary, config: Dictionary, db: CardDatabase, profiles: Dictionary) -> BossAI:
 	return BossAI.new(boss_def, profile, int(config.band), config.rng_ai, profiles.op_values, config.log, db, profiles.keyword_values)
+
+
+func commands() -> Array:
+	return _commands.duplicate(true)
+
+
+func replay_valid() -> bool:
+	return _replay_valid
+
+
+## A resumed plan must finish the decisions already made with its original RNG.
+func continuity() -> Dictionary:
+	# Save at a decision boundary: a partly computed forecast has already
+	# consumed RNG, but cannot be reconstructed from commands alone.
+	while _task != null:
+		while not _poll_task():
+			pass
+		_on_task_done()
+	var plan: Variant = _pending_plan.to_dict() if _pending_plan != null else null
+	if plan is Dictionary:
+		plan.expected_checksum = RngService.to_hex_u64(_pending_plan.expected_checksum)
+	return {
+		"pending_plan": plan,
+		"forecast": _boss_ai.last_forecast.to_dict() if _boss_ai.last_forecast != null else null,
+		"replay_index": _replay_index,
+		"replay_start_command": _replay_start_command,
+		"forecast_turn": NO_TURN if _task_kind == TASK_FORECAST else _forecast_turn,
+	}
+
+
+func _restore_continuation(raw: Variant) -> bool:
+	if not raw is Dictionary:
+		return false
+	if raw.is_empty():
+		return true
+	if not ConfigRows.is_whole(raw.get("forecast_turn")):
+		return false
+	_forecast_turn = int(raw.forecast_turn)
+	var forecast: Variant = raw.get("forecast")
+	if forecast != null:
+		if not forecast is Dictionary or not forecast.get("boss_id") is String or not Intent.KEYS.has(str(forecast.get("intent_key", ""))) or not Intent.MODES.has(str(forecast.get("effective_mode", ""))):
+			return false
+		_take_forecast(Intent.new(forecast.boss_id, forecast.intent_key, forecast.get("target_id"), forecast.get("amount"), forecast.effective_mode))
+	var saved: Variant = raw.get("pending_plan")
+	if saved == null or _engine.phase() == MatchState.PHASE_ENDED:
+		return true
+	if not saved is Dictionary or not saved.get("commands") is Array or not saved.get("diagnostics") is Array or not saved.get("expected_checksum") is String or not saved.get("mode_trace", []) is Array:
+		return false
+	if not RunRecord.is_seed_hex(saved.expected_checksum) or not ConfigRows.is_whole(raw.get("replay_index")) or not ConfigRows.is_whole(raw.get("replay_start_command")):
+		return false
+	var cursor: int = int(raw.replay_index)
+	var first: int = int(raw.replay_start_command)
+	if first < 0 or first > _commands.size() or cursor < 0 or cursor > saved.commands.size() or cursor != _commands.size() - first:
+		return false
+	for command: Variant in saved.commands:
+		if not command is Dictionary:
+			return false
+	for index: int in cursor:
+		var expected: Dictionary = saved.commands[index].duplicate(true)
+		expected["issuer"] = MatchRecords.SIDE_BOSS
+		if expected != _commands[first + index]:
+			return false
+	for diagnostic: Variant in saved.diagnostics:
+		if not diagnostic is Dictionary or not diagnostic.get(TurnPlan.EVENT_KEY) is String or not ConfigRows.is_whole(diagnostic.get(TurnPlan.COMMAND_INDEX_KEY)):
+			return false
+	var plan: TurnPlan = TurnPlan.new()
+	plan.commands = saved.commands.duplicate(true)
+	plan.diagnostics.assign(saved.diagnostics.duplicate(true))
+	plan.expected_checksum = RngService.parse_hex_u64(saved.expected_checksum)
+	plan.ai_draws = int(saved.get("ai_draws", 0))
+	for mode: Variant in saved.get("mode_trace", []):
+		plan.mode_trace.append(StringName(str(mode)))
+	_pending_plan = plan
+	_replay_index = cursor
+	_replay_start_command = first
+	_replay_start_seq = _command_start_seqs[first] if first < _command_start_seqs.size() else int(_log.size())
+	if cursor == plan.commands.size():
+		_finish_replay(plan)
+	return true

@@ -1,0 +1,6084 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_jungle_seedling",
+      "name": "Canopy Seedling",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "token"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_seedling.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_jungle_hatchling",
+      "name": "Canopy Hatchling",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "token"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_hatchling.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "beast"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_jungle_vineguard",
+      "name": "Canopy Vineguard",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "token"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_vineguard.text",
+        "en": "Taunt."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "plant"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_jungle_seedling_keeper",
+      "name": "Seedling Keeper",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "apex_succession",
+        "primal_hunt",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_seedling_keeper.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_nest_tender",
+      "name": "Nest Tender",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_nest_tender.text",
+        "en": "Battlecry: Summon a 1/1 Beast."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_canopy_stalker",
+      "name": "Canopy Stalker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_canopy_stalker.text",
+        "en": "Predator (Plant): Gain +1/+1."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_amber_grazer",
+      "name": "Amber Grazer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_amber_grazer.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_thornback_yearling",
+      "name": "Thornback Yearling",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_thornback_yearling.text",
+        "en": "Taunt."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_fossil_sprout",
+      "name": "Fossil Sprout",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_fossil_sprout.text",
+        "en": "Deathrattle: Summon a 1/1 Plant."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_trophy_sifter",
+      "name": "Trophy Sifter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_trophy_sifter.text",
+        "en": "Predator (Beast): Draw a card."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_ancient_browser",
+      "name": "Ancient Browser",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "self",
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_ancient_browser.text",
+        "en": "Predator (Plant): Gain Taunt."
+      },
+      "attack": 4,
+      "health": 5,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_canopy_cartographer",
+      "name": "Canopy Cartographer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "exists": {
+              "selector": "all_friendly_minions",
+              "filter": {
+                "tribe": "plant"
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 2
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_canopy_cartographer.text",
+        "en": "At the end of your turn, if you have a Plant, restore 2 Health to your hero."
+      },
+      "attack": 2,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_crushing_tail",
+      "name": "Crushing Tail",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 5
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_crushing_tail.text",
+        "en": "Deal 5 damage to an enemy minion."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_boulderhide",
+      "name": "Boulderhide",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 2,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_boulderhide.text",
+        "en": "Taunt. Predator (Beast): Gain +2 Attack."
+      },
+      "attack": 4,
+      "health": 7,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_amber_shell",
+      "name": "Amber Shell",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 0,
+              "health": 3
+            },
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_amber_shell.text",
+        "en": "Give a friendly minion +0/+3 and Taunt."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_fossil_excavator",
+      "name": "Fossil Excavator",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_fossil_excavator.text",
+        "en": "Battlecry: Draw a card."
+      },
+      "attack": 3,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_sheltered_colossus",
+      "name": "Sheltered Colossus",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 7,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_sheltered_colossus.text",
+        "en": "Predator (Plant): Restore 4 Health to your hero."
+      },
+      "attack": 6,
+      "health": 7,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_fern_hopper",
+      "name": "Fern Hopper",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "living_canopy",
+        "primal_hunt",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_fern_hopper.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_spore_nursery",
+      "name": "Spore Nursery",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_spore_nursery.text",
+        "en": "Battlecry: Summon a 1/1 Plant."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_root_watcher",
+      "name": "Root Watcher",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 0,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_root_watcher.text",
+        "en": "Predator (Beast): Gain +0/+2."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_shelter_fern",
+      "name": "Shelter Fern",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_shelter_fern.text",
+        "en": "Taunt."
+      },
+      "attack": 1,
+      "health": 5,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_regrowth_runner",
+      "name": "Regrowth Runner",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_regrowth_runner.text",
+        "en": "Deathrattle: Summon a 1/1 Plant."
+      },
+      "attack": 3,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_scattered_seeds",
+      "name": "Scattered Seeds",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 2,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_scattered_seeds.text",
+        "en": "Summon two 1/1 Plants."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_rainfall_herbalist",
+      "name": "Rainfall Herbalist",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "all_friendly_minions",
+              "amount": 1
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_rainfall_herbalist.text",
+        "en": "At the end of your turn, restore 1 Health to your minions."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_waking_banyan",
+      "name": "Waking Banyan",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 2,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_waking_banyan.text",
+        "en": "Deathrattle: Summon two 1/1 Plants."
+      },
+      "attack": 3,
+      "health": 6,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_mossjaw",
+      "name": "Mossjaw",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "lifesteal",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_mossjaw.text",
+        "en": "Lifesteal. Predator (Plant): Gain +1 Attack."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_vine_sentry",
+      "name": "Vine Sentry",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_vine_sentry.text",
+        "en": "Taunt. Predator (Beast): Restore 3 Health to your hero."
+      },
+      "attack": 2,
+      "health": 5,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "neutral_jungle_tangled_path",
+      "name": "Tangled Path",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "attack": -3,
+              "health": 0,
+              "duration": "until_end_of_turn"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_tangled_path.text",
+        "en": "Give an enemy minion -3 Attack this turn. Draw a card."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_canopy_medic",
+      "name": "Canopy Medic",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "side": "friendly"
+                }
+              },
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_canopy_medic.text",
+        "en": "Battlecry: Restore 4 Health to a friendly character."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_seed_reserve",
+      "name": "Seed Reserve",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            },
+            {
+              "op": "add_to_hand",
+              "card_id": "neutral_jungle_seedling",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_seed_reserve.text",
+        "en": "Draw a card. Add two 1/1 Plants to your hand."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_rain_drinker",
+      "name": "Rain Drinker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "rare",
+      "keywords": [
+        "lifesteal",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 0,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_rain_drinker.text",
+        "en": "Lifesteal. Predator (Plant): Gain +0/+2."
+      },
+      "attack": 4,
+      "health": 6,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_reed_ambusher",
+      "name": "Reed Ambusher",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_reed_ambusher.text",
+        "en": "Predator (Beast): Gain +1 Attack."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_trail_falcon",
+      "name": "Trail Falcon",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_trail_falcon.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 1,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_nest_guard",
+      "name": "Nest Guard",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_nest_guard.text",
+        "en": "Deathrattle: Summon a 1/1 Beast."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_brush_raptor",
+      "name": "Brush Raptor",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_brush_raptor.text",
+        "en": "Rush."
+      },
+      "attack": 3,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_thorn_runner",
+      "name": "Thorn Runner",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "rush",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_thorn_runner.text",
+        "en": "Rush. Predator (Plant): Gain +1 Attack."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_pathfinder",
+      "name": "Jungle Pathfinder",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_pathfinder.text",
+        "en": "Battlecry: Add a 1/1 Beast to your hand."
+      },
+      "attack": 2,
+      "health": 1,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_pack_outrider",
+      "name": "Pack Outrider",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "tribe": "beast",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_pack_outrider.text",
+        "en": "Your other Beasts have +1 Attack."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_scent_tracker",
+      "name": "Scent Tracker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_scent_tracker.text",
+        "en": "Predator (Beast): Draw a card."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_chase_caller",
+      "name": "Chase Caller",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "tribe": "beast",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "tribe": "beast",
+                  "not_self": true
+                }
+              },
+              "keyword": "rush"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_chase_caller.text",
+        "en": "Battlecry: Give another friendly Beast Rush."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_coordinated_pounce",
+      "name": "Coordinated Pounce",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy",
+                  "is_damaged": true
+                }
+              },
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_coordinated_pounce.text",
+        "en": "Deal 3 damage to a damaged enemy minion."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_razorbeak",
+      "name": "Razorbeak",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [
+        "rush",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_razorbeak.text",
+        "en": "Rush. Predator (Beast): Gain +1/+1."
+      },
+      "attack": 4,
+      "health": 4,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "neutral_jungle_guard_the_nest",
+      "name": "Guard the Nest",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 1,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_guard_the_nest.text",
+        "en": "Give a friendly minion +1/+2."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "neutral_jungle_expedition_supplier",
+      "name": "Expedition Supplier",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_expedition_supplier.text",
+        "en": "Battlecry: Draw a card."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_jungle_follow_the_tracks",
+      "name": "Follow the Tracks",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.neutral_jungle_follow_the_tracks.text",
+        "en": "Draw two cards."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "war_jungle_trail_squire",
+      "name": "Trail Squire",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0,
+              "duration": "until_end_of_turn"
+            }
+          ],
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "crown_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_trail_squire.text",
+        "en": "After your hero attacks, gain +1 Attack this turn. (Once per turn.)"
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_jungle_redcrest_hatchery",
+      "name": "Redcrest Hatchery",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "crown_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_redcrest_hatchery.text",
+        "en": "Battlecry: Summon a 1/1 Beast."
+      },
+      "attack": 2,
+      "health": 1,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_jungle_canopy_challenger",
+      "name": "Canopy Challenger",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "self",
+              "keyword": "rush"
+            }
+          ]
+        },
+        {
+          "trigger": "on_attack",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ],
+          "scope": {
+            "attacker": "self"
+          }
+        }
+      ],
+      "tags": [
+        "crown_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_canopy_challenger.text",
+        "en": "Predator (Beast): Gain Rush. After this attacks, gain 1 Armor."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "war_jungle_hold_the_ridge",
+      "name": "Hold the Ridge",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 2,
+              "health": 1
+            },
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "crown_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_hold_the_ridge.text",
+        "en": "Give a friendly minion +2/+1 and Taunt."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_jungle_trophy_quartermaster",
+      "name": "Trophy Quartermaster",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "crown_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_trophy_quartermaster.text",
+        "en": "Predator (Plant): Draw a card."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_jungle_gorath",
+      "name": "Gorath, Crown of the Canopy",
+      "set": "war",
+      "type": "minion",
+      "cost": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "rush",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "crown_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_gorath.text",
+        "en": "Rush. Predator (Beast): Give your other minions +1/+1."
+      },
+      "attack": 6,
+      "health": 6,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "war_jungle_spearleaf",
+      "name": "Spearleaf",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "extinction_aggro",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_spearleaf.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "war_jungle_ridge_charger",
+      "name": "Ridge Charger",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "extinction_aggro",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_ridge_charger.text",
+        "en": "Predator (Plant): Gain +1 Attack."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "war_jungle_stampede_drummer",
+      "name": "Stampede Drummer",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "random_friendly_minion",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "attack": 1,
+              "health": 0
+            }
+          ],
+          "scope": {
+            "attacker": "self"
+          }
+        }
+      ],
+      "tags": [
+        "extinction_aggro",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_stampede_drummer.text",
+        "en": "Whenever this attacks, give another random friendly minion +1 Attack."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_jungle_break_the_thicket",
+      "name": "Break the Thicket",
+      "set": "war",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 4
+            },
+            {
+              "op": "buff",
+              "targets": "all_friendly_minions",
+              "attack": 1,
+              "health": 0,
+              "duration": "until_end_of_turn"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "extinction_aggro",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_break_the_thicket.text",
+        "en": "Deal 4 damage to an enemy minion. Give your minions +1 Attack this turn."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_jungle_rally_the_hunt",
+      "name": "Rally the Hunt",
+      "set": "war",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            },
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "extinction_aggro",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_rally_the_hunt.text",
+        "en": "Draw two cards. Gain 1 Armor."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_jungle_extinction_march",
+      "name": "Extinction March",
+      "set": "war",
+      "type": "spell",
+      "cost": 7,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "all_friendly_minions",
+              "attack": 2,
+              "health": 0,
+              "keywords": [
+                "rush"
+              ],
+              "duration": "until_end_of_turn"
+            },
+            {
+              "op": "damage",
+              "targets": "enemy_hero",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "extinction_aggro",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_extinction_march.text",
+        "en": "Give your minions +2 Attack and Rush this turn. Deal 3 damage to the enemy hero."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_jungle_bone_honing",
+      "name": "Bone Honing",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "owner_weapon",
+              "attack": 1,
+              "health": 0
+            },
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_weapons",
+        "weapons",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_bone_honing.text",
+        "en": "Give your weapon +1 Attack. Gain 2 Armor."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_jungle_ridge_bladesmith",
+      "name": "Ridge Bladesmith",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ],
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "legacy_weapons",
+        "weapons",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_ridge_bladesmith.text",
+        "en": "Whenever your hero attacks, give this +1 Attack. (Once per turn.)"
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_jungle_battle_scars",
+      "name": "Battle Scars",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "is_damaged": true
+                }
+              },
+              "attack": 2,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_berserk",
+        "berserk",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_battle_scars.text",
+        "en": "Give a damaged friendly minion +2/+2."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_jungle_scarhide_veteran",
+      "name": "Scarhide Veteran",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "is_damaged": true
+                }
+              },
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_berserk",
+        "berserk",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.war_jungle_scarhide_veteran.text",
+        "en": "Battlecry: Give your damaged minions +1 Attack."
+      },
+      "attack": 3,
+      "health": 5,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "decay_jungle_rotting_bulb",
+      "name": "Rotting Bulb",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "worldroot_attrition",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_rotting_bulb.text",
+        "en": "Deathrattle: Summon a 1/1 Plant."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "decay_jungle_mire_nibbler",
+      "name": "Mire Nibbler",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "self",
+              "keyword": "lifesteal"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "worldroot_attrition",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_mire_nibbler.text",
+        "en": "Predator (Plant): Gain Lifesteal."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "decay_jungle_compost_keeper",
+      "name": "Compost Keeper",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 2
+            }
+          ],
+          "scope": {
+            "who": "friendly_minion",
+            "card": {
+              "tribe": "plant"
+            }
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "worldroot_attrition",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_compost_keeper.text",
+        "en": "After a friendly Plant dies, restore 2 Health to your hero. (Once per turn.)"
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "undead"
+      ]
+    },
+    {
+      "id": "decay_jungle_strangling_roots",
+      "name": "Strangling Roots",
+      "set": "decay",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 4
+            },
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "worldroot_attrition",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_strangling_roots.text",
+        "en": "Deal 4 damage to an enemy minion. Summon a 1/1 Plant."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "decay_jungle_mire_reclaimer",
+      "name": "Mire Reclaimer",
+      "set": "decay",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "neutral_jungle_seedling",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "worldroot_attrition",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_mire_reclaimer.text",
+        "en": "Predator (Beast): Add two 1/1 Plants to your hand."
+      },
+      "attack": 3,
+      "health": 5,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "decay_jungle_worldroot",
+      "name": "The Worldroot",
+      "set": "decay",
+      "type": "minion",
+      "cost": 8,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 2,
+              "position": "end"
+            },
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 2
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "tags": [
+        "worldroot_attrition",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_worldroot.text",
+        "en": "Taunt. At the end of your turn, summon two 1/1 Plants and restore 2 Health to your hero."
+      },
+      "attack": 5,
+      "health": 8,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "decay_jungle_spore_offering",
+      "name": "Spore Offering",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "verdant_sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_spore_offering.text",
+        "en": "Deathrattle: Restore 1 Health to your hero."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "decay_jungle_carrion_gardener",
+      "name": "Carrion Gardener",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "verdant_sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_carrion_gardener.text",
+        "en": "Battlecry: Summon a 1/1 Plant."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "undead"
+      ]
+    },
+    {
+      "id": "decay_jungle_root_feaster",
+      "name": "Root Feaster",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 0,
+              "health": 2
+            }
+          ]
+        },
+        {
+          "trigger": "on_minion_died",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ],
+          "scope": {
+            "who": "friendly_minion",
+            "card": {
+              "tribe": "plant"
+            }
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "verdant_sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_root_feaster.text",
+        "en": "Predator (Plant): Gain +2 Health. After a friendly Plant dies, gain +1 Attack. (1/turn)"
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "undead"
+      ]
+    },
+    {
+      "id": "decay_jungle_feed_the_thicket",
+      "name": "Feed the Thicket",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              }
+            },
+            {
+              "op": "damage",
+              "targets": "random_enemy_minion",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "verdant_sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_feed_the_thicket.text",
+        "en": "Destroy a friendly minion. Deal 4 damage to a random enemy minion."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "decay_jungle_compost_ledger",
+      "name": "Compost Ledger",
+      "set": "decay",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              }
+            },
+            {
+              "op": "draw",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "verdant_sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_compost_ledger.text",
+        "en": "Destroy a friendly minion. Draw three cards."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "decay_jungle_verdant_reclamation",
+      "name": "Verdant Reclamation",
+      "set": "decay",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "destroy",
+              "targets": "all_friendly_minions"
+            },
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_vineguard",
+              "count": 3,
+              "position": "end"
+            },
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 6
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "verdant_sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_verdant_reclamation.text",
+        "en": "Destroy your minions. Summon three 1/3 Plants with Taunt. Restore 6 Health to your hero."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "decay_jungle_sporebound_relic",
+      "name": "Sporebound Relic",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_deathrattle",
+        "deathrattle",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_sporebound_relic.text",
+        "en": "Deathrattle: Draw a card."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "decay_jungle_buried_echo",
+      "name": "Buried Echo",
+      "set": "decay",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_trigger": "deathrattle"
+            }
+          },
+          "ops": [
+            {
+              "op": "retrigger",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "has_trigger": "deathrattle"
+                }
+              },
+              "trigger": "deathrattle"
+            },
+            {
+              "op": "retrigger",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "has_trigger": "deathrattle"
+                }
+              },
+              "trigger": "deathrattle"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_deathrattle",
+        "deathrattle",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_buried_echo.text",
+        "en": "Trigger a friendly minion's Deathrattle twice."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "decay_jungle_fertile_bargain",
+      "name": "Fertile Bargain",
+      "set": "decay",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              }
+            },
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 5
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_sacrifice",
+        "sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_fertile_bargain.text",
+        "en": "Destroy a friendly minion. Restore 5 Health to your hero."
+      },
+      "schools": [
+        "nature"
+      ]
+    },
+    {
+      "id": "decay_jungle_offering_warden",
+      "name": "Offering Warden",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 0,
+              "health": 1
+            }
+          ],
+          "scope": {
+            "who": "friendly_minion"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "legacy_sacrifice",
+        "sacrifice",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.decay_jungle_offering_warden.text",
+        "en": "After a friendly minion dies, gain +1 Health. (Once per turn.)"
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "undead"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_field_scholar",
+      "name": "Field Scholar",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fossil_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_field_scholar.text",
+        "en": "Battlecry: Gain 1 Armor."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_amber_specimen",
+      "name": "Amber Specimen",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fossil_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_amber_specimen.text",
+        "en": "Summon a 1/1 Beast. Draw a card."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_fossil_reader",
+      "name": "Fossil Reader",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "trigger": "after_cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ],
+          "scope": {
+            "by": "owner"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "fossil_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_fossil_reader.text",
+        "en": "Predator (Beast): Draw a card. After you cast a spell, summon a 1/1 Plant. (1/turn)"
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_amber_encasement",
+      "name": "Amber Encasement",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "transform",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "card_id": "neutral_jungle_seedling"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fossil_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_amber_encasement.text",
+        "en": "Transform an enemy minion into a 1/1 Plant."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_catalogue_keeper",
+      "name": "Catalogue Keeper",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry",
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "spell",
+                "set": "knowledge"
+              },
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "fossil_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_catalogue_keeper.text",
+        "en": "Predator (Plant): Discover a spell."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_tala",
+      "name": "Tala, Fossil Savant",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "exists": {
+              "selector": "all_friendly_minions",
+              "filter": {
+                "tribe": "plant"
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "tags": [
+        "fossil_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_tala.text",
+        "en": "Predator (Beast): Draw 2 cards. End of your turn: if you have a Plant, gain 2 Armor."
+      },
+      "attack": 4,
+      "health": 6,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_amber_seed",
+      "name": "Amber Seed",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "archive_control",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_amber_seed.text",
+        "en": "Deathrattle: Add a 1/1 Plant to your hand."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_quillback_student",
+      "name": "Quillback Student",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 0,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "archive_control",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_quillback_student.text",
+        "en": "Predator (Plant): Gain +0/+2."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_canopy_observer",
+      "name": "Canopy Observer",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "after_cast",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 1
+            }
+          ],
+          "scope": {
+            "by": "owner"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "archive_control",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_canopy_observer.text",
+        "en": "After you cast a spell, restore 1 Health to your hero. (Once per turn.)"
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_amberwave",
+      "name": "Amberwave",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "all_enemy_minions",
+              "amount": 2
+            },
+            {
+              "op": "freeze",
+              "targets": "all_enemy_minions"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "archive_control",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_amberwave.text",
+        "en": "Deal 2 damage to all enemy minions. Freeze them."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_shelved_discovery",
+      "name": "Shelved Discovery",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            },
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "archive_control",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_shelved_discovery.text",
+        "en": "Draw two cards. Restore 3 Health to your hero."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_amber_archive",
+      "name": "The Amber Archive",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 8,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "transform",
+              "targets": "all_enemy_minions",
+              "card_id": "neutral_jungle_seedling"
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "archive_control",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_amber_archive.text",
+        "en": "Transform all enemy minions into 1/1 Plants. Draw two cards."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_cold_fossil",
+      "name": "Cold Fossil",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              }
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_frost",
+        "frost",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_cold_fossil.text",
+        "en": "Freeze an enemy minion. Draw a card."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_rime_excavator",
+      "name": "Rime Excavator",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy",
+                  "is_frozen": true
+                }
+              },
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_frost",
+        "frost",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_rime_excavator.text",
+        "en": "Battlecry: Deal 3 damage to a Frozen enemy minion."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_jungle_prism_moth",
+      "name": "Prism Moth",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "effects": [],
+      "tags": [
+        "legacy_spell_damage",
+        "spell_damage",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_prism_moth.text",
+        "en": "Spell Damage +1."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ],
+      "spell_damage": 1
+    },
+    {
+      "id": "knowledge_jungle_fossil_burst",
+      "name": "Fossil Burst",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 3
+            },
+            {
+              "op": "damage",
+              "targets": "all_enemy_minions",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_spell_damage",
+        "spell_damage",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.knowledge_jungle_fossil_burst.text",
+        "en": "Deal 3 damage to an enemy minion. Deal 1 damage to all enemy minions."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "fortune_jungle_trophy_forager",
+      "name": "Trophy Forager",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 1
+            }
+          ],
+          "scope": {
+            "attacker": "self"
+          }
+        }
+      ],
+      "tags": [
+        "trophy_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_trophy_forager.text",
+        "en": "After this attacks, gain 1 Armor."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_gilded_nest",
+      "name": "Gilded Nest",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "trophy_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_gilded_nest.text",
+        "en": "Deathrattle: Summon a 1/1 Beast."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "fortune_jungle_amber_appraiser",
+      "name": "Amber Appraiser",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ],
+          "scope": {
+            "who": "friendly_minion",
+            "card": {
+              "tribe": "beast"
+            }
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "trophy_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_amber_appraiser.text",
+        "en": "After a friendly Beast dies, add a Coin to your hand. (Once per turn.)"
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_trophy_exchange",
+      "name": "Trophy Exchange",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              }
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "trophy_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_trophy_exchange.text",
+        "en": "Return a friendly minion to your hand. Draw two cards."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "fortune_jungle_jungle_pawnbroker",
+      "name": "Jungle Pawnbroker",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "trophy_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_jungle_pawnbroker.text",
+        "en": "Predator (Plant): Draw a card."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_vexa",
+      "name": "Vexa, Trophy Broker",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "trophy_value",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_vexa.text",
+        "en": "Predator (Beast): Draw two cards. Battlecry: Add a Coin to your hand."
+      },
+      "attack": 4,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_coinleaf",
+      "name": "Coinleaf",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wild_combo",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_coinleaf.text",
+        "en": "Deathrattle: Add a Coin to your hand."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "fortune_jungle_prize_raptor",
+      "name": "Prize Raptor",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wild_combo",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_prize_raptor.text",
+        "en": "Predator (Plant): Gain +1 Attack."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "fortune_jungle_wager_caller",
+      "name": "Wager Caller",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_card_played",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0,
+              "duration": "until_end_of_turn"
+            }
+          ],
+          "scope": {
+            "by": "owner"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "wild_combo",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_wager_caller.text",
+        "en": "After you play a card, gain +1 Attack this turn. (Once per turn.)"
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_weighted_snare",
+      "name": "Weighted Snare",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 3
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  3
+                ]
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": {
+                    "selector": "chosen",
+                    "filter": {
+                      "kind": "minion",
+                      "side": "enemy"
+                    }
+                  },
+                  "amount": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wild_combo",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_weighted_snare.text",
+        "en": "Deal 3 damage to an enemy minion. If you played two other cards this turn, deal 2 more."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "fortune_jungle_cached_winnings",
+      "name": "Cached Winnings",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            },
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wild_combo",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_cached_winnings.text",
+        "en": "Draw two cards. Add a Coin to your hand."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "fortune_jungle_winner_takes_wild",
+      "name": "Winner Takes the Wild",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "all_enemy_characters",
+              "amount": 4
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  4
+                ]
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "enemy_hero",
+                  "amount": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "wild_combo",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_winner_takes_wild.text",
+        "en": "Deal 4 damage to all enemies. After 3 other cards this turn, deal 3 more to enemy hero."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "fortune_jungle_amber_prospector",
+      "name": "Amber Prospector",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_hoard",
+        "hoard",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_amber_prospector.text",
+        "en": "Battlecry: Add a Coin to your hand."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_buried_purse",
+      "name": "Buried Purse",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 2
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_hoard",
+        "hoard",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_buried_purse.text",
+        "en": "Add two Coins to your hand. Draw a card."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "fortune_jungle_fossil_gambler",
+      "name": "Fossil Gambler",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "give_keyword",
+                  "targets": "self",
+                  "keyword": "taunt"
+                }
+              ],
+              "else": [
+                {
+                  "op": "give_keyword",
+                  "targets": "self",
+                  "keyword": "rush"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_gamble",
+        "gamble",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_fossil_gambler.text",
+        "en": "Battlecry: Flip a coin. Heads: gain Taunt. Tails: gain Rush."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_jungle_wild_odds",
+      "name": "Wild Odds",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "targets": "random_enemy_minion",
+                  "amount": 4
+                }
+              ],
+              "else": [
+                {
+                  "op": "armor",
+                  "amount": 4
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_gamble",
+        "gamble",
+        "apex_succession"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.fortune_jungle_wild_odds.text",
+        "en": "Draw a card. Flip a coin. Heads: 4 damage to a random enemy minion. Tails: gain 4 Armor."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "order_jungle_nursery_squire",
+      "name": "Nursery Squire",
+      "set": "order",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "adjacent",
+              "amount": 1
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "tags": [
+        "matriarch_summon",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_nursery_squire.text",
+        "en": "At the end of your turn, restore 1 Health to adjacent minions."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_jungle_sacred_seedbed",
+      "name": "Sacred Seedbed",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "matriarch_summon",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_sacred_seedbed.text",
+        "en": "Battlecry: Summon a 1/1 Plant."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "order_jungle_herd_captain",
+      "name": "Herd Captain",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "tribe": "plant",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "matriarch_summon",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_herd_captain.text",
+        "en": "Your other Plants have +1 Attack."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_jungle_shelter_the_young",
+      "name": "Shelter the Young",
+      "set": "order",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "all_friendly_minions",
+              "attack": 0,
+              "health": 1
+            },
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "matriarch_summon",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_shelter_the_young.text",
+        "en": "Give your minions +1 Health. Summon a 1/1 Beast."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "order_jungle_nursery_roll_call",
+      "name": "Nursery Roll Call",
+      "set": "order",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            },
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "matriarch_summon",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_nursery_roll_call.text",
+        "en": "Draw two cards. Restore 1 Health to your hero."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "order_jungle_bastionback_matriarch",
+      "name": "Bastionback Matriarch",
+      "set": "order",
+      "type": "minion",
+      "cost": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "all_friendly_minions",
+              "attack": 0,
+              "health": 1
+            }
+          ]
+        },
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_vineguard",
+              "count": 2,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "matriarch_summon",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_bastionback_matriarch.text",
+        "en": "Taunt. Predator (Plant): Your minions get +1 Health. Battlecry: Summon 2 1/3 Taunt Plants."
+      },
+      "attack": 4,
+      "health": 7,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "order_jungle_refuge_sprout",
+      "name": "Refuge Sprout",
+      "set": "order",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "refuge_control",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_refuge_sprout.text",
+        "en": "Deathrattle: Gain 2 Armor."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "order_jungle_bastion_grazer",
+      "name": "Bastion Grazer",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "self",
+              "keyword": "taunt"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "refuge_control",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_bastion_grazer.text",
+        "en": "Predator (Plant): Gain Taunt."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "order_jungle_spring_warden",
+      "name": "Spring Warden",
+      "set": "order",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "exists": {
+              "selector": "all_friendly_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 2
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "tags": [
+        "refuge_control",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_spring_warden.text",
+        "en": "At the end of your turn, if you have another Beast, restore 2 Health to your hero."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "order_jungle_keeper_judgment",
+      "name": "Keeper's Judgment",
+      "set": "order",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "set_stats",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "attack": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "refuge_control",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_keeper_judgment.text",
+        "en": "Set an enemy minion's Attack to 1. Draw a card."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "order_jungle_canopy_hospitaller",
+      "name": "Canopy Hospitaller",
+      "set": "order",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 5
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "refuge_control",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_canopy_hospitaller.text",
+        "en": "Predator (Beast): Restore 5 Health to your hero."
+      },
+      "attack": 3,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_jungle_last_refuge",
+      "name": "The Last Refuge",
+      "set": "order",
+      "type": "spell",
+      "cost": 7,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "owner_hero",
+              "amount": 8
+            },
+            {
+              "op": "give_keyword",
+              "targets": "all_friendly_minions",
+              "keyword": "divine_shield"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "refuge_control",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_last_refuge.text",
+        "en": "Restore 8 Health to your hero. Give your minions Divine Shield. Draw a card."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "order_jungle_amber_aegis",
+      "name": "Amber Aegis",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [],
+      "tags": [
+        "legacy_aegis",
+        "aegis",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_amber_aegis.text",
+        "en": "Divine Shield."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "order_jungle_renew_the_guard",
+      "name": "Renew the Guard",
+      "set": "order",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "divine_shield"
+            },
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_aegis",
+        "aegis",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_renew_the_guard.text",
+        "en": "Give a friendly minion Divine Shield and +1/+1."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "order_jungle_trail_standard",
+      "name": "Trail Standard",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "adjacent",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_formation",
+        "formation",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_trail_standard.text",
+        "en": "Battlecry: Give adjacent minions +1 Attack."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_jungle_canopy_marshal",
+      "name": "Canopy Marshal",
+      "set": "order",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": "adjacent",
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_formation",
+        "formation",
+        "living_canopy"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.order_jungle_canopy_marshal.text",
+        "en": "Adjacent minions have +1/+1."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_jungle_reed_whisper",
+      "name": "Reed Whisper",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "tracks_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_reed_whisper.text",
+        "en": "Stealth."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "shadow_jungle_dusk_hatchling",
+      "name": "Dusk Hatchling",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tracks_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_dusk_hatchling.text",
+        "en": "Deathrattle: Summon a 1/1 Beast."
+      },
+      "attack": 2,
+      "health": 1,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "shadow_jungle_shade_raptor",
+      "name": "Shade Raptor",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "self",
+              "keyword": "stealth"
+            }
+          ]
+        },
+        {
+          "trigger": "on_attack",
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "random_friendly_minion",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "keyword": "stealth"
+            }
+          ],
+          "scope": {
+            "attacker": "self"
+          }
+        }
+      ],
+      "tags": [
+        "tracks_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_shade_raptor.text",
+        "en": "Predator (Plant): Stealth. On attack, give another random friendly minion Stealth."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "shadow_jungle_unseen_pounce",
+      "name": "Unseen Pounce",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 2,
+              "health": 0,
+              "duration": "until_end_of_turn"
+            },
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "stealth"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tracks_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_unseen_pounce.text",
+        "en": "Give a friendly minion +2 Attack this turn and Stealth."
+      },
+      "schools": [
+        "shadow"
+      ]
+    },
+    {
+      "id": "shadow_jungle_trail_informant",
+      "name": "Trail Informant",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tracks_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_trail_informant.text",
+        "en": "Predator (Beast): Draw a card."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_jungle_sava",
+      "name": "Sava, the Hundred Tracks",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "rush",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "beast",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "self",
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "tracks_tempo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_sava.text",
+        "en": "Rush. Predator (Beast): Gain Divine Shield."
+      },
+      "attack": 5,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_jungle_scent_leaf",
+      "name": "Scent Leaf",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "great_hunt_combo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_scent_leaf.text",
+        "en": "Deathrattle: Draw a card."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "plant"
+      ]
+    },
+    {
+      "id": "shadow_jungle_scent_lurker",
+      "name": "Scent Lurker",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_minions",
+              "filter": {
+                "tribe": "plant",
+                "not_self": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": 1,
+              "health": 0
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "great_hunt_combo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_scent_lurker.text",
+        "en": "Predator (Plant): Gain +1 Attack."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "shadow_jungle_hunt_signaller",
+      "name": "Hunt Signaller",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_card_played",
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "random_friendly_minion",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "attack": 1,
+              "health": 0,
+              "duration": "until_end_of_turn"
+            }
+          ],
+          "scope": {
+            "by": "owner"
+          },
+          "once_per_turn": true
+        }
+      ],
+      "tags": [
+        "great_hunt_combo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_hunt_signaller.text",
+        "en": "After you play a card, another random friendly minion gains +1 Attack this turn. (1/turn)"
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_jungle_mark_the_quarry",
+      "name": "Mark the Quarry",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 3
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  2
+                ]
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "great_hunt_combo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_mark_the_quarry.text",
+        "en": "Deal 3 damage to an enemy minion. If you played another card this turn, draw a card."
+      },
+      "schools": [
+        "shadow"
+      ]
+    },
+    {
+      "id": "shadow_jungle_circle_back",
+      "name": "Circle Back",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              }
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "great_hunt_combo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_circle_back.text",
+        "en": "Return a friendly minion to your hand. Draw two cards."
+      },
+      "schools": [
+        "shadow"
+      ]
+    },
+    {
+      "id": "shadow_jungle_great_hunt",
+      "name": "The Great Hunt",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "side": "enemy"
+                }
+              },
+              "amount": 5
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.cards_played_this_turn"
+                  },
+                  ">=",
+                  3
+                ]
+              },
+              "then": [
+                {
+                  "op": "buff",
+                  "targets": "all_friendly_minions",
+                  "attack": 2,
+                  "health": 0,
+                  "duration": "until_end_of_turn"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "great_hunt_combo",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_great_hunt.text",
+        "en": "Deal 5 to an enemy. After 2 other cards this turn, give your minions +2 Attack this turn."
+      },
+      "schools": [
+        "shadow"
+      ]
+    },
+    {
+      "id": "shadow_jungle_veil_gecko",
+      "name": "Veil Gecko",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [],
+      "tags": [
+        "legacy_stealth",
+        "stealth",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_veil_gecko.text",
+        "en": "Stealth."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "shadow_jungle_veiled_supply",
+      "name": "Veiled Supply",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_keyword": "stealth"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "has_keyword": "stealth"
+                }
+              },
+              "attack": 1,
+              "health": 2
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_stealth",
+        "stealth",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_veiled_supply.text",
+        "en": "Give a friendly Stealthed minion +1/+2. Draw a card."
+      },
+      "schools": [
+        "shadow"
+      ]
+    },
+    {
+      "id": "shadow_jungle_sap_viper",
+      "name": "Sap Viper",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "legacy_venom",
+        "venom",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_sap_viper.text",
+        "en": "Poisonous."
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "beast"
+      ]
+    },
+    {
+      "id": "shadow_jungle_venom_handler",
+      "name": "Venom Handler",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "has_keyword": "poisonous"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "has_keyword": "poisonous"
+                }
+              },
+              "attack": 0,
+              "health": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "legacy_venom",
+        "venom",
+        "primal_hunt"
+      ],
+      "collection_id": "law-of-the-jungle",
+      "text": {
+        "key": "card.shadow_jungle_venom_handler.text",
+        "en": "Battlecry: Give a friendly Poisonous minion +0/+3."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "config": {
+    "id": "trial_primal_crown",
+    "collection": "law-of-the-jungle",
+    "hero_id": "hero_order",
+    "deck": [
+      "neutral_jungle_seedling_keeper",
+      "neutral_jungle_seedling_keeper",
+      "neutral_jungle_fern_hopper",
+      "neutral_jungle_fern_hopper",
+      "neutral_jungle_reed_ambusher",
+      "neutral_jungle_reed_ambusher",
+      "neutral_jungle_root_watcher",
+      "neutral_jungle_root_watcher",
+      "neutral_jungle_canopy_stalker",
+      "neutral_jungle_canopy_stalker",
+      "neutral_jungle_thorn_runner",
+      "neutral_jungle_thorn_runner",
+      "neutral_jungle_scent_tracker",
+      "neutral_jungle_scent_tracker",
+      "neutral_jungle_mossjaw",
+      "neutral_jungle_mossjaw",
+      "neutral_jungle_razorbeak",
+      "neutral_jungle_razorbeak",
+      "neutral_jungle_boulderhide",
+      "neutral_jungle_boulderhide",
+      "neutral_jungle_rain_drinker",
+      "neutral_jungle_rain_drinker",
+      "order_jungle_sacred_seedbed",
+      "order_jungle_sacred_seedbed",
+      "order_jungle_bastion_grazer",
+      "order_jungle_bastion_grazer",
+      "order_jungle_herd_captain",
+      "order_jungle_herd_captain",
+      "order_jungle_keeper_judgment",
+      "order_jungle_keeper_judgment",
+      "order_jungle_canopy_hospitaller",
+      "order_jungle_canopy_hospitaller",
+      "order_jungle_nursery_roll_call",
+      "order_jungle_nursery_roll_call",
+      "order_jungle_bastionback_matriarch",
+      "order_jungle_last_refuge"
+    ],
+    "treasures": [
+      "treasure_jungle_trailkeeper_compass",
+      "treasure_jungle_patient_watchglass",
+      "treasure_jungle_last_ration"
+    ],
+    "player_draw_order": [
+      "neutral_jungle_seedling_keeper",
+      "neutral_jungle_canopy_stalker",
+      "neutral_jungle_reed_ambusher",
+      "neutral_jungle_root_watcher",
+      "neutral_jungle_scent_tracker",
+      "neutral_jungle_thorn_runner",
+      "neutral_jungle_fern_hopper",
+      "order_jungle_sacred_seedbed",
+      "neutral_jungle_canopy_stalker",
+      "order_jungle_bastionback_matriarch",
+      "order_jungle_last_refuge",
+      "neutral_jungle_boulderhide"
+    ],
+    "access_condition": {
+      "type": "all_of",
+      "of": [
+        {
+          "type": "runs_won",
+          "n": 20
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_war"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_decay"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_knowledge"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_fortune"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_order"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_shadow"
+        }
+      ]
+    },
+    "objective": {
+      "predator": 3,
+      "friendly": 1,
+      "enemy": 1
+    },
+    "encounters": [
+      {
+        "id": "nursery",
+        "boss_id": "boss_briarjaw",
+        "band": 1,
+        "health": 30,
+        "deck": [
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_spore_nursery",
+          "neutral_jungle_spore_nursery",
+          "neutral_jungle_fossil_sprout",
+          "neutral_jungle_fossil_sprout",
+          "neutral_jungle_canopy_stalker",
+          "neutral_jungle_canopy_stalker",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_thorn_runner",
+          "neutral_jungle_thorn_runner",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_nest_guard",
+          "neutral_jungle_nest_guard",
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_shelter_fern",
+          "neutral_jungle_shelter_fern",
+          "neutral_jungle_trophy_sifter",
+          "neutral_jungle_trophy_sifter",
+          "neutral_jungle_ancient_browser",
+          "neutral_jungle_ancient_browser",
+          "neutral_jungle_mossjaw",
+          "neutral_jungle_mossjaw",
+          "neutral_jungle_guard_the_nest",
+          "neutral_jungle_guard_the_nest",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_scent_tracker"
+        ],
+        "boss_draw_order": [
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_canopy_stalker",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_thorn_runner"
+        ],
+        "enemy_opening_board": [
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_fern_hopper"
+        ]
+      },
+      {
+        "id": "keeper",
+        "boss_id": "boss_veyra",
+        "band": 2,
+        "health": 40,
+        "deck": [
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_nest_tender",
+          "neutral_jungle_nest_tender",
+          "neutral_jungle_nest_guard",
+          "neutral_jungle_nest_guard",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_thornback_yearling",
+          "neutral_jungle_thornback_yearling",
+          "neutral_jungle_trophy_sifter",
+          "neutral_jungle_trophy_sifter",
+          "neutral_jungle_vine_sentry",
+          "neutral_jungle_vine_sentry",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_razorbeak",
+          "neutral_jungle_razorbeak",
+          "neutral_jungle_boulderhide",
+          "neutral_jungle_boulderhide",
+          "neutral_jungle_pack_outrider",
+          "neutral_jungle_pack_outrider",
+          "neutral_jungle_brush_raptor",
+          "neutral_jungle_brush_raptor",
+          "neutral_jungle_crushing_tail",
+          "neutral_jungle_crushing_tail",
+          "neutral_jungle_expedition_supplier",
+          "neutral_jungle_expedition_supplier"
+        ],
+        "boss_draw_order": [
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_scent_tracker"
+        ],
+        "enemy_opening_board": [
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_fern_hopper"
+        ]
+      },
+      {
+        "id": "crown_rematch",
+        "boss_id": "boss_veyra",
+        "band": 2,
+        "health": 40,
+        "deck": [
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_canopy_stalker",
+          "neutral_jungle_canopy_stalker",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_thorn_runner",
+          "neutral_jungle_thorn_runner",
+          "neutral_jungle_nest_guard",
+          "neutral_jungle_nest_guard",
+          "neutral_jungle_spore_nursery",
+          "neutral_jungle_spore_nursery",
+          "neutral_jungle_mossjaw",
+          "neutral_jungle_mossjaw",
+          "neutral_jungle_razorbeak",
+          "neutral_jungle_razorbeak",
+          "neutral_jungle_vine_sentry",
+          "neutral_jungle_vine_sentry",
+          "neutral_jungle_guard_the_nest",
+          "neutral_jungle_guard_the_nest",
+          "neutral_jungle_crushing_tail",
+          "neutral_jungle_crushing_tail",
+          "neutral_jungle_expedition_supplier",
+          "neutral_jungle_expedition_supplier"
+        ],
+        "boss_draw_order": [
+          "neutral_jungle_fern_hopper",
+          "neutral_jungle_reed_ambusher",
+          "neutral_jungle_root_watcher",
+          "neutral_jungle_canopy_stalker",
+          "neutral_jungle_scent_tracker",
+          "neutral_jungle_thorn_runner"
+        ],
+        "enemy_opening_board": [
+          "neutral_jungle_seedling_keeper",
+          "neutral_jungle_fern_hopper"
+        ]
+      }
+    ]
+  }
+}

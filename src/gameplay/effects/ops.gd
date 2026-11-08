@@ -943,7 +943,7 @@ static func pool_candidates(resolver: EffectResolver, spec: Dictionary, run_ctx:
 				base.append(str((record as Dictionary).id))
 		POOL_LIST:
 			for id: Variant in (spec.get("list") if spec.get("list") is Array else []):
-				if not resolver.definition(str(id)).is_empty():
+				if resolver.collection_allows(str(id)):
 					base.append(str(id))
 		POOL_DECK, POOL_HAND:
 			for card: Variant in player[str(spec.pool)]:

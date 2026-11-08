@@ -88,6 +88,43 @@ func clear_active_run() -> void:
 	return
 
 
+func is_collection_unlocked(collection_id: String) -> bool:
+	return _evaluator.ids_of(&"collection").has(collection_id) and _record_available(collection_id)
+
+
+func load_trial() -> Variant:
+	var saved: Variant = _store.live_profile().get("active_trial")
+	return saved.duplicate(true) if saved is Dictionary else null
+
+
+func save_trial(attempt: MasteryTrial) -> Error:
+	if is_read_only():
+		return SaveErrors.E_READONLY
+	if not attempt.belongs_to(self):
+		return SaveErrors.E_RANGE
+	var profile: Dictionary = _store.live_profile()
+	var before: Dictionary = {}
+	for key: String in ["active_trial", "stats", "unlocks", "pending_notifications"]:
+		var value: Variant = profile.get(key)
+		before[key] = value.duplicate(true) if value is Dictionary or value is Array else value
+	profile["active_trial"] = attempt.record()
+	if attempt.verified_complete():
+		var trial_id: String = attempt.view().trial_id
+		if not profile.stats.get("trials") is Dictionary:
+			profile.stats["trials"] = {}
+		if profile.stats.trials.get(trial_id, {}).get("completed", false) != true:
+			profile.stats.trials[trial_id] = {"completed": true, "at": _store.now(), "source_id": attempt.source_id()}
+			_grant(profile, attempt.source_id(), false)
+	var outcome: Error = _store.save_profile()
+	if outcome != OK:
+		for key: String in before:
+			profile[key] = before[key]
+		_unannounced.clear()
+		return outcome
+	_announce()
+	return OK
+
+
 ## M3 + M7 + M8, in the States transition order, one write at the end.
 ## `{ok, unlocks_granted}`; `unlock_granted` fires after the write.
 func archive_run(record: Dictionary) -> Dictionary:

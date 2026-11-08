@@ -18,12 +18,10 @@
 extends GdUnitTestSuite
 
 const DATA: String = "res://tests/fixtures/data/"
-## `data_version()` of `fingerprint/`. Recorded 2026-11-03 on Linux x86_64
-## (Godot 4.7.2.stable.official.ed1daf0bf, the CI container), equal to the
-## independent Python reference (sha256 over `name` + canonical body per
-## manifest row, records id-sorted, first 16 hex). The epic's Definition of
-## Done re-checks it on the owner's Windows machine (open).
-const KNOWN_ANSWER: String = "4667ce6e5d01302f"
+## Independent Python SHA256 of the current fixture (2026-11-07), after the
+## open-growth change removed max_records: name + sorted, full-precision
+## float JSON, definition records id-sorted, first 16 hex digits.
+const KNOWN_ANSWER: String = "1145df4cd876e302"
 ## `sha256("a.json" + "{\"k\":1}")[:16]` (Python hashlib) — HashingContext KAT.
 const ONE_BODY_ANSWER: String = "d2b1dfb91002d169"
 ## `sha256("a.json{\"k\":1}b.json[]")[:16]` — two entries, in order, one context.

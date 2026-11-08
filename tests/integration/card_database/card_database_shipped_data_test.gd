@@ -11,21 +11,25 @@ const EXPORT_PRESETS: String = "res://export_presets.cfg"
 const WINDOWS_PRESET: String = "Windows Desktop"
 const DATA_FILTER: String = "assets/data/*.json"
 
-## CN-1, Alpha column.
-const COLLECTIBLE_BY_SET: Dictionary = {"war": 25, "decay": 25, "knowledge": 25, "neutral": 45}
-const TOKENS: int = 7
+## Core pool: Alpha, the three additional classes, and five 21-card archetypes.
+## Collections have separate cardinality tests and never inflate these core pools.
+const COLLECTIBLE_BY_SET: Dictionary = {"war": 46, "decay": 46, "knowledge": 46, "neutral": 87, "fortune": 25, "order": 25, "shadow": 25}
+const TOKENS: int = 10
 const BOSS_CARDS: int = 32
 const BOSSES_BY_BAND: Dictionary = {1: 6, 2: 6, 3: 4}
-const BUNDLES_BY_HERO_SET: Dictionary = {"war": 8, "decay": 8, "knowledge": 8}
-const NEUTRAL_BUNDLES: int = 12
+const BUNDLES_BY_HERO_SET: Dictionary = {"war": 15, "decay": 15, "knowledge": 15, "fortune": 9, "order": 9, "shadow": 9}
+const NEUTRAL_BUNDLES: int = 26
 const TREASURES: int = 20
-const HEROES: int = 3
-## 3 hero + 4 boss.
+const HEROES: int = 6
+## Three powers for each of six heroes, plus four boss powers.
 const HERO_POWERS: Array[String] = [
 	"power_whetstone", "power_rot", "power_insight",
 	"power_mend", "power_drain", "power_reinforce", "power_brand",
+	"power_toss", "power_ward", "power_garrote", "power_battle_cry", "power_brace",
+	"power_harvest", "power_raise", "power_frostbind", "power_study", "power_loaded_die",
+	"power_stake", "power_stand_fast", "power_muster", "power_vanish", "power_envenom",
 ]
-const SETS: Array[String] = ["war", "decay", "knowledge", "neutral", "boss"]
+const SETS: Array[String] = ["war", "decay", "knowledge", "neutral", "boss", "fortune", "order", "shadow"]
 
 var _db: CardDatabase = null
 
@@ -72,7 +76,7 @@ func test_boot_on_shipped_data_ends_ready() -> void:
 func test_collectible_counts_equal_cn1() -> void:
 	# Act / Assert
 	for set_id: String in COLLECTIBLE_BY_SET:
-		var collectible: Array = _db.cards_by_set(set_id).filter(func(card: Dictionary) -> bool: return not _is_token(card))
+		var collectible: Array = _db.cards_by_set(set_id).filter(func(card: Dictionary) -> bool: return not _is_token(card) and not card.has("collection_id"))
 		assert_int(collectible.size()).override_failure_message(set_id).is_equal(int(COLLECTIBLE_BY_SET[set_id]))
 
 
@@ -80,7 +84,7 @@ func test_token_count_equals_cn1() -> void:
 	# Act
 	var tokens: int = 0
 	for set_id: String in SETS:
-		tokens += _db.cards_by_set(set_id).filter(_is_token).size()
+		tokens += _db.cards_by_set(set_id).filter(func(card: Dictionary) -> bool: return _is_token(card) and not card.has("collection_id")).size()
 
 	# Assert
 	assert_int(tokens).is_equal(TOKENS)

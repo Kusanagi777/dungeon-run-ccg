@@ -206,6 +206,24 @@ func test_unknown_selector_and_illegal_adjacent_anchors_are_e_fx_selector() -> v
 	_assert_clean(of_target_with_chosen)
 
 
+func test_taxonomy_filters_accept_registered_values_and_reject_unknown_ones() -> void:
+	for pair: Array in [["tribe", "human"], ["school", "alchemy"]]:
+		var effect: String = '{"trigger":"cast","targets":{"selector":"all_minions","filter":{"%s":"%s"}},"ops":[{"op":"damage","amount":1}]}'
+		assert_array(_run(&"card", SPELL_HOST, effect % pair)).is_empty()
+		_assert_has_code(_run(&"card", SPELL_HOST, effect % [pair[0], "unknown"]), "E_FX_FILTER")
+
+
+func test_discover_auto_cast_validation_respects_school_filter() -> void:
+	var db := FixtureDb.new([
+		CardFactory.make_spell(SPELL_HOST, 1, [], {"keywords": ["discover"]}),
+		CardFactory.make_spell(BOLT, 1, _fx('{"trigger":"cast","targets":{"selector":"chosen","filter":{"kind":"any"}},"ops":[{"op":"damage","amount":1}]}'), {"schools": ["arcane"]}),
+		CardFactory.make_spell("neutral_test_tonic", 1, _fx('{"trigger":"cast","ops":[{"op":"draw","count":1}]}'), {"schools": ["alchemy"]}),
+	])
+	var effect: String = '{"trigger":"cast","ops":[{"op":"discover","pool":"list","list":["%s","neutral_test_tonic"],"filter":{"school":"%s"},"then":"cast"}]}'
+	assert_array(EffectValidator.validate_effects(&"card", SPELL_HOST, _fx(effect % [BOLT, "alchemy"]), db, _caps())).is_empty()
+	_assert_has_code(EffectValidator.validate_effects(&"card", SPELL_HOST, _fx(effect % [BOLT, "arcane"]), db, _caps()), "E_FX_OP_TARGET")
+
+
 func test_unknown_filter_predicate_is_e_fx_filter() -> void:
 	var in_targets: Array = _run(&"card", SPELL_HOST, '{"trigger":"cast","targets":{"selector":"all_minions","filter":{"is_shiny":true}},"ops":[{"op":"damage","amount":1}]}')
 	var in_scope: Array = _run(&"card", MINION_HOST, '{"trigger":"on_card_played","scope":{"by":"owner","card":{"flavour":"spicy"}},"ops":[{"op":"draw","count":1}]}')

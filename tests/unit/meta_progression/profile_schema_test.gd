@@ -5,7 +5,7 @@ extends GdUnitTestSuite
 const HERO: String = ProfileFixtures.HERO_WAR
 ## M1.2's top-level keys, in file order.
 const TOP_LEVEL_KEYS: Array[String] = ["schema_version", "profile_id", "created_at", "updated_at", "write_seq", "settings",
-	"stats", "run_log", "unlocks", "pending_notifications", "active_run", "data_versions_seen"]
+	"stats", "run_log", "unlocks", "pending_notifications", "active_run", "active_trial", "data_versions_seen"]
 
 
 func _repaired(profile: Dictionary) -> int:
@@ -70,7 +70,7 @@ func test_empty_stats_has_the_m7_1_shape() -> void:
 
 	# Assert
 	assert_array(stats.keys()).contains_exactly_in_any_order(["runs_started", "runs_won", "runs_lost", "runs_void",
-		"total_turns", "total_play_seconds", "heroes", "bosses", "treasures", "bests"])
+		"total_turns", "total_play_seconds", "heroes", "bosses", "treasures", "trials", "bests"])
 
 
 func test_empty_hero_stats_has_the_m7_1_shape_with_null_bests() -> void:

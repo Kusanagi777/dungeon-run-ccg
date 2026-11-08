@@ -20,6 +20,7 @@ const E_HERO_LOCKED: Error = ERR_UNAUTHORIZED
 ## The run layout cannot be played (Edge Cases "Configuration and content").
 const E_CONFIG: Error = ERR_UNCONFIGURED
 ## `new_run` with an extra power Meta reports locked.
+const E_COLLECTION_LOCKED: Error = ERR_CANT_ACQUIRE_RESOURCE
 const E_POWER_LOCKED: Error = ERR_LOCKED
 ## `draft_pick` of a kind other than `reward_step` (R5.3).
 const E_DRAFT_KIND: Error = ERR_INVALID_PARAMETER
@@ -107,6 +108,8 @@ static func code_name(code: Error) -> StringName:
 			return &"E_HERO_LOCKED"
 		E_CONFIG:
 			return &"E_CONFIG"
+		E_COLLECTION_LOCKED:
+			return &"E_COLLECTION_LOCKED"
 		E_POWER_LOCKED:
 			return &"E_POWER_LOCKED"
 		E_DRAFT_KIND:

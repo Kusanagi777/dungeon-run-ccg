@@ -141,7 +141,8 @@ func test_hero_war_is_a_launch_hero_with_h2_values() -> void:
 	var db: CardDatabase = _loaded()
 
 	# Assert
-	assert_array(_ids(db.heroes())).contains_exactly_in_any_order(["hero_war", "hero_decay", "hero_knowledge"])
+	var starting_heroes: Array = db.heroes().filter(func(hero: Dictionary) -> bool: return hero.get("unlock") == null)
+	assert_array(_ids(starting_heroes)).contains_exactly_in_any_order(["hero_war", "hero_decay", "hero_knowledge"])
 	var hero: Dictionary = db.hero("hero_war")
 	assert_str(hero["name"]).is_equal("Halvard, the Whetted")
 	assert_str(hero["set"]).is_equal("war")

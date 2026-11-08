@@ -10,7 +10,8 @@ const SEED_HEX: String = "48A10CC0B2ED54EC"
 const U2: Dictionary = {
 	&"main_menu": [&"new_run_requested", &"continue_requested", &"open_run_log", &"open_unlocks", &"open_settings", &"retry_lock", &"quit_requested"],
 	&"resume_prompt": [&"continue", &"abandon", &"back"],
-	&"hero_select": [&"start_run", &"back"],
+	&"hero_select": [&"start_run", &"open_collections", &"back"],
+	&"collections": [&"start_trial", &"resume_trial", &"next_trial_encounter", &"retry_trial", &"retry_trial_save", &"back"],
 	&"run_start": [],
 	&"boss_intro": [&"begin_match", &"open_pause"],
 	&"match": [],

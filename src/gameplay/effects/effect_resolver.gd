@@ -186,6 +186,7 @@ var _config: Dictionary
 ## The player's hero set: `base(collectible)` of F4 for both sides (Discover
 ## and `add_to_hand.from` draw from the player's pool).
 var _hero_set: String = ""
+var _featured_collection_id: String = ""
 ## The play runs still owed after the pass running now (a play point's later
 ## effects; a `then: cast` pick): captured into the continuation when the
 ## pass suspends ([constant CONT_TAIL]), empty between calls.
@@ -230,10 +231,11 @@ var _fold_view: Dictionary = {"entity_id": -1, "def_id": "", "controller": "", "
 ## The composition code that knows the hero passes it; `clone()` must pass the
 ## live resolver's [method player_hero_set] to the clone's. Left empty, a
 ## `pool: collectible` draw logs an error and offers nothing.
-func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String = "") -> void:
+func _init(db: CardDatabase, effects_config: Dictionary, player_hero_set: String = "", collection_id: String = "") -> void:
 	_db = db
 	_config = effects_config
 	_hero_set = player_hero_set
+	_featured_collection_id = collection_id
 	assert(_config.get(KNOB_HOOKS_BEFORE_TRIGGERS) == true, "card_effects.hooks_before_triggers must be true (card-effects Tuning Knobs)")
 
 
@@ -314,7 +316,7 @@ func collectible_pool() -> Array:
 	if _hero_set == "":
 		push_error("EffectResolver: `pool: collectible` needs the player's hero set (EffectResolver.new(db, config, hero_set); F4)")
 		return []
-	return _db.collectible_pool(_hero_set)
+	return _db.collectible_pool(_hero_set, _featured_collection_id)
 
 
 ## The engine this resolver is bound to, or null before [method bind] and
@@ -973,6 +975,9 @@ func _run_pass(effect: Dictionary, run_ctx: Dictionary) -> bool:
 	var entries: Array[Dictionary] = []
 	var todo: Array[Dictionary] = []
 	if _condition_holds(effect.get("condition"), run_ctx):
+		var prey: Dictionary = _predator_presence(effect, run_ctx)
+		if not prey.is_empty():
+			run_ctx["predator"] = prey
 		todo = EffectOps.work(effect.get("ops", []))
 	else:
 		fizzled = FIZZLED_CONDITION_FALSE
@@ -1017,8 +1022,7 @@ func _work_through(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[
 	if _engine == null:
 		_depth = 0
 		return false
-	@warning_ignore("return_value_discarded")
-	_engine.emit(EVENT_EFFECT_RESOLVED, {
+	var payload: Dictionary = {
 		"effect_id": run_ctx.effect_id,
 		"host_id": run_ctx.host_id,
 		"host_kind": run_ctx.host_kind,
@@ -1028,9 +1032,31 @@ func _work_through(run_ctx: Dictionary, entries: Array[Dictionary], todo: Array[
 		"depth": _depth,
 		"fizzled": fizzled,
 		"ops": entries,
-	})
+	}
+	if run_ctx.has("predator") and fizzled == null and entries.any(func(entry: Dictionary) -> bool: return entry.outcome == EffectOps.APPLIED):
+		payload["predator"] = run_ctx.predator
+	@warning_ignore("return_value_discarded")
+	_engine.emit(EVENT_EFFECT_RESOLVED, payload)
 	_depth = 0
 	return _engine != null
+
+
+## Preserve which board enabled a Predator before its bonus changes the board.
+func _predator_presence(effect: Dictionary, run_ctx: Dictionary) -> Dictionary:
+	if str(effect.get("trigger", "")) != "battlecry":
+		return {}
+	var selector: Variant = effect.get("condition", {}).get("exists")
+	if not selector is Dictionary or str(selector.get("selector", "")) != "all_minions":
+		return {}
+	var filter: Dictionary = selector.get("filter", {})
+	if not filter.has("tribe") or not bool(filter.get("not_self", false)):
+		return {}
+	var presence: Dictionary = {}
+	for side: String in ["friendly", "enemy"]:
+		var prey_filter: Dictionary = filter.duplicate(true)
+		prey_filter["side"] = side
+		presence[side] = EffectValues.holds({"exists": {"selector": "all_minions", "filter": prey_filter}}, run_ctx)
+	return presence
 
 
 ## C8.1 for the work item [param item] (a `discover` or `choose_one` op):
@@ -1247,3 +1273,12 @@ func _memo_entry(def_id: String) -> Dictionary:
 			MEMO_TARGETING: EffectValidator.derive_targeting_spec(effects),
 		}
 	return _memo[def_id]
+
+
+func featured_collection_id() -> String:
+	return _featured_collection_id
+
+
+func collection_allows(id: String) -> bool:
+	var record: Dictionary = definition(id)
+	return not record.is_empty() and DataLoader.collection_allows(record, _featured_collection_id)

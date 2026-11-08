@@ -15,7 +15,7 @@ const HERO_UNKNOWN: String = "hero_not_in_the_data"
 ## A shipped id that is a CardDef and no HeroDef.
 const CARD_ID: String = "war_rusted_axe"
 ## Heroes H-5, War's theme tags, in `heroes_balance.json` order (AC-2).
-const WAR_PLAN_TAGS: Array = ["weapons", "aggro", "armour"]
+const WAR_PLAN_TAGS: Array = ["weapons", "aggro", "armour", "berserk", "pack", "salvage"]
 ## H-1: a starter is its hero's set or neutral.
 const WAR_STARTER_SETS: Array = ["war", "neutral"]
 ## The two tokens of heroes AC-6, and every set present in the shipped data.

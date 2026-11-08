@@ -58,6 +58,7 @@ static func new_profile(schema_version: int, defaults: Dictionary, now: int) -> 
 		"unlocks": {},
 		"pending_notifications": [],
 		"active_run": null,
+		"active_trial": null,
 		"data_versions_seen": [],
 	}
 
@@ -80,6 +81,7 @@ static func empty_stats() -> Dictionary:
 		"heroes": {},
 		"bosses": {},
 		"treasures": {},
+		"trials": {},
 		"bests": {"fastest_victory_s": null, "fewest_turns_victory": null},
 	}
 
@@ -236,6 +238,11 @@ static func repair(profile: Dictionary, defaults: Dictionary, knobs: Dictionary)
 		_note(ctx, "active_run", active, null)
 		active = null
 	profile["active_run"] = active
+	var trial: Variant = profile.get("active_trial")
+	if trial != null and not trial is Dictionary:
+		_note(ctx, "active_trial", trial, null)
+		trial = null
+	profile["active_trial"] = trial
 	var seen: Array = _container(ctx, profile, "data_versions_seen", [], TYPE_ARRAY)
 	profile["data_versions_seen"] = seen.filter(func(version: Variant) -> bool: return version is String)
 	return ctx.repairs
@@ -275,6 +282,15 @@ static func _repair_stats(ctx: Dictionary, stats: Dictionary) -> void:
 	stats["bosses"] = _container(ctx, stats, "bosses", {}, TYPE_DICTIONARY)
 	_repair_counters(ctx, stats.bosses, ["defeated", "defeated_by"], "stats.bosses.")
 	stats["treasures"] = _container(ctx, stats, "treasures", {}, TYPE_DICTIONARY)
+	stats["trials"] = _container(ctx, stats, "trials", {}, TYPE_DICTIONARY)
+	for trial_id: Variant in stats.trials.keys():
+		var trial: Variant = stats.trials[trial_id]
+		if not trial is Dictionary:
+			_note(ctx, "stats.trials.%s" % str(trial_id), trial, {})
+			stats.trials[trial_id] = {}
+		elif not trial.get("completed", false) is bool:
+			_note(ctx, "stats.trials.%s.completed" % str(trial_id), trial.completed, false)
+			trial["completed"] = false
 	_repair_counters(ctx, stats.treasures, ["picked", "offered"], "stats.treasures.")
 	stats["bests"] = _container(ctx, stats, "bests", empty_stats().bests, TYPE_DICTIONARY)
 	_clamp_nullable(ctx, stats.bests, "fastest_victory_s", "stats.bests.", duration_max)

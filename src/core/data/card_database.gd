@@ -290,28 +290,36 @@ func cards_by_rarity(rarity: String) -> Array:
 ## CR-6: CardDefs with `set ∈ {hero_set, neutral}` and `token == false`
 ## (never `boss`; `DataLoader.in_collectible_pool`), id-ascending, read-only —
 ## precomputed at freeze for every CR-3 set. Example: `db.collectible_pool("war")`.
-func collectible_pool(hero_set: String) -> Array:
+func collectible_pool(hero_set: String, collection_id: String = "") -> Array:
+	if not collection_id.is_empty():
+		return _filter("collectible_pool", "CardDef", func(r: Dictionary) -> bool: return DataLoader.in_collectible_pool(r, hero_set, collection_id))
 	return _pool("collectible_pool", "collectible", hero_set, "CardDef",
 		func(r: Dictionary) -> bool: return DataLoader.in_collectible_pool(r, hero_set))
 
 
 ## CR-6: BundleDefs with `set ∈ {hero_set, neutral}`, id-ascending, read-only,
 ## precomputed at freeze. Example: `db.bundle_pool("war")`.
-func bundle_pool(hero_set: String) -> Array:
+func bundle_pool(hero_set: String, collection_id: String = "") -> Array:
+	if not collection_id.is_empty():
+		return _filter("bundle_pool", "BundleDef", func(r: Dictionary) -> bool: return DataLoader.in_bundle_pool(r, hero_set, collection_id))
 	return _pool("bundle_pool", "bundle", hero_set, "BundleDef",
 		func(r: Dictionary) -> bool: return DataLoader.in_bundle_pool(r, hero_set))
 
 
 ## CR-6: every TreasureDef, id-ascending, read-only. Example: `db.treasure_pool().size()`.
-func treasure_pool() -> Array:
-	return _pool("treasure_pool", "all", "TreasureDef", "TreasureDef", Callable())
+func treasure_pool(collection_id: String = "") -> Array:
+	if not collection_id.is_empty():
+		return _filter("treasure_pool", "TreasureDef", func(r: Dictionary) -> bool: return DataLoader.collection_allows(r, collection_id))
+	return _pool("treasure_pool", "all", "TreasureDef", "TreasureDef", func(r: Dictionary) -> bool: return DataLoader.collection_allows(r))
 
 
 ## CR-6: BossDefs of `band`, id-ascending (DD-R02 pool), read-only,
 ## precomputed at freeze for every band. Example: `db.bosses_in_band(1)`.
-func bosses_in_band(band: int) -> Array:
+func bosses_in_band(band: int, collection_id: String = "") -> Array:
+	if not collection_id.is_empty():
+		return _filter("bosses_in_band", "BossDef", func(r: Dictionary) -> bool: return int(r["band"]) == band and DataLoader.collection_allows(r, collection_id))
 	return _pool("bosses_in_band", "bosses_in_band", band, "BossDef",
-		func(r: Dictionary) -> bool: return int(r["band"]) == band)
+		func(r: Dictionary) -> bool: return int(r["band"]) == band and DataLoader.collection_allows(r))
 
 
 ## CR-6: every HeroDef, locked included, id-ascending, read-only. Example: `db.heroes()`.
@@ -448,3 +456,17 @@ func _report_caller_bug(message: String, assert_in_debug: bool) -> void:
 	push_error(message)
 	if assert_in_debug and _debug_build:
 		assert(false, message)
+
+
+func collections() -> Array:
+	if _state != State.READY:
+		return []
+	var source: Dictionary = _source("collections")
+	return Dictionary(source.get("config_bodies", {})).get("collections", {}).get("collections", [])
+
+
+func collection(id: String) -> Variant:
+	for row: Dictionary in collections():
+		if row.id == id:
+			return row
+	return null

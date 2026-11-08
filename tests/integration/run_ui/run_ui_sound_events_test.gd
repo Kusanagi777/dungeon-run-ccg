@@ -219,7 +219,7 @@ func test_a_hero_change_raises_its_sting_and_opening_the_screen_does_not() -> vo
 	assert_array(_without_hover().filter(func(event: StringName) -> bool: return String(event).begins_with("hero_sting"))).is_empty()
 	await _rig.key(KEY_2)
 	await _rig.key(KEY_ENTER)
-	var hero_id: String = str(_rig.top()._heroes[1].id)
+	var hero_id: String = str(_rig.top()._rows[1].id)
 	assert_array(_events()).contains([StringName("hero_sting_%s" % hero_id)])
 
 

@@ -1008,6 +1008,566 @@
         "key": "bundle.bundle_shadow_ambush_3.text",
         "en": "A long turn with a sharp end."
       }
+    },
+    {
+      "id": "bundle_war_berserk_1",
+      "name": "Draw First Blood",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_stung_recruit",
+        "war_blood_price",
+        "war_scar_captain"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_1.text",
+        "en": "Wound your own fighters and turn their scars into Attack."
+      }
+    },
+    {
+      "id": "bundle_war_berserk_2",
+      "name": "Fight Through It",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_second_wind",
+        "war_scarred_vanguard",
+        "war_pit_survivor"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_2.text",
+        "en": "Keep wounded minions in the fight and make their next swing count."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_1",
+      "name": "Early Symptoms",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_sporeling",
+        "decay_necrotic_mist",
+        "decay_blight_tender"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_1.text",
+        "en": "Wear down both boards while making something of your own losses."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_2",
+      "name": "Full Outbreak",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_carrion_bell",
+        "decay_rot_feast",
+        "decay_rot_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_2.text",
+        "en": "Spread the plague and finish off anything already wounded."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_1",
+      "name": "Cold Reading",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_rime_needle",
+        "knowledge_icebound_page",
+        "knowledge_cold_reader"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_1.text",
+        "en": "Freeze a threat, then turn the ice into damage or cards."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_2",
+      "name": "Deep Freeze",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_frostglass",
+        "knowledge_shard_warden",
+        "knowledge_winter_lecturer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_2.text",
+        "en": "Lock down a cluster of enemies and shatter what stays Frozen."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_1",
+      "name": "Safety in Numbers",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_pack_scout",
+        "neutral_burrow_guide",
+        "neutral_pack_howler"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_1.text",
+        "en": "Build a board of cheap bodies and reward it with a pack-wide boost."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_2",
+      "name": "Out of the Burrow",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_burrow_burst",
+        "neutral_den_guardian",
+        "neutral_pack_surge"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_2.text",
+        "en": "Refill empty slots and turn an established pack into burst damage."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_1",
+      "name": "Spare Parts",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_pocket_parts",
+        "neutral_field_repairs",
+        "neutral_salvage_tinker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_1.text",
+        "en": "Trade an expendable card for Armor or reuse a minion from your board."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_2",
+      "name": "Secondhand Steel",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_scrap_smelter",
+        "neutral_scrap_broker",
+        "neutral_rebuild"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_2.text",
+        "en": "Turn spare cards and spent Battlecries into a fresh hand and board."
+      }
+    },
+    {
+      "id": "bundle_war_berserk_3",
+      "name": "Light the Fuse",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_pit_medic",
+        "war_riot_spark",
+        "war_riot_axe"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_3.text",
+        "en": "Start the brawl and keep your wounded fighters standing."
+      }
+    },
+    {
+      "id": "bundle_war_berserk_4",
+      "name": "Fight Club",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_iron_nerve",
+        "war_pit_quartermaster",
+        "war_pit_barrier"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_4.text",
+        "en": "Turn a lasting wound into an extra card each turn."
+      }
+    },
+    {
+      "id": "bundle_war_berserk_5",
+      "name": "Fight Management",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_bone_setter",
+        "war_open_wound",
+        "war_crowd_favorite"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_5.text",
+        "en": "Protect your best fighter and pick off wounded enemy threats."
+      }
+    },
+    {
+      "id": "bundle_war_berserk_6",
+      "name": "Break the Chains",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_split_the_pit",
+        "war_wound_tracker",
+        "war_chain_breaker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_6.text",
+        "en": "Find more fighters and send damaged reinforcements straight into combat."
+      }
+    },
+    {
+      "id": "bundle_war_berserk_7",
+      "name": "Red Reckoning",
+      "set": "war",
+      "theme": "berserk",
+      "cards": [
+        "war_pit_tyrant",
+        "war_red_reckoning",
+        "war_challenge_blade"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_berserk_7.text",
+        "en": "Turn a board of wounded survivors into a double-strike finish."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_3",
+      "name": "Patient Zero",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_spore_satchel",
+        "decay_blight_rat",
+        "decay_carrion_picker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_3.text",
+        "en": "Seed small wounds and make efficient trades with Poisonous."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_4",
+      "name": "Miasma Works",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_miasma_leech",
+        "decay_wake_tender",
+        "decay_fume_cask"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_4.text",
+        "en": "Keep pings running while deaths grow a body and Lifesteal buys time."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_5",
+      "name": "Quarantine Kit",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_grave_antidote",
+        "decay_isolation",
+        "decay_burial_attendant"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_5.text",
+        "en": "Keep key minions alive, block attacks, and silence a wounded threat."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_6",
+      "name": "Carrion Economy",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_blight_ledger",
+        "decay_spore_host",
+        "decay_coffin_golem"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_6.text",
+        "en": "Draw off enemy wounds and convert your lost board into a large attacker."
+      }
+    },
+    {
+      "id": "bundle_decay_plague_7",
+      "name": "Final Contagion",
+      "set": "decay",
+      "theme": "plague",
+      "cards": [
+        "decay_morbane",
+        "decay_final_contagion",
+        "decay_quarantine_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_plague_7.text",
+        "en": "Wipe the enemy board or let Morbane turn every enemy death into boss damage."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_3",
+      "name": "First Frost",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_chill_scribe",
+        "knowledge_frost_ward",
+        "knowledge_shard_strike"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_3.text",
+        "en": "Freeze the enemy's best attacker, then cash that freeze in for cards or damage."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_4",
+      "name": "Cold Storage",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_rime_binder",
+        "knowledge_cold_storage",
+        "knowledge_winter_runewall"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_4.text",
+        "en": "Protect a repeatable Freeze engine and turn enemy minions into your own resources."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_5",
+      "name": "Winter Shelter",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_break_the_ice",
+        "knowledge_snowbound_scribe",
+        "knowledge_sleetwall"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_5.text",
+        "en": "Stall an entire board and turn the time you buy into extra cards."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_6",
+      "name": "The Long Winter",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_shard_channeler",
+        "knowledge_cold_front",
+        "knowledge_hoarfrost_colossus"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_6.text",
+        "en": "Hold the board still while Spell Damage makes your sweepers hit harder."
+      }
+    },
+    {
+      "id": "bundle_knowledge_frost_7",
+      "name": "Whiteout",
+      "set": "knowledge",
+      "theme": "frost",
+      "cards": [
+        "knowledge_ilyra",
+        "knowledge_whiteout",
+        "knowledge_ice_mirror"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_frost_7.text",
+        "en": "Shatter a frozen board or keep one enemy frozen for Ilyra's recurring damage."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_3",
+      "name": "Pup Patrol",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_den_runner",
+        "neutral_burrow_shepherd",
+        "neutral_burrow_lookout"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_3.text",
+        "en": "Leave bodies behind and draw when the pack reaches three minions."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_4",
+      "name": "Pack Training",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_den_nurse",
+        "neutral_pack_trainer",
+        "neutral_den_herbalist"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_4.text",
+        "en": "Make every summon stronger and build enough Health to survive sweepers."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_5",
+      "name": "Defend the Den",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_tunnel_ambush",
+        "neutral_pack_banner",
+        "neutral_den_shield"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_5.text",
+        "en": "Use the pack's numbers for removal and shield it behind Taunt."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_6",
+      "name": "Back from the Burrow",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_cache_keeper",
+        "neutral_repopulate",
+        "neutral_pack_hunter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_6.text",
+        "en": "Refill the board after a clear, then draw cards or remove a threat."
+      }
+    },
+    {
+      "id": "bundle_neutral_pack_7",
+      "name": "Greymaw's Hunt",
+      "set": "neutral",
+      "theme": "pack",
+      "cards": [
+        "neutral_greymaw",
+        "neutral_overrun",
+        "neutral_den_marshal"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_pack_7.text",
+        "en": "Build a wide board with Greymaw, then turn its size into direct damage."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_3",
+      "name": "Spare Change",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_scrap_sorter",
+        "neutral_spare_shieldwright",
+        "neutral_appraisal_clerk"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_3.text",
+        "en": "Generate cheap resources and protect the minion you plan to reuse."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_4",
+      "name": "Workshop Loop",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_salvage_bench",
+        "neutral_rivet_runner",
+        "neutral_workshop_appraiser"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_4.text",
+        "en": "Draw when you run low, then discount and replay your strongest Battlecries."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_5",
+      "name": "Workshop Safety",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_smoke_break",
+        "neutral_scrap_jammer",
+        "neutral_plate_broker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_5.text",
+        "en": "Pick up an ally before a sweep and use repeatable Silence to beat large threats."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_6",
+      "name": "Quality Control",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_foundry_clerk",
+        "neutral_workshop_foreman",
+        "neutral_spare_golem"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_6.text",
+        "en": "Refill your hand and turn recycled Battlecry minions into better bodies."
+      }
+    },
+    {
+      "id": "bundle_neutral_salvage_7",
+      "name": "The Last Foundry",
+      "set": "neutral",
+      "theme": "salvage",
+      "cards": [
+        "neutral_orla",
+        "neutral_last_foundry",
+        "neutral_second_shift"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_neutral_salvage_7.text",
+        "en": "Use a full hand for Orla's damage and recycle her Battlecry for another hit."
+      }
     }
   ]
 }

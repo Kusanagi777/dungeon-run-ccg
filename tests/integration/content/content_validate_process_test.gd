@@ -186,6 +186,14 @@ func test_card_schema_carries_the_cr3_by_type_rule() -> void:
 		assert_array(_sorted(rules[t].get("required", []))).is_equal(_sorted(need))
 
 
+func test_taxonomy_schema_enums_match_runtime_and_disallow_duplicate_tags() -> void:
+	var fields: Dictionary = _schema("cards").properties.records.items.properties
+	assert_array(fields.tribes.items.enum).is_equal(RecordSchemas.TRIBES)
+	assert_array(fields.schools.items.enum).is_equal(RecordSchemas.SPELL_SCHOOLS)
+	assert_bool(fields.tribes.uniqueItems).is_true()
+	assert_bool(fields.schools.uniqueItems).is_true()
+
+
 func test_content_budgets_schema_lists_the_validator_keys_at_every_level() -> void:
 	# Act / Assert
 	_assert_budget_keys(_schema("content_budgets").properties.config, ContentValidator.BUDGETS_SPEC, "config")

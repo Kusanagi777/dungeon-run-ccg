@@ -3,7 +3,7 @@
 ## pool size", "Bundle pool size", "Minimum treasure pool", Edge Cases;
 ## ADR-0002 Decision 3).
 ##
-## Every threshold comes from data: the five `card_database.json` knobs, and
+## Every threshold comes from data: the four `card_database.json` knobs, and
 ## the inputs other owners hold — `run_structure.json` `floors_per_run` /
 ## `treasure_floors` (treasure drafts per run, Run Structure), `reward_draft.json`
 ## `treasure_offers_per_draft` (Reward Draft), `match_rules.json`
@@ -161,18 +161,19 @@ func test_min_collectible_pool_99_over_a_40_card_pool_warns() -> void:
 	assert_str(hits[0].message).contains("40 < 99")
 
 
-func test_records_above_max_records_is_e_count_naming_the_knob_found_and_limit() -> void:
-	# Act — 31 records, max_records 20
+func test_record_counts_are_not_capped_and_the_removed_max_records_knob_is_rejected() -> void:
+	# Open-growth contract: the former 20-record cap no longer exists.
 	var db: CardDatabase = _load("max_records")
-
-	# Assert
-	var hits: Array[Dictionary] = _with(db.report(), ValidationReport.E_COUNT)
+	assert_int(db.state()).is_equal(CardDatabase.State.READY)
+	assert_int(db.report().record_count()).is_equal(31)
+	assert_array(_with(db.report(), ValidationReport.E_COUNT)).is_empty()
+	var body: Dictionary = db.config("card_database").duplicate(true)
+	body["max_records"] = 20
+	var report: ValidationReport = ValidationReport.new()
+	assert_bool(RecordSchemas.check_card_database_config(body, report)).is_false()
+	var hits: Array[Dictionary] = _with(report, ValidationReport.E_SCHEMA)
 	assert_int(hits.size()).is_equal(1)
-	assert_str(hits[0].file).is_equal("card_database.json")
 	assert_str(hits[0].field).is_equal("max_records")
-	assert_str(hits[0].message).contains("31")
-	assert_str(hits[0].message).contains("20")
-	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
 
 
 func test_checks_whose_inputs_are_missing_announce_that_they_did_not_run() -> void:

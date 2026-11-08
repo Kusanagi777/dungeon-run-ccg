@@ -80,7 +80,7 @@ class FakeDb:
 	func heroes() -> Array:
 		return hero_list
 
-	func bosses_in_band(band: int) -> Array:
+	func bosses_in_band(band: int, collection_id: String = "") -> Array:
 		return bands.get(band, [])
 
 	func config(config_name: String) -> Variant:

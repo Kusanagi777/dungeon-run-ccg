@@ -183,7 +183,12 @@ func test_the_filter_is_local_and_narrows_the_rows() -> void:
 	var calls: int = meta.calls.size()
 
 	# Act
-	RunUiRig.button(screen, str((RunUiRig.database().hero("hero_decay") as Dictionary).name)).pressed.emit()
+	var picker: OptionButton = screen.find_children("*", "OptionButton", true, false)[0]
+	for index: int in picker.item_count:
+		if str(picker.get_item_metadata(index)) == "hero_decay":
+			picker.select(index)
+			picker.item_selected.emit(index)
+			break
 	await _rig.settle()
 
 	# Assert

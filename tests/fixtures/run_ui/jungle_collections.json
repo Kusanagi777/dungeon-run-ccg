@@ -1,0 +1,20 @@
+{
+  "settings": {"anim_speed": "instant"},
+  "overrides": {
+    "collections": [{
+      "id": "law-of-the-jungle",
+      "name": "Law of the Jungle",
+      "description": "138 new cards, two dungeon bosses, and three run items. Preserve or hunt prey to enable Predator bonuses.",
+      "unlocked": false,
+      "trial_id": "trial_primal_crown"
+    }],
+    "trial": {
+      "trial_id": "trial_primal_crown",
+      "status": "idle",
+      "encounter_index": 0,
+      "encounter_count": 3,
+      "access": {"met": false},
+      "objectives": {"predator": 0, "friendly": 0, "enemy": 0}
+    }
+  }
+}

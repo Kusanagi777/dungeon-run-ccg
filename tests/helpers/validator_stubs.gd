@@ -43,7 +43,7 @@ static func accept_all() -> Dictionary:
 static func config_names() -> Array[String]:
 	var names: Array[String] = []
 	for row: Dictionary in DataLoader.FILE_MANIFEST:
-		if row["class"] == "config" and row.name != "card_database.json":
+		if row["class"] == "config" and not DataLoader.CONFIG_VALIDATOR_EXEMPT.has(row.name):
 			names.append(String(row.name).get_basename())
 	return names
 

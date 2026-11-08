@@ -18,6 +18,9 @@
       "tags": [
         "spell_damage"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.knowledge_candle_acolyte.text",
         "en": "Spell Damage +1."
@@ -56,6 +59,9 @@
         "spells",
         "draw"
       ],
+      "schools": [
+        "nature"
+      ],
       "text": {
         "key": "card.knowledge_spark.text",
         "en": "Deal 1 damage. Draw a card."
@@ -89,6 +95,9 @@
       "tags": [
         "discover"
       ],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.knowledge_lost_page.text",
         "en": "Discover a spell that costs (3) or less."
@@ -116,6 +125,9 @@
       ],
       "tags": [
         "spells"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.knowledge_glyph_wards.text",
@@ -153,6 +165,9 @@
       ],
       "tags": [
         "spells"
+      ],
+      "tribes": [
+        "elemental"
       ],
       "text": {
         "key": "card.knowledge_ink_sprite.text",
@@ -192,6 +207,9 @@
       "tags": [
         "spells"
       ],
+      "schools": [
+        "frost"
+      ],
       "text": {
         "key": "card.knowledge_frost_lance.text",
         "en": "Deal 2 damage to a minion and Freeze it."
@@ -226,6 +244,9 @@
       ],
       "tags": [
         "discover"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.knowledge_archive_seeker.text",
@@ -267,6 +288,9 @@
       "tags": [
         "spells"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.knowledge_apprentice.text",
         "en": "Your spells cost (1) less."
@@ -299,6 +323,9 @@
       "tags": [
         "discover"
       ],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.knowledge_scrying.text",
         "en": "Discover a Knowledge card."
@@ -325,6 +352,9 @@
       ],
       "tags": [
         "draw"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.knowledge_study.text",
@@ -359,6 +389,9 @@
       "tags": [
         "spells"
       ],
+      "schools": [
+        "nature"
+      ],
       "text": {
         "key": "card.knowledge_lightning_lash.text",
         "en": "Deal 3 damage to a minion."
@@ -381,6 +414,9 @@
       "effects": [],
       "tags": [
         "spell_damage"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.knowledge_rune_warden.text",
@@ -411,6 +447,9 @@
       "tags": [
         "spells"
       ],
+      "schools": [
+        "frost"
+      ],
       "text": {
         "key": "card.knowledge_glacial_wind.text",
         "en": "Freeze all enemy minions."
@@ -432,6 +471,9 @@
       "effects": [],
       "tags": [
         "spell_damage"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.knowledge_lorekeeper.text",
@@ -468,6 +510,9 @@
       "tags": [
         "draw"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.knowledge_scribe.text",
         "en": "Whenever you cast a spell, draw a card."
@@ -500,6 +545,9 @@
       ],
       "tags": [
         "spells"
+      ],
+      "schools": [
+        "fire"
       ],
       "text": {
         "key": "card.knowledge_meteor_bolt.text",
@@ -540,6 +588,9 @@
         "spells",
         "spell_damage"
       ],
+      "schools": [
+        "nature"
+      ],
       "text": {
         "key": "card.knowledge_chain_lightning.text",
         "en": "Deal 3 damage to a minion, then 2 damage to a random enemy minion."
@@ -573,6 +624,9 @@
       ],
       "tags": [
         "spells"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.knowledge_transmute.text",
@@ -612,6 +666,9 @@
       "tags": [
         "spells"
       ],
+      "tribes": [
+        "elemental"
+      ],
       "text": {
         "key": "card.knowledge_rime_elemental.text",
         "en": "Battlecry: Freeze an enemy minion."
@@ -640,6 +697,9 @@
       "tags": [
         "spell_damage"
       ],
+      "schools": [
+        "fire"
+      ],
       "text": {
         "key": "card.knowledge_flamewave.text",
         "en": "Deal 3 damage to all enemy minions."
@@ -666,6 +726,9 @@
       ],
       "tags": [
         "draw"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.knowledge_deep_study.text",
@@ -712,6 +775,9 @@
       "tags": [
         "draw"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.knowledge_star_reader.text",
         "en": "At the end of your turn, if you have 5 or more cards, deal 3 damage to a random enemy."
@@ -749,6 +815,9 @@
       "tags": [
         "spell_damage",
         "discover"
+      ],
+      "tribes": [
+        "construct"
       ],
       "text": {
         "key": "card.knowledge_grand_grimoire.text",
@@ -789,6 +858,10 @@
         "discover",
         "draw"
       ],
+      "schools": [
+        "arcane",
+        "shadow"
+      ],
       "text": {
         "key": "card.knowledge_forbidden_tome.text",
         "en": "Discover a spell. Repeat twice more."
@@ -826,6 +899,9 @@
       "tags": [
         "spells"
       ],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.knowledge_vault_golem.text",
         "en": "Costs (1) less for each spell you've cast this turn."
@@ -845,11 +921,887 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.knowledge_ward.text",
         "en": "Taunt."
       },
       "token": true
+    },
+    {
+      "id": "knowledge_rime_needle",
+      "name": "Rime Needle",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_rime_needle.text",
+        "en": "Deal 2 damage to a Frozen enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_icebound_page",
+      "name": "Icebound Page",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "random_enemy_minion",
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "construct"
+      ],
+      "text": {
+        "key": "card.knowledge_icebound_page.text",
+        "en": "Deathrattle: Freeze a random enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_cold_reader",
+      "name": "Cold Reader",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_frozen": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_cold_reader.text",
+        "en": "Battlecry: If an enemy minion is Frozen, draw 2 cards."
+      }
+    },
+    {
+      "id": "knowledge_frostglass",
+      "name": "Frostglass",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            },
+            {
+              "op": "freeze",
+              "targets": {
+                "selector": "adjacent",
+                "of": "target"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_frostglass.text",
+        "en": "Freeze an enemy minion and its neighbors."
+      }
+    },
+    {
+      "id": "knowledge_shard_warden",
+      "name": "Shard Warden",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "destroy"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "construct",
+        "elemental"
+      ],
+      "text": {
+        "key": "card.knowledge_shard_warden.text",
+        "en": "Battlecry: Destroy a Frozen enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_winter_lecturer",
+      "name": "Winter Lecturer",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": {
+            "selector": "all_enemy_minions",
+            "filter": {
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_winter_lecturer.text",
+        "en": "At the end of your turn, deal 1 damage to all Frozen enemy minions."
+      }
+    },
+    {
+      "id": "knowledge_chill_scribe",
+      "name": "Chill Scribe",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_frozen": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_chill_scribe.text",
+        "en": "Battlecry: Draw a card if an enemy minion is Frozen."
+      }
+    },
+    {
+      "id": "knowledge_frost_ward",
+      "name": "Frost Ward",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            },
+            {
+              "op": "armor",
+              "amount": 2,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_frost_ward.text",
+        "en": "Freeze an enemy minion. Gain 2 Armor."
+      }
+    },
+    {
+      "id": "knowledge_shard_strike",
+      "name": "Shard Strike",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "test": [
+                  "target",
+                  {
+                    "is_frozen": true
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "amount": 4
+                }
+              ],
+              "else": [
+                {
+                  "op": "damage",
+                  "amount": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_shard_strike.text",
+        "en": "Deal 2 damage to an enemy minion, or 4 if it is Frozen."
+      }
+    },
+    {
+      "id": "knowledge_rime_binder",
+      "name": "Rime Binder",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "targets": {
+            "selector": "random_enemy_minion",
+            "filter": {
+              "is_frozen": false
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_rime_binder.text",
+        "en": "At the end of your turn, Freeze a random unfrozen enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_cold_storage",
+      "name": "Cold Storage",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "arcane",
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_cold_storage.text",
+        "en": "Add a copy of a Frozen enemy minion to your hand."
+      }
+    },
+    {
+      "id": "knowledge_winter_runewall",
+      "name": "Winter Runewall",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "deathrattle",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "random_enemy_minion",
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "construct",
+        "elemental"
+      ],
+      "text": {
+        "key": "card.knowledge_winter_runewall.text",
+        "en": "Taunt. Deathrattle: Freeze a random enemy minion."
+      }
+    },
+    {
+      "id": "knowledge_break_the_ice",
+      "name": "Break the Ice",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_frozen": true
+            }
+          },
+          "ops": [
+            {
+              "op": "silence"
+            },
+            {
+              "op": "damage",
+              "amount": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_break_the_ice.text",
+        "en": "Silence a Frozen enemy minion, then deal 3 damage to it."
+      }
+    },
+    {
+      "id": "knowledge_snowbound_scribe",
+      "name": "Snowbound Scribe",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_frozen": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_snowbound_scribe.text",
+        "en": "At the end of your turn, draw a card if an enemy minion is Frozen."
+      }
+    },
+    {
+      "id": "knowledge_sleetwall",
+      "name": "Sleetwall",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "freeze",
+              "targets": "all_enemy_minions"
+            },
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_sleetwall.text",
+        "en": "Freeze all enemy minions. Gain 3 Armor."
+      }
+    },
+    {
+      "id": "knowledge_shard_channeler",
+      "name": "Shard Channeler",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry",
+        "spell_damage"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_frozen": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_shard_channeler.text",
+        "en": "Spell Damage +1. Battlecry: Gain 3 Armor if an enemy minion is Frozen."
+      },
+      "spell_damage": 1
+    },
+    {
+      "id": "knowledge_cold_front",
+      "name": "Cold Front",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "freeze"
+            },
+            {
+              "op": "damage",
+              "amount": 1,
+              "targets": "all_enemy_minions"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_cold_front.text",
+        "en": "Freeze an enemy minion. Deal 1 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "knowledge_hoarfrost_colossus",
+      "name": "Hoarfrost Colossus",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 7,
+      "attack": 5,
+      "health": 6,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "battlecry",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "freeze"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "construct",
+        "elemental"
+      ],
+      "text": {
+        "key": "card.knowledge_hoarfrost_colossus.text",
+        "en": "Taunt. Battlecry: Freeze all enemy minions."
+      }
+    },
+    {
+      "id": "knowledge_ilyra",
+      "name": "Ilyra, Winter's End",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 8,
+      "attack": 5,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_frozen": true
+              }
+            }
+          },
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.knowledge_ilyra.text",
+        "en": "Your turn ends: If an enemy minion is Frozen, deal 4 damage to their hero."
+      }
+    },
+    {
+      "id": "knowledge_whiteout",
+      "name": "Whiteout",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 5,
+              "targets": {
+                "selector": "all_enemy_minions",
+                "filter": {
+                  "is_frozen": true
+                }
+              }
+            },
+            {
+              "op": "freeze",
+              "targets": "all_enemy_minions"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "schools": [
+        "frost"
+      ],
+      "text": {
+        "key": "card.knowledge_whiteout.text",
+        "en": "Deal 5 damage to Frozen enemy minions. Freeze all enemy minions."
+      }
+    },
+    {
+      "id": "knowledge_ice_mirror",
+      "name": "Ice Mirror",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_frozen": true
+              }
+            }
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "keywords": [
+                "divine_shield"
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "frost"
+      ],
+      "tribes": [
+        "construct",
+        "elemental"
+      ],
+      "text": {
+        "key": "card.knowledge_ice_mirror.text",
+        "en": "Battlecry: If an enemy minion is Frozen, gain Divine Shield and +1 Attack."
+      }
     }
   ]
 }

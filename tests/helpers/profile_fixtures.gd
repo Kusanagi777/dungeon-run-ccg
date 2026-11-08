@@ -118,10 +118,10 @@ class UnlockDatabase:
 	func heroes() -> Array:
 		return _heroes
 
-	func treasure_pool() -> Array:
+	func treasure_pool(collection_id: String = "") -> Array:
 		return _treasures
 
-	func bundle_pool(_hero_set: String) -> Array:
+	func bundle_pool(_hero_set: String, collection_id: String = "") -> Array:
 		return []
 
 	func data_version() -> String:

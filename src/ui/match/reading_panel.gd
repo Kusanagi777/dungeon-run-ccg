@@ -79,7 +79,10 @@ func show_face(face: Dictionary, preview: Rect2) -> void:
 	for keyword: Variant in face.get("keywords", []):
 		glyphs.append(_ui.glyph(str(keyword)))
 	_keywords.text = " ".join(glyphs)
-	_keywords.visible = not glyphs.is_empty()
+	var taxonomy: String = CardFrame.taxonomy_text(face)
+	if not taxonomy.is_empty():
+		_keywords.text = taxonomy + ("  " + _keywords.text if not glyphs.is_empty() else "")
+	_keywords.visible = not _keywords.text.is_empty()
 	_rules.visible = _rules.text != ""
 	if not _rules.visible and not _keywords.visible:
 		hide_now()

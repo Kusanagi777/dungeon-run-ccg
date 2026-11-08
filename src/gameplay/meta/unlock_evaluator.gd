@@ -25,6 +25,7 @@ const LEAF_FIELDS: Dictionary = {
 	"boss_defeated": ["boss_id", "n"],
 	"floor_reached": ["n", "hero"],
 	"treasure_picked": ["treasure_id", "n"],
+	"trial_completed": ["trial_id"],
 }
 const GROUP_TYPES: Array[String] = ["all_of", "any_of"]
 ## `text_key` prefix of a condition's description (`unlock_hint`).
@@ -52,6 +53,8 @@ func _init(db: CardDatabase, limits: Dictionary) -> void:
 		_add_record(&"treasure", treasure)
 	for bundle: Dictionary in _bundles(db):
 		_add_record(&"bundle", bundle)
+	for collection: Dictionary in _collections(db):
+		_add_record(&"collection", collection)
 
 
 ## The CR-9 fingerprint of the data the table was read from (M3.1b).
@@ -227,6 +230,8 @@ func _current(condition: Dictionary, stats: Dictionary) -> int:
 			return _bosses_defeated(str(condition.get("boss_id", BOSS_ANY)), stats)
 		"treasure_picked":
 			return int(_entry(stats, "treasures", str(condition.get("treasure_id", ""))).get("picked", 0))
+		"trial_completed":
+			return 1 if _entry(stats, "trials", str(condition.get("trial_id", ""))).get("completed", false) == true else 0
 	return 0
 
 
@@ -295,6 +300,19 @@ static func _holders(db: Variant, key: String) -> int:
 	return count
 
 
+static func _collections(db: Variant) -> Array:
+	var records: Array = []
+	if not db.has_method("collections"):
+		return records
+	for entry: Variant in db.collections():
+		if entry is Dictionary:
+			var record: Dictionary = entry.duplicate(true)
+			if not record.get("unlock") is Dictionary:
+				record["unlock"] = db.config(str(record.get("id", "")) + "/unlock")
+			records.append(record)
+	return records
+
+
 static func _is_well_formed_key(key: String) -> bool:
 	var pattern: RegEx = RegEx.create_from_string("^[a-z0-9_]+(\\.[a-z0-9_]+)*$")
 	return pattern.search(key) != null
@@ -334,6 +352,10 @@ static func _check_count(ctx: Dictionary, condition: Dictionary, type: String) -
 
 
 static func _check_ids(ctx: Dictionary, condition: Dictionary, type: String) -> void:
+	if type == "trial_completed":
+		var trial_id: Variant = condition.get("trial_id")
+		if not trial_id is String or trial_id.is_empty():
+			_row(ctx, E_UNLOCK_SHAPE, "trial_id must be a nonempty string")
 	if condition.has("hero") and not [HERO_ANY, HERO_EACH_LAUNCH].has(condition.hero):
 		_check_id(ctx, condition.hero)
 	if type == "boss_defeated" and condition.get("boss_id") != BOSS_ANY:

@@ -145,14 +145,14 @@ func test_starter_curve_conforming_starter_raises_no_entry() -> void:
 
 
 func test_starter_curve_six_cost_substituted_raises_one_entry_naming_the_hero() -> void:
-	# heroes.md AC-2: a 6-cost card substituted fails with E_STARTER_CURVE.
+	# heroes.md AC-2: a 6-cost card substituted warns with W_STARTER_CURVE.
 	var starter: Array = _conforming_starter()
 	starter[starter.find("war_c3")] = "war_c6"
 	var pool: Dictionary = _pool(_cost_ladder(), [_war_hero(starter)])
 
 	var rows: Array = ContentValidator.check_heroes(pool, _budgets(), _heroes_balance())
 
-	assert_array(_codes(rows)).contains_exactly([ContentValidator.E_STARTER_CURVE])
+	assert_array(_codes(rows)).contains_exactly([ContentValidator.W_STARTER_CURVE])
 	assert_str(String(rows[0].record_id)).is_equal("hero_war")
 	assert_str(String(rows[0].file)).is_equal("heroes.json")
 	assert_str(String(rows[0].message)).contains("6")
@@ -169,7 +169,7 @@ func test_starter_curve_average_above_band_raises_entry() -> void:
 
 	var rows: Array = ContentValidator.check_heroes(pool, _budgets(), _heroes_balance())
 
-	assert_array(_codes(rows)).contains_exactly([ContentValidator.E_STARTER_CURVE])
+	assert_array(_codes(rows)).contains_exactly([ContentValidator.W_STARTER_CURVE])
 	assert_str(String(rows[0].message)).contains("avg")
 
 
@@ -192,7 +192,7 @@ func test_starter_curve_missing_knob_reports_not_checked_never_passes() -> void:
 
 	var rows: Array = ContentValidator.check_heroes(pool, _budgets(), balance)
 
-	assert_array(_codes(rows)).contains_exactly([ContentValidator.E_STARTER_CURVE])
+	assert_array(_codes(rows)).contains_exactly([ContentValidator.W_STARTER_CURVE])
 	assert_str(String(rows[0].message)).contains("not checked")
 
 
@@ -252,7 +252,7 @@ func test_conforming_pool_raises_none_of_the_three_ac1_codes() -> void:
 	var rows: Array = ContentValidator.check_heroes(pool, _budgets(), _heroes_balance()) \
 		+ ContentValidator.check_set_share(pool, _budgets(), _heroes_balance())
 
-	assert_array(_codes(rows)).not_contains([ContentValidator.E_STARTER_CURVE, ContentValidator.W_HERO_HEALTH, ContentValidator.W_SET_SHARE])
+	assert_array(_codes(rows)).not_contains([ContentValidator.W_STARTER_CURVE, ContentValidator.W_HERO_HEALTH, ContentValidator.W_SET_SHARE])
 
 
 # --- AC-2: F2 curve, F3 budget, text length ------------------------------------
@@ -591,7 +591,7 @@ func test_fixture_base_root_raises_no_ac1_code() -> void:
 
 	var rows: Array = ContentValidator.run_checks(db, db.config("content_budgets"), db.config("heroes_balance"))
 
-	assert_array(_codes(rows)).not_contains([ContentValidator.E_STARTER_CURVE, ContentValidator.W_HERO_HEALTH, ContentValidator.W_SET_SHARE])
+	assert_array(_codes(rows)).not_contains([ContentValidator.W_STARTER_CURVE, ContentValidator.W_HERO_HEALTH, ContentValidator.W_SET_SHARE])
 	_assert_cr5_shape(rows)
 
 

@@ -46,13 +46,22 @@ func test_shipped_counters_equal_the_formula_over_the_shipped_set() -> void:
 	var n_heroes: int = Array(records.HeroDef).size()
 	var deck_total: int = 0
 	var bosses_with_power: int = 0
+	var extra_powers: int = 0
+	for hero: Dictionary in records.HeroDef:
+		extra_powers += hero.get("extra_powers", []).size()
 	for boss: Dictionary in records.BossDef:
 		deck_total += Array(boss["deck"]).size()
 		if boss["hero_power"] != null:
 			bosses_with_power += 1
 	var expected_refs: int = n_heroes * TestConstants.STARTER_DECK_SIZE \
 		+ Array(records.BundleDef).size() * TestConstants.BUNDLE_CARD_COUNT \
-		+ deck_total + n_heroes + bosses_with_power
+		+ deck_total + n_heroes + extra_powers + bosses_with_power
+	for name: String in result.snapshot.config_bodies:
+		if name.ends_with("/collection"):
+			var metadata: Dictionary = result.snapshot.config_bodies[name].card_metadata
+			expected_refs += metadata.size()
+			for row: Dictionary in metadata.values():
+				expected_refs += row.get("enablers", []).size()
 	assert_int(result.n_records).is_equal(Dictionary(result.snapshot.index_of).size())
 	assert_int(result.n_refs).is_equal(expected_refs)
 	assert_bool(result.n_refs > 0).override_failure_message("shipped load checked no references").is_true()

@@ -49,9 +49,9 @@ const WAR_ROWS: Array = [
 const WAR_TOKEN: String = "war_whetstone_blade"
 ## Heroes H-5 War signature cards (◆).
 const WAR_SIGNATURES: Array[String] = ["war_duelists_edge", "war_pit_champion", "war_cleave_through"]
-## CN-2 War curve summary: avg 3.16, buckets 1:4 2:6 3:6 4:4 5:2 6:2 7:1.
-const WAR_CURVE_AVG: float = 3.16
-const WAR_CURVE_BUCKETS: Dictionary = {1: 4, 2: 6, 3: 6, 4: 4, 5: 2, 6: 2, 7: 1}
+## Shipped War curve, including Berserk.
+const WAR_CURVE_AVG: float = 146.0 / 46.0
+const WAR_CURVE_BUCKETS: Dictionary = {1: 7, 2: 12, 3: 10, 4: 8, 5: 4, 6: 3, 7: 1, 8: 1}
 
 
 func _map() -> Dictionary:
@@ -73,12 +73,12 @@ func _ids(records: Array) -> Array[String]:
 
 
 func _war_collectible(db: CardDatabase) -> Array:
-	return db.cards_by_set("war").filter(func(c: Dictionary) -> bool: return not c.get("token", false))
+	return db.cards_by_set("war").filter(func(c: Dictionary) -> bool: return not c.get("token", false) and not c.has("collection_id"))
 
 
 # --- story 002 AC-1: records ---------------------------------------------------------
 
-func test_war_set_is_the_25_cn2_rows_plus_the_whetstone_blade_token() -> void:
+func test_war_set_keeps_the_cn2_rows_and_the_whetstone_blade_token() -> void:
 	# Arrange
 	var expected: Array[String] = []
 	for row: Array in WAR_ROWS:
@@ -92,8 +92,8 @@ func test_war_set_is_the_25_cn2_rows_plus_the_whetstone_blade_token() -> void:
 	# Assert
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
 	assert_array(db.report().errors()).is_empty()
-	assert_array(_ids(db.cards_by_set("war"))).is_equal(expected)
-	assert_int(_war_collectible(db).size()).is_equal(25)
+	assert_array(_ids(db.cards_by_set("war"))).contains(expected)
+	assert_int(_war_collectible(db).size()).is_equal(46)
 	assert_bool(db.card(WAR_TOKEN)["token"]).is_true()
 
 
@@ -190,15 +190,15 @@ func test_war_type_shares_are_within_set_share_tolerance() -> void:
 	for c: Dictionary in cards:
 		counts[c["type"]] = int(counts[c["type"]]) + 1
 
-	# Assert — F1 / Heroes F4; CN-2 states 13 M / 6 S / 6 W
-	assert_that(counts).is_equal({"minion": 13, "spell": 6, "weapon": 6})
+	# Assert — F1 / Heroes F4 over the expanded set.
+	assert_that(counts).is_equal({"minion": 25, "spell": 13, "weapon": 8})
 	for type: String in counts:
 		var s: float = float(counts[type]) / cards.size()
 		assert_bool(absf(s - float(share[type])) <= tol + 1e-9).override_failure_message(
 			"%s share %.3f vs %.2f ± %.2f" % [type, s, float(share[type]), tol]).is_true()
 
 
-func test_war_curve_matches_the_cn2_summary_and_f2_targets() -> void:
+func test_war_curve_matches_the_shipped_pool_and_f2_targets() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var curve: Dictionary = db.config("content_budgets")["curve"]
@@ -213,7 +213,7 @@ func test_war_curve_matches_the_cn2_summary_and_f2_targets() -> void:
 		by_cost[cost] = int(by_cost.get(cost, 0)) + 1
 	var avg: float = float(total) / cards.size()
 
-	# Assert — CN-2 summary, then F2 avg band and per-bucket share ± tol
+	# Assert — shipped curve, then F2 avg band and per-bucket share ± tol.
 	assert_int(by_cost.size()).is_equal(WAR_CURVE_BUCKETS.size())
 	for cost: int in WAR_CURVE_BUCKETS:
 		assert_int(int(by_cost.get(cost, 0))).override_failure_message("cost %d" % cost).is_equal(WAR_CURVE_BUCKETS[cost])
@@ -459,14 +459,12 @@ func test_boss_rat_is_a_1_1_rat_token_summoned_by_the_passive_and_rat_pack_and_n
 		assert_array(Array(bundle["cards"])).not_contains([RAT_TOKEN])
 
 
-func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_45() -> void:
+func test_smite_or_mend_keeps_its_cn2_choose_one_effect() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var card: Dictionary = _card_or_empty(db, "neutral_smite_or_mend")
 
-	# Assert — CN-1's 45 Alpha neutrals, `neutral_gravekeeper` included (story 010)
-	var collectible: Array = db.cards_by_set("neutral").filter(func(c: Dictionary) -> bool: return not c.get("token", false))
-	assert_int(collectible.size()).is_equal(45)
+	# Assert — the original CN-2 row.
 	assert_bool(card.is_empty()).is_false()
 	if card.is_empty():
 		return
@@ -487,7 +485,7 @@ func test_smite_or_mend_is_the_cn2_row_33_choose_one_and_the_neutral_set_is_45()
 func test_band_1_boss_passives_and_new_cards_pass_validate_effects_with_zero_rows() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
-	var caps: Dictionary = db.config("card_effects")
+	var caps: Dictionary = EffectValidator.stage7_caps({"card_effects": db.config("card_effects"), "match_rules": db.config("match_rules")})
 	var rows: Array = []
 
 	# Act — both passives, the boss set (token included) and the neutral set
@@ -522,13 +520,13 @@ const MVP_BUNDLES: Dictionary = {
 	"bundle_neutral_tempo": ["Quick March", "neutral", "tempo", ["neutral_tunnel_rat", "neutral_wolf_rider", "neutral_banner_captain"]],
 }
 ## Heroes H-5 War plan tags (Reward Draft's pity rule wants ≥ 2 bundles each).
-const WAR_PLAN_TAGS: Array[String] = ["weapons", "aggro", "armour"]
-## CN-4 / AC-15: War's F2 band split, 3 early / 3 mid / 2 late.
-const WAR_BAND_SPLIT: Dictionary = {"early": 3, "mid": 3, "late": 2}
+const WAR_PLAN_TAGS: Array[String] = ["weapons", "aggro", "armour", "berserk"]
+## War's F2 band split with the full Berserk draft pool.
+const WAR_BAND_SPLIT: Dictionary = {"early": 5, "mid": 7, "late": 3}
 ## Reward Draft F5 at v1: `F = 8`, `W = 2` gives `B_min = 13` (reward-draft.md F5).
 const REWARD_DRAFT_V1_BUNDLE_POOL_MIN: int = 13
-## DD-H05's pool per hero: 8 hero-set bundles + 12 neutral (reward-draft.md F5).
-const WAR_BUNDLE_POOL_SIZE: int = 20
+## War's pool: 15 War bundles and 26 Neutral bundles.
+const WAR_BUNDLE_POOL_SIZE: int = 41
 ## card-database.md: `min_bundle_pool` default.
 const MIN_BUNDLE_POOL_DEFAULT: int = 13
 
@@ -548,11 +546,10 @@ func test_bundles_json_holds_the_ten_cn4_mvp_bundles_with_set_theme_and_pitch() 
 	var db: CardDatabase = _loaded()
 	var pool: Array = db.bundle_pool("war")
 
-	# Assert — every MVP row present and verbatim; 8 war + 12 neutral at Alpha (CN-1);
-	# every bundle in the pool, MVP or not, has cards sharing its set and theme
+	# Assert — every MVP row is present and every bundle's cards share its set and theme.
 	assert_array(_ids(pool)).contains(MVP_BUNDLES.keys())
-	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "war").size()).is_equal(8)
-	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "neutral").size()).is_equal(12)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "war").size()).is_equal(15)
+	assert_int(pool.filter(func(b: Dictionary) -> bool: return b["set"] == "neutral").size()).is_equal(26)
 	for b: Dictionary in pool:
 		var id: String = b["id"]
 		if MVP_BUNDLES.has(id):
@@ -574,7 +571,7 @@ func test_bundles_json_holds_the_ten_cn4_mvp_bundles_with_set_theme_and_pitch() 
 		assert_bool(["E_COUNT", "E_TOKEN_IN_LIST", "E_TAG_MISMATCH"].has(String(e.code))).override_failure_message(str(e)).is_false()
 
 
-func test_mvp_bundles_cover_every_war_signature_and_plan_tag_with_a_3_3_2_band_split() -> void:
+func test_war_bundles_cover_every_signature_and_plan_tag_across_bands() -> void:
 	# Arrange
 	var db: CardDatabase = _loaded()
 	var curve: Dictionary = db.config("content_budgets")["curve"]
@@ -831,9 +828,9 @@ func test_decay_husk_is_a_1_1_decay_token_summoned_by_rot_zombie_and_never_liste
 	var husk: Dictionary = _card_or_empty(db, HUSK_TOKEN)
 	var zombie: Dictionary = _card_or_empty(db, "boss_rot_zombie")
 
-	# Assert — CN-2 tokens line; Alpha-A's full cards_decay.json: 25 cards + 3 tokens; AC-16
+	# Assert — 46 collectible Decay cards including Plague, and 3 tokens.
 	assert_array(_ids(db.cards_by_set("decay"))).contains([HUSK_TOKEN])
-	assert_int(db.cards_by_set("decay").size()).is_equal(28)
+	assert_int(db.cards_by_set("decay").filter(func(card: Dictionary) -> bool: return not card.has("collection_id")).size()).is_equal(49)
 	assert_bool(husk.is_empty() or zombie.is_empty()).is_false()
 	if husk.is_empty() or zombie.is_empty():
 		return

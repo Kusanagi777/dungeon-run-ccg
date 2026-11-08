@@ -45,6 +45,7 @@ var _mirror: RefCounted
 var _defaults: Dictionary
 var _settings: Dictionary
 var _active_run: Variant = null
+var _active_trial: Variant = null
 ## The `reset_confirm_token` knob; empty when the body carries no knobs.
 var _reset_token: String = ""
 
@@ -99,6 +100,24 @@ func load_profile() -> Dictionary:
 ## Nothing to write; returns `OK`. (M1.3)
 func save_profile() -> Error:
 	return OK
+
+
+func load_trial() -> Variant:
+	return _active_trial.duplicate(true) if _active_trial is Dictionary else null
+
+
+func save_trial(attempt: MasteryTrial) -> Error:
+	if not attempt.belongs_to(self):
+		return SaveErrors.E_RANGE
+	_active_trial = attempt.record()
+	return OK
+
+
+func is_collection_unlocked(collection_id: String) -> bool:
+	for collection: Dictionary in _db.collections():
+		if collection.get("id") == collection_id:
+			return true
+	return false
 
 
 ## Holds a deep copy of [param record] as the one active run; returns `OK`.

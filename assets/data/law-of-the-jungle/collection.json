@@ -1,0 +1,865 @@
+{
+  "schema_version": 1,
+  "config": {
+    "id": "law-of-the-jungle",
+    "name": "Law of the Jungle",
+    "display_name": "Law of the Jungle",
+    "version": 1,
+    "trial_id": "trial_primal_crown",
+    "unlock": {
+      "key": "collection_law_of_the_jungle",
+      "condition": {
+        "type": "all_of",
+        "of": [
+          {
+            "type": "runs_won",
+            "n": 20
+          },
+          {
+            "type": "runs_won",
+            "n": 2,
+            "hero": "hero_war"
+          },
+          {
+            "type": "runs_won",
+            "n": 2,
+            "hero": "hero_decay"
+          },
+          {
+            "type": "runs_won",
+            "n": 2,
+            "hero": "hero_knowledge"
+          },
+          {
+            "type": "runs_won",
+            "n": 2,
+            "hero": "hero_fortune"
+          },
+          {
+            "type": "runs_won",
+            "n": 2,
+            "hero": "hero_order"
+          },
+          {
+            "type": "runs_won",
+            "n": 2,
+            "hero": "hero_shadow"
+          },
+          {
+            "type": "trial_completed",
+            "trial_id": "trial_primal_crown"
+          }
+        ]
+      }
+    },
+    "unlock_metadata": {
+      "set_id": "law-of-the-jungle",
+      "display_name": "Law of the Jungle",
+      "description": "Master all six classes, then claim the Primal Crown.",
+      "unlock": {
+        "key": "collection_law_of_the_jungle",
+        "condition": {
+          "type": "all_of",
+          "of": [
+            {
+              "type": "runs_won",
+              "n": 20
+            },
+            {
+              "type": "runs_won",
+              "n": 2,
+              "hero": "hero_war"
+            },
+            {
+              "type": "runs_won",
+              "n": 2,
+              "hero": "hero_decay"
+            },
+            {
+              "type": "runs_won",
+              "n": 2,
+              "hero": "hero_knowledge"
+            },
+            {
+              "type": "runs_won",
+              "n": 2,
+              "hero": "hero_fortune"
+            },
+            {
+              "type": "runs_won",
+              "n": 2,
+              "hero": "hero_order"
+            },
+            {
+              "type": "runs_won",
+              "n": 2,
+              "hero": "hero_shadow"
+            },
+            {
+              "type": "trial_completed",
+              "trial_id": "trial_primal_crown"
+            }
+          ]
+        }
+      },
+      "unlock_mode": "all",
+      "retroactive": true,
+      "unlock_rewards": [],
+      "unlock_requirements": [
+        {
+          "type": "runs_won",
+          "description": "Win 20 lifetime runs.",
+          "params": {
+            "n": 20
+          }
+        },
+        {
+          "type": "runs_won",
+          "description": "Win two runs as war.",
+          "params": {
+            "n": 2,
+            "hero": "hero_war"
+          }
+        },
+        {
+          "type": "runs_won",
+          "description": "Win two runs as decay.",
+          "params": {
+            "n": 2,
+            "hero": "hero_decay"
+          }
+        },
+        {
+          "type": "runs_won",
+          "description": "Win two runs as knowledge.",
+          "params": {
+            "n": 2,
+            "hero": "hero_knowledge"
+          }
+        },
+        {
+          "type": "runs_won",
+          "description": "Win two runs as fortune.",
+          "params": {
+            "n": 2,
+            "hero": "hero_fortune"
+          }
+        },
+        {
+          "type": "runs_won",
+          "description": "Win two runs as order.",
+          "params": {
+            "n": 2,
+            "hero": "hero_order"
+          }
+        },
+        {
+          "type": "runs_won",
+          "description": "Win two runs as shadow.",
+          "params": {
+            "n": 2,
+            "hero": "hero_shadow"
+          }
+        },
+        {
+          "type": "trial_completed",
+          "description": "Complete all three Primal Crown encounters in one attempt.",
+          "params": {
+            "trial_id": "trial_primal_crown"
+          }
+        }
+      ]
+    },
+    "card_metadata": {
+      "neutral_jungle_seedling": {
+        "package": "token",
+        "role": "enabler"
+      },
+      "neutral_jungle_hatchling": {
+        "package": "token",
+        "role": "enabler"
+      },
+      "neutral_jungle_vineguard": {
+        "package": "token",
+        "role": "enabler"
+      },
+      "neutral_jungle_seedling_keeper": {
+        "package": "apex_succession",
+        "role": "enabler"
+      },
+      "neutral_jungle_nest_tender": {
+        "package": "apex_succession",
+        "role": "enabler"
+      },
+      "neutral_jungle_canopy_stalker": {
+        "package": "apex_succession",
+        "role": "enabler"
+      },
+      "neutral_jungle_amber_grazer": {
+        "package": "apex_succession",
+        "role": "enabler"
+      },
+      "neutral_jungle_thornback_yearling": {
+        "package": "apex_succession",
+        "role": "enabler"
+      },
+      "neutral_jungle_fossil_sprout": {
+        "package": "apex_succession",
+        "role": "enabler"
+      },
+      "neutral_jungle_trophy_sifter": {
+        "package": "apex_succession",
+        "role": "engine"
+      },
+      "neutral_jungle_ancient_browser": {
+        "package": "apex_succession",
+        "role": "engine"
+      },
+      "neutral_jungle_canopy_cartographer": {
+        "package": "apex_succession",
+        "role": "engine"
+      },
+      "neutral_jungle_crushing_tail": {
+        "package": "apex_succession",
+        "role": "answer"
+      },
+      "neutral_jungle_boulderhide": {
+        "package": "apex_succession",
+        "role": "answer"
+      },
+      "neutral_jungle_amber_shell": {
+        "package": "apex_succession",
+        "role": "answer"
+      },
+      "neutral_jungle_fossil_excavator": {
+        "package": "apex_succession",
+        "role": "recovery"
+      },
+      "neutral_jungle_sheltered_colossus": {
+        "package": "apex_succession",
+        "role": "recovery"
+      },
+      "neutral_jungle_fern_hopper": {
+        "package": "living_canopy",
+        "role": "enabler"
+      },
+      "neutral_jungle_spore_nursery": {
+        "package": "living_canopy",
+        "role": "enabler"
+      },
+      "neutral_jungle_root_watcher": {
+        "package": "living_canopy",
+        "role": "enabler"
+      },
+      "neutral_jungle_shelter_fern": {
+        "package": "living_canopy",
+        "role": "enabler"
+      },
+      "neutral_jungle_regrowth_runner": {
+        "package": "living_canopy",
+        "role": "enabler"
+      },
+      "neutral_jungle_scattered_seeds": {
+        "package": "living_canopy",
+        "role": "enabler"
+      },
+      "neutral_jungle_rainfall_herbalist": {
+        "package": "living_canopy",
+        "role": "engine"
+      },
+      "neutral_jungle_waking_banyan": {
+        "package": "living_canopy",
+        "role": "engine"
+      },
+      "neutral_jungle_mossjaw": {
+        "package": "living_canopy",
+        "role": "engine"
+      },
+      "neutral_jungle_vine_sentry": {
+        "package": "living_canopy",
+        "role": "answer"
+      },
+      "neutral_jungle_tangled_path": {
+        "package": "living_canopy",
+        "role": "answer"
+      },
+      "neutral_jungle_canopy_medic": {
+        "package": "living_canopy",
+        "role": "answer"
+      },
+      "neutral_jungle_seed_reserve": {
+        "package": "living_canopy",
+        "role": "recovery"
+      },
+      "neutral_jungle_rain_drinker": {
+        "package": "living_canopy",
+        "role": "recovery"
+      },
+      "neutral_jungle_reed_ambusher": {
+        "package": "primal_hunt",
+        "role": "enabler"
+      },
+      "neutral_jungle_trail_falcon": {
+        "package": "primal_hunt",
+        "role": "enabler"
+      },
+      "neutral_jungle_nest_guard": {
+        "package": "primal_hunt",
+        "role": "enabler"
+      },
+      "neutral_jungle_brush_raptor": {
+        "package": "primal_hunt",
+        "role": "enabler"
+      },
+      "neutral_jungle_thorn_runner": {
+        "package": "primal_hunt",
+        "role": "enabler"
+      },
+      "neutral_jungle_pathfinder": {
+        "package": "primal_hunt",
+        "role": "enabler"
+      },
+      "neutral_jungle_pack_outrider": {
+        "package": "primal_hunt",
+        "role": "engine"
+      },
+      "neutral_jungle_scent_tracker": {
+        "package": "primal_hunt",
+        "role": "engine"
+      },
+      "neutral_jungle_chase_caller": {
+        "package": "primal_hunt",
+        "role": "engine"
+      },
+      "neutral_jungle_coordinated_pounce": {
+        "package": "primal_hunt",
+        "role": "answer"
+      },
+      "neutral_jungle_razorbeak": {
+        "package": "primal_hunt",
+        "role": "answer"
+      },
+      "neutral_jungle_guard_the_nest": {
+        "package": "primal_hunt",
+        "role": "answer"
+      },
+      "neutral_jungle_expedition_supplier": {
+        "package": "primal_hunt",
+        "role": "recovery"
+      },
+      "neutral_jungle_follow_the_tracks": {
+        "package": "primal_hunt",
+        "role": "recovery"
+      },
+      "war_jungle_trail_squire": {
+        "package": "crown_tempo",
+        "role": "enabler"
+      },
+      "war_jungle_redcrest_hatchery": {
+        "package": "crown_tempo",
+        "role": "enabler"
+      },
+      "war_jungle_canopy_challenger": {
+        "package": "crown_tempo",
+        "role": "engine"
+      },
+      "war_jungle_hold_the_ridge": {
+        "package": "crown_tempo",
+        "role": "answer"
+      },
+      "war_jungle_trophy_quartermaster": {
+        "package": "crown_tempo",
+        "role": "recovery"
+      },
+      "war_jungle_gorath": {
+        "package": "crown_tempo",
+        "role": "legendary",
+        "playstyle": "tempo",
+        "enablers": [
+          "war_jungle_trail_squire",
+          "war_jungle_redcrest_hatchery",
+          "war_jungle_canopy_challenger",
+          "war_jungle_trophy_quartermaster"
+        ]
+      },
+      "war_jungle_spearleaf": {
+        "package": "extinction_aggro",
+        "role": "enabler"
+      },
+      "war_jungle_ridge_charger": {
+        "package": "extinction_aggro",
+        "role": "enabler"
+      },
+      "war_jungle_stampede_drummer": {
+        "package": "extinction_aggro",
+        "role": "engine"
+      },
+      "war_jungle_break_the_thicket": {
+        "package": "extinction_aggro",
+        "role": "answer"
+      },
+      "war_jungle_rally_the_hunt": {
+        "package": "extinction_aggro",
+        "role": "recovery"
+      },
+      "war_jungle_extinction_march": {
+        "package": "extinction_aggro",
+        "role": "legendary",
+        "playstyle": "aggro",
+        "enablers": [
+          "war_jungle_spearleaf",
+          "war_jungle_ridge_charger",
+          "war_jungle_stampede_drummer",
+          "war_jungle_rally_the_hunt"
+        ]
+      },
+      "war_jungle_bone_honing": {
+        "package": "legacy_weapons",
+        "role": "legacy_support",
+        "legacy_mechanic": "weapons"
+      },
+      "war_jungle_ridge_bladesmith": {
+        "package": "legacy_weapons",
+        "role": "legacy_support",
+        "legacy_mechanic": "weapons"
+      },
+      "war_jungle_battle_scars": {
+        "package": "legacy_berserk",
+        "role": "legacy_support",
+        "legacy_mechanic": "berserk"
+      },
+      "war_jungle_scarhide_veteran": {
+        "package": "legacy_berserk",
+        "role": "legacy_support",
+        "legacy_mechanic": "berserk"
+      },
+      "decay_jungle_rotting_bulb": {
+        "package": "worldroot_attrition",
+        "role": "enabler"
+      },
+      "decay_jungle_mire_nibbler": {
+        "package": "worldroot_attrition",
+        "role": "enabler"
+      },
+      "decay_jungle_compost_keeper": {
+        "package": "worldroot_attrition",
+        "role": "engine"
+      },
+      "decay_jungle_strangling_roots": {
+        "package": "worldroot_attrition",
+        "role": "answer"
+      },
+      "decay_jungle_mire_reclaimer": {
+        "package": "worldroot_attrition",
+        "role": "recovery"
+      },
+      "decay_jungle_worldroot": {
+        "package": "worldroot_attrition",
+        "role": "legendary",
+        "playstyle": "attrition",
+        "enablers": [
+          "decay_jungle_rotting_bulb",
+          "decay_jungle_mire_nibbler",
+          "decay_jungle_compost_keeper",
+          "decay_jungle_mire_reclaimer"
+        ]
+      },
+      "decay_jungle_spore_offering": {
+        "package": "verdant_sacrifice",
+        "role": "enabler"
+      },
+      "decay_jungle_carrion_gardener": {
+        "package": "verdant_sacrifice",
+        "role": "enabler"
+      },
+      "decay_jungle_root_feaster": {
+        "package": "verdant_sacrifice",
+        "role": "engine"
+      },
+      "decay_jungle_feed_the_thicket": {
+        "package": "verdant_sacrifice",
+        "role": "answer"
+      },
+      "decay_jungle_compost_ledger": {
+        "package": "verdant_sacrifice",
+        "role": "recovery"
+      },
+      "decay_jungle_verdant_reclamation": {
+        "package": "verdant_sacrifice",
+        "role": "legendary",
+        "playstyle": "sacrifice",
+        "enablers": [
+          "decay_jungle_spore_offering",
+          "decay_jungle_carrion_gardener",
+          "decay_jungle_root_feaster",
+          "decay_jungle_compost_ledger"
+        ]
+      },
+      "decay_jungle_sporebound_relic": {
+        "package": "legacy_deathrattle",
+        "role": "legacy_support",
+        "legacy_mechanic": "deathrattle"
+      },
+      "decay_jungle_buried_echo": {
+        "package": "legacy_deathrattle",
+        "role": "legacy_support",
+        "legacy_mechanic": "deathrattle"
+      },
+      "decay_jungle_fertile_bargain": {
+        "package": "legacy_sacrifice",
+        "role": "legacy_support",
+        "legacy_mechanic": "sacrifice"
+      },
+      "decay_jungle_offering_warden": {
+        "package": "legacy_sacrifice",
+        "role": "legacy_support",
+        "legacy_mechanic": "sacrifice"
+      },
+      "knowledge_jungle_field_scholar": {
+        "package": "fossil_value",
+        "role": "enabler"
+      },
+      "knowledge_jungle_amber_specimen": {
+        "package": "fossil_value",
+        "role": "enabler"
+      },
+      "knowledge_jungle_fossil_reader": {
+        "package": "fossil_value",
+        "role": "engine"
+      },
+      "knowledge_jungle_amber_encasement": {
+        "package": "fossil_value",
+        "role": "answer"
+      },
+      "knowledge_jungle_catalogue_keeper": {
+        "package": "fossil_value",
+        "role": "recovery"
+      },
+      "knowledge_jungle_tala": {
+        "package": "fossil_value",
+        "role": "legendary",
+        "playstyle": "value",
+        "enablers": [
+          "knowledge_jungle_field_scholar",
+          "knowledge_jungle_amber_specimen",
+          "knowledge_jungle_fossil_reader",
+          "knowledge_jungle_catalogue_keeper"
+        ]
+      },
+      "knowledge_jungle_amber_seed": {
+        "package": "archive_control",
+        "role": "enabler"
+      },
+      "knowledge_jungle_quillback_student": {
+        "package": "archive_control",
+        "role": "enabler"
+      },
+      "knowledge_jungle_canopy_observer": {
+        "package": "archive_control",
+        "role": "engine"
+      },
+      "knowledge_jungle_amberwave": {
+        "package": "archive_control",
+        "role": "answer"
+      },
+      "knowledge_jungle_shelved_discovery": {
+        "package": "archive_control",
+        "role": "recovery"
+      },
+      "knowledge_jungle_amber_archive": {
+        "package": "archive_control",
+        "role": "legendary",
+        "playstyle": "control",
+        "enablers": [
+          "knowledge_jungle_amber_seed",
+          "knowledge_jungle_quillback_student",
+          "knowledge_jungle_canopy_observer",
+          "knowledge_jungle_shelved_discovery"
+        ]
+      },
+      "knowledge_jungle_cold_fossil": {
+        "package": "legacy_frost",
+        "role": "legacy_support",
+        "legacy_mechanic": "frost"
+      },
+      "knowledge_jungle_rime_excavator": {
+        "package": "legacy_frost",
+        "role": "legacy_support",
+        "legacy_mechanic": "frost"
+      },
+      "knowledge_jungle_prism_moth": {
+        "package": "legacy_spell_damage",
+        "role": "legacy_support",
+        "legacy_mechanic": "spell_damage"
+      },
+      "knowledge_jungle_fossil_burst": {
+        "package": "legacy_spell_damage",
+        "role": "legacy_support",
+        "legacy_mechanic": "spell_damage"
+      },
+      "fortune_jungle_trophy_forager": {
+        "package": "trophy_value",
+        "role": "enabler"
+      },
+      "fortune_jungle_gilded_nest": {
+        "package": "trophy_value",
+        "role": "enabler"
+      },
+      "fortune_jungle_amber_appraiser": {
+        "package": "trophy_value",
+        "role": "engine"
+      },
+      "fortune_jungle_trophy_exchange": {
+        "package": "trophy_value",
+        "role": "answer"
+      },
+      "fortune_jungle_jungle_pawnbroker": {
+        "package": "trophy_value",
+        "role": "recovery"
+      },
+      "fortune_jungle_vexa": {
+        "package": "trophy_value",
+        "role": "legendary",
+        "playstyle": "value",
+        "enablers": [
+          "fortune_jungle_trophy_forager",
+          "fortune_jungle_gilded_nest",
+          "fortune_jungle_amber_appraiser",
+          "fortune_jungle_jungle_pawnbroker"
+        ]
+      },
+      "fortune_jungle_coinleaf": {
+        "package": "wild_combo",
+        "role": "enabler"
+      },
+      "fortune_jungle_prize_raptor": {
+        "package": "wild_combo",
+        "role": "enabler"
+      },
+      "fortune_jungle_wager_caller": {
+        "package": "wild_combo",
+        "role": "engine"
+      },
+      "fortune_jungle_weighted_snare": {
+        "package": "wild_combo",
+        "role": "answer"
+      },
+      "fortune_jungle_cached_winnings": {
+        "package": "wild_combo",
+        "role": "recovery"
+      },
+      "fortune_jungle_winner_takes_wild": {
+        "package": "wild_combo",
+        "role": "legendary",
+        "playstyle": "combo",
+        "enablers": [
+          "fortune_jungle_coinleaf",
+          "fortune_jungle_prize_raptor",
+          "fortune_jungle_wager_caller",
+          "fortune_jungle_cached_winnings"
+        ]
+      },
+      "fortune_jungle_amber_prospector": {
+        "package": "legacy_hoard",
+        "role": "legacy_support",
+        "legacy_mechanic": "hoard"
+      },
+      "fortune_jungle_buried_purse": {
+        "package": "legacy_hoard",
+        "role": "legacy_support",
+        "legacy_mechanic": "hoard"
+      },
+      "fortune_jungle_fossil_gambler": {
+        "package": "legacy_gamble",
+        "role": "legacy_support",
+        "legacy_mechanic": "gamble"
+      },
+      "fortune_jungle_wild_odds": {
+        "package": "legacy_gamble",
+        "role": "legacy_support",
+        "legacy_mechanic": "gamble"
+      },
+      "order_jungle_nursery_squire": {
+        "package": "matriarch_summon",
+        "role": "enabler"
+      },
+      "order_jungle_sacred_seedbed": {
+        "package": "matriarch_summon",
+        "role": "enabler"
+      },
+      "order_jungle_herd_captain": {
+        "package": "matriarch_summon",
+        "role": "engine"
+      },
+      "order_jungle_shelter_the_young": {
+        "package": "matriarch_summon",
+        "role": "answer"
+      },
+      "order_jungle_nursery_roll_call": {
+        "package": "matriarch_summon",
+        "role": "recovery"
+      },
+      "order_jungle_bastionback_matriarch": {
+        "package": "matriarch_summon",
+        "role": "legendary",
+        "playstyle": "summon",
+        "enablers": [
+          "order_jungle_nursery_squire",
+          "order_jungle_sacred_seedbed",
+          "order_jungle_herd_captain",
+          "order_jungle_nursery_roll_call"
+        ]
+      },
+      "order_jungle_refuge_sprout": {
+        "package": "refuge_control",
+        "role": "enabler"
+      },
+      "order_jungle_bastion_grazer": {
+        "package": "refuge_control",
+        "role": "enabler"
+      },
+      "order_jungle_spring_warden": {
+        "package": "refuge_control",
+        "role": "engine"
+      },
+      "order_jungle_keeper_judgment": {
+        "package": "refuge_control",
+        "role": "answer"
+      },
+      "order_jungle_canopy_hospitaller": {
+        "package": "refuge_control",
+        "role": "recovery"
+      },
+      "order_jungle_last_refuge": {
+        "package": "refuge_control",
+        "role": "legendary",
+        "playstyle": "control",
+        "enablers": [
+          "order_jungle_refuge_sprout",
+          "order_jungle_bastion_grazer",
+          "order_jungle_spring_warden",
+          "order_jungle_canopy_hospitaller"
+        ]
+      },
+      "order_jungle_amber_aegis": {
+        "package": "legacy_aegis",
+        "role": "legacy_support",
+        "legacy_mechanic": "aegis"
+      },
+      "order_jungle_renew_the_guard": {
+        "package": "legacy_aegis",
+        "role": "legacy_support",
+        "legacy_mechanic": "aegis"
+      },
+      "order_jungle_trail_standard": {
+        "package": "legacy_formation",
+        "role": "legacy_support",
+        "legacy_mechanic": "formation"
+      },
+      "order_jungle_canopy_marshal": {
+        "package": "legacy_formation",
+        "role": "legacy_support",
+        "legacy_mechanic": "formation"
+      },
+      "shadow_jungle_reed_whisper": {
+        "package": "tracks_tempo",
+        "role": "enabler"
+      },
+      "shadow_jungle_dusk_hatchling": {
+        "package": "tracks_tempo",
+        "role": "enabler"
+      },
+      "shadow_jungle_shade_raptor": {
+        "package": "tracks_tempo",
+        "role": "engine"
+      },
+      "shadow_jungle_unseen_pounce": {
+        "package": "tracks_tempo",
+        "role": "answer"
+      },
+      "shadow_jungle_trail_informant": {
+        "package": "tracks_tempo",
+        "role": "recovery"
+      },
+      "shadow_jungle_sava": {
+        "package": "tracks_tempo",
+        "role": "legendary",
+        "playstyle": "tempo",
+        "enablers": [
+          "shadow_jungle_reed_whisper",
+          "shadow_jungle_dusk_hatchling",
+          "shadow_jungle_shade_raptor",
+          "shadow_jungle_trail_informant"
+        ]
+      },
+      "shadow_jungle_scent_leaf": {
+        "package": "great_hunt_combo",
+        "role": "enabler"
+      },
+      "shadow_jungle_scent_lurker": {
+        "package": "great_hunt_combo",
+        "role": "enabler"
+      },
+      "shadow_jungle_hunt_signaller": {
+        "package": "great_hunt_combo",
+        "role": "engine"
+      },
+      "shadow_jungle_mark_the_quarry": {
+        "package": "great_hunt_combo",
+        "role": "answer"
+      },
+      "shadow_jungle_circle_back": {
+        "package": "great_hunt_combo",
+        "role": "recovery"
+      },
+      "shadow_jungle_great_hunt": {
+        "package": "great_hunt_combo",
+        "role": "legendary",
+        "playstyle": "combo",
+        "enablers": [
+          "shadow_jungle_scent_leaf",
+          "shadow_jungle_scent_lurker",
+          "shadow_jungle_hunt_signaller",
+          "shadow_jungle_circle_back"
+        ]
+      },
+      "shadow_jungle_veil_gecko": {
+        "package": "legacy_stealth",
+        "role": "legacy_support",
+        "legacy_mechanic": "stealth"
+      },
+      "shadow_jungle_veiled_supply": {
+        "package": "legacy_stealth",
+        "role": "legacy_support",
+        "legacy_mechanic": "stealth"
+      },
+      "shadow_jungle_sap_viper": {
+        "package": "legacy_venom",
+        "role": "legacy_support",
+        "legacy_mechanic": "venom"
+      },
+      "shadow_jungle_venom_handler": {
+        "package": "legacy_venom",
+        "role": "legacy_support",
+        "legacy_mechanic": "venom"
+      }
+    },
+    "item_groups": {
+      "mechanic_support": [
+        "treasure_jungle_trailkeeper_compass"
+      ],
+      "gap_fill": [
+        "treasure_jungle_patient_watchglass",
+        "treasure_jungle_last_ration"
+      ]
+    },
+    "files": [
+      "cards.json",
+      "bosses.json",
+      "bundles.json",
+      "treasures.json",
+      "unlock.json",
+      "trial.json"
+    ]
+  }
+}

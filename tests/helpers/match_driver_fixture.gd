@@ -57,7 +57,7 @@ class FixtureDatabase:
 	func heroes() -> Array:
 		return [records[HERO_ID]]
 
-	func collectible_pool(hero_set: String) -> Array:
+	func collectible_pool(hero_set: String, collection_id: String = "") -> Array:
 		pool_requests.append(hero_set)
 		var pool: Array = []
 		for id: String in POOL:

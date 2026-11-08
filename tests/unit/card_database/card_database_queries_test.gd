@@ -224,12 +224,17 @@ func test_config_serves_every_manifest_config_as_a_frozen_dictionary() -> void:
 func test_config_names_cover_every_manifest_config_row() -> void:
 	# Arrange — the test's list must not silently miss a manifest row
 	var manifest: Array = []
+	var optional: Array = []
 	for row: Dictionary in DataLoader.FILE_MANIFEST:
 		if row["class"] == "config":
-			manifest.append(String(row.name).get_basename())
+			if row.required:
+				manifest.append(String(row.name).get_basename())
+			else:
+				optional.append(String(row.name).get_basename())
 
 	# Assert
 	assert_array(manifest).is_equal(CONFIG_NAMES)
+	assert_array(optional).is_equal(["collections", "law-of-the-jungle/collection", "law-of-the-jungle/unlock", "law-of-the-jungle/trial"])
 
 
 func test_config_is_the_same_body_on_every_call() -> void:

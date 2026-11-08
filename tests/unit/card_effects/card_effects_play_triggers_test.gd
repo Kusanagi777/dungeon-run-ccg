@@ -64,7 +64,7 @@ class FakeCardDatabase:
 
 	## F4 `base(collectible)` (story 010): empty here, so row 20's Discover
 	## is `empty_pool` and raises no Choice.
-	func collectible_pool(_hero_set: String) -> Array:
+	func collectible_pool(_hero_set: String, collection_id: String = "") -> Array:
 		return []
 
 

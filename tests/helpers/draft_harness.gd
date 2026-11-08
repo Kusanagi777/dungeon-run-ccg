@@ -1,5 +1,5 @@
 ## The Reward Draft Acceptance Criteria fixtures (design/gdd/reward-draft.md AC preamble)
-## over the shipped data: **P20** is the real War pool, 8 `war` plus 12 neutral bundles;
+## over the shipped data: **P20** is the original War pool, 8 `war` plus 12 neutral bundles;
 ## **P14** keeps the 8 `war` and the neutrals of the first three themes; **T10** is the
 ## GDD's synthetic treasure set; [method real_pool] is the 20 shipped treasures. The War
 ## starter, the bundles and the cards are the real records.
@@ -22,6 +22,7 @@ const POLICY_LAST: StringName = &"last"
 const POLICY_RANDOM: StringName = &"random"
 const POLICY_FOLLOWER: StringName = &"follower"
 const NEUTRAL_SET: String = "neutral"
+const P20_THEMES: Array[String] = ["aggro", "armour", "weapons", "big", "pings", "tempo", "tricks", "value", "wall"]
 ## How many neutral themes P14 keeps.
 const P14_THEMES: int = 3
 ## The last floor with a draft, on the default layout.
@@ -75,17 +76,17 @@ class PoolDb:
 	func heroes() -> Array:
 		return base.heroes()
 
-	func bosses_in_band(band: int) -> Array:
-		return base.bosses_in_band(band)
+	func bosses_in_band(band: int, collection_id: String = "") -> Array:
+		return base.bosses_in_band(band, collection_id)
 
-	func bundle_pool(hero_set: String) -> Array:
-		return bundles if not bundles.is_empty() else base.bundle_pool(hero_set)
+	func bundle_pool(hero_set: String, collection_id: String = "") -> Array:
+		return bundles if not bundles.is_empty() else base.bundle_pool(hero_set, collection_id)
 
-	func treasure_pool() -> Array:
-		return treasures if not treasures.is_empty() else base.treasure_pool()
+	func treasure_pool(collection_id: String = "") -> Array:
+		return treasures if not treasures.is_empty() else base.treasure_pool(collection_id)
 
-	func collectible_pool(hero_set: String) -> Array:
-		return base.collectible_pool(hero_set)
+	func collectible_pool(hero_set: String, collection_id: String = "") -> Array:
+		return base.collectible_pool(hero_set, collection_id)
 
 	func cards_by_set(set_id: String) -> Array:
 		return base.cards_by_set(set_id)
@@ -179,9 +180,9 @@ func draft(overrides: Dictionary = {}, database: CardDatabase = null) -> RewardD
 	return RewardDraft.new(over, treasures, meta, config(overrides))
 
 
-## The shipped War pool: 20 bundles, id-sorted.
+## The original 20-bundle War pool, id-sorted, for the fixed-size AC tests.
 func p20() -> Array:
-	return db.bundle_pool("war")
+	return db.bundle_pool("war").filter(func(bundle: Dictionary) -> bool: return P20_THEMES.has(str(bundle.theme)))
 
 
 ## [method p20] with its neutrals cut to the first [constant P14_THEMES] themes.

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "config": {
+    "key": "collection_law_of_the_jungle",
+    "condition": {
+      "type": "all_of",
+      "of": [
+        {
+          "type": "runs_won",
+          "n": 20
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_war"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_decay"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_knowledge"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_fortune"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_order"
+        },
+        {
+          "type": "runs_won",
+          "n": 2,
+          "hero": "hero_shadow"
+        },
+        {
+          "type": "trial_completed",
+          "trial_id": "trial_primal_crown"
+        }
+      ]
+    }
+  }
+}

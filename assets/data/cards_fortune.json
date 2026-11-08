@@ -37,6 +37,9 @@
       "tags": [
         "gamble"
       ],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.fortune_lucky_rat.text",
         "en": "Battlecry: Flip a coin. Heads: gain +1/+1."
@@ -76,6 +79,9 @@
       "tags": [
         "gamble"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_card_sharp.text",
         "en": "Battlecry: Flip a coin. Heads: draw a card."
@@ -108,6 +114,9 @@
       "tags": [
         "gamble"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_dice_thrower.text",
         "en": "Battlecry: Deal 2 damage to a random enemy."
@@ -139,6 +148,9 @@
       ],
       "tags": [
         "gamble"
+      ],
+      "tribes": [
+        "demon"
       ],
       "text": {
         "key": "card.fortune_tumbler.text",
@@ -180,6 +192,9 @@
       ],
       "tags": [
         "gamble"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.fortune_crooked_croupier.text",
@@ -224,6 +239,9 @@
       "tags": [
         "gamble"
       ],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.fortune_roulette.text",
         "en": "Flip a coin. Heads: deal 3 damage to a random enemy. Tails: gain 3 Armor."
@@ -257,6 +275,9 @@
       ],
       "tags": [
         "gamble"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.fortune_loaded_bones.text",
@@ -296,6 +317,9 @@
       ],
       "tags": [
         "gamble"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.fortune_double_down.text",
@@ -337,6 +361,9 @@
       "tags": [
         "gamble"
       ],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.fortune_cheat_fate.text",
         "en": "Deal 1 damage to a random enemy. Flip a coin. Heads: draw a card."
@@ -369,6 +396,9 @@
       "tags": [
         "hoard"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_pickpocket.text",
         "en": "Battlecry: Add a Coin to your hand."
@@ -400,6 +430,9 @@
       ],
       "tags": [
         "hoard"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.fortune_moneylender.text",
@@ -444,6 +477,9 @@
       "tags": [
         "hoard"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_tax_collector.text",
         "en": "Battlecry: If you're holding a Coin, gain +2/+1."
@@ -487,6 +523,9 @@
       "tags": [
         "hoard"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_gilded_guard.text",
         "en": "Taunt. Battlecry: If you're holding a Coin, gain 3 Armor."
@@ -520,6 +559,9 @@
       "tags": [
         "hoard"
       ],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.fortune_strongbox.text",
         "en": "Taunt. Deathrattle: Add 2 Coins to your hand."
@@ -552,6 +594,9 @@
       "tags": [
         "hoard"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_treasurer.text",
         "en": "Battlecry: Add 3 Coins to your hand."
@@ -579,6 +624,9 @@
       ],
       "tags": [
         "hoard"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.fortune_coin_purse.text",
@@ -613,6 +661,9 @@
       "tags": [
         "hoard"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.fortune_bribe.text",
         "en": "Return an enemy minion to its owner's hand."
@@ -644,6 +695,9 @@
       ],
       "tags": [
         "jackpot"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.fortune_wishing_well.text",
@@ -679,6 +733,9 @@
       ],
       "tags": [
         "jackpot"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.fortune_high_roller.text",
@@ -720,6 +777,10 @@
       ],
       "tags": [
         "jackpot"
+      ],
+      "tribes": [
+        "construct",
+        "mech"
       ],
       "text": {
         "key": "card.fortune_slot_machine.text",
@@ -767,6 +828,9 @@
       "tags": [
         "jackpot"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.fortune_big_spender.text",
         "en": "Battlecry: Flip a coin. Heads: gain Taunt and +2 Health."
@@ -799,6 +863,9 @@
       ],
       "tags": [
         "jackpot"
+      ],
+      "schools": [
+        "arcane"
       ],
       "text": {
         "key": "card.fortune_wild_card.text",
@@ -842,6 +909,9 @@
       "tags": [
         "jackpot"
       ],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.fortune_all_in.text",
         "en": "Flip a coin. Heads: deal 5 damage to all enemy minions. Tails: draw 3 cards."
@@ -879,6 +949,9 @@
       ],
       "tags": [
         "jackpot"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.fortune_fortunes_favorite.text",
@@ -923,6 +996,9 @@
       "tags": [
         "jackpot"
       ],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.fortune_jackpot.text",
         "en": "Flip a coin. Heads: deal 12 damage to the enemy hero. Tails: gain 12 Armor."
@@ -950,6 +1026,9 @@
       ],
       "tags": [
         "hoard"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.fortune_coin.text",

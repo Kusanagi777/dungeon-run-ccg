@@ -17,6 +17,9 @@
       "tags": [
         "stealth"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.shadow_footpad.text",
         "en": "Stealth."
@@ -37,6 +40,9 @@
       "effects": [],
       "tags": [
         "stealth"
+      ],
+      "tribes": [
+        "undead"
       ],
       "text": {
         "key": "card.shadow_lurker.text",
@@ -59,6 +65,9 @@
       "tags": [
         "stealth"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.shadow_cutpurse.text",
         "en": "Stealth."
@@ -79,6 +88,9 @@
       "effects": [],
       "tags": [
         "stealth"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.shadow_night_stalker.text",
@@ -112,6 +124,9 @@
       ],
       "tags": [
         "stealth"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.shadow_hollow_watcher.text",
@@ -155,6 +170,9 @@
       "tags": [
         "stealth"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.shadow_night_queen.text",
         "en": "Stealth. Battlecry: Give your other minions +1 Attack and Stealth."
@@ -193,6 +211,9 @@
       "tags": [
         "stealth"
       ],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.shadow_veil.text",
         "en": "Give a friendly minion +1 Attack and Stealth."
@@ -220,6 +241,9 @@
       ],
       "tags": [
         "stealth"
+      ],
+      "schools": [
+        "alchemy"
       ],
       "text": {
         "key": "card.shadow_smoke_bomb.text",
@@ -256,6 +280,9 @@
       "tags": [
         "stealth"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.shadow_assassins_mark.text",
         "en": "Give a friendly minion with Stealth +3 Attack."
@@ -277,6 +304,9 @@
       "tags": [
         "venom"
       ],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.shadow_spiderling.text",
         "en": "Poisonous."
@@ -297,6 +327,9 @@
       "effects": [],
       "tags": [
         "venom"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.shadow_adder.text",
@@ -336,6 +369,9 @@
       "tags": [
         "venom"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.shadow_poisoner.text",
         "en": "Battlecry: Give a friendly minion Poisonous."
@@ -358,6 +394,9 @@
       "tags": [
         "venom"
       ],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.shadow_widow.text",
         "en": "Poisonous. Taunt."
@@ -379,6 +418,9 @@
       "effects": [],
       "tags": [
         "venom"
+      ],
+      "tribes": [
+        "dragon"
       ],
       "text": {
         "key": "card.shadow_ancient_wyrm.text",
@@ -414,6 +456,9 @@
       "tags": [
         "venom"
       ],
+      "schools": [
+        "alchemy"
+      ],
       "text": {
         "key": "card.shadow_envenom_blade.text",
         "en": "Give a friendly minion Poisonous."
@@ -447,6 +492,9 @@
       "tags": [
         "venom"
       ],
+      "schools": [
+        "alchemy"
+      ],
       "text": {
         "key": "card.shadow_venom_dart.text",
         "en": "Deal 2 damage to a minion."
@@ -474,6 +522,9 @@
       ],
       "tags": [
         "venom"
+      ],
+      "schools": [
+        "alchemy"
       ],
       "text": {
         "key": "card.shadow_toxic_cloud.text",
@@ -521,6 +572,9 @@
       "tags": [
         "ambush"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.shadow_knife_thrower.text",
         "en": "Battlecry: If you played another card this turn, deal 2 damage to a random enemy."
@@ -566,6 +620,9 @@
       ],
       "tags": [
         "ambush"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.shadow_cutthroat.text",
@@ -615,6 +672,9 @@
       "tags": [
         "ambush"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.shadow_ambusher.text",
         "en": "Rush. Battlecry: If you played another card this turn, gain +2/+2."
@@ -635,6 +695,9 @@
       "effects": [],
       "tags": [
         "ambush"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.shadow_duskblade.text",
@@ -669,6 +732,9 @@
       ],
       "tags": [
         "ambush"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.shadow_backstab.text",
@@ -706,6 +772,9 @@
       ],
       "tags": [
         "ambush"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.shadow_quick_step.text",
@@ -747,6 +816,9 @@
       "tags": [
         "ambush"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.shadow_bloody_work.text",
         "en": "Deal damage to a minion equal to the cards you played this turn, plus 1."
@@ -782,6 +854,9 @@
       ],
       "tags": [
         "ambush"
+      ],
+      "schools": [
+        "shadow"
       ],
       "text": {
         "key": "card.shadow_last_light.text",

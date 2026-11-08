@@ -38,7 +38,7 @@ func setup() -> void:
 	_stamp.visible = false
 	column.add_child(_stamp)
 	_name = UiKit.label("", RunUiTheme.LABEL_INK_HEADING, true)
-	_meta = UiKit.label("", RunUiTheme.LABEL_INK)
+	_meta = UiKit.label("", RunUiTheme.LABEL_INK, true)
 	_text = UiKit.label("", RunUiTheme.LABEL_INK, true)
 	column.add_child(_name)
 	column.add_child(_meta)
@@ -51,7 +51,7 @@ func show_card(row: Dictionary, left: float, row_centre_y: float) -> void:
 	# A wrapped label measures itself at the width it last had, and a hidden panel gave it
 	# none: the panel would size to a column of single words, and a `Control` never
 	# shrinks back from that. So the width goes first.
-	for label: Label in [_name, _text]:
+	for label: Label in [_name, _meta, _text]:
 		label.size.x = SIZE_PX.x - RunUiTheme.PARCHMENT_PADDING_PX * 2.0
 	var stamp: Dictionary = ArtLibrary.shared().card_stamp(str(row.get("id", "")))
 	_stamp.visible = not stamp.is_empty()
@@ -60,6 +60,9 @@ func show_card(row: Dictionary, left: float, row_centre_y: float) -> void:
 		_stamp.modulate = stamp.tint
 	_name.text = str(row.name)
 	_meta.text = tr("card.meta").format({"cost": row.cost, "stats": row.stats})
+	var taxonomy: String = CardFrame.taxonomy_text(row)
+	if not taxonomy.is_empty():
+		_meta.text += "\n" + taxonomy
 	_text.text = str(row.text)
 	UiKit.place(self, Rect2(left, clampf(row_centre_y - HALF_HEIGHT, TOP_MIN, TOP_MAX), SIZE_PX.x, SIZE_PX.y))
 	visible = true

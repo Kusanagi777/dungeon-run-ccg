@@ -1,0 +1,1433 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_war_jungle_1_1",
+      "name": "Crown Tempo 1",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_trail_squire",
+        "war_jungle_canopy_challenger",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_1_2",
+      "name": "Crown Tempo 2",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_redcrest_hatchery",
+        "war_jungle_canopy_challenger",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_1_3",
+      "name": "Crown Tempo 3",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_hold_the_ridge",
+        "war_jungle_bone_honing",
+        "neutral_jungle_reed_ambusher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_1_4",
+      "name": "Crown Tempo 4",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_trophy_quartermaster",
+        "war_jungle_ridge_bladesmith",
+        "neutral_jungle_trail_falcon"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_1_5",
+      "name": "Crown Tempo 5",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_gorath",
+        "war_jungle_redcrest_hatchery",
+        "neutral_jungle_nest_guard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_1_6",
+      "name": "Crown Tempo 6",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_battle_scars",
+        "war_jungle_trail_squire",
+        "neutral_jungle_brush_raptor"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_1_7",
+      "name": "Crown Tempo 7",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_scarhide_veteran",
+        "war_jungle_trophy_quartermaster",
+        "neutral_jungle_thorn_runner"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_1_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_1",
+      "name": "Extinction Aggro 1",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_spearleaf",
+        "war_jungle_stampede_drummer",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_2",
+      "name": "Extinction Aggro 2",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_ridge_charger",
+        "war_jungle_stampede_drummer",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_3",
+      "name": "Extinction Aggro 3",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_break_the_thicket",
+        "war_jungle_bone_honing",
+        "neutral_jungle_pathfinder"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_4",
+      "name": "Extinction Aggro 4",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_rally_the_hunt",
+        "war_jungle_ridge_bladesmith",
+        "neutral_jungle_pack_outrider"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_5",
+      "name": "Extinction Aggro 5",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_extinction_march",
+        "war_jungle_ridge_charger",
+        "neutral_jungle_scent_tracker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_6",
+      "name": "Extinction Aggro 6",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_battle_scars",
+        "war_jungle_spearleaf",
+        "neutral_jungle_chase_caller"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_war_jungle_2_7",
+      "name": "Extinction Aggro 7",
+      "set": "war",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "war_jungle_scarhide_veteran",
+        "war_jungle_rally_the_hunt",
+        "neutral_jungle_coordinated_pounce"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_jungle_2_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_1",
+      "name": "Worldroot Attrition 1",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_rotting_bulb",
+        "decay_jungle_compost_keeper",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_2",
+      "name": "Worldroot Attrition 2",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_mire_nibbler",
+        "decay_jungle_compost_keeper",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_3",
+      "name": "Worldroot Attrition 3",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_strangling_roots",
+        "decay_jungle_sporebound_relic",
+        "neutral_jungle_canopy_medic"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_4",
+      "name": "Worldroot Attrition 4",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_mire_reclaimer",
+        "decay_jungle_buried_echo",
+        "neutral_jungle_seed_reserve"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_5",
+      "name": "Worldroot Attrition 5",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_worldroot",
+        "decay_jungle_mire_nibbler",
+        "neutral_jungle_rain_drinker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_6",
+      "name": "Worldroot Attrition 6",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_fertile_bargain",
+        "decay_jungle_rotting_bulb",
+        "neutral_jungle_spore_nursery"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_1_7",
+      "name": "Worldroot Attrition 7",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_offering_warden",
+        "decay_jungle_mire_reclaimer",
+        "neutral_jungle_root_watcher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_1_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_1",
+      "name": "Verdant Sacrifice 1",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_spore_offering",
+        "decay_jungle_root_feaster",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_2",
+      "name": "Verdant Sacrifice 2",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_carrion_gardener",
+        "decay_jungle_root_feaster",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_3",
+      "name": "Verdant Sacrifice 3",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_feed_the_thicket",
+        "decay_jungle_sporebound_relic",
+        "neutral_jungle_shelter_fern"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_4",
+      "name": "Verdant Sacrifice 4",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_compost_ledger",
+        "decay_jungle_buried_echo",
+        "neutral_jungle_regrowth_runner"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_5",
+      "name": "Verdant Sacrifice 5",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_verdant_reclamation",
+        "decay_jungle_carrion_gardener",
+        "neutral_jungle_scattered_seeds"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_6",
+      "name": "Verdant Sacrifice 6",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_fertile_bargain",
+        "decay_jungle_spore_offering",
+        "neutral_jungle_rainfall_herbalist"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_decay_jungle_2_7",
+      "name": "Verdant Sacrifice 7",
+      "set": "decay",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "decay_jungle_offering_warden",
+        "decay_jungle_compost_ledger",
+        "neutral_jungle_waking_banyan"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_jungle_2_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_1",
+      "name": "Fossil Value 1",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_field_scholar",
+        "knowledge_jungle_fossil_reader",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_2",
+      "name": "Fossil Value 2",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_amber_specimen",
+        "knowledge_jungle_fossil_reader",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_3",
+      "name": "Fossil Value 3",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_amber_encasement",
+        "knowledge_jungle_cold_fossil",
+        "neutral_jungle_canopy_cartographer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_4",
+      "name": "Fossil Value 4",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_catalogue_keeper",
+        "knowledge_jungle_rime_excavator",
+        "neutral_jungle_crushing_tail"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_5",
+      "name": "Fossil Value 5",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_tala",
+        "knowledge_jungle_amber_specimen",
+        "neutral_jungle_boulderhide"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_6",
+      "name": "Fossil Value 6",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_prism_moth",
+        "knowledge_jungle_field_scholar",
+        "neutral_jungle_amber_shell"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_1_7",
+      "name": "Fossil Value 7",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_fossil_burst",
+        "knowledge_jungle_catalogue_keeper",
+        "neutral_jungle_fossil_excavator"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_1_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_1",
+      "name": "Archive Control 1",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_amber_seed",
+        "knowledge_jungle_canopy_observer",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_2",
+      "name": "Archive Control 2",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_quillback_student",
+        "knowledge_jungle_canopy_observer",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_3",
+      "name": "Archive Control 3",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_amberwave",
+        "knowledge_jungle_cold_fossil",
+        "neutral_jungle_sheltered_colossus"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_4",
+      "name": "Archive Control 4",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_shelved_discovery",
+        "knowledge_jungle_rime_excavator",
+        "neutral_jungle_nest_tender"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_5",
+      "name": "Archive Control 5",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_amber_archive",
+        "knowledge_jungle_quillback_student",
+        "neutral_jungle_canopy_stalker"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_6",
+      "name": "Archive Control 6",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_prism_moth",
+        "knowledge_jungle_amber_seed",
+        "neutral_jungle_amber_grazer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_knowledge_jungle_2_7",
+      "name": "Archive Control 7",
+      "set": "knowledge",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "knowledge_jungle_fossil_burst",
+        "knowledge_jungle_shelved_discovery",
+        "neutral_jungle_thornback_yearling"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_jungle_2_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_1",
+      "name": "Trophy Value 1",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_trophy_forager",
+        "fortune_jungle_amber_appraiser",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_2",
+      "name": "Trophy Value 2",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_gilded_nest",
+        "fortune_jungle_amber_appraiser",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_3",
+      "name": "Trophy Value 3",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_trophy_exchange",
+        "fortune_jungle_amber_prospector",
+        "neutral_jungle_fossil_sprout"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_4",
+      "name": "Trophy Value 4",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_jungle_pawnbroker",
+        "fortune_jungle_buried_purse",
+        "neutral_jungle_trophy_sifter"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_5",
+      "name": "Trophy Value 5",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_vexa",
+        "fortune_jungle_gilded_nest",
+        "neutral_jungle_ancient_browser"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_6",
+      "name": "Trophy Value 6",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_fossil_gambler",
+        "fortune_jungle_trophy_forager",
+        "neutral_jungle_canopy_cartographer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_1_7",
+      "name": "Trophy Value 7",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_wild_odds",
+        "fortune_jungle_jungle_pawnbroker",
+        "neutral_jungle_crushing_tail"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_1_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_1",
+      "name": "Wild Combo 1",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_coinleaf",
+        "fortune_jungle_wager_caller",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_2",
+      "name": "Wild Combo 2",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_prize_raptor",
+        "fortune_jungle_wager_caller",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_3",
+      "name": "Wild Combo 3",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_weighted_snare",
+        "fortune_jungle_amber_prospector",
+        "neutral_jungle_boulderhide"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_4",
+      "name": "Wild Combo 4",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_cached_winnings",
+        "fortune_jungle_buried_purse",
+        "neutral_jungle_amber_shell"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_5",
+      "name": "Wild Combo 5",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_winner_takes_wild",
+        "fortune_jungle_prize_raptor",
+        "neutral_jungle_fossil_excavator"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_6",
+      "name": "Wild Combo 6",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_fossil_gambler",
+        "fortune_jungle_coinleaf",
+        "neutral_jungle_sheltered_colossus"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_fortune_jungle_2_7",
+      "name": "Wild Combo 7",
+      "set": "fortune",
+      "collection_id": "law-of-the-jungle",
+      "theme": "apex_succession",
+      "cards": [
+        "fortune_jungle_wild_odds",
+        "fortune_jungle_cached_winnings",
+        "neutral_jungle_nest_tender"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_jungle_2_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_1",
+      "name": "Matriarch Summon 1",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_nursery_squire",
+        "order_jungle_herd_captain",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_2",
+      "name": "Matriarch Summon 2",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_sacred_seedbed",
+        "order_jungle_herd_captain",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_3",
+      "name": "Matriarch Summon 3",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_shelter_the_young",
+        "order_jungle_amber_aegis",
+        "neutral_jungle_root_watcher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_4",
+      "name": "Matriarch Summon 4",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_nursery_roll_call",
+        "order_jungle_renew_the_guard",
+        "neutral_jungle_shelter_fern"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_5",
+      "name": "Matriarch Summon 5",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_bastionback_matriarch",
+        "order_jungle_sacred_seedbed",
+        "neutral_jungle_regrowth_runner"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_6",
+      "name": "Matriarch Summon 6",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_trail_standard",
+        "order_jungle_nursery_squire",
+        "neutral_jungle_scattered_seeds"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_1_7",
+      "name": "Matriarch Summon 7",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_canopy_marshal",
+        "order_jungle_nursery_roll_call",
+        "neutral_jungle_rainfall_herbalist"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_1_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_1",
+      "name": "Refuge Control 1",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_refuge_sprout",
+        "order_jungle_spring_warden",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_2",
+      "name": "Refuge Control 2",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_bastion_grazer",
+        "order_jungle_spring_warden",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_3",
+      "name": "Refuge Control 3",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_keeper_judgment",
+        "order_jungle_amber_aegis",
+        "neutral_jungle_waking_banyan"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_4",
+      "name": "Refuge Control 4",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_canopy_hospitaller",
+        "order_jungle_renew_the_guard",
+        "neutral_jungle_mossjaw"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_5",
+      "name": "Refuge Control 5",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_last_refuge",
+        "order_jungle_bastion_grazer",
+        "neutral_jungle_vine_sentry"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_6",
+      "name": "Refuge Control 6",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_trail_standard",
+        "order_jungle_refuge_sprout",
+        "neutral_jungle_tangled_path"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_order_jungle_2_7",
+      "name": "Refuge Control 7",
+      "set": "order",
+      "collection_id": "law-of-the-jungle",
+      "theme": "living_canopy",
+      "cards": [
+        "order_jungle_canopy_marshal",
+        "order_jungle_canopy_hospitaller",
+        "neutral_jungle_canopy_medic"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_jungle_2_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_1",
+      "name": "Tracks Tempo 1",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_reed_whisper",
+        "shadow_jungle_shade_raptor",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_2",
+      "name": "Tracks Tempo 2",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_dusk_hatchling",
+        "shadow_jungle_shade_raptor",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_3",
+      "name": "Tracks Tempo 3",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_unseen_pounce",
+        "shadow_jungle_veil_gecko",
+        "neutral_jungle_chase_caller"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_4",
+      "name": "Tracks Tempo 4",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_trail_informant",
+        "shadow_jungle_veiled_supply",
+        "neutral_jungle_coordinated_pounce"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_5",
+      "name": "Tracks Tempo 5",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_sava",
+        "shadow_jungle_dusk_hatchling",
+        "neutral_jungle_razorbeak"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_6",
+      "name": "Tracks Tempo 6",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_sap_viper",
+        "shadow_jungle_reed_whisper",
+        "neutral_jungle_guard_the_nest"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_1_7",
+      "name": "Tracks Tempo 7",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_venom_handler",
+        "shadow_jungle_trail_informant",
+        "neutral_jungle_expedition_supplier"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_1_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_1",
+      "name": "Great Hunt Combo 1",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_scent_leaf",
+        "shadow_jungle_hunt_signaller",
+        "neutral_jungle_seedling_keeper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_1.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_2",
+      "name": "Great Hunt Combo 2",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_scent_lurker",
+        "shadow_jungle_hunt_signaller",
+        "neutral_jungle_fern_hopper"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_2.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_3",
+      "name": "Great Hunt Combo 3",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_mark_the_quarry",
+        "shadow_jungle_veil_gecko",
+        "neutral_jungle_follow_the_tracks"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_3.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_4",
+      "name": "Great Hunt Combo 4",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_circle_back",
+        "shadow_jungle_veiled_supply",
+        "neutral_jungle_reed_ambusher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_4.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_5",
+      "name": "Great Hunt Combo 5",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_great_hunt",
+        "shadow_jungle_scent_lurker",
+        "neutral_jungle_trail_falcon"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_5.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_6",
+      "name": "Great Hunt Combo 6",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_sap_viper",
+        "shadow_jungle_scent_leaf",
+        "neutral_jungle_nest_guard"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_6.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    },
+    {
+      "id": "bundle_shadow_jungle_2_7",
+      "name": "Great Hunt Combo 7",
+      "set": "shadow",
+      "collection_id": "law-of-the-jungle",
+      "theme": "primal_hunt",
+      "cards": [
+        "shadow_jungle_venom_handler",
+        "shadow_jungle_circle_back",
+        "neutral_jungle_brush_raptor"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_jungle_2_7.text",
+        "en": "Prey, predators, and a class plan for the next hunt."
+      }
+    }
+  ]
+}

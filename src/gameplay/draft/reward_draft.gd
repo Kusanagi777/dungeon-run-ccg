@@ -86,9 +86,14 @@ func init_run(_run_state: RunState) -> Dictionary:
 	for key: Variant in _meta.unlocked_keys():
 		unlocked[key] = true
 	var pool: Array = []
-	for def: Dictionary in _treasures.pool(unlocked, []):
+	for def: Dictionary in _treasures.pool(unlocked, [], _run_state.featured_collection_id):
 		pool.append(def.id)
-	return {"schema_version": DRAFT_STATE_SCHEMA_VERSION, "treasure_pool": pool}
+	var bundle_pool: Array = []
+	var hero_set: String = str(_db.hero(_run_state.hero_id)["set"])
+	for bundle: Dictionary in _db.bundle_pool(hero_set, _run_state.featured_collection_id):
+		if bundle.unlock == null or unlocked.has(bundle.unlock.key):
+			bundle_pool.append(bundle.id)
+	return {"schema_version": DRAFT_STATE_SCHEMA_VERSION, "treasure_pool": pool, "bundle_pool": bundle_pool}
 
 
 ## True when [param draft_state] has the D3 shape; otherwise the run calls
@@ -296,9 +301,10 @@ func _draw_bundles(result: Offer, run_state: RunState, stream: RngStream) -> Arr
 					cooling[id] = true
 	var not_taken: Array[String] = []
 	var candidates: Array[String] = []
-	for bundle: Dictionary in _db.bundle_pool(hero_set):
+	for bundle: Dictionary in _db.bundle_pool(hero_set, run_state.featured_collection_id):
 		var id: String = bundle.id
-		if taken.has(id) or not _bundle_is_sound(bundle):
+		var eligible: bool = Array(run_state.draft_state.get("bundle_pool", [])).has(id) if run_state.draft_state.has("bundle_pool") else (bundle.unlock == null or _meta.is_unlocked(bundle.unlock.key))
+		if not eligible or taken.has(id) or not _bundle_is_sound(bundle, run_state.featured_collection_id):
 			continue
 		not_taken.append(id)
 		if not cooling.has(id):
@@ -354,12 +360,12 @@ func _draw_treasures(result: Offer, run_state: RunState, stream: RngStream) -> A
 		if record.kind != DraftRecord.KIND_TREASURE:
 			continue
 		for id: String in record.offered_ids:
-			if not seen.has(id):
+			if not seen.has(id) and _db.has(id) and DataLoader.collection_allows(_db.treasure(id), run_state.featured_collection_id):
 				seen[id] = true
 				refill.append(id)
 	var candidates: Array[String] = []
 	for id: Variant in run_state.draft_state.get("treasure_pool", []):
-		if not seen.has(id):
+		if not seen.has(id) and _db.has(str(id)) and DataLoader.collection_allows(_db.treasure(str(id)), run_state.featured_collection_id):
 			candidates.append(str(id))
 	var wanted: int = int(_config.treasure_offers_per_draft)
 	var reoffering: bool = str(_config.treasure_short_policy) == POLICY_REOFFER and not refill.is_empty()
@@ -444,11 +450,11 @@ func _universal_among(ids: Array[String]) -> Array[String]:
 
 ## Edge Cases: a bundle broken by a debug reload is left out, with a warning. Card
 ## Database refuses one at load, so this never fires on shipped data.
-func _bundle_is_sound(bundle: Dictionary) -> bool:
+func _bundle_is_sound(bundle: Dictionary, collection_id: String = "") -> bool:
 	var cards: Array = bundle.cards
 	var sound: bool = cards.size() == int(RecordSchemas.BUNDLE_FIELDS.cards["count"])
 	for card_id: Variant in cards:
-		sound = sound and _db.has(str(card_id)) and not bool(_db.card(str(card_id)).get("token", false))
+		sound = sound and _db.has(str(card_id)) and not bool(_db.card(str(card_id)).get("token", false)) and DataLoader.collection_allows(_db.card(str(card_id)), collection_id)
 	if not sound:
 		RunCodes.warn(_log, RunCodes.W_BUNDLE_INVALID, {"bundle_id": bundle.id})
 	return sound

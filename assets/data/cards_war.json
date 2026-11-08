@@ -28,6 +28,9 @@
       "tags": [
         "armour"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_shield_squire.text",
         "en": "Battlecry: Gain 2 Armor."
@@ -56,6 +59,9 @@
       ],
       "tags": [
         "weapons"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.war_sharpen.text",
@@ -105,6 +111,9 @@
       "tags": [
         "aggro"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.war_warcry.text",
         "en": "Give your minions +1 Attack this turn."
@@ -137,6 +146,9 @@
       "tags": [
         "armour"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.war_iron_resolve.text",
         "en": "Gain 4 Armor. Draw a card."
@@ -157,6 +169,9 @@
       "effects": [],
       "tags": [
         "armour"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.war_iron_vanguard.text",
@@ -192,6 +207,9 @@
       "tags": [
         "weapons"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_quartermaster.text",
         "en": "Battlecry: If you have a weapon, draw a card."
@@ -212,6 +230,9 @@
       "effects": [],
       "tags": [
         "aggro"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.war_pit_brawler.text",
@@ -268,6 +289,9 @@
       "tags": [
         "weapons",
         "aggro"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.war_blade_strike.text",
@@ -342,6 +366,9 @@
       "tags": [
         "weapons"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_blade_apprentice.text",
         "en": "Battlecry: If you have no weapon, equip a 1/2 Whetstone Blade."
@@ -377,6 +404,9 @@
         "armour",
         "weapons"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_armorer.text",
         "en": "Battlecry: Gain Armor equal to your weapon's Attack."
@@ -397,6 +427,9 @@
       "effects": [],
       "tags": [
         "aggro"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.war_cellar_raider.text",
@@ -430,6 +463,9 @@
       ],
       "tags": [
         "aggro"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.war_berserker.text",
@@ -507,6 +543,9 @@
         "weapons",
         "aggro"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.war_cleave_through.text",
         "en": "Deal 2 damage to all enemy minions. If you have a weapon, deal 3 instead."
@@ -535,6 +574,9 @@
       ],
       "tags": [
         "aggro"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.war_rally.text",
@@ -569,6 +611,9 @@
       "tags": [
         "armour"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_shieldwall_veteran.text",
         "en": "Taunt. Battlecry: Gain 3 Armor."
@@ -590,6 +635,9 @@
       "effects": [],
       "tags": [
         "armour"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.war_shield_maiden.text",
@@ -661,6 +709,9 @@
         "aggro",
         "weapons"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_pit_champion.text",
         "en": "Battlecry: Your hero has Windfury this turn."
@@ -719,6 +770,9 @@
       ],
       "tags": [
         "aggro"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.war_warlord.text",
@@ -789,9 +843,848 @@
       "tags": [
         "aggro"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.war_headsman.text",
         "en": "Battlecry: Destroy a damaged minion."
+      }
+    },
+    {
+      "id": "war_stung_recruit",
+      "name": "Stung Recruit",
+      "set": "war",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_stung_recruit.text",
+        "en": "Whenever this minion takes damage, give it +1 Attack."
+      }
+    },
+    {
+      "id": "war_blood_price",
+      "name": "Blood Price",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1,
+              "spell_damage": false
+            },
+            {
+              "op": "buff",
+              "attack": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.war_blood_price.text",
+        "en": "Deal 1 damage to a friendly minion, then give it +2 Attack."
+      }
+    },
+    {
+      "id": "war_scar_captain",
+      "name": "Scar Captain",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true,
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_scar_captain.text",
+        "en": "Your other damaged minions have +1 Attack."
+      }
+    },
+    {
+      "id": "war_second_wind",
+      "name": "Second Wind",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.war_second_wind.text",
+        "en": "Give a damaged friendly minion +2/+1."
+      }
+    },
+    {
+      "id": "war_scarred_vanguard",
+      "name": "Scarred Vanguard",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true,
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_scarred_vanguard.text",
+        "en": "Rush. When this takes damage, give your other damaged minions +1 Attack."
+      }
+    },
+    {
+      "id": "war_pit_survivor",
+      "name": "Pit Survivor",
+      "set": "war",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_pit_survivor.text",
+        "en": "Battlecry: Give your damaged minions +2 Attack."
+      }
+    },
+    {
+      "id": "war_pit_medic",
+      "name": "Pit Medic",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_pit_medic.text",
+        "en": "Battlecry: Give a damaged friendly minion +0/+3."
+      }
+    },
+    {
+      "id": "war_riot_spark",
+      "name": "Riot Spark",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": "all_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1,
+              "spell_damage": false
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "fire"
+      ],
+      "text": {
+        "key": "card.war_riot_spark.text",
+        "en": "Deal 1 damage to all minions."
+      }
+    },
+    {
+      "id": "war_riot_axe",
+      "name": "Riot Axe",
+      "set": "war",
+      "type": "weapon",
+      "cost": 3,
+      "attack": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "targets": {
+            "selector": "random_friendly_minion",
+            "filter": {
+              "is_damaged": false
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "text": {
+        "key": "card.war_riot_axe.text",
+        "en": "When your hero attacks, deal 1 damage to a random undamaged friendly minion."
+      },
+      "durability": 2
+    },
+    {
+      "id": "war_iron_nerve",
+      "name": "Iron Nerve",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2
+            },
+            {
+              "op": "damage",
+              "amount": 1,
+              "spell_damage": false
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.war_iron_nerve.text",
+        "en": "Give a friendly minion +0/+2, then deal 1 damage to it."
+      }
+    },
+    {
+      "id": "war_pit_quartermaster",
+      "name": "Pit Quartermaster",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "exists": {
+              "selector": "all_friendly_minions",
+              "filter": {
+                "is_damaged": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_pit_quartermaster.text",
+        "en": "At the end of your turn, draw a card if you have a damaged minion."
+      }
+    },
+    {
+      "id": "war_pit_barrier",
+      "name": "Pit Barrier",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 6,
+      "rarity": "common",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_pit_barrier.text",
+        "en": "Taunt. Whenever this minion takes damage, gain 2 Armor."
+      }
+    },
+    {
+      "id": "war_bone_setter",
+      "name": "Bone Setter",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_bone_setter.text",
+        "en": "Battlecry: Give a damaged friendly minion Divine Shield."
+      }
+    },
+    {
+      "id": "war_open_wound",
+      "name": "Open Wound",
+      "set": "war",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 4
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.war_open_wound.text",
+        "en": "Deal 4 damage to a damaged enemy minion."
+      }
+    },
+    {
+      "id": "war_crowd_favorite",
+      "name": "Crowd Favorite",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "friendly"
+          },
+          "targets": {
+            "selector": "trigger_subject",
+            "filter": {
+              "kind": "minion",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_crowd_favorite.text",
+        "en": "Whenever another friendly minion takes damage, give it +1 Attack."
+      }
+    },
+    {
+      "id": "war_split_the_pit",
+      "name": "Split the Pit",
+      "set": "war",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1,
+              "spell_damage": false,
+              "targets": "all_friendly_minions"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.war_split_the_pit.text",
+        "en": "Deal 1 damage to your minions. Draw a card."
+      }
+    },
+    {
+      "id": "war_wound_tracker",
+      "name": "Wound Tracker",
+      "set": "war",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_friendly_minions",
+              "filter": {
+                "is_damaged": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_wound_tracker.text",
+        "en": "Battlecry: If you have a damaged minion, draw a card."
+      }
+    },
+    {
+      "id": "war_chain_breaker",
+      "name": "Chain Breaker",
+      "set": "war",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "rush"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_chain_breaker.text",
+        "en": "Battlecry: Give your damaged minions Rush."
+      }
+    },
+    {
+      "id": "war_pit_tyrant",
+      "name": "Pit Tyrant",
+      "set": "war",
+      "type": "minion",
+      "cost": 8,
+      "attack": 6,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true,
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 2,
+              "keywords": [
+                "windfury"
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.war_pit_tyrant.text",
+        "en": "Your other damaged minions have +2 Attack and Windfury."
+      }
+    },
+    {
+      "id": "war_red_reckoning",
+      "name": "Red Reckoning",
+      "set": "war",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1,
+              "spell_damage": false,
+              "targets": "all_minions"
+            },
+            {
+              "op": "buff",
+              "attack": 3,
+              "duration": "until_end_of_turn",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "is_damaged": true
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.war_red_reckoning.text",
+        "en": "Deal 1 damage to all minions. Give your damaged minions +3 Attack this turn."
+      }
+    },
+    {
+      "id": "war_challenge_blade",
+      "name": "Challenge Blade",
+      "set": "war",
+      "type": "weapon",
+      "cost": 4,
+      "attack": 3,
+      "durability": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "owner_hero"
+          },
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "berserk"
+      ],
+      "text": {
+        "key": "card.war_challenge_blade.text",
+        "en": "Whenever your hero attacks, give your damaged minions +1 Attack."
       }
     }
   ]

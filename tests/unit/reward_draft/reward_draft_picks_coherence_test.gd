@@ -350,8 +350,9 @@ func test_p14_uniform_random_reaches_the_plan_target() -> void:
 
 func test_p20_follower_still_reaches_the_plan_target_and_reports_the_baseline() -> void:
 	# Act
-	var follower: Dictionary = _means(null, DraftHarness.POLICY_FOLLOWER)
-	var uniform: Dictionary = _means(null, DraftHarness.POLICY_RANDOM)
+	var over: DraftHarness.PoolDb = _fix.pool_db(_fix.p20())
+	var follower: Dictionary = _means(over, DraftHarness.POLICY_FOLLOWER)
+	var uniform: Dictionary = _means(over, DraftHarness.POLICY_RANDOM)
 	print("AC-29 P20 follower: plan_share %.3f, top_tag_share %.3f, rails %.3f" % [follower.plan_share, follower.top_tag_share, follower.rails])
 	print("AC-29 P20 uniform: plan_share %.3f against the %.2f baseline (reported, not gated), rails %.3f" % [uniform.plan_share, P20_UNIFORM_BASELINE, uniform.rails])
 

@@ -338,9 +338,10 @@ func test_p14_at_w3_passes_the_f5_bound_and_reoffers() -> void:
 func test_p20_at_w2_is_never_short_or_reoffering_under_any_policy() -> void:
 	# Arrange
 	assert_int(_fix.p20().size()).is_equal(20)
+	var over: DraftHarness.PoolDb = _fix.pool_db(_fix.p20())
 
 	# Act
-	var bad: Array = _sweep_flags(_fix.draft(), null)
+	var bad: Array = _sweep_flags(_fix.draft({}, over), over)
 
 	# Assert
 	assert_array(bad).is_empty()
@@ -348,13 +349,15 @@ func test_p20_at_w2_is_never_short_or_reoffering_under_any_policy() -> void:
 
 func test_p20_at_w2_keeps_ten_eligible_on_floor_seven() -> void:
 	# Arrange
-	var draft: RewardDraft = _fix.draft()
+	var pool: Array = _fix.p20()
+	var over: DraftHarness.PoolDb = _fix.pool_db(pool)
+	var draft: RewardDraft = _fix.draft({}, over)
 	var least: int = 1000
 
 	# Act
 	for policy: StringName in _policies:
 		for run_seed: int in range(1, SEEDS + 1):
-			var sim: DraftHarness.SimResult = _fix.simulate(draft, run_seed, policy, null, LAST_DRAFT, _fix.p20(), W_DEFAULT)
+			var sim: DraftHarness.SimResult = _fix.simulate(draft, run_seed, policy, over, LAST_DRAFT, pool, W_DEFAULT)
 			least = mini(least, sim.eligible[LAST_DRAFT - 1])
 
 	# Assert
@@ -363,7 +366,7 @@ func test_p20_at_w2_keeps_ten_eligible_on_floor_seven() -> void:
 
 func test_p20_at_w6_passes_the_f5_bound_and_reoffers() -> void:
 	# Act
-	var reoffered: bool = _any_reoffer(W_BREAKS_P20, null)
+	var reoffered: bool = _any_reoffer(W_BREAKS_P20, _fix.pool_db(_fix.p20()))
 
 	# Assert
 	assert_bool(reoffered).is_true()

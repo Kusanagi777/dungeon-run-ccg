@@ -48,6 +48,7 @@ signal ui_intent_rejected(name: StringName, reason: StringName)
 const SCREEN_MENU: StringName = &"main_menu"
 const SCREEN_RESUME: StringName = &"resume_prompt"
 const SCREEN_HERO: StringName = &"hero_select"
+const SCREEN_COLLECTIONS: StringName = &"collections"
 const SCREEN_RUN_START: StringName = &"run_start"
 const SCREEN_BOSS: StringName = &"boss_intro"
 const SCREEN_MATCH: StringName = &"match"
@@ -72,7 +73,8 @@ const SCREEN_DATA_ERROR: StringName = &"data_error"
 const LEGAL: Dictionary = {
 	SCREEN_MENU: [&"new_run_requested", &"continue_requested", &"open_run_log", &"open_unlocks", &"open_settings", &"retry_lock", &"quit_requested"],
 	SCREEN_RESUME: [&"continue", &"abandon", &"back"],
-	SCREEN_HERO: [&"start_run", &"back"],
+	SCREEN_HERO: [&"start_run", &"open_collections", &"back"],
+	SCREEN_COLLECTIONS: [&"start_trial", &"resume_trial", &"next_trial_encounter", &"retry_trial", &"retry_trial_save", &"back"],
 	SCREEN_RUN_START: [],
 	SCREEN_BOSS: [&"begin_match", &"open_pause"],
 	SCREEN_DRAFT_TREASURE: [&"pick", &"skip_pick", &"open_pause"],
@@ -123,6 +125,8 @@ var _log_rows: Array = []
 ## Debug builds: the fixture's run read model, standing in for the machine's.
 var _debug_model: Dictionary = {}
 var _debug_overrides: Dictionary = {}
+var _trial: MasteryTrial = null
+var _trial_match: bool = false
 
 
 ## ADR-0011 Key Interfaces. [param ui_config] is the `config("run_ui")` body.
@@ -189,6 +193,11 @@ func intent(name: StringName, args: Dictionary = {}) -> void:
 func on_match_view_finished(_result: Variant) -> void:
 	state.base = &""
 	state.committed = false
+	if _trial_match:
+		_trial_match = false
+		_open_screen(SCREEN_COLLECTIONS, RunUiConfig.KIND_FADE)
+		_enqueue_pending_notifications()
+		return
 	_drain()
 	if state.base == &"":
 		_open_for_phase()
@@ -262,7 +271,12 @@ func _dispatch(name: StringName, args: Dictionary) -> void:
 		&"close":
 			_pop()
 		&"start_run":
-			_on_start_run(str(args.get("hero_id", "")), str(args.get("seed_input", "")), str(args.get("power_id", "")))
+			_on_start_run(str(args.get("hero_id", "")), str(args.get("seed_input", "")), str(args.get("power_id", "")), str(args.get("collection_id", "")))
+		&"open_collections":
+			_ensure_trial()
+			_open_screen(SCREEN_COLLECTIONS, RunUiConfig.KIND_FADE)
+		&"start_trial", &"resume_trial", &"next_trial_encounter", &"retry_trial", &"retry_trial_save":
+			_begin_trial(name, str(args.get("trial_id", MasteryTrial.TRIAL_ID)))
 		&"begin_match":
 			_begin_match()
 		&"open_pause":
@@ -321,6 +335,8 @@ func _on_skip() -> void:
 
 func _on_back() -> void:
 	match state.top():
+		SCREEN_COLLECTIONS:
+			_open_screen(SCREEN_HERO, RunUiConfig.KIND_FADE)
 		SCREEN_HERO:
 			var _left: Error = _run.suspend()
 			_open_menu(RunUiConfig.KIND_FADE)
@@ -340,22 +356,75 @@ func _on_confirm_intent(name: StringName) -> void:
 
 ## S7 / AC-14: a saved run must be given up first; [method RunMachine.new_run] then
 ## ends it as `abandoned / player` (R2 step 1).
-func _on_start_run(hero_id: String, seed_input: String, power_id: String = "") -> void:
+func _on_start_run(hero_id: String, seed_input: String, power_id: String = "", collection_id: String = "") -> void:
 	if _meta.load_active_run() == null:
 		_commit()
-		_new_run(hero_id, seed_input, power_id)
+		_new_run(hero_id, seed_input, power_id, collection_id)
 		return
 	_ask(RunText.t("hero.replace.title"), RunText.t("hero.replace.body"), RunText.t("hero.replace.confirm"), "", func() -> void:
 		_commit()
-		_new_run(hero_id, seed_input, power_id))
+		_new_run(hero_id, seed_input, power_id, collection_id))
 
 
-func _new_run(hero_id: String, seed_input: String, power_id: String = "") -> void:
-	var code: Error = _run.new_run(hero_id, seed_input, power_id)
+func _new_run(hero_id: String, seed_input: String, power_id: String = "", collection_id: String = "") -> void:
+	var code: Error = _run.new_run(hero_id, seed_input, power_id, collection_id)
 	if code != OK:
 		_uncommit_with(code)
 		return
 	_drain()
+
+
+func _ensure_trial() -> void:
+	if _trial != null:
+		return
+	var slice_usec: int = int(float(_db.config("ai_profiles").runtime.slice_ms) * MatchDriver.USEC_PER_MSEC)
+	_trial = MasteryTrial.new(_db, _meta, func() -> PlannerTask: return TimeSlicedPlannerTask.new(slice_usec))
+	_trial.changed.connect(_on_trial_changed)
+	if _meta.load_trial() is Dictionary:
+		var _resumed: Error = _trial.resume()
+
+
+func _on_trial_changed(_view: Dictionary) -> void:
+	if state.base == SCREEN_COLLECTIONS:
+		screen_refreshed.emit(SCREEN_COLLECTIONS, _model_for(SCREEN_COLLECTIONS))
+
+
+func _begin_trial(action: StringName, trial_id: String) -> void:
+	_ensure_trial()
+	var code: Error
+	match action:
+		&"start_trial":
+			code = _trial.start(trial_id)
+		&"resume_trial":
+			code = _trial.resume()
+		&"next_trial_encounter":
+			code = _trial.next_encounter()
+		&"retry_trial_save":
+			code = _trial.retry_save()
+		_:
+			code = _trial.retry()
+	if code != OK or str(_trial.view().get("status", "")) != "playing":
+		_open_screen(SCREEN_COLLECTIONS, RunUiConfig.KIND_FADE)
+		if code == OK:
+			_enqueue_pending_notifications()
+		return
+	_commit()
+	_trial_match = true
+	state.base = SCREEN_MATCH
+	var definition: Dictionary = _db.config(MasteryTrial.COLLECTION_ID + "/trial")
+	var encounter: Dictionary = definition.encounters[int(_trial.view().encounter_index)]
+	match_requested.emit(_trial.driver(), {
+		"floor": int(_trial.view().encounter_index) + 1,
+		"boss_def_id": str(encounter.boss_id),
+		"hero_def_id": str(definition.hero_id),
+		"treasures": Array(definition.treasures),
+	})
+
+
+func shutdown() -> void:
+	if _trial != null:
+		_trial.shutdown()
+		_trial = null
 
 
 func _begin_match() -> void:
@@ -685,6 +754,8 @@ func _model_for(id: StringName) -> Dictionary:
 			return _models.resume_prompt(run_model)
 		SCREEN_HERO:
 			return _models.hero_select(run_model, RunMachine.seed_preview)
+		SCREEN_COLLECTIONS:
+			return _models.collections(_trial.view() if _trial != null else {})
 		SCREEN_RUN_START:
 			var settings_row: Dictionary = _meta.get_settings()
 			return _models.run_start(run_model, RunUiConfig.t_transition(_config, RunUiConfig.KIND_RUN_START, str(settings_row.get("anim_speed", RunUiConfig.SPEED_NORMAL)), false))

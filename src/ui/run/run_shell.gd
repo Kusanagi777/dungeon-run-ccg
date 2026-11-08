@@ -273,6 +273,11 @@ func _start_controller(db: CardDatabase) -> void:
 	_sfx.play_music(MUSIC_AMBIENT)
 
 
+func _exit_tree() -> void:
+	if _controller != null:
+		_controller.shutdown()
+
+
 func _instance(id: StringName) -> Screen:
 	var scene: PackedScene = load(SCREEN_PATH % id) as PackedScene
 	var node: Screen = scene.instantiate() as Screen

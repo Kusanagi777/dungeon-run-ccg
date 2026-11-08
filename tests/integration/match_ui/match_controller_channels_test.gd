@@ -48,7 +48,7 @@ class SpyDriver:
 	var callbacks: Array[Callable] = []
 	var settings_seen: Array = []
 	var answer: Dictionary = {}
-	var commands: Array = []
+	var offered_commands: Array = []
 	var events: Array = []
 	var planning: bool = false
 
@@ -62,7 +62,7 @@ class SpyDriver:
 
 	func legal_commands() -> Array:
 		trail.append("legal_commands")
-		return commands
+		return offered_commands
 
 	func query() -> MatchQuery:
 		trail.append("query")
@@ -203,7 +203,7 @@ func test_submit_passes_the_command_and_answers_the_drivers_result_unchanged() -
 func test_legal_commands_and_events_since_answer_the_drivers_values() -> void:
 	# Arrange
 	var spy: SpyDriver = _spy()
-	spy.commands = [MatchRecords.end_turn(SIDE_PLAYER)]
+	spy.offered_commands = [MatchRecords.end_turn(SIDE_PLAYER)]
 	spy.events = [{"seq": 7}]
 	var controller: MatchController = MatchController.new(spy)
 
@@ -212,7 +212,7 @@ func test_legal_commands_and_events_since_answer_the_drivers_values() -> void:
 	var events: Array = controller.events_since(6)
 
 	# Assert
-	assert_bool(is_same(commands, spy.commands)).is_true()
+	assert_bool(is_same(commands, spy.offered_commands)).is_true()
 	assert_bool(is_same(events, spy.events)).is_true()
 	assert_that(spy.seqs).is_equal([6])
 
@@ -452,6 +452,8 @@ func test_card_text_is_the_u2_row_and_a_copy() -> void:
 	var copy: Dictionary = query.card_text(id)
 	copy.cost = 99
 	(copy.keywords as Array).append("mutated")
+	(copy.tribes as Array).append("mutated")
+	(copy.schools as Array).append("mutated")
 
 	# Assert
 	assert_that(query.card_text(id)).is_equal(before)
@@ -460,7 +462,7 @@ func test_card_text_is_the_u2_row_and_a_copy() -> void:
 	assert_int(int(before.cost)).is_equal(0)
 	assert_int(int(before.attack)).is_equal(1)
 	assert_int(int(before.health)).is_equal(1)
-	assert_that(before.keys()).contains_exactly_in_any_order(["name_key", "text_key", "type", "cost", "attack", "health", "keywords"])
+	assert_that(before.keys()).contains_exactly_in_any_order(["name_key", "text_key", "type", "cost", "attack", "health", "keywords", "tribes", "schools"])
 
 
 func test_card_text_of_an_unknown_card_is_empty() -> void:

@@ -26,7 +26,6 @@ class OverlayLoader:
 const BOOT_SCRIPT_PATH: String = "res://src/core/boot.gd"
 const ARMORY: String = ProfileFixtures.ARMORY
 const OPEN_TREASURE: String = "treasure_worn_signet"
-const LOCKED_TREASURES: int = 4
 
 
 func _validators() -> Dictionary:
@@ -69,7 +68,7 @@ func test_shipped_data_loads_with_the_real_unlock_validator() -> void:
 	assert_array(db.report().errors()).is_empty()
 
 
-func test_shipped_data_locks_the_four_m10_treasures_and_no_hero() -> void:
+func test_shipped_data_locks_the_four_m10_treasures_and_three_advanced_heroes() -> void:
 	# Act
 	var db: CardDatabase = _load(func(_item: Dictionary) -> void: pass)
 
@@ -84,8 +83,11 @@ func test_shipped_data_locks_the_four_m10_treasures_and_no_hero() -> void:
 		ProfileFixtures.GRIMOIRE: ProfileFixtures.KNOWLEDGE_WIN_KEY,
 		ARMORY: ProfileFixtures.FIRST_VICTORY_KEY,
 	})
+	var locked_heroes: Dictionary = {}
 	for hero: Dictionary in db.heroes():
-		assert_that(hero.unlock).override_failure_message(hero.id).is_null()
+		if hero.unlock != null:
+			locked_heroes[hero.id] = hero.unlock.key
+	assert_dict(locked_heroes).is_equal({"hero_fortune": "hero_fortune", "hero_order": "hero_order", "hero_shadow": "hero_shadow"})
 
 
 func test_load_ac25_unknown_boss_fails_with_e_unlock_unknown_id_naming_the_key() -> void:
@@ -172,6 +174,17 @@ func test_load_treasure_requiring_its_own_pick_warns_and_stays_ready() -> void:
 
 func test_load_a_failed_profile_defaults_gives_each_non_null_unlock_one_e_delegated() -> void:
 	# Arrange: the 7a validator refuses the knobs, so the limits are unknown
+	var shipped: CardDatabase = _load(func(_item: Dictionary) -> void: pass)
+	var expected_hosts: Array = []
+	for treasure: Dictionary in shipped.treasure_pool():
+		if treasure.unlock != null:
+			expected_hosts.append(treasure.id)
+	for hero: Dictionary in shipped.heroes():
+		if hero.unlock != null:
+			expected_hosts.append(hero.id)
+		for extra: Dictionary in hero.get("extra_powers", []):
+			if extra.get("unlock") != null:
+				expected_hosts.append(hero.id)
 	var edit: Callable = func(item: Dictionary) -> void:
 		if item.row.name == "profile_defaults.json":
 			item.body.config.knobs["run_log_cap"] = 1
@@ -182,7 +195,7 @@ func test_load_a_failed_profile_defaults_gives_each_non_null_unlock_one_e_delega
 	# Assert
 	assert_int(db.state()).is_equal(CardDatabase.State.FAILED)
 	var hits: Array = _delegated(db.report(), "profile_defaults config failed stage 7a")
-	assert_int(hits.size()).is_equal(LOCKED_TREASURES)
+	assert_array(hits.map(func(entry: Dictionary) -> String: return str(entry.record_id))).contains_exactly_in_any_order(expected_hosts)
 	assert_array(hits.map(func(entry: Dictionary) -> String: return str(entry.record_id))).contains([ARMORY])
 	assert_array(hits.map(func(entry: Dictionary) -> String: return str(entry.record_id))).not_contains([OPEN_TREASURE])
 
@@ -235,7 +248,7 @@ func test_facade_validator_reports_the_same_rules_after_the_load() -> void:
 	ProfileFixtures.remove_root(root)
 
 
-func test_compose_over_shipped_data_defines_the_four_keys_and_each_treasure_opens() -> void:
+func test_compose_over_shipped_data_grants_each_milestone_and_each_treasure_opens() -> void:
 	# Arrange: a real database, a scratch store, M10's milestones end to end
 	var db: CardDatabase = _load(func(_item: Dictionary) -> void: pass)
 	var root: String = ProfileFixtures.new_root()
@@ -249,9 +262,9 @@ func test_compose_over_shipped_data_defines_the_four_keys_and_each_treasure_open
 	var knowledge: Dictionary = meta.archive_run(ProfileFixtures.victory("run_3", ProfileFixtures.HERO_KNOWLEDGE))
 
 	# Assert
-	assert_array(war.unlocks_granted).is_equal([ProfileFixtures.FIRST_VICTORY_KEY])
-	assert_array(decay.unlocks_granted).contains_exactly_in_any_order([ProfileFixtures.DECAY_WIN_KEY, ProfileFixtures.DECAY_FLOOR_KEY])
-	assert_array(knowledge.unlocks_granted).is_equal([ProfileFixtures.KNOWLEDGE_WIN_KEY])
+	assert_array(war.unlocks_granted).contains_exactly_in_any_order([ProfileFixtures.FIRST_VICTORY_KEY, "hero_fortune", "hero_order", "power_battle_cry", "power_brace"])
+	assert_array(decay.unlocks_granted).contains_exactly_in_any_order([ProfileFixtures.DECAY_WIN_KEY, ProfileFixtures.DECAY_FLOOR_KEY, "power_harvest", "power_raise"])
+	assert_array(knowledge.unlocks_granted).contains_exactly_in_any_order([ProfileFixtures.KNOWLEDGE_WIN_KEY, "power_frostbind", "power_study"])
 	assert_int(meta.unlocked_ids(&"treasure").size()).is_equal(db.treasure_pool().size())
 	ProfileFixtures.remove_root(root)
 

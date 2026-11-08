@@ -88,6 +88,10 @@
                 "type": "string"
               }
             }
+          },
+          "collection_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{2,47}$"
           }
         }
       }

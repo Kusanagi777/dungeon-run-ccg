@@ -67,5 +67,9 @@ func hero_power_cost(_side: String) -> int:
 	return 0
 
 
+func hero_power_id(_side: String) -> String:
+	return ""
+
+
 func snapshot(_side: String) -> Dictionary:
 	return {}

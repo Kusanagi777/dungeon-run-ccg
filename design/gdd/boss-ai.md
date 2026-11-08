@@ -567,7 +567,7 @@ op_values:      {<op name>: float 0–5}      damage 1.0, destroy 2.0, heal 0.6,
                                             discover 1.0, add_to_hand 1.0, copy_to_hand 1.0, armor 0.5,
                                             return_to_hand 1.0, transform 1.2, mana 1.5, equip 1.2,
                                             retrigger 1.5, add_counter 0.5 (2026-11-04, DD-X20),
-                                            set_counter 0.5 (2026-11-05, owner)
+                                            set_counter 0.5 (2026-11-05, owner), discard 0.0
                                             (Card Effects C5 names; × targets yielded, C6)
 keyword_values: {<keyword>: float 1.0–1.5}  F2 multipliers
 profiles:       {<key>: Profile}            default, aggro, control, tempo, passive_driven

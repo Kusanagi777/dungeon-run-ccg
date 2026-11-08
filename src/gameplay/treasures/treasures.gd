@@ -155,9 +155,9 @@ func collect_state(_hooks: HookRegistry, _result: Dictionary) -> Dictionary:
 ## previously offered, which Reward Draft derives from `drafts[]` (reward-draft
 ## D7). Unlock state gates offers only: [method installers_for] never reads it
 ## (T6, Edge Cases "unlock revoked mid-run").
-func pool(unlocked_keys: Dictionary, exclude_ids: Array) -> Array:
+func pool(unlocked_keys: Dictionary, exclude_ids: Array, collection_id: String = "") -> Array:
 	var available: Array = []
-	for def: Dictionary in _db.treasure_pool():
+	for def: Dictionary in _db.treasure_pool(collection_id):
 		var unlock: Variant = def.unlock
 		if (unlock == null or unlocked_keys.has(unlock.key)) and not exclude_ids.has(def.id):
 			available.append(def)

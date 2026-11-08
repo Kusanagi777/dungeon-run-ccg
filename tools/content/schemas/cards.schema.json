@@ -141,6 +141,48 @@
           "art": {
             "type": "string",
             "minLength": 1
+          },
+          "tribes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "human",
+                "beast",
+                "undead",
+                "demon",
+                "elemental",
+                "construct",
+                "mech",
+                "plant",
+                "giant",
+                "ogre",
+                "dragon",
+                "harpy",
+                "aberration"
+              ]
+            }
+          },
+          "schools": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "arcane",
+                "fire",
+                "frost",
+                "nature",
+                "holy",
+                "shadow",
+                "martial",
+                "alchemy",
+                "artifice"
+              ]
+            }
+          },
+          "collection_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{2,47}$"
           }
         },
         "allOf": [
@@ -165,6 +207,11 @@
                   {
                     "required": [
                       "durability"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "schools"
                     ]
                   }
                 ]
@@ -192,6 +239,16 @@
                   {
                     "required": [
                       "health"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "tribes"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "schools"
                     ]
                   }
                 ]
@@ -225,6 +282,11 @@
                   {
                     "required": [
                       "durability"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "tribes"
                     ]
                   }
                 ]

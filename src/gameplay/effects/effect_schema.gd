@@ -126,6 +126,7 @@ const FILTER_PREDICATES: Dictionary = {
 	"attack_le": PRED_VALUE, "attack_ge": PRED_VALUE, "health_le": PRED_VALUE, "health_ge": PRED_VALUE,
 	"cost_le": PRED_VALUE, "cost_ge": PRED_VALUE, "cost_eq": PRED_VALUE,
 	"tag": PRED_STRING,
+	"tribe": PRED_ENUM, "school": PRED_ENUM,
 }
 ## Enum predicate values. `kind: hero_power` is the C2 `modify_cost` scope
 ## form (Treasures R-13). `type`, `set` and `rarity` are Card Database's CR-3 /
@@ -138,6 +139,8 @@ const FILTER_ENUMS: Dictionary = {
 	"type": ["minion", "spell", "weapon"],
 	"set": ["war", "decay", "knowledge", "neutral", "boss", "fortune", "order", "shadow"],
 	"rarity": ["common", "rare", "legendary"],
+	"tribe": RecordSchemas.TRIBES,
+	"school": RecordSchemas.SPELL_SCHOOLS,
 }
 
 ## DD-M09 keyword ids (match-rules C12, card-database CR-4).

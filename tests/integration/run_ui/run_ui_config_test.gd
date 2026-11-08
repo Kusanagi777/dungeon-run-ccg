@@ -279,8 +279,7 @@ func test_font_px_holds_the_twelve_pixel_minimum() -> void:
 
 
 func test_palette_needs_every_token_a_screen_or_read_model_names() -> void:
-	# `RunReadModels.SET_PRIMARY` / `SET_SECONDARY` and the band and theme tokens
-	var tokens: Array = RunReadModels.SET_PRIMARY.values() + RunReadModels.SET_SECONDARY.values() + [RunReadModels.NEUTRAL_TOKEN, "boss_band_1", "boss_band_2", "boss_band_3", "state_actionable", "bg_edge"]
+	var tokens: Array = RunUiConfig.TOKENS_REQUIRED
 	for token: String in tokens:
 		var body: Dictionary = _body()
 		body.palette.erase(token)

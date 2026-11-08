@@ -84,6 +84,14 @@ const FILE_MANIFEST: Array[Dictionary] = [
 	{"name": "card_database.json", "class": "config", "record_type": null, "required": true, "owner": "Card Database"},
 	{"name": "content_budgets.json", "class": "config", "record_type": null, "required": true, "owner": "Content"},
 	{"name": "rng_event_log.json", "class": "config", "record_type": null, "required": true, "owner": "RNG & Event Log"},
+	{"name": "collections.json", "class": "config", "record_type": null, "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/cards.json", "class": "definition", "record_type": "CardDef", "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/bosses.json", "class": "definition", "record_type": "BossDef", "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/bundles.json", "class": "definition", "record_type": "BundleDef", "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/treasures.json", "class": "definition", "record_type": "TreasureDef", "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/collection.json", "class": "config", "record_type": null, "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/unlock.json", "class": "config", "record_type": null, "required": false, "owner": "Content"},
+	{"name": "law-of-the-jungle/trial.json", "class": "config", "record_type": null, "required": false, "owner": "Content"},
 ]
 
 ## Stage 7b record validator keys (card-database CR-5 stage 7): the owner and
@@ -100,7 +108,7 @@ const RECORD_VALIDATORS: Dictionary = {
 }
 ## Config files with no injected validator: the loader's own body, checked at
 ## stage 4 (card-database CR-1 row, CR-5 stage 7).
-const CONFIG_VALIDATOR_EXEMPT: Array[String] = ["card_database.json"]
+const CONFIG_VALIDATOR_EXEMPT: Array[String] = ["card_database.json", "collections.json", "law-of-the-jungle/collection.json"]
 
 
 ## What `run()` returns: the report, and the loaded data when the report has
@@ -182,12 +190,14 @@ func run(validators: Dictionary, db: CardDatabase = null) -> LoadResult:
 	# Stage 4 — per-record schema; each definition item gains `records`, the
 	# `{index, record}` rows that passed. A failing card_database.json is dropped.
 	staged = _check_schemas(staged, report)
+	_check_collection_sources(staged, report)
 	_n_records = _count_records(staged)
 	# Stage 5 — one global id namespace: every copy of a repeated id is out.
 	var pool: Dictionary = _check_unique(staged, report)
 	# Stage 6 — cross-references; records that fail are out, then the
 	# id-sorted staging stage 7 reads is built from what is left.
 	_check_references(pool, report)
+	_check_collection_metadata(staged, pool, report)
 	var staging: Dictionary = _build_staging(pool)
 	# Stage 7 — delegated validators: 7a config bodies, 7b staged records.
 	staging = _run_validators(validators, staged, pool, staging, db, report)
@@ -413,7 +423,11 @@ func _check_schemas(staged: Array[Dictionary], report: ValidationReport) -> Arra
 			var ids: Array[Dictionary] = []
 			var records: Array = item.body.records
 			for i: int in records.size():
-				if RecordSchemas.check_record(row.record_type, row.name, i, records[i], report):
+				var provenance_ok: bool = true
+				if records[i] is Dictionary and str(records[i].get("collection_id", "")) != str(row.name).get_base_dir():
+					report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, row.name, records[i].get("id"), "collection_id", "collection_id must match its source file")
+					provenance_ok = false
+				if RecordSchemas.check_record(row.record_type, row.name, i, records[i], report) and provenance_ok:
 					rows.append({"index": i, "record": records[i]})
 				if records[i] is Dictionary and records[i].get("id") is String:
 					ids.append({"index": i, "id": records[i]["id"]})
@@ -422,8 +436,44 @@ func _check_schemas(staged: Array[Dictionary], report: ValidationReport) -> Arra
 		elif row.name == RecordSchemas.CARD_DATABASE_FILE:
 			if not RecordSchemas.check_card_database_config(item.body.config, report):
 				continue
+		elif row.name == "collections.json":
+			_check_collection_registry(item.body.config, report)
+		elif row.name == "law-of-the-jungle/collection.json":
+			if item.body.config.get("id") != "law-of-the-jungle" or not item.body.config.get("card_metadata") is Dictionary:
+				report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, row.name, null, null, "collection metadata requires matching id and card_metadata object")
 		passed.append(item)
 	return passed
+
+
+func _check_collection_sources(staged: Array[Dictionary], report: ValidationReport) -> void:
+	var registered: Dictionary = {}
+	for item: Dictionary in staged:
+		if item.row.name == "collections.json" and item.body.config.get("collections") is Array:
+			for raw: Variant in item.body.config.collections:
+				if raw is Dictionary and raw.get("id") is String:
+					registered[raw.id] = true
+	for item: Dictionary in staged:
+		var source: String = str(item.row.name).get_base_dir()
+		if not source.is_empty() and not registered.has(source):
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, item.row.name, null, "collection_id", "collection source is not registered")
+
+
+func _check_collection_registry(body: Dictionary, report: ValidationReport) -> void:
+	if not body.get("collections") is Array:
+		report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, "collections.json", null, "collections", "collections must be an array")
+		return
+	var seen: Dictionary = {}
+	for raw: Variant in body.collections:
+		if not raw is Dictionary or not raw.get("id") is String:
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, "collections.json", null, "collections", "collection requires an id")
+			continue
+		var id: String = raw.id
+		if not RecordSchemas.valid_collection_id(id) or seen.has(id) or raw.get("path") != id or not raw.get("name") is String or not _manifest().any(func(row: Dictionary) -> bool: return row.name == id + "/collection.json"):
+			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, "collections.json", id, "collections", "invalid or duplicate collection registry entry")
+		seen[id] = true
+		for name: String in ["cards", "bosses", "bundles", "treasures", "collection", "unlock", "trial"]:
+			if not FileAccess.file_exists(_root + id + "/" + name + ".json"):
+				report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_MISSING_FILE, id + "/" + name + ".json", id, null, "registered collection file is missing")
 
 
 ## Stage 5 (CR-2, CR-5 step 5): one id namespace across every definition
@@ -471,7 +521,7 @@ func _check_references(pool: Dictionary, report: ValidationReport) -> void:
 	var failed: Array[String] = []
 	for id: String in pool:
 		var entry: Dictionary = pool[id]
-		var ctx: Dictionary = {"report": report, "pool": pool, "file": entry.file, "id": id, "faults": 0}
+		var ctx: Dictionary = {"report": report, "pool": pool, "file": entry.file, "id": id, "faults": 0, "collection_id": str(entry.record.get("collection_id", ""))}
 		var rec: Dictionary = entry.record
 		match String(entry.type):
 			"HeroDef":
@@ -493,11 +543,59 @@ func _check_references(pool: Dictionary, report: ValidationReport) -> void:
 				_check_card_list(ctx, "deck", rec["deck"], [], "")
 			"BundleDef":
 				_check_count(ctx, "cards", rec["cards"], RecordSchemas.BUNDLE_FIELDS.cards["count"])
-				_check_card_list(ctx, "cards", rec["cards"], [rec["set"]], rec["theme"])
+				_check_card_list(ctx, "cards", rec["cards"], [rec["set"], "neutral"] if rec.has("collection_id") else [rec["set"]], rec["theme"])
+		_check_effect_collections(ctx, rec.get("effects", []))
+		_check_effect_collections(ctx, rec.get("passive", {}))
 		if ctx.faults > 0:
 			failed.append(id)
 	for id: String in failed:
 		pool.erase(id)
+
+
+func _check_effect_collections(ctx: Dictionary, value: Variant) -> void:
+	if value is Array:
+		for child: Variant in value:
+			_check_effect_collections(ctx, child)
+	elif value is Dictionary:
+		for key: Variant in value:
+			if key == "card_id" or key == "list":
+				var ids: Array = value[key] if value[key] is Array else [value[key]]
+				for id: Variant in ids:
+					var target: Variant = ctx.pool.get(id)
+					if target is Dictionary and not collection_allows(target.record, str(ctx.collection_id)):
+						_ref_fault(ctx, ValidationReport.E_SCHEMA, "effects", "effect card reference %s crosses collection eligibility" % str(id))
+			_check_effect_collections(ctx, value[key])
+
+
+func _check_collection_metadata(staged: Array[Dictionary], pool: Dictionary, report: ValidationReport) -> void:
+	for item: Dictionary in staged:
+		if item.row.name != "law-of-the-jungle/collection.json":
+			continue
+		var body: Dictionary = item.body.config
+		var source: String = str(item.row.name).get_base_dir()
+		var ctx: Dictionary = {"report": report, "pool": pool, "file": item.row.name, "id": source, "faults": 0}
+		if not body.get("name") is String or not RecordSchemas.is_whole_number(body.get("version")) or int(body.get("version", 0)) < 1:
+			_ref_fault(ctx, ValidationReport.E_SCHEMA, "version", "collection metadata requires a name and positive version")
+		var metadata: Variant = body.get("card_metadata")
+		if not metadata is Dictionary:
+			continue
+		for id: Variant in metadata:
+			var card: Variant = _ref(ctx, "card_metadata", str(id), str(id), "CardDef")
+			var row: Variant = metadata[id]
+			if card == null or card.get("collection_id") != source or not row is Dictionary or not row.get("package") is String or not row.get("role") is String:
+				_ref_fault(ctx, ValidationReport.E_SCHEMA, "card_metadata", "metadata must describe a collection card with package and role")
+				continue
+			if row.has("enablers") and not row.enablers is Array:
+				_ref_fault(ctx, ValidationReport.E_SCHEMA, "enablers", "legendary enablers must be card ids")
+				continue
+			for enabler_id: Variant in row.get("enablers", []):
+				var enabler: Variant = _ref(ctx, "enablers", str(enabler_id), str(enabler_id), "CardDef")
+				if enabler != null and (enabler.get("collection_id") != source or enabler.rarity == "legendary" or not [card.set, "neutral"].has(enabler.set)):
+					_ref_fault(ctx, ValidationReport.E_SCHEMA, "enablers", "enablers must be legal nonlegendary collection cards")
+		for id: String in pool:
+			var entry: Dictionary = pool[id]
+			if entry.type == "CardDef" and entry.record.get("collection_id") == source and not bool(entry.record.get("token", false)) and not metadata.has(id):
+				_ref_fault(ctx, ValidationReport.E_SCHEMA, "card_metadata", "collectible card %s has no collection metadata" % id)
 
 
 func _check_count(ctx: Dictionary, field: String, items: Array, expected: int) -> void:
@@ -513,6 +611,8 @@ func _check_card_list(ctx: Dictionary, field: String, items: Array, sets: Array,
 		var card: Variant = _ref(ctx, field, where, items[i], "CardDef")
 		if card == null:
 			continue
+		if not collection_allows(card, str(ctx.get("collection_id", ""))):
+			_ref_fault(ctx, ValidationReport.E_SCHEMA, field, "%s crosses collection eligibility" % where)
 		if card.get("token", false):
 			_ref_fault(ctx, ValidationReport.E_TOKEN_IN_LIST, field,
 				"%s \"%s\" is a token; tokens exist only through effects" % [where, items[i]])
@@ -620,7 +720,7 @@ func _check_registrations(validators: Dictionary, config_validators: Dictionary,
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, spec.file, null, key,
 				"no `%s` record validator registered (owner: %s; %s) — %s" % [key, spec.owner, spec.validates, _absent_or(validators.get(key))])
 	for row: Dictionary in FILE_MANIFEST:
-		if row["class"] != "config" or CONFIG_VALIDATOR_EXEMPT.has(row.name):
+		if row["class"] != "config" or CONFIG_VALIDATOR_EXEMPT.has(row.name) or (not row.required and not FileAccess.file_exists(_root + row.name)):
 			continue
 		var name: String = String(row.name).get_basename()
 		if not config_validators.get(name) is Callable:
@@ -850,7 +950,7 @@ func _check_treasure_pool(configs: Dictionary, treasures: Array, report: Validat
 	var needed: int = drafts * int(offers)
 	var unlocked: int = 0
 	for t: Dictionary in treasures:
-		if t["unlock"] == null:
+		if t["unlock"] == null and collection_allows(t):
 			unlocked += 1
 	if unlocked < needed:
 		report.add(ValidationReport.SEVERITY_WARNING, ValidationReport.W_POOL_SIZE, "treasures.json", null, null,
@@ -896,15 +996,19 @@ func _body_key(row: Dictionary) -> String:
 ## CR-6 `collectible_pool(hero_set)` membership: a CardDef with `set ∈
 ## {hero_set, neutral}` and `token == false`; a `boss` card never.
 ## Example: `DataLoader.in_collectible_pool(db.card("war_axe"), "war")`.
-static func in_collectible_pool(card: Dictionary, hero_set: String) -> bool:
+static func in_collectible_pool(card: Dictionary, hero_set: String, collection_id: String = "") -> bool:
 	var card_set: String = card["set"]
-	return card_set != "boss" and (card_set == hero_set or card_set == "neutral") and not card.get("token", false)
+	return collection_allows(card, collection_id) and card_set != "boss" and (card_set == hero_set or card_set == "neutral") and not card.get("token", false)
 
 
 ## CR-6 `bundle_pool(hero_set)` membership: a BundleDef with `set ∈ {hero_set,
 ## neutral}`. Example: `DataLoader.in_bundle_pool(db.bundle("bundle_war_steel"), "war")`.
-static func in_bundle_pool(bundle: Dictionary, hero_set: String) -> bool:
-	return bundle["set"] == hero_set or bundle["set"] == "neutral"
+static func in_bundle_pool(bundle: Dictionary, hero_set: String, collection_id: String = "") -> bool:
+	return collection_allows(bundle, collection_id) and (bundle["set"] == hero_set or bundle["set"] == "neutral")
+
+
+static func collection_allows(record: Dictionary, collection_id: String = "") -> bool:
+	return not record.has("collection_id") or str(record.collection_id) == collection_id
 
 
 ## CR-9 canonical serialisation: `JSON.stringify(value, "", true, true)` —
@@ -981,7 +1085,7 @@ func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationR
 	var bosses_in_band: Dictionary = {}
 	var band_spec: Dictionary = RecordSchemas.BOSS_FIELDS.band
 	for band: int in range(int(band_spec["min"]), int(band_spec["max"]) + 1):
-		bosses_in_band[band] = Array(records.BossDef).filter(func(b: Dictionary) -> bool: return int(b["band"]) == band)
+		bosses_in_band[band] = Array(records.BossDef).filter(func(b: Dictionary) -> bool: return int(b["band"]) == band and collection_allows(b))
 	var snapshot: Dictionary = {
 		"records_by_type": records,
 		"index_of": staging.index_of,
@@ -990,7 +1094,7 @@ func _freeze(staged: Array[Dictionary], staging: Dictionary, report: ValidationR
 			"collectible": collectible,
 			"bundle": bundle,
 			"bosses_in_band": bosses_in_band,
-			"all": {"TreasureDef": records.TreasureDef, "HeroDef": records.HeroDef},
+			"all": {"TreasureDef": Array(records.TreasureDef).filter(func(t: Dictionary) -> bool: return collection_allows(t)), "HeroDef": records.HeroDef},
 		},
 		"data_version": fingerprint(bodies),
 		"report": report,

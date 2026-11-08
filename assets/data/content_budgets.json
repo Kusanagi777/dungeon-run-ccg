@@ -73,7 +73,6 @@
       "ops_exempt": [
         "remove_keyword",
         "shuffle_into_deck",
-        "discard",
         "weapon_durability",
         "hero_power_refresh"
       ]

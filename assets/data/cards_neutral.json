@@ -13,6 +13,9 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "demon"
+      ],
       "text": {
         "key": "card.neutral_torch_imp.text",
         "en": ""
@@ -32,6 +35,9 @@
       "tags": [
         "tempo"
       ],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.neutral_tunnel_rat.text",
         "en": ""
@@ -49,6 +55,9 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_cellar_guard.text",
         "en": ""
@@ -69,6 +78,9 @@
       "effects": [],
       "tags": [
         "wall"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.neutral_lantern_bearer.text",
@@ -108,6 +120,9 @@
       "tags": [
         "wall"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_bulwark_smith.text",
         "en": "Battlecry: Give a friendly minion Taunt."
@@ -125,6 +140,9 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_dungeon_delver.text",
         "en": ""
@@ -161,6 +179,9 @@
       ],
       "tags": [
         "tricks"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.neutral_hush_owl.text",
@@ -201,6 +222,9 @@
       "tags": [
         "pings"
       ],
+      "tribes": [
+        "elemental"
+      ],
       "text": {
         "key": "card.neutral_spark_fiend.text",
         "en": "At the start of your turn, deal 1 damage to a random enemy minion, twice."
@@ -239,6 +263,9 @@
       "tags": [
         "tempo"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_banner_captain.text",
         "en": "Your other minions have +1/+1."
@@ -259,6 +286,9 @@
       "effects": [],
       "tags": [
         "tempo"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.neutral_wolf_rider.text",
@@ -282,6 +312,9 @@
       "tags": [
         "wall"
       ],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.neutral_shield_golem.text",
         "en": "Taunt. Divine Shield."
@@ -299,6 +332,9 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.neutral_crypt_brute.text",
         "en": ""
@@ -317,6 +353,9 @@
       "effects": [],
       "tags": [
         "big"
+      ],
+      "tribes": [
+        "ogre"
       ],
       "text": {
         "key": "card.neutral_ogre_porter.text",
@@ -370,6 +409,9 @@
       "tags": [
         "tricks"
       ],
+      "schools": [
+        "holy"
+      ],
       "text": {
         "key": "card.neutral_smite_or_mend.text",
         "en": "Choose One — Deal 2 damage to a character; or Restore 4 Health to it."
@@ -416,6 +458,9 @@
       ],
       "tags": [
         "pings"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.neutral_gravekeeper.text",
@@ -467,6 +512,9 @@
       "tags": [
         "value"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_novice_scout.text",
         "en": "Battlecry: Draw a card."
@@ -504,6 +552,9 @@
       "tags": [
         "tricks"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_tunnel_shaman.text",
         "en": "Battlecry: Return a friendly minion to your hand."
@@ -525,6 +576,9 @@
       "tags": [
         "tempo"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_cutpurse.text",
         "en": "Stealth."
@@ -545,6 +599,9 @@
       "effects": [],
       "tags": [
         "tempo"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.neutral_charging_boar.text",
@@ -583,6 +640,9 @@
       "tags": [
         "value"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_field_medic.text",
         "en": "Battlecry: Restore 3 Health."
@@ -614,6 +674,9 @@
       ],
       "tags": [
         "pings"
+      ],
+      "tribes": [
+        "construct"
       ],
       "text": {
         "key": "card.neutral_powder_keg.text",
@@ -653,6 +716,9 @@
       "tags": [
         "tricks"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.neutral_muzzle.text",
         "en": "Silence a minion. Draw a card."
@@ -684,6 +750,9 @@
       ],
       "tags": [
         "value"
+      ],
+      "schools": [
+        "martial"
       ],
       "text": {
         "key": "card.neutral_treasure_map.text",
@@ -721,6 +790,9 @@
       ],
       "tags": [
         "value"
+      ],
+      "tribes": [
+        "aberration"
       ],
       "text": {
         "key": "card.neutral_mimic.text",
@@ -764,6 +836,9 @@
       "tags": [
         "tricks"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_hex_doctor.text",
         "en": "Battlecry: Swap a minion's Attack and Health."
@@ -785,6 +860,9 @@
       "tags": [
         "wall"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_temple_guard.text",
         "en": "Divine Shield."
@@ -805,6 +883,9 @@
       "effects": [],
       "tags": [
         "value"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.neutral_blood_tick.text",
@@ -871,6 +952,9 @@
       "tags": [
         "pings"
       ],
+      "schools": [
+        "nature"
+      ],
       "text": {
         "key": "card.neutral_rockfall.text",
         "en": "Deal 3 damage to a random enemy minion, twice."
@@ -891,6 +975,9 @@
       "effects": [],
       "tags": [
         "tempo"
+      ],
+      "tribes": [
+        "harpy"
       ],
       "text": {
         "key": "card.neutral_storm_harpy.text",
@@ -913,6 +1000,9 @@
       "tags": [
         "wall",
         "big"
+      ],
+      "tribes": [
+        "construct"
       ],
       "text": {
         "key": "card.neutral_stone_sentinel.text",
@@ -952,6 +1042,9 @@
       "tags": [
         "big"
       ],
+      "tribes": [
+        "giant"
+      ],
       "text": {
         "key": "card.neutral_hill_giant.text",
         "en": ""
@@ -973,6 +1066,9 @@
       "tags": [
         "big",
         "wall"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.neutral_war_mammoth.text",
@@ -1009,6 +1105,9 @@
       "tags": [
         "pings"
       ],
+      "tribes": [
+        "elemental"
+      ],
       "text": {
         "key": "card.neutral_ember_sprite.text",
         "en": "Stealth. Deathrattle: Deal 1 damage to a random enemy."
@@ -1029,6 +1128,9 @@
       "effects": [],
       "tags": [
         "wall"
+      ],
+      "tribes": [
+        "construct"
       ],
       "text": {
         "key": "card.neutral_gate_guardian.text",
@@ -1051,6 +1153,9 @@
       "effects": [],
       "tags": [
         "pings"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.neutral_hedge_wizard.text",
@@ -1087,6 +1192,9 @@
       "tags": [
         "value"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_relic_hunter.text",
         "en": "Battlecry: Discover a minion."
@@ -1107,6 +1215,9 @@
       "effects": [],
       "tags": [
         "tempo"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.neutral_pit_hound.text",
@@ -1140,6 +1251,9 @@
       "tags": [
         "value"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.neutral_battle_plan.text",
         "en": "Draw 2 cards. Gain 2 Armor."
@@ -1172,6 +1286,9 @@
       ],
       "tags": [
         "wall"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.neutral_old_lamplighter.text",
@@ -1209,6 +1326,9 @@
       "tags": [
         "value"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_the_collector.text",
         "en": "Battlecry: Add a copy of each other friendly minion to your hand."
@@ -1240,6 +1360,9 @@
       ],
       "tags": [
         "tricks"
+      ],
+      "tribes": [
+        "human"
       ],
       "text": {
         "key": "card.neutral_hourglass_mage.text",
@@ -1275,6 +1398,9 @@
         "big",
         "wall"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.neutral_dungeon_warden.text",
         "en": "Taunt. Battlecry: Gain 5 Armor."
@@ -1292,11 +1418,1820 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.neutral_sheep.text",
         "en": ""
       },
       "token": true
+    },
+    {
+      "id": "neutral_pack_scout",
+      "name": "Pack Scout",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.board_size"
+              },
+              ">=",
+              3
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_pack_scout.text",
+        "en": "Battlecry: If you have at least 3 minions, gain +1/+1."
+      }
+    },
+    {
+      "id": "neutral_burrow_guide",
+      "name": "Burrow Guide",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_tunnel_rat"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_burrow_guide.text",
+        "en": "Battlecry: Summon a 2/1 Tunnel Rat."
+      }
+    },
+    {
+      "id": "neutral_pack_howler",
+      "name": "Pack Howler",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.board_size"
+              },
+              ">=",
+              3
+            ]
+          },
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_pack_howler.text",
+        "en": "Battlecry: If you have at least 3 minions, give your other minions +1 Attack."
+      }
+    },
+    {
+      "id": "neutral_burrow_burst",
+      "name": "Burrow Burst",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_tunnel_rat",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "schools": [
+        "nature"
+      ],
+      "text": {
+        "key": "card.neutral_burrow_burst.text",
+        "en": "Summon two 2/1 Tunnel Rats."
+      }
+    },
+    {
+      "id": "neutral_den_guardian",
+      "name": "Den Guardian",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.board_size"
+              },
+              ">=",
+              3
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_den_guardian.text",
+        "en": "Taunt. Battlecry: If you have at least 3 minions, gain +0/+2."
+      }
+    },
+    {
+      "id": "neutral_pack_surge",
+      "name": "Pack Surge",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "duration": "until_end_of_turn",
+              "targets": "all_friendly_minions"
+            },
+            {
+              "op": "summon",
+              "card_id": "neutral_tunnel_rat",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.neutral_pack_surge.text",
+        "en": "Give your minions +2 Attack this turn. Summon two 2/1 Tunnel Rats."
+      }
+    },
+    {
+      "id": "neutral_pocket_parts",
+      "name": "Pocket Parts",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "condition": {
+            "exists": "hand"
+          },
+          "ops": [
+            {
+              "op": "discard",
+              "count": 1,
+              "side": "owner"
+            },
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "schools": [
+        "artifice"
+      ],
+      "text": {
+        "key": "card.neutral_pocket_parts.text",
+        "en": "Discard a random card to gain 3 Armor and draw a card."
+      }
+    },
+    {
+      "id": "neutral_field_repairs",
+      "name": "Field Repairs",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            },
+            {
+              "op": "heal",
+              "amount": 4,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "schools": [
+        "artifice"
+      ],
+      "text": {
+        "key": "card.neutral_field_repairs.text",
+        "en": "Return a friendly minion to your hand. Restore 4 Health to your hero."
+      }
+    },
+    {
+      "id": "neutral_salvage_tinker",
+      "name": "Salvage Tinker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_salvage_tinker.text",
+        "en": "Battlecry: Add a copy of another friendly minion to your hand."
+      }
+    },
+    {
+      "id": "neutral_scrap_smelter",
+      "name": "Scrap Smelter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": "hand"
+          },
+          "ops": [
+            {
+              "op": "discard",
+              "count": 1,
+              "side": "owner"
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_scrap_smelter.text",
+        "en": "Battlecry: Discard a random card to draw 2 cards."
+      }
+    },
+    {
+      "id": "neutral_scrap_broker",
+      "name": "Scrap Broker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "copy_to_hand"
+            },
+            {
+              "op": "return_to_hand"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_scrap_broker.text",
+        "en": "Battlecry: Copy another friendly minion into your hand, then return it to your hand."
+      }
+    },
+    {
+      "id": "neutral_rebuild",
+      "name": "Rebuild",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "condition": {
+            "exists": "hand"
+          },
+          "ops": [
+            {
+              "op": "discard",
+              "count": 1,
+              "side": "owner"
+            },
+            {
+              "op": "summon",
+              "card_id": "neutral_shield_golem"
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "schools": [
+        "artifice"
+      ],
+      "text": {
+        "key": "card.neutral_rebuild.text",
+        "en": "Discard a random card to summon a Shield Golem and draw a card."
+      }
+    },
+    {
+      "id": "neutral_burrow_pup",
+      "name": "Burrow Pup",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "token": true,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_burrow_pup.text",
+        "en": ""
+      }
+    },
+    {
+      "id": "neutral_den_runner",
+      "name": "Den Runner",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_burrow_pup",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_den_runner.text",
+        "en": "Deathrattle: Summon a 1/1 Burrow Pup."
+      }
+    },
+    {
+      "id": "neutral_burrow_shepherd",
+      "name": "Burrow Shepherd",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_burrow_pup",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_burrow_shepherd.text",
+        "en": "Battlecry: Summon two 1/1 Burrow Pups."
+      }
+    },
+    {
+      "id": "neutral_burrow_lookout",
+      "name": "Burrow Lookout",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.board_size"
+              },
+              ">=",
+              3
+            ]
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_burrow_lookout.text",
+        "en": "Battlecry: If you have at least 3 minions, draw a card."
+      }
+    },
+    {
+      "id": "neutral_den_nurse",
+      "name": "Den Nurse",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.board_size"
+              },
+              ">=",
+              3
+            ]
+          },
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_den_nurse.text",
+        "en": "Battlecry: If you have at least 3 minions, give your other minions +0/+1."
+      }
+    },
+    {
+      "id": "neutral_pack_trainer",
+      "name": "Pack Trainer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_summon",
+          "scope": {
+            "of": "friendly_minion",
+            "card": {
+              "not_self": true
+            }
+          },
+          "targets": "trigger_subject",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_pack_trainer.text",
+        "en": "Whenever you summon another minion, give it +1 Attack."
+      }
+    },
+    {
+      "id": "neutral_den_herbalist",
+      "name": "Den Herbalist",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 1,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2,
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "not_self": true
+                }
+              }
+            },
+            {
+              "op": "heal",
+              "amount": 3,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_den_herbalist.text",
+        "en": "Battlecry: Give other allies +0/+2. Restore 3 Health to your hero."
+      }
+    },
+    {
+      "id": "neutral_tunnel_ambush",
+      "name": "Tunnel Ambush",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.board_size"
+                  },
+                  ">=",
+                  3
+                ]
+              },
+              "then": [
+                {
+                  "op": "damage",
+                  "amount": 4
+                }
+              ],
+              "else": [
+                {
+                  "op": "damage",
+                  "amount": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.neutral_tunnel_ambush.text",
+        "en": "Deal 2 damage to an enemy minion, or 4 if you have at least 3 minions."
+      }
+    },
+    {
+      "id": "neutral_pack_banner",
+      "name": "Pack Banner",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_pack_banner.text",
+        "en": "Your other minions have +1 Attack."
+      }
+    },
+    {
+      "id": "neutral_den_shield",
+      "name": "Den Shield",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_burrow_pup",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_den_shield.text",
+        "en": "Taunt. Battlecry: Summon a 1/1 Burrow Pup."
+      }
+    },
+    {
+      "id": "neutral_cache_keeper",
+      "name": "Cache Keeper",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.board_size"
+                  },
+                  ">=",
+                  3
+                ]
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_cache_keeper.text",
+        "en": "Battlecry: Draw a card. If you have at least 3 minions, draw another."
+      }
+    },
+    {
+      "id": "neutral_repopulate",
+      "name": "Repopulate",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_tunnel_rat",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "schools": [
+        "nature"
+      ],
+      "text": {
+        "key": "card.neutral_repopulate.text",
+        "en": "Summon three 2/1 Tunnel Rats."
+      }
+    },
+    {
+      "id": "neutral_pack_hunter",
+      "name": "Pack Hunter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "rush",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.board_size"
+              },
+              ">=",
+              3
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_pack_hunter.text",
+        "en": "Rush. Battlecry: If you have at least 3 minions, gain +2 Attack."
+      }
+    },
+    {
+      "id": "neutral_greymaw",
+      "name": "Greymaw, Den Sovereign",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 7,
+      "attack": 5,
+      "health": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry",
+        "aura"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_burrow_pup",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "trigger": "aura",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "aura",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.neutral_greymaw.text",
+        "en": "Battlecry: Summon two 1/1 Burrow Pups. Your other minions have +1 Attack."
+      }
+    },
+    {
+      "id": "neutral_overrun",
+      "name": "Overrun",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "duration": "until_end_of_turn",
+              "targets": "all_friendly_minions"
+            },
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "owner.board_size"
+              },
+              "spell_damage": false,
+              "targets": "enemy_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "schools": [
+        "martial"
+      ],
+      "text": {
+        "key": "card.neutral_overrun.text",
+        "en": "Give your minions +1 Attack this turn. Hit the enemy hero for 1 per minion you control."
+      }
+    },
+    {
+      "id": "neutral_den_marshal",
+      "name": "Den Marshal",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "random_friendly_minion",
+            "n": 2,
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2,
+              "keywords": [
+                "taunt"
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "pack"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_den_marshal.text",
+        "en": "Battlecry: Give two random other friendly minions Taunt and +0/+2."
+      }
+    },
+    {
+      "id": "neutral_scrap_sorter",
+      "name": "Scrap Sorter",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": "hand"
+          },
+          "ops": [
+            {
+              "op": "discard",
+              "count": 1,
+              "side": "owner"
+            },
+            {
+              "op": "armor",
+              "amount": 3,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_scrap_sorter.text",
+        "en": "Battlecry: Discard a random card to gain 3 Armor."
+      }
+    },
+    {
+      "id": "neutral_spare_shieldwright",
+      "name": "Spare Shieldwright",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "divine_shield"
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "cmp": [
+                  {
+                    "ref": "owner.hand_size"
+                  },
+                  ">=",
+                  4
+                ]
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_spare_shieldwright.text",
+        "en": "Battlecry: Give an ally Divine Shield. Draw a card if you have 4 or more in hand."
+      }
+    },
+    {
+      "id": "neutral_appraisal_clerk",
+      "name": "Appraisal Clerk",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "discover"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible",
+              "filter": {
+                "type": "minion",
+                "cost_le": 2
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_appraisal_clerk.text",
+        "en": "Battlecry: Discover a minion that costs 2 or less."
+      }
+    },
+    {
+      "id": "neutral_salvage_bench",
+      "name": "Salvage Bench",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.hand_size"
+              },
+              "<=",
+              2
+            ]
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "construct"
+      ],
+      "text": {
+        "key": "card.neutral_salvage_bench.text",
+        "en": "At the end of your turn, draw a card if you have 2 or fewer cards in hand."
+      }
+    },
+    {
+      "id": "neutral_rivet_runner",
+      "name": "Rivet Runner",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "attack": 2,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            },
+            {
+              "op": "armor",
+              "amount": 2,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_rivet_runner.text",
+        "en": "Battlecry: Return another friendly minion to your hand. Gain 2 Armor."
+      }
+    },
+    {
+      "id": "neutral_workshop_appraiser",
+      "name": "Workshop Appraiser",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 1,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "hand",
+            "filter": {
+              "type": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "cost": -1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_workshop_appraiser.text",
+        "en": "Battlecry: Give minions in your hand -1 Cost."
+      }
+    },
+    {
+      "id": "neutral_smoke_break",
+      "name": "Smoke Break",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            },
+            {
+              "op": "damage",
+              "amount": 2,
+              "targets": "all_enemy_minions"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "schools": [
+        "alchemy"
+      ],
+      "text": {
+        "key": "card.neutral_smoke_break.text",
+        "en": "Return a friendly minion to your hand. Deal 2 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "neutral_scrap_jammer",
+      "name": "Scrap Jammer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry",
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "silence"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_scrap_jammer.text",
+        "en": "Battlecry: Silence an enemy minion."
+      }
+    },
+    {
+      "id": "neutral_plate_broker",
+      "name": "Plate Broker",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.hand_size"
+              },
+              ">=",
+              4
+            ]
+          },
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 4,
+              "targets": "owner"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_plate_broker.text",
+        "en": "Taunt. Battlecry: Gain 4 Armor if you have 4 or more cards in hand."
+      }
+    },
+    {
+      "id": "neutral_foundry_clerk",
+      "name": "Foundry Clerk",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": "hand"
+          },
+          "ops": [
+            {
+              "op": "discard",
+              "count": 1,
+              "side": "owner"
+            },
+            {
+              "op": "draw",
+              "count": 3
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_foundry_clerk.text",
+        "en": "Battlecry: Discard a random card to draw 3 cards."
+      }
+    },
+    {
+      "id": "neutral_workshop_foreman",
+      "name": "Workshop Foreman",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 6,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_summon",
+          "scope": {
+            "of": "friendly_minion",
+            "card": {
+              "has_trigger": "battlecry",
+              "not_self": true
+            }
+          },
+          "targets": "trigger_subject",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_workshop_foreman.text",
+        "en": "Whenever you summon another minion with a Battlecry, give it +1/+1."
+      }
+    },
+    {
+      "id": "neutral_spare_golem",
+      "name": "Spare Golem",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "attack": 4,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.hand_size"
+              },
+              ">=",
+              4
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 2,
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "construct"
+      ],
+      "text": {
+        "key": "card.neutral_spare_golem.text",
+        "en": "Taunt. Battlecry: Gain +2/+2 if you have 4 or more cards in hand."
+      }
+    },
+    {
+      "id": "neutral_orla",
+      "name": "Orla, Scrap Sovereign",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 8,
+      "attack": 5,
+      "health": 7,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": {
+                "ref": "owner.hand_size"
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.neutral_orla.text",
+        "en": "Battlecry: Deal 1 damage to the enemy hero for each card in your hand."
+      }
+    },
+    {
+      "id": "neutral_last_foundry",
+      "name": "The Last Foundry",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 8,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_shield_golem",
+              "count": 2
+            },
+            {
+              "op": "buff",
+              "cost": -2,
+              "targets": {
+                "selector": "hand",
+                "filter": {
+                  "type": "minion"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "schools": [
+        "artifice"
+      ],
+      "text": {
+        "key": "card.neutral_last_foundry.text",
+        "en": "Summon two Shield Golems. Give minions in your hand -2 Cost."
+      }
+    },
+    {
+      "id": "neutral_second_shift",
+      "name": "Second Shift",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "return_to_hand"
+            },
+            {
+              "op": "buff",
+              "cost": -1,
+              "targets": {
+                "selector": "hand",
+                "filter": {
+                  "type": "minion"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "salvage"
+      ],
+      "schools": [
+        "artifice"
+      ],
+      "text": {
+        "key": "card.neutral_second_shift.text",
+        "en": "Return a friendly minion to your hand, then give minions in your hand -1 Cost."
+      }
     }
   ]
 }

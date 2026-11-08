@@ -22,9 +22,11 @@ const EXPECTED_NAMES: Array[String] = [
 	"reward_draft.json", "treasures_balance.json", "heroes_balance.json", "match_ui.json",
 	"run_ui.json", "profile_defaults.json", "card_database.json", "content_budgets.json",
 	"rng_event_log.json",
+	"collections.json", "law-of-the-jungle/cards.json", "law-of-the-jungle/bosses.json", "law-of-the-jungle/bundles.json", "law-of-the-jungle/treasures.json", "law-of-the-jungle/collection.json", "law-of-the-jungle/unlock.json", "law-of-the-jungle/trial.json",
 ]
 const OPTIONAL_SETS: Array[String] = [
 	"cards_decay.json", "cards_knowledge.json", "cards_fortune.json", "cards_order.json", "cards_shadow.json",
+	"collections.json", "law-of-the-jungle/cards.json", "law-of-the-jungle/bosses.json", "law-of-the-jungle/bundles.json", "law-of-the-jungle/treasures.json", "law-of-the-jungle/collection.json", "law-of-the-jungle/unlock.json", "law-of-the-jungle/trial.json",
 ]
 const DEFINITION_TYPES: Dictionary = {
 	"cards_war.json": "CardDef", "cards_neutral.json": "CardDef", "cards_boss.json": "CardDef",
@@ -32,6 +34,8 @@ const DEFINITION_TYPES: Dictionary = {
 	"cards_order.json": "CardDef", "cards_shadow.json": "CardDef",
 	"heroes.json": "HeroDef", "hero_powers.json": "HeroPowerDef", "bosses.json": "BossDef",
 	"treasures.json": "TreasureDef", "bundles.json": "BundleDef",
+	"law-of-the-jungle/cards.json": "CardDef", "law-of-the-jungle/bosses.json": "BossDef",
+	"law-of-the-jungle/bundles.json": "BundleDef", "law-of-the-jungle/treasures.json": "TreasureDef",
 }
 const ROW_KEYS: Array[String] = ["name", "class", "record_type", "required", "owner"]
 const ENTRY_KEYS: Array[String] = ["severity", "code", "file", "record_id", "field", "message"]
@@ -187,10 +191,10 @@ func test_unknown_json_reports_w_unknown_file_naming_each_and_stays_ready() -> v
 	# Act
 	var db: CardDatabase = _load_case("unknown_file")
 
-	# Assert — stray.json and cards_foo.json (no such set in the manifest)
+	# Assert — arbitrary JSON is warned about; cards_<set>.json extends the manifest.
 	var unknown: Array[Dictionary] = _with_code(db.report(), ValidationReport.W_UNKNOWN_FILE)
 	var names: Array = unknown.map(func(e: Dictionary) -> String: return e.file)
-	assert_array(names).contains_exactly_in_any_order(["stray.json", "cards_foo.json"])
+	assert_array(names).contains_exactly_in_any_order(["stray.json"])
 	for e: Dictionary in unknown:
 		assert_str(e.severity).is_equal(String(ValidationReport.SEVERITY_WARNING))
 	assert_bool(db.report().has_errors()).is_false()
@@ -201,16 +205,16 @@ func test_unknown_json_is_not_loaded_but_present_optional_set_is() -> void:
 	# Act
 	var result: DataLoader.LoadResult = _run_case("unknown_file")
 
-	# Assert — the stray files are only warned about (W_UNKNOWN_FILE), never
-	# read: no body under their name and no stage-8 entry; the present
-	# optional cards_decay.json is read (its empty records give W_EMPTY_SET)
+	# Assert — stray.json is not loaded. Both the known and discovered optional
+	# card files are read, and their empty records produce W_EMPTY_SET.
 	assert_bool(result.snapshot.config_bodies.has("stray")).is_false()
 	assert_bool(result.snapshot.config_bodies.has("cards_foo")).is_false()
 	var codes_by_file: Dictionary = {}
 	for e: Dictionary in result.report.entries():
 		codes_by_file[e.file] = codes_by_file.get(e.file, []) + [String(e.code)]
 	assert_array(codes_by_file.get("stray.json", [])).is_equal(["W_UNKNOWN_FILE"])
-	assert_array(codes_by_file.get("cards_foo.json", [])).is_equal(["W_UNKNOWN_FILE"])
+	assert_array(codes_by_file.get("cards_foo.json", [])).is_equal(["W_EMPTY_SET"])
+	assert_bool(DataLoader.discover_sets(FIXTURES + "unknown_file").has("foo")).is_true()
 	assert_array(codes_by_file.get("cards_decay.json", [])).contains(["W_EMPTY_SET"])
 
 

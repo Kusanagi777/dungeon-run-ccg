@@ -43,6 +43,21 @@ signal unlock_granted(key: String, kind: StringName, id: String, by_run_id: Stri
 var settings_bus: SettingsBus
 
 
+## Collections are locked unless their authored unlock has been granted.
+func is_collection_unlocked(_collection_id: String) -> bool:
+	return false
+
+
+## A separate save slot: trials never enter the ordinary run archive.
+func load_trial() -> Variant:
+	return null
+
+
+## Only the authoritative runner may supply an attempt, never UI counters.
+func save_trial(_attempt: MasteryTrial) -> Error:
+	return SaveErrors.E_READONLY
+
+
 # --- Persistence subset (M1.3; the run-structure R7 contract) -----------------
 
 ## Loads the profile (M5 load order). Returns

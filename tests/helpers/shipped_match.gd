@@ -80,12 +80,12 @@ static func match_config(database_in: CardDatabase, hero_id_in: String, boss_id:
 
 
 ## Started, phase Mulligan. The decks default as in [method match_config].
-func _init(database_in: CardDatabase, hero_id_in: String, boss_id: String, seed_value: int = DEFAULT_SEED, player_deck: Array = [], boss_deck: Array = []) -> void:
+func _init(database_in: CardDatabase, hero_id_in: String, boss_id: String, seed_value: int = DEFAULT_SEED, player_deck: Array = [], boss_deck: Array = [], collection_id: String = "") -> void:
 	db = database_in
 	var hero: Dictionary = db.hero(hero_id_in)
 	log = EventLog.new(EventLog.max_events_for(db.config("rng_event_log")), EventLog.SCOPE_MATCH)
 	var config: Dictionary = ShippedMatch.match_config(db, hero_id_in, boss_id, log, seed_value, player_deck, boss_deck)
-	engine = RulesEngine.new(db, db.config("match_rules"), EffectResolver.new(db, db.config("card_effects"), str(hero.set)))
+	engine = RulesEngine.new(db, db.config("match_rules"), EffectResolver.new(db, db.config("card_effects"), str(hero.set), collection_id))
 	engine.start(config)
 
 

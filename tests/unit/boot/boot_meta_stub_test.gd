@@ -36,7 +36,7 @@ class FakeCardDatabase:
 	func heroes() -> Array:
 		return _heroes
 
-	func treasure_pool() -> Array:
+	func treasure_pool(collection_id: String = "") -> Array:
 		return _treasures
 
 

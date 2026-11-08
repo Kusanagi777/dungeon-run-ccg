@@ -15,6 +15,9 @@
       "tags": [
         "husk"
       ],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_husk.text",
         "en": ""
@@ -50,6 +53,9 @@
         "deathrattle",
         "husk"
       ],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.decay_grave_rat.text",
         "en": "Deathrattle: Summon a 1/1 Husk."
@@ -70,6 +76,9 @@
       "effects": [],
       "tags": [
         "sacrifice"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.decay_plague_rat.text",
@@ -111,6 +120,9 @@
       "tags": [
         "sacrifice"
       ],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.decay_soul_tithe.text",
         "en": "Destroy a friendly minion. Gain Mana Crystals this turn equal to its Cost."
@@ -146,6 +158,9 @@
       "tags": [
         "deathrattle"
       ],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.decay_last_rites.text",
         "en": "Trigger a friendly minion's Deathrattle."
@@ -176,6 +191,9 @@
       ],
       "tags": [
         "deathrattle"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.decay_carrion_crow.text",
@@ -214,6 +232,9 @@
       "tags": [
         "sacrifice"
       ],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.decay_culling.text",
         "en": "Destroy a friendly minion. Draw 2 cards."
@@ -248,6 +269,9 @@
       ],
       "tags": [
         "deathrattle"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.decay_rot_beetle.text",
@@ -293,6 +317,9 @@
       "tags": [
         "sacrifice"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.decay_grave_robber.text",
         "en": "Battlecry: Destroy a friendly minion to gain +2/+2."
@@ -320,6 +347,9 @@
       ],
       "tags": [
         "husk"
+      ],
+      "schools": [
+        "shadow"
       ],
       "text": {
         "key": "card.decay_mass_grave.text",
@@ -353,6 +383,9 @@
       "tags": [
         "husk"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.decay_husk_tender.text",
         "en": "Battlecry: Summon a 1/1 Husk."
@@ -372,6 +405,9 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_grave_warden.text",
         "en": "Taunt."
@@ -410,6 +446,9 @@
       "tags": [
         "husk"
       ],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.decay_husk_herder.text",
         "en": "Battlecry: Give your Husks +1/+1."
@@ -442,6 +481,9 @@
       ],
       "tags": [
         "deathrattle"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.decay_crypt_leech.text",
@@ -479,6 +521,9 @@
       ],
       "tags": [
         "deathrattle"
+      ],
+      "tribes": [
+        "undead"
       ],
       "text": {
         "key": "card.decay_relic_keeper.text",
@@ -519,6 +564,9 @@
         "sacrifice",
         "husk"
       ],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.decay_feast_of_worms.text",
         "en": "Destroy a friendly minion. Summon three 1/1 Husks."
@@ -548,6 +596,9 @@
       ],
       "tags": [
         "husk"
+      ],
+      "schools": [
+        "shadow"
       ],
       "text": {
         "key": "card.decay_raise_dead.text",
@@ -582,6 +633,9 @@
       "tags": [
         "deathrattle",
         "husk"
+      ],
+      "tribes": [
+        "undead"
       ],
       "text": {
         "key": "card.decay_shambling_heap.text",
@@ -618,6 +672,9 @@
         "deathrattle",
         "sacrifice"
       ],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_corpse_collector.text",
         "en": "Whenever a friendly minion dies, gain +1/+1."
@@ -639,6 +696,9 @@
       "effects": [],
       "tags": [
         "sacrifice"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.decay_tomb_spider.text",
@@ -668,6 +728,9 @@
       "tags": [
         "deathrattle",
         "sacrifice"
+      ],
+      "schools": [
+        "nature"
       ],
       "text": {
         "key": "card.decay_blight.text",
@@ -720,6 +783,9 @@
       "tags": [
         "husk"
       ],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.decay_plague_of_rot.text",
         "en": "Destroy all your Husks. Deal 1 damage to all enemies for each."
@@ -754,6 +820,9 @@
         "husk",
         "deathrattle"
       ],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_husk_mother.text",
         "en": "Whenever a friendly minion dies, summon a 1/1 Husk."
@@ -787,6 +856,9 @@
       "tags": [
         "deathrattle"
       ],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_boneyard_brute.text",
         "en": "Deathrattle: Summon a 3/3 Skeleton."
@@ -818,6 +890,9 @@
       ],
       "tags": [
         "deathrattle"
+      ],
+      "tribes": [
+        "undead"
       ],
       "text": {
         "key": "card.decay_plaguebearer.text",
@@ -852,6 +927,10 @@
       "tags": [
         "deathrattle"
       ],
+      "tribes": [
+        "undead",
+        "giant"
+      ],
       "text": {
         "key": "card.decay_grave_titan.text",
         "en": "Deathrattle: Summon two 2/2 Ghouls."
@@ -869,6 +948,9 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_skeleton.text",
         "en": ""
@@ -887,11 +969,831 @@
       "keywords": [],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.decay_ghoul.text",
         "en": ""
       },
       "token": true
+    },
+    {
+      "id": "decay_sporeling",
+      "name": "Sporeling",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": "all_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "plant"
+      ],
+      "text": {
+        "key": "card.decay_sporeling.text",
+        "en": "At the end of your turn, deal 1 damage to all minions."
+      }
+    },
+    {
+      "id": "decay_necrotic_mist",
+      "name": "Necrotic Mist",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1,
+              "targets": "all_minions"
+            },
+            {
+              "op": "summon",
+              "card_id": "decay_husk"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "shadow",
+        "nature"
+      ],
+      "text": {
+        "key": "card.decay_necrotic_mist.text",
+        "en": "Deal 1 damage to all minions. Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "decay_blight_tender",
+      "name": "Blight Tender",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly",
+            "card": {
+              "not_self": true
+            }
+          },
+          "targets": "owner_hero",
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.decay_blight_tender.text",
+        "en": "Whenever another friendly minion dies, restore 1 Health to your hero."
+      }
+    },
+    {
+      "id": "decay_carrion_bell",
+      "name": "Carrion Bell",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "all_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "construct"
+      ],
+      "text": {
+        "key": "card.decay_carrion_bell.text",
+        "en": "Deathrattle: Deal 1 damage to all minions."
+      }
+    },
+    {
+      "id": "decay_rot_feast",
+      "name": "Rot Feast",
+      "set": "decay",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "all_minions",
+            "filter": {
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "nature"
+      ],
+      "text": {
+        "key": "card.decay_rot_feast.text",
+        "en": "Deal 2 damage to all damaged minions."
+      }
+    },
+    {
+      "id": "decay_rot_keeper",
+      "name": "Rot Keeper",
+      "set": "decay",
+      "type": "minion",
+      "cost": 5,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "targets": {
+            "selector": "all_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "undead"
+      ],
+      "text": {
+        "key": "card.decay_rot_keeper.text",
+        "en": "At the end of your turn, deal 1 damage to all other minions."
+      }
+    },
+    {
+      "id": "decay_spore_satchel",
+      "name": "Spore Satchel",
+      "set": "decay",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "keyword": "poisonous"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "alchemy"
+      ],
+      "text": {
+        "key": "card.decay_spore_satchel.text",
+        "en": "Give a damaged friendly minion Poisonous."
+      }
+    },
+    {
+      "id": "decay_blight_rat",
+      "name": "Blight Rat",
+      "set": "decay",
+      "type": "minion",
+      "cost": 1,
+      "attack": 1,
+      "health": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "random_enemy_minion",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.decay_blight_rat.text",
+        "en": "Deathrattle: Deal 1 damage to a random enemy minion."
+      }
+    },
+    {
+      "id": "decay_carrion_picker",
+      "name": "Carrion Picker",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 3,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "condition": {
+            "exists": {
+              "selector": "all_enemy_minions",
+              "filter": {
+                "is_damaged": true
+              }
+            }
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.decay_carrion_picker.text",
+        "en": "Battlecry: Draw a card if an enemy minion is damaged."
+      }
+    },
+    {
+      "id": "decay_miasma_leech",
+      "name": "Miasma Leech",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "attack": 1,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "targets": "random_enemy_minion",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "beast"
+      ],
+      "text": {
+        "key": "card.decay_miasma_leech.text",
+        "en": "Lifesteal. At the end of your turn, deal 1 damage to a random enemy minion."
+      }
+    },
+    {
+      "id": "decay_wake_tender",
+      "name": "Wake Tender",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "attack": 2,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly_minion",
+            "card": {
+              "not_self": true
+            }
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.decay_wake_tender.text",
+        "en": "Whenever another friendly minion dies, give this minion +0/+1."
+      }
+    },
+    {
+      "id": "decay_fume_cask",
+      "name": "Fume Cask",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1,
+              "targets": "all_minions"
+            },
+            {
+              "op": "heal",
+              "amount": 2,
+              "targets": "owner_hero"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "alchemy"
+      ],
+      "text": {
+        "key": "card.decay_fume_cask.text",
+        "en": "Deal 1 damage to all minions. Restore 2 Health to your hero."
+      }
+    },
+    {
+      "id": "decay_grave_antidote",
+      "name": "Grave Antidote",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "amount": 4
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "alchemy"
+      ],
+      "text": {
+        "key": "card.decay_grave_antidote.text",
+        "en": "Restore 4 Health to a friendly minion. Draw a card."
+      }
+    },
+    {
+      "id": "decay_isolation",
+      "name": "Isolation",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "is_damaged": true
+            }
+          },
+          "ops": [
+            {
+              "op": "silence"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "alchemy"
+      ],
+      "text": {
+        "key": "card.decay_isolation.text",
+        "en": "Silence a damaged minion."
+      }
+    },
+    {
+      "id": "decay_burial_attendant",
+      "name": "Burial Attendant",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 2,
+      "health": 5,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "undead"
+      ],
+      "text": {
+        "key": "card.decay_burial_attendant.text",
+        "en": "Taunt. Deathrattle: Summon a 1/1 Husk."
+      }
+    },
+    {
+      "id": "decay_blight_ledger",
+      "name": "Blight Ledger",
+      "set": "decay",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            },
+            {
+              "op": "conditional",
+              "if": {
+                "exists": {
+                  "selector": "all_enemy_minions",
+                  "filter": {
+                    "is_damaged": true
+                  }
+                }
+              },
+              "then": [
+                {
+                  "op": "draw",
+                  "count": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "shadow"
+      ],
+      "text": {
+        "key": "card.decay_blight_ledger.text",
+        "en": "Draw a card. If an enemy minion is damaged, draw another."
+      }
+    },
+    {
+      "id": "decay_spore_host",
+      "name": "Spore Host",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 4,
+      "rarity": "rare",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "targets": "all_enemy_minions",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "undead"
+      ],
+      "text": {
+        "key": "card.decay_spore_host.text",
+        "en": "Deathrattle: Deal 1 damage to all enemy minions."
+      }
+    },
+    {
+      "id": "decay_coffin_golem",
+      "name": "Coffin Golem",
+      "set": "decay",
+      "type": "minion",
+      "cost": 6,
+      "attack": 4,
+      "health": 7,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "friendly_minion",
+            "card": {
+              "not_self": true
+            }
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "construct"
+      ],
+      "text": {
+        "key": "card.decay_coffin_golem.text",
+        "en": "Whenever another friendly minion dies, give this minion +1/+1."
+      }
+    },
+    {
+      "id": "decay_morbane",
+      "name": "Morbane, Plague Regent",
+      "set": "decay",
+      "type": "minion",
+      "cost": 8,
+      "attack": 5,
+      "health": 8,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "targets": {
+            "selector": "all_minions",
+            "filter": {
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "trigger": "on_minion_died",
+          "scope": {
+            "who": "enemy_minion"
+          },
+          "targets": "enemy_hero",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "undead"
+      ],
+      "text": {
+        "key": "card.decay_morbane.text",
+        "en": "Your turn ends: Deal 1 to other minions. Enemy minion deaths deal 1 to their hero."
+      }
+    },
+    {
+      "id": "decay_final_contagion",
+      "name": "Final Contagion",
+      "set": "decay",
+      "type": "spell",
+      "cost": 7,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "amount": 2,
+              "targets": "all_minions"
+            },
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "all_enemy_minions",
+                "filter": {
+                  "is_damaged": true
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "schools": [
+        "nature"
+      ],
+      "text": {
+        "key": "card.decay_final_contagion.text",
+        "en": "Deal 2 damage to all minions, then destroy all damaged enemy minions."
+      }
+    },
+    {
+      "id": "decay_quarantine_keeper",
+      "name": "Quarantine Keeper",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "attack": 3,
+      "health": 5,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "all_friendly_minions",
+            "filter": {
+              "is_damaged": true,
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "health": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "plague"
+      ],
+      "tribes": [
+        "human"
+      ],
+      "text": {
+        "key": "card.decay_quarantine_keeper.text",
+        "en": "Battlecry: Give your other damaged minions +0/+2."
+      }
     }
   ]
 }

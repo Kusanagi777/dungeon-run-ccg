@@ -34,6 +34,7 @@ class_name RecordSchemas
 extends RefCounted
 
 ## card-database CR-2 id pattern.
+const COLLECTION_PATTERN: String = "^[a-z][a-z0-9-]{2,47}$"
 const ID_PATTERN: String = "^[a-z][a-z0-9_]{2,47}$"
 ## card-database CR-3 theme-tag pattern (CardDef / BossDef / TreasureDef `tags`, BundleDef `theme`).
 const TAG_PATTERN: String = "^[a-z_]+$"
@@ -46,6 +47,9 @@ const NON_BUNDLE_SETS: Array[String] = ["boss"]
 const SETS: Array[String] = ["war", "decay", "knowledge", "neutral", "boss", "fortune", "order", "shadow"]
 ## card-database CR-3 `type` enum (DD-M08).
 const TYPES: Array[String] = ["minion", "spell", "weapon"]
+## Printed identities, independent of draft themes and removable keywords.
+const TRIBES: Array[String] = ["human", "beast", "undead", "demon", "elemental", "construct", "mech", "plant", "giant", "ogre", "dragon", "harpy", "aberration"]
+const SPELL_SCHOOLS: Array[String] = ["arcane", "fire", "frost", "nature", "holy", "shadow", "martial", "alchemy", "artifice"]
 ## card-database CR-4 rarity: three tiers.
 const RARITIES: Array[String] = ["common", "rare", "legendary"]
 ## card-database CR-3 TreasureDef rarity in v1 (DD-H04).
@@ -78,6 +82,7 @@ const CARD_DATABASE_FILE: String = "card_database.json"
 ## `enum`; `pattern` (`tag`) for `string`; `count` for a list whose exact
 ## length CR-3 fixes (checked at stage 6 as `E_COUNT`, not here).
 const CARD_FIELDS: Dictionary = {
+	"collection_id": {"kind": "collection_id", "required": false},
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1, "max_len": 32},
 	"set": {"kind": "string", "required": true, "min_len": 1, "pattern": "tag"},
@@ -91,15 +96,17 @@ const CARD_FIELDS: Dictionary = {
 	"spell_damage": {"kind": "int", "required": false, "min": 0, "max": 5},
 	"effects": {"kind": "array", "required": true},
 	"tags": {"kind": "tag_list", "required": true},
+	"tribes": {"kind": "enum_list", "required": false, "enum": TRIBES},
+	"schools": {"kind": "enum_list", "required": false, "enum": SPELL_SCHOOLS},
 	"text": {"kind": "text", "required": true},
 	"token": {"kind": "bool", "required": false},
 	"art": {"kind": "string", "required": false, "min_len": 1},
 }
 ## CardDef by-type rule (CR-3): `true` required, `false` must be absent.
 const CARD_BY_TYPE: Dictionary = {
-	"minion": {"attack": true, "health": true, "durability": false},
-	"weapon": {"attack": true, "health": false, "durability": true},
-	"spell": {"attack": false, "health": false, "durability": false},
+	"minion": {"attack": true, "health": true, "durability": false, "schools": false},
+	"weapon": {"attack": true, "health": false, "durability": true, "tribes": false, "schools": false},
+	"spell": {"attack": false, "health": false, "durability": false, "tribes": false},
 }
 const HERO_FIELDS: Dictionary = {
 	"id": {"kind": "id", "required": true},
@@ -122,6 +129,7 @@ const HERO_POWER_FIELDS: Dictionary = {
 	"art": {"kind": "string", "required": false, "min_len": 1},
 }
 const BOSS_FIELDS: Dictionary = {
+	"collection_id": {"kind": "collection_id", "required": false},
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1},
 	"band": {"kind": "int", "required": true, "min": 1, "max": 3},
@@ -136,6 +144,7 @@ const BOSS_FIELDS: Dictionary = {
 	"art": {"kind": "string", "required": false, "min_len": 1},
 }
 const TREASURE_FIELDS: Dictionary = {
+	"collection_id": {"kind": "collection_id", "required": false},
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1},
 	"rarity": {"kind": "enum", "required": true, "enum": TREASURE_RARITIES},
@@ -146,6 +155,7 @@ const TREASURE_FIELDS: Dictionary = {
 	"art": {"kind": "string", "required": false, "min_len": 1},
 }
 const BUNDLE_FIELDS: Dictionary = {
+	"collection_id": {"kind": "collection_id", "required": false},
 	"id": {"kind": "id", "required": true},
 	"name": {"kind": "string", "required": true, "min_len": 1},
 	"set": {"kind": "string", "required": true, "min_len": 1, "pattern": "tag", "not": NON_BUNDLE_SETS},
@@ -251,6 +261,9 @@ static func is_whole_number(value: Variant) -> bool:
 
 static func _check_field(ctx: Dictionary, key: String, spec: Dictionary, value: Variant, where: String) -> bool:
 	match String(spec.kind):
+		"collection_id":
+			if not value is String or not valid_collection_id(value):
+				return _fault(ctx, ValidationReport.E_SCHEMA, key, "invalid collection_id")
 		"id":
 			if not value is String:
 				return _fault(ctx, ValidationReport.E_SCHEMA, key, "%s`id` must be a string" % where)
@@ -282,7 +295,7 @@ static func _check_field(ctx: Dictionary, key: String, spec: Dictionary, value: 
 		"object_or_null":
 			if value != null and not value is Dictionary:
 				return _fault(ctx, ValidationReport.E_SCHEMA, key, "%s`%s` must be an object or null, found %s" % [where, key, type_string(typeof(value))])
-		"string_list", "tag_list", "keyword_list":
+		"string_list", "tag_list", "keyword_list", "enum_list":
 			return _check_list(ctx, key, spec, value, where)
 		"text":
 			return _check_text(ctx, key, value, where)
@@ -323,6 +336,12 @@ static func _check_list(ctx: Dictionary, key: String, spec: Dictionary, value: V
 					ok = _fault(ctx, ValidationReport.E_BAD_ENUM, key, "%skeyword \"%s\" (keywords[%d]) is not in the DD-M09 list" % [where, item, i])
 				elif seen.has(item):
 					ok = _fault(ctx, ValidationReport.E_SCHEMA, key, "%skeyword \"%s\" is repeated (keywords[%d])" % [where, item, i])
+				seen[item] = true
+			"enum_list":
+				if not (spec.enum as Array).has(item):
+					ok = _fault(ctx, ValidationReport.E_BAD_ENUM, key, "%s`%s[%d]` \"%s\" is not one of %s" % [where, key, i, item, ", ".join(spec.enum)])
+				elif seen.has(item):
+					ok = _fault(ctx, ValidationReport.E_SCHEMA, key, "%s`%s` repeats \"%s\"" % [where, key, item])
 				seen[item] = true
 	return ok
 
@@ -375,7 +394,7 @@ static func _check_card_rules(ctx: Dictionary, rec: Dictionary, good: Dictionary
 		elif magnitude == 0 and has_keyword:
 			_fault(ctx, ValidationReport.E_SCHEMA, "spell_damage",
 				"%sthe `spell_damage` keyword needs `spell_damage` > 0 (CR-3)" % where)
-	var file_set: String = _file_set(file_name)
+	var file_set: String = str(rec.get("set", "")) if file_name.get_file() == "cards.json" and file_name.contains("/") else _file_set(file_name)
 	if good.has("set") and rec["set"] != file_set:
 		_fault(ctx, ValidationReport.E_SET_MISMATCH, "set", "set \"%s\" but the card is in %s (set %s)" % [rec["set"], file_name, file_set])
 	if good.has("id"):
@@ -433,3 +452,9 @@ static func _tag_re() -> RegEx:
 	if _tag_regex == null:
 		_tag_regex = RegEx.create_from_string(TAG_PATTERN)
 	return _tag_regex
+
+
+static func valid_collection_id(value: String) -> bool:
+	var regex: RegEx = RegEx.new()
+	regex.compile(COLLECTION_PATTERN)
+	return regex.search(value) != null

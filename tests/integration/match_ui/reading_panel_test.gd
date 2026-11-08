@@ -138,6 +138,26 @@ func test_a_face_with_nothing_to_read_shows_no_panel() -> void:
 	MatchViewHarness.close(view)
 
 
+func test_taxonomy_reaches_card_face_and_reading_panel() -> void:
+	var view: MatchView = await MatchViewHarness.open(self, "turn1_player")
+	var face: Dictionary = view.ui_context().card_face("knowledge_shard_warden")
+	assert_str(CardFrame.taxonomy_text(face)).is_equal("Construct / Elemental")
+	var panel: ReadingPanel = _panel(view, FULL_SCALE)
+	panel.show_face(face, PREVIEW_LEFT)
+	var line: Label = panel.get("_keywords")
+	assert_str(line.text).contains("Construct / Elemental")
+	assert_bool(line.visible).is_true()
+	var frame := CardFrame.new()
+	view.add_child(frame)
+	frame.configure(view.ui_context())
+	frame.show_card(face, int(face.cost))
+	var label: Label = frame.get("_taxonomy")
+	assert_str(label.text).is_equal("Construct / Elemental")
+	frame.show_card(view.ui_context().card_face("war_rusted_axe"), 1)
+	assert_bool(label.visible).is_false()
+	MatchViewHarness.close(view)
+
+
 func test_focusing_a_hand_card_at_150_percent_opens_it_beside_the_preview() -> void:
 	# Arrange / Act
 	var view: MatchView = await MatchViewHarness.open(self, "treasure_tray_ts150", ["--pose=focus:0"])

@@ -31,6 +31,14 @@ func _view(config: Dictionary = MatchUiTestConfig.body()) -> MatchViewState:
 	return MatchViewState.new(config)
 
 
+func test_scripted_trial_decks_project_counts_without_a_shuffle() -> void:
+	var view: MatchViewState = _view()
+	view.apply(_event(1, "deck_ordered", {"side": "player", "instance_ids": [10, 11, 12]}))
+	view.apply(_event(2, "deck_ordered", {"side": "boss", "instance_ids": [40, 41]}))
+	assert_int(view.side(SIDE_PLAYER).deck_count).is_equal(3)
+	assert_int(view.side(SIDE_BOSS).deck_count).is_equal(2)
+
+
 ## Projects [param events] in order; returns every step produced.
 func _project(view: MatchViewState, events: Array) -> Array[AnimStep]:
 	var steps: Array[AnimStep] = []

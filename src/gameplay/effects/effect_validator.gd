@@ -1010,6 +1010,10 @@ static func _card_matches(record: Dictionary, filter: Dictionary) -> bool:
 			"tag":
 				if not (record.get("tags", []) as Array).has(want):
 					return false
+			"tribe", "school":
+				var field: String = "tribes" if str(key) == "tribe" else "schools"
+				if not (record.get(field, []) as Array).has(want):
+					return false
 			"token":
 				if bool(record.get("token", false)) != bool(want):
 					return false

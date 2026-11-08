@@ -49,6 +49,8 @@ var _deck: Button = null
 var _back: Button = null
 var _seed: LineEdit = null
 var _echo: Label = null
+var _collection: OptionButton = null
+var _collections: Button = null
 var _drawers: Dictionary = {}
 var _scale: float = 1.0
 
@@ -76,6 +78,7 @@ func bind(model: Dictionary) -> void:
 	_add_detail()
 	_add_seed_row()
 	_add_actions()
+	_add_collections()
 	for row: Dictionary in model.get("heroes", []):
 		_chosen[str(row.id)] = str(row.selected_power)
 		var drawer: DeckDrawer = DeckDrawer.new()
@@ -147,6 +150,9 @@ func _tab(index: int, row: Dictionary) -> OptionPanel:
 	tab.add_child(art)
 	tab.tooltip_text = str(row.name)
 	tab.focus_entered.connect(_show.bind(index))
+	tab.activated.connect(func(_i: int) -> void:
+		if not _is_locked():
+			_start.grab_focus())
 	tab.double_activated.connect(func(_i: int) -> void: _on_start())
 	_tabs.append(tab)
 	_tab_styles.append(style)
@@ -364,6 +370,10 @@ func _chain() -> void:
 	order.append_array(_power_buttons)
 	if _seed != null:
 		order.append(_seed)
+	if _collection != null:
+		order.append(_collection)
+	if _collections != null:
+		order.append(_collections)
 	order.append_array([_start, _back, _deck])
 	UiKit.chain_focus(order)
 
@@ -381,4 +391,28 @@ func _toggle_deck() -> void:
 func _on_start() -> void:
 	if not _is_locked():
 		var row: Dictionary = _rows[_current]
-		send(&"start_run", {"hero_id": str(row.id), "seed_input": _seed.text if _seed != null else "", "power_id": str(_chosen_power().id)})
+		send(&"start_run", {"hero_id": str(row.id), "seed_input": _seed.text if _seed != null else "", "power_id": str(_chosen_power().id), "collection_id": str(_collection.get_item_metadata(_collection.selected)) if _collection != null else ""})
+
+
+func _add_collections() -> void:
+	_collection = null
+	_collections = null
+	if (_model.get("collections", []) as Array).is_empty():
+		return
+	_collection = OptionButton.new()
+	_collection.name = "FeaturedCollection"
+	_collection.add_item(tr("collection.core"))
+	_collection.set_item_metadata(0, "")
+	for row: Dictionary in _model.collections:
+		_collection.add_item(str(row.name))
+		var index: int = _collection.item_count - 1
+		_collection.set_item_metadata(index, str(row.id))
+		_collection.set_item_disabled(index, not bool(row.unlocked))
+	_collection.tooltip_text = tr("collection.featured")
+	add_child(_collection)
+	UiKit.place(_collection, Rect2(912, 540, 320, 44))
+	_collections = UiKit.button(tr("collection.button"))
+	_collections.name = "OpenCollections"
+	_collections.pressed.connect(send.bind(&"open_collections", {}))
+	add_child(_collections)
+	UiKit.place(_collections, Rect2(280, 640, 240, 44))

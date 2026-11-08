@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_briarjaw",
+      "name": "Briarjaw, Nursery Stalker",
+      "collection_id": "law-of-the-jungle",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_end",
+        "ops": [
+          {
+            "op": "summon",
+            "card_id": "neutral_jungle_seedling",
+            "count": 1,
+            "position": "end"
+          }
+        ],
+        "scope": {
+          "side": "owner"
+        }
+      },
+      "passive_text": {
+        "key": "boss.boss_briarjaw.passive",
+        "en": "At the end of the boss's turn, summon a 1/1 Plant."
+      },
+      "deck": [
+        "neutral_jungle_seedling_keeper",
+        "neutral_jungle_seedling_keeper",
+        "neutral_jungle_spore_nursery",
+        "neutral_jungle_spore_nursery",
+        "neutral_jungle_fossil_sprout",
+        "neutral_jungle_fossil_sprout",
+        "neutral_jungle_canopy_stalker",
+        "neutral_jungle_canopy_stalker",
+        "neutral_jungle_root_watcher",
+        "neutral_jungle_root_watcher",
+        "neutral_jungle_thorn_runner",
+        "neutral_jungle_thorn_runner",
+        "neutral_jungle_reed_ambusher",
+        "neutral_jungle_reed_ambusher",
+        "neutral_jungle_nest_guard",
+        "neutral_jungle_nest_guard",
+        "neutral_jungle_fern_hopper",
+        "neutral_jungle_fern_hopper",
+        "neutral_jungle_shelter_fern",
+        "neutral_jungle_shelter_fern",
+        "neutral_jungle_trophy_sifter",
+        "neutral_jungle_trophy_sifter",
+        "neutral_jungle_ancient_browser",
+        "neutral_jungle_ancient_browser",
+        "neutral_jungle_mossjaw",
+        "neutral_jungle_mossjaw",
+        "neutral_jungle_guard_the_nest",
+        "neutral_jungle_guard_the_nest",
+        "neutral_jungle_scent_tracker",
+        "neutral_jungle_scent_tracker"
+      ],
+      "ai_profile": "tempo",
+      "tags": [
+        "predator",
+        "living_canopy"
+      ],
+      "intro_text": {
+        "key": "boss.boss_briarjaw.intro",
+        "en": "Briarjaw grows Plants before stalking them. Clear the nursery to deny the next Predator bonus."
+      }
+    },
+    {
+      "id": "boss_veyra",
+      "name": "Veyra, Keeper of the Hunt",
+      "collection_id": "law-of-the-jungle",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_end",
+        "ops": [
+          {
+            "op": "summon",
+            "card_id": "neutral_jungle_hatchling",
+            "count": 1,
+            "position": "end"
+          }
+        ],
+        "scope": {
+          "side": "owner"
+        },
+        "condition": {
+          "not": {
+            "exists": {
+              "selector": "all_friendly_minions",
+              "filter": {
+                "tribe": "beast"
+              }
+            }
+          }
+        }
+      },
+      "passive_text": {
+        "key": "boss.boss_veyra.passive",
+        "en": "At the end of the boss's turn, if it has no Beast, summon a 1/1 Beast."
+      },
+      "deck": [
+        "neutral_jungle_fern_hopper",
+        "neutral_jungle_fern_hopper",
+        "neutral_jungle_nest_tender",
+        "neutral_jungle_nest_tender",
+        "neutral_jungle_nest_guard",
+        "neutral_jungle_nest_guard",
+        "neutral_jungle_reed_ambusher",
+        "neutral_jungle_reed_ambusher",
+        "neutral_jungle_root_watcher",
+        "neutral_jungle_root_watcher",
+        "neutral_jungle_thornback_yearling",
+        "neutral_jungle_thornback_yearling",
+        "neutral_jungle_trophy_sifter",
+        "neutral_jungle_trophy_sifter",
+        "neutral_jungle_vine_sentry",
+        "neutral_jungle_vine_sentry",
+        "neutral_jungle_scent_tracker",
+        "neutral_jungle_scent_tracker",
+        "neutral_jungle_razorbeak",
+        "neutral_jungle_razorbeak",
+        "neutral_jungle_boulderhide",
+        "neutral_jungle_boulderhide",
+        "neutral_jungle_pack_outrider",
+        "neutral_jungle_pack_outrider",
+        "neutral_jungle_brush_raptor",
+        "neutral_jungle_brush_raptor",
+        "neutral_jungle_crushing_tail",
+        "neutral_jungle_crushing_tail",
+        "neutral_jungle_expedition_supplier",
+        "neutral_jungle_expedition_supplier"
+      ],
+      "ai_profile": "tempo",
+      "tags": [
+        "predator",
+        "primal_hunt"
+      ],
+      "intro_text": {
+        "key": "boss.boss_veyra.intro",
+        "en": "Veyra breeds Beasts to awaken her pack. Trade away prey before the larger hunters arrive."
+      }
+    }
+  ]
+}

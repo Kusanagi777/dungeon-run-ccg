@@ -50,6 +50,7 @@ var seed_source: String = SEED_RANDOM
 var hero_id: String = ""
 ## The power chosen for this run; empty reads as the hero's starting power.
 var hero_power_id: String = ""
+var featured_collection_id: String = ""
 var floors_per_run: int = 0
 var band_split: Array[int] = []
 var treasure_floors: Array[int] = []
@@ -201,6 +202,7 @@ func read_model(db: CardDatabase, config: Dictionary) -> Dictionary:
 		draft_rows.append(record.to_dict())
 	var model: Dictionary = {
 		"run_id": run_id,
+		"featured_collection_id": featured_collection_id,
 		"run_seed_hex": run_seed_hex,
 		"seed_source": seed_source,
 		"status": status,

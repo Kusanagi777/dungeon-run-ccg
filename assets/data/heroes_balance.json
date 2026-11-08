@@ -42,33 +42,48 @@
       "war": [
         "weapons",
         "aggro",
-        "armour"
+        "armour",
+        "berserk",
+        "pack",
+        "salvage"
       ],
       "decay": [
         "deathrattle",
         "sacrifice",
-        "husk"
+        "husk",
+        "plague",
+        "pack",
+        "salvage"
       ],
       "knowledge": [
         "spells",
         "draw",
         "spell_damage",
-        "discover"
+        "discover",
+        "frost",
+        "pack",
+        "salvage"
       ],
       "fortune": [
         "gamble",
         "hoard",
-        "jackpot"
+        "jackpot",
+        "pack",
+        "salvage"
       ],
       "order": [
         "formation",
         "aegis",
-        "oath"
+        "oath",
+        "pack",
+        "salvage"
       ],
       "shadow": [
         "stealth",
         "venom",
-        "ambush"
+        "ambush",
+        "pack",
+        "salvage"
       ]
     },
     "hp_value_min": 1.5,

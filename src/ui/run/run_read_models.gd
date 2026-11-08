@@ -138,7 +138,52 @@ func hero_select(run_model: Dictionary, seed_preview: Callable) -> Dictionary:
 		"allow_custom_seed": bool(run_model.get("allow_custom_seed", false)),
 		"text_scale": float(_meta.get_settings().get("text_scale", 1.0)),
 		"seed_preview": seed_preview,
+		"collections": collection_rows(),
 	}
+
+
+func collection_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for collection: Dictionary in _db.collections():
+		var details: Dictionary = _db.config(str(collection.id) + "/collection")
+		rows.append({
+			"id": str(collection.id),
+			"name": str(details.get("display_name", collection.get("name", collection.id))),
+			"description": str(details.get("description", "")),
+			"unlocked": _meta.is_collection_unlocked(str(collection.id)),
+			"trial_id": str(details.get("trial_id", "")),
+		})
+	return rows
+
+
+func collections(trial: Dictionary) -> Dictionary:
+	var loaner: Array[String] = []
+	var encounters: Array[String] = []
+	var access_rows: Array[String] = []
+	var stats: Dictionary = _meta.get_stats()
+	access_rows.append(RunText.t("trial.access_wins", {"n": int(stats.get("runs_won", 0))}))
+	for hero: Dictionary in _db.heroes():
+		var wins: int = int(stats.get("heroes", {}).get(str(hero.id), {}).get("runs_won", 0))
+		access_rows.append(RunText.t("trial.access_hero", {"name": str(hero.name), "n": wins}))
+	var definition: Variant = _db.config("law-of-the-jungle/trial")
+	if definition is Dictionary:
+		for index: int in definition.get("encounters", []).size():
+			var encounter: Dictionary = definition.encounters[index]
+			var boss: Dictionary = _db.boss(str(encounter.boss_id))
+			encounters.append(RunText.t("trial.encounter", {"n": index + 1, "name": str(boss.name), "health": int(encounter.health)}))
+			encounters.append(RunText.data(boss.get("passive_text")))
+			var prey: Array[String] = []
+			for id: String in encounter.get("enemy_opening_board", []):
+				prey.append(str(_db.card(id).name))
+			encounters.append(RunText.t("trial.opening", {"names": ", ".join(prey)}))
+		var counts: Dictionary = {}
+		for id: String in definition.get("deck", []):
+			counts[id] = int(counts.get(id, 0)) + 1
+		for id: String in counts:
+			loaner.append("%d × %s" % [int(counts[id]), str(_db.card(id).name)])
+		for id: String in definition.get("treasures", []):
+			loaner.append(str(_db.treasure(id).name))
+	return {"collections": collection_rows(), "trial": trial, "loaner": loaner, "access_rows": access_rows, "encounters": encounters}
 
 
 ## `run_start` (U2): the hero colour, the seed and how long the card stays.
@@ -340,7 +385,7 @@ func deck_rows(ids: Array, entries: Array) -> Array[Dictionary]:
 	return rows
 
 
-## One card as a list shows it: `{id, name, cost, text, stats}`. A removed id keeps its
+## One card as a list shows it: `{id, name, cost, text, stats, tribes, schools}`. A removed id keeps its
 ## raw name (Edge Cases).
 func card_row(card_id: String) -> Dictionary:
 	if not _db.has(card_id):
@@ -351,7 +396,12 @@ func card_row(card_id: String) -> Dictionary:
 		stats = "%d/%d" % [int(card.attack), int(card.health)]
 	elif card.has("attack") and card.has("durability"):
 		stats = "%d/%d" % [int(card.attack), int(card.durability)]
-	return {"id": card_id, "name": str(card.get("name", card_id)), "cost": str(int(card.get("cost", 0))), "text": RunText.data(card.get("text")), "stats": stats}
+	return {
+		"id": card_id, "name": str(card.get("name", card_id)), "cost": str(int(card.get("cost", 0))),
+		"text": RunText.data(card.get("text")), "stats": stats,
+		"tribes": (card.get("tribes", []) as Array).duplicate(),
+		"schools": (card.get("schools", []) as Array).duplicate(),
+	}
 
 
 ## The "New … unlocked" lines of [param keys], for the summary (U9).
@@ -375,6 +425,8 @@ func unlock_lines(keys: Array) -> Array[String]:
 func unlock_toast(key: String, kind: String, id: String) -> Dictionary:
 	var name: String = id
 	var swatch: String = NEUTRAL_TOKEN
+	if kind == "collection" and _db.collection(id) is Dictionary:
+		name = str(_db.collection(id).get("name", id))
 	if _db.has(id):
 		match kind:
 			"hero":
@@ -387,7 +439,7 @@ func unlock_toast(key: String, kind: String, id: String) -> Dictionary:
 				name = str((_db.bundle(id) as Dictionary).get("name", id))
 			"power":
 				name = str((_db.hero_power(id) as Dictionary).get("name", id))
-	return {"key": key, "title": RunText.t("unlock.toast.%s" % kind, {"name": name}), "subtitle": _hint_text(key), "swatch": swatch}
+	return {"key": key, "title": RunText.t("unlock.toast.%s" % kind, {"name": name}), "subtitle": RunText.t("trial.completed") if kind == "collection" else _hint_text(key), "swatch": swatch}
 
 
 ## `run_log` (U2; meta-progression AC-28): rows of [param entries] newest first, the
@@ -483,6 +535,8 @@ func glossary() -> Dictionary:
 	var rows: Array[Dictionary] = []
 	for keyword: String in (_config.glossary as Dictionary).get("keywords", []):
 		rows.append({"name": RunText.t("glossary.%s.name" % keyword), "text": RunText.t("glossary.%s.text" % keyword)})
+	if not _db.collections().is_empty():
+		rows.append({"name": RunText.t("glossary.predator.name"), "text": RunText.t("glossary.predator.text")})
 	return {"rows": rows}
 
 

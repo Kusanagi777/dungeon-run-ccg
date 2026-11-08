@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_jungle_trailkeeper_compass",
+      "name": "Trailkeeper's Compass",
+      "collection_id": "law-of-the-jungle",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "tempo",
+        "value"
+      ],
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_jungle_seedling",
+              "count": 1,
+              "position": "end"
+            },
+            {
+              "op": "add_to_hand",
+              "card_id": "neutral_jungle_hatchling",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_jungle_trailkeeper_compass.text",
+        "en": "Start each match with a 1/1 Plant in play and a 1/1 Beast in your hand."
+      }
+    },
+    {
+      "id": "treasure_jungle_patient_watchglass",
+      "name": "Patient Watchglass",
+      "collection_id": "law-of-the-jungle",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "defensive",
+        "armour"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.mana_current"
+              },
+              ">=",
+              2
+            ]
+          },
+          "ops": [
+            {
+              "op": "armor",
+              "amount": 2
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_jungle_patient_watchglass.text",
+        "en": "At the end of your turn, if you have at least 2 unspent Mana, gain 2 Armor."
+      }
+    },
+    {
+      "id": "treasure_jungle_last_ration",
+      "name": "Last Ration",
+      "collection_id": "law-of-the-jungle",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "aggro",
+        "draw"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_start",
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.hand_size"
+              },
+              "==",
+              0
+            ]
+          },
+          "ops": [
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ],
+          "scope": {
+            "side": "owner"
+          }
+        }
+      ],
+      "unlock": null,
+      "text": {
+        "key": "treasure.treasure_jungle_last_ration.text",
+        "en": "At the start of your turn, if your hand is empty, draw a card."
+      }
+    }
+  ]
+}

@@ -388,7 +388,7 @@ class CappedDatabase:
 	func heroes() -> Array:
 		return _inner.heroes()
 
-	func collectible_pool(hero_set: String) -> Array:
+	func collectible_pool(hero_set: String, collection_id: String = "") -> Array:
 		return _inner.collectible_pool(hero_set)
 
 	func config(config_name: String) -> Variant:

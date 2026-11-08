@@ -39,7 +39,7 @@ const CARD_FAULTS: Dictionary = {
 ## `schema_cards/cards_war.json`: boundary and integral-float records that pass.
 const CARD_PASSES: Array[String] = ["war_cost_zero", "war_cost_ten", "war_float_ok", "war_battle_cry", "war_recruit"]
 const KNOB_KEYS: Array[String] = [
-	"min_collectible_pool", "min_bundle_pool", "max_records", "data_load_budget_ms", "data_memory_budget_mb",
+	"min_collectible_pool", "min_bundle_pool", "data_load_budget_ms", "data_memory_budget_mb",
 ]
 
 
@@ -93,6 +93,40 @@ func test_clean_root_loads_ready_with_an_empty_report() -> void:
 	# Assert
 	assert_array(db.report().entries()).is_empty()
 	assert_int(db.state()).is_equal(CardDatabase.State.READY)
+
+
+func test_card_taxonomy_accepts_optional_and_multiple_identities() -> void:
+	for card: Dictionary in [
+		CardFactory.make_minion("neutral_test_unit", 1, 1, 1),
+		CardFactory.make_minion("neutral_test_unit", 1, 1, 1, [], {"tribes": ["construct", "elemental"]}),
+		CardFactory.make_spell("neutral_test_spell", 1, [], {"schools": ["martial", "alchemy"]}),
+	]:
+		var report := ValidationReport.new()
+		assert_bool(RecordSchemas.check_record("CardDef", "cards_neutral.json", 0, card, report)).is_true()
+		assert_array(report.entries()).is_empty()
+
+
+func test_card_taxonomy_rejects_unknown_duplicates_and_wrong_shapes() -> void:
+	for pair: Array in [["minion", "tribes"], ["spell", "schools"]]:
+		var valid: String = "human" if pair[0] == "minion" else "martial"
+		for value: Variant in [null, valid, [7], ["unknown"], [valid, valid]]:
+			var card: Dictionary = CardFactory.make_minion("neutral_test_unit", 1, 1, 1) if pair[0] == "minion" else CardFactory.make_spell("neutral_test_spell", 1)
+			card[pair[1]] = value
+			var report := ValidationReport.new()
+			assert_bool(RecordSchemas.check_record("CardDef", "cards_neutral.json", 0, card, report)).is_false()
+			assert_str(str(report.entries()[0].field)).is_equal(pair[1])
+
+
+func test_card_taxonomy_rejects_fields_on_the_wrong_card_type() -> void:
+	for card: Dictionary in [
+		CardFactory.make_minion("neutral_test_unit", 1, 1, 1, [], {"schools": ["martial"]}),
+		CardFactory.make_spell("neutral_test_spell", 1, [], {"tribes": ["human"]}),
+		CardFactory.make_weapon("neutral_test_weapon", 1, 1, 1, {"tribes": ["construct"]}),
+		CardFactory.make_weapon("neutral_test_weapon", 1, 1, 1, {"schools": ["artifice"]}),
+	]:
+		var report := ValidationReport.new()
+		assert_bool(RecordSchemas.check_record("CardDef", "cards_neutral.json", 0, card, report)).is_false()
+		assert_str(str(report.entries()[0].code)).is_equal("E_UNKNOWN_FIELD")
 
 
 func test_schema_enum_lists_match_the_card_factory_mirrors() -> void:
@@ -198,14 +232,17 @@ func test_missing_extra_and_fractional_knobs_are_each_e_schema() -> void:
 
 	# Assert
 	var fields: Array = hits.map(func(e: Dictionary) -> String: return str(e.field))
-	assert_array(fields).contains_exactly_in_any_order(["max_records", "min_tresure_pool", "data_load_budget_ms"])
+	assert_array(fields).contains_exactly_in_any_order(["min_tresure_pool", "data_load_budget_ms"])
 	for e: Dictionary in hits:
 		assert_str(String(e.code)).is_equal("E_SCHEMA")
+	var missing: ValidationReport = ValidationReport.new()
+	assert_bool(RecordSchemas.check_card_database_config({"min_collectible_pool": 10, "min_bundle_pool": 3, "data_load_budget_ms": 200}, missing)).is_false()
+	assert_int(missing.errors().size()).is_equal(1)
+	assert_str(missing.errors()[0].field).is_equal("data_memory_budget_mb")
 
 
 func test_knobs_at_their_low_range_edges_raise_no_entry() -> void:
-	# Act — 10 / 3 / 50 / 1 at their floors (max_records 5000: it has no
-	# stated range, and a floor of 1 would trip stage 8's E_COUNT)
+	# Act — 10 / 3 / 50 / 1 at their floors
 	var db: CardDatabase = _load("schema_knob_edges_low")
 
 	# Assert
@@ -214,7 +251,7 @@ func test_knobs_at_their_low_range_edges_raise_no_entry() -> void:
 
 
 func test_knobs_at_their_high_range_edges_raise_no_entry() -> void:
-	# Act — 100 / 30 / 5000 / 1000 / 32
+	# Act — 100 / 30 / 1000 / 32
 	var report: ValidationReport = _run("schema_knob_edges_high").report
 
 	# Assert

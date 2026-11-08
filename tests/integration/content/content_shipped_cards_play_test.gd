@@ -18,8 +18,9 @@ const HERO_DEFAULT: String = "hero_war"
 const BOSS_SET: String = "boss"
 ## The one boss with no passive (content CN-3), so only the card's own effect runs.
 const PLAIN_BOSS: String = "boss_cellar_hermit"
-## CN-1's Alpha pool: war 25, decay 25, knowledge 25, neutral 45.
-const COLLECTIBLE_COUNT: int = 120
+## Collectibles in the four sets swept below, including the five new archetypes.
+const COLLECTIBLE_COUNT: int = 225
+const ARCHETYPE_SETS: Dictionary = {"berserk": "war", "plague": "decay", "frost": "knowledge", "pack": "neutral", "salvage": "neutral"}
 ## Sturdy enough to carry a wound.
 const BOARD_MINION: String = "neutral_dungeon_delver"
 ## A rich board's friendly Deathrattle, so Last Rites has a target.
@@ -42,9 +43,34 @@ func after() -> void:
 	_db = null
 
 
+func test_every_shipped_unit_and_spell_has_printed_taxonomy() -> void:
+	for set_id: String in RecordSchemas.SETS:
+		for card: Dictionary in _db.cards_by_set(set_id):
+			if card.type == "weapon":
+				assert_bool(card.has("tribes") or card.has("schools")).is_false()
+				continue
+			var field: String = "tribes" if card.type == "minion" else "schools"
+			assert_array(card.get(field, [])).override_failure_message(card.id).is_not_empty()
+
+
+func test_taxonomy_filters_read_printed_identity_and_support_dual_tags() -> void:
+	var resolver := EffectResolver.new(_db, _db.config("card_effects"))
+	var unit: Dictionary = {"def_id": "knowledge_shard_warden", "silenced": true}
+	for tribe: String in ["construct", "elemental"]:
+		assert_bool(EffectSelectors.matches(resolver, unit, {"tribe": tribe}, SIDE_PLAYER, -1)).is_true()
+	assert_bool(EffectSelectors.matches(resolver, unit, {"tribe": "human"}, SIDE_PLAYER, -1)).is_false()
+	unit.def_id = "neutral_sheep"
+	assert_bool(EffectSelectors.matches(resolver, unit, {"tribe": "construct"}, SIDE_PLAYER, -1)).is_false()
+	assert_bool(EffectSelectors.matches(resolver, unit, {"tribe": "beast"}, SIDE_PLAYER, -1)).is_true()
+	for school: String in ["arcane", "frost"]:
+		assert_bool(EffectSelectors.matches(resolver, {"def_id": "knowledge_cold_storage"}, {"school": school}, SIDE_PLAYER, -1)).is_true()
+	assert_bool(EffectSelectors.matches(resolver, {"def_id": "knowledge_cold_storage"}, {"school": "fire"}, SIDE_PLAYER, -1)).is_false()
+	assert_bool(EffectSelectors.matches(resolver, {}, {"tribe": "human"}, SIDE_PLAYER, -1)).is_false()
+
+
 ## The cards of [param set_id] that a side can hold.
 func _playable(set_id: String) -> Array:
-	return _db.cards_by_set(set_id).filter(func(card: Dictionary) -> bool: return card.get("token", false) != true)
+	return _db.cards_by_set(set_id).filter(func(card: Dictionary) -> bool: return card.get("token", false) != true and not card.has("collection_id"))
 
 
 func _rich(game: ShippedMatch, side: String) -> void:
@@ -191,7 +217,7 @@ func _sweep(set_id: String, side: String) -> Array[String]:
 	return failures
 
 
-func test_the_sweep_reaches_every_collectible_card() -> void:
+func test_the_sweep_reaches_every_collectible_card_in_its_sets() -> void:
 	# Act
 	var total: int = 0
 	for set_id: String in HERO_OF_SET:
@@ -199,6 +225,101 @@ func test_the_sweep_reaches_every_collectible_card() -> void:
 
 	# Assert — a pool that shrank would make the sweeps below prove less
 	assert_int(total).is_equal(COLLECTIBLE_COUNT)
+
+
+func test_each_new_archetype_can_fill_every_bundle_slot_of_a_run() -> void:
+	var draft_rounds: int = int(_db.config("run_structure").floors_per_run) - 1
+	var plan_tags: Dictionary = _db.config("heroes_balance").plan_tags
+	for theme: String in ARCHETYPE_SETS:
+		var set_id: String = ARCHETYPE_SETS[theme]
+		var cards: Array = _playable(set_id).filter(func(card: Dictionary) -> bool: return card.tags.has(theme))
+		assert_int(cards.size()).override_failure_message(theme).is_equal(3 * draft_rounds)
+		for type: String in ["minion", "spell"]:
+			var finishers: Array = cards.filter(func(card: Dictionary) -> bool: return card.type == type and card.rarity == "legendary")
+			assert_int(finishers.size()).override_failure_message("%s / %s finisher" % [theme, type]).is_equal(1)
+		var card_ids: Array = cards.map(func(card: Dictionary) -> String: return str(card.id))
+		for card_id: String in card_ids:
+			assert_bool(ArtLibrary.shared().card_stamp(card_id).is_empty()).override_failure_message(card_id).is_false()
+		for hero: Dictionary in _db.heroes():
+			var bundles: Array = _db.bundle_pool(str(hero.set)).filter(func(bundle: Dictionary) -> bool: return bundle.theme == theme)
+			var eligible: bool = set_id == "neutral" or set_id == str(hero.set)
+			assert_int(bundles.size()).override_failure_message("%s / %s" % [hero.id, theme]).is_equal(draft_rounds if eligible else 0)
+			if eligible:
+				assert_array(plan_tags[hero.set]).contains([theme])
+				var bundled: Array = []
+				for bundle: Dictionary in bundles:
+					bundled.append_array(bundle.cards)
+				assert_array(bundled).contains_exactly_in_any_order(card_ids)
+
+
+func _finisher_match(hero: String, boss_health: int) -> ShippedMatch:
+	var game := ShippedMatch.new(_db, hero, PLAIN_BOSS)
+	game.to_player_main()
+	var health: int = game.engine.health(game.engine.state().players[SIDE_BOSS].hero)
+	game.engine.run_action(func() -> void: game.engine.apply_damage(game.hero_id(SIDE_BOSS), health - boss_health, null))
+	return game
+
+
+func _assert_player_won(game: ShippedMatch) -> void:
+	var ends: Array[Dictionary] = game.of_type("match_ended")
+	assert_array(ends.map(func(event: Dictionary) -> String: return str(event.payload.winner))).is_equal([SIDE_PLAYER])
+	game.finish()
+
+
+func test_berserk_finishes_with_a_wounded_minion_attacking_twice() -> void:
+	var game: ShippedMatch = _finisher_match("hero_war", 14)
+	var fighter: int = game.summon(SIDE_PLAYER, BOARD_MINION)
+	@warning_ignore("return_value_discarded")
+	game.summon(SIDE_PLAYER, "war_pit_tyrant")
+	game.engine.run_action(func() -> void: game.engine.apply_damage(fighter, 1, null))
+	game.set_hand(SIDE_PLAYER, ["war_red_reckoning"])
+	assert_bool(game.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
+	for _hit: int in 2:
+		assert_bool(game.submit(MatchRecords.attack(SIDE_PLAYER, fighter, game.hero_id(SIDE_BOSS))).accepted).is_true()
+	_assert_player_won(game)
+
+
+func test_plague_converts_enemy_minion_deaths_into_lethal_damage() -> void:
+	var game: ShippedMatch = _finisher_match("hero_decay", 3)
+	@warning_ignore("return_value_discarded")
+	game.summon(SIDE_PLAYER, "decay_morbane")
+	for _minion: int in 3:
+		@warning_ignore("return_value_discarded")
+		game.summon(SIDE_BOSS, "neutral_tunnel_rat")
+	assert_bool(game.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+	_assert_player_won(game)
+
+
+func test_frost_turns_an_end_of_turn_freeze_into_lethal_damage() -> void:
+	var game: ShippedMatch = _finisher_match("hero_knowledge", 4)
+	@warning_ignore("return_value_discarded")
+	game.summon(SIDE_PLAYER, "knowledge_rime_binder")
+	@warning_ignore("return_value_discarded")
+	game.summon(SIDE_PLAYER, "knowledge_ilyra")
+	@warning_ignore("return_value_discarded")
+	game.summon(SIDE_BOSS, BOARD_MINION)
+	assert_bool(game.submit(MatchRecords.end_turn(SIDE_PLAYER)).accepted).is_true()
+	_assert_player_won(game)
+
+
+func test_pack_overrun_counts_every_minion_toward_lethal() -> void:
+	var game: ShippedMatch = _finisher_match("hero_order", 5)
+	for _minion: int in 5:
+		@warning_ignore("return_value_discarded")
+		game.summon(SIDE_PLAYER, "neutral_burrow_pup")
+	game.set_hand(SIDE_PLAYER, ["neutral_overrun"])
+	assert_bool(game.submit(MatchRecords.play_card(SIDE_PLAYER, 0)).accepted).is_true()
+	_assert_player_won(game)
+
+
+func test_salvage_orla_turns_a_full_hand_into_lethal_damage() -> void:
+	var game: ShippedMatch = _finisher_match("hero_shadow", 8)
+	var hand: Array = ["neutral_orla"]
+	for _card: int in 8:
+		hand.append("neutral_tunnel_rat")
+	game.set_hand(SIDE_PLAYER, hand)
+	assert_bool(game.submit(MatchRecords.play_card(SIDE_PLAYER, 0, 0)).accepted).is_true()
+	_assert_player_won(game)
 
 
 func test_every_war_card_plays_clean_from_the_players_side() -> void:

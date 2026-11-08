@@ -316,7 +316,7 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			for side_name: String in _sides:
 				if starting.has(side_name):
 					_sides[side_name].hero.health = int(starting[side_name])
-		"deck_shuffled":
+		"deck_shuffled", "deck_ordered":
 			var deck: Dictionary = {}
 			for id: Variant in p.get("instance_ids", []):
 				deck[int(id)] = true

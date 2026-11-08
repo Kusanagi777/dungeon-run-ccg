@@ -26,6 +26,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "fire"
+      ],
       "text": {
         "key": "card.boss_ember_bolt.text",
         "en": "Deal 1 damage to the enemy hero. Draw a card."
@@ -57,6 +60,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "demon"
+      ],
       "text": {
         "key": "card.boss_tinder_imp.text",
         "en": "At the end of your turn, deal 1 damage to the enemy hero."
@@ -87,6 +93,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.boss_rat_pack.text",
         "en": "Battlecry: Summon two 1/1 Rats."
@@ -123,6 +132,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.boss_rat_matriarch.text",
         "en": "Your Rats have +1/+1."
@@ -142,6 +154,9 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.boss_iron_gate.text",
         "en": "Taunt."
@@ -178,6 +193,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.boss_gate_warden.text",
         "en": "Taunt. Battlecry: Give your other minions +0/+2."
@@ -196,6 +214,9 @@
       "effects": [],
       "tags": [
         "rat"
+      ],
+      "tribes": [
+        "beast"
       ],
       "text": {
         "key": "card.boss_rat.text",
@@ -229,6 +250,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.boss_rot_zombie.text",
         "en": "Deathrattle: Summon a 1/1 Husk."
@@ -255,6 +279,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.boss_mass_rites.text",
         "en": "Trigger the Deathrattles of all friendly minions."
@@ -274,6 +301,9 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.boss_hollow_knight.text",
         "en": "Divine Shield."
@@ -305,6 +335,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "nature"
+      ],
       "text": {
         "key": "card.boss_crown_of_thorns.text",
         "en": "Give your minions +1/+1 and Taunt."
@@ -331,6 +364,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "alchemy"
+      ],
       "text": {
         "key": "card.boss_moss_poultice.text",
         "en": "Restore 4 Health to your hero."
@@ -361,6 +397,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.boss_hermit_crab.text",
         "en": "Deathrattle: Restore 3 Health to your hero."
@@ -392,6 +431,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.boss_blood_chalice.text",
         "en": "Restore 4 Health to your hero. Deal 2 damage to the enemy hero."
@@ -411,6 +453,9 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.boss_sister_of_blood.text",
         "en": "Lifesteal."
@@ -446,6 +491,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.boss_toll_collector.text",
         "en": "Battlecry: Deal 2 damage to all enemy minions that cost (3) or more."
@@ -465,6 +513,9 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.boss_tollgate.text",
         "en": "Taunt."
@@ -491,6 +542,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.boss_bone_shard.text",
         "en": "Deal 1 damage to all enemy minions."
@@ -527,6 +581,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.boss_soul_bolt.text",
         "en": "Deal 2 damage. Restore 2 Health to your hero."
@@ -556,6 +613,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "beast"
+      ],
       "text": {
         "key": "card.boss_bog_toad.text",
         "en": "Deathrattle: Draw a card."
@@ -591,6 +651,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "alchemy"
+      ],
       "text": {
         "key": "card.boss_witchs_brew.text",
         "en": "Destroy a friendly minion. Draw 3 cards."
@@ -622,6 +685,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "frost"
+      ],
       "text": {
         "key": "card.boss_frostbite.text",
         "en": "Destroy a Frozen minion."
@@ -658,6 +724,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "human"
+      ],
       "text": {
         "key": "card.boss_hag_servant.text",
         "en": "Battlecry: Freeze an enemy minion."
@@ -677,6 +746,9 @@
       ],
       "effects": [],
       "tags": [],
+      "tribes": [
+        "undead"
+      ],
       "text": {
         "key": "card.boss_lurker.text",
         "en": "Stealth."
@@ -709,6 +781,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "martial"
+      ],
       "text": {
         "key": "card.boss_knife_in_the_dark.text",
         "en": "Deal 4 damage to a damaged minion."
@@ -735,6 +810,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "artifice"
+      ],
       "text": {
         "key": "card.boss_scrap_plating.text",
         "en": "Gain 5 Armor."
@@ -765,6 +843,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.boss_junk_golem.text",
         "en": "Battlecry: Gain 3 Armor."
@@ -822,6 +903,10 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "alchemy",
+        "fire"
+      ],
       "text": {
         "key": "card.boss_pyre_bomb.text",
         "en": "Deal 3 damage to the enemy hero."
@@ -849,6 +934,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "arcane"
+      ],
       "text": {
         "key": "card.boss_reflection.text",
         "en": "Add a copy of a random enemy minion to your hand."
@@ -884,6 +972,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.boss_mirror_golem.text",
         "en": "Battlecry: Gain +1/+1 for each enemy minion."
@@ -914,6 +1005,9 @@
         }
       ],
       "tags": [],
+      "schools": [
+        "shadow"
+      ],
       "text": {
         "key": "card.boss_heartbeat.text",
         "en": "Deal 1 damage to all enemy minions. Draw a card."
@@ -945,6 +1039,9 @@
         }
       ],
       "tags": [],
+      "tribes": [
+        "construct"
+      ],
       "text": {
         "key": "card.boss_heart_guardian.text",
         "en": "Taunt. Deathrattle: Deal 2 damage to all enemy minions."

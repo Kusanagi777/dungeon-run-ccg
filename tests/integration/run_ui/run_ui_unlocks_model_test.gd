@@ -2,7 +2,7 @@
 ## so only a real evaluator shows the locked rows, their progress and the hero's name.
 extends GdUnitTestSuite
 
-const SHIPPED_GATED_TREASURES: int = 4
+const SHIPPED_GATED_RECORDS: int = 19
 
 
 func after_test() -> void:
@@ -27,8 +27,8 @@ func test_a_fresh_profile_lists_each_gated_treasure_locked_with_its_condition() 
 	var rows: Dictionary = _rows(model)
 
 	# Assert
-	assert_int(rows.size()).is_equal(SHIPPED_GATED_TREASURES)
-	assert_str(str(model.count_line)).is_equal(tr("unlocks.count").format({"n": 0, "total": SHIPPED_GATED_TREASURES}))
+	assert_int(rows.size()).is_equal(SHIPPED_GATED_RECORDS)
+	assert_str(str(model.count_line)).is_equal(tr("unlocks.count").format({"n": 0, "total": SHIPPED_GATED_RECORDS}))
 	for row: Dictionary in rows.values():
 		assert_bool(bool(row.unlocked)).override_failure_message(str(row.id)).is_false()
 	assert_str(str(rows.treasure_living_armory.condition)).is_equal("Win a run")

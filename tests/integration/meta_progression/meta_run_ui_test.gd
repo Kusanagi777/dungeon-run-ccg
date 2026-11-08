@@ -295,11 +295,12 @@ func test_toast_a_key_from_the_signal_and_the_queue_shows_once() -> void:
 	var layer: ToastLayer = _toast_layer()
 
 	# Act
-	_meta.archive_run(ProfileFixtures.victory("run_1"))
+	var archived: Dictionary = _meta.archive_run(ProfileFixtures.victory("run_1"))
 	_controller._enqueue_pending_notifications()
 
 	# Assert
-	assert_int(layer.queued().size()).is_equal(1)
+	assert_array(layer.queued().map(func(row: Dictionary) -> String: return row.key)).contains_exactly_in_any_order(archived.unlocks_granted)
+	assert_array(archived.unlocks_granted).contains([ProfileFixtures.FIRST_VICTORY_KEY])
 
 
 func test_every_shipped_locked_treasure_has_condition_text() -> void:

@@ -15,6 +15,7 @@
       "discover": 1.0,
       "add_to_hand": 1.0,
       "copy_to_hand": 1.0,
+      "discard": 0.0,
       "armor": 0.5,
       "return_to_hand": 1.0,
       "transform": 1.2,

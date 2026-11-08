@@ -16,12 +16,13 @@ const SCREENS: Array = [
 	["defeat_sample", &"summary_defeat"], ["defeat_sample_ts150", &"summary_defeat"],
 	["abandoned_sample", &"summary_abandoned"], ["resume_prompt", &"resume_prompt"],
 	["run_log_sample", &"run_log"], ["toast_sample", &"main_menu"],
+	["jungle_collections", &"collections"],
 ]
 const REQUIRED: Array[String] = [
 	"unlocks_sample", "fresh_profile", "mid_run_floor4", "victory_sample", "defeat_sample", "locked_heroes", "abandoned_sample",
 	"draft_treasure_sample", "draft_bundle_sample", "draft_treasure_short", "resume_prompt", "data_error_sample",
 	"toast_sample", "draft_bundle_sample_ts150", "locked_heroes_ts150", "victory_sample_ts150", "defeat_sample_ts150",
-	"run_log_sample", "unlock_toast_summary",
+	"run_log_sample", "unlock_toast_summary", "jungle_collections",
 ]
 const DESIGN: Rect2 = Rect2(0, 0, 1280, 720)
 ## A label reading like an unresolved `tr()` key.
@@ -144,9 +145,9 @@ func test_ac2_hero_select_lists_the_data_with_war_chosen() -> void:
 	var heroes: Array = _rig.db.heroes()
 
 	# Assert
-	assert_int(screen._panels.size()).is_equal(heroes.size())
-	assert_int(screen._locked.size()).is_equal(0)
-	assert_str(str(screen._heroes[screen._selected].id)).is_equal("hero_war")
+	assert_int(screen._tabs.size()).is_equal(heroes.size())
+	assert_bool(screen._is_locked()).is_false()
+	assert_str(str(screen._rows[screen._current].id)).is_equal("hero_war")
 	var power: Dictionary = _rig.db.hero_power(str((_rig.db.hero("hero_war") as Dictionary).hero_power))
 	assert_str(_all_text(screen)).contains(str(power.name))
 	assert_str(screen._deck.text).is_equal(tr("hero.deck").format({"n": 15}))
@@ -159,23 +160,27 @@ func test_ac3_locked_heroes_show_a_hint_and_start_is_disabled_on_one() -> void:
 	var screen: Screen = await _open("locked_heroes", &"hero_select")
 
 	# Assert
-	assert_int(screen._locked.size()).is_equal(3)
-	for name: String in ["Fortune", "Order", "Shadow"]:
-		assert_str(_all_text(screen)).contains(tr("hero.locked").format({"name": name}))
-	assert_str(_all_text(screen)).contains("/")
 	assert_bool(screen._start.disabled).is_false()
-	(screen._locked[0] as Control).grab_focus()
-	assert_bool(screen._start.disabled).is_true()
+	var locked: int = 0
+	for index: int in screen._rows.size():
+		if not screen._rows[index].has("powers"):
+			locked += 1
+			(screen._tabs[index] as Control).grab_focus()
+			assert_str(_all_text(screen)).contains(tr("hero.locked").format({"name": screen._rows[index].name}))
+			assert_str(_all_text(screen)).contains("/")
+			assert_bool(screen._start.disabled).is_true()
+	assert_int(locked).is_equal(3)
 	await _rig.key(KEY_ENTER)
 	assert_str(String(_rig.shell.screen())).is_equal("hero_select")
-	(screen._panels[0] as Control).grab_focus()
+	(screen._tabs[0] as Control).grab_focus()
 	assert_bool(screen._start.disabled).is_false()
 
 
-func test_ac3_number_keys_skip_locked_panels() -> void:
+func test_ac3_number_keys_beyond_the_roster_are_ignored() -> void:
 	var screen: Screen = await _open("locked_heroes", &"hero_select")
-	screen.handle_option_key(screen._panels.size())
-	assert_bool(screen._locked.has(_rig.focus())).is_false()
+	var focused: Control = _rig.focus()
+	screen.handle_option_key(screen._tabs.size())
+	assert_object(_rig.focus()).is_same(focused)
 
 
 func test_ac4_the_boss_intro_of_floor_four() -> void:
@@ -237,6 +242,22 @@ func test_ac5_bundle_panels_sit_on_their_slots_with_cards_and_a_preview() -> voi
 	assert_bool(DESIGN.encloses(screen._preview.get_global_rect())).override_failure_message(str(screen._preview.get_global_rect())).is_true()
 
 
+func test_card_preview_shows_taxonomy_from_the_run_read_model() -> void:
+	var screen: Screen = await _open("draft_bundle_sample", &"draft_bundle")
+	var models := RunReadModels.new(_rig.meta, _rig.db, _rig.db.config("run_ui"))
+	var row: Dictionary = models.card_row("knowledge_shard_warden")
+	assert_array(row.tribes).is_equal(["construct", "elemental"])
+	screen._preview.show_card(row, 440.0, 300.0)
+	await _rig.settle(2)
+	assert_str(_all_text(screen._preview)).contains("Construct / Elemental")
+	assert_bool(DESIGN.encloses(screen._preview.get_global_rect())).is_true()
+	(row.tribes as Array).append("human")
+	assert_array(models.card_row("knowledge_shard_warden").tribes).is_equal(["construct", "elemental"])
+	row = models.card_row("knowledge_cold_storage")
+	screen._preview.show_card(row, 440.0, 300.0)
+	assert_str(_all_text(screen._preview)).contains("Arcane / Frost")
+
+
 func test_bundle_card_names_stay_horizontal_beside_their_stamp() -> void:
 	# The art row must not collapse an autowrap name to one character wide.
 	var screen: Screen = await _open("draft_bundle_sample", &"draft_bundle")
@@ -266,13 +287,13 @@ func test_ac5_focusing_a_bundle_shows_its_hints_and_blur_clears_them() -> void:
 func test_an_open_deck_drawer_follows_the_selected_hero() -> void:
 	# Each hero owns a drawer and Deck toggles the selected one: one left open was stranded
 	var screen: Screen = await _open("fresh_profile", &"hero_select")
-	screen._select(0)
+	screen._show(0)
 	screen._toggle_deck()
-	screen._select(1)
-	assert_bool(screen._drawers[0].is_open()).is_false()
-	assert_bool(screen._drawers[1].is_open()).is_true()
+	screen._show(1)
+	assert_bool(screen._drawers[str(screen._rows[0].id)].is_open()).is_false()
+	assert_bool(screen._drawers[str(screen._rows[1].id)].is_open()).is_true()
 	screen._toggle_deck()
-	assert_bool(screen._drawers.any(func(drawer: DeckDrawer) -> bool: return drawer.is_open())).is_false()
+	assert_bool(screen._drawers.values().any(func(drawer: DeckDrawer) -> bool: return drawer.is_open())).is_false()
 
 
 func test_the_unlocks_rows_name_the_hero_and_the_progress() -> void:
@@ -301,8 +322,8 @@ func test_ac5_options_keep_their_f4_size_at_100_and_150_percent() -> void:
 
 func test_the_locked_panels_keep_their_height() -> void:
 	var screen: Screen = await _open("locked_heroes", &"hero_select")
-	for panel: OptionPanel in screen._locked:
-		assert_float(panel.size.y).is_equal(screen.LOCKED_H)
+	for panel: OptionPanel in screen._tabs:
+		assert_float(panel.size.y).is_greater_equal(screen.TAB_SIZE.y)
 
 
 func test_a_toast_stays_near_its_rect() -> void:
@@ -416,7 +437,10 @@ func _assert_fits(root: Node, name: String) -> void:
 		var control: Control = node
 		if not control.is_visible_in_tree() or _in_scroll(control):
 			continue
-		var rect: Rect2 = control.get_global_rect().grow(-EDGE_PX)
+		var rect: Rect2 = control.get_global_rect()
+		# Hairline decorations can be narrower than the permitted edge tolerance.
+		if rect.size.x >= EDGE_PX * 2 and rect.size.y >= EDGE_PX * 2:
+			rect = rect.grow(-EDGE_PX)
 		assert_bool(DESIGN.encloses(rect)).override_failure_message("%s: %s %s is off screen" % [name, control.get_class(), str(rect)]).is_true()
 		if control is Label:
 			var label: Label = control

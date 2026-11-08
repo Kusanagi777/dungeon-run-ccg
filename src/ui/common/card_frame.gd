@@ -51,6 +51,7 @@ var _unaffordable: bool = false
 var _fill: Color = Color.BLACK
 var _name: Label = null
 var _rules: Label = null
+var _taxonomy: Label = null
 var _art: Label = null
 var _cost_text: Label = null
 var _attack_text: Label = null
@@ -83,6 +84,11 @@ func configure(context: MatchUiContext) -> void:
 	_rules = _label(TEXT_RECT.grow(-TEXT_PADDING_PX / 2.0), RULES_FONT_PX)
 	_rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rules.clip_text = true
+	_taxonomy = _label(Rect2(44, 6, 98, 30), 10)
+	_taxonomy.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_taxonomy.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_taxonomy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_taxonomy.clip_text = true
 	_cost_text = _stamp_label(COST_CENTRE)
 	_attack_text = _stamp_label(ATTACK_CENTRE)
 	_health_text = _stamp_label(HEALTH_CENTRE)
@@ -98,6 +104,16 @@ static func rules_text(face: Dictionary) -> String:
 	return "" if text == key else text
 
 
+static func taxonomy_text(face: Dictionary) -> String:
+	var labels: PackedStringArray = []
+	for field: String in ["tribes", "schools"]:
+		for id: String in face.get(field, []):
+			var key: String = "card.%s.%s" % [field, id]
+			var translated: String = TranslationServer.translate(key)
+			labels.append(id.capitalize() if translated == key else translated)
+	return " / ".join(labels)
+
+
 ## Shows [param face] (`MatchUiContext.card_face`) at [param effective_cost], the
 ## projection's cost (DD-X26): a cost off the printed one gets the modified stamp.
 func show_card(face: Dictionary, effective_cost: int) -> void:
@@ -105,6 +121,8 @@ func show_card(face: Dictionary, effective_cost: int) -> void:
 	_cost = effective_cost
 	_name.text = tr(str(face.get("name_key", "")))
 	_rules.text = rules_text(face)
+	_taxonomy.text = taxonomy_text(face)
+	_taxonomy.visible = not _taxonomy.text.is_empty()
 	var type: String = str(face.get("type", ""))
 	_stamp = _ui.art().card_stamp(str(face.get("card_id", "")), type, str(face.get("set", "")))
 	_art.visible = _stamp.is_empty()
@@ -264,6 +282,7 @@ func _refresh_colors() -> void:
 	var light: Color = _ui.color("text_light")
 	_name.add_theme_color_override("font_color", _dim(light))
 	_rules.add_theme_color_override("font_color", _dim(_ui.color("text_ink")))
+	_taxonomy.add_theme_color_override("font_color", _dim(_ui.color("text_ink")))
 	_art.add_theme_color_override("font_color", _ui.color("text_ink"))
 	_badges.add_theme_color_override("font_color", _dim(light))
 	_attack_text.add_theme_color_override("font_color", _dim(light))
