@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "config": {
+    "id": "midnight-masquerade",
+    "name": "The Midnight Masquerade",
+    "display_name": "The Midnight Masquerade",
+    "description": "A cursed ball where every guest wears a mask. Some are worse underneath; some are better.",
+    "version": 1,
+    "unlock": {
+      "key": "collection_midnight_masquerade",
+      "condition": {
+        "type": "all_of",
+        "of": [
+          {
+            "type": "runs_won",
+            "n": 3
+          },
+          {
+            "type": "boss_defeated",
+            "boss_id": "boss_mirror_sage",
+            "n": 1
+          }
+        ]
+      }
+    },
+    "unlock_metadata": {
+      "set_id": "midnight-masquerade",
+      "display_name": "The Midnight Masquerade",
+      "description": "Win 3 runs and defeat the Mirror Sage to receive your invitation.",
+      "unlock": {
+        "key": "collection_midnight_masquerade",
+        "condition": {
+          "type": "all_of",
+          "of": [
+            {
+              "type": "runs_won",
+              "n": 3
+            },
+            {
+              "type": "boss_defeated",
+              "boss_id": "boss_mirror_sage",
+              "n": 1
+            }
+          ]
+        }
+      },
+      "unlock_mode": "all",
+      "retroactive": true,
+      "unlock_rewards": [],
+      "unlock_requirements": [
+        {
+          "type": "runs_won",
+          "description": "Win 3 lifetime runs.",
+          "params": {
+            "n": 3
+          }
+        },
+        {
+          "type": "boss_defeated",
+          "description": "Defeat the Mirror Sage.",
+          "params": {
+            "boss_id": "boss_mirror_sage",
+            "n": 1
+          }
+        }
+      ]
+    },
+    "card_metadata": {
+      "neutral_masq_masked_reveler": {
+        "package": "grand_reveal",
+        "role": "teaching"
+      },
+      "neutral_masq_borrowed_finery": {
+        "package": "keep_the_mask",
+        "role": "early"
+      },
+      "neutral_masq_candle_page": {
+        "package": "grand_reveal",
+        "role": "enabler"
+      },
+      "neutral_masq_gossiping_duchess": {
+        "package": "keep_the_mask",
+        "role": "body"
+      },
+      "neutral_masq_wine_steward": {
+        "package": "support_poisonous",
+        "role": "support_poisonous"
+      },
+      "neutral_masq_poisoned_chalice": {
+        "package": "support_poisonous",
+        "role": "support_poisonous"
+      },
+      "neutral_masq_masked_duelist": {
+        "package": "grand_reveal",
+        "role": "body"
+      },
+      "neutral_masq_velvet_usher": {
+        "package": "keep_the_mask",
+        "role": "protection"
+      },
+      "neutral_masq_blood_sommelier": {
+        "package": "support_lifesteal",
+        "role": "support_lifesteal"
+      },
+      "neutral_masq_curtain_call": {
+        "package": "grand_reveal",
+        "role": "enabler"
+      },
+      "neutral_masq_mirror_dancer": {
+        "package": "keep_the_mask",
+        "role": "early"
+      },
+      "neutral_masq_crimson_guest": {
+        "package": "support_lifesteal",
+        "role": "support_lifesteal"
+      },
+      "neutral_masq_midnight_bell_ringer": {
+        "package": "grand_reveal",
+        "role": "engine"
+      },
+      "neutral_masq_lady_of_veils": {
+        "package": "support_silence",
+        "role": "engine"
+      },
+      "neutral_masq_poison_taster": {
+        "package": "support_poisonous",
+        "role": "support_poisonous"
+      },
+      "neutral_masq_public_unveiling": {
+        "package": "support_silence",
+        "role": "answer"
+      },
+      "neutral_masq_jealous_rival": {
+        "package": "grand_reveal",
+        "role": "recovery"
+      },
+      "neutral_masq_clockwork_double": {
+        "package": "keep_the_mask",
+        "role": "threat"
+      },
+      "war_masq_scarred_gladiator": {
+        "package": "grand_reveal",
+        "role": "body"
+      },
+      "war_masq_parry_and_riposte": {
+        "package": "grand_reveal",
+        "role": "enabler"
+      },
+      "war_masq_masked_baron": {
+        "package": "support_lifesteal",
+        "role": "support_lifesteal"
+      },
+      "war_masq_count_varrus": {
+        "package": "varrus_aggro",
+        "role": "legendary",
+        "playstyle": "aggro",
+        "enablers": [
+          "war_masq_parry_and_riposte",
+          "war_masq_scarred_gladiator"
+        ]
+      },
+      "war_masq_madame_steel": {
+        "package": "steel_control",
+        "role": "legendary",
+        "playstyle": "control",
+        "enablers": [
+          "war_masq_masked_baron",
+          "war_masq_scarred_gladiator"
+        ]
+      },
+      "decay_masq_mourning_widow": {
+        "package": "grand_reveal",
+        "role": "body"
+      },
+      "decay_masq_toxic_toast": {
+        "package": "grand_reveal",
+        "role": "enabler"
+      },
+      "decay_masq_beaked_physician": {
+        "package": "support_poisonous",
+        "role": "support_poisonous"
+      },
+      "decay_masq_lady_ashgrave": {
+        "package": "ashgrave_sacrifice",
+        "role": "legendary",
+        "playstyle": "sacrifice",
+        "enablers": [
+          "decay_masq_mourning_widow",
+          "decay_masq_toxic_toast"
+        ]
+      },
+      "decay_masq_the_last_dancer": {
+        "package": "last_dance_attrition",
+        "role": "legendary",
+        "playstyle": "attrition",
+        "enablers": [
+          "decay_masq_beaked_physician",
+          "decay_masq_toxic_toast"
+        ]
+      },
+      "knowledge_masq_hush": {
+        "package": "support_silence",
+        "role": "support_silence"
+      },
+      "knowledge_masq_frost_masked_scholar": {
+        "package": "keep_the_mask",
+        "role": "body"
+      },
+      "knowledge_masq_mirror_mage": {
+        "package": "keep_the_mask",
+        "role": "answer"
+      },
+      "knowledge_masq_archivist_of_faces": {
+        "package": "archivist_control",
+        "role": "legendary",
+        "playstyle": "control",
+        "enablers": [
+          "knowledge_masq_hush",
+          "knowledge_masq_mirror_mage"
+        ]
+      },
+      "knowledge_masq_velisande": {
+        "package": "velisande_combo",
+        "role": "legendary",
+        "playstyle": "combo",
+        "enablers": [
+          "knowledge_masq_frost_masked_scholar",
+          "neutral_masq_curtain_call"
+        ]
+      },
+      "fortune_masq_gamblers_mask": {
+        "package": "grand_reveal",
+        "role": "body"
+      },
+      "fortune_masq_dice_of_the_ball": {
+        "package": "grand_reveal",
+        "role": "enabler"
+      },
+      "fortune_masq_gilded_noble": {
+        "package": "grand_reveal",
+        "role": "recovery"
+      },
+      "fortune_masq_fortunata": {
+        "package": "fortunata_value",
+        "role": "legendary",
+        "playstyle": "value",
+        "enablers": [
+          "fortune_masq_gamblers_mask",
+          "fortune_masq_gilded_noble"
+        ]
+      },
+      "fortune_masq_house_always_wins": {
+        "package": "house_control",
+        "role": "legendary",
+        "playstyle": "control",
+        "enablers": [
+          "fortune_masq_dice_of_the_ball",
+          "fortune_masq_gilded_noble"
+        ]
+      },
+      "order_masq_shielded_debutante": {
+        "package": "keep_the_mask",
+        "role": "body"
+      },
+      "order_masq_guard_the_guests": {
+        "package": "keep_the_mask",
+        "role": "protection"
+      },
+      "order_masq_hall_steward": {
+        "package": "keep_the_mask",
+        "role": "engine"
+      },
+      "order_masq_sir_aurel": {
+        "package": "aurel_control",
+        "role": "legendary",
+        "playstyle": "control",
+        "enablers": [
+          "order_masq_guard_the_guests",
+          "order_masq_hall_steward"
+        ]
+      },
+      "order_masq_grand_procession": {
+        "package": "procession_summon",
+        "role": "legendary",
+        "playstyle": "summon",
+        "enablers": [
+          "order_masq_shielded_debutante",
+          "order_masq_guard_the_guests"
+        ]
+      },
+      "shadow_masq_veiled_cutpurse": {
+        "package": "keep_the_mask",
+        "role": "body"
+      },
+      "shadow_masq_venom_kiss": {
+        "package": "support_poisonous",
+        "role": "support_poisonous"
+      },
+      "shadow_masq_masked_assassin": {
+        "package": "keep_the_mask",
+        "role": "threat"
+      },
+      "shadow_masq_the_faceless": {
+        "package": "faceless_tempo",
+        "role": "legendary",
+        "playstyle": "tempo",
+        "enablers": [
+          "shadow_masq_veiled_cutpurse",
+          "shadow_masq_venom_kiss"
+        ]
+      },
+      "shadow_masq_nightshade_hostess": {
+        "package": "nightshade_attrition",
+        "role": "legendary",
+        "playstyle": "attrition",
+        "enablers": [
+          "shadow_masq_masked_assassin",
+          "shadow_masq_venom_kiss"
+        ]
+      }
+    },
+    "item_groups": {
+      "mechanic_support": [
+        "treasure_masq_ballroom_invitation",
+        "treasure_masq_hostess_bell"
+      ],
+      "gap_fill": [
+        "treasure_masq_dance_card",
+        "treasure_masq_smelling_salts"
+      ]
+    },
+    "files": [
+      "cards.json",
+      "bosses.json",
+      "bundles.json",
+      "treasures.json",
+      "unlock.json"
+    ]
+  }
+}

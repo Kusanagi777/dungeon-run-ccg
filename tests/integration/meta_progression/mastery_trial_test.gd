@@ -117,6 +117,19 @@ func test_access_requires_twenty_wins_and_each_explicit_hero() -> void:
 	assert_bool(_meta.is_collection_unlocked(MasteryTrial.COLLECTION_ID)).is_false()
 
 
+func test_debug_unlock_all_opens_a_locked_collection_but_not_an_unknown_one() -> void:
+	# Arrange: the trial is not complete, so the real gate keeps the collection shut
+	assert_bool(_meta.is_collection_unlocked(MasteryTrial.COLLECTION_ID)).is_false()
+
+	# Act
+	_meta.debug_unlock_all_collections = true
+
+	# Assert
+	assert_bool(_meta.is_collection_unlocked(MasteryTrial.COLLECTION_ID)).is_true()
+	assert_bool(_meta.is_collection_unlocked("collection_that_does_not_exist")).is_false()
+	assert_bool(_meta.is_unlocked("collection_law_of_the_jungle")).is_false()
+
+
 func test_both_boards_count_one_successful_activation() -> void:
 	assert_int(_trial.start()).is_equal(OK)
 	_play_predators(1)

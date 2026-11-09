@@ -23,8 +23,10 @@ func bind(model: Dictionary) -> void:
 	for row: Dictionary in model.get("collections", []):
 		body.add_child(UiKit.label(str(row.name), RunUiTheme.LABEL_TITLE))
 		body.add_child(UiKit.label(str(row.description), &"", true))
-		body.add_child(UiKit.label(tr("collection.unlocked") if bool(row.unlocked) else tr("collection.requirements"), &"", true))
-		if bool(row.unlocked):
+		var has_trial: bool = not str(row.get("trial_id", "")).is_empty()
+		var locked_text: String = tr("collection.requirements") if has_trial else str(row.get("requirements", ""))
+		body.add_child(UiKit.label(tr("collection.unlocked") if bool(row.unlocked) else locked_text, &"", true))
+		if bool(row.unlocked) or not has_trial:
 			continue
 		var status: String = str(trial.get("status", "idle"))
 		var access: Dictionary = trial.get("access", {})

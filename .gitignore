@@ -179,3 +179,6 @@ $RECYCLE.BIN/
 # the project root. Anchored so a reports/ folder elsewhere stays tracked.
 /reports/
 /test-results/
+
+# Local Godot setting overrides, e.g. dungeon_run/debug/unlock_all_collections
+override.cfg

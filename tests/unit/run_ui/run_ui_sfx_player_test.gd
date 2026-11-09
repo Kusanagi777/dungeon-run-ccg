@@ -1,5 +1,5 @@
-## `SfxPlayer` (ui-code rule 5; interaction-patterns Sound Standards). No audio ships yet,
-## so a missing file is the normal case. `tests/fixtures/run_ui/sfx/ping.tres` stands in
+## `SfxPlayer` (ui-code rule 5; interaction-patterns Sound Standards). A missing file is a
+## silent no-op; the missing-file cases use ids no shipped file answers. `tests/fixtures/run_ui/sfx/ping.tres` stands in
 ## for an asset; a `.tres` loads with no import step.
 extends GdUnitTestSuite
 
@@ -28,8 +28,8 @@ func test_a_missing_file_is_a_silent_no_op() -> void:
 	var player: SfxPlayer = _player({"root": "res://assets/audio/sfx/", "extensions": ["ogg", "wav"], "voices": 2, "bus": "SFX"})
 
 	# Act
-	player.play(&"ui_select")
-	player.play_music(&"music.match_ambient")
+	player.play(&"ui_no_such_sound")
+	player.play_music(&"music.no_such_loop")
 
 	# Assert
 	for voice: AudioStreamPlayer in _voices(player):
@@ -40,9 +40,9 @@ func test_a_missing_file_is_a_silent_no_op() -> void:
 
 func test_a_missing_file_is_looked_up_once() -> void:
 	var player: SfxPlayer = _player({"root": "res://assets/audio/sfx/", "extensions": ["ogg"]})
-	player.play(&"ui_select")
-	assert_bool(player._streams.has(&"ui_select")).is_true()
-	assert_object(player._streams[&"ui_select"]).is_null()
+	player.play(&"ui_no_such_sound")
+	assert_bool(player._streams.has(&"ui_no_such_sound")).is_true()
+	assert_object(player._streams[&"ui_no_such_sound"]).is_null()
 
 
 func test_an_unconfigured_player_does_nothing() -> void:

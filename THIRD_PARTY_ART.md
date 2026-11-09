@@ -115,6 +115,15 @@ Licenses below were read on the source page and, where a file was committed, ins
 | `glyphs/rush.png` | Lorc | `lorc/sprint.svg` |
 | `glyphs/charge.png` | Delapouite | `delapouite/charging-bull.svg` |
 | `glyphs/lifesteal.png` | Lorc | `lorc/heart-bottle.svg` |
+| `glyphs/battlecry.png` | Lorc | `lorc/shouting.svg` |
+| `glyphs/deathrattle.png` | Lorc | `lorc/tombstone.svg` |
+| `glyphs/discover.png` | Lorc | `lorc/magnifying-glass.svg` |
+| `glyphs/aura.png` | Lorc | `lorc/aura.svg` |
+| `glyphs/spell_damage.png` | Lorc | `lorc/magic-swirl.svg` |
+| `glyphs/masked.png` | Lorc | `lorc/domino-mask.svg` |
+| `glyphs/damaged.png` | Lorc | `lorc/cracked-glass.svg` |
+| `glyphs/buffed.png` | Delapouite | `delapouite/upgrade.svg` |
+| `glyphs/attacked.png` | Delapouite | `delapouite/check-mark.svg` |
 
 Paths above are under `assets/art/`.
 
@@ -135,3 +144,28 @@ Paths above are under `assets/art/`.
 | `assets/fonts/Alegreya-VariableFont_wght.ttf` | Alegreya | The Alegreya Project Authors (Huerta Tipográfica) | SIL Open Font License 1.1, `assets/fonts/OFL-Alegreya.txt` | [google/fonts](https://github.com/google/fonts/tree/main/ofl/alegreya) |
 
 `assets/art/surfaces/table_wood.png` was regraded on 2026-11-06 (saturation and level only); its source and license are unchanged.
+
+### Kenney Particle Pack — CC0
+
+- Source: https://kenney.nl/assets/particle-pack, by Kenney Vleugels. Downloaded 2026-11-08.
+- License: Creative Commons Zero (CC0). The pack's License.txt is kept at `assets/art/licenses/kenney-particle-pack-license.txt`.
+- Sixteen of its transparent PNGs were resized from 512 px to 128 px for the match view's particle layer (`design/ux/keyword-and-effect-grammar.md`).
+
+| Committed file (`assets/art/fx/`) | Upstream file |
+| --- | --- |
+| `spark.png` | `spark_03.png` |
+| `slash.png` | `slash_02.png` |
+| `star.png` | `star_04.png` |
+| `sparkle.png` | `star_06.png` |
+| `heart.png` | `symbol_01.png` |
+| `light.png` | `light_01.png` |
+| `ring.png` | `circle_03.png` |
+| `smoke.png` | `smoke_07.png` |
+| `dust.png` | `dirt_02.png` |
+| `magic.png` | `magic_03.png` |
+| `rune.png` | `magic_02.png` |
+| `twirl.png` | `twirl_02.png` |
+| `fire.png` | `flame_05.png` |
+| `trace.png` | `trace_04.png` |
+| `puff.png` | `smoke_03.png` |
+| `soft.png` | `circle_05.png` |

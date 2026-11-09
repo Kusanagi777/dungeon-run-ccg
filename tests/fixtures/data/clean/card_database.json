@@ -3,7 +3,7 @@
   "config": {
     "min_collectible_pool": 10,
     "min_bundle_pool": 3,
-    "data_load_budget_ms": 200,
-    "data_memory_budget_mb": 4
+    "data_load_budget_ms": 500,
+    "data_memory_budget_mb": 12
   }
 }

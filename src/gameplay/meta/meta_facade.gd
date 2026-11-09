@@ -13,6 +13,14 @@
 class_name MetaFacade
 extends MetaApi
 
+## Project setting that opens every collection without its unlock gate. Read
+## only by [method compose], and only in a debug build, so a release export and
+## a facade built by a test always keep the real gate.
+const DEBUG_UNLOCK_ALL_SETTING: String = "dungeon_run/debug/unlock_all_collections"
+
+## True treats every known collection as unlocked; the profile is not changed.
+var debug_unlock_all_collections: bool = false
+
 var _store: ProfileStore
 var _evaluator: UnlockEvaluator
 var _fold: StatsFold
@@ -36,7 +44,9 @@ static func compose(db: CardDatabase) -> MetaFacade:
 	var body: Dictionary = db.config("profile_defaults")
 	var abandon_is_loss: bool = (db.config("run_structure") as Dictionary).get("abandon_counts_as_loss", true)
 	var evaluator: UnlockEvaluator = UnlockEvaluator.new(db, body[ProfileStore.KNOBS_KEY])
-	return MetaFacade.new(ProfileStore.from_config(body), evaluator, StatsFold.new(abandon_is_loss))
+	var facade: MetaFacade = MetaFacade.new(ProfileStore.from_config(body), evaluator, StatsFold.new(abandon_is_loss))
+	facade.debug_unlock_all_collections = OS.is_debug_build() and bool(ProjectSettings.get_setting(DEBUG_UNLOCK_ALL_SETTING, false))
+	return facade
 
 
 ## The store, for `Services.profile_store` and Boot's timers.
@@ -89,7 +99,9 @@ func clear_active_run() -> void:
 
 
 func is_collection_unlocked(collection_id: String) -> bool:
-	return _evaluator.ids_of(&"collection").has(collection_id) and _record_available(collection_id)
+	if not _evaluator.ids_of(&"collection").has(collection_id):
+		return false
+	return debug_unlock_all_collections or _record_available(collection_id)
 
 
 func load_trial() -> Variant:

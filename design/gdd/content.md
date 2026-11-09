@@ -907,7 +907,7 @@ harness; **Audit** = `/content-audit` or `/balance-check` report; **Play** = pla
 - [ ] **AC-17 (Data)** GIVEN a record deprecated after a story cited its id, WHEN the pool is loaded, THEN the id still resolves (`token: true`), appears in no list, and archived run records that name it still replay.
 - [ ] **AC-18 (Audit)** GIVEN ≥ `min_sample` archived runs after Alpha, WHEN pick rates per bundle are computed, THEN no bundle is outside `PICK_RATE_MIN`–`PICK_RATE_MAX`, or a composition change is scheduled in the next batch's story.
 - [ ] **AC-19 (Play)** GIVEN each of the 5 MVP bosses, WHEN a tester reads the intro passive and plays once, THEN they can name the puzzle (CN-3 B2 column) in one sentence after the match — the loss teaches (Pillar 3).
-- [ ] **AC-20 (Data)** GIVEN the MVP-0 batch, WHEN loaded, THEN the Card Database reaches `Ready` within `data_load_budget_ms` (200 ms) and the War starter deck validates (15 ids, `war` or `neutral`, no tokens); GIVEN Alpha-A / Alpha-B closed, THEN the Decay / Knowledge starter decks validate the same way.
+- [ ] **AC-20 (Data)** GIVEN the MVP-0 batch, WHEN loaded, THEN the Card Database reaches `Ready` within `data_load_budget_ms` (500 ms) and the War starter deck validates (15 ids, `war` or `neutral`, no tokens); GIVEN Alpha-A / Alpha-B closed, THEN the Decay / Knowledge starter decks validate the same way.
 - [ ] **AC-21 (Data)** GIVEN the shipped code, WHEN it is searched for the F1–F6 constants (`CURVE_*`, `BUDGET_TOL`, `PRESSURE_*`, `PASSIVE_CAP`, `KW_MIN`, `BUNDLE_COVERAGE_MIN`, `TEXT_MAX_CHARS`, `PICK_RATE_*`), THEN none appears as a literal outside `content_budgets.json` / `heroes_balance.json`: the validator and `/balance-check` read them from those files.
 
 ## Open Questions

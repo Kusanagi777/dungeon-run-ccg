@@ -29,7 +29,7 @@ func _machine(meta: MetaApi) -> RunMachine:
 	return RunMachine.new(_db, meta, draft, treasures, config, func(_config: Dictionary) -> MatchDriver: return null)
 
 func test_registry_exposes_collection_separately_from_classes() -> void:
-	assert_int(_db.collections().size()).is_equal(1)
+	assert_int(_db.collections().size()).is_equal(2)
 	assert_str(_db.collection(COLLECTION).id).is_equal(COLLECTION)
 	assert_bool(RecordSchemas.SETS.has(COLLECTION)).is_false()
 	assert_object(_db.collection("missing")).is_null()

@@ -38,6 +38,10 @@ const SLOT_GLYPH_INSET_PX: float = 12.0
 const POWER_ART_INSET_PX: float = 6.0
 ## The pile: a second card edge showing under the top one.
 const PILE_OFFSET: Vector2 = Vector2(3, 3)
+const STATE_GLYPH_PX: float = 14.0
+const STATE_GLYPH_INSET_PX: float = 4.0
+## A pulse (armour, deck, fatigue, weapon) swells this much and settles.
+const PULSE_SCALE: float = 1.3
 
 ## Which side's panel this is; set on the instance in `match_view.tscn`.
 @export var side: StringName = SIDE_PLAYER
@@ -78,6 +82,10 @@ var _passive_box: Panel = null
 var _hand_box: Panel = null
 # What is on screen now: the fields sync_report compares.
 var _shown: Dictionary = {}
+var _frost: Panel = null
+var _crack: TextureRect = null
+# The highest health this hero has shown: its starting health (no effect raises it).
+var _max_health: int = 0
 
 
 ## Builds this side's nodes at their F6 rects.
@@ -108,9 +116,44 @@ func setup(context: MatchUiContext) -> void:
 	_center(_health)
 	UiFonts.apply(_health, UiFonts.WEIGHT_BOLD)
 	_armor_box = _panel(Rect2(stamp_rect.position - Vector2(stamp + 4, 0), stamp_rect.size), _round_style(ui.color("ink")), _portrait)
+	_armor_box.pivot_offset = stamp_rect.size / 2.0
+	# hud.md Portrait: the armour pill carries the shield glyph behind its number.
+	var shield := TextureRect.new()
+	shield.texture = ui.art().glyph_texture("durability")
+	shield.modulate = Color(ui.color("text_light"), CardFrame.GLYPH_ALPHA)
+	shield.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shield.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shield.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	shield.size = stamp_rect.size
+	_armor_box.add_child(shield)
 	_armor = _label(Rect2(Vector2.ZERO, stamp_rect.size), COUNT_FONT_PX, "text_light", _armor_box)
 	_center(_armor)
 	UiFonts.apply(_armor, UiFonts.WEIGHT_BOLD)
+	# A frozen hero: the `state_freeze` frame and the snowflake (art bible §4 frozen).
+	var frost_style: StyleBoxFlat = _style(Color.TRANSPARENT, int(ui.config.targeting.outline_px), ui.color("state_freeze"))
+	frost_style.draw_center = false
+	_frost = _panel(Rect2(Vector2.ZERO, _portrait_rect.size), frost_style, _portrait)
+	var flake := TextureRect.new()
+	flake.texture = ui.art().glyph_texture("frozen")
+	flake.modulate = ui.color("state_freeze")
+	flake.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flake.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	flake.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	flake.position = Vector2.ONE * STATE_GLYPH_INSET_PX
+	flake.size = Vector2.ONE * STATE_GLYPH_PX
+	_frost.add_child(flake)
+	_frost.visible = false
+	# The crack glyph beside the health stamp while the hero is below its starting health.
+	_crack = TextureRect.new()
+	_crack.texture = ui.art().glyph_texture("damaged")
+	_crack.modulate = ui.color("state_danger")
+	_crack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_crack.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_crack.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_crack.size = Vector2.ONE * STATE_GLYPH_PX
+	_crack.position = stamp_rect.position + Vector2(stamp_rect.size.x / 2.0 - STATE_GLYPH_PX / 2.0, -STATE_GLYPH_PX)
+	_crack.visible = false
+	_portrait.add_child(_crack)
 	var deck_rect: Rect2 = ui.rect("player_deck" if player else "boss_deck")
 	var _under: Panel = _panel(Rect2(deck_rect.position + PILE_OFFSET, deck_rect.size), _style(ui.color("ink"), 1, ui.color("stamp_ring")))
 	var deck_box: Panel = _panel(deck_rect, _style(ui.color("ink"), 1, ui.color("stamp_ring")))
@@ -168,7 +211,8 @@ func set_identity(identity: Dictionary) -> void:
 
 ## A burn has a card's id, which no hero owns: it is claimed by side.
 func claims(step: AnimStep) -> bool:
-	return super(step) or (step.kind == AnimStep.BURN and str(step.data.get("side", "")) == String(side))
+	var by_side: bool = step.kind in [AnimStep.BURN, AnimStep.DISCARD, AnimStep.DECK_TICK]
+	return super(step) or (by_side and str(step.data.get("side", "")) == String(side))
 
 
 func owns(entity_ids: Array[int]) -> bool:
@@ -186,6 +230,21 @@ func on_step_started(step: AnimStep, d_eff: float) -> void:
 			for pop: AnimStep in (step.members if not step.members.is_empty() else [step] as Array[AnimStep]):
 				if pop.entity_ids.has(int(hero_id)):
 					spawn_pop(step, pop, _portrait_rect.get_center(), d_eff)
+					if pop.kind == AnimStep.DAMAGE_POP and step.kind != AnimStep.ATTACK_LUNGE:
+						shake(step, _portrait, "position", _portrait_rect.position)
+		AnimStep.ARMOR_POP:
+			spawn_label(step, tr("hud.armor") % int(step.data.get("amount", 0)), ui.color("text_light"), _portrait_rect.get_center(), d_eff)
+			_pulse(step, _armor_box, d_eff)
+		AnimStep.FATIGUE_LABEL:
+			_pulse(step, _fatigue, d_eff)
+		AnimStep.DECK_TICK:
+			_pulse(step, _deck, d_eff)
+		AnimStep.DISCARD:
+			if _hand_count != null:
+				_pulse(step, _hand_count, d_eff)
+		AnimStep.WEAPON_UPDATE:
+			if _weapon != null and bool(step.data.get("equipped", false)):
+				_pulse(step, _weapon, d_eff)
 		AnimStep.ATTACK_LUNGE:
 			_lunge(step, d_eff)
 		AnimStep.POWER_PRESS, AnimStep.POWER_RELIGHT:
@@ -224,6 +283,10 @@ func present(state: Dictionary) -> void:
 	}
 	_health.text = str(hero.health) if hero.health != null else ""
 	_stamp_box.visible = hero.health != null
+	if hero.health != null:
+		_max_health = maxi(_max_health, int(hero.health))
+	_crack.visible = hero.health != null and int(hero.health) < _max_health
+	_frost.visible = bool(hero.get("frozen", false))
 	_armor_box.visible = int(hero.armor) > 0
 	_armor.text = tr("hud.armor") % int(hero.armor)
 	_deck.text = str(int(data.deck_count))
@@ -523,18 +586,18 @@ func _refresh_power_mark(used: bool) -> void:
 	_power_glyph.visible = used or not has_art
 
 
-## hud.md §4.2: the burned card face up over the player's pile, dissolving. A boss burn
-## is told by the feed alone.
+## hud.md §4.2: the burned card face up over its owner's pile, dissolving. A burned
+## card is public (match-rules `card_burned`), so the boss's shows too.
 func _show_burn(step: AnimStep, d_eff: float) -> void:
 	var face: Dictionary = ui.card_face(str(step.data.get("card_id", "")))
-	if side != SIDE_PLAYER or face.is_empty():
+	if face.is_empty():
 		return
 	var card: CardFrame = CARD_FRAME_SCENE.instantiate()
 	add_child(card)
 	card.configure(ui)
 	card.show_card(face, int(face.get("cost", 0)) if face.get("cost") != null else 0)
 	card.scale = Vector2.ONE * BURN_CARD_SCALE
-	card.position = ui.rect("player_deck").get_center() - CardFrame.SIZE * BURN_CARD_SCALE / 2.0
+	card.position = ui.rect("player_deck" if side == SIDE_PLAYER else "boss_deck").get_center() - CardFrame.SIZE * BURN_CARD_SCALE / 2.0
 	keep_for_step(step, card)
 	step_tween(step).tween_property(card, "modulate:a", 0.0, d_eff)
 
@@ -564,6 +627,21 @@ func _rest() -> void:
 		_power.scale = Vector2.ONE
 	if _weapon != null:
 		_weapon.modulate.a = 1.0
+		_weapon.scale = Vector2.ONE
+	for node: Control in [_armor_box, _fatigue, _deck, _hand_count]:
+		if node != null:
+			node.scale = Vector2.ONE
+
+
+# One pulse for every counter that changes: it swells and settles (none under
+# `reduce_motion`, where the number change is the cue).
+func _pulse(step: AnimStep, node: Control, d_eff: float) -> void:
+	if ui.reduce_motion or node == null:
+		return
+	node.pivot_offset = node.size / 2.0
+	var swell: Tween = step_tween(step)
+	swell.tween_property(node, "scale", Vector2.ONE * PULSE_SCALE, d_eff / 2.0)
+	swell.tween_property(node, "scale", Vector2.ONE, d_eff / 2.0)
 
 
 func _own_ids() -> Dictionary:

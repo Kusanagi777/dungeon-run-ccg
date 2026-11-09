@@ -41,6 +41,8 @@ static func body() -> Dictionary:
 			"boss_discovers": 0.4,
 			# match-ui story 021: a hook-hosted `effect_resolved` flares its chip
 			"treasure_flare": 0.15,
+			# 2026-11-08 effect grammar: transform (Unmask), return, armour, spell cast
+			"transform": 0.35, "return": 0.3, "armor_pop": 0.4, "spell_cast": 0.3,
 		},
 		# F4 / Tuning Knobs `MIN_ACTION_GAP_S`, `K_MIN` (match-ui story 010)
 		"min_action_gap_s": 0.15,

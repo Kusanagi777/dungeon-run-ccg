@@ -48,7 +48,7 @@ Extracted from 13 GDDs | 70 requirements | 70 registered, 0 provisional (registe
 | TR-card-database-002 | CR-3, CR-5 | Nine-stage load pipeline with delegated validators injected at composition (effects, ai_profile, unlock, treasure tags, one per config file); `Failed` load has no main menu (CR-8) | Core |
 | TR-card-database-003 | CR-6 | Queries are pure reads on a frozen snapshot, results id-ascending (seeded draws depend on it) | Core |
 | TR-card-database-004 | CR-9 | `data_version` = first 16 hex of SHA-256 over canonical serialisation of every file, stable across machines | Core |
-| TR-card-database-005 | Formulas | `Unloaded → Ready` ≤ `data_load_budget_ms` (200), snapshot ≤ `data_memory_budget_mb` (4), synchronous at boot | Core / perf |
+| TR-card-database-005 | Formulas | `Unloaded → Ready` ≤ `data_load_budget_ms` (500), snapshot ≤ `data_memory_budget_mb` (12), synchronous at boot | Core / perf |
 | TR-rng-event-log-001 | rules 1–6 | One `RngService(run_seed, data_version)`; memoised named streams `run`, `match_<f>`, `draft_<f>`, `ai_<f>`; `fork(label)`; draw API `randi_range`, `randf`, `shuffle`, `weighted_pick` | Core |
 | TR-rng-event-log-002 | rule 7 | No code under the rules tree calls global RNG; randomness is an injected parameter | Core |
 | TR-rng-event-log-003 | rules 9–10 | Replay equivalence per command sequence; `snapshot()` / `restore()` rebuild streams from `draws` counts | Core / Save |
@@ -435,7 +435,7 @@ Serialisation ownership: Run Structure owns the `RunRecord` schema and `validate
 7. Per match: MatchDriver builds RulesEngine → EffectResolver.bind(engine, installers) → BossAI; RulesEngine.start(config)
 ```
 
-Data load is synchronous and must finish inside `data_load_budget_ms` (200) — a boot stall budget, measured by the performance test (card-database Formulas).
+Data load is synchronous and must finish inside `data_load_budget_ms` (500) — a boot stall budget, measured by the performance test (card-database Formulas).
 
 ### 6. Data load path
 
@@ -736,7 +736,7 @@ The twenty match fixtures and nine run fixtures the GDDs require are stories' de
 | UI input latency | pickup 16 ms · drag 16 ms · release → first visual event 50 ms · rejection → shake 50 ms · skip-all → display = view-state 100 ms · End Turn → commit beat `max(300 ms, planner run)` ≤ 500 ms, then "boss thinking" (2026-11-04, DD-X23; was 300 ms) · hover → preview 100 ms | match-ui Input Responsiveness | integration test with `scene_runner()` timing + evidence |
 | Boss turn playback | gaps from `action_delay_ms` (600 default), compressed to `max_turn_playback_s`; intent banner `intent_banner_s` | match-ui U6, F4 | fixture `boss_turn_playback` |
 | Run UI restart | ≤ `restart_budget_ms` 5000 (path A 1350 ms at defaults); `new_run` ≤ 200 ms, `intro_ready` ≤ 300 ms, `select_ready` ≤ 300 ms; transitions `transition_ms.fade` 250 | run-ui F1, F2 | measured per build |
-| Data load | `Unloaded → Ready` ≤ `data_load_budget_ms` 200; snapshot ≤ `data_memory_budget_mb` 4; ~900 O(1) checks at v1 | card-database Formulas | performance test asserts the measured load time |
+| Data load | `Unloaded → Ready` ≤ `data_load_budget_ms` 500; snapshot ≤ `data_memory_budget_mb` 12; ~900 O(1) checks at v1 | card-database Formulas | performance test asserts the measured load time |
 | Event log memory | `log_memory_budget_bytes` 2,000,000 → `max_match_events` 10,000; typical match 300–2,000 events (60–400 KB) | rng-event-log F7 | unit test on the overflow path; `avg_event_bytes` re-measured on real logs |
 | Profile save | synchronous ≤ `max_save_ms` 50 at `run_log_cap` 200; file ≤ `max_profile_bytes` 2 MB (≈ 1.7 MB estimated) | meta-progression M4.3, F5 | measured at Vertical Slice |
 | Draw calls | **≤ 500 per frame (provisional)** — `project.yaml` `performance.draw_call_limit`; set 2026-11-03 at the Pre-Production gate as a ceiling for a 2D card UI (≈ 30 card views + text), not a sourced figure | TD-PHASE-GATE entry condition 2 | `/perf-profile` after the first Match UI story confirms or lowers it; record here |

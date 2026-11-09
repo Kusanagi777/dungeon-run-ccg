@@ -35,7 +35,11 @@
       "fizzle": 0.2,
       "intent_commit": 0.3,
       "boss_discovers": 0.4,
-      "treasure_flare": 0.15
+      "treasure_flare": 0.15,
+      "transform": 0.35,
+      "return": 0.3,
+      "armor_pop": 0.4,
+      "spell_cast": 0.3
     },
     "min_action_gap_s": 0.15,
     "k_min": 0.25,
@@ -441,16 +445,25 @@
     },
     "glyphs": {
       "taunt": "T",
-      "divine_shield": "D",
-      "frozen": "*",
+      "divine_shield": "DS",
+      "frozen": "F",
       "stealth": "S",
       "windfury": "W",
-      "silenced": "/",
+      "silenced": "Si",
       "summoning_sick": "z",
       "rush": "R",
       "charge": "C",
       "lifesteal": "L",
-      "poisonous": "P"
+      "poisonous": "P",
+      "spell_damage": "SD",
+      "deathrattle": "DR",
+      "aura": "A",
+      "battlecry": "BC",
+      "discover": "Dv",
+      "freeze": "F",
+      "silence": "Si",
+      "masked": "M",
+      "attacked": "✓"
     },
     "strings": {
       "card.tribes.human": "Human",
@@ -648,12 +661,37 @@
       "pause.concede_confirm": "Concede",
       "choice.boss_discovers": "Boss discovers…",
       "opt.smite": "Smite\nDeal 2 damage",
-      "opt.mend": "Mend\nRestore 4 health"
+      "opt.mend": "Mend\nRestore 4 health",
+      "feed.minion_transformed": "{from} became {to}.",
+      "feed.minion_returned": "{card} returned to {side}'s hand.",
+      "hud.fizzle": "Fizzled",
+      "badge.taunt": "Taunt",
+      "badge.divine_shield": "Divine Shield",
+      "badge.stealth": "Stealth",
+      "badge.windfury": "Windfury",
+      "badge.rush": "Rush",
+      "badge.charge": "Charge",
+      "badge.poisonous": "Poisonous",
+      "badge.lifesteal": "Lifesteal",
+      "badge.spell_damage": "Spell Damage",
+      "badge.deathrattle": "Deathrattle",
+      "badge.aura": "Aura",
+      "badge.battlecry": "Battlecry",
+      "badge.discover": "Discover",
+      "badge.freeze": "Freeze",
+      "badge.silence": "Silence",
+      "badge.masked": "Masked",
+      "badge.frozen": "Frozen",
+      "badge.silenced": "Silenced",
+      "badge.summoning_sick": "Summoning sick",
+      "badge.attacked": "Already attacked",
+      "hud.spell_damage_total": "Spell Damage +%d"
     },
     "rejection_tooltip_s": 1.5,
     "sfx_heavy_damage": 5,
     "sfx_steps": {
       "play_card": "sfx.ui.card_play",
+      "spell_cast": "sfx.ui.spell_cast",
       "attack_lunge": "sfx.ui.attack_whoosh",
       "damage_pop": "sfx.ui.damage",
       "heal_pop": "sfx.ui.heal",
@@ -666,7 +704,19 @@
       "intent_show": "sfx.ui.page_turn",
       "overlay_open": "sfx.ui.overlay",
       "overlay_close": "sfx.ui.overlay",
-      "mulligan_open": "sfx.ui.overlay"
+      "mulligan_open": "sfx.ui.overlay",
+      "badge": "sfx.ui.status",
+      "summon": "sfx.ui.summon",
+      "summon_failed": "sfx.ui.summon_failed",
+      "discard": "sfx.ui.discard",
+      "deck_tick": "sfx.ui.deck_add",
+      "weapon_update": "sfx.ui.weapon_equip",
+      "weapon_shatter": "sfx.ui.weapon_break",
+      "power_press": "sfx.ui.power_chime",
+      "fizzle": "sfx.ui.fizzle",
+      "transform": "sfx.ui.transform",
+      "return": "sfx.ui.return",
+      "boss_discovers": "sfx.ui.overlay"
     },
     "reject": {
       "source_flash_s": 0.034,
@@ -742,6 +792,1019 @@
     "focus": {
       "ring_px": 2,
       "ring_offset_px": 3
+    },
+    "badges": {
+      "order": [
+        "taunt",
+        "divine_shield",
+        "stealth",
+        "windfury",
+        "rush",
+        "charge",
+        "poisonous",
+        "lifesteal",
+        "spell_damage",
+        "deathrattle",
+        "aura",
+        "battlecry",
+        "discover",
+        "freeze",
+        "silence",
+        "masked",
+        "frozen",
+        "silenced",
+        "summoning_sick",
+        "attacked"
+      ],
+      "board": [
+        "taunt",
+        "divine_shield",
+        "stealth",
+        "windfury",
+        "rush",
+        "charge",
+        "poisonous",
+        "lifesteal",
+        "spell_damage",
+        "deathrattle",
+        "aura",
+        "masked",
+        "frozen",
+        "silenced",
+        "summoning_sick",
+        "attacked"
+      ],
+      "flash": {
+        "frozen": "state_freeze",
+        "freeze": "state_freeze",
+        "silenced": "state_freeze",
+        "silence": "state_freeze",
+        "poisonous": "state_danger",
+        "masked": "state_target"
+      }
+    },
+    "fx": {
+      "status_pop_scale": 1.8,
+      "stat_pulse_scale": 1.4,
+      "shake_px": 3,
+      "shimmer_s": 1.6,
+      "stealth_alpha": [
+        0.55,
+        0.85
+      ],
+      "silence_grey": 0.75,
+      "taunt_frame_px": 4,
+      "shield_bubble_alpha": 0.55,
+      "rim_glow_px": 3,
+      "exhausted_alpha": 0.6,
+      "return_px": 70,
+      "ghost_alpha": 0.5,
+      "spell_hold": 0.45,
+      "morph_flash": 0.85,
+      "icon_px": 12,
+      "icon_min_px": 8,
+      "stat_glyph_px": 10
+    },
+    "particles": {
+      "z_index": 50,
+      "heavy_hit": 5,
+      "textures": {
+        "spark": "res://assets/art/fx/spark.png",
+        "slash": "res://assets/art/fx/slash.png",
+        "star": "res://assets/art/fx/star.png",
+        "sparkle": "res://assets/art/fx/sparkle.png",
+        "heart": "res://assets/art/fx/heart.png",
+        "light": "res://assets/art/fx/light.png",
+        "ring": "res://assets/art/fx/ring.png",
+        "smoke": "res://assets/art/fx/smoke.png",
+        "dust": "res://assets/art/fx/dust.png",
+        "magic": "res://assets/art/fx/magic.png",
+        "rune": "res://assets/art/fx/rune.png",
+        "twirl": "res://assets/art/fx/twirl.png",
+        "fire": "res://assets/art/fx/fire.png",
+        "trace": "res://assets/art/fx/trace.png",
+        "puff": "res://assets/art/fx/puff.png",
+        "soft": "res://assets/art/fx/soft.png"
+      },
+      "effects": {
+        "hit": [
+          {
+            "texture": "spark",
+            "color": "state_danger",
+            "amount": 10,
+            "lifetime": 0.4,
+            "speed": [
+              120,
+              260
+            ],
+            "scale": [
+              0.12,
+              0.22
+            ],
+            "gravity": [
+              0,
+              300
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          },
+          {
+            "kind": "flash",
+            "texture": "slash",
+            "color": "text_light",
+            "lifetime": 0.18,
+            "scale": [
+              0.35,
+              0.6
+            ],
+            "spin": true,
+            "additive": true,
+            "alpha": 0.9,
+            "turn": 1.5
+          }
+        ],
+        "hit_heavy": [
+          {
+            "texture": "spark",
+            "color": "state_danger",
+            "amount": 18,
+            "lifetime": 0.5,
+            "speed": [
+              160,
+              340
+            ],
+            "scale": [
+              0.15,
+              0.28
+            ],
+            "gravity": [
+              0,
+              360
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          },
+          {
+            "kind": "flash",
+            "texture": "slash",
+            "color": "text_light",
+            "lifetime": 0.22,
+            "scale": [
+              0.5,
+              0.9
+            ],
+            "spin": true,
+            "additive": true,
+            "alpha": 1.0,
+            "turn": 1.5
+          },
+          {
+            "kind": "flash",
+            "texture": "ring",
+            "color": "state_danger",
+            "lifetime": 0.3,
+            "scale": [
+              0.2,
+              0.8
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.8,
+            "turn": 1.5
+          }
+        ],
+        "heal": [
+          {
+            "texture": "heart",
+            "color": "state_buff",
+            "amount": 6,
+            "lifetime": 0.8,
+            "speed": [
+              30,
+              70
+            ],
+            "scale": [
+              0.1,
+              0.16
+            ],
+            "gravity": [
+              0,
+              -60
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 60,
+            "scale_end": 0.6,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          },
+          {
+            "kind": "flash",
+            "texture": "light",
+            "color": "state_buff",
+            "lifetime": 0.4,
+            "scale": [
+              0.3,
+              0.7
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.6,
+            "turn": 1.5
+          }
+        ],
+        "armor": [
+          {
+            "kind": "flash",
+            "texture": "ring",
+            "color": "text_light",
+            "lifetime": 0.35,
+            "scale": [
+              0.2,
+              0.7
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.9,
+            "turn": 1.5
+          },
+          {
+            "texture": "sparkle",
+            "color": "text_light",
+            "amount": 6,
+            "lifetime": 0.4,
+            "speed": [
+              40,
+              90
+            ],
+            "scale": [
+              0.08,
+              0.14
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "shield": [
+          {
+            "kind": "flash",
+            "texture": "ring",
+            "color": "text_light",
+            "lifetime": 0.3,
+            "scale": [
+              0.4,
+              1.0
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 1.0,
+            "turn": 1.5
+          },
+          {
+            "texture": "sparkle",
+            "color": "#FFE9A8",
+            "amount": 12,
+            "lifetime": 0.5,
+            "speed": [
+              80,
+              200
+            ],
+            "scale": [
+              0.08,
+              0.16
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "death": [
+          {
+            "texture": "smoke",
+            "color": "#8A8078",
+            "amount": 8,
+            "lifetime": 0.8,
+            "speed": [
+              20,
+              70
+            ],
+            "scale": [
+              0.25,
+              0.45
+            ],
+            "gravity": [
+              0,
+              -30
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 1.2,
+            "additive": false,
+            "alpha": 0.7,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          },
+          {
+            "texture": "dust",
+            "color": "#6F655A",
+            "amount": 6,
+            "lifetime": 0.6,
+            "speed": [
+              60,
+              140
+            ],
+            "scale": [
+              0.1,
+              0.2
+            ],
+            "gravity": [
+              0,
+              220
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": false,
+            "alpha": 0.8,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "summon": [
+          {
+            "texture": "dust",
+            "color": "#B8A88E",
+            "amount": 10,
+            "lifetime": 0.5,
+            "speed": [
+              60,
+              140
+            ],
+            "scale": [
+              0.08,
+              0.16
+            ],
+            "gravity": [
+              0,
+              120
+            ],
+            "direction": [
+              0,
+              1
+            ],
+            "spread": 100,
+            "scale_end": 0.4,
+            "additive": false,
+            "alpha": 0.7,
+            "radius": 30,
+            "damping": 0,
+            "spin": true
+          },
+          {
+            "kind": "flash",
+            "texture": "soft",
+            "color": "text_light",
+            "lifetime": 0.25,
+            "scale": [
+              0.3,
+              0.8
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.5,
+            "turn": 1.5
+          }
+        ],
+        "summon_failed": [
+          {
+            "texture": "puff",
+            "color": "#8A8078",
+            "amount": 6,
+            "lifetime": 0.5,
+            "speed": [
+              20,
+              60
+            ],
+            "scale": [
+              0.2,
+              0.35
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": false,
+            "alpha": 0.6,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "unmask": [
+          {
+            "kind": "flash",
+            "texture": "magic",
+            "color": "state_target",
+            "lifetime": 0.4,
+            "scale": [
+              0.3,
+              1.0
+            ],
+            "spin": true,
+            "additive": true,
+            "alpha": 1.0,
+            "turn": 2.5
+          },
+          {
+            "kind": "flash",
+            "texture": "twirl",
+            "color": "text_light",
+            "lifetime": 0.35,
+            "scale": [
+              0.4,
+              0.9
+            ],
+            "spin": true,
+            "additive": true,
+            "alpha": 0.8,
+            "turn": -3.0
+          },
+          {
+            "texture": "star",
+            "color": "state_target",
+            "amount": 14,
+            "lifetime": 0.6,
+            "speed": [
+              100,
+              220
+            ],
+            "scale": [
+              0.06,
+              0.14
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "return": [
+          {
+            "texture": "trace",
+            "color": "text_light",
+            "amount": 8,
+            "lifetime": 0.35,
+            "speed": [
+              180,
+              320
+            ],
+            "scale": [
+              0.15,
+              0.25
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              1
+            ],
+            "spread": 25,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 0.7,
+            "radius": 6,
+            "damping": 0,
+            "spin": false
+          }
+        ],
+        "spell": [
+          {
+            "kind": "flash",
+            "texture": "rune",
+            "color": "state_target",
+            "lifetime": 0.5,
+            "scale": [
+              0.4,
+              1.1
+            ],
+            "spin": true,
+            "additive": true,
+            "alpha": 1.0,
+            "turn": 1.2
+          },
+          {
+            "texture": "star",
+            "color": "state_target",
+            "amount": 16,
+            "lifetime": 0.6,
+            "speed": [
+              80,
+              200
+            ],
+            "scale": [
+              0.06,
+              0.14
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "status": [
+          {
+            "texture": "sparkle",
+            "color": "text_light",
+            "amount": 6,
+            "lifetime": 0.4,
+            "speed": [
+              40,
+              100
+            ],
+            "scale": [
+              0.06,
+              0.12
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "status_frozen": [
+          {
+            "texture": "star",
+            "color": "state_freeze",
+            "amount": 12,
+            "lifetime": 0.6,
+            "speed": [
+              40,
+              120
+            ],
+            "scale": [
+              0.08,
+              0.16
+            ],
+            "gravity": [
+              0,
+              40
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          },
+          {
+            "kind": "flash",
+            "texture": "ring",
+            "color": "state_freeze",
+            "lifetime": 0.35,
+            "scale": [
+              0.3,
+              0.8
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.8,
+            "turn": 1.5
+          }
+        ],
+        "status_silenced": [
+          {
+            "texture": "puff",
+            "color": "#8A8078",
+            "amount": 8,
+            "lifetime": 0.6,
+            "speed": [
+              20,
+              60
+            ],
+            "scale": [
+              0.15,
+              0.3
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": false,
+            "alpha": 0.6,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "status_poisonous": [
+          {
+            "texture": "soft",
+            "color": "state_danger",
+            "amount": 8,
+            "lifetime": 0.7,
+            "speed": [
+              20,
+              60
+            ],
+            "scale": [
+              0.06,
+              0.12
+            ],
+            "gravity": [
+              0,
+              -40
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 0.7,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "status_divine_shield": [
+          {
+            "kind": "flash",
+            "texture": "ring",
+            "color": "#FFE9A8",
+            "lifetime": 0.4,
+            "scale": [
+              0.9,
+              0.6
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.8,
+            "turn": 1.5
+          }
+        ],
+        "status_stealth": [
+          {
+            "texture": "puff",
+            "color": "#5A4E7A",
+            "amount": 8,
+            "lifetime": 0.6,
+            "speed": [
+              20,
+              60
+            ],
+            "scale": [
+              0.15,
+              0.3
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": false,
+            "alpha": 0.5,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "status_taunt": [
+          {
+            "kind": "flash",
+            "texture": "ring",
+            "color": "text_light",
+            "lifetime": 0.3,
+            "scale": [
+              0.6,
+              0.9
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.6,
+            "turn": 1.5
+          }
+        ],
+        "buff": [
+          {
+            "texture": "star",
+            "color": "state_buff",
+            "amount": 8,
+            "lifetime": 0.6,
+            "speed": [
+              30,
+              80
+            ],
+            "scale": [
+              0.06,
+              0.12
+            ],
+            "gravity": [
+              0,
+              -80
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 50,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "debuff": [
+          {
+            "texture": "soft",
+            "color": "state_danger",
+            "amount": 6,
+            "lifetime": 0.5,
+            "speed": [
+              20,
+              60
+            ],
+            "scale": [
+              0.06,
+              0.1
+            ],
+            "gravity": [
+              0,
+              120
+            ],
+            "direction": [
+              0,
+              1
+            ],
+            "spread": 60,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 0.7,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "fizzle": [
+          {
+            "texture": "puff",
+            "color": "#8A8078",
+            "amount": 5,
+            "lifetime": 0.5,
+            "speed": [
+              10,
+              40
+            ],
+            "scale": [
+              0.12,
+              0.22
+            ],
+            "gravity": [
+              0,
+              0
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": false,
+            "alpha": 0.6,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "burn": [
+          {
+            "texture": "fire",
+            "color": "#FF8A3D",
+            "amount": 10,
+            "lifetime": 0.6,
+            "speed": [
+              40,
+              100
+            ],
+            "scale": [
+              0.12,
+              0.22
+            ],
+            "gravity": [
+              0,
+              -120
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 40,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "weapon_equip": [
+          {
+            "kind": "flash",
+            "texture": "slash",
+            "color": "text_light",
+            "lifetime": 0.25,
+            "scale": [
+              0.4,
+              0.8
+            ],
+            "spin": true,
+            "additive": true,
+            "alpha": 1.0,
+            "turn": 1.5
+          }
+        ],
+        "weapon_break": [
+          {
+            "texture": "spark",
+            "color": "#C9C2B6",
+            "amount": 14,
+            "lifetime": 0.5,
+            "speed": [
+              100,
+              240
+            ],
+            "scale": [
+              0.1,
+              0.2
+            ],
+            "gravity": [
+              0,
+              300
+            ],
+            "direction": [
+              0,
+              -1
+            ],
+            "spread": 180,
+            "scale_end": 0.4,
+            "additive": true,
+            "alpha": 1.0,
+            "radius": 6,
+            "damping": 0,
+            "spin": true
+          }
+        ],
+        "power": [
+          {
+            "kind": "flash",
+            "texture": "light",
+            "color": "state_actionable",
+            "lifetime": 0.35,
+            "scale": [
+              0.3,
+              0.8
+            ],
+            "spin": false,
+            "additive": true,
+            "alpha": 0.7,
+            "turn": 1.5
+          }
+        ]
+      },
+      "steps": {
+        "damage_pop": "hit",
+        "heal_pop": "heal",
+        "armor_pop": "armor",
+        "shield_pop": "shield",
+        "death_group": "death",
+        "summon": "summon",
+        "summon_failed": "summon_failed",
+        "transform": "unmask",
+        "return": "return",
+        "spell_cast": "spell",
+        "badge": "status",
+        "stat_recolour": "buff",
+        "fizzle": "fizzle",
+        "burn": "burn",
+        "weapon_update": "weapon_equip",
+        "weapon_shatter": "weapon_break",
+        "power_press": "power"
+      }
     }
   }
 }

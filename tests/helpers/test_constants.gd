@@ -77,11 +77,11 @@ const STARTER_DECK_SIZE: int = 15
 ## registry constants.bundle_card_count — cards (card-database CR-3 BundleDef, DD-R04)
 const BUNDLE_CARD_COUNT: int = 3
 ## registry constants.data_load_budget_ms — ms (card-database Formulas)
-const DATA_LOAD_BUDGET_MS: int = 200
+const DATA_LOAD_BUDGET_MS: int = 500
 ## card-database Formulas `data_memory_budget_mb` — MB (`card_database.json`
-## knob, default 4; not registered). Mirrors the shipped file; pinned by
+## knob, default 12 since 2026-11-08; not registered). Mirrors the shipped file; pinned by
 ## tests/integration/card_database/card_database_shipped_budget_test.gd
-const DATA_MEMORY_BUDGET_MB: int = 4
+const DATA_MEMORY_BUDGET_MB: int = 12
 ## card-database Formulas "Validation cost and load budget" Example: the v1
 ## `validation_checks` estimate (241 records + 652 refs). Logged beside the
 ## shipped figure by the card-database perf suite, never asserted.

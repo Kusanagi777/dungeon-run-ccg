@@ -109,6 +109,16 @@ const RECORD_VALIDATORS: Dictionary = {
 ## Config files with no injected validator: the loader's own body, checked at
 ## stage 4 (card-database CR-1 row, CR-5 stage 7).
 const CONFIG_VALIDATOR_EXEMPT: Array[String] = ["card_database.json", "collections.json", "law-of-the-jungle/collection.json"]
+## The files of a registered collection `<id>/`: `[name, class, record_type]`.
+## `trial` is present only when the collection's metadata names a `trial_id`.
+const COLLECTION_FILES: Array = [
+	["cards", "definition", "CardDef"], ["bosses", "definition", "BossDef"],
+	["bundles", "definition", "BundleDef"], ["treasures", "definition", "TreasureDef"],
+	["collection", "config", null], ["unlock", "config", null], ["trial", "config", null],
+]
+## The shared validator key for every collection's `<id>/unlock` config that
+## has no validator of its own.
+const COLLECTION_UNLOCK_VALIDATOR: String = "collection_unlock"
 
 
 ## What `run()` returns: the report, and the loaded data when the report has
@@ -248,7 +258,57 @@ func _manifest() -> Array[Dictionary]:
 		var file_name: String = "cards_%s.json" % set_id
 		if not known.has(file_name):
 			rows.append({"name": file_name, "class": "definition", "record_type": "CardDef", "required": false, "owner": "Content"})
+	for collection_id: String in registered_collections(_root):
+		for spec: Array in COLLECTION_FILES:
+			var file_name: String = "%s/%s.json" % [collection_id, spec[0]]
+			if not known.has(file_name):
+				known[file_name] = true
+				rows.append({"name": file_name, "class": spec[1], "record_type": spec[2], "required": false, "owner": "Content"})
 	return rows
+
+
+## The ids in `collections.json` under [param root], in file order; empty when
+## the registry is absent or malformed (stage 4 reports the malformed case).
+static func registered_collections(root: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	var text: String = FileAccess.get_file_as_string(root + "collections.json")
+	if text.is_empty():
+		return found
+	var parsed: Variant = JSON.parse_string(text)
+	if not parsed is Dictionary or not parsed.get("config") is Dictionary or not parsed.config.get("collections") is Array:
+		return found
+	for raw: Variant in parsed.config.collections:
+		if raw is Dictionary and raw.get("id") is String and RecordSchemas.valid_collection_id(raw.id) and not found.has(raw.id):
+			found.append(raw.id)
+	return found
+
+
+## True for a collection's own metadata file, `<collection id>/collection.json`.
+static func is_collection_metadata(file_name: String) -> bool:
+	return file_name.get_file() == "collection.json" and not file_name.get_base_dir().is_empty()
+
+
+## True when [param file_name] needs no injected config validator.
+static func _validator_exempt(file_name: String) -> bool:
+	return CONFIG_VALIDATOR_EXEMPT.has(file_name) or is_collection_metadata(file_name)
+
+
+## A config's validator: its own `configs.<name>` entry, else, for the
+## `<id>/unlock` of a collection with no mastery trial, the shared
+## `configs.collection_unlock` entry. A trial collection's unlock encodes its
+## trial and must register its own validator.
+func _config_validator(config_validators: Dictionary, name: String) -> Variant:
+	if config_validators.get(name) is Callable:
+		return config_validators[name]
+	if name.get_file() == "unlock" and not name.get_base_dir().is_empty() and not _collection_has_trial(name.get_base_dir()):
+		return config_validators.get(COLLECTION_UNLOCK_VALIDATOR)
+	return config_validators.get(name)
+
+
+## True when `<collection_id>/collection.json` names a `trial_id`.
+func _collection_has_trial(collection_id: String) -> bool:
+	var metadata: Variant = JSON.parse_string(FileAccess.get_file_as_string(_root + collection_id + "/collection.json"))
+	return metadata is Dictionary and metadata.get("config") is Dictionary and not str(metadata.config.get("trial_id", "")).is_empty()
 
 
 func _warn_unknown_files(report: ValidationReport) -> void:
@@ -438,8 +498,8 @@ func _check_schemas(staged: Array[Dictionary], report: ValidationReport) -> Arra
 				continue
 		elif row.name == "collections.json":
 			_check_collection_registry(item.body.config, report)
-		elif row.name == "law-of-the-jungle/collection.json":
-			if item.body.config.get("id") != "law-of-the-jungle" or not item.body.config.get("card_metadata") is Dictionary:
+		elif is_collection_metadata(row.name):
+			if item.body.config.get("id") != str(row.name).get_base_dir() or not item.body.config.get("card_metadata") is Dictionary:
 				report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, row.name, null, null, "collection metadata requires matching id and card_metadata object")
 		passed.append(item)
 	return passed
@@ -471,7 +531,10 @@ func _check_collection_registry(body: Dictionary, report: ValidationReport) -> v
 		if not RecordSchemas.valid_collection_id(id) or seen.has(id) or raw.get("path") != id or not raw.get("name") is String or not _manifest().any(func(row: Dictionary) -> bool: return row.name == id + "/collection.json"):
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_SCHEMA, "collections.json", id, "collections", "invalid or duplicate collection registry entry")
 		seen[id] = true
-		for name: String in ["cards", "bosses", "bundles", "treasures", "collection", "unlock", "trial"]:
+		var names: Array[String] = ["cards", "bosses", "bundles", "treasures", "collection", "unlock"]
+		if _collection_has_trial(id):
+			names.append("trial")
+		for name: String in names:
 			if not FileAccess.file_exists(_root + id + "/" + name + ".json"):
 				report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_MISSING_FILE, id + "/" + name + ".json", id, null, "registered collection file is missing")
 
@@ -569,7 +632,7 @@ func _check_effect_collections(ctx: Dictionary, value: Variant) -> void:
 
 func _check_collection_metadata(staged: Array[Dictionary], pool: Dictionary, report: ValidationReport) -> void:
 	for item: Dictionary in staged:
-		if item.row.name != "law-of-the-jungle/collection.json":
+		if not is_collection_metadata(item.row.name):
 			continue
 		var body: Dictionary = item.body.config
 		var source: String = str(item.row.name).get_base_dir()
@@ -719,11 +782,11 @@ func _check_registrations(validators: Dictionary, config_validators: Dictionary,
 		else:
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, spec.file, null, key,
 				"no `%s` record validator registered (owner: %s; %s) — %s" % [key, spec.owner, spec.validates, _absent_or(validators.get(key))])
-	for row: Dictionary in FILE_MANIFEST:
-		if row["class"] != "config" or CONFIG_VALIDATOR_EXEMPT.has(row.name) or (not row.required and not FileAccess.file_exists(_root + row.name)):
+	for row: Dictionary in _manifest():
+		if row["class"] != "config" or _validator_exempt(row.name) or (not row.required and not FileAccess.file_exists(_root + row.name)):
 			continue
 		var name: String = String(row.name).get_basename()
-		if not config_validators.get(name) is Callable:
+		if not _config_validator(config_validators, name) is Callable:
 			report.add(ValidationReport.SEVERITY_ERROR, ValidationReport.E_DELEGATED, row.name, null, null,
 				"no config validator registered under configs.%s (owner: %s) — %s" % [name, row.owner, _absent_or(config_validators.get(name))])
 	return present
@@ -740,10 +803,10 @@ func _run_config_validators(config_validators: Dictionary, staged: Array[Diction
 		if row["class"] != "config":
 			continue
 		var name: String = String(row.name).get_basename()
-		if CONFIG_VALIDATOR_EXEMPT.has(row.name):
+		if _validator_exempt(row.name):
 			bodies[name] = item.body.config
 			continue
-		var validator: Variant = config_validators.get(name)
+		var validator: Variant = _config_validator(config_validators, name)
 		if validator is Callable and _merge_delegated(validator.call(item.body.config, db), row.name, null, null, "configs." + name, report):
 			bodies[name] = item.body.config
 	return bodies

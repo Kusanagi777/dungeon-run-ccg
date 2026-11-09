@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "treasure_masq_ballroom_invitation",
+      "name": "Ballroom Invitation",
+      "collection_id": "midnight-masquerade",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "tempo"
+      ],
+      "unlock": null,
+      "effects": [
+        {
+          "trigger": "on_match_start",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_masq_masked_reveler",
+              "count": 1,
+              "position": "end"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "treasure.treasure_masq_ballroom_invitation.text",
+        "en": "Start each match with a Masked Reveler in play."
+      }
+    },
+    {
+      "id": "treasure_masq_hostess_bell",
+      "name": "Hostess's Hand-Bell",
+      "collection_id": "midnight-masquerade",
+      "rarity": "common",
+      "tags": [
+        "universal",
+        "value"
+      ],
+      "unlock": null,
+      "effects": [
+        {
+          "trigger": "turn_start",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "random_friendly_minion",
+                "filter": {
+                  "tag": "masked"
+                }
+              },
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "treasure.treasure_masq_hostess_bell.text",
+        "en": "At the start of your turn, deal 1 damage to a random friendly Masked minion."
+      }
+    },
+    {
+      "id": "treasure_masq_dance_card",
+      "name": "Dance Card",
+      "collection_id": "midnight-masquerade",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "value"
+      ],
+      "unlock": null,
+      "effects": [
+        {
+          "trigger": "turn_start",
+          "scope": {
+            "side": "owner"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "owner.turns_taken"
+              },
+              "==",
+              3
+            ]
+          },
+          "ops": [
+            {
+              "op": "discover",
+              "pool": "collectible"
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "treasure.treasure_masq_dance_card.text",
+        "en": "At the start of your 3rd turn, Discover a card."
+      }
+    },
+    {
+      "id": "treasure_masq_smelling_salts",
+      "name": "Smelling Salts",
+      "collection_id": "midnight-masquerade",
+      "rarity": "rare",
+      "tags": [
+        "universal",
+        "value"
+      ],
+      "unlock": null,
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "heal",
+              "targets": "all_friendly_minions",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "text": {
+        "key": "treasure.treasure_masq_smelling_salts.text",
+        "en": "At the end of your turn, restore 2 Health to your minions."
+      }
+    }
+  ]
+}

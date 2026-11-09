@@ -1,0 +1,2917 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "neutral_masq_reveler_unveiled",
+      "name": "Reveler Unveiled",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_reveler_unveiled.text",
+        "en": ""
+      },
+      "attack": 4,
+      "health": 3,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_masked_reveler",
+      "name": "Masked Reveler",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_reveler_unveiled"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_masked_reveler.text",
+        "en": "Unmask: Becomes a 4/3 Reveler Unveiled."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_trembling_footman",
+      "name": "Trembling Footman",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_trembling_footman.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_borrowed_finery",
+      "name": "Borrowed Finery",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_trembling_footman"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_borrowed_finery.text",
+        "en": "Unmask: Becomes a 1/1 Trembling Footman."
+      },
+      "attack": 3,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_candle_page",
+      "name": "Candle Page",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion"
+                }
+              },
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_candle_page.text",
+        "en": "Battlecry: Deal 1 damage to a minion."
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_tattling_maid",
+      "name": "Tattling Maid",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_tattling_maid.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_gossiping_duchess",
+      "name": "Gossiping Duchess",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_tattling_maid"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_gossiping_duchess.text",
+        "en": "Unmask: Becomes a 2/2 Tattling Maid."
+      },
+      "attack": 4,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_wine_steward",
+      "name": "Wine Steward",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "poisonous"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_wine_steward.text",
+        "en": "Battlecry: Give a friendly minion Poisonous."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_poisoned_chalice",
+      "name": "Poisoned Chalice",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "poisonous"
+            },
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_poisoned_chalice.text",
+        "en": "Give a friendly minion Poisonous. Deal 1 damage to it."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "neutral_masq_duelist_revealed",
+      "name": "Duelist Revealed",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_duelist_revealed.text",
+        "en": "Rush."
+      },
+      "attack": 5,
+      "health": 4,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_masked_duelist",
+      "name": "Masked Duelist",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "rush"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_duelist_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_masked_duelist.text",
+        "en": "Rush. Unmask: Becomes a 5/4 Duelist Revealed with Rush."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_velvet_usher",
+      "name": "Velvet Usher",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_velvet_usher.text",
+        "en": "Taunt. Battlecry: Give a friendly minion Divine Shield."
+      },
+      "attack": 3,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_sommelier_revealed",
+      "name": "Thirsting Sommelier",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_sommelier_revealed.text",
+        "en": "Lifesteal."
+      },
+      "attack": 4,
+      "health": 4,
+      "tribes": [
+        "undead"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_blood_sommelier",
+      "name": "Blood Sommelier",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_sommelier_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_blood_sommelier.text",
+        "en": "Lifesteal. Unmask: Becomes a 4/4 Thirsting Sommelier with Lifesteal."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_curtain_call",
+      "name": "Curtain Call",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "all_minions",
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_curtain_call.text",
+        "en": "Deal 1 damage to all minions."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "neutral_masq_shy_dancer",
+      "name": "Shy Dancer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_shy_dancer.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_mirror_dancer",
+      "name": "Mirror Dancer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_shy_dancer"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_mirror_dancer.text",
+        "en": "Unmask: Becomes a 1/1 Shy Dancer."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_crimson_count_revealed",
+      "name": "Crimson Count",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_crimson_count_revealed.text",
+        "en": "Lifesteal."
+      },
+      "attack": 5,
+      "health": 5,
+      "tribes": [
+        "undead"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_crimson_guest",
+      "name": "Crimson Guest",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_crimson_count_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_crimson_guest.text",
+        "en": "Unmask: Becomes a 5/5 Crimson Count with Lifesteal."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_midnight_bell_ringer",
+      "name": "Midnight Bell-Ringer",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_midnight_bell_ringer.text",
+        "en": "At the end of your turn, deal 1 damage to your other minions."
+      },
+      "attack": 3,
+      "health": 6,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_lady_of_veils",
+      "name": "Lady of Veils",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry",
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "silence",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "not_self": true
+                }
+              }
+            },
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "not_self": true
+                }
+              },
+              "attack": 1,
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_lady_of_veils.text",
+        "en": "Battlecry: Silence another friendly minion and give it +1/+1."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_taster_revealed",
+      "name": "Hired Poisoner",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_taster_revealed.text",
+        "en": "Poisonous."
+      },
+      "attack": 3,
+      "health": 2,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_poison_taster",
+      "name": "Poison Taster",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_taster_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_poison_taster.text",
+        "en": "Unmask: Becomes a 3/2 Hired Poisoner with Poisonous."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_public_unveiling",
+      "name": "Public Unveiling",
+      "set": "neutral",
+      "type": "spell",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "silence",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              }
+            },
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_public_unveiling.text",
+        "en": "Silence an enemy minion, then deal 2 damage to it."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "neutral_masq_jealous_rival",
+      "name": "Jealous Rival",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "not_self": true
+                }
+              },
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_jealous_rival.text",
+        "en": "Battlecry: Deal 1 damage to another friendly minion and draw a card."
+      },
+      "attack": 3,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "neutral_masq_double_revealed",
+      "name": "Unwound Double",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_double_revealed.text",
+        "en": ""
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "construct"
+      ],
+      "token": true
+    },
+    {
+      "id": "neutral_masq_clockwork_double",
+      "name": "Clockwork Double",
+      "set": "neutral",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "neutral_masq_double_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.neutral_masq_clockwork_double.text",
+        "en": "Unmask: Becomes a 2/3 Unwound Double."
+      },
+      "attack": 5,
+      "health": 4,
+      "tribes": [
+        "construct"
+      ]
+    },
+    {
+      "id": "war_masq_gladiator_revealed",
+      "name": "Gladiator Unbound",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "buff",
+              "attack": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_gladiator_revealed.text",
+        "en": "Whenever this takes damage, gain +1 Attack."
+      },
+      "attack": 5,
+      "health": 5,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "war_masq_scarred_gladiator",
+      "name": "Scarred Gladiator",
+      "set": "war",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "war_masq_gladiator_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_scarred_gladiator.text",
+        "en": "Unmask: Becomes a 5/5 that gains +1 Attack whenever it takes damage."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_masq_parry_and_riposte",
+      "name": "Parry and Riposte",
+      "set": "war",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "amount": 1
+            },
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_parry_and_riposte.text",
+        "en": "Deal 1 damage to a friendly minion. Give it +2 Attack."
+      },
+      "schools": [
+        "martial"
+      ]
+    },
+    {
+      "id": "war_masq_baron_revealed",
+      "name": "Bloodied Baron",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_baron_revealed.text",
+        "en": "Lifesteal."
+      },
+      "attack": 6,
+      "health": 5,
+      "tribes": [
+        "undead"
+      ],
+      "token": true
+    },
+    {
+      "id": "war_masq_masked_baron",
+      "name": "Masked Baron",
+      "set": "war",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "war_masq_baron_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_masked_baron.text",
+        "en": "Unmask: Becomes a 6/5 Bloodied Baron with Lifesteal."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_masq_varrus_revealed",
+      "name": "Varrus, Blade Unsheathed",
+      "set": "war",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "common",
+      "keywords": [
+        "windfury"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_varrus_revealed.text",
+        "en": "Windfury."
+      },
+      "attack": 6,
+      "health": 6,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "war_masq_count_varrus",
+      "name": "Count Varrus, the Smiling Blade",
+      "set": "war",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "war_masq_varrus_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_count_varrus.text",
+        "en": "Unmask: Becomes a 6/6 with Windfury."
+      },
+      "attack": 4,
+      "health": 6,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "war_masq_madame_steel",
+      "name": "Madame Steel, the Ringmaster",
+      "set": "war",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt"
+      ],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "all_minions",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "amount": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.war_masq_madame_steel.text",
+        "en": "Taunt. At the end of your turn, deal 1 damage to all other minions."
+      },
+      "attack": 5,
+      "health": 7,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "decay_masq_widow_revealed",
+      "name": "Widow in Black",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "decay_husk",
+              "count": 1,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_widow_revealed.text",
+        "en": "Deathrattle: Summon a 1/1 Husk."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "undead"
+      ],
+      "token": true
+    },
+    {
+      "id": "decay_masq_mourning_widow",
+      "name": "Mourning Widow",
+      "set": "decay",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "decay_masq_widow_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_mourning_widow.text",
+        "en": "Unmask: Becomes a 3/3 with 'Deathrattle: Summon a 1/1 Husk'."
+      },
+      "attack": 1,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "decay_masq_toxic_toast",
+      "name": "Toxic Toast",
+      "set": "decay",
+      "type": "spell",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": "all_friendly_minions",
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_toxic_toast.text",
+        "en": "Deal 1 damage to all friendly minions. Draw a card."
+      },
+      "schools": [
+        "alchemy"
+      ]
+    },
+    {
+      "id": "decay_masq_doctor_revealed",
+      "name": "Plague Doctor Unmasked",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_doctor_revealed.text",
+        "en": "Poisonous."
+      },
+      "attack": 4,
+      "health": 4,
+      "tribes": [
+        "undead"
+      ],
+      "token": true
+    },
+    {
+      "id": "decay_masq_beaked_physician",
+      "name": "Beaked Physician",
+      "set": "decay",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "decay_masq_doctor_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_beaked_physician.text",
+        "en": "Unmask: Becomes a 4/4 with Poisonous."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "decay_masq_lady_ashgrave",
+      "name": "Lady Ashgrave, the Widow Bride",
+      "set": "decay",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly",
+              "not_self": true
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": "self",
+              "attack": {
+                "ref": "target.attack"
+              },
+              "health": {
+                "ref": "target.health"
+              }
+            },
+            {
+              "op": "destroy",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly",
+                  "not_self": true
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_lady_ashgrave.text",
+        "en": "Battlecry: Destroy another friendly minion. Gain its Attack and Health."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "undead"
+      ]
+    },
+    {
+      "id": "decay_masq_the_last_dancer",
+      "name": "The Last Dancer",
+      "set": "decay",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "legendary",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_masq_masked_reveler",
+              "count": 2,
+              "position": "source_slot"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.decay_masq_the_last_dancer.text",
+        "en": "Deathrattle: Summon two Masked Revelers."
+      },
+      "attack": 4,
+      "health": 5,
+      "tribes": [
+        "undead"
+      ]
+    },
+    {
+      "id": "knowledge_masq_hush",
+      "name": "Hush",
+      "set": "knowledge",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion"
+            }
+          },
+          "ops": [
+            {
+              "op": "silence",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion"
+                }
+              }
+            },
+            {
+              "op": "draw",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_hush.text",
+        "en": "Silence a minion. Draw a card."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "knowledge_masq_scholar_revealed",
+      "name": "Bespectacled Scholar",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_scholar_revealed.text",
+        "en": "Spell Damage +1."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ],
+      "token": true,
+      "spell_damage": 1
+    },
+    {
+      "id": "knowledge_masq_frost_masked_scholar",
+      "name": "Frost-Masked Scholar",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "knowledge_masq_scholar_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_frost_masked_scholar.text",
+        "en": "Unmask: Becomes a 2/3 with Spell Damage +1."
+      },
+      "attack": 4,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_masq_mirror_mage",
+      "name": "Mirror Mage",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "battlecry",
+        "freeze"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "enemy"
+            }
+          },
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              },
+              "amount": 2
+            },
+            {
+              "op": "freeze",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "enemy"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_mirror_mage.text",
+        "en": "Battlecry: Deal 2 damage to an enemy minion and Freeze it."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_masq_archivist_of_faces",
+      "name": "The Archivist of Faces",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry",
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "silence",
+              "targets": "all_enemy_minions"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_archivist_of_faces.text",
+        "en": "Battlecry: Silence all enemy minions."
+      },
+      "attack": 4,
+      "health": 6,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "knowledge_masq_velisande_revealed",
+      "name": "Velisande Unveiled",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "spell_damage"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_velisande_revealed.text",
+        "en": "Spell Damage +2."
+      },
+      "attack": 4,
+      "health": 5,
+      "tribes": [
+        "human"
+      ],
+      "token": true,
+      "spell_damage": 2
+    },
+    {
+      "id": "knowledge_masq_velisande",
+      "name": "Velisande, Veiled Sorceress",
+      "set": "knowledge",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "knowledge_masq_velisande_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.knowledge_masq_velisande.text",
+        "en": "Unmask: Becomes a 4/5 with Spell Damage +2."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_masq_gambler_heads",
+      "name": "Lucky Gambler",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_gambler_heads.text",
+        "en": ""
+      },
+      "attack": 5,
+      "health": 4,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "fortune_masq_gambler_tails",
+      "name": "Ruined Gambler",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_gambler_tails.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "fortune_masq_gamblers_mask",
+      "name": "Gambler's Mask",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "conditional",
+              "if": {
+                "flip": 50
+              },
+              "then": [
+                {
+                  "op": "transform",
+                  "card_id": "fortune_masq_gambler_heads"
+                }
+              ],
+              "else": [
+                {
+                  "op": "transform",
+                  "card_id": "fortune_masq_gambler_tails"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_gamblers_mask.text",
+        "en": "Unmask: Flip a coin. Heads: becomes a 5/4. Tails: becomes a 1/1."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_masq_dice_of_the_ball",
+      "name": "Dice of the Ball",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 2,
+              "ops": [
+                {
+                  "op": "damage",
+                  "targets": "random_minion",
+                  "amount": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_dice_of_the_ball.text",
+        "en": "Deal 1 damage to a random minion twice."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "fortune_masq_noble_revealed",
+      "name": "Penniless Noble",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "deathrattle"
+      ],
+      "effects": [
+        {
+          "trigger": "deathrattle",
+          "ops": [
+            {
+              "op": "add_to_hand",
+              "card_id": "fortune_coin",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_noble_revealed.text",
+        "en": "Deathrattle: Add two Coins to your hand."
+      },
+      "attack": 3,
+      "health": 3,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "fortune_masq_gilded_noble",
+      "name": "Gilded Noble",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "fortune_masq_noble_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_gilded_noble.text",
+        "en": "Unmask: Becomes a 3/3 with 'Deathrattle: Add two Coins to your hand'."
+      },
+      "attack": 2,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_masq_fortunata",
+      "name": "Fortunata, the Lucky Debutante",
+      "set": "fortune",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "legendary",
+      "keywords": [
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "damage",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "not_self": true
+                }
+              },
+              "amount": 1
+            },
+            {
+              "op": "draw",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_fortunata.text",
+        "en": "Battlecry: Deal 1 damage to your other minions. Draw 2 cards."
+      },
+      "attack": 3,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "fortune_masq_house_always_wins",
+      "name": "The House Always Wins",
+      "set": "fortune",
+      "type": "spell",
+      "cost": 6,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "repeat",
+              "times": 3,
+              "ops": [
+                {
+                  "op": "conditional",
+                  "if": {
+                    "flip": 50
+                  },
+                  "then": [
+                    {
+                      "op": "damage",
+                      "targets": "random_enemy_minion",
+                      "amount": 3
+                    }
+                  ],
+                  "else": [
+                    {
+                      "op": "damage",
+                      "targets": "all_minions",
+                      "amount": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "grand_reveal"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.fortune_masq_house_always_wins.text",
+        "en": "Three times: Heads, deal 3 damage to a random enemy minion. Tails, deal 1 to all minions."
+      },
+      "schools": [
+        "arcane"
+      ]
+    },
+    {
+      "id": "order_masq_debutante_revealed",
+      "name": "Blushing Debutante",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_debutante_revealed.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 1,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "order_masq_shielded_debutante",
+      "name": "Shielded Debutante",
+      "set": "order",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "divine_shield"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "order_masq_debutante_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_shielded_debutante.text",
+        "en": "Divine Shield. Unmask: Becomes a 1/1 Blushing Debutante."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_masq_guard_the_guests",
+      "name": "Guard the Guests",
+      "set": "order",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "divine_shield"
+            },
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "health": 1
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_guard_the_guests.text",
+        "en": "Give a friendly minion Divine Shield and +1 Health."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "order_masq_hall_steward",
+      "name": "Steward of the Hall",
+      "set": "order",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "rare",
+      "keywords": [
+        "taunt",
+        "battlecry"
+      ],
+      "effects": [
+        {
+          "trigger": "battlecry",
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "all_friendly_minions",
+                "filter": {
+                  "tag": "masked"
+                }
+              },
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_hall_steward.text",
+        "en": "Taunt. Battlecry: Give your Masked minions Divine Shield."
+      },
+      "attack": 3,
+      "health": 4,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_masq_aurel_revealed",
+      "name": "Aurel, Tarnished",
+      "set": "order",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "common",
+      "keywords": [
+        "lifesteal"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_aurel_revealed.text",
+        "en": "Lifesteal."
+      },
+      "attack": 2,
+      "health": 4,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "order_masq_sir_aurel",
+      "name": "Sir Aurel, the Gilded Mask",
+      "set": "order",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "legendary",
+      "keywords": [
+        "taunt",
+        "divine_shield"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "order_masq_aurel_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_sir_aurel.text",
+        "en": "Taunt. Divine Shield. Unmask: Becomes a 2/4 with Lifesteal."
+      },
+      "attack": 4,
+      "health": 5,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "order_masq_grand_procession",
+      "name": "Grand Procession",
+      "set": "order",
+      "type": "spell",
+      "cost": 5,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "ops": [
+            {
+              "op": "summon",
+              "card_id": "neutral_masq_borrowed_finery",
+              "count": 2,
+              "position": "end"
+            },
+            {
+              "op": "give_keyword",
+              "targets": "all_friendly_minions",
+              "keyword": "divine_shield"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.order_masq_grand_procession.text",
+        "en": "Summon two Borrowed Finery and give your minions Divine Shield."
+      },
+      "schools": [
+        "holy"
+      ]
+    },
+    {
+      "id": "shadow_masq_cutpurse_revealed",
+      "name": "Caught Cutpurse",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_cutpurse_revealed.text",
+        "en": ""
+      },
+      "attack": 1,
+      "health": 2,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "shadow_masq_veiled_cutpurse",
+      "name": "Veiled Cutpurse",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 2,
+      "rarity": "common",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "shadow_masq_cutpurse_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_veiled_cutpurse.text",
+        "en": "Stealth. Unmask: Becomes a 1/2 Caught Cutpurse."
+      },
+      "attack": 2,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_masq_venom_kiss",
+      "name": "Venom Kiss",
+      "set": "shadow",
+      "type": "spell",
+      "cost": 1,
+      "rarity": "common",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "cast",
+          "targets": {
+            "selector": "chosen",
+            "filter": {
+              "kind": "minion",
+              "side": "friendly"
+            }
+          },
+          "ops": [
+            {
+              "op": "buff",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "attack": 1
+            },
+            {
+              "op": "give_keyword",
+              "targets": {
+                "selector": "chosen",
+                "filter": {
+                  "kind": "minion",
+                  "side": "friendly"
+                }
+              },
+              "keyword": "poisonous"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_venom_kiss.text",
+        "en": "Give a friendly minion +1 Attack and Poisonous."
+      },
+      "schools": [
+        "shadow"
+      ]
+    },
+    {
+      "id": "shadow_masq_assassin_revealed",
+      "name": "Assassin Revealed",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "common",
+      "keywords": [
+        "poisonous"
+      ],
+      "effects": [],
+      "tags": [
+        "unmasked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_assassin_revealed.text",
+        "en": "Poisonous."
+      },
+      "attack": 2,
+      "health": 1,
+      "tribes": [
+        "human"
+      ],
+      "token": true
+    },
+    {
+      "id": "shadow_masq_masked_assassin",
+      "name": "Masked Assassin",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 3,
+      "rarity": "rare",
+      "keywords": [
+        "stealth"
+      ],
+      "effects": [
+        {
+          "trigger": "on_damage_taken",
+          "scope": {
+            "who": "self"
+          },
+          "condition": {
+            "cmp": [
+              {
+                "ref": "trigger_subject.health"
+              },
+              ">",
+              0
+            ]
+          },
+          "targets": "self",
+          "ops": [
+            {
+              "op": "transform",
+              "card_id": "shadow_masq_assassin_revealed"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask",
+        "masked"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_masked_assassin.text",
+        "en": "Stealth. Unmask: Becomes a 2/1 with Poisonous."
+      },
+      "attack": 3,
+      "health": 2,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_masq_the_faceless",
+      "name": "The Faceless",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 4,
+      "rarity": "legendary",
+      "keywords": [
+        "stealth",
+        "silence"
+      ],
+      "effects": [
+        {
+          "trigger": "on_attack",
+          "scope": {
+            "attacker": "self"
+          },
+          "ops": [
+            {
+              "op": "silence",
+              "targets": "trigger_subject"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_the_faceless.text",
+        "en": "Stealth. Whenever this attacks, Silence the defender."
+      },
+      "attack": 4,
+      "health": 3,
+      "tribes": [
+        "human"
+      ]
+    },
+    {
+      "id": "shadow_masq_nightshade_hostess",
+      "name": "The Nightshade Hostess",
+      "set": "shadow",
+      "type": "minion",
+      "cost": 5,
+      "rarity": "legendary",
+      "keywords": [],
+      "effects": [
+        {
+          "trigger": "turn_end",
+          "scope": {
+            "side": "owner"
+          },
+          "ops": [
+            {
+              "op": "give_keyword",
+              "targets": "random_friendly_minion",
+              "keyword": "poisonous"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "keep_the_mask"
+      ],
+      "collection_id": "midnight-masquerade",
+      "text": {
+        "key": "card.shadow_masq_nightshade_hostess.text",
+        "en": "At the end of your turn, give a random friendly minion Poisonous."
+      },
+      "attack": 3,
+      "health": 6,
+      "tribes": [
+        "undead"
+      ]
+    }
+  ]
+}

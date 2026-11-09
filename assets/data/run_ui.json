@@ -88,7 +88,10 @@
     },
     "sfx": {
       "root": "res://assets/audio/sfx/",
-      "extensions": ["ogg", "wav"],
+      "extensions": [
+        "ogg",
+        "wav"
+      ],
       "voices": 6,
       "bus": "SFX",
       "music_bus": "Music",
@@ -138,7 +141,20 @@
         "hero_sting_hero_fortune": "hero_sting_hero_knowledge",
         "hero_sting_hero_order": "hero_sting_hero_war",
         "hero_sting_hero_shadow": "hero_sting_hero_decay",
-        "music.match_ambient": "match_ambient"
+        "music.match_ambient": "match_ambient",
+        "sfx.ui.deck_add": "ui_deck_add",
+        "sfx.ui.discard": "ui_discard",
+        "sfx.ui.fizzle": "ui_fizzle",
+        "sfx.ui.power_chime": "ui_power_chime",
+        "sfx.ui.return": "ui_return",
+        "sfx.ui.spell_cast": "ui_spell_cast",
+        "sfx.ui.status": "ui_status",
+        "sfx.ui.summon": "ui_summon",
+        "sfx.ui.summon_failed": "ui_summon_failed",
+        "sfx.ui.transform": "ui_transform",
+        "sfx.ui.weapon_break": "ui_weapon_break",
+        "sfx.ui.weapon_equip": "ui_weapon_equip",
+        "music.run_ambient": "run_ambient"
       }
     },
     "reading_panel": {

@@ -43,6 +43,13 @@ func bind(view_state: MatchViewState) -> void:
 	_view = view_state
 
 
+## A board-full ghost belongs to its side's row, which no entity id names.
+func claims(step: AnimStep) -> bool:
+	if step.kind == AnimStep.SUMMON_FAILED:
+		return str(step.data.get("side", "")) == String(side)
+	return super(step)
+
+
 func owns(entity_ids: Array[int]) -> bool:
 	for id: int in entity_ids:
 		if _tokens.has(id) or _leaving.has(id) or not _view_token(id).is_empty():
@@ -56,6 +63,28 @@ func on_step_started(step: AnimStep, d_eff: float) -> void:
 			for pop: AnimStep in (step.members if not step.members.is_empty() else [step] as Array[AnimStep]):
 				if not pop.entity_ids.is_empty() and _tokens.has(pop.entity_ids[0]):
 					spawn_pop(step, pop, center_of(pop.entity_ids[0]) - global_position, d_eff)
+					if pop.kind == AnimStep.DAMAGE_POP:
+						shake(step, _tokens[pop.entity_ids[0]], "offset_transform_position", Vector2.ZERO)
+		AnimStep.TRANSFORM:
+			_morph(step, d_eff)
+		AnimStep.RETURN:
+			for id: int in step.entity_ids:
+				_lift_away(step, id, d_eff)
+		AnimStep.BADGE:
+			for id: int in step.entity_ids:
+				_pop_status(step, id, d_eff)
+		AnimStep.STAT_RECOLOUR:
+			for id: int in step.entity_ids:
+				if _tokens.has(id):
+					step_tween(step).tween_property(_tokens[id], "stat_pulse", 1.0, d_eff).from(0.0)
+		AnimStep.SUMMON_FAILED:
+			_ghost(step, d_eff)
+		AnimStep.FIZZLE:
+			for id: int in step.entity_ids:
+				if _tokens.has(id):
+					spawn_label(step, tr("hud.fizzle"), ui.color("text_muted"), center_of(id) - global_position, d_eff)
+		AnimStep.RIM_GLOW:
+			_refresh_armed()
 		AnimStep.SUMMON:
 			present(step.data.get("display", {}))
 			for id: int in step.entity_ids:
@@ -80,6 +109,8 @@ func apply_final(step: AnimStep) -> void:
 	for id: int in step.entity_ids:
 		if _tokens.has(id):
 			_rest(_tokens[id])
+	if step.kind == AnimStep.RIM_GLOW:
+		_refresh_armed()
 	if step.kind == AnimStep.GAP_CLOSE:
 		for id: int in step.entity_ids:
 			_free_leaving(id)
@@ -109,6 +140,7 @@ func present(state: Dictionary) -> void:
 	for id: Variant in _tokens.keys():
 		if not ids.has(id):
 			_leave(int(id))
+	_refresh_armed()
 	if order != _order:
 		_order = order
 		for i: int in _order.size():
@@ -268,6 +300,7 @@ func _add_token(id: int) -> void:
 	var token: MinionToken = TOKEN_SCENE.instantiate()
 	_row.add_child(token)
 	token.configure(ui)
+	token.set_player_side(side == SIDE_PLAYER)
 	_tokens[id] = token
 
 
@@ -275,6 +308,7 @@ func _leave(id: int) -> void:
 	var token: MinionToken = _tokens[id]
 	_tokens.erase(id)
 	_order.erase(id)
+	token.stop_shimmer()
 	token.modulate.a = 0.0
 	_leaving[id] = token
 
@@ -289,6 +323,91 @@ func _rest(token: MinionToken) -> void:
 	token.offset_transform_position = Vector2.ZERO
 	token.offset_transform_scale = Vector2.ONE
 	token.burst = 0.0
+	token.status_pop = 0.0
+	token.stat_pulse = 0.0
+	token.morph = 0.0
+
+
+# The armed rim glow from the view's `armed_sources` (I12: `trigger_queued` until
+# `trigger_resolved`).
+func _refresh_armed() -> void:
+	if _view == null:
+		return
+	for id: Variant in _tokens:
+		(_tokens[id] as MinionToken).set_armed(_view.armed_sources.has(int(id)))
+
+
+# `badge`: the token shows the new state at once; gained badges swell in and flash
+# their status colour, lost ones shrink out (match-rules "soft status cue").
+func _pop_status(step: AnimStep, id: int, d_eff: float) -> void:
+	if not _tokens.has(id):
+		return
+	var token: MinionToken = _tokens[id]
+	var entry: Dictionary = _view_token(id)
+	if not entry.is_empty():
+		token.show_token(entry, ui.card_face(str(entry.card_id)))
+	token.pop_badges(step.data.get("added", []), step.data.get("removed", []))
+	step_tween(step).tween_property(token, "status_pop", 1.0, d_eff).from(0.0)
+
+
+# `transform` (Unmask): the slot's token stays, squashes to a sliver while it
+# flashes light, takes the new minion's face at the midpoint and opens again. Under
+# `reduce_motion` the flash alone plays.
+func _morph(step: AnimStep, d_eff: float) -> void:
+	var old_id: int = int(step.data.get("old_entity_id", -1))
+	var new_id: int = step.entity_ids[0] if not step.entity_ids.is_empty() else -1
+	if not _tokens.has(old_id):
+		return
+	var token: MinionToken = _tokens[old_id]
+	_tokens.erase(old_id)
+	_tokens[new_id] = token
+	var at: int = _order.find(old_id)
+	if at >= 0:
+		_order[at] = new_id
+	var entry: Dictionary = _view_token(new_id)
+	var swap: Callable = func() -> void:
+		if not entry.is_empty() and is_instance_valid(token):
+			token.show_token(entry, ui.card_face(str(entry.card_id)))
+	var tween: Tween = step_tween(step)
+	tween.tween_property(token, "morph", 0.5, d_eff / 2.0).from(0.0)
+	if not ui.reduce_motion:
+		tween.parallel().tween_property(token, "offset_transform_scale", Vector2(0.1, 1.0), d_eff / 2.0)
+	tween.tween_callback(swap)
+	tween.tween_property(token, "morph", 1.0, d_eff / 2.0)
+	if not ui.reduce_motion:
+		tween.parallel().tween_property(token, "offset_transform_scale", Vector2.ONE, d_eff / 2.0)
+
+
+# `return`: the token lifts toward its owner's hand (down for the player, up for the
+# boss) and fades; the row closes once the view no longer holds it.
+func _lift_away(step: AnimStep, id: int, d_eff: float) -> void:
+	if not _tokens.has(id):
+		return
+	var token: MinionToken = _tokens[id]
+	token.stop_shimmer()
+	var reach: float = float(ui.fx("return_px", 70)) * (1.0 if side == SIDE_PLAYER else -1.0)
+	var lift: Tween = step_tween(step).set_parallel()
+	if not ui.reduce_motion:
+		lift.tween_property(token, "offset_transform_position", Vector2(0, reach), d_eff)
+	lift.tween_property(token, "modulate:a", 0.0, d_eff)
+
+
+# `summon_failed`: a ghost of the card at the end of the full row, fading (match-rules
+# "board full" ghost).
+func _ghost(step: AnimStep, d_eff: float) -> void:
+	var card_id: String = str(step.data.get("card_id", ""))
+	var face: Dictionary = ui.card_face(card_id)
+	var ghost: MinionToken = TOKEN_SCENE.instantiate()
+	add_child(ghost)
+	ghost.configure(ui)
+	if not face.is_empty():
+		var attack: int = int(face.get("attack", 0)) if face.get("attack") != null else 0
+		var health: int = int(face.get("health", 0)) if face.get("health") != null else 0
+		ghost.show_token({"entity_id": 0, "card_id": card_id, "attack": attack, "health": health, "max_health": health, "keywords": []}, face)
+	ghost.position = Vector2(size.x - float(ui.config.board.token_w), 0)
+	ghost.modulate.a = float(ui.fx("ghost_alpha", 0.5))
+	keep_for_step(step, ghost)
+	step_tween(step).tween_property(ghost, "modulate:a", 0.0, d_eff)
 
 
 func _grow_in(step: AnimStep, id: int, d_eff: float) -> void:

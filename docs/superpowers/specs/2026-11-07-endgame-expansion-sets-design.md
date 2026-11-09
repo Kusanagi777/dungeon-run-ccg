@@ -10,6 +10,10 @@ initial proposals and still need review against the updated expansion skill.
 Law of the Jungle is now implemented; its dedicated design and iteration log
 record the final card pool, progression, and validation.
 
+The Midnight Masquerade (2026-11-08) is an additional collection outside these
+seven proposals, with an early unlock and no mastery trial. See
+[its design](../../../design/expansions/midnight-masquerade.md).
+
 This proposal treats the seven requested themes as expansion collections for the six existing classes. Each collection adds its own setting, mechanic, three complete archetypes, bosses, and mastery trial. Card ownership still belongs to a class or Neutral. The proposed `collection_id` records the expansion a card belongs to.
 
 The numerical values and sample card text below are starting designs for playtesting. This document defines the content and progression contract. It does not register the collections in the running game.

@@ -14,7 +14,7 @@
 ## `tests/unit/card_database/card_database_load_budget_test.gd` and
 ## `tests/integration/card_database/card_database_shipped_budget_test.gd`.
 ## GDD: design/gdd/card-database.md Formulas "Validation cost and load
-## budget"; ADR-0002 Performance Implications (expected < 50 ms, budget 200).
+## budget"; ADR-0002 Performance Implications (expected < 50 ms, budget 500).
 ## Control manifest Foundation guardrail: data load ≤ `data_load_budget_ms`,
 ## frozen snapshot ≤ `data_memory_budget_mb`.
 ##

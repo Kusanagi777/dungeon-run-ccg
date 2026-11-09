@@ -283,7 +283,7 @@ func test_a_validator_returning_a_non_array_is_e_delegated() -> void:
 
 func test_card_database_json_needs_no_validator() -> void:
 	assert_bool(ValidatorStubs.accept_all().configs.has("card_database")).is_false()
-	assert_int(ValidatorStubs.config_names().size()).is_equal(14)
+	assert_int(ValidatorStubs.config_names().size()).is_equal(15)
 	assert_array(DataLoader.CONFIG_VALIDATOR_EXEMPT).is_equal(["card_database.json", "collections.json", "law-of-the-jungle/collection.json"])
 
 

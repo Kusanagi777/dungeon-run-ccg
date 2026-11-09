@@ -66,6 +66,8 @@ const HOST_KIND_TREASURE: String = "treasure"
 
 const _KEYWORD_DIVINE_SHIELD: String = "divine_shield"
 const _KEYWORD_STEALTH: String = "stealth"
+const _STATE_FROZEN: String = "frozen"
+const _STATE_SILENCED: String = "silenced"
 ## `auras_recomputed` hand entries' `zone` (match-rules C15, DD-X26).
 const _ZONE_HAND: String = "hand"
 ## `auras_recomputed` hero-power entries' `zone` (match-rules C15, DD-X29).
@@ -383,7 +385,9 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			steps.append(flash)
 		"card_added_to_deck":
 			_raw(p).deck[int(p.get("instance_id", 0))] = true
-			steps.append(_step(AnimStep.DECK_TICK, [int(p.get("instance_id", 0))], group, seq))
+			var tick: AnimStep = _step(AnimStep.DECK_TICK, [int(p.get("instance_id", 0))], group, seq)
+			tick.data = {"side": str(p.get("side", ""))}
+			steps.append(tick)
 		"fatigue_damage":
 			_raw(p).fatigue_next = int(p.get("counter", 0)) + 1
 			steps.append(_step(AnimStep.FATIGUE_LABEL, _hero_ids(_raw(p)), group, seq))
@@ -392,10 +396,17 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			var id: int = int(p.get("instance_id", 0))
 			if _remove_from_hand(_raw(p), id):
 				steps.append(_step(AnimStep.PLAY_CARD, [id], group, seq))
+			if type == "spell_cast":
+				# The resolving spell, face up at the centre with its Spell Damage total.
+				var cast: AnimStep = _parallel(_step(AnimStep.SPELL_CAST, [], group, seq))
+				cast.data = {"side": str(p.get("side", "")), "card_id": str(p.get("card_id", ""))}
+				steps.append(cast)
 		"card_discarded":
 			var id: int = int(p.get("instance_id", 0))
 			_remove_from_hand(_raw(p), id)
-			steps.append(_step(AnimStep.DISCARD, [id], group, seq))
+			var thrown: AnimStep = _step(AnimStep.DISCARD, [id], group, seq)
+			thrown.data = {"side": str(p.get("side", ""))}
+			steps.append(thrown)
 		"minion_summoned":
 			var board: Array = _raw(p).board
 			var id: int = _entity_id_of(p)
@@ -409,14 +420,20 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			steps.append(_step(AnimStep.SUMMON, [id], group, seq))
 		"summon_failed":
 			var ghost: AnimStep = _step(AnimStep.SUMMON_FAILED, [], group, seq)
-			ghost.data = {"side": str(p.get("side", ""))}
+			ghost.data = {"side": str(p.get("side", "")), "card_id": str(p.get("card_id", ""))}
 			steps.append(ghost)
+		"minion_transformed":
+			_apply_transform(p, group, seq, steps)
+		"minion_returned":
+			_apply_return(p, group, seq, steps)
 		"weapon_equipped":
 			_raw(p).hero.weapon = {
 				"entity_id": int(p.get("entity_id", 0)), "card_id": str(p.get("card_id", "")),
 				"attack": int(p.get("attack", 0)), "durability": int(p.get("durability", 0)),
 			}
-			steps.append(_step(AnimStep.WEAPON_UPDATE, [int(p.get("entity_id", 0))], group, seq))
+			var equip: AnimStep = _step(AnimStep.WEAPON_UPDATE, [int(p.get("entity_id", 0))], group, seq)
+			equip.data = {"equipped": true}
+			steps.append(equip)
 		"weapon_durability_changed":
 			var weapon: Variant = _raw(p).hero.weapon
 			if weapon != null:
@@ -453,7 +470,9 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 			_mark_contact(target, heavy)
 			if not (dealt == 0 and int(p.get("prevented", 0)) > 0):
 				var pop: AnimStep = _step(AnimStep.DAMAGE_POP, [target], group, seq)
-				pop.data = {"amount": dealt, "source": _copy(p.get("source"))}
+				# `attack`: combat damage, the only damage that sounds an impact.
+				var in_combat: bool = _attack_step != null and _attack_step.entity_ids.has(target)
+				pop.data = {"amount": dealt, "source": _copy(p.get("source")), "attack": in_combat}
 				pop.impact = _pop_impact(heavy, _is_hero(target) and int(p.get("health_after", 1)) <= 0)
 				steps.append(pop)
 		"divine_shield_popped":
@@ -472,8 +491,9 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 				pop.data = {"amount": amount, "source": _copy(p.get("source"))}
 				steps.append(pop)
 		"armor_gained":
+			# Armour is not health: its own shield pill, never the heal colour (hud.md Portrait).
 			_raw(p).hero.armor = int(p.get("armor", 0))
-			var pop: AnimStep = _step(AnimStep.HEAL_POP, _hero_ids(_raw(p)), group, seq)
+			var pop: AnimStep = _step(AnimStep.ARMOR_POP, _hero_ids(_raw(p)), group, seq)
 			pop.data = {"amount": int(p.get("amount", 0)), "source": null}
 			steps.append(pop)
 		"armor_lost":
@@ -485,13 +505,27 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 		"minion_modified":
 			var token: Dictionary = _character(_entity_id_of(p))
 			if token.has("max_health"):
+				var before: int = int(token.attack) + int(token.max_health)
 				for field: String in ["attack", "health", "max_health"]:
 					if p.has(field):
 						token[field] = int(p[field])
-				steps.append(_parallel(_step(AnimStep.STAT_RECOLOUR, [int(token.entity_id)], group, seq)))
+				var after: int = int(token.attack) + int(token.max_health)
+				steps.append(_stat_step(int(token.entity_id), after >= before, group, seq))
 		"silenced", "frozen", "thawed", "stealth_lost", "keyword_removed":
 			var id: int = _entity_id_of(p)
 			var flagged: Dictionary = _character(id)
+			var status: Dictionary = {"added": [], "removed": []}
+			match type:
+				"silenced":
+					status.added = [_STATE_SILENCED]
+				"frozen":
+					status.added = [_STATE_FROZEN]
+				"thawed":
+					status.removed = [_STATE_FROZEN]
+				"stealth_lost":
+					status.removed = [_KEYWORD_STEALTH]
+				"keyword_removed":
+					status.removed = [str(p.get("keyword", ""))]
 			match type:
 				"silenced":
 					if flagged.has("silenced"):
@@ -505,7 +539,9 @@ func _project(type: String, seq: int, group: int, cause: int, p: Dictionary, ste
 				"keyword_removed":
 					if flagged.has("keywords"):
 						(flagged.keywords as Array).erase(str(p.get("keyword", "")))
-			steps.append(_parallel(_step(AnimStep.BADGE, [id], group, seq)))
+			var badge: AnimStep = _parallel(_step(AnimStep.BADGE, [id], group, seq))
+			badge.data = status
+			steps.append(badge)
 		"auras_recomputed":
 			for change: Variant in p.get("changes", []):
 				_apply_aura_change(change, group, seq, steps)
@@ -596,8 +632,13 @@ func _apply_enchantment(applied: bool, p: Dictionary, group: int, seq: int, step
 				keywords.erase(str(keyword))
 	elif target.health != null:
 		target.health = int(target.health) + direction * health_delta
-	var kind: StringName = AnimStep.STAT_RECOLOUR if attack_delta != 0 or health_delta != 0 else AnimStep.BADGE
-	steps.append(_parallel(_step(kind, [int(target.entity_id)], group, seq)))
+	if attack_delta != 0 or health_delta != 0:
+		steps.append(_stat_step(int(target.entity_id), (attack_delta + health_delta >= 0) == applied, group, seq))
+	else:
+		var badge: AnimStep = _parallel(_step(AnimStep.BADGE, [int(target.entity_id)], group, seq))
+		var names: Array = (p.get("keywords_added", []) as Array).duplicate()
+		badge.data = {"added": names if applied else [], "removed": [] if applied else names}
+		steps.append(badge)
 
 
 ## Impact Moments: the lunge in flight freezes on contact, 60 ms, or 90 ms when a hero
@@ -670,17 +711,27 @@ func _apply_aura_change(change: Dictionary, group: int, seq: int, steps: Array[A
 			kind = AnimStep.BADGE
 		weapon.attack = int(change.get("attack", 0))
 		weapon["keywords"] = (change.get("keywords", []) as Array).duplicate()
-	elif target.has("max_health"):
+	var up: bool = true
+	var status: Dictionary = {"added": [], "removed": []}
+	if target.has("max_health") and weapon.is_empty():
 		var stats_same: bool = true
+		var before: int = int(target.attack) + int(target.max_health)
 		for field: String in ["attack", "health", "max_health"]:
 			stats_same = stats_same and int(target[field]) == int(change.get(field, 0))
 			target[field] = int(change.get(field, 0))
+		up = int(target.attack) + int(target.max_health) >= before
 		if stats_same:
 			kind = AnimStep.BADGE
-		target.keywords = (change.get("keywords", []) as Array).duplicate()
-	else:
+		var old_keywords: Array = target.keywords
+		var new_keywords: Array = (change.get("keywords", []) as Array).duplicate()
+		status.added = new_keywords.filter(func(k: Variant) -> bool: return not old_keywords.has(k))
+		status.removed = old_keywords.filter(func(k: Variant) -> bool: return not new_keywords.has(k))
+		target.keywords = new_keywords
+	elif weapon.is_empty():
 		target.health = int(change.get("health", 0))
-	steps.append(_parallel(_step(kind, [id], group, seq)))
+	var step: AnimStep = _parallel(_step(kind, [id], group, seq))
+	step.data = status if kind == AnimStep.BADGE else {"up": up}
+	steps.append(step)
 
 
 ## U3 `silenced` (match-rules C13; code review 2026-11-04, MR-015 S1): Silence
@@ -704,6 +755,76 @@ func _apply_silence(token: Dictionary, p: Dictionary) -> void:
 		keywords.erase(str(keyword))
 	var new_max: int = int(token.max_health)
 	token.health = new_max - maxi(0, damage - maxi(0, old_max - new_max))
+
+
+## A stat change on [param id]: the numerals pulse; [param up] tells a buff from a debuff.
+func _stat_step(id: int, up: bool, group: int, seq: int) -> AnimStep:
+	var step: AnimStep = _parallel(_step(AnimStep.STAT_RECOLOUR, [id], group, seq))
+	step.data = {"up": up}
+	return step
+
+
+## `minion_transformed` (card-effects `transform`, Unmask): the token in the old
+## minion's slot becomes the new minion, a fresh entity with its printed stats and
+## keywords and no frozen, silenced or damaged state (the engine's `transform`);
+## `attacks_used` carries over. One `transform` step on the new id carries the old
+## id, so the presenter keeps the slot's token and morphs it.
+func _apply_transform(p: Dictionary, group: int, seq: int, steps: Array[AnimStep]) -> void:
+	var raw: Dictionary = _raw(p)
+	if raw.is_empty():
+		return
+	var old_id: int = int(p.get("old_entity_id", 0))
+	var new_id: int = _entity_id_of(p)
+	var board: Array = raw.board
+	var index: int = int(p.get("position", board.size()))
+	var attacks_used: int = 0
+	for i: int in board.size():
+		if int(board[i].entity_id) == old_id:
+			index = i
+			attacks_used = int(board[i].get("attacks_used", 0))
+			board.remove_at(i)
+			break
+	var health: int = int(p.get("health", 0))
+	board.insert(clampi(index, 0, board.size()), {
+		"entity_id": new_id, "card_id": str(p.get("to_card_id", "")),
+		"attack": int(p.get("attack", 0)), "health": health, "max_health": health,
+		"keywords": (p.get("keywords", []) as Array).duplicate(), "frozen": false, "silenced": false,
+		"attacks_used": attacks_used,
+	})
+	armed_sources.erase(old_id)
+	var morph: AnimStep = _step(AnimStep.TRANSFORM, [new_id], group, seq)
+	morph.data = {"old_entity_id": old_id, "from_card_id": str(p.get("from_card_id", ""))}
+	steps.append(morph)
+
+
+## `minion_returned` (card-effects `return_to_hand`; the engine sends this one event,
+## never `card_added_to_hand`): the token leaves the board and, unless the hand was
+## full (`burned`), a card of the minion joins its owner's hand. The player's card
+## shows its id; the boss's stays hidden (U10).
+func _apply_return(p: Dictionary, group: int, seq: int, steps: Array[AnimStep]) -> void:
+	var raw: Dictionary = _raw(p)
+	if raw.is_empty():
+		return
+	var entity: int = _entity_id_of(p)
+	var side_name: String = str(p.get("side", ""))
+	_remove_token(raw, entity)
+	armed_sources.erase(entity)
+	var leave: AnimStep = _step(AnimStep.RETURN, [entity], group, seq)
+	leave.data = {"side": side_name}
+	steps.append(leave)
+	var instance: int = int(p.get("instance_id", 0))
+	if p.get("burned", false) == true:
+		var flash: AnimStep = _step(AnimStep.BURN, [instance], group, seq)
+		flash.data = {"side": side_name, "card_id": str(p.get("card_id", ""))}
+		steps.append(flash)
+		return
+	var card: Dictionary = {"instance_id": instance}
+	if side_name == SIDE_PLAYER:
+		card["card_id"] = str(p.get("card_id", ""))
+	(raw.hand as Array).append(card)
+	var draw: AnimStep = _step(AnimStep.DRAW, [instance], group, seq)
+	draw.data = {"returned_from": entity}
+	steps.append(draw)
 
 
 ## U3.3: a run of consecutive `minion_died` sharing a `cause_seq` is one

@@ -97,6 +97,7 @@ var _intent: IntentBanner = null
 var _dropped_card: int = -1
 var _display_settings: MatchDisplay = null
 var _reading: ReadingPanel = null
+var _fx: FxPresenter = null
 var _sfx_player: SfxPlayer = null
 var _sfx_config: Dictionary = {}
 var _reject: RejectPresenter = null
@@ -453,7 +454,11 @@ func _build_extra_presenters() -> Array[Presenter]:
 	_focus = FocusPresenter.new()
 	_focus.name = "Focus"
 	add_child(_focus)
-	return [_reject, _tray, _focus]
+	# The particle layer: claimed after the zones that draw a step, so it sits on top.
+	_fx = FxPresenter.new()
+	_fx.name = "Fx"
+	add_child(_fx)
+	return [_reject, _tray, _focus, _fx]
 
 
 ## The top bar and End Turn: the zones no presenter owns (hud.md §3.2).
@@ -539,6 +544,8 @@ func _on_menu_requested() -> void:
 ## `overlay_open` and `overlay_close`, at this view's speed.
 func _sync_menu_motion() -> void:
 	var seconds: Array[float] = [0.0, 0.0]
+	if _fx != null:
+		_fx.speed_scale = float((_config.speed_div as Dictionary).get(String(_speed), 1.0))
 	if _speed != SPEED_INSTANT:
 		var divisor: float = float((_config.speed_div as Dictionary).get(String(_speed), 1.0))
 		seconds = [float(_config.d_base.overlay_open) / divisor, float(_config.d_base.overlay_close) / divisor]
@@ -698,6 +705,7 @@ func _start() -> void:
 	_loading = false
 	_queue.advance(0.0)
 	_queue.set_speed(_speed)
+	_sync_menu_motion()
 	_controller.subscribe(_on_event)
 	if _queue.is_idle():
 		_present(_display())
@@ -780,8 +788,11 @@ func _raise_step_sound(step: AnimStep) -> void:
 		sfx.play(StringName(str(cue)))
 	match step.kind:
 		AnimStep.DAMAGE_POP:
-			var heavy: bool = int(step.data.get("amount", 0)) >= int(_config.sfx_heavy_damage)
-			sfx.play(SfxStub.CUE_IMPACT_HEAVY if heavy else SfxStub.CUE_IMPACT_LIGHT)
+			# The impact is combat's (match-ui Attack lunge row); spell and fatigue damage
+			# sound `damage` alone.
+			if bool(step.data.get("attack", false)):
+				var heavy: bool = int(step.data.get("amount", 0)) >= int(_config.sfx_heavy_damage)
+				sfx.play(SfxStub.CUE_IMPACT_HEAVY if heavy else SfxStub.CUE_IMPACT_LIGHT)
 		AnimStep.INTENT_COMMIT:
 			var intent: Variant = (step.data.get("display", {}) as Dictionary).get("intent")
 			if intent is Dictionary and (intent as Dictionary).get("kept", true) == false:

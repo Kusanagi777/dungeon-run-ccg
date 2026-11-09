@@ -138,9 +138,16 @@ func end_step(step: AnimStep) -> void:
 func spawn_pop(step: AnimStep, pop: AnimStep, centre: Vector2, d_eff: float) -> void:
 	var damage: bool = pop.kind == AnimStep.DAMAGE_POP
 	var text: String = ("−%d" if damage else "+%d") % int(pop.data.get("amount", 0))
+	spawn_label(step, text, ui.color("state_danger" if damage else "state_buff"), centre, d_eff)
+
+
+## The one floating-text treatment every pop shares (damage, heal, armour, fizzle):
+## [param text] in [param color] on an `ink` pill, rising from [param centre] (this
+## presenter's coordinates), or fading in place under `reduce_motion`.
+func spawn_label(step: AnimStep, text: String, color: Color, centre: Vector2, d_eff: float) -> void:
 	var number: NumberPop = NUMBER_POP_SCENE.instantiate()
 	add_child(number)
-	number.show_number(text, ui.color("state_danger" if damage else "state_buff"), ui.color("ink"), int(ui.config.pop.font_px), centre)
+	number.show_number(text, color, ui.color("ink"), int(ui.config.pop.font_px), centre)
 	keep_for_step(step, number)
 	var held_s: float = d_eff + float(step.live_impact.get("slow_ms", 0.0)) / MS_PER_S
 	if ui.reduce_motion:
@@ -153,3 +160,16 @@ func spawn_pop(step: AnimStep, pop: AnimStep, centre: Vector2, d_eff: float) -> 
 ## The contact hold of a lunge of [param d_eff] seconds, its hit-stop included.
 func lunge_hold_s(step: AnimStep, d_eff: float) -> float:
 	return d_eff * float(ui.config.board.lunge_hold) + float(step.live_impact.get("hit_stop_ms", 0.0)) / MS_PER_S
+
+
+## The 2-frame shake of a hit card or portrait (art bible §4 damaged backup): [param
+## node]'s offset jumps by `fx.shake_px` and back. Nothing under `reduce_motion`.
+func shake(step: AnimStep, node: Control, property: String, home: Vector2) -> void:
+	if ui.reduce_motion:
+		return
+	var px: float = float(ui.fx("shake_px", 3))
+	var frame_s: float = 1.0 / 60.0
+	var jolt: Tween = step_tween(step)
+	jolt.tween_property(node, property, home + Vector2(px, 0), frame_s)
+	jolt.tween_property(node, property, home - Vector2(px, 0), frame_s)
+	jolt.tween_property(node, property, home, frame_s)

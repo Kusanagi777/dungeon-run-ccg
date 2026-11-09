@@ -600,7 +600,8 @@ story 006) is the event of `return_to_hand` (bounce): the minion leaves the boar
 hand, or is burned when the hand is full (`burned: true`, no separate `card_burned`). It does not emit
 `card_added_to_hand`, so add-to-hand observers do not fire on a bounce.
 `minion_transformed {side, entity_id, from_card_id, to_card_id}` (added 2026-11-03) is the event of
-`transform`.
+`transform`. It also carries `old_entity_id` and `position`, and since 2026-11-08 the new minion's
+`attack`, `health` and `keywords`, as `minion_summoned` does, so the Match UI can redraw the slot.
 `silenced {entity_id, removed_enchantments, removed_keywords}` is the Silence event (C13)
 (2026-11-04, sprint 4: MR-015).
 `match_started {floor, hero_id, boss_id, player_deck_size, boss_deck_size, starting_health}` reports

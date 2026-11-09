@@ -9,6 +9,10 @@
 class_name ReadingPanel
 extends PanelContainer
 
+## The localization key of a badge's name ("Taunt", "Masked", …).
+const BADGE_NAME_KEY: String = "badge.%s"
+const ICON_PX: float = 16.0
+const ICON_GAP_PX: float = 4.0
 const CORNER_PX: int = 4
 const PADDING_PX: int = 8
 const Z_INDEX: int = 280
@@ -20,6 +24,8 @@ var _scale: float = 1.0
 var _name: Label = null
 var _rules: Label = null
 var _keywords: Label = null
+# The badge icons above the keyword names, the same icons the token and card show.
+var _icons: HBoxContainer = null
 var _left: float = 0.0
 
 
@@ -51,6 +57,10 @@ func configure(context: MatchUiContext) -> void:
 	column.add_child(band)
 	_name = _line("text_light")
 	band.add_child(_name)
+	_icons = HBoxContainer.new()
+	_icons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_icons.add_theme_constant_override("separation", int(ICON_GAP_PX))
+	column.add_child(_icons)
 	_keywords = _line("text_ink")
 	column.add_child(_keywords)
 	_rules = _line("text_ink")
@@ -75,13 +85,18 @@ func show_face(face: Dictionary, preview: Rect2) -> void:
 		return
 	_name.text = tr(str(face.get("name_key", "")))
 	_rules.text = CardFrame.rules_text(face)
-	var glyphs: PackedStringArray = []
-	for keyword: Variant in face.get("keywords", []):
-		glyphs.append(_ui.glyph(str(keyword)))
-	_keywords.text = " ".join(glyphs)
+	var names: Array = (face.get("keywords", []) as Array).duplicate()
+	if bool(face.get("masked", false)):
+		names.append(MinionToken.FLAG_MASKED)
+	var badges: Array[Dictionary] = _ui.badges(names, false)
+	_show_badges(badges)
+	var words: PackedStringArray = []
+	for badge: Dictionary in badges:
+		words.append(tr(BADGE_NAME_KEY % str(badge.name)))
+	_keywords.text = ", ".join(words)
 	var taxonomy: String = CardFrame.taxonomy_text(face)
 	if not taxonomy.is_empty():
-		_keywords.text = taxonomy + ("  " + _keywords.text if not glyphs.is_empty() else "")
+		_keywords.text = taxonomy + ("  " + _keywords.text if not words.is_empty() else "")
 	_keywords.visible = not _keywords.text.is_empty()
 	_rules.visible = _rules.text != ""
 	if not _rules.visible and not _keywords.visible:
@@ -124,3 +139,33 @@ func _line(token: String) -> Label:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_color_override(&"font_color", _ui.color(token))
 	return label
+
+
+# One ink square per badge: its icon, or its letter when the icon is missing.
+func _show_badges(badges: Array[Dictionary]) -> void:
+	for child: Node in _icons.get_children():
+		child.queue_free()
+	_icons.visible = not badges.is_empty()
+	for badge: Dictionary in badges:
+		var cell := PanelContainer.new()
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var ink := StyleBoxFlat.new()
+		ink.bg_color = _ui.color("ink")
+		ink.set_content_margin_all(1.0)
+		cell.add_theme_stylebox_override("panel", ink)
+		if badge.texture != null:
+			var icon := TextureRect.new()
+			icon.texture = badge.texture
+			icon.modulate = _ui.color("text_light")
+			icon.custom_minimum_size = Vector2.ONE * ICON_PX * _scale
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cell.add_child(icon)
+		else:
+			var letter := Label.new()
+			letter.text = str(badge.letter)
+			letter.add_theme_color_override("font_color", _ui.color("text_light"))
+			letter.add_theme_font_size_override("font_size", int(ICON_PX * _scale * 0.8))
+			cell.add_child(letter)
+		_icons.add_child(cell)

@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "boss_masq_hostess",
+      "name": "Madame Veil, Hostess of the Ball",
+      "collection_id": "midnight-masquerade",
+      "band": 1,
+      "health": 30,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_end",
+        "scope": {
+          "side": "owner"
+        },
+        "ops": [
+          {
+            "op": "damage",
+            "targets": {
+              "selector": "random_friendly_minion",
+              "filter": {
+                "tag": "masked"
+              }
+            },
+            "amount": 1
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_masq_hostess.passive",
+        "en": "At the end of the boss's turn, deal 1 damage to one of its Masked minions."
+      },
+      "deck": [
+        "neutral_masq_masked_reveler",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_masked_duelist",
+        "neutral_masq_masked_duelist",
+        "neutral_masq_masked_duelist",
+        "neutral_masq_blood_sommelier",
+        "neutral_masq_blood_sommelier",
+        "neutral_masq_blood_sommelier",
+        "neutral_masq_crimson_guest",
+        "neutral_masq_crimson_guest",
+        "neutral_masq_poison_taster",
+        "neutral_masq_poison_taster",
+        "neutral_masq_poison_taster",
+        "neutral_masq_candle_page",
+        "neutral_masq_candle_page",
+        "neutral_masq_candle_page",
+        "neutral_masq_candle_page",
+        "neutral_masq_curtain_call",
+        "neutral_masq_curtain_call",
+        "neutral_masq_curtain_call",
+        "neutral_masq_jealous_rival",
+        "neutral_masq_jealous_rival",
+        "neutral_masq_poisoned_chalice",
+        "neutral_masq_poisoned_chalice",
+        "neutral_masq_wine_steward",
+        "neutral_masq_wine_steward",
+        "neutral_masq_velvet_usher",
+        "neutral_masq_velvet_usher"
+      ],
+      "ai_profile": "tempo",
+      "tags": [
+        "masquerade",
+        "grand_reveal"
+      ],
+      "intro_text": {
+        "key": "boss.boss_masq_hostess.intro",
+        "en": "Madame Veil unmasks her own guests at the end of each turn. Kill a mask before it reveals."
+      }
+    },
+    {
+      "id": "boss_masq_faceless_count",
+      "name": "The Faceless Count",
+      "collection_id": "midnight-masquerade",
+      "band": 2,
+      "health": 40,
+      "hero_power": null,
+      "passive": {
+        "trigger": "turn_start",
+        "scope": {
+          "side": "owner"
+        },
+        "ops": [
+          {
+            "op": "give_keyword",
+            "targets": {
+              "selector": "random_friendly_minion",
+              "filter": {
+                "tag": "masked",
+                "lacks_keyword": [
+                  "divine_shield"
+                ]
+              }
+            },
+            "keyword": "divine_shield"
+          }
+        ]
+      },
+      "passive_text": {
+        "key": "boss.boss_masq_faceless_count.passive",
+        "en": "At the start of the boss's turn, give one of its unshielded Masked minions Divine Shield."
+      },
+      "deck": [
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_mirror_dancer",
+        "neutral_masq_mirror_dancer",
+        "neutral_masq_mirror_dancer",
+        "neutral_masq_clockwork_double",
+        "neutral_masq_clockwork_double",
+        "neutral_masq_clockwork_double",
+        "neutral_masq_velvet_usher",
+        "neutral_masq_velvet_usher",
+        "neutral_masq_velvet_usher",
+        "neutral_masq_wine_steward",
+        "neutral_masq_wine_steward",
+        "neutral_masq_wine_steward",
+        "neutral_masq_lady_of_veils",
+        "neutral_masq_lady_of_veils",
+        "neutral_masq_public_unveiling",
+        "neutral_masq_public_unveiling",
+        "neutral_masq_midnight_bell_ringer",
+        "neutral_masq_midnight_bell_ringer",
+        "neutral_masq_poison_taster",
+        "neutral_masq_poison_taster",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_masked_reveler"
+      ],
+      "ai_profile": "tempo",
+      "tags": [
+        "masquerade",
+        "keep_the_mask"
+      ],
+      "intro_text": {
+        "key": "boss.boss_masq_faceless_count.intro",
+        "en": "The Count's guests are stronger in costume. Pop the shield, then strike to reveal what lies beneath."
+      }
+    }
+  ]
+}

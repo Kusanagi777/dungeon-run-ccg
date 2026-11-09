@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "config": {
+    "key": "collection_midnight_masquerade",
+    "condition": {
+      "type": "all_of",
+      "of": [
+        {
+          "type": "runs_won",
+          "n": 3
+        },
+        {
+          "type": "boss_defeated",
+          "boss_id": "boss_mirror_sage",
+          "n": 1
+        }
+      ]
+    }
+  }
+}

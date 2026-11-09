@@ -1,0 +1,617 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "id": "bundle_war_masq_1",
+      "name": "Grand Reveal 1",
+      "set": "war",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "war_masq_scarred_gladiator",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_candle_page"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_masq_1.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_war_masq_2",
+      "name": "Grand Reveal 2",
+      "set": "war",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "war_masq_parry_and_riposte",
+        "neutral_masq_poisoned_chalice",
+        "neutral_masq_masked_duelist"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_masq_2.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_war_masq_3",
+      "name": "Grand Reveal 3",
+      "set": "war",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "war_masq_masked_baron",
+        "neutral_masq_blood_sommelier",
+        "neutral_masq_curtain_call"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_masq_3.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_war_masq_4",
+      "name": "Grand Reveal 4",
+      "set": "war",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "war_masq_count_varrus",
+        "neutral_masq_crimson_guest",
+        "neutral_masq_midnight_bell_ringer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_masq_4.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_war_masq_5",
+      "name": "Grand Reveal 5",
+      "set": "war",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "war_masq_madame_steel",
+        "neutral_masq_poison_taster",
+        "neutral_masq_jealous_rival"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_masq_5.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_war_masq_6",
+      "name": "Grand Reveal 6",
+      "set": "war",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "war_masq_scarred_gladiator",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_candle_page"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_war_masq_6.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_decay_masq_1",
+      "name": "Grand Reveal 1",
+      "set": "decay",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "decay_masq_mourning_widow",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_candle_page"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_masq_1.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_decay_masq_2",
+      "name": "Grand Reveal 2",
+      "set": "decay",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "decay_masq_toxic_toast",
+        "neutral_masq_poisoned_chalice",
+        "neutral_masq_masked_duelist"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_masq_2.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_decay_masq_3",
+      "name": "Grand Reveal 3",
+      "set": "decay",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "decay_masq_beaked_physician",
+        "neutral_masq_blood_sommelier",
+        "neutral_masq_curtain_call"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_masq_3.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_decay_masq_4",
+      "name": "Grand Reveal 4",
+      "set": "decay",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "decay_masq_lady_ashgrave",
+        "neutral_masq_crimson_guest",
+        "neutral_masq_midnight_bell_ringer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_masq_4.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_decay_masq_5",
+      "name": "Grand Reveal 5",
+      "set": "decay",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "decay_masq_the_last_dancer",
+        "neutral_masq_poison_taster",
+        "neutral_masq_jealous_rival"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_masq_5.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_decay_masq_6",
+      "name": "Grand Reveal 6",
+      "set": "decay",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "decay_masq_mourning_widow",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_candle_page"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_decay_masq_6.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_knowledge_masq_1",
+      "name": "Keep the Mask 1",
+      "set": "knowledge",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "knowledge_masq_hush",
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_gossiping_duchess"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_masq_1.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_knowledge_masq_2",
+      "name": "Keep the Mask 2",
+      "set": "knowledge",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "knowledge_masq_frost_masked_scholar",
+        "neutral_masq_wine_steward",
+        "neutral_masq_velvet_usher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_masq_2.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_knowledge_masq_3",
+      "name": "Keep the Mask 3",
+      "set": "knowledge",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "knowledge_masq_mirror_mage",
+        "neutral_masq_curtain_call",
+        "neutral_masq_mirror_dancer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_masq_3.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_knowledge_masq_4",
+      "name": "Keep the Mask 4",
+      "set": "knowledge",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "knowledge_masq_archivist_of_faces",
+        "neutral_masq_lady_of_veils",
+        "neutral_masq_public_unveiling"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_masq_4.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_knowledge_masq_5",
+      "name": "Keep the Mask 5",
+      "set": "knowledge",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "knowledge_masq_velisande",
+        "neutral_masq_clockwork_double",
+        "neutral_masq_borrowed_finery"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_masq_5.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_knowledge_masq_6",
+      "name": "Keep the Mask 6",
+      "set": "knowledge",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "knowledge_masq_hush",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_wine_steward"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_knowledge_masq_6.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_fortune_masq_1",
+      "name": "Grand Reveal 1",
+      "set": "fortune",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "fortune_masq_gamblers_mask",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_candle_page"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_masq_1.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_fortune_masq_2",
+      "name": "Grand Reveal 2",
+      "set": "fortune",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "fortune_masq_dice_of_the_ball",
+        "neutral_masq_poisoned_chalice",
+        "neutral_masq_masked_duelist"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_masq_2.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_fortune_masq_3",
+      "name": "Grand Reveal 3",
+      "set": "fortune",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "fortune_masq_gilded_noble",
+        "neutral_masq_blood_sommelier",
+        "neutral_masq_curtain_call"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_masq_3.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_fortune_masq_4",
+      "name": "Grand Reveal 4",
+      "set": "fortune",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "fortune_masq_fortunata",
+        "neutral_masq_crimson_guest",
+        "neutral_masq_midnight_bell_ringer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_masq_4.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_fortune_masq_5",
+      "name": "Grand Reveal 5",
+      "set": "fortune",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "fortune_masq_house_always_wins",
+        "neutral_masq_poison_taster",
+        "neutral_masq_jealous_rival"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_masq_5.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_fortune_masq_6",
+      "name": "Grand Reveal 6",
+      "set": "fortune",
+      "collection_id": "midnight-masquerade",
+      "theme": "grand_reveal",
+      "cards": [
+        "fortune_masq_gamblers_mask",
+        "neutral_masq_masked_reveler",
+        "neutral_masq_candle_page"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_fortune_masq_6.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_order_masq_1",
+      "name": "Keep the Mask 1",
+      "set": "order",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "order_masq_shielded_debutante",
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_gossiping_duchess"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_masq_1.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_order_masq_2",
+      "name": "Keep the Mask 2",
+      "set": "order",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "order_masq_guard_the_guests",
+        "neutral_masq_wine_steward",
+        "neutral_masq_velvet_usher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_masq_2.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_order_masq_3",
+      "name": "Keep the Mask 3",
+      "set": "order",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "order_masq_hall_steward",
+        "neutral_masq_curtain_call",
+        "neutral_masq_mirror_dancer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_masq_3.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_order_masq_4",
+      "name": "Keep the Mask 4",
+      "set": "order",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "order_masq_sir_aurel",
+        "neutral_masq_lady_of_veils",
+        "neutral_masq_public_unveiling"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_masq_4.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_order_masq_5",
+      "name": "Keep the Mask 5",
+      "set": "order",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "order_masq_grand_procession",
+        "neutral_masq_clockwork_double",
+        "neutral_masq_borrowed_finery"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_masq_5.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_order_masq_6",
+      "name": "Keep the Mask 6",
+      "set": "order",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "order_masq_shielded_debutante",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_wine_steward"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_order_masq_6.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_shadow_masq_1",
+      "name": "Keep the Mask 1",
+      "set": "shadow",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "shadow_masq_veiled_cutpurse",
+        "neutral_masq_borrowed_finery",
+        "neutral_masq_gossiping_duchess"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_masq_1.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_shadow_masq_2",
+      "name": "Keep the Mask 2",
+      "set": "shadow",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "shadow_masq_venom_kiss",
+        "neutral_masq_wine_steward",
+        "neutral_masq_velvet_usher"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_masq_2.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_shadow_masq_3",
+      "name": "Keep the Mask 3",
+      "set": "shadow",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "shadow_masq_masked_assassin",
+        "neutral_masq_curtain_call",
+        "neutral_masq_mirror_dancer"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_masq_3.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_shadow_masq_4",
+      "name": "Keep the Mask 4",
+      "set": "shadow",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "shadow_masq_the_faceless",
+        "neutral_masq_lady_of_veils",
+        "neutral_masq_public_unveiling"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_masq_4.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_shadow_masq_5",
+      "name": "Keep the Mask 5",
+      "set": "shadow",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "shadow_masq_nightshade_hostess",
+        "neutral_masq_clockwork_double",
+        "neutral_masq_borrowed_finery"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_masq_5.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    },
+    {
+      "id": "bundle_shadow_masq_6",
+      "name": "Keep the Mask 6",
+      "set": "shadow",
+      "collection_id": "midnight-masquerade",
+      "theme": "keep_the_mask",
+      "cards": [
+        "shadow_masq_veiled_cutpurse",
+        "neutral_masq_gossiping_duchess",
+        "neutral_masq_wine_steward"
+      ],
+      "unlock": null,
+      "text": {
+        "key": "bundle.bundle_shadow_masq_6.text",
+        "en": "Masks, guests, and a plan for the night."
+      }
+    }
+  ]
+}

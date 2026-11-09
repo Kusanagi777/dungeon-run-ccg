@@ -45,6 +45,8 @@ static func config_names() -> Array[String]:
 	for row: Dictionary in DataLoader.FILE_MANIFEST:
 		if row["class"] == "config" and not DataLoader.CONFIG_VALIDATOR_EXEMPT.has(row.name):
 			names.append(String(row.name).get_basename())
+	# The shared validator for trial-less collections' `<id>/unlock` configs.
+	names.append(DataLoader.COLLECTION_UNLOCK_VALIDATOR)
 	return names
 
 

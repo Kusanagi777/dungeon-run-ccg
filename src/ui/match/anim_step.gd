@@ -54,6 +54,16 @@ const FIZZLE: StringName = &"fizzle"
 const BOSS_DISCOVERS: StringName = &"boss_discovers"
 ## A treasure's hook resolved: its tray chip flares (`data.host_id`).
 const TREASURE_FLARE: StringName = &"treasure_flare"
+## `minion_transformed` (Unmask): the slot's token morphs into the new minion
+## (`data.old_entity_id`, `data.from_card_id`).
+const TRANSFORM: StringName = &"transform"
+## `minion_returned`: the token lifts toward its owner's hand and leaves the row.
+const RETURN: StringName = &"return"
+## `armor_gained`: a shield-glyph pill, distinct from a heal (`data.amount`).
+const ARMOR_POP: StringName = &"armor_pop"
+## `spell_cast`: the spell face up at the centre with its Spell Damage total
+## (`data.side`, `data.card_id`).
+const SPELL_CAST: StringName = &"spell_cast"
 
 ## What the step shows (one of the kind constants above).
 var kind: StringName

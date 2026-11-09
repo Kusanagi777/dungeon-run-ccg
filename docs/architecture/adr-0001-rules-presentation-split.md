@@ -405,7 +405,7 @@ TD-002, TD-004, TD-007, TD-008, TD-009, TD-011 are retired by ADR-0002/0003/0005
 - **Memory**: Lower than the node alternative — `MatchState.clone()` copies
   Dictionaries/Arrays, not Nodes (boss-ai up to 4,000 lethal nodes per turn).
 - **Load Time**: `Boot.boot()` is the synchronous data load; it must fit
-  `data_load_budget_ms` 200 (card-database Formulas) and is measured by the
+  `data_load_budget_ms` 500 (card-database Formulas) and is measured by the
   performance test, not changed by this ADR.
 - **Network**: N/A (single-player, anti-pillar).
 

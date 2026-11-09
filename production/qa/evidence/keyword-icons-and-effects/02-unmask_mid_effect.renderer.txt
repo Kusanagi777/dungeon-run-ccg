@@ -1,0 +1,5 @@
+os: MINGW64_NT-10.0-26100 3.6.6-1cdd4371.x86_64
+renderer: windows / default (Forward+) / NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU
+godot arguments: <repo>/tools/bin/godot --path <repo> --windowed --resolution 1280x720 --write-movie <tmp>/f.png --quit-after 8 res://src/ui/match/match_view.tscn -- --fixture=unmask_both_ways --pause-at=177
+engine renderer lines:
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 4080 Laptop GPU

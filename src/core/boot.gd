@@ -49,6 +49,9 @@ const PENDING_RECORD_OWNERS: PackedStringArray = []
 ## start); true from then on, whatever the load's outcome. Read-only: it is
 ## derived from the stored result, and a write is logged and ignored.
 ## Example: `if not Boot.booted: Boot.boot()`.
+## How long quitting waits for the audio thread to free stopped playbacks.
+const AUDIO_DRAIN_MS: int = 150
+
 var booted: bool = false:
 	get:
 		return _result != null
@@ -79,8 +82,14 @@ func _notification(what: int) -> void:
 
 
 ## The clean-exit hook when the tree goes first (ADR-0004 Decision 6).
+## Boot is an autoload, so this runs only when the game quits. Every `SfxPlayer`
+## still in the tree is halted first (the scene may outlive Boot), and the audio thread
+## frees a stopped playback only on its next mix: waiting [constant AUDIO_DRAIN_MS]
+## here lets it, so no stream is left "still in use at exit" (TD-013's check).
 func _exit_tree() -> void:
 	_release_profile()
+	get_tree().call_group(SfxPlayer.GROUP, &"halt")
+	OS.delay_msec(AUDIO_DRAIN_MS)
 
 
 ## Runs initialisation steps 2-4 once (architecture.md §Data Flow 5) and
@@ -326,6 +335,7 @@ func _collect_validators(meta: MetaApi, debug_build: bool = OS.is_debug_build())
 	configs["run_ui"] = RunUiConfig.validate_config
 	configs["law-of-the-jungle/trial"] = MasteryTrial.validate_config
 	configs["law-of-the-jungle/unlock"] = MasteryTrial.validate_unlock_config
+	configs[DataLoader.COLLECTION_UNLOCK_VALIDATOR] = UnlockEvaluator.validate_collection_unlock_config
 	configs["profile_defaults"] = ProfileDefaults.validate_config
 	configs["run_structure"] = RunMachine.validate_config
 	configs["reward_draft"] = RewardDraft.validate_config.bind(debug_build)

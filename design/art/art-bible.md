@@ -350,8 +350,9 @@ numbers), the typography table and 12 px minimum, light-text-on-dark / ink-on-pa
 - State-colour reservations hold in the HUD exactly as on cards: saturated colour only for
   danger, buff, target, freeze and actionable; the hero primary never acts as a "primary button"
   colour.
-- Iconography style and UI animation feel are undecided; v1 uses letter glyphs and instant state
-  changes.
+- Iconography and UI animation are decided (2026-11-08): every keyword and state has a game-icons
+  silhouette with a unique letter fallback, and every match event has one visual and one sound.
+  The table is `design/ux/keyword-and-effect-grammar.md`.
 
 ## 8. Asset Standards
 

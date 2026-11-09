@@ -300,6 +300,13 @@ static func _holders(db: Variant, key: String) -> int:
 	return count
 
 
+## The shared validator for a collection's `<id>/unlock` config without a
+## validator of its own: `{key, condition}` checked as a collection unlock.
+static func validate_collection_unlock_config(body: Dictionary, db: Variant) -> Array:
+	return validate_defs([{"host_kind": "collection", "host_id": str(body.get("key", "")), "unlock": body}], db,
+		{"max_condition_depth": 8, "max_condition_n": 100000, "max_condition_fan_out": 16})
+
+
 static func _collections(db: Variant) -> Array:
 	var records: Array = []
 	if not db.has_method("collections"):

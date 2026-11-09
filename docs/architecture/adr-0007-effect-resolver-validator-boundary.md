@@ -438,7 +438,7 @@ static func derive_targeting_spec(effects: Array) -> Dictionary            # the
 - **Memory**: `EffectRuntime` is a few Dictionaries per `MatchState`; the per-def
   memo is bounded by the card pool (~120 + tokens).
 - **Load Time**: `validate_effects` over ~900 O(1) checks fits
-  `data_load_budget_ms` 200 (card-database Formulas); F6 is linear in ops.
+  `data_load_budget_ms` 500 (card-database Formulas); F6 is linear in ops.
 - **Network**: N/A.
 
 ## Migration Plan

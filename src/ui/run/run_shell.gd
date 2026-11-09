@@ -36,7 +36,8 @@ const SFX_PICK: StringName = &"ui_pick"
 const SFX_UNLOCK: StringName = &"ui_unlock"
 const SFX_OVERLAY: StringName = &"sfx.ui.overlay"
 const SFX_BOSS_INTRO: String = "boss_intro_%d"
-const MUSIC_AMBIENT: StringName = &"music.match_ambient"
+## The run shell's own loop (menus, map, draft); the match view plays `music.match_ambient`.
+const MUSIC_AMBIENT: StringName = &"music.run_ambient"
 const BUS_VOLUME: Dictionary = {"volume_master": "Master", "volume_music": "Music", "volume_sfx": "SFX"}
 const SETTING_KEYS: Array[StringName] = [
 	&"anim_speed", &"reduce_motion", &"text_scale", &"high_contrast_states", &"gamma", &"fullscreen",

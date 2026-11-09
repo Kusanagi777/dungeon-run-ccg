@@ -1190,7 +1190,7 @@ narrate the chain afterwards, the pacing failed.
 |---|---|---|---|
 | `resolve()` for one effect pass (engine only) | 2 | < 1 frame | Worst case a 16-target op with value expressions |
 | `legal_targets()` / `targeting_spec()` | 1 | < 1 frame | Called per hover by the UI and per card by Boss AI |
-| `validate_effects()` for all v1 content | 50 total | — (load time) | Inside card-database's 200 ms `data_load_budget_ms` |
+| `validate_effects()` for all v1 content | 50 total | — (load time) | Inside card-database's 500 ms `data_load_budget_ms` |
 | Command accepted → source "armed" glow | 50 | 3 frames | Matches match-rules' first-visual-event budget |
 
 ### Animation Feel Targets

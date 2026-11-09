@@ -668,6 +668,7 @@ func test_transform_replaces_the_minion_in_place_with_a_new_entity() -> void:
 	assert_dict(event.payload).is_equal({
 		"side": SIDE_BOSS, "entity_id": id, "from_card_id": "", "to_card_id": DEF_SHEEP,
 		"old_entity_id": int(victim.entity_id), "position": 1,
+		"attack": SHEEP_STATS, "health": SHEEP_STATS, "keywords": [],
 	})
 	assert_int(int(sheep.entity_id)).is_equal(id)
 	assert_bool(id != int(victim.entity_id)).is_true()

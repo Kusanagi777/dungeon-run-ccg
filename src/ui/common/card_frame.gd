@@ -58,7 +58,7 @@ var _attack_text: Label = null
 var _health_text: Label = null
 var _badges: Label = null
 var _stamp: Dictionary = {}
-var _keyword_icons: Array[Texture2D] = []
+var _badge_row: Array[Dictionary] = []
 var _zoom: float = 1.0
 # Label -> [font px, size] at zoom 1.
 var _base: Dictionary = {}
@@ -138,14 +138,13 @@ func show_card(face: Dictionary, effective_cost: int) -> void:
 		_attack_text.text = str(int(face.attack)) if face.get("attack") != null else ""
 		var durability: Variant = face.get("durability", face.get("health"))
 		_health_text.text = str(int(durability)) if durability != null else ""
-	var names: PackedStringArray = []
-	var glyphs: PackedStringArray = []
-	for keyword: Variant in face.get("keywords", []):
-		names.append(str(keyword))
-		glyphs.append(_ui.glyph(str(keyword)))
-	_keyword_icons = _ui.art().glyph_row(names)
-	_badges.visible = _keyword_icons.is_empty()
-	_badges.text = " ".join(glyphs)
+	var names: Array = (face.get("keywords", []) as Array).duplicate()
+	if bool(face.get("masked", false)):
+		names.append(MinionToken.FLAG_MASKED)
+	_badge_row = _ui.badges(names, false)
+	# The row's text form: never drawn (the icons are), kept for readers and tests.
+	_badges.visible = false
+	_badges.text = BadgeRow.letters(_badge_row)
 	_refresh_colors()
 	queue_redraw()
 
@@ -265,17 +264,8 @@ func _draw_stat_glyph(glyph_name: String, centre: Vector2) -> void:
 
 
 func _draw_keyword_icons() -> void:
-	var count: int = _keyword_icons.size()
-	if count == 0:
-		return
-	var side: float = 12.0
-	var gap: float = 2.0
-	var total: float = side * count + gap * float(count - 1)
-	var origin: Vector2 = Vector2(ART_RECT.end.x - total, ART_RECT.end.y - side)
-	draw_rect(Rect2(origin - Vector2(2.0, 1.0), Vector2(total + 4.0, side + 2.0)), _dim(_ui.color("ink")))
-	for i: int in count:
-		var slot: Rect2 = Rect2(origin + Vector2((side + gap) * i, 0.0), Vector2(side, side))
-		draw_texture_rect(_keyword_icons[i], slot, false, _dim(_ui.color("text_light")))
+	var dim: Color = _dim(Color.WHITE)
+	BadgeRow.draw(self, _badge_row, ART_RECT, BadgeRow.ALIGN_RIGHT, _ui, {}, dim)
 
 
 func _refresh_colors() -> void:

@@ -12,6 +12,9 @@ const CARD_FRAME_SCENE: PackedScene = preload("res://src/ui/common/card_frame.ts
 const HOVER_Z: int = 100
 const DRAG_Z: int = 200
 ## How far a travelling card shrinks: a deck pile and a board token are both smaller.
+const TYPE_SPELL: String = "spell"
+## A discarded card tips this far as it drops.
+const DISCARD_TILT_DEG: float = 12.0
 const TRAVEL_SCALE: float = 0.6
 
 var _view: MatchViewState = null
@@ -30,6 +33,8 @@ var _parked: bool = false
 var _hover_tween: Tween = null
 # Cards a step is moving: present leaves them where the tween has them.
 var _travelling: Dictionary = {}
+# instance_id → card_id, for the card's type when it is played.
+var _card_ids: Dictionary = {}
 var _playable: Dictionary = {}
 var _mana: int = 0
 var _idle: bool = false
@@ -55,6 +60,11 @@ func bind(view_state: MatchViewState) -> void:
 	_view = view_state
 
 
+## A cast spell is claimed by kind: the boss's has no card in this hand.
+func claims(step: AnimStep) -> bool:
+	return step.kind == AnimStep.SPELL_CAST or super(step)
+
+
 func owns(entity_ids: Array[int]) -> bool:
 	for id: int in entity_ids:
 		if _cards.has(id) or _in_view_hand(id):
@@ -67,10 +77,15 @@ func on_step_started(step: AnimStep, d_eff: float) -> void:
 		AnimStep.DRAW:
 			present(step.data.get("display", {}))
 			for id: int in step.entity_ids:
-				_travel_in(step, id, d_eff)
+				_travel_in(step, id, d_eff, step.data.has("returned_from"))
 		AnimStep.PLAY_CARD:
 			for id: int in step.entity_ids:
 				_travel_out(step, id, d_eff)
+		AnimStep.DISCARD:
+			for id: int in step.entity_ids:
+				_drop_away(step, id, d_eff)
+		AnimStep.SPELL_CAST:
+			_show_cast(step, d_eff)
 
 
 func apply_final(step: AnimStep) -> void:
@@ -332,26 +347,29 @@ func _add_card(id: int, card_id: String, cost: int) -> void:
 	frame.pivot_offset = Vector2(float(_cfg.card_w) / 2.0, float(_cfg.card_h))
 	frame.show_card(ui.card_face(card_id), cost)
 	_cards[id] = frame
+	_card_ids[id] = card_id
 
 
 func _remove_card(id: int) -> void:
 	(_cards[id] as CardFrame).queue_free()
 	_cards.erase(id)
+	_card_ids.erase(id)
 	_slots.erase(id)
 	_travelling.erase(id)
 	if _hovered == id:
 		_hovered = -1
 
 
-## `draw`: the card slides from the deck pile into its slot.
-func _travel_in(step: AnimStep, id: int, d_eff: float) -> void:
+## `draw`: the card slides from the deck pile into its slot; a card returned from the
+## board ([param from_board]) slides down from the player's row instead.
+func _travel_in(step: AnimStep, id: int, d_eff: float, from_board: bool = false) -> void:
 	if not _cards.has(id) or not _slots.has(id):
 		return
 	_travelling[id] = true
 	var card_frame: CardFrame = _cards[id]
-	var deck: Rect2 = ui.rect("player_deck")
+	var origin: Rect2 = ui.rect("player_row") if from_board else ui.rect("player_deck")
 	var slot: Dictionary = _slots[id]
-	card_frame.position = deck.position
+	card_frame.position = origin.get_center() - Vector2(float(_cfg.card_w), float(_cfg.card_h)) / 2.0 if from_board else origin.position
 	card_frame.rotation_degrees = 0.0
 	card_frame.scale = Vector2.ONE * TRAVEL_SCALE
 	var slide: Tween = step_tween(step).set_parallel()
@@ -366,11 +384,60 @@ func _travel_out(step: AnimStep, id: int, d_eff: float) -> void:
 		return
 	_travelling[id] = true
 	var card_frame: CardFrame = _cards[id]
-	var target: Vector2 = ui.rect("player_row").get_center() - Vector2(float(_cfg.card_w), float(_cfg.card_h)) / 2.0
+	var spell: bool = str(ui.card_face(str(_card_ids.get(id, ""))).get("type", "")) == TYPE_SPELL
+	# match-rules: a minion travels to its row, a spell to the centre "resolving" spot.
+	var zone: Rect2 = ui.rect("cast_zone" if spell else "player_row")
+	var target: Vector2 = zone.get_center() - Vector2(float(_cfg.card_w), float(_cfg.card_h)) / 2.0
 	var slide: Tween = step_tween(step).set_parallel()
 	slide.tween_property(card_frame, "position", target, d_eff)
 	slide.tween_property(card_frame, "rotation_degrees", 0.0, d_eff)
-	slide.tween_property(card_frame, "scale", Vector2.ONE * TRAVEL_SCALE, d_eff)
+	slide.tween_property(card_frame, "scale", Vector2.ONE * (1.0 if spell else TRAVEL_SCALE), d_eff)
+
+
+## `discard`: the player's card drops below the hand and fades.
+func _drop_away(step: AnimStep, id: int, d_eff: float) -> void:
+	if not _cards.has(id):
+		return
+	_travelling[id] = true
+	var card_frame: CardFrame = _cards[id]
+	var drop: Tween = step_tween(step).set_parallel()
+	if not ui.reduce_motion:
+		drop.tween_property(card_frame, "position:y", card_frame.position.y + float(_cfg.card_h) / 2.0, d_eff)
+		drop.tween_property(card_frame, "rotation_degrees", card_frame.rotation_degrees + DISCARD_TILT_DEG, d_eff)
+	drop.tween_property(card_frame, "modulate:a", 0.0, d_eff)
+
+
+## `spell_cast`: a boss spell shows face up at the centre (the player's own card is
+## already there), and either side's Spell Damage total shows when above 0.
+func _show_cast(step: AnimStep, d_eff: float) -> void:
+	var caster: String = str(step.data.get("side", ""))
+	var card_id: String = str(step.data.get("card_id", ""))
+	var centre: Vector2 = ui.rect("cast_zone").get_center()
+	if caster != "player" and card_id != "":
+		var face: Dictionary = ui.card_face(card_id)
+		if not face.is_empty():
+			var shown: CardFrame = CARD_FRAME_SCENE.instantiate()
+			add_child(shown)
+			shown.configure(ui)
+			shown.show_card(face, int(face.get("cost", 0)) if face.get("cost") != null else 0)
+			shown.position = centre - CardFrame.SIZE / 2.0
+			keep_for_step(step, shown)
+			var fade: Tween = step_tween(step)
+			fade.tween_interval(d_eff * float(ui.fx("spell_hold", 0.45)))
+			fade.tween_property(shown, "modulate:a", 0.0, d_eff * (1.0 - float(ui.fx("spell_hold", 0.45))))
+	var bonus: int = _spell_damage_total(caster)
+	if bonus > 0:
+		spawn_label(step, tr("hud.spell_damage_total") % bonus, ui.color("state_buff"), centre - position - Vector2(0, CardFrame.SIZE.y / 2.0), d_eff)
+
+
+func _spell_damage_total(caster: String) -> int:
+	if _view == null or caster == "":
+		return 0
+	var total: int = 0
+	for token: Dictionary in _view.side(StringName(caster)).board:
+		if not bool(token.get("silenced", false)):
+			total += ui.spell_damage(str(token.card_id))
+	return total
 
 
 func _cost_of(card: Dictionary) -> int:

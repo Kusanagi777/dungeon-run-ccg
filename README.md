@@ -32,10 +32,16 @@ godot --headless --path . --import
 | Collection | Cards | Class legendaries | New bosses | Run items |
 | --- | ---: | ---: | ---: | ---: |
 | [Law of the Jungle](design/expansions/law-of-the-jungle.md) | 138 | 12 | 2 | 3 |
+| [The Midnight Masquerade](design/expansions/midnight-masquerade.md) | 48 | 12 | 2 | 4 |
 
-Open **New run → Expansions** to inspect Primal Crown and its loaner deck.
-Unlock the collection with 20 run victories, two victories per class, and the
-three-encounter mastery trial. Then select the featured collection before
+Open **New run → Expansions** to see each collection's requirements.
+
+- **Law of the Jungle:** 20 run victories, two victories per class, and the
+  three-encounter Primal Crown mastery trial, which you can inspect there with
+  its loaner deck.
+- **The Midnight Masquerade:** 3 run victories and one defeat of the Mirror Sage.
+
+Once a collection is unlocked, select it as the featured collection before
 starting a run. Core-only runs retain their original content pools.
 
 ## Studio tooling

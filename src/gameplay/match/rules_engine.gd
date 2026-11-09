@@ -1447,7 +1447,9 @@ func return_to_hand(target_id: int) -> int:
 ## `attacks_used` carry over (no sickness reset). Emits `minion_transformed
 ## {side, entity_id, from_card_id, to_card_id}` (the C15 row; `entity_id` is
 ## the new minion's) plus `old_entity_id` and `position`, so the log ties the
-## two ids together. Returns the new id, or [constant NO_ENTITY].
+## two ids together, and the new minion's `attack`, `health` and `keywords`,
+## as `minion_summoned` carries them, so a view can draw it. Returns the new
+## id, or [constant NO_ENTITY].
 ## [codeblock]
 ## var sheep_id: int = engine.transform(target_id, "neutral_sheep")
 ## [/codeblock]
@@ -1480,6 +1482,7 @@ func transform(target_id: int, def_id: String) -> int:
 	emit(&"minion_transformed", {
 		"side": side, "entity_id": int(minion.entity_id), "from_card_id": str(old.def_id),
 		"to_card_id": def_id, "old_entity_id": target_id, "position": index,
+		"attack": attack(minion), "health": health(minion), "keywords": _effective_keywords(minion),
 	})
 	return int(minion.entity_id)
 

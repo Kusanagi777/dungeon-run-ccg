@@ -83,7 +83,8 @@ func test_data_loader_declares_only_the_manifest_and_schema_version_as_data() ->
 	# Assert — RECORD_VALIDATORS / CONFIG_VALIDATOR_EXEMPT are the stage-7
 	# composition contract (key → owner), not data; no number among them
 	assert_array(data_constants).contains_exactly_in_any_order(
-		["SCHEMA_VERSION_CURRENT", "FILE_MANIFEST", "RECORD_VALIDATORS", "CONFIG_VALIDATOR_EXEMPT"])
+		["SCHEMA_VERSION_CURRENT", "FILE_MANIFEST", "RECORD_VALIDATORS", "CONFIG_VALIDATOR_EXEMPT",
+		"COLLECTION_FILES", "COLLECTION_UNLOCK_VALIDATOR"])
 
 
 func test_matcher_catches_each_forbidden_form() -> void:

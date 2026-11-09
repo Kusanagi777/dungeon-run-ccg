@@ -152,6 +152,7 @@ func collection_rows() -> Array[Dictionary]:
 			"description": str(details.get("description", "")),
 			"unlocked": _meta.is_collection_unlocked(str(collection.id)),
 			"trial_id": str(details.get("trial_id", "")),
+			"requirements": str((details.get("unlock_metadata", {}) as Dictionary).get("description", "")),
 		})
 	return rows
 

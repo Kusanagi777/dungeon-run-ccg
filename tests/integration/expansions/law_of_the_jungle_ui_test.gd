@@ -25,7 +25,7 @@ func test_locked_collection_is_visible_but_cannot_be_featured() -> void:
 	await _rig.settle()
 	var picker: OptionButton = _rig.shell.find_child("FeaturedCollection", true, false)
 	assert_object(picker).is_not_null()
-	assert_int(picker.item_count).is_equal(2)
+	assert_int(picker.item_count).is_equal(3)
 	assert_bool(picker.is_item_disabled(1)).is_true()
 	assert_str(str(picker.get_item_metadata(0))).is_equal("")
 

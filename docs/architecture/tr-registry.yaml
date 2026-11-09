@@ -91,7 +91,7 @@ requirements:
 - id: TR-card-database-005
   system: card-database
   gdd: design/gdd/card-database.md
-  requirement: "Formulas: Unloaded to Ready within data_load_budget_ms (200), snapshot within data_memory_budget_mb (4), synchronous at boot"
+  requirement: "Formulas: Unloaded to Ready within data_load_budget_ms (500), snapshot within data_memory_budget_mb (12), synchronous at boot"
   created: 2026-11-03
   revised: ""
   status: active

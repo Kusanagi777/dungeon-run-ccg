@@ -45,7 +45,7 @@ Every definition and every tuning knob the game runs on is UTF-8 JSON under `ass
 | **Knowledge Risk** | HIGH for GDScript/Core generally (VERSION.md: 4.5–4.7 post-cutoff); the specific APIs this ADR uses are pre-4.4 and LOW, but several are **not covered by the engine reference** and are therefore verified by tests, not assumed (see details) |
 | **References Consulted** | `docs/engine-reference/godot/VERSION.md`, `breaking-changes.md` (4.3→4.4 Core row: `FileAccess.store_*` return `bool`; 4.6→4.7 GDScript rows), `current-best-practices.md` (GDScript 4.5+/4.7, Command Line section), `deprecated-apis.md` (`duplicate()` for nested *resources* → `duplicate_deep()`; untyped containers pattern); `docs/architecture/spikes/2026-11-03-engine-probes.md` (Probe B: `FileAccess.open` return/`get_open_error`, `store_string → true`, `flush()`/`close()` observed) |
 | **Post-Cutoff APIs Used** | None required. Two post-cutoff *rules* apply to the code: an override of a typed method needs an explicit `return` (4.7, sourced) and lambdas capture locals by value (sourced) — both affect how `ValidationReport` subclasses and validator Callables are written, not which API is called |
-| **Verification Required** | (1) `JSON.parse()` error line/message on a malformed file; (2) `HashingContext` SHA-256 known-answer across two machines (CI + dev); (3) `Dictionary.make_read_only()` nesting semantics (the freeze walks recursively and the test asserts a nested write is refused); (4) `assets/data/*.json` present in the exported PCK; (5) `Unloaded → Ready` ≤ `data_load_budget_ms` (200) on the reference machine. All are `NOT SOURCEABLE` from the engine reference and are listed with their tests under *Validation Criteria* |
+| **Verification Required** | (1) `JSON.parse()` error line/message on a malformed file; (2) `HashingContext` SHA-256 known-answer across two machines (CI + dev); (3) `Dictionary.make_read_only()` nesting semantics (the freeze walks recursively and the test asserts a nested write is refused); (4) `assets/data/*.json` present in the exported PCK; (5) `Unloaded → Ready` ≤ `data_load_budget_ms` (500) on the reference machine. All are `NOT SOURCEABLE` from the engine reference and are listed with their tests under *Validation Criteria* |
 
 > If Knowledge Risk is MEDIUM or HIGH, this ADR must be re-validated when the project upgrades engine versions.
 
@@ -75,7 +75,7 @@ Thirteen GDDs describe their numbers, records and effect texts as data, and the 
 - Architecture principle 5: "Data owns the numbers; code owns the verbs" — `schema_version_current` is the one exempt literal (card-database CR-5 step 3).
 - Architecture principle 6 and `Boot`: `CardDatabase.load()` is called once by `Boot.boot()` with the validators collected from `EffectValidator`, `BossAI`, `Treasures`, `MetaProgression` and each config owner (`architecture.md` Data Flow §5); the loader is a `RefCounted` with constructor injection and runs headless under gdUnit4 and under `godot --headless -s`.
 - Engine: `FileAccess.store_*` return `bool` since 4.4 (sourced) — relevant only to the validate command's report file, if any; the loader itself only reads. `JSON`, `HashingContext`, `Dictionary.make_read_only()` are **not covered** by `docs/engine-reference/godot/` (NOT SOURCEABLE); they predate the 4.3 cutoff and are verified on 4.7.2 by the tests named below.
-- Budget: `Unloaded → Ready` ≤ `data_load_budget_ms` (200), snapshot ≤ `data_memory_budget_mb` (4), synchronous at boot (card-database Formulas; TR-card-database-005).
+- Budget: `Unloaded → Ready` ≤ `data_load_budget_ms` (500), snapshot ≤ `data_memory_budget_mb` (12), synchronous at boot (card-database Formulas; TR-card-database-005).
 
 ### Requirements
 
@@ -274,7 +274,7 @@ Validator Callables bound at composition (`Boot.boot()`), with their owners — 
 
 ## Performance Implications
 - **CPU**: one synchronous parse + ~900 O(1) checks at v1 (card-database Formulas); budget 200 ms, expected < 50 ms; queries O(1) via `index_of`; `config()` is a Dictionary lookup, called once per owner.
-- **Memory**: frozen snapshot ≤ `data_memory_budget_mb` (4); `reload()` in debug briefly holds two snapshots.
+- **Memory**: frozen snapshot ≤ `data_memory_budget_mb` (12); `reload()` in debug briefly holds two snapshots.
 - **Load Time**: adds the data load to boot (`architecture.md` Data Flow §5 step 2) ahead of the profile load; this is the one place a boot stall can originate.
 - **Network**: none.
 

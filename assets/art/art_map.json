@@ -315,7 +315,18 @@
     "rush": "res://assets/art/glyphs/rush.png",
     "charge": "res://assets/art/glyphs/charge.png",
     "lifesteal": "res://assets/art/glyphs/lifesteal.png",
-    "poisonous": "res://assets/art/glyphs/poisonous.png"
+    "poisonous": "res://assets/art/glyphs/poisonous.png",
+    "battlecry": "res://assets/art/glyphs/battlecry.png",
+    "deathrattle": "res://assets/art/glyphs/deathrattle.png",
+    "discover": "res://assets/art/glyphs/discover.png",
+    "aura": "res://assets/art/glyphs/aura.png",
+    "spell_damage": "res://assets/art/glyphs/spell_damage.png",
+    "masked": "res://assets/art/glyphs/masked.png",
+    "damaged": "res://assets/art/glyphs/damaged.png",
+    "buffed": "res://assets/art/glyphs/buffed.png",
+    "attacked": "res://assets/art/glyphs/attacked.png",
+    "freeze": "res://assets/art/glyphs/frozen.png",
+    "silence": "res://assets/art/glyphs/silenced.png"
   },
   "cards": {
     "war_shield_squire": "shield",

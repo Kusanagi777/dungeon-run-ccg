@@ -12,6 +12,8 @@ extends RefCounted
 
 ## A set's colours are the palette tokens `<set>` and `<set>2`; a set without them reads as
 ## neutral, so a new set needs palette data and no code. Boss cards use the band colour.
+## The tag a Masked minion carries (The Midnight Masquerade, Unmask).
+const TAG_MASKED: String = "masked"
 const BOSS_SET: String = "boss"
 const BOSS_SET_TOKEN: String = "boss_band_1"
 const FALLBACK_TOKEN: String = "neutral"
@@ -95,6 +97,13 @@ func card_face(card_id: String) -> Dictionary:
 		var record: Variant = _db.card(card_id)
 		if record is Dictionary:
 			card_set = str(record.get("set", ""))
+	var tags: Array = []
+	if _db != null:
+		var tagged: Variant = _db.card(card_id)
+		if tagged is Dictionary:
+			tags = (tagged.get("tags", []) as Array).duplicate()
+	face["tags"] = tags
+	face["masked"] = tags.has(TAG_MASKED)
 	face["primary"] = color(set_token(card_set))
 	face["secondary"] = color(set_token(card_set, "2"))
 	face["card_id"] = card_id
@@ -153,5 +162,53 @@ func boss_identity(boss_def_id: String) -> Dictionary:
 
 
 ## The letter badge of [param keyword]: a glyph is the non-colour backup (art bible §7).
+## An unlisted name shows itself, never a first letter another badge may share.
 func glyph(keyword: String) -> String:
-	return str((config.get("glyphs", {}) as Dictionary).get(keyword, keyword.left(1).to_upper()))
+	return str((config.get("glyphs", {}) as Dictionary).get(keyword, keyword))
+
+
+## The badges of [param names] (keywords and states) in the one table order every
+## surface shares (`config.badges.order`), each `{name, texture, letter}`: the icon
+## when its glyph exists, else its letter, decided per badge. [param board] keeps
+## only the names `config.badges.board` shows on a token (no Battlecry, Discover or
+## spell-effect keywords once a minion is in play). Duplicates appear once.
+## [codeblock]
+## for badge: Dictionary in ui.badges(["taunt", "frozen"], true):
+##     print(badge.name, badge.letter, badge.texture != null)
+## [/codeblock]
+func badges(names: Array, board: bool) -> Array[Dictionary]:
+	var table: Dictionary = config.get("badges", {})
+	var order: Array = table.get("order", [])
+	var shown: Array = table.get("board", order)
+	var wanted: Dictionary = {}
+	for name: Variant in names:
+		if not board or shown.has(str(name)):
+			wanted[str(name)] = true
+	var ordered: Array[String] = []
+	for name: Variant in order:
+		if wanted.has(str(name)):
+			ordered.append(str(name))
+	for name: String in wanted:
+		if not ordered.has(name):
+			ordered.append(name)
+	var result: Array[Dictionary] = []
+	for name: String in ordered:
+		result.append({"name": name, "texture": art().glyph_texture(name), "letter": glyph(name)})
+	return result
+
+
+## The colour token a status flashes when it is gained (`config.badges.flash`),
+## `text_light` for any other badge.
+func badge_flash(badge_name: String) -> Color:
+	return color(str(((config.get("badges", {}) as Dictionary).get("flash", {}) as Dictionary).get(badge_name, "text_light")))
+
+
+## The printed Spell Damage of [param card_id], 0 when it has none.
+func spell_damage(card_id: String) -> int:
+	var record: Variant = _db.card(card_id) if _db != null and card_id != "" else null
+	return int(record.get("spell_damage", 0)) if record is Dictionary else 0
+
+
+## A presentation knob of `config.fx`, or [param fallback] when absent.
+func fx(key: String, fallback: Variant) -> Variant:
+	return (config.get("fx", {}) as Dictionary).get(key, fallback)

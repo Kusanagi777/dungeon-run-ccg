@@ -114,6 +114,10 @@ static func values_for(line: Dictionary, names: FeedNames) -> Dictionary:
 		if params.has(field):
 			values[field] = names.of(params[field])
 	values["card"] = names.card(str(params.get("card_id", params.get("picked_card_id", ""))))
+	if params.has("from_card_id"):
+		values["from"] = names.card(str(params.from_card_id))
+	if params.has("to_card_id"):
+		values["to"] = names.card(str(params.to_card_id))
 	values["side"] = _translate(KEY_SIDE % str(params.get("side", "")))
 	if params.has("intent_key"):
 		values["intent"] = _translate(KEY_INTENT % str(params.intent_key))

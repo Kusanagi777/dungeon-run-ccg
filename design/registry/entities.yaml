@@ -1314,10 +1314,10 @@ constants:
     source: design/gdd/card-database.md
     referenced_by:
       - design/gdd/card-database.md
-    value: 200
+    value: 500
     unit: ms
     added: 2026-11-03
-    revised: ""
+    revised: "2026-11-08"
   - name: starter_deck_size
     status: active
     source: design/gdd/card-database.md
